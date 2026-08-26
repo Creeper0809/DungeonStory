@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:gold-ingot
     amount: 1
   outputs:
-  - itemId: craft:dreamweave-ritual-banner
+  - outputLineId: output:recipe:craft:dreamweave-ritual-banner/000/main/craft:dreamweave-ritual-banner
+    role: 0
+    itemId: craft:dreamweave-ritual-banner
     amount: 1
     probability: 1

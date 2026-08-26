@@ -229,7 +229,7 @@ public static class ModularFacilityDebugScenarios
             .ToHashSet(StringComparer.Ordinal);
         List<string> rows = new List<string>
         {
-            "id\tcode\tname\tlayer\tfootprint\truntime\troles\tworkTypes\tabilityCount\truntimeHandlers\tstateModules\tstockSignals\tstorageCapacity\tseats\ttables\tservice\tproduction\tworkOutput\tcost\tphase\trefundRate\tlightingAbility\tlightIntensity\tlightRadius\tresult"
+            "id\tcode\tname\tlayer\tfootprint\truntime\troles\tworkTypes\tabilityCount\truntimeHandlers\tstateModules\tstockSignals\tstorageCapacity\tstorageMassGrams\tseats\ttables\tservice\tproduction\tworkOutput\tcost\tphase\trefundRate\tlightingAbility\tlightIntensity\tlightRadius\tresult"
         };
 
         Require(assets.Length == catalogCodes.Count, "Operational report asset/code count mismatch.");
@@ -255,6 +255,9 @@ public static class ModularFacilityDebugScenarios
             CheckContract(asset.runtimeArchetype.IsDefined(),
                 "runtime archetype is not defined", failures);
             CheckContract(storageAbility == null || storageAbility.IsValid, "invalid storage ability", failures);
+            CheckContract(storageAbility == null
+                    || storageAbility.maxStoredMassGrams > 0L,
+                "storage ability lacks positive gram authority", failures);
             CheckContract(seatingAbility == null || seatingAbility.IsValid, "invalid seating ability", failures);
             CheckContract(tableAbility == null || tableAbility.IsValid, "invalid table ability", failures);
             CheckContract(serviceAbility == null || serviceAbility.IsValid, "invalid service ability", failures);
@@ -302,6 +305,7 @@ public static class ModularFacilityDebugScenarios
                 string.Join(",", stateModules),
                 string.Join(",", stockSignals),
                 asset.GetStorageCapacity(),
+                asset.GetStorageMassCapacityGrams(),
                 asset.GetSeatCapacity(),
                 asset.GetTableCapacity(),
                 asset.GetServiceCapacity(),
@@ -792,7 +796,9 @@ public static class ModularFacilityDebugScenarios
                 numberFeedback,
                 workforce,
                 FacilityCrimeEditorTestDependencies.Evaluator,
-                new DungeonStory.Foundation.RandomStreamProvider(201), null, null, null);
+                new DungeonStory.Foundation.RandomStreamProvider(201), null, null, null,
+                CharacterAiEditorTestDependencies.RetailStockPhysical,
+                CharacterAiEditorTestDependencies.PhysicalStock);
 
             BuildingRoomOperationalSnapshot foodProfile =
                 hearth.GetRoomOperationalProfile();
@@ -817,7 +823,6 @@ public static class ModularFacilityDebugScenarios
                     && foodShelf.Inventory.SeedPhysicalStockForTest(StockCategory.Weapon, 1) == 0,
                 "Food shelf did not enforce its category.");
 
-            logistics.Inventory.ApplySnapshot(new WarehouseInventorySnapshot { maxCapacity = 60 });
             Require(logistics.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 1) == 1
                     && logistics.Inventory.SeedPhysicalStockForTest(StockCategory.Weapon, 1) == 1
                     && logistics.Inventory.SeedPhysicalStockForTest(StockCategory.Mana, 1) == 1,
@@ -826,8 +831,16 @@ public static class ModularFacilityDebugScenarios
 
             Require(ShopStockCatalog.TryGetSaleItemByCategory(StockCategory.Weapon, out SaleItem weaponItem),
                 "Could not load a weapon sale item for specialization rejection.");
-            Require(foodShop.ReceiveRestock(weaponItem, 1, 1, out string rejectReason) == 0
-                    && rejectReason.Contains("맞지 않는"),
+            RetailStockLotSnapshot wrongCategoryLot = CreateScenarioRetailLot(
+                weaponItem,
+                "retail-source:fixture:wrong-category");
+            Require(!foodShop.TryReceiveExactRetailLots(
+                        new[] { wrongCategoryLot },
+                        1,
+                        out int rejectedQuantity,
+                        out string rejectReason)
+                    && rejectedQuantity == 0
+                    && rejectReason == "retail-lot-definition-mismatch",
                 $"Food shop accepted a weapon restock: {rejectReason}");
 
             Grid weaponGrid = CreateFormalRoomGrid(18, created, cleanup);
@@ -841,7 +854,9 @@ public static class ModularFacilityDebugScenarios
                 numberFeedback,
                 workforce,
                 FacilityCrimeEditorTestDependencies.Evaluator,
-                new DungeonStory.Foundation.RandomStreamProvider(203), null, null, null);
+                new DungeonStory.Foundation.RandomStreamProvider(203), null, null, null,
+                CharacterAiEditorTestDependencies.RetailStockPhysical,
+                CharacterAiEditorTestDependencies.PhysicalStock);
             Require(weaponShop.ActiveStockCategory == StockCategory.Weapon,
                 $"Weapon room specialized as {weaponShop.ActiveStockCategory}.");
             VerifyShopProducts(weaponShop, StockCategory.Weapon, "weapon specialization");
@@ -855,7 +870,9 @@ public static class ModularFacilityDebugScenarios
                 numberFeedback,
                 workforce,
                 FacilityCrimeEditorTestDependencies.Evaluator,
-                new DungeonStory.Foundation.RandomStreamProvider(205), null, null, null);
+                new DungeonStory.Foundation.RandomStreamProvider(205), null, null, null,
+                CharacterAiEditorTestDependencies.RetailStockPhysical,
+                CharacterAiEditorTestDependencies.PhysicalStock);
             Require(generalShop.ActiveStockCategory == StockCategory.General,
                 $"General room specialized as {generalShop.ActiveStockCategory}.");
             VerifyShopProducts(generalShop, StockCategory.General, "general specialization");
@@ -870,7 +887,9 @@ public static class ModularFacilityDebugScenarios
                 numberFeedback,
                 workforce,
                 FacilityCrimeEditorTestDependencies.Evaluator,
-                new DungeonStory.Foundation.RandomStreamProvider(207), null, null, null);
+                new DungeonStory.Foundation.RandomStreamProvider(207), null, null, null,
+                CharacterAiEditorTestDependencies.RetailStockPhysical,
+                CharacterAiEditorTestDependencies.PhysicalStock);
             Require(manaShop.ActiveStockCategory == StockCategory.Mana,
                 $"Mana room specialized as {manaShop.ActiveStockCategory}.");
         }
@@ -908,13 +927,12 @@ public static class ModularFacilityDebugScenarios
                 new NoopFloatingNumberFeedbackService(),
                 new NoopWorkforceReplanService(),
                 FacilityCrimeEditorTestDependencies.Evaluator,
-                new DungeonStory.Foundation.RandomStreamProvider(209), null, null, null);
+                new DungeonStory.Foundation.RandomStreamProvider(209), null, null, null,
+                CharacterAiEditorTestDependencies.RetailStockPhysical,
+                CharacterAiEditorTestDependencies.PhysicalStock);
 
-            if (!shop.HasAvailableStock
-                && ShopStockCatalog.TryGetSaleItemByCategory(shop.ActiveStockCategory, out SaleItem stockItem))
-            {
-                shop.ReceiveRestock(stockItem, 4, 4, out _);
-            }
+            Require(shop.HasAvailableStock,
+                "Authored exact retail stock was not materialized for the AI admission fixture.");
 
             CharacterActor[] visitors = Enumerable.Range(1, 4)
                 .Select(index => CreateReservationActor($"Modular AI Visitor {index}", cleanup))
@@ -1215,6 +1233,37 @@ public static class ModularFacilityDebugScenarios
             $"{context} exposed a product outside {expected}.");
     }
 
+    private static RetailStockLotSnapshot CreateScenarioRetailLot(
+        SaleItem saleItem,
+        string sourceOperationId)
+    {
+        ItemDefinitionId itemDefinitionId = default;
+        long unitMassGrams = 0L;
+        bool requiresUniqueInstance = false;
+        bool hasDescriptor = saleItem != null
+            && ShopStockCatalog.TryGetPhysicalDescriptor(
+                    saleItem.id,
+                    out itemDefinitionId,
+                    out unitMassGrams,
+                    out requiresUniqueInstance);
+        Require(hasDescriptor,
+            $"Sale item '{saleItem?.id}' has no exact physical descriptor.");
+        return new RetailStockLotSnapshot
+        {
+            saleItemId = saleItem.id,
+            itemDefinitionId = itemDefinitionId.Value,
+            itemInstanceId = requiresUniqueInstance
+                ? "fixture:retail-instance:wrong-category"
+                : string.Empty,
+            sourceStackId = requiresUniqueInstance
+                ? "fixture:retail-stack:wrong-category"
+                : string.Empty,
+            quantity = 1,
+            unitMassGrams = unitMassGrams,
+            sourceOperationId = sourceOperationId
+        };
+    }
+
     private static GameSessionState CreateGameData()
     {
         GameSessionState gameData = new GameSessionState();
@@ -1346,13 +1395,39 @@ public static class ModularFacilityDebugScenarios
 
             Require(created.Count == assets.Length,
                 $"Expected {assets.Length} runtime instances, created {created.Count}.");
+            Facility[] runtimeWarehouses = created
+                .OfType<Facility>()
+                .Where(item => item.HasWarehouseInventory)
+                .ToArray();
+            int authoredWarehouseCount = assets.Count(asset =>
+                asset.GetAbility<BuildingStorageAbility>()?.capacity > 0);
+            Require(runtimeWarehouses.Length == authoredWarehouseCount,
+                $"Expected {authoredWarehouseCount} runtime warehouses, "
+                + $"created {runtimeWarehouses.Length}.");
+            Require(runtimeWarehouses.All(item =>
+                    item.Inventory.HasMassCapacityAuthority
+                    && item.Inventory.MaxMassGrams > 0L),
+                "A Modular runtime warehouse did not project positive gram authority.");
             Facility warehouse = created.FirstOrDefault((item) => item != null && item.id == 1050) as Facility;
             Require(warehouse != null && warehouse.HasWarehouseInventory,
                 "L01 did not create its warehouse inventory.");
             Require(warehouse.Inventory.MaxCapacity == warehouse.GetInternalStockCapacity(),
                 "L01 warehouse inventory did not retain its configured capacity.");
+            Require(warehouse.Inventory.HasMassCapacityAuthority
+                    && warehouse.Inventory.MaxMassGrams == 25_000L,
+                "L01 warehouse inventory did not project its 25,000g authority.");
             Require(warehouse.Inventory.TotalStock == 0,
                 "L01 warehouse must start empty; stock is derived from physical items only.");
+            Facility cratePile = created.FirstOrDefault(
+                (item) => item != null && item.id == 1051) as Facility;
+            Require(cratePile != null && cratePile.HasWarehouseInventory,
+                "L02 did not create its warehouse inventory.");
+            Require(cratePile.Inventory.HasMassCapacityAuthority
+                    && cratePile.Inventory.MaxMassGrams == 12_500L
+                    && cratePile.Inventory.MaxCapacity == 16,
+                "L02 runtime warehouse did not project 12,500g while preserving legacy count metadata.");
+            Require(cratePile.Inventory.TotalStock == 0,
+                "L02 warehouse must start empty; stock is derived from physical items only.");
             Require(created.FirstOrDefault((item) => item != null && item.id == 1012) is Shop,
                 "S01 did not create a Shop runtime component.");
         }
@@ -1582,7 +1657,9 @@ public static class ModularFacilityDebugScenarios
                                 numberFeedback,
                                 workforce,
                                 FacilityCrimeEditorTestDependencies.Evaluator,
-                                new DungeonStory.Foundation.RandomStreamProvider(211), null, null, null);
+                                new DungeonStory.Foundation.RandomStreamProvider(211), null, null, null,
+                                CharacterAiEditorTestDependencies.RetailStockPhysical,
+                                CharacterAiEditorTestDependencies.PhysicalStock);
                         }
                     }
 
@@ -1919,8 +1996,12 @@ public static class ModularFacilityDebugScenarios
         public bool IsGridMovement => true;
     }
 
-    private sealed class EmptyStockQuery : IStockQuery
+    private sealed class EmptyStockQuery :
+        IStockQuery,
+        IWarehousePhysicalMassQueryPort
     {
+        public int PhysicalItemStackVersion => 0;
+        public long PhysicalMassAuthorityRevision => 0L;
         public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
             Array.Empty<WorldItemStackSnapshot>();
         public int GetGlobalQuantity(string itemDefinitionId) => 0;
@@ -1931,6 +2012,11 @@ public static class ModularFacilityDebugScenarios
             BuildingInstanceId warehouseId,
             StockCategory category) => 0;
         public int GetWarehouseTotal(BuildingInstanceId warehouseId) => 0;
+        public long GetWarehouseStoredMassGrams(
+            BuildingInstanceId warehouseId) => 0L;
+        public long GetWarehouseStoredMassRevision(
+            BuildingInstanceId warehouseId) => 0L;
+        public long GetDefinitionUnitMassGrams(string itemDefinitionId) => 1L;
     }
 
     private sealed class TestRoomSettingsProvider : IRoomEnvironmentSettingsProvider
@@ -2026,6 +2112,31 @@ public static class ModularFacilityDebugScenarios
         {
             saleItem = LoadSaleItems().FirstOrDefault(candidate => candidate.id == saleItemId);
             return saleItem != null;
+        }
+
+        public bool TryGetPhysicalDescriptor(
+            int saleItemId,
+            out ItemDefinitionId itemDefinitionId,
+            out long unitMassGrams,
+            out bool requiresUniqueInstance)
+        {
+            itemDefinitionId = default;
+            unitMassGrams = 0L;
+            requiresUniqueInstance = false;
+            if (!TryGetSaleItem(saleItemId, out SaleItem saleItem)) return false;
+            ItemDefinitionSO definition = AssetDatabase
+                .FindAssets("t:ItemDefinitionSO", new[] { "Assets" })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<ItemDefinitionSO>)
+                .FirstOrDefault(candidate => candidate != null
+                    && candidate.StableId.Equals(saleItem.ItemDefinitionId));
+            if (definition == null) return false;
+            itemDefinitionId = definition.StableId;
+            unitMassGrams = PhysicalMassGrams
+                .FromCanonicalKilograms(definition.UnitWeight)
+                .Value;
+            requiresUniqueInstance = definition.MaxStack == 1;
+            return true;
         }
 
         public bool TryGetSaleItemByCategory(StockCategory category, out SaleItem saleItem)

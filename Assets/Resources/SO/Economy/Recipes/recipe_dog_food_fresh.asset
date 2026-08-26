@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9072
+  id: 9073
   recipeId: recipe:dog-food-fresh
   displayName: "\uC2E0\uC120 \uAC1C\uBC25"
   description: "\uC2E0\uC120 \uAC1C\uBC25 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: resource:twilight-grain
     amount: 1
   outputs:
-  - itemId: feed:dog-food
+  - outputLineId: output:main
+    role: 0
+    itemId: feed:dog-food
     amount: 2
     probability: 1

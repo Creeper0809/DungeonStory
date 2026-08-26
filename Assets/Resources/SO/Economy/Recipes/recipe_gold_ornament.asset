@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9083
+  id: 9084
   recipeId: recipe:gold-ornament
   displayName: "\uAE08 \uC7A5\uC2DD"
   description: "\uAE08 \uC7A5\uC2DD \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: resource:mana-crystal
     amount: 1
   outputs:
-  - itemId: craft:gold-ornament
+  - outputLineId: output:recipe:gold-ornament/000/main/craft:gold-ornament
+    role: 0
+    itemId: craft:gold-ornament
     amount: 1
     probability: 1

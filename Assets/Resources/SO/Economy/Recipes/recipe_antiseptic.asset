@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9088
+  id: 9089
   recipeId: recipe:antiseptic
   displayName: "\uC18C\uB3C5\uC81C"
   description: "\uC18C\uB3C5\uC81C \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: resource:saltstone
     amount: 1
   outputs:
-  - itemId: medicine:antiseptic
+  - outputLineId: output:recipe:antiseptic/000/main/medicine:antiseptic
+    role: 0
+    itemId: medicine:antiseptic
     amount: 2
     probability: 1

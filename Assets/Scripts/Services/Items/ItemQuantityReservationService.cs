@@ -369,6 +369,20 @@ public sealed class ItemQuantityReservationService :
         List<NormalizedRequest> normalized = NormalizeRequests(requests, out failure);
         if (normalized == null)
             return false;
+        foreach (NormalizedRequest candidate in normalized)
+        {
+            if (repository.TryGetActiveProductionCustodyDrainForStack(
+                    candidate.StackId,
+                    out _))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ItemReservationOperationConflict,
+                    operationId,
+                    "production-custody-drain-active",
+                    candidate.StackId);
+                return false;
+            }
+        }
 
         if (leasesByOwnerOperationId.TryGetValue(
                 operationId,
@@ -560,8 +574,27 @@ public sealed class ItemQuantityReservationService :
     }
 
     public bool Release(string leaseId, ItemReservationReleaseReason reason)
+        => ReleaseCore(leaseId, reason, string.Empty);
+
+    private bool ReleaseCore(
+        string leaseId,
+        ItemReservationReleaseReason reason,
+        string authorityReleasePlanFingerprint)
     {
         string id = leaseId?.Trim() ?? string.Empty;
+        if (!leasesById.TryGetValue(id, out ItemQuantityLease existing))
+            return false;
+        if (repository.TryGetActiveCapacityRoutingAuthorityRelease(
+                existing.ownerOperationId,
+                out ProductionCapacityRoutingActorAuthorityReleaseSaveData
+                    activeRelease)
+            && !string.Equals(
+                activeRelease.planFingerprint,
+                authorityReleasePlanFingerprint,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
         if (!leasesById.Remove(id, out ItemQuantityLease lease))
             return false;
 
@@ -715,6 +748,149 @@ public sealed class ItemQuantityReservationService :
         RefreshPositions(positions);
         consumedSlices = consumed;
         return true;
+    }
+
+    internal ExactAuthorityReleaseStatus TryReleaseExactOwnedSet(
+        string ownerOperationId,
+        IReadOnlyList<string> expectedLeaseIds,
+        ItemReservationReleaseReason reason,
+        string authorityReleasePlanFingerprint,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string owner = ownerOperationId ?? string.Empty;
+        string[] expected = (expectedLeaseIds ?? Array.Empty<string>())
+            .ToArray();
+        if (owner.Length == 0
+            || !string.Equals(owner, owner.Trim(), StringComparison.Ordinal)
+            || expected.Length == 0
+            || expected.Any(value => string.IsNullOrEmpty(value)
+                || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+            || expected.Distinct(StringComparer.Ordinal).Count() != expected.Length
+            || !expected.SequenceEqual(
+                expected.OrderBy(value => value, StringComparer.Ordinal),
+                StringComparer.Ordinal))
+        {
+            failureReason =
+                "capacity-routing-exact-lease-release-plan-conflict";
+            return ExactAuthorityReleaseStatus.Conflict;
+        }
+        if (!repository.TryGetActiveCapacityRoutingAuthorityRelease(
+                owner,
+                out ProductionCapacityRoutingActorAuthorityReleaseSaveData plan)
+            || !string.Equals(
+                plan.planFingerprint,
+                authorityReleasePlanFingerprint,
+                StringComparison.Ordinal))
+        {
+            failureReason =
+                "capacity-routing-exact-lease-release-plan-conflict";
+            return ExactAuthorityReleaseStatus.Conflict;
+        }
+        ProductionCapacityRoutingOperationAuthorityRowSaveData row =
+            plan.operations.FirstOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.operationId,
+                    owner,
+                    StringComparison.Ordinal));
+        if (row == null
+            || !row.quantityLeaseIds.SequenceEqual(
+                expected,
+                StringComparer.Ordinal))
+        {
+            failureReason =
+                "capacity-routing-exact-lease-release-plan-conflict";
+            return ExactAuthorityReleaseStatus.Conflict;
+        }
+
+        string[] live = leasesByOwnerOperationId.TryGetValue(
+                owner,
+                out List<string> ownerLeaseIds)
+            ? ownerLeaseIds.Where(leasesById.ContainsKey)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray()
+            : Array.Empty<string>();
+        if (live.Length == 0)
+            return ExactAuthorityReleaseStatus.Replay;
+        if (!live.SequenceEqual(expected, StringComparer.Ordinal)
+            || live.Any(leaseId => !leasesById.TryGetValue(
+                    leaseId,
+                    out ItemQuantityLease lease)
+                || !string.Equals(
+                    lease.ownerOperationId,
+                    owner,
+                    StringComparison.Ordinal)))
+        {
+            failureReason =
+                "capacity-routing-exact-lease-release-live-set-conflict";
+            return ExactAuthorityReleaseStatus.Conflict;
+        }
+        foreach (string leaseId in live)
+        {
+            if (!ReleaseCore(
+                    leaseId,
+                    reason,
+                    authorityReleasePlanFingerprint))
+            {
+                failureReason =
+                    "capacity-routing-exact-lease-release-failed:" + leaseId;
+                return ExactAuthorityReleaseStatus.Conflict;
+            }
+        }
+        return ExactAuthorityReleaseStatus.Applied;
+    }
+
+    /// <summary>
+    /// Restores the exact lease snapshot owned by an in-process physical
+    /// transaction that failed after consuming reservation slices. This is
+    /// deliberately internal: gameplay code must never resurrect leases, but
+    /// the item transaction boundary must be able to roll its own mutation
+    /// back before returning failure.
+    /// </summary>
+    internal void RestoreLeaseSnapshotForFailedPhysicalCommit(
+        ItemQuantityLease snapshot)
+    {
+        if (snapshot == null
+            || string.IsNullOrWhiteSpace(snapshot.leaseId)
+            || snapshot.remainingQuantity <= 0
+            || snapshot.slices == null
+            || snapshot.slices.Count == 0
+            || snapshot.slices.Any(slice => slice == null
+                || slice.quantity <= 0
+                || !repository.RecordsById.ContainsKey(slice.stackId)))
+        {
+            throw new InvalidOperationException(
+                "Cannot restore an invalid item quantity lease snapshot.");
+        }
+
+        if (leasesById.ContainsKey(snapshot.leaseId))
+        {
+            Release(
+                snapshot.leaseId,
+                ItemReservationReleaseReason.Cancelled);
+        }
+
+        foreach (IGrouping<string, ItemLeaseSlice> group in snapshot.slices
+                     .GroupBy(slice => slice.stackId, StringComparer.Ordinal))
+        {
+            WorldItemStackRecord record = repository.RecordsById[group.Key];
+            int quantity = group.Sum(slice => slice.quantity);
+            if (record.quantity - GetCachedReserved(group.Key) < quantity
+                || group.Any(slice => !string.Equals(
+                    ItemReservationSignature.Create(
+                        record.itemId,
+                        record.components),
+                    slice.expectedStackSignature,
+                    StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    $"Cannot restore item quantity lease '{snapshot.leaseId}' because source '{group.Key}' changed.");
+            }
+        }
+
+        ItemQuantityLease restored = snapshot.Clone();
+        RegisterLease(restored);
+        TouchStacks(restored.slices.Select(slice => slice.stackId));
     }
 
     public bool TryRetargetSlices(

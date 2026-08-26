@@ -59,11 +59,6 @@ public interface IBuildingInfoPresentationPort
 
 public interface IBuildingItemStackPort
 {
-    int ConsumeWarehouseStock(
-        IBuildingWorldEntryPort warehouse,
-        StockCategory category,
-        int amount);
-
     bool SpawnStockInWarehouse(
         IBuildingWorldEntryPort warehouse,
         StockCategory category,

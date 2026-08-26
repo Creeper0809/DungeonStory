@@ -6,6 +6,11 @@ public interface IShopStockCatalog
 {
     bool TryGetStockInfoForShop(int shopId, out StockInfo stockInfo);
     bool TryGetSaleItem(int saleItemId, out SaleItem saleItem);
+    bool TryGetPhysicalDescriptor(
+        int saleItemId,
+        out ItemDefinitionId itemDefinitionId,
+        out long unitMassGrams,
+        out bool requiresUniqueInstance);
     StockCategory GetStockCategory(int saleItemId);
 }
 
@@ -36,6 +41,33 @@ public sealed class ShopStockCatalog : IShopStockCatalog
     {
         IReadOnlyDictionary<int, SaleItem> saleItems = dataCatalog.GetData<SaleItem>();
         return saleItems.TryGetValue(saleItemId, out saleItem);
+    }
+
+    public bool TryGetPhysicalDescriptor(
+        int saleItemId,
+        out ItemDefinitionId itemDefinitionId,
+        out long unitMassGrams,
+        out bool requiresUniqueInstance)
+    {
+        itemDefinitionId = default;
+        unitMassGrams = 0L;
+        requiresUniqueInstance = false;
+        if (!TryGetSaleItem(saleItemId, out SaleItem saleItem)
+            || saleItem == null
+            || !itemDefinitions.TryGet(
+                saleItem.ItemDefinitionId,
+                out ItemDefinitionSO definition)
+            || definition == null)
+        {
+            return false;
+        }
+
+        itemDefinitionId = definition.StableId;
+        unitMassGrams = PhysicalMassGrams
+            .FromCanonicalKilograms(definition.UnitWeight)
+            .Value;
+        requiresUniqueInstance = definition.MaxStack == 1;
+        return true;
     }
 
     public StockCategory GetStockCategory(int saleItemId)

@@ -61,8 +61,11 @@ public sealed partial class CharacterMedicalRuntime :
         IGameEventBus gameEventBus,
         ICharacterCarePriorityQuery carePriorityQuery,
         IResourceEconomyContentCatalog resourceCatalog,
+        IItemDefinitionCatalog itemDefinitions,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        ICharacterPerformanceQuery performance)
+        ICharacterPerformanceQuery performance,
+        IPhysicalFacilityItemSinkGateway physicalSinks,
+        IPackagedLotTareDispositionService packagedTare)
     {
         this.bodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
@@ -75,8 +78,10 @@ public sealed partial class CharacterMedicalRuntime :
         this.resourceCatalog = resourceCatalog
             ?? throw new ArgumentNullException(nameof(resourceCatalog));
         supplyCoordinator = new CharacterMedicalSupplyCoordinator(
-            this.world,
-            this.resourceCatalog);
+            new CharacterMedicalSupplyStockPort(this.world.ItemStacks),
+            this.resourceCatalog,
+            physicalSinks,
+            packagedTare);
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.performance = performance
@@ -85,6 +90,7 @@ public sealed partial class CharacterMedicalRuntime :
             this.bodyHealthQuery,
             this.world.WorldRegistry,
             this.resourceCatalog,
+            itemDefinitions ?? throw new ArgumentNullException(nameof(itemDefinitions)),
             this.aggregateRootStore);
         CharacterMedicalProjectionContext projectionContext = new(
             downedOccupants,
@@ -114,8 +120,11 @@ public sealed partial class CharacterMedicalRuntime :
     public void PublishRestoreCandidate() => restoreCoordinator.PublishRestoreCandidate();
     public void RollbackPublishedRestoreCandidate() =>
         restoreCoordinator.RollbackPublishedRestoreCandidate();
-    public void CompleteRestoreCandidate() =>
+    public void CompleteRestoreCandidate()
+    {
         restoreCoordinator.CompleteRestoreCandidate();
+        RecoverPendingMedicalSuppliesOrThrow();
+    }
     public void DiscardRestoreCandidate() => restoreCoordinator.DiscardRestoreCandidate();
 
     public IReadOnlyList<CharacterMedicalOrder> ActiveOrders
@@ -135,11 +144,28 @@ public sealed partial class CharacterMedicalRuntime :
 
     public void Initialize()
     {
+        RecoverPendingMedicalSuppliesOrThrow();
         downedSubscription = gameEventBus.Subscribe<CharacterBodyHealthDownedEvent>(
             gameEvent => NotifyCharacterDowned(gameEvent.Actor));
         recoveredSubscription = gameEventBus.Subscribe<CharacterBodyHealthRecoveredEvent>(
             gameEvent => NotifyCharacterRecovered(gameEvent.Actor));
         deathSubscription = gameEventBus.Subscribe<CharacterDeathEvent>(OnCharacterDeath);
+    }
+
+    private void RecoverPendingMedicalSuppliesOrThrow()
+    {
+        foreach (CharacterMedicalOrder order in orders
+                     .OrderBy(value => value.orderId, StringComparer.Ordinal))
+        {
+            if (!supplyCoordinator.TryRecoverPendingSupply(
+                    order,
+                    out string recoveryFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Medical supply recovery failed for '{order.orderId}': "
+                    + recoveryFailure);
+            }
+        }
     }
 
     public void Dispose()
@@ -1170,6 +1196,16 @@ public sealed partial class CharacterMedicalRuntime :
         if (order == null
             || string.IsNullOrWhiteSpace(order.treatmentMaterialDestinationId))
         {
+            return;
+        }
+
+        if (!supplyCoordinator.TryRecoverPendingSupply(
+                order,
+                out _))
+        {
+            // A committed physical Sink must retain its order provenance until
+            // package output and acknowledgement succeed. Releasing the
+            // destination here would orphan that receipt or teleport stock.
             return;
         }
 

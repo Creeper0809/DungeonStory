@@ -6,32 +6,6 @@ using UnityEngine.Scripting.APIUpdating;
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public readonly struct ItemDefinitionId : IEquatable<ItemDefinitionId>
-{
-    private readonly string value;
-
-    public ItemDefinitionId(string value)
-    {
-        this.value = Normalize(value);
-    }
-
-    public string Value => value ?? string.Empty;
-    public bool IsValid => !string.IsNullOrWhiteSpace(Value);
-
-    public bool Equals(ItemDefinitionId other) =>
-        string.Equals(Value, other.Value, StringComparison.Ordinal);
-
-    public override bool Equals(object obj) => obj is ItemDefinitionId other && Equals(other);
-    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Value);
-    public override string ToString() => Value;
-
-    public static explicit operator ItemDefinitionId(string value) => new(value);
-
-    public static string Normalize(string value) => value?.Trim() ?? string.Empty;
-}
-
-[Serializable]
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public abstract class ItemFeatureDefinition
 {
     public abstract string FeatureId { get; }
@@ -115,6 +89,78 @@ public sealed class MedicineItemFeature : ItemFeatureDefinition
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class PackagedLotItemFeature : ItemFeatureDefinition
+{
+    [Min(1)] public int packageTareGrams = 1;
+    public PackageTareDisposition tareDisposition =
+        PackageTareDisposition.ReusableContainerReturn;
+    public string containerItemId = string.Empty;
+
+    public override string FeatureId => "packaged-lot";
+
+    public override IEnumerable<string> Validate(ItemDefinitionSO owner)
+    {
+        if (packageTareGrams <= 0)
+        {
+            yield return "Packaged lot tare mass must be positive.";
+        }
+        if (tareDisposition is PackageTareDisposition.None
+            or PackageTareDisposition.BulkInfrastructureNotInUnit)
+        {
+            yield return "Packaged lot requires a physical tare disposition.";
+        }
+
+        bool requiresPhysicalOutput = tareDisposition is
+            PackageTareDisposition.ReusableContainerReturn
+            or PackageTareDisposition.DisposableWasteByproduct
+            or PackageTareDisposition.TransferredWithOutput;
+        if (requiresPhysicalOutput
+            && (string.IsNullOrWhiteSpace(containerItemId)
+                || !string.Equals(
+                    containerItemId,
+                    containerItemId.Trim(),
+                    StringComparison.Ordinal)))
+        {
+            yield return "Packaged lot physical tare output requires a canonical item ID.";
+        }
+        if (owner != null
+            && string.Equals(owner.ItemId, containerItemId, StringComparison.Ordinal))
+        {
+            yield return "Packaged lot cannot return itself as its tare output.";
+        }
+
+        long totalUnitGrams = 0L;
+        bool canonicalMass = owner != null;
+        if (canonicalMass)
+        {
+            try
+            {
+                totalUnitGrams = PhysicalMassGrams
+                    .FromCanonicalKilograms(owner.UnitWeight)
+                    .Value;
+            }
+            catch (Exception exception) when (
+                exception is ArgumentOutOfRangeException
+                || exception is InvalidOperationException
+                || exception is OverflowException)
+            {
+                canonicalMass = false;
+            }
+        }
+        if (!canonicalMass)
+        {
+            yield return "Packaged lot owner has no canonical gram mass.";
+            yield break;
+        }
+        if (packageTareGrams >= totalUnitGrams)
+        {
+            yield return "Packaged lot tare must be smaller than total unit mass.";
+        }
+    }
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class VaccineItemFeature : ItemFeatureDefinition
 {
     public string diseaseId = string.Empty;
@@ -175,12 +221,62 @@ public enum CropTreatmentKind
     Fungicide = 2
 }
 
+public readonly struct CropTreatmentPolicy
+{
+    public CropTreatmentPolicy(
+        CropTreatmentKind kind,
+        int quantityPerApplication,
+        float requiredWork,
+        float effectAmount,
+        int cooldownDays)
+    {
+        Kind = kind;
+        QuantityPerApplication = quantityPerApplication;
+        RequiredWork = requiredWork;
+        EffectAmount = effectAmount;
+        CooldownDays = cooldownDays;
+    }
+
+    public CropTreatmentKind Kind { get; }
+    public int QuantityPerApplication { get; }
+    public float RequiredWork { get; }
+    public float EffectAmount { get; }
+    public int CooldownDays { get; }
+    public bool IsValid => QuantityPerApplication > 0
+        && RequiredWork > 0f
+        && !float.IsNaN(RequiredWork)
+        && !float.IsInfinity(RequiredWork)
+        && EffectAmount > 0f
+        && !float.IsNaN(EffectAmount)
+        && !float.IsInfinity(EffectAmount)
+        && CooldownDays >= 0;
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CropTreatmentItemFeature : ItemFeatureDefinition
 {
     public CropTreatmentKind treatmentKind;
+    [Min(1)] public int quantityPerApplication = 1;
+    [Min(0.1f)] public float requiredWork = 1f;
+    [Min(0.1f)] public float effectAmount = 1f;
+    [Min(0)] public int cooldownDays = 1;
     public override string FeatureId => "crop-treatment";
+
+    public CropTreatmentPolicy ToPolicy() => new(
+        treatmentKind,
+        quantityPerApplication,
+        requiredWork,
+        effectAmount,
+        cooldownDays);
+
+    public override IEnumerable<string> Validate(ItemDefinitionSO owner)
+    {
+        if (!Enum.IsDefined(typeof(CropTreatmentKind), treatmentKind))
+            yield return "Crop treatment kind is invalid.";
+        if (!ToPolicy().IsValid)
+            yield return "Crop treatment quantity, work, effect, or cooldown is invalid.";
+    }
 }
 
 [Serializable]
@@ -372,6 +468,14 @@ public abstract class ItemDefinitionSO : DataScriptableObject
     public Sprite Sprite => sprite;
     public IReadOnlyList<ItemFeatureDefinition> Features => features;
 
+    // Semantic capture reads authored values before gameplay accessors clamp or
+    // normalize them, so malformed authority fails instead of hashing a repair.
+    internal string AuthoredItemId => itemId;
+    internal StockCategory AuthoredStockCategory => stockCategory;
+    internal float AuthoredUnitWeight => unitWeight;
+    internal int AuthoredMaxStack => maxStack;
+    internal int AuthoredUnitPrice => unitPrice;
+
     public bool TryGetFeature<T>(out T feature) where T : ItemFeatureDefinition
     {
         feature = features?.OfType<T>().FirstOrDefault();
@@ -416,6 +520,8 @@ public abstract class ItemDefinitionSO : DataScriptableObject
         string equipmentId = TryGetFeature(out EquipmentItemFeature equipment)
             ? equipment.equipmentDefinitionId?.Trim() ?? string.Empty
             : string.Empty;
+        PackagedLotItemFeature packagedLot =
+            GetFeatureOrDefault<PackagedLotItemFeature>();
         return new DungeonItemDefinition(
             ItemId,
             DisplayName,
@@ -428,7 +534,10 @@ public abstract class ItemDefinitionSO : DataScriptableObject
             equipmentId,
             this is ResourceItemDefinitionSO resource
                 ? resource.Kind
-                : ResourceItemKind.Raw);
+                : ResourceItemKind.Raw,
+            packagedLot?.packageTareGrams ?? 0,
+            packagedLot?.tareDisposition ?? PackageTareDisposition.None,
+            packagedLot?.containerItemId ?? string.Empty);
     }
 
 #if UNITY_EDITOR

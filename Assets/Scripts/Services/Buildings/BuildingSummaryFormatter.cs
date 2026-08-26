@@ -264,6 +264,16 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
 
         if (building is IWarehouseFacility warehouse && warehouse.HasWarehouseInventory)
         {
+            if (warehouse.Inventory.HasMassCapacityAuthority)
+            {
+                return BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Warehouse.Capacity",
+                    WarehouseMassUiFormatter.FormatKilograms(
+                        warehouse.Inventory.StoredMassGrams),
+                    WarehouseMassUiFormatter.FormatKilograms(
+                        warehouse.Inventory.MaxMassGrams));
+            }
+
             return warehouse.Inventory.HasCapacityLimit
                 ? BuildingSummaryUiTextQuery.Get(
                     "BuildingSummary.Warehouse.Capacity",

@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212033836253932
-    - rid: 7737212033836253933
-    - rid: 7737212033836253934
-    - rid: 7737212033836253935
-    - rid: 7737212033836253936
+    - rid: 7737212199244661567
+    - rid: 7737212199244661568
+    - rid: 7737212199244661569
+    - rid: 7737212199244661570
+    - rid: 7737212199244661571
   width: 3
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212033836253932
+    - rid: 7737212199244661567
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I01
-    - rid: 7737212033836253933
+    - rid: 7737212199244661568
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,7 +87,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737212033836253934
+    - rid: 7737212199244661569
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -117,7 +117,7 @@ MonoBehaviour:
           amount: 3
         - itemId: component:precision-parts
           amount: 1
-    - rid: 7737212033836253935
+    - rid: 7737212199244661570
       type: {class: BuildingPowerProducerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerProducerAbility
@@ -125,7 +125,7 @@ MonoBehaviour:
         requiresFuel: 1
         fuelItemId: material:low-fuel
         secondsPerFuel: 60
-    - rid: 7737212033836253936
+    - rid: 7737212199244661571
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

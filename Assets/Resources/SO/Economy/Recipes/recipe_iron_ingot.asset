@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: resource:coal
     amount: 1
   outputs:
-  - itemId: material:iron-ingot
+  - outputLineId: output:recipe:iron-ingot/000/main/material:iron-ingot
+    role: 0
+    itemId: material:iron-ingot
     amount: 1
     probability: 1

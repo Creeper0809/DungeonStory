@@ -20,13 +20,28 @@ public static class EquipmentItemStateCodec
                 nameof(instance));
         }
 
+        List<EquipmentModuleInstance> moduleSnapshots =
+            (attachedModules ?? Array.Empty<EquipmentModuleInstance>())
+            .Where(module => module != null)
+            .Select(module => module.Clone())
+            .ToList();
+        foreach (EquipmentModuleInstance module in moduleSnapshots)
+        {
+            if (!TryValidateAttachedModule(
+                    instance.instanceId,
+                    module,
+                    out string moduleError))
+            {
+                throw new ArgumentException(
+                    $"Attached module '{module.instanceId}' is invalid: {moduleError}",
+                    nameof(attachedModules));
+            }
+        }
+
         EquipmentPhysicalStatePayload snapshot = new()
         {
             equipment = instance.Clone(),
-            attachedModules = (attachedModules ?? Array.Empty<EquipmentModuleInstance>())
-                .Where(module => module != null)
-                .Select(module => module.Clone())
-                .ToList()
+            attachedModules = moduleSnapshots
         };
         return new ItemInstanceComponentSaveData
         {
@@ -122,6 +137,17 @@ public static class EquipmentItemStateCodec
             }
 
             restored.attachedModules ??= new List<EquipmentModuleInstance>();
+            foreach (EquipmentModuleInstance module in restored.attachedModules)
+            {
+                if (!TryValidateAttachedModule(
+                        restored.equipment.instanceId,
+                        module,
+                        out string moduleError))
+                {
+                    error = $"Attached equipment-module state is invalid: {moduleError}";
+                    return false;
+                }
+            }
             payload = restored;
             error = string.Empty;
             return true;
@@ -131,6 +157,43 @@ public static class EquipmentItemStateCodec
             error = $"Equipment item-state payload is invalid: {exception.Message}";
             return false;
         }
+    }
+
+    private static bool TryValidateAttachedModule(
+        string equipmentInstanceId,
+        EquipmentModuleInstance module,
+        out string error)
+    {
+        if (module == null
+            || !((ItemInstanceId)module.instanceId).IsValid
+            || string.IsNullOrWhiteSpace(module.definitionId)
+            || module.state != EquipmentModuleProcessState.Installed
+            || !string.IsNullOrWhiteSpace(module.sourceStackId)
+            || !string.Equals(
+                module.attachedEquipmentInstanceId,
+                equipmentInstanceId,
+                StringComparison.Ordinal))
+        {
+            error = "The attached module has invalid identity, ownership, or process state.";
+            return false;
+        }
+
+        if (!EquipmentModuleItemStateCodec.TryValidateAppraisalState(
+                module,
+                out error))
+        {
+            return false;
+        }
+
+        if ((EquipmentModuleAppraisalCommitPhase)module.pendingAppraisal.phase
+            != EquipmentModuleAppraisalCommitPhase.None)
+        {
+            error = "An attached module cannot own a pending appraisal operation.";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
     }
 }
 
@@ -144,7 +207,7 @@ public sealed class EquipmentPhysicalStatePayload
 
 public static class EquipmentModuleItemStateCodec
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
     private const string StateJsonKey = "state-json";
 
     public static ItemInstanceComponentSaveData Encode(
@@ -215,6 +278,9 @@ public static class EquipmentModuleItemStateCodec
         {
             EquipmentModuleInstance restored =
                 JsonUtility.FromJson<EquipmentModuleInstance>(json);
+            string appraisalError = string.Empty;
+            bool appraisalValid = restored != null
+                && TryValidateAppraisalState(restored, out appraisalError);
             if (restored == null
                 || !((ItemInstanceId)restored.instanceId).IsValid
                 || string.IsNullOrWhiteSpace(restored.definitionId)
@@ -225,9 +291,12 @@ public static class EquipmentModuleItemStateCodec
                     typeof(EquipmentModuleProcessState),
                     restored.state)
                 || restored.state is EquipmentModuleProcessState.Installed
-                    or EquipmentModuleProcessState.Lost)
+                    or EquipmentModuleProcessState.Lost
+                || !appraisalValid)
             {
-                error = "Equipment-module item-state payload has invalid physical identity or state.";
+                error = string.IsNullOrEmpty(appraisalError)
+                    ? "Equipment-module item-state payload has invalid physical identity or state."
+                    : appraisalError;
                 return false;
             }
 
@@ -241,4 +310,129 @@ public static class EquipmentModuleItemStateCodec
             return false;
         }
     }
+
+    public static bool TryValidateAppraisalState(
+        EquipmentModuleInstance module,
+        out string error)
+    {
+        error = string.Empty;
+        if (module.nextAppraisalOperationSequence <= 0
+            || module.pendingAppraisal == null)
+        {
+            error = "Equipment-module appraisal sequence or pending state is invalid.";
+            return false;
+        }
+
+        EquipmentModuleAppraisalCommitSaveData pending = module.pendingAppraisal;
+        EquipmentModuleAppraisalCommitPhase phase =
+            (EquipmentModuleAppraisalCommitPhase)pending.phase;
+        if (phase == EquipmentModuleAppraisalCommitPhase.None)
+        {
+            bool empty = pending.operationSequence == 0
+                && IsEmpty(pending.operationId)
+                && IsEmpty(pending.reasonCode)
+                && IsEmpty(pending.moduleInstanceId)
+                && IsEmpty(pending.destinationId)
+                && IsEmpty(pending.couponStackId)
+                && IsEmpty(pending.couponItemId)
+                && pending.quantity == 0
+                && !pending.moduleIdentifiedBefore
+                && !pending.moduleIdentifiedAfter
+                && pending.moduleStateBefore == EquipmentModuleProcessState.Unidentified
+                && pending.moduleStateAfter == EquipmentModuleProcessState.Unidentified
+                && IsEmpty(pending.gaugeStackId)
+                && IsEmpty(pending.gaugeItemId)
+                && Approximately(pending.gaugeDurabilityBefore, 0f)
+                && Approximately(pending.gaugeDurabilityAfter, 0f)
+                && IsEmpty(pending.lensStackId)
+                && IsEmpty(pending.lensItemId)
+                && Approximately(pending.lensDurabilityBefore, 0f)
+                && Approximately(pending.lensDurabilityAfter, 0f)
+                && (pending.sourceStackIds?.Count ?? 0) == 0
+                && pending.inputMassGrams == 0L
+                && IsEmpty(pending.commitId);
+            if (!empty)
+            {
+                error = "Equipment-module empty appraisal state contains stale provenance.";
+            }
+            return empty;
+        }
+
+        bool common = phase is EquipmentModuleAppraisalCommitPhase.IntentRecorded
+                or EquipmentModuleAppraisalCommitPhase.OutcomePublished
+            && pending.operationSequence == module.nextAppraisalOperationSequence
+            && pending.operationSequence > 0
+            && IsCanonical(pending.operationId)
+            && IsCanonical(pending.reasonCode)
+            && string.Equals(
+                pending.moduleInstanceId,
+                module.instanceId,
+                StringComparison.Ordinal)
+            && IsCanonical(pending.destinationId)
+            && IsCanonical(pending.couponStackId)
+            && IsCanonical(pending.couponItemId)
+            && pending.quantity == 1
+            && !pending.moduleIdentifiedBefore
+            && pending.moduleIdentifiedAfter
+            && pending.moduleStateBefore == EquipmentModuleProcessState.Unidentified
+            && pending.moduleStateAfter == EquipmentModuleProcessState.IdentifiedDamaged
+            && IsCanonical(pending.gaugeStackId)
+            && IsCanonical(pending.gaugeItemId)
+            && IsCanonical(pending.lensStackId)
+            && IsCanonical(pending.lensItemId)
+            && !string.Equals(
+                pending.gaugeStackId,
+                pending.lensStackId,
+                StringComparison.Ordinal)
+            && IsFiniteNonNegative(pending.gaugeDurabilityBefore)
+            && IsFiniteNonNegative(pending.gaugeDurabilityAfter)
+            && pending.gaugeDurabilityAfter < pending.gaugeDurabilityBefore
+            && IsFiniteNonNegative(pending.lensDurabilityBefore)
+            && IsFiniteNonNegative(pending.lensDurabilityAfter)
+            && pending.lensDurabilityAfter < pending.lensDurabilityBefore
+            && pending.sourceStackIds != null;
+        if (!common)
+        {
+            error = "Equipment-module appraisal contract is invalid.";
+            return false;
+        }
+
+        if (phase == EquipmentModuleAppraisalCommitPhase.IntentRecorded)
+        {
+            bool validIntent = pending.sourceStackIds.Count == 0
+                && pending.inputMassGrams == 0L
+                && IsEmpty(pending.commitId);
+            if (!validIntent)
+            {
+                error = "Equipment-module appraisal intent contains outcome provenance.";
+            }
+            return validIntent;
+        }
+
+        bool validOutcome = pending.sourceStackIds.Count > 0
+            && pending.sourceStackIds.All(IsCanonical)
+            && pending.sourceStackIds.SequenceEqual(
+                pending.sourceStackIds.OrderBy(value => value, StringComparer.Ordinal))
+            && pending.sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                == pending.sourceStackIds.Count
+            && pending.inputMassGrams > 0L
+            && IsCanonical(pending.commitId);
+        if (!validOutcome)
+        {
+            error = "Equipment-module appraisal outcome provenance is invalid.";
+        }
+        return validOutcome;
+    }
+
+    private static bool IsEmpty(string value) => string.IsNullOrEmpty(value);
+
+    private static bool IsCanonical(string value) =>
+        !string.IsNullOrEmpty(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsFiniteNonNegative(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;
+
+    private static bool Approximately(float left, float right) =>
+        Mathf.Abs(left - right) <= 0.0001f;
 }

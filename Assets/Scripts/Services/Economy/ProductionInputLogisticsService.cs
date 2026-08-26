@@ -20,6 +20,10 @@ public interface IProductionInputLogisticsService
         ProductionBillRecord record,
         ProductionRecipeSO recipe,
         BuildableObject facility);
+    long ResolveInputBufferMassCapacity(
+        ProductionBillRecord record,
+        ProductionRecipeSO recipe,
+        BuildableObject facility);
     void RecalculatePrefetch(
         ProductionBillRecord record,
         ProductionRecipeSO recipe,
@@ -170,10 +174,7 @@ public sealed class ProductionInputLogisticsService :
         }
 
         bool requestedAny = false;
-        int requestedBatches = Mathf.Clamp(
-            record.prefetchBatchCount,
-            1,
-            MaximumPrefetchBatches);
+        int requestedBatches = ResolveRequestedBatchCount(record);
         if (record.mode == ProductionOrderMode.RepeatCount)
         {
             int remainingInputCycles = Mathf.Max(
@@ -187,10 +188,13 @@ public sealed class ProductionInputLogisticsService :
                 return;
             }
         }
-        foreach (KeyValuePair<string, int> requirement in ToCycleInputMap(
-                     record,
-                     recipe,
-                     facility))
+        Dictionary<string, int> cycleInputs = ToCycleInputMap(
+            record,
+            recipe,
+            facility);
+
+        foreach (KeyValuePair<string, int> requirement in cycleInputs
+                     .OrderBy(value => value.Key, StringComparer.Ordinal))
         {
             int pending = items.CountPending(
                 requirement.Key,
@@ -219,6 +223,41 @@ public sealed class ProductionInputLogisticsService :
 
         items.PrioritizeDestination(record.materialDestinationId);
         workforceReplanService.RequestOneHaulerToReplan(forceInterrupt: false);
+    }
+
+    public long ResolveInputBufferMassCapacity(
+        ProductionBillRecord record,
+        ProductionRecipeSO recipe,
+        BuildableObject facility)
+    {
+        if (record == null || recipe == null || facility == null)
+        {
+            throw new ArgumentException(
+                "A production bill, recipe, and live facility are required.");
+        }
+
+        int capacityBatchCount = Mathf.Clamp(
+            Mathf.Max(2, ResolveRequestedBatchCount(record)),
+            2,
+            MaximumPrefetchBatches);
+        long maxMassGrams = 0L;
+        foreach (KeyValuePair<string, int> requirement in ToCycleInputMap(
+                     record,
+                     recipe,
+                     facility)
+                 .OrderBy(value => value.Key, StringComparer.Ordinal))
+        {
+            maxMassGrams = checked(maxMassGrams
+                + items.GetDefinitionQuantityMassGrams(
+                    requirement.Key,
+                    checked(requirement.Value * capacityBatchCount)));
+        }
+        if (maxMassGrams <= 0L)
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{record.billId.Value}' has no positive input-buffer mass capacity.");
+        }
+        return maxMassGrams;
     }
 
     public void RecalculatePrefetch(
@@ -492,5 +531,21 @@ public sealed class ProductionInputLogisticsService :
         return record.batchStage == ProductionBatchStage.Finishing
             ? recipe.FinishingWork
             : recipe.PreparationWork;
+    }
+
+    private static int ResolveRequestedBatchCount(
+        ProductionBillRecord record)
+    {
+        int requestedBatches = Mathf.Clamp(
+            record?.prefetchBatchCount ?? 1,
+            1,
+            MaximumPrefetchBatches);
+        if (record?.mode != ProductionOrderMode.RepeatCount)
+            return requestedBatches;
+
+        int remainingInputCycles = Mathf.Max(
+            0,
+            record.remainingCycles - (record.materialsConsumed ? 1 : 0));
+        return Mathf.Min(requestedBatches, remainingInputCycles);
     }
 }

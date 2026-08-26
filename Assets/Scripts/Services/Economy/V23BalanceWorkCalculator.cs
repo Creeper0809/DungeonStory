@@ -121,7 +121,13 @@ public sealed class V23BalanceWorkCalculator : IBalanceWorkCalculator
             ProductionProcessClass.HeavyIndustrial => 44f,
             _ => 10f
         };
-        int inputKinds = recipe.Inputs.Count;
+        // A reusable package is physical custody, not an additional processing
+        // operation. Counting it as another ingredient would make adding an
+        // exact tare-return contract silently increase recurring recipe labor.
+        // This also preserves the frozen pre-package V23 work authority.
+        int inputKinds = recipe.Inputs.Count(input =>
+            input != null
+            && !input.ItemId.StartsWith("container:", StringComparison.Ordinal));
         int outputKinds = recipe.Outputs.Count;
         float expectedOutput = Mathf.Max(1f, recipe.Outputs.Sum(output =>
             output.Amount * output.Probability));

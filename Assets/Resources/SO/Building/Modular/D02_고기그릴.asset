@@ -64,11 +64,11 @@ MonoBehaviour:
     - rid: 7737211921440179035
     - rid: 7737211921440179036
     - rid: 7737211921440179037
-    - rid: 7737212042831200352
-    - rid: 7737212042831200353
-    - rid: 7737212042831200354
-    - rid: 7737212042831200355
-    - rid: 7737212042831200356
+    - rid: 7737212199244661741
+    - rid: 7737212199244661742
+    - rid: 7737212199244661743
+    - rid: 7737212199244661744
+    - rid: 7737212199244661745
   width: 2
   height: 1
   layer: 1
@@ -194,14 +194,14 @@ MonoBehaviour:
         roomTemperatureOffset: 5
         coldProtection: 8
         heatProtection: 1
-    - rid: 7737212042831200352
+    - rid: 7737212199244661741
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7737212042831200353
+    - rid: 7737212199244661742
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -212,21 +212,21 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7737212042831200354
+    - rid: 7737212199244661743
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7737212042831200355
+    - rid: 7737212199244661744
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7737212042831200356
+    - rid: 7737212199244661745
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -234,5 +234,6 @@ MonoBehaviour:
         - work:cook
         cleanWaterPerCycle: 0.25
         wastewaterPerCycle: 0.25
+        wastewaterComposition: 1
         minimumQuality: 0
         allowsManualWaterFallback: 1

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8057
+  id: 8058
   itemId: food:grain-porridge
   displayName: "\uD669\uD63C\uACE1\uC8FD"
   description: "\uAC12\uC2F8\uACE0 \uC18D\uC774 \uD3B8\uD55C \uBE44\uAC74 \uB2E8\uC21C\uC2DD."
@@ -31,34 +31,34 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 4
   features:
-  - rid: 7737211905666712242
-  - rid: 7737211905666712243
-  - rid: 7737211905666712245
-  - rid: 7737212042857939648
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712242
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:crops
-    - rid: 7737211905666712243
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211905666712245
-      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        quality: 0
-        qualityBand: 1
-        servingRole: 0
-        nutrition: 35
-        mood: 2
-        freshnessSeconds: 360
-        preserved: 0
-    - rid: 7737212042857939648
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.55983335
+    - rid: 1003
+      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        quality: 0
+        qualityBand: 0
+        servingRole: 0
+        nutrition: 35
+        mood: 0
+        freshnessSeconds: 360
+        preserved: 0

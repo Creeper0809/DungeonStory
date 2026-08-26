@@ -42,6 +42,90 @@ public sealed class EquipmentMaintenancePolicyData
 }
 
 [Serializable]
+public sealed class EquipmentRepairMaterialTransferInput
+{
+    public string itemId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public int quantity;
+
+    public EquipmentRepairMaterialTransferInput Clone() => new()
+    {
+        itemId = itemId ?? string.Empty,
+        sourceStackId = sourceStackId ?? string.Empty,
+        quantity = Mathf.Max(0, quantity)
+    };
+}
+
+public enum CombatEquipmentRepairTerminalEffectPhase
+{
+    WipPreparedAwaitingOwnerDispositionAcknowledgement = 0,
+    OwnerDispositionAcknowledgedAwaitingDestinationClose = 1,
+    DestinationClosedAwaitingSourceRemoval = 2,
+    SourceRemoved = 3
+}
+
+[Serializable]
+public sealed class CombatEquipmentRepairTerminalEffectSaveData
+{
+    public const int CurrentSchemaVersion = 1;
+
+    public int schemaVersion = CurrentSchemaVersion;
+    public string ownerStableId = string.Empty;
+    public string sourceId = string.Empty;
+    public string facilityId = string.Empty;
+    public string frozenSourcePayload = string.Empty;
+    public string sourceFingerprint = string.Empty;
+    public string inputDispositionStepOperationId = string.Empty;
+    public string inputDispositionRequestFingerprint = string.Empty;
+    public string inputDispositionCommitId = string.Empty;
+    public string inputDispositionReceiptFingerprint = string.Empty;
+    public int releasedInputQuantity;
+    public long releasedInputMassGrams;
+    public string wipLossCommitId = string.Empty;
+    public string wipLossReceiptFingerprint = string.Empty;
+    public int wipInputQuantity;
+    public long wipInputMassGrams;
+    public long committedOutputMassGrams;
+    public long declaredLossMassGrams;
+    public int terminalReason;
+    public int lossKind;
+    public string sourceRemovalCommitId = string.Empty;
+    public string sourceRemovalReceiptFingerprint = string.Empty;
+    public CombatEquipmentRepairTerminalEffectPhase phase;
+
+    public CombatEquipmentRepairTerminalEffectSaveData Clone() => new()
+    {
+        schemaVersion = schemaVersion,
+        ownerStableId = ownerStableId ?? string.Empty,
+        sourceId = sourceId ?? string.Empty,
+        facilityId = facilityId ?? string.Empty,
+        frozenSourcePayload = frozenSourcePayload ?? string.Empty,
+        sourceFingerprint = sourceFingerprint ?? string.Empty,
+        inputDispositionStepOperationId =
+            inputDispositionStepOperationId ?? string.Empty,
+        inputDispositionRequestFingerprint =
+            inputDispositionRequestFingerprint ?? string.Empty,
+        inputDispositionCommitId = inputDispositionCommitId ?? string.Empty,
+        inputDispositionReceiptFingerprint =
+            inputDispositionReceiptFingerprint ?? string.Empty,
+        releasedInputQuantity = releasedInputQuantity,
+        releasedInputMassGrams = releasedInputMassGrams,
+        wipLossCommitId = wipLossCommitId ?? string.Empty,
+        wipLossReceiptFingerprint = wipLossReceiptFingerprint ?? string.Empty,
+        wipInputQuantity = wipInputQuantity,
+        wipInputMassGrams = wipInputMassGrams,
+        committedOutputMassGrams = committedOutputMassGrams,
+        declaredLossMassGrams = declaredLossMassGrams,
+        terminalReason = terminalReason,
+        lossKind = lossKind,
+        sourceRemovalCommitId = sourceRemovalCommitId ?? string.Empty,
+        sourceRemovalReceiptFingerprint =
+            sourceRemovalReceiptFingerprint ?? string.Empty,
+        phase = phase
+    };
+}
+
+[Serializable]
 public sealed class CombatEquipmentRepairOrder
 {
     public string orderId = string.Empty;
@@ -58,6 +142,19 @@ public sealed class CombatEquipmentRepairOrder
     public bool manuallyRequested;
     public bool equipmentDeliveryRequested;
     public bool materialDeliveryRequested;
+    public bool materialsConsumed;
+    public string materialTransferOperationId = string.Empty;
+    public string materialTransferCommitId = string.Empty;
+    public string materialTransferRequestFingerprint = string.Empty;
+    public long materialTransferMassGrams;
+    public List<EquipmentRepairMaterialTransferInput> materialTransferInputs =
+        new List<EquipmentRepairMaterialTransferInput>();
+    public string repairEquipmentSourceStackId = string.Empty;
+    public float repairDurabilityBefore;
+    public float repairDurabilityAfter;
+    public bool repairOutcomePublished;
+    public bool materialTransferAcknowledged;
+    public bool repairOutputReleased;
 
     public string FacilityDestinationId =>
         $"equipment-repair:{equipmentInstanceId}";
@@ -68,7 +165,13 @@ public sealed class CombatEquipmentRepairOrder
 
     public CombatEquipmentRepairOrder Clone()
     {
-        return (CombatEquipmentRepairOrder)MemberwiseClone();
+        CombatEquipmentRepairOrder clone =
+            (CombatEquipmentRepairOrder)MemberwiseClone();
+        clone.materialTransferInputs = materialTransferInputs?
+            .Where(input => input != null)
+            .Select(input => input.Clone())
+            .ToList() ?? new List<EquipmentRepairMaterialTransferInput>();
+        return clone;
     }
 }
 
@@ -88,6 +191,9 @@ public sealed class CombatEquipmentMaintenanceSaveData
         new List<EquipmentMaintenanceAssignmentSaveData>();
     public List<CombatEquipmentRepairOrder> orders =
         new List<CombatEquipmentRepairOrder>();
+    public List<CombatEquipmentRepairTerminalEffectSaveData>
+        repairTerminalEffects =
+            new List<CombatEquipmentRepairTerminalEffectSaveData>();
     public int policySequence;
     public int orderSequence;
 }
@@ -121,6 +227,19 @@ public interface ICombatEquipmentMaintenanceRuntime
     void PublishRestore(EquipmentMaintenanceRestoreCandidate candidate);
 }
 
+public interface ICombatEquipmentMaintenanceOrderQuery
+{
+    IReadOnlyList<CombatEquipmentRepairOrder> Orders { get; }
+}
+
+public interface ICombatEquipmentRepairTerminalEffectQuery
+{
+    IReadOnlyList<CombatEquipmentRepairTerminalEffectSaveData> TerminalEffects
+    {
+        get;
+    }
+}
+
 public static class CombatEquipmentMaintenanceFacilityUtility
 {
     public static bool IsMaintenanceFacility(BuildableObject building)
@@ -142,10 +261,13 @@ public static class CombatEquipmentMaintenanceFacilityUtility
 
 public sealed class EquipmentMaintenancePolicyRuntime :
     ICombatEquipmentMaintenanceRuntime,
+    ICombatEquipmentMaintenanceOrderQuery,
+    ICombatEquipmentRepairTerminalEffectQuery,
     ITickable
 {
     private const string RepairDestinationOwnerDomain =
         "combat.equipment-maintenance";
+    private const long RepairBufferCapacitySchemaRevision = 1L;
     private static readonly ProfilerMarker TickProfilerMarker =
         new ProfilerMarker("EquipmentMaintenancePolicyRuntime.Tick");
 
@@ -157,9 +279,11 @@ public sealed class EquipmentMaintenancePolicyRuntime :
     private readonly ICombatEquipmentCatalog catalog;
     private readonly IResourceEconomyContentCatalog resourceCatalog;
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private readonly ICombatEquipmentPickupRuntime equipmentPickup;
     private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
-    private readonly IFacilityBufferDestinationClaimCommand destinationClaimCommands;
+    private readonly IFacilityBufferDestinationLifecycleCommand destinationLifecycle;
+    private readonly IFacilityBufferMassCapacityAuthorityQuery destinationCapacities;
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IDefenseEngagementRuntime defenseRuntime;
     private readonly IGameClock gameClock;
@@ -208,9 +332,11 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         catalog = itemServices.EquipmentCatalog;
         resourceCatalog = itemServices.ResourceCatalog;
         items = itemServices.Items;
+        batchDispositions = itemServices.BatchDispositions;
         equipmentPickup = itemServices.EquipmentPickup;
         destinationClaims = itemServices.DestinationClaims;
-        destinationClaimCommands = itemServices.DestinationClaimCommands;
+        destinationLifecycle = itemServices.DestinationLifecycle;
+        destinationCapacities = itemServices.DestinationCapacities;
         worldRegistry = worldServices.WorldRegistry;
         defenseRuntime = worldServices.DefenseRuntime;
         gameClock = clocks.GameClock;
@@ -227,6 +353,12 @@ public sealed class EquipmentMaintenancePolicyRuntime :
             .Where(item => item.state is not CombatEquipmentRepairOrderState.Completed
                 and not CombatEquipmentRepairOrderState.Cancelled)
             .OrderBy(item => item.orderId, StringComparer.Ordinal)
+            .Select(item => item.Clone())
+            .ToArray();
+
+    public IReadOnlyList<CombatEquipmentRepairTerminalEffectSaveData>
+        TerminalEffects => aggregateState.TerminalEffects.Values
+            .OrderBy(item => item.sourceId, StringComparer.Ordinal)
             .Select(item => item.Clone())
             .ToArray();
 
@@ -484,6 +616,10 @@ public sealed class EquipmentMaintenancePolicyRuntime :
                     and not CombatEquipmentRepairOrderState.Cancelled)
                 .OrderBy(item => item.orderId, StringComparer.Ordinal)
                 .Select(item => item.Clone())
+                .ToList(),
+            repairTerminalEffects = aggregateState.TerminalEffects.Values
+                .OrderBy(item => item.sourceId, StringComparer.Ordinal)
+                .Select(item => item.Clone())
                 .ToList()
         };
     }
@@ -515,34 +651,50 @@ public sealed class EquipmentMaintenancePolicyRuntime :
             throw new ArgumentNullException(nameof(candidate));
         }
 
-        FacilityBufferDestinationClaim[] restoredClaims = candidate.State.Orders.Values
-            .Where(order => order != null
-                && order.state is not CombatEquipmentRepairOrderState.Completed
-                    and not CombatEquipmentRepairOrderState.Cancelled)
-            .OrderBy(order => order.orderId, StringComparer.Ordinal)
-            .Select(order =>
-            {
-                if (!TryFindOrderFacility(order, out BuildableObject facility))
-                {
-                    throw new InvalidOperationException(
-                        $"Equipment repair order '{order.orderId}' has no live restore facility authority.");
-                }
-                return CreateDestinationClaim(order, facility);
-            })
-            .ToArray();
-        if (!destinationClaimCommands.TryReplaceOwnedClaims(
-                RepairDestinationOwnerDomain,
-                restoredClaims,
-                out FacilityBufferDestinationClaimFailureCode claimFailure,
-                out string claimReason))
+        if (!TryPublishRepairBufferAuthorities(
+                candidate.State.Orders.Values,
+                candidate.State.TerminalEffects,
+                out string authorityFailure))
         {
             throw new InvalidOperationException(
                 "Equipment repair destination restore failed: "
-                + $"{claimFailure}: {claimReason}");
+                + authorityFailure);
         }
 
         aggregateRootStore.Replace(candidate.State);
     }
+
+    internal EquipmentMaintenanceAggregateState CaptureTerminalState() =>
+        aggregateState.Clone();
+
+    internal bool TryPublishTerminalState(
+        EquipmentMaintenanceAggregateState candidate,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (candidate == null)
+        {
+            failureReason = "equipment-repair-terminal-state-missing";
+            return false;
+        }
+        if (!TryPublishRepairBufferAuthorities(
+                candidate.Orders.Values,
+                candidate.TerminalEffects,
+                out failureReason))
+        {
+            return false;
+        }
+        aggregateRootStore.Replace(candidate);
+        return true;
+    }
+
+    internal bool TryAcknowledgeTerminalMaterial(
+        CombatEquipmentRepairOrder frozenOrder,
+        out string failureReason) =>
+        EquipmentRepairMaterialOutbox.TryAcknowledgeTerminalLoss(
+            frozenOrder,
+            batchDispositions,
+            out failureReason);
 
     private void CreateAutomaticOrders()
     {
@@ -646,7 +798,12 @@ public sealed class EquipmentMaintenancePolicyRuntime :
                 : CombatEquipmentRepairOrderState.WaitingForDelivery,
             manuallyRequested = manuallyRequested
         };
-        if (!TryEnsureDestinationClaim(order, facility, out message))
+        CombatEquipmentRepairOrder[] proposedOrders = orders.Values
+            .Where(candidate => candidate != null)
+            .Append(order)
+            .OrderBy(candidate => candidate.orderId, StringComparer.Ordinal)
+            .ToArray();
+        if (!TryPublishRepairBufferAuthorities(proposedOrders, out message))
         {
             return false;
         }
@@ -712,10 +869,7 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         {
             return;
         }
-        if (!TryEnsureDestinationClaim(order, facility, out string claimFailure))
-        {
-            throw new InvalidOperationException(claimFailure);
-        }
+        RequireRepairBufferAuthority(order, facility);
 
         if (!order.equipmentDeliveryRequested
             && HasEquipmentEnRoute(order, instance))
@@ -806,7 +960,17 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         out string message)
     {
         message = string.Empty;
-        if (!HasDeliveredEquipment(order) || !HasDeliveredMaterials(order))
+        if (!order.repairOutputReleased && !HasDeliveredEquipment(order))
+        {
+            if (!order.materialsConsumed)
+            {
+                order.state =
+                    CombatEquipmentRepairOrderState.WaitingForDelivery;
+            }
+            message = "수리 장비가 작업대에 없습니다.";
+            return false;
+        }
+        if (!order.materialsConsumed && !HasDeliveredMaterials(order))
         {
             order.state = CombatEquipmentRepairOrderState.WaitingForDelivery;
             message = "수리 재료가 부족합니다.";
@@ -820,85 +984,531 @@ public sealed class EquipmentMaintenancePolicyRuntime :
             message = "equipment.repair.material_definition_missing";
             return false;
         }
-        WorldItemStackSnapshot equipmentStack = FindDeliveredEquipmentStack(order);
-        if (equipmentStack == null)
+        WorldItemStackSnapshot equipmentStack = order.repairOutputReleased
+            ? null
+            : FindDeliveredEquipmentStack(order);
+        if (!order.repairOutputReleased && equipmentStack == null)
         {
             order.state = CombatEquipmentRepairOrderState.WaitingForDelivery;
             message = "equipment.repair.equipment_stack_missing";
             return false;
         }
 
-        Dictionary<string, int> materialCost = new Dictionary<string, int>(
-            StringComparer.Ordinal)
-        {
-            [materialItemId] =
-                ResolveOrderMaterialAmount(order)
-        };
-        if (!items.TryConsumeFacilityItemBuffer(
-                order.FacilityDestinationId,
-                materialCost,
-                out message))
-        {
-            order.state = CombatEquipmentRepairOrderState.WaitingForDelivery;
-            return false;
-        }
-
-        if (!equipment.TryRestoreDurability(
+        if (!equipment.TryGetInstance(
                 order.equipmentInstanceId,
-                order.targetDurability)
-            || !equipment.TryGetInstance(
-                order.equipmentInstanceId,
-                out CombatEquipmentInstance repaired)
+                out CombatEquipmentInstance beforeRepair)
             || !catalog.TryGet(
-                repaired.definitionId,
+                beforeRepair.definitionId,
                 out CombatEquipmentDefinitionSO definition))
         {
-            message = "수리 완료품을 생성하지 못했습니다.";
+            message = "수리할 장비 상태를 찾지 못했습니다.";
             return false;
         }
 
-        int released = items.ReleaseStacksByDestination(
-            order.FacilityDestinationId,
-            building.centerPos);
-        if (released <= 0
-            || !equipment.TrySetWorldStateBySourceStack(
-                equipmentStack.StackId,
-                CombatEquipmentWorldState.Loose))
+        string equipmentSourceStackId = order.materialsConsumed
+            ? order.repairEquipmentSourceStackId
+            : equipmentStack.StackId;
+        float durabilityBefore = beforeRepair.durabilityRatio;
+        float durabilityAfter = Mathf.Clamp01(Mathf.Max(
+            durabilityBefore,
+            order.targetDurability));
+        if (!EquipmentRepairMaterialOutbox.TryCommitOrResume(
+                order,
+                items.GetAllStacks(),
+                batchDispositions,
+                equipmentSourceStackId,
+                durabilityBefore,
+                durabilityAfter,
+                out message))
         {
-            message = "equipment.repair.output_release_failed";
             return false;
         }
-        RevokeDestinationClaimOrThrow(CreateDestinationClaim(order, building));
+
+        if (!TryPublishRepairOutcome(order, out message)
+            || !EquipmentRepairMaterialOutbox.TryAcknowledgeOutcome(
+                order,
+                batchDispositions,
+                out message))
+        {
+            return false;
+        }
+
+        if (!order.repairOutputReleased)
+        {
+            WorldItemStackSnapshot exactOutput = items.GetAllStacks()
+                .FirstOrDefault(stack => stack != null
+                    && string.Equals(
+                        stack.StackId,
+                        order.repairEquipmentSourceStackId,
+                        StringComparison.Ordinal)
+                    && stack.State == WorldItemStackState.FacilityBuffer
+                    && string.Equals(
+                        stack.DestinationId,
+                        order.FacilityDestinationId,
+                        StringComparison.Ordinal));
+            if (exactOutput == null
+                || !equipment.TrySetWorldStateBySourceStack(
+                    order.repairEquipmentSourceStackId,
+                    CombatEquipmentWorldState.Loose))
+            {
+                message = "equipment.repair.output_state_failed";
+                return false;
+            }
+
+            int released = items.ReleaseStacksByDestination(
+                order.FacilityDestinationId,
+                building.centerPos);
+            WorldItemStackSnapshot releasedOutput = items.GetAllStacks()
+                .FirstOrDefault(stack => stack != null
+                    && string.Equals(
+                        stack.StackId,
+                        order.repairEquipmentSourceStackId,
+                        StringComparison.Ordinal));
+            if (released <= 0
+                || releasedOutput == null
+                || releasedOutput.State != WorldItemStackState.Loose
+                || !string.IsNullOrEmpty(releasedOutput.DestinationId))
+            {
+                message = "equipment.repair.output_release_failed";
+                return false;
+            }
+            order.repairOutputReleased = true;
+        }
+        CombatEquipmentRepairOrderState previousState = order.state;
+        float previousCompletedWork = order.completedWork;
         order.state = CombatEquipmentRepairOrderState.Completed;
         order.completedWork = order.requiredWork;
+        if (!TryPublishRepairBufferAuthorities(
+                orders.Values,
+                out string terminalFailure))
+        {
+            order.state = previousState;
+            order.completedWork = previousCompletedWork;
+            message = "equipment.repair.buffer_terminal_close_failed:"
+                + terminalFailure;
+            return false;
+        }
         message = $"{definition.DisplayName} 수리 완료";
         return true;
     }
 
-    private bool TryEnsureDestinationClaim(
+    private bool TryPublishRepairOutcome(
         CombatEquipmentRepairOrder order,
-        BuildableObject facility,
         out string failureReason)
     {
-        FacilityBufferDestinationClaim claim = CreateDestinationClaim(order, facility);
-        if (destinationClaimCommands.TryClaim(
-                claim,
-                out FacilityBufferDestinationClaimFailureCode failureCode,
-                out failureReason))
+        failureReason = string.Empty;
+        if (!equipment.TryGetInstance(
+                order.equipmentInstanceId,
+                out CombatEquipmentInstance instance))
         {
-            failureReason = string.Empty;
+            failureReason = "equipment.repair.instance_missing";
+            return false;
+        }
+
+        float current = instance.durabilityRatio;
+        if (!order.repairOutcomePublished)
+        {
+            if (Approximately(
+                    current,
+                    order.repairDurabilityBefore))
+            {
+                if (!equipment.TryRestoreDurability(
+                        order.equipmentInstanceId,
+                        order.repairDurabilityAfter))
+                {
+                    failureReason =
+                        "equipment.repair.durability_publication_failed";
+                    return false;
+                }
+            }
+            else if (!Approximately(
+                         current,
+                         order.repairDurabilityAfter))
+            {
+                failureReason =
+                    "equipment.repair.durability_conflict";
+                return false;
+            }
+
+            if (!equipment.TryGetInstance(
+                    order.equipmentInstanceId,
+                    out instance)
+                || !Approximately(
+                    instance.durabilityRatio,
+                    order.repairDurabilityAfter))
+            {
+                failureReason =
+                    "equipment.repair.durability_result_mismatch";
+                return false;
+            }
+            order.repairOutcomePublished = true;
             return true;
         }
 
-        failureReason = "Equipment repair destination claim failed: "
-            + $"{failureCode}: {failureReason}";
-        return false;
+        if (!Approximately(
+                current,
+                order.repairDurabilityAfter))
+        {
+            failureReason = "equipment.repair.durability_replay_conflict";
+            return false;
+        }
+        return true;
     }
+
+    private static bool Approximately(float left, float right) =>
+        Mathf.Abs(left - right) <= 0.0001f;
+
+    private bool TryPublishRepairBufferAuthorities(
+        IEnumerable<CombatEquipmentRepairOrder> sourceOrders,
+        out string failureReason) => TryPublishRepairBufferAuthorities(
+            sourceOrders,
+            aggregateState.TerminalEffects,
+            out failureReason);
+
+    private bool TryPublishRepairBufferAuthorities(
+        IEnumerable<CombatEquipmentRepairOrder> sourceOrders,
+        IReadOnlyDictionary<string,
+            CombatEquipmentRepairTerminalEffectSaveData> terminalEffects,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CombatEquipmentRepairOrder[] activeOrders =
+            (sourceOrders ?? Array.Empty<CombatEquipmentRepairOrder>())
+            .Where(order => order != null
+                && order.state is not CombatEquipmentRepairOrderState.Completed
+                    and not CombatEquipmentRepairOrderState.Cancelled
+                && !IsRepairDestinationClosed(order, terminalEffects))
+            .OrderBy(order => order.orderId, StringComparer.Ordinal)
+            .ToArray();
+        List<FacilityBufferDestinationClaim> claims = new(activeOrders.Length);
+        List<FacilityBufferCapacityProfile> profiles = new(activeOrders.Length);
+        FacilityBufferDestinationClaim[] previousClaims = destinationClaims
+            .CaptureClaims()
+            .Where(claim => claim != null
+                && string.Equals(
+                    claim.OwnerDomain,
+                    RepairDestinationOwnerDomain,
+                    StringComparison.Ordinal))
+            .OrderBy(claim => claim.DestinationId, StringComparer.Ordinal)
+            .ToArray();
+        FacilityBufferCapacityProfile[] previousProfiles = destinationCapacities
+            .CaptureAuthorityProfiles()
+            .Where(profile => profile != null
+                && string.Equals(
+                    profile.OwnerDomain,
+                    RepairDestinationOwnerDomain,
+                    StringComparison.Ordinal))
+            .OrderBy(profile => profile.DestinationId, StringComparer.Ordinal)
+            .ToArray();
+        for (int index = 0; index < activeOrders.Length; index++)
+        {
+            CombatEquipmentRepairOrder order = activeOrders[index];
+            if (!TryFindOrderFacility(order, out BuildableObject facility))
+            {
+                failureReason =
+                    $"equipment.repair.facility_missing:{order.orderId}";
+                return false;
+            }
+            if (!equipment.TryGetInstance(
+                    order.equipmentInstanceId,
+                    out CombatEquipmentInstance instance))
+            {
+                failureReason =
+                    $"equipment.repair.instance_missing:{order.orderId}";
+                return false;
+            }
+            if (!TryCalculateRepairBufferCapacity(
+                    order,
+                    instance,
+                    out PhysicalMassGrams capacity,
+                    out string capacityFailure))
+            {
+                failureReason = capacityFailure;
+                return false;
+            }
+
+            FacilityBufferDestinationClaim claim =
+                CreateDestinationClaim(order, facility);
+            claims.Add(claim);
+            profiles.Add(new FacilityBufferCapacityProfile(
+                claim.DestinationId,
+                claim.DropPosition,
+                claim.OwnerDomain,
+                claim.OwnerOperationId,
+                claim.OwnerFacilityId,
+                capacity,
+                RepairBufferCapacitySchemaRevision));
+        }
+
+        if (!destinationLifecycle.TryReplaceOwnedAuthorities(
+                RepairDestinationOwnerDomain,
+                claims,
+                profiles,
+                out failureReason))
+        {
+            failureReason =
+                "equipment.repair.buffer_authority_replace_failed:"
+                + failureReason;
+            return false;
+        }
+
+        FacilityBufferCapacityProfile[] expectedProfiles = profiles
+            .OrderBy(profile => profile.DestinationId, StringComparer.Ordinal)
+            .ToArray();
+        FacilityBufferCapacityProfile[] published = destinationCapacities
+            .CaptureAuthorityProfiles()
+            .Where(profile => profile != null
+                && string.Equals(
+                    profile.OwnerDomain,
+                    RepairDestinationOwnerDomain,
+                    StringComparison.Ordinal))
+            .OrderBy(profile => profile.DestinationId, StringComparer.Ordinal)
+            .ToArray();
+        if (published.Length != expectedProfiles.Length)
+        {
+            RollBackRepairBufferAuthoritiesOrThrow(
+                previousClaims,
+                previousProfiles);
+            failureReason =
+                "equipment.repair.buffer_profile_publication_count_mismatch";
+            return false;
+        }
+        for (int index = 0; index < published.Length; index++)
+        {
+            FacilityBufferCapacityProfile expected = expectedProfiles[index];
+            FacilityBufferCapacityProfile actual = published[index];
+            if (!AreEquivalent(expected, actual))
+            {
+                RollBackRepairBufferAuthoritiesOrThrow(
+                    previousClaims,
+                    previousProfiles);
+                failureReason =
+                    "equipment.repair.buffer_profile_publication_mismatch:"
+                    + expected.DestinationId;
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool IsRepairDestinationClosed(
+        CombatEquipmentRepairOrder order,
+        IReadOnlyDictionary<string,
+            CombatEquipmentRepairTerminalEffectSaveData> terminalEffects) =>
+        order != null
+        && terminalEffects != null
+        && terminalEffects.TryGetValue(
+            order.orderId,
+            out CombatEquipmentRepairTerminalEffectSaveData effect)
+        && effect != null
+        && effect.phase is CombatEquipmentRepairTerminalEffectPhase
+                .DestinationClosedAwaitingSourceRemoval
+            or CombatEquipmentRepairTerminalEffectPhase.SourceRemoved;
+
+    private void RollBackRepairBufferAuthoritiesOrThrow(
+        IReadOnlyList<FacilityBufferDestinationClaim> claims,
+        IReadOnlyList<FacilityBufferCapacityProfile> profiles)
+    {
+        if (!destinationLifecycle.TryReplaceOwnedAuthorities(
+                RepairDestinationOwnerDomain,
+                claims,
+                profiles,
+                out string rollbackFailure))
+        {
+            throw new InvalidOperationException(
+                "Equipment repair destination authority rollback failed: "
+                + rollbackFailure);
+        }
+    }
+
+    private void RequireRepairBufferAuthority(
+        CombatEquipmentRepairOrder order,
+        BuildableObject facility)
+    {
+        FacilityBufferDestinationClaim expectedClaim =
+            CreateDestinationClaim(order, facility);
+        FacilityBufferDestinationClaim actualClaim = destinationClaims
+            .CaptureClaims()
+            .SingleOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.DestinationId,
+                    expectedClaim.DestinationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    candidate.OwnerDomain,
+                    RepairDestinationOwnerDomain,
+                    StringComparison.Ordinal));
+        if (actualClaim == null
+            || actualClaim.DropPosition != expectedClaim.DropPosition
+            || !string.Equals(
+                actualClaim.OwnerOperationId,
+                expectedClaim.OwnerOperationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                actualClaim.OwnerFacilityId,
+                expectedClaim.OwnerFacilityId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Equipment repair order '{order.orderId}' has no exact destination claim authority.");
+        }
+        if (!equipment.TryGetInstance(
+                order.equipmentInstanceId,
+                out CombatEquipmentInstance instance))
+        {
+            throw new InvalidOperationException(
+                $"Equipment repair order '{order.orderId}' has no valid equipment authority.");
+        }
+        if (!TryCalculateRepairBufferCapacity(
+                order,
+                instance,
+                out PhysicalMassGrams expectedCapacity,
+                out string capacityFailure))
+        {
+            throw new InvalidOperationException(
+                $"Equipment repair order '{order.orderId}' has no valid capacity authority: {capacityFailure}");
+        }
+
+        FacilityBufferCapacityProfile actualProfile = destinationCapacities
+            .CaptureAuthorityProfiles()
+            .SingleOrDefault(profile => profile != null
+                && string.Equals(
+                    profile.DestinationId,
+                    expectedClaim.DestinationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    profile.OwnerDomain,
+                    RepairDestinationOwnerDomain,
+                    StringComparison.Ordinal));
+        FacilityBufferCapacityProfile expectedProfile = new(
+            expectedClaim.DestinationId,
+            expectedClaim.DropPosition,
+            expectedClaim.OwnerDomain,
+            expectedClaim.OwnerOperationId,
+            expectedClaim.OwnerFacilityId,
+            expectedCapacity,
+            RepairBufferCapacitySchemaRevision);
+        if (actualProfile == null || !AreEquivalent(expectedProfile, actualProfile))
+        {
+            throw new InvalidOperationException(
+                $"Equipment repair order '{order.orderId}' has no exact positive-gram capacity profile.");
+        }
+    }
+
+    private bool TryCalculateRepairBufferCapacity(
+        CombatEquipmentRepairOrder order,
+        CombatEquipmentInstance instance,
+        out PhysicalMassGrams capacity,
+        out string failureReason)
+    {
+        capacity = default;
+        failureReason = string.Empty;
+        try
+        {
+            Dictionary<string, EquipmentModuleInstance> modulesById = equipment
+                .ModuleInstances
+                .Where(module => module != null
+                    && !string.IsNullOrWhiteSpace(module.instanceId))
+                .ToDictionary(
+                    module => module.instanceId,
+                    module => module,
+                    StringComparer.Ordinal);
+            List<EquipmentModuleInstance> attachedModules = new();
+            HashSet<int> seenSlotIndexes = new();
+            HashSet<string> seenModuleIds = new(StringComparer.Ordinal);
+            foreach (EquipmentModuleSlotState slot in
+                     (instance.moduleSlots ?? new List<EquipmentModuleSlotState>())
+                     .Where(slot => slot != null
+                         && !string.IsNullOrWhiteSpace(slot.moduleInstanceId))
+                     .OrderBy(slot => slot.slotIndex)
+                     .ThenBy(slot => slot.moduleInstanceId, StringComparer.Ordinal))
+            {
+                if (!seenSlotIndexes.Add(slot.slotIndex)
+                    || !seenModuleIds.Add(slot.moduleInstanceId))
+                {
+                    failureReason =
+                        $"equipment.repair.attached_module_duplicate:{order.orderId}:{slot.moduleInstanceId}";
+                    return false;
+                }
+                if (!modulesById.TryGetValue(
+                        slot.moduleInstanceId,
+                        out EquipmentModuleInstance module)
+                    || module.state != EquipmentModuleProcessState.Installed
+                    || !string.Equals(
+                        module.attachedEquipmentInstanceId,
+                        instance.instanceId,
+                        StringComparison.Ordinal))
+                {
+                    failureReason =
+                        $"equipment.repair.attached_module_invalid:{order.orderId}:{slot.moduleInstanceId}";
+                    return false;
+                }
+                attachedModules.Add(module);
+            }
+
+            ItemDefinitionId equipmentItemId = (ItemDefinitionId)
+                PhysicalItemIds.ForEquipment(instance.definitionId);
+            ItemInstanceComponentSaveData component =
+                EquipmentItemStateCodec.Encode(instance, attachedModules);
+            PhysicalItemMassSubject subject = PhysicalItemMassSubjectAdapter.Create(
+                items.MassQuery,
+                equipmentItemId,
+                instance.instanceId,
+                new[] { component });
+            long equipmentMass = items.MassQuery.GetQuantityMass(
+                equipmentItemId,
+                subject,
+                1).Value;
+            int materialQuantity = ResolveOrderMaterialAmount(order);
+            long materialMass = items.MassQuery.GetDefinitionUnitMass(
+                    (ItemDefinitionId)order.materialItemId)
+                .Multiply(materialQuantity)
+                .Value;
+            long totalMass = checked(equipmentMass + materialMass);
+            if (equipmentMass <= 0L || materialMass <= 0L || totalMass <= 0L)
+            {
+                failureReason =
+                    $"equipment.repair.capacity_not_positive:{order.orderId}";
+                return false;
+            }
+            capacity = new PhysicalMassGrams(totalMass);
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException
+                or InvalidOperationException
+                or OverflowException)
+        {
+            failureReason =
+                $"equipment.repair.capacity_invalid:{order.orderId}:{exception.Message}";
+            return false;
+        }
+    }
+
+    private static bool AreEquivalent(
+        FacilityBufferCapacityProfile left,
+        FacilityBufferCapacityProfile right) =>
+        left != null
+        && right != null
+        && string.Equals(left.DestinationId, right.DestinationId, StringComparison.Ordinal)
+        && left.DropPosition == right.DropPosition
+        && string.Equals(left.OwnerDomain, right.OwnerDomain, StringComparison.Ordinal)
+        && string.Equals(left.OwnerOperationId, right.OwnerOperationId, StringComparison.Ordinal)
+        && string.Equals(left.OwnerFacilityId, right.OwnerFacilityId, StringComparison.Ordinal)
+        && left.MaxMassGrams == right.MaxMassGrams
+        && left.CapacityRevision == right.CapacityRevision;
 
     private void CancelOrderAndReleaseDestination(CombatEquipmentRepairOrder order)
     {
         if (order == null)
             return;
+
+        if (order.materialsConsumed
+            || !string.IsNullOrEmpty(order.materialTransferOperationId))
+        {
+            throw new InvalidOperationException(
+                $"Equipment repair order '{order.orderId}' cannot be cancelled after its material entered WIP.");
+        }
 
         FacilityBufferDestinationClaim claim = destinationClaims.CaptureClaims()
             .SingleOrDefault(candidate => candidate != null
@@ -923,8 +1533,17 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         items.ReleaseStacksByDestination(
             order.FacilityDestinationId,
             claim.DropPosition);
-        RevokeDestinationClaimOrThrow(claim);
+        CombatEquipmentRepairOrderState previousState = order.state;
         order.state = CombatEquipmentRepairOrderState.Cancelled;
+        if (!TryPublishRepairBufferAuthorities(
+                orders.Values,
+                out string terminalFailure))
+        {
+            order.state = previousState;
+            throw new InvalidOperationException(
+                "Equipment repair destination terminal close failed: "
+                + terminalFailure);
+        }
     }
 
     private static FacilityBufferDestinationClaim CreateDestinationClaim(
@@ -942,22 +1561,6 @@ public sealed class EquipmentMaintenancePolicyRuntime :
             order.orderId,
             order.facilityBuildingId,
             FacilityBufferDestinationAnchorKind.LiveFacility);
-    }
-
-    private void RevokeDestinationClaimOrThrow(
-        FacilityBufferDestinationClaim claim)
-    {
-        if (destinationClaimCommands.TryRevoke(
-                claim,
-                out FacilityBufferDestinationClaimFailureCode failureCode,
-                out string failureReason))
-        {
-            return;
-        }
-
-        throw new InvalidOperationException(
-            "Equipment repair destination revoke failed: "
-            + $"{failureCode}: {failureReason}");
     }
 
     private bool HasEquipmentEnRoute(

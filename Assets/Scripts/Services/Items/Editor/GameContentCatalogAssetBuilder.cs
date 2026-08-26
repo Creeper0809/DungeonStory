@@ -120,6 +120,46 @@ public static class GameContentCatalogAssetBuilder
     }
 
     /// <summary>
+    /// Replaces the complete production-recipe slice from its single authored
+    /// Resources root. Resource-economy builders must call this after creating
+    /// or deleting recipe assets so a physical recipe can never exist outside
+    /// the runtime domain catalog.
+    /// </summary>
+    public static void ReindexProductionRecipes()
+    {
+        GameDomainContentCatalogSO domainCatalog =
+            AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(
+                DomainCatalogPath)
+            ?? throw new InvalidOperationException(
+                $"Required domain content catalog is missing at '{DomainCatalogPath}'.");
+        ProductionRecipeSO[] recipes = AssetDatabase
+            .FindAssets("t:ProductionRecipeSO", new[]
+            {
+                "Assets/Resources/SO/Economy/Recipes"
+            })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>)
+            .Where(recipe => recipe != null)
+            .Distinct()
+            .OrderBy(recipe => recipe.RecipeId, StringComparer.Ordinal)
+            .ToArray();
+        ScriptableObject[] definitions = domainCatalog.Definitions
+            .Where(definition => definition != null
+                && definition is not ProductionRecipeSO)
+            .Concat(recipes.Cast<ScriptableObject>())
+            .ToArray();
+
+        domainCatalog.SetDefinitions(definitions);
+        IReadOnlyList<string> errors = domainCatalog.ValidateCatalog();
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Production-recipe reindex failed:\n" + string.Join("\n", errors));
+        }
+        EditorUtility.SetDirty(domainCatalog);
+    }
+
+    /// <summary>
     /// Replaces only the research-project slice of the authoritative domain
     /// index. Other content builders may intentionally leave shadow or
     /// migration assets under Resources, so a research rebuild must never

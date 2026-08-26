@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9096
+  id: 9097
   recipeId: recipe:blood-stimulant
   displayName: "\uD608\uD654 \uCD09\uC9C4\uC81C"
   description: "\uD608\uD654 \uCD09\uC9C4\uC81C \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: material:alchemical-solvent
     amount: 1
   outputs:
-  - itemId: drug:blood-stimulant
+  - outputLineId: output:recipe:blood-stimulant/000/main/drug:blood-stimulant
+    role: 0
+    itemId: drug:blood-stimulant
     amount: 1
     probability: 1

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8101
+  id: 8102
   itemId: ammo:arrow-rune
   displayName: "\uB8EC\uCD09 \uD654\uC0B4"
   description: "\uB9C8\uB098\uC640 \uBFD4\uC744 \uC0C8\uAE34 \uBE44\uC804 \uD654\uC0B4."
@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 11
   features:
-  - rid: 7737211905666712263
-  - rid: 7737211905666712264
-  - rid: 7737211905666712265
-  - rid: 7737212042857939718
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712263
+    - rid: 1000
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:arrow-rune
-    - rid: 7737211905666712264
+    - rid: 1001
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:arcane:advanced
-    - rid: 7737211905666712265
+    - rid: 1002
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 1280
         sharedIntermediate: 0
-    - rid: 7737212042857939718
+    - rid: 1003
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5761212

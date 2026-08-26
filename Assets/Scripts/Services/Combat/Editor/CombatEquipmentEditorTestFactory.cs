@@ -66,6 +66,7 @@ public static class CombatEquipmentEditorTestFactory
                 researchProvider,
                 itemStackRuntime,
                 collaborators.StatProjector,
+                physicalState,
                 AllFacilityCapabilityQuery.Instance,
                 stateStore);
         CombatEquipmentLoadoutRuntime loadoutRuntime =

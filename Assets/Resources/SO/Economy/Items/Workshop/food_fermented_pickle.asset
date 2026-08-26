@@ -32,18 +32,18 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 33
   features:
-  - rid: 7737212042831200529
-  - rid: 7737212042831200530
-  - rid: 7737212042831200531
   - rid: 7737212042857939608
+  - rid: 1003
+  - rid: 1004
+  - rid: 1005
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200529
+    - rid: 1003
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:survival:preservation
-    - rid: 7737212042831200530
+    - rid: 1004
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 3
@@ -53,7 +53,7 @@ MonoBehaviour:
         mood: 2
         freshnessSeconds: 1440
         preserved: 1
-    - rid: 7737212042831200531
+    - rid: 1005
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
@@ -62,4 +62,4 @@ MonoBehaviour:
     - rid: 7737212042857939608
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5828282
+        saleRate: 0.5857272

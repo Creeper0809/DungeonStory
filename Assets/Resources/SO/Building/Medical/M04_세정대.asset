@@ -53,15 +53,15 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211857806557825
-    - rid: 7737211857806557826
-    - rid: 7737211857806557827
-    - rid: 7737211857806557828
-    - rid: 7737211857806557829
-    - rid: 7737211857806557830
+    - rid: 1008
+    - rid: 1009
+    - rid: 1010
+    - rid: 1011
+    - rid: 1012
+    - rid: 1013
     - rid: 7737211857806557831
-    - rid: 7737211857806557832
-    - rid: 7737211857806557833
+    - rid: 1014
+    - rid: 1015
   width: 1
   height: 1
   layer: 1
@@ -77,12 +77,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211857806557825
+    - rid: 1008
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M04
-    - rid: 7737211857806557826
+    - rid: 1009
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -90,7 +90,7 @@ MonoBehaviour:
         - medical
         - surgery
         - m04
-    - rid: 7737211857806557827
+    - rid: 1010
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -99,7 +99,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211857806557828
+    - rid: 1011
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -110,16 +110,35 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 65544
           disabledWhenDamaged: 1
-    - rid: 7737211857806557829
+    - rid: 1012
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211857806557830
+    - rid: 1013
       type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
+    - rid: 1014
+      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEvolutionAbility
+        settings:
+          contributesToRoomProfile: 1
+          tags:
+          - medical
+          - surgery
+          - m04
+          scores: []
+          metrics: []
+    - rid: 1015
+      type: {class: BuildingSterilizationAbility, ns: , asm: DungeonStory.Medical}
+      data:
+        abilityId: BuildingSterilizationAbility
+        sterilityBonus: 0.3
+        waterCost: 1
+        disinfectantCost: 1
     - rid: 7737211857806557831
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -144,22 +163,3 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 5
-    - rid: 7737211857806557832
-      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingEvolutionAbility
-        settings:
-          contributesToRoomProfile: 1
-          tags:
-          - medical
-          - surgery
-          - m04
-          scores: []
-          metrics: []
-    - rid: 7737211857806557833
-      type: {class: BuildingSterilizationAbility, ns: , asm: DungeonStory.Medical}
-      data:
-        abilityId: BuildingSterilizationAbility
-        sterilityBonus: 0.3
-        waterCost: 1
-        disinfectantCost: 1

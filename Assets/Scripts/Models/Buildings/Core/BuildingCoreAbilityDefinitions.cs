@@ -101,9 +101,11 @@ public sealed class BuildingStorageAbility : BuildingAbility
 {
     [InspectorName("품목 분류")] public StockCategory category = StockCategory.General;
     [Min(0), InspectorName("보관량")] public int capacity;
+    [InspectorName("최대 보관 질량 (g)")] public long maxStoredMassGrams;
     [InspectorName("모든 품목 허용")] public bool allCategories;
 
-    public bool IsValid => capacity > 0;
+    public bool IsValid => capacity > 0 || maxStoredMassGrams > 0L;
+    public bool HasMassCapacityAuthority => maxStoredMassGrams > 0L;
 }
 
 [Serializable]
@@ -205,4 +207,3 @@ public sealed class BuildingCleaningAbility :
     [Range(0f, 100f)] public float restoredCleanliness = 100f;
 
 }
-

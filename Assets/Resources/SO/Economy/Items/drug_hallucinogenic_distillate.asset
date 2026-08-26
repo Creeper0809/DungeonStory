@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8097
+  id: 8098
   itemId: drug:hallucinogenic-distillate
   displayName: "\uD658\uAC01\uADE0 \uC99D\uB958\uC561"
   description: "\uAC15\uD55C \uD658\uAC01\uACFC \uC624\uB77D \uD6A8\uACFC\uB97C \uC8FC\uB294
@@ -32,24 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 37
   features:
-  - rid: 7737211905666712097
-  - rid: 7737211905666712098
-  - rid: 7737211905666712100
-  - rid: 7737212042857939958
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712097
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:distillation
-    - rid: 7737211905666712098
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 2
         sharedIntermediate: 0
-    - rid: 7737211905666712100
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59002703
+    - rid: 1003
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:hallucinogenic
@@ -62,7 +66,3 @@ MonoBehaviour:
         workSpeedEffect: -0.12
         combatEffect: -0.08
         durationSeconds: 210
-    - rid: 7737212042857939958
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.5889909

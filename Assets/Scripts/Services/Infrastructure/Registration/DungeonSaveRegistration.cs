@@ -10,15 +10,40 @@ public static class DungeonSaveRegistration
         builder.Register<DungeonRuntimeAggregateRootStore>(Lifetime.Singleton);
         builder.Register<InvasionAggregateStateStore>(Lifetime.Singleton);
         builder.Register<CharacterWorldSpawnDependencies>(Lifetime.Singleton);
+        builder.Register<ProductionOutputLifecycleRestoreCandidateIndex>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IProductionOutputLifecycleRestoreCandidatePublisher>()
+            .As<IProductionOutputLifecycleRestoreCandidateQuery>()
+            .As<IDungeonRestoreTransactionParticipant>();
         RegisterSections(builder);
         builder.Register<DungeonSaveSectionRegistry>(Lifetime.Singleton)
             .As<IDungeonSaveSectionRegistry>();
         builder.Register<DungeonAggregateReferencePreflight>(Lifetime.Singleton)
             .As<IDungeonSavePreflightValidator>();
+        builder.Register<ProductionGenericBillTerminalDrainSaveValidation>(
+            Lifetime.Singleton);
+        builder.Register<CombatEquipmentTerminalDrainSaveValidation>(
+            Lifetime.Singleton);
+        builder.Register<ProductionApparelOrderTerminalDrainSaveValidation>(
+            Lifetime.Singleton);
+        builder.Register<ProductionFacilityDestructiveDrainCrossAggregateSaveValidation>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IDungeonSavePreflightValidator>()
+            .As<IDungeonSaveRegistryPreflightValidator>()
+            .As<IProductionFacilityDestructiveDrainCandidateValidator>();
         builder.Register<DungeonGameSaveService>(Lifetime.Singleton)
             .As<IDungeonGameSaveService>();
         builder.Register<DungeonSaveSlotCatalog>(Lifetime.Singleton)
             .As<IDungeonSaveSlotCatalog>();
+        builder.Register<PreparedOutputCheckpointGcCoordinator>(Lifetime.Singleton)
+            .As<IPreparedOutputCheckpointGcCoordinator>();
+        builder.Register<PreparedOutputCheckpointGcDurableSaveParticipant>(
+                Lifetime.Singleton)
+            .As<IDungeonDurableSaveCommitParticipant>();
+        builder.Register<DungeonDurableSaveCommitCoordinator>(Lifetime.Singleton)
+            .As<IDungeonDurableSaveCommitCoordinator>();
         builder.Register<DungeonSceneNavigator>(Lifetime.Singleton)
             .AsSelf()
             .As<IDungeonSceneNavigator>();
@@ -54,6 +79,9 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<ProductionBillsSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<ProductionPreparedOutputRoutingSaveSection>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<ServiceRoomsSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<AutomationInfrastructureSaveSection>(
@@ -61,6 +89,8 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<EnvironmentalFieldSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<ApparelRejectedDismantleRestoreGuard>(
+            Lifetime.Singleton);
         builder.Register<CharacterEnvironmentSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<SpeciesRuntimeSaveSection>(Lifetime.Singleton)
@@ -80,6 +110,8 @@ public static class DungeonSaveRegistration
         builder.Register<WorldResourceSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CropPlotSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CertifiedSeedSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CropEcologySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();

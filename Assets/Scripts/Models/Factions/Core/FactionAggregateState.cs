@@ -15,6 +15,7 @@ public sealed class FactionAggregateState
     public List<FactionRouteState> Routes { get; } = new();
     public int CurrentDay { get; set; } = 1;
     public int RouteSequence { get; set; }
+    public int GoodwillOperationSequence { get; set; }
 }
 
 public sealed class FactionRestoreCandidate

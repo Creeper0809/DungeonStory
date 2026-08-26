@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9100
+  id: 9101
   recipeId: recipe:arrow-bone
   displayName: "\uBF08\uCD09 \uD654\uC0B4"
   description: "\uBF08\uCD09 \uD654\uC0B4 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:feather
     amount: 1
   outputs:
-  - itemId: ammo:arrow-bone
+  - outputLineId: output:recipe:arrow-bone/000/main/ammo:arrow-bone
+    role: 0
+    itemId: ammo:arrow-bone
     amount: 10
     probability: 1

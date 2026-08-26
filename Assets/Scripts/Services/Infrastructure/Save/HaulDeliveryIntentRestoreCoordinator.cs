@@ -21,8 +21,10 @@ public sealed class HaulDeliveryIntentRestoreCoordinator :
     private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
     private readonly IHaulDeliveryIntentCommand commands;
     private readonly WorldItemRepository repository;
+    private readonly WorldItemWarehouseService warehouseService;
     private IReadOnlyList<HaulDeliveryIntentSaveData> previousState;
     private readonly List<AbilityHaul> rebound = new();
+    private readonly List<HaulDeliveryIntentSaveData> rebuiltWarehouseAdmissions = new();
     private bool active;
     private bool published;
     private bool registryReplaced;
@@ -33,7 +35,8 @@ public sealed class HaulDeliveryIntentRestoreCoordinator :
         IItemQuantityReservationPersistence reservationPersistence,
         IWorkOrderQuery workOrders,
         IFacilityBufferDestinationClaimQuery destinationClaims,
-        WorldItemRepository repository)
+        WorldItemRepository repository,
+        WorldItemWarehouseService warehouseService)
     {
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
         this.reservations = reservations ?? throw new ArgumentNullException(nameof(reservations));
@@ -43,6 +46,8 @@ public sealed class HaulDeliveryIntentRestoreCoordinator :
         this.destinationClaims = destinationClaims
             ?? throw new ArgumentNullException(nameof(destinationClaims));
         this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        this.warehouseService = warehouseService
+            ?? throw new ArgumentNullException(nameof(warehouseService));
         commands = repository.HaulDeliveryIntents;
     }
 
@@ -54,6 +59,7 @@ public sealed class HaulDeliveryIntentRestoreCoordinator :
             throw new InvalidOperationException("Haul delivery restore is already active.");
         previousState = commands.CaptureRuntimeState();
         rebound.Clear();
+        rebuiltWarehouseAdmissions.Clear();
         active = true;
         published = false;
         registryReplaced = false;
@@ -106,6 +112,18 @@ public sealed class HaulDeliveryIntentRestoreCoordinator :
             }
             IReadOnlyList<ItemQuantityLease> revalidatedLeases =
                 RevalidateExactLeases(intent, leases);
+            if (!warehouseService.TryRebuildRestoredHaulAdmissions(
+                    intent,
+                    out string admissionFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Haul delivery '{intent.operationId}' destination admission rebind failed: "
+                    + admissionFailure);
+            }
+            if (intent.warehouseAdmissions?.Count > 0)
+            {
+                rebuiltWarehouseAdmissions.Add(intent);
+            }
             if (!commands.TryRestoreCommitted(intent, out string registryFailure))
             {
                 throw new InvalidOperationException(registryFailure);
@@ -239,6 +257,12 @@ public sealed class HaulDeliveryIntentRestoreCoordinator :
     {
         for (int index = rebound.Count - 1; index >= 0; index--)
             rebound[index]?.ClearRestoredDeliveryIntentBinding();
+        for (int index = rebuiltWarehouseAdmissions.Count - 1; index >= 0; index--)
+        {
+            warehouseService.ReleaseHaulAdmissions(
+                rebuiltWarehouseAdmissions[index],
+                WarehouseMassAdmissionReleaseReason.RestoreRollback);
+        }
         commands.ReplaceRuntimeState(
             previousState ?? Array.Empty<HaulDeliveryIntentSaveData>());
         Reset();
@@ -268,6 +292,7 @@ public sealed class HaulDeliveryIntentRestoreCoordinator :
     {
         previousState = null;
         rebound.Clear();
+        rebuiltWarehouseAdmissions.Clear();
         active = false;
         published = false;
         registryReplaced = false;

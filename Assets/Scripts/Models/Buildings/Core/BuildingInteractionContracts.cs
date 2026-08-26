@@ -89,6 +89,13 @@ public interface IRetailStockStateOwner
     void ApplyStockSnapshot(ShopStockStateSnapshot snapshot);
 }
 
+public interface IRetailRestockOperationOwner
+{
+    int ActiveRestockOperationCount { get; }
+    bool TryBeginRestockOperation(string operationId);
+    void EndRestockOperation(string operationId);
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public interface IWorkableFacility
 {

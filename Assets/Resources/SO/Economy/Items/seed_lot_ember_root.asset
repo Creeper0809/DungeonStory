@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 3
   features:
-  - rid: 7737211785112453354
-  - rid: 7737211785112453355
-  - rid: 7737212042857939056
+  - rid: 7737212197473092126
+  - rid: 7737212197473092127
+  - rid: 7737212197473092128
   references:
     version: 2
     RefIds:
-    - rid: 7737211785112453354
+    - rid: 7737212197473092126
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 0
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211785112453355
+    - rid: 7737212197473092127
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:field
-    - rid: 7737212042857939056
+    - rid: 7737212197473092128
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0

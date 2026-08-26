@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9103
+  id: 9104
   recipeId: recipe:arrow-rune
   displayName: "\uB8EC\uCD09 \uD654\uC0B4"
   description: "\uB8EC\uCD09 \uD654\uC0B4 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:mana-crystal
     amount: 1
   outputs:
-  - itemId: ammo:arrow-rune
+  - outputLineId: output:recipe:arrow-rune/000/main/ammo:arrow-rune
+    role: 0
+    itemId: ammo:arrow-rune
     amount: 8
     probability: 1

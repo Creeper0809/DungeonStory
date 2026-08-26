@@ -53,17 +53,17 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211857806557786
-    - rid: 7737211857806557787
-    - rid: 7737211857806557788
-    - rid: 7737211857806557790
-    - rid: 7737211857806557791
+    - rid: 1010
+    - rid: 1011
+    - rid: 1012
+    - rid: 1013
+    - rid: 1014
+    - rid: 1015
     - rid: 7737211857806557792
-    - rid: 7737211857806557793
-    - rid: 7737211857806557794
-    - rid: 7737211857806557795
-    - rid: 7737211857806557796
-    - rid: 7737211905666711811
+    - rid: 1016
+    - rid: 1017
+    - rid: 1018
+    - rid: 1019
   width: 1
   height: 1
   layer: 1
@@ -79,12 +79,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211857806557786
+    - rid: 1010
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M08
-    - rid: 7737211857806557787
+    - rid: 1011
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -92,7 +92,7 @@ MonoBehaviour:
         - medical
         - surgery
         - m08
-    - rid: 7737211857806557788
+    - rid: 1012
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -101,16 +101,62 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211857806557790
+    - rid: 1013
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 66048
+          disabledWhenDamaged: 1
+    - rid: 1014
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211857806557791
+    - rid: 1015
       type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 8
         restockRequestThreshold: 2
+    - rid: 1016
+      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEvolutionAbility
+        settings:
+          contributesToRoomProfile: 1
+          tags:
+          - medical
+          - surgery
+          - m08
+          scores: []
+          metrics: []
+    - rid: 1017
+      type: {class: BuildingStorageAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingStorageAbility
+        category: 8
+        capacity: 8
+        maxStoredMassGrams: 12500
+        allCategories: 0
+    - rid: 1018
+      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
+      data:
+        abilityId: BuildingFuelConsumerAbility
+        fuelPerRefuel: 1
+        workSeconds: 1
+        warmth: 0
+        lightSafety: 2
+    - rid: 1019
+      type: {class: BuildingOrganStorageAbility, ns: , asm: DungeonStory.Medical}
+      data:
+        abilityId: BuildingOrganStorageAbility
+        preservationDays: 15
+        fuelPerDay: 1
+        capacity: 8
     - rid: 7737211857806557792
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -127,7 +173,7 @@ MonoBehaviour:
           sortMode: 4
           specificCharacterIds: []
           excludedCharacterIds: []
-          minimumSkillId: 
+          minimumSkillId:
           minimumSkillExperience: 0
           minimumCareerRank: 0
           requiredTraitIds: []
@@ -135,48 +181,3 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:steel-ingot
           amount: 7
-    - rid: 7737211857806557793
-      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingEvolutionAbility
-        settings:
-          contributesToRoomProfile: 1
-          tags:
-          - medical
-          - surgery
-          - m08
-          scores: []
-          metrics: []
-    - rid: 7737211857806557794
-      type: {class: BuildingStorageAbility, ns: , asm: DungeonStory.Buildings}
-      data:
-        abilityId: BuildingStorageAbility
-        category: 8
-        capacity: 8
-        allCategories: 0
-    - rid: 7737211857806557795
-      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
-      data:
-        abilityId: BuildingFuelConsumerAbility
-        fuelPerRefuel: 1
-        workSeconds: 1
-        warmth: 0
-        lightSafety: 2
-    - rid: 7737211857806557796
-      type: {class: BuildingOrganStorageAbility, ns: , asm: DungeonStory.Medical}
-      data:
-        abilityId: BuildingOrganStorageAbility
-        preservationDays: 15
-        fuelPerDay: 1
-        capacity: 8
-    - rid: 7737211905666711811
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 4096
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 66048
-          disabledWhenDamaged: 1

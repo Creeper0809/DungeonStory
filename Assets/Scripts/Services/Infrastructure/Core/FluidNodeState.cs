@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
@@ -12,9 +13,89 @@ public sealed class FluidNodeState
     public float Leak;
     public float ProcessorWork;
     public float ManualWaterReserve;
+    public int NextImmediateManualWaterOperationSequence = 1;
+    public readonly List<ManualWaterTransferState> PendingManualWaterTransfers =
+        new List<ManualWaterTransferState>();
+    public int NextContainerFeedOperationSequence = 1;
+    public ContainerWaterFeedState PendingContainerFeed =
+        new ContainerWaterFeedState();
     public WaterContainerTransferMode TransferMode;
     public float TransferWork;
     public InfrastructureStatus TransferStatus;
+}
+
+public sealed class ContainerWaterFeedState
+{
+    public int Phase;
+    public int OperationSequence;
+    public string OperationId = string.Empty;
+    public string ReasonCode = string.Empty;
+    public string RequestFingerprint = string.Empty;
+    public string PhysicalCommitId = string.Empty;
+    public string NodeId = string.Empty;
+    public string NetworkId = string.Empty;
+    public string DestinationId = string.Empty;
+    public string ItemId = string.Empty;
+    public int Quantity;
+    public float WaterAmount;
+    public long InputMassGrams;
+    public readonly List<string> SourceStackIds = new List<string>();
+
+    public ContainerWaterFeedState DeepClone()
+    {
+        var clone = new ContainerWaterFeedState
+        {
+            Phase = Phase,
+            OperationSequence = OperationSequence,
+            OperationId = OperationId,
+            ReasonCode = ReasonCode,
+            RequestFingerprint = RequestFingerprint,
+            PhysicalCommitId = PhysicalCommitId,
+            NodeId = NodeId,
+            NetworkId = NetworkId,
+            DestinationId = DestinationId,
+            ItemId = ItemId,
+            Quantity = Quantity,
+            WaterAmount = WaterAmount,
+            InputMassGrams = InputMassGrams
+        };
+        clone.SourceStackIds.AddRange(SourceStackIds);
+        return clone;
+    }
+}
+
+public sealed class ManualWaterTransferState
+{
+    public string OperationId = string.Empty;
+    public string PhysicalCommitId = string.Empty;
+    public string RequestFingerprint = string.Empty;
+    public string DestinationId = string.Empty;
+    public int OperationSequence;
+    public bool ImmediateConsumption;
+    public float RequestedWaterUnits;
+    public int TransferredWaterUnits;
+    public long InputMassGrams;
+    public bool FluidStateApplied;
+    public readonly List<string> SourceStackIds = new List<string>();
+
+    public ManualWaterTransferState DeepClone()
+    {
+        var clone = new ManualWaterTransferState
+        {
+            OperationId = OperationId,
+            PhysicalCommitId = PhysicalCommitId,
+            RequestFingerprint = RequestFingerprint,
+            DestinationId = DestinationId,
+            OperationSequence = OperationSequence,
+            ImmediateConsumption = ImmediateConsumption,
+            RequestedWaterUnits = RequestedWaterUnits,
+            TransferredWaterUnits = TransferredWaterUnits,
+            InputMassGrams = InputMassGrams,
+            FluidStateApplied = FluidStateApplied
+        };
+        clone.SourceStackIds.AddRange(SourceStackIds);
+        return clone;
+    }
 }
 
 public static class FluidNodeWaterRules

@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:dreamleaf
     amount: 3
   outputs:
-  - itemId: yarn:dreamweave
+  - outputLineId: output:recipe:v22:spin:dreamweave/000/main/yarn:dreamweave
+    role: 0
+    itemId: yarn:dreamweave
     amount: 2
     probability: 1

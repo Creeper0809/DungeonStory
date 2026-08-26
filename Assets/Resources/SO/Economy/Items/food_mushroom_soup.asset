@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8059
+  id: 8060
   itemId: food:mushroom-soup
   displayName: "\uB3D9\uAD74\uBC84\uC12F\uAD6D"
   description: "\uB2E8\uBC31\uC9C8\uC774 \uD48D\uBD80\uD55C \uBE44\uAC74 \uAD6D."
@@ -31,34 +31,34 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 8
   features:
-  - rid: 7737211905666712167
-  - rid: 7737211905666712168
-  - rid: 7737211905666712170
-  - rid: 7737212042831201248
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712167
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:crops
-    - rid: 7737211905666712168
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 2
         sharedIntermediate: 0
-    - rid: 7737211905666712170
-      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        quality: 0
-        qualityBand: 1
-        servingRole: 0
-        nutrition: 36
-        mood: 3
-        freshnessSeconds: 330
-        preserved: 0
-    - rid: 7737212042831201248
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.595
+    - rid: 1003
+      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        quality: 0
+        qualityBand: 0
+        servingRole: 0
+        nutrition: 36
+        mood: 1
+        freshnessSeconds: 330
+        preserved: 0

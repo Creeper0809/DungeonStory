@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: textile:insulating-cloth
     amount: 1
   outputs:
-  - itemId: component:climate-control-manifold
+  - outputLineId: output:recipe:component:climate-control-manifold/000/main/component:climate-control-manifold
+    role: 0
+    itemId: component:climate-control-manifold
     amount: 1
     probability: 1

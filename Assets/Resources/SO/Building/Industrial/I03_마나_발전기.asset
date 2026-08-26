@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212033836254112
-    - rid: 7737212033836254113
-    - rid: 7737212033836254114
-    - rid: 7737212033836254115
-    - rid: 7737212033836254116
+    - rid: 7737212199244661653
+    - rid: 7737212199244661654
+    - rid: 7737212199244661655
+    - rid: 7737212199244661656
+    - rid: 7737212199244661657
   width: 2
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212033836254112
+    - rid: 7737212199244661653
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I03
-    - rid: 7737212033836254113
+    - rid: 7737212199244661654
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,7 +87,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737212033836254114
+    - rid: 7737212199244661655
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -121,7 +121,7 @@ MonoBehaviour:
           amount: 2
         - itemId: material:mana-alloy
           amount: 1
-    - rid: 7737212033836254115
+    - rid: 7737212199244661656
       type: {class: BuildingPowerProducerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerProducerAbility
@@ -129,7 +129,7 @@ MonoBehaviour:
         requiresFuel: 1
         fuelItemId: resource:mana-crystal
         secondsPerFuel: 90
-    - rid: 7737212033836254116
+    - rid: 7737212199244661657
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

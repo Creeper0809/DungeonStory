@@ -50,14 +50,17 @@ MonoBehaviour:
   processingGameHours: 0
   optimalTemperatureC: {x: 12, y: 24}
   warningTemperatureC: {x: 4, y: 32}
-  cleanWaterPerCycle: 0
+  cleanWaterPerCycle: 0.7
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:fermented-liquor
     amount: 1
   outputs:
-  - itemId: craft:fermented-vinegar
+  - outputLineId: output:recipe:fermented-vinegar/000/main/craft:fermented-vinegar
+    role: 0
+    itemId: craft:fermented-vinegar
     amount: 2
     probability: 1

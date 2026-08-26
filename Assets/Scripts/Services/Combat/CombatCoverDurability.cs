@@ -19,6 +19,14 @@ public sealed class CombatCoverDurabilityRegistry :
 {
     private readonly Dictionary<string, CombatCoverDurability> bySourceId =
         new Dictionary<string, CombatCoverDurability>(StringComparer.Ordinal);
+    private readonly IBuildingDestructiveLossRuntime destructiveLoss;
+
+    public CombatCoverDurabilityRegistry(
+        IBuildingDestructiveLossRuntime destructiveLoss)
+    {
+        this.destructiveLoss = destructiveLoss
+            ?? throw new ArgumentNullException(nameof(destructiveLoss));
+    }
 
     public void Register(CombatCoverDurability durability)
     {
@@ -45,7 +53,27 @@ public sealed class CombatCoverDurabilityRegistry :
             return false;
         }
 
-        return durability.ApplyDamage(damage);
+        if (damage < durability.CurrentHitPoints)
+            return durability.ApplyDamage(damage);
+
+        BuildableObject building = durability.Building;
+        if (building == null || building.isDestroy)
+            return false;
+        string operationId = "production-mutation:cover-loss:"
+            + building.PersistentInstanceId.Value;
+        if (!destructiveLoss.TryPrepare(
+                building,
+                operationId,
+                out BuildingDestructiveLossCandidate candidate,
+                out _))
+        {
+            return false;
+        }
+        BuildingDestructiveLossResult result = destructiveLoss.TryCommit(candidate);
+        if (!result.Removed)
+            return false;
+        Unregister(durability);
+        return true;
     }
 }
 
@@ -62,6 +90,7 @@ public sealed class CombatCoverDurability : MonoBehaviour, IBuildingStateModule
         : $"cover:{building.RequirePersistentInstanceId().Value}";
     public float MaxHitPoints => Mathf.Max(1f, ability?.coverHitPoints ?? 1f);
     public float CurrentHitPoints => Mathf.Clamp(currentHitPoints, 0f, MaxHitPoints);
+    internal BuildableObject Building => building;
     public float DurabilityRatio => CurrentHitPoints / MaxHitPoints;
     public string ModuleId => BuildingStateModuleIds.ForAbility(
         "cover",
@@ -86,11 +115,6 @@ public sealed class CombatCoverDurability : MonoBehaviour, IBuildingStateModule
         if (damage <= 0f || building == null || building.isDestroy) return false;
         currentHitPoints = Mathf.Max(0f, currentHitPoints - damage);
         building.SetDamaged(DurabilityRatio <= 0.5f);
-        if (currentHitPoints <= 0f)
-        {
-            registry.Unregister(this);
-            building.DestroySelf();
-        }
         return true;
     }
 
@@ -119,6 +143,8 @@ public sealed class CombatCoverDurability : MonoBehaviour, IBuildingStateModule
         currentHitPoints = Mathf.Clamp(save.currentHitPoints, 0f, MaxHitPoints);
         initialized = true;
         building?.SetDamaged(DurabilityRatio <= 0.5f);
+        if (currentHitPoints <= 0f)
+            registry?.Unregister(this);
         error = string.Empty;
         return true;
     }
@@ -137,12 +163,18 @@ public sealed class CombatCoverDurability : MonoBehaviour, IBuildingStateModule
             currentHitPoints = MaxHitPoints;
             initialized = true;
         }
-        registry.Register(this);
+        if (CurrentHitPoints > 0f)
+            registry.Register(this);
     }
 
     private void OnEnable()
     {
-        if (building != null && building.PersistentInstanceId.IsValid) registry?.Register(this);
+        if (building != null
+            && building.PersistentInstanceId.IsValid
+            && CurrentHitPoints > 0f)
+        {
+            registry?.Register(this);
+        }
     }
 
     private void OnDisable()

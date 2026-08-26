@@ -99,12 +99,16 @@ internal sealed class SurvivalFoodStockRuntime
             }
 
             int requested = Math.Min(remaining, stack.Quantity);
-            if (itemStackRuntime.TryConsumeStackQuantity(
+            if (itemStackRuntime.TryCommitPhysicalDisposition(
                     stack.StackId,
                     requested,
-                    out WorldItemStackSnapshot consumed))
+                    PhysicalItemDispositionKind.Sink,
+                    $"survival-stock-withdraw:{category}:{stack.StackId}:{requested}",
+                    "survival-treatment-material-consumed",
+                    out PhysicalItemDispositionReceipt disposition,
+                    out _))
             {
-                remaining -= Math.Min(requested, consumed?.Quantity ?? requested);
+                remaining -= Math.Min(requested, disposition.Quantity);
             }
         }
 

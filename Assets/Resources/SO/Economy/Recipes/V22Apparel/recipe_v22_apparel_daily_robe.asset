@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:cloth
     amount: 2
   outputs:
-  - itemId: apparel:daily-robe
+  - outputLineId: output:recipe:v22:apparel:daily-robe/000/main/apparel:daily-robe
+    role: 0
+    itemId: apparel:daily-robe
     amount: 1
     probability: 1

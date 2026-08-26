@@ -59,7 +59,7 @@ MonoBehaviour:
     - rid: 7737211921440178911
     - rid: 7737211921440178912
     - rid: 7737211921440178913
-    - rid: 7737212042831200774
+    - rid: 7737212199327498374
   width: 2
   height: 1
   layer: 1
@@ -140,7 +140,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingRetailAbility
         category: 1
-    - rid: 7737212042831200774
+    - rid: 7737212199327498374
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility

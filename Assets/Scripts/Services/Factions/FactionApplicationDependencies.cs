@@ -43,17 +43,21 @@ public sealed class FactionItemLogisticsDependencies
     public FactionItemLogisticsDependencies(
         IWorldItemSpawner itemSpawner,
         IWorldItemStackRuntime itemRuntime,
+        IPhysicalItemBatchDispositionService batchDispositions,
         IWorldDropZoneQuery dropZones)
     {
         ItemSpawner = itemSpawner
             ?? throw new ArgumentNullException(nameof(itemSpawner));
         ItemRuntime = itemRuntime
             ?? throw new ArgumentNullException(nameof(itemRuntime));
+        BatchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
         DropZones = dropZones ?? throw new ArgumentNullException(nameof(dropZones));
     }
 
     public IWorldItemSpawner ItemSpawner { get; }
     public IWorldItemStackRuntime ItemRuntime { get; }
+    public IPhysicalItemBatchDispositionService BatchDispositions { get; }
     public IWorldDropZoneQuery DropZones { get; }
 }
 

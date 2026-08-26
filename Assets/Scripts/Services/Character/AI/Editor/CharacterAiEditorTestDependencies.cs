@@ -49,6 +49,8 @@ internal static class CharacterAiEditorTestDependencies
     private static readonly IDungeonItemCatalogProvider ItemCatalog =
         new ResourceDungeonItemCatalogProvider(
             new ResourceItemDefinitionCatalog(GameContent));
+    private static readonly IPhysicalItemMassQuery ItemMass =
+        new PhysicalItemMassQuery(ItemCatalog);
     private static readonly IItemHaulingSettingsProvider HaulingSettings =
         new ResourceItemHaulingSettingsProvider(
             GameContent,
@@ -59,11 +61,32 @@ internal static class CharacterAiEditorTestDependencies
         new WorldItemRepository(
             PersistentIds,
             ItemRuntimeState);
+    private static readonly Lazy<ICombatEquipmentRuntime> CombatEquipmentRuntime =
+        new Lazy<ICombatEquipmentRuntime>(() =>
+            CombatEquipmentEditorTestFactory.Create(
+                new ResourceCombatEquipmentCatalog(GameContent),
+                PhysicalItems,
+                CarryInventories,
+                new ResourceEconomyContentCatalog(GameContent),
+                EmptyEvolutionModuleRegistry.Instance,
+                EditorAllResearchRuntimeProvider.Instance,
+                new ResourceEquipmentModuleCatalog(GameContent),
+                UnavailableEquipmentPhysicalItemGateway.Instance));
+    private static readonly Lazy<IRetailStockPhysicalRuntime> RetailStockPhysicalRuntime =
+        new Lazy<IRetailStockPhysicalRuntime>(() =>
+            new RetailStockPhysicalRuntime(
+                new CombatEquipmentRuntimeRetailAuthorityAdapter(
+                    CombatEquipmentRuntime.Value)));
+    internal static ICombatEquipmentRuntime CombatEquipment =>
+        CombatEquipmentRuntime.Value;
+    internal static IRetailStockPhysicalRuntime RetailStockPhysical =>
+        RetailStockPhysicalRuntime.Value;
     private static readonly IStockQuery StockQuery =
         new PhysicalStockQuery(
             PhysicalItems,
-            new ResourceDungeonItemCatalogProvider(
-                new ResourceItemDefinitionCatalog(GameContent)));
+            ItemCatalog,
+            ItemMass);
+    internal static IStockQuery PhysicalStock => StockQuery;
     internal static readonly ICharacterAiWorldRegistry WorldRegistry =
         new CharacterAiWorldRegistry(
             new SceneRuntimeRegistry<CharacterActor>(),
@@ -475,6 +498,7 @@ internal static class CharacterAiEditorTestDependencies
         // provide the same typed catalog/settings authority as a live world.
         actorObject.GetComponent<CharacterCarryInventory>()?.Configure(
             ItemCatalog,
+            ItemMass,
             HaulingSettings,
             CarryInventories);
 
@@ -1070,7 +1094,9 @@ internal static class CharacterAiEditorTestDependencies
             RandomStreams,
             null,
             null,
-            null);
+            null,
+            RetailStockPhysical,
+            StockQuery);
     }
 
     private static GameSessionState GetGameData()
@@ -1668,6 +1694,31 @@ internal static class CharacterAiEditorTestDependencies
         {
             saleItem = LoadSaleItems().FirstOrDefault(candidate => candidate.id == saleItemId);
             return saleItem != null;
+        }
+
+        public bool TryGetPhysicalDescriptor(
+            int saleItemId,
+            out ItemDefinitionId itemDefinitionId,
+            out long unitMassGrams,
+            out bool requiresUniqueInstance)
+        {
+            itemDefinitionId = default;
+            unitMassGrams = 0L;
+            requiresUniqueInstance = false;
+            if (!TryGetSaleItem(saleItemId, out SaleItem saleItem)) return false;
+            ItemDefinitionSO definition = AssetDatabase
+                .FindAssets("t:ItemDefinitionSO", new[] { "Assets" })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<ItemDefinitionSO>)
+                .FirstOrDefault(candidate => candidate != null
+                    && candidate.StableId.Equals(saleItem.ItemDefinitionId));
+            if (definition == null) return false;
+            itemDefinitionId = definition.StableId;
+            unitMassGrams = PhysicalMassGrams
+                .FromCanonicalKilograms(definition.UnitWeight)
+                .Value;
+            requiresUniqueInstance = definition.MaxStack == 1;
+            return true;
         }
 
         public StockCategory GetStockCategory(int saleItemId)

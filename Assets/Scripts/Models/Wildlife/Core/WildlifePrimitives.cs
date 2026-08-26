@@ -88,6 +88,7 @@ public sealed class WildlifeSaveData
     public float headHealth;
     public float torsoHealth;
     public float limbHealth;
+    public string lastCaptiveFeedCommitId = string.Empty;
 }
 
 [Serializable]
@@ -148,7 +149,16 @@ public enum WildlifeFoodRaidOrderState
     Leaving = 1,
     Stolen = 2,
     Cancelled = 3,
-    Failed = 4
+    Failed = 4,
+    WaitingForDispositionFinalization = 5
+}
+
+[Serializable]
+public enum WildlifeFoodRaidCommitPhase
+{
+    None = 0,
+    ItemCommitted = 1,
+    RaidPublished = 2
 }
 
 public static class WildlifeFoodRaidOutcomeCodes
@@ -168,13 +178,21 @@ public sealed class WildlifeFoodRaidOrderSaveData
         WildlifeFoodRaidOrderState.Approaching;
     public int stolenQuantity;
     public string outcomeReason = string.Empty;
+    public WildlifeFoodRaidCommitPhase commitPhase;
+    public string dispositionOperationId = string.Empty;
+    public string dispositionReasonCode = string.Empty;
+    public string dispositionCommitId = string.Empty;
+    public List<string> dispositionSourceStackIds = new List<string>();
+    public int dispositionQuantity;
+    public long dispositionInputMassGrams;
+    public string dispositionItemId = string.Empty;
 }
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonWildlifeSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
     public int nextSequence = 1;

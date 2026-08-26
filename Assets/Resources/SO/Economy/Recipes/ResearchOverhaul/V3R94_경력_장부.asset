@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:leather
     amount: 1
   outputs:
-  - itemId: record:career-ledger
+  - outputLineId: output:recipe:record:career-ledger/000/main/record:career-ledger
+    role: 0
+    itemId: record:career-ledger
     amount: 1
     probability: 1

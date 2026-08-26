@@ -34,6 +34,21 @@ public enum WorldItemStackState
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum WorldItemDropDisposition
+{
+    None = 0,
+    TransientCarryRecoveryDrop = 1
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum WorldItemCarryInterruptionKind
+{
+    None = 0,
+    Downed = 1,
+    Dead = 2
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public enum WasteOriginKind
 {
     Unknown = 0,
@@ -60,19 +75,73 @@ public readonly struct EquipmentStoredEvent
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ItemHaulingSettingsSnapshot
 {
-    public float maxCarryMultiplier = 1.5f;
+    public float maxCarryMultiplier = CharacterCarryTuning.DefaultMaxCarryMultiplier;
 
     public void Normalize()
     {
-        maxCarryMultiplier = Mathf.Clamp(maxCarryMultiplier, 1f, 2.5f);
+        maxCarryMultiplier = CharacterCarryTuning.ClampMaxCarryMultiplier(
+            maxCarryMultiplier);
     }
+}
+
+/// <summary>
+/// Single authored-code authority for character carry-capacity tuning. Character
+/// performance remains the per-actor source; these values only define the
+/// nominal kilogram baseline, harness projection and accessibility bounds.
+/// </summary>
+public static class CharacterCarryTuning
+{
+    public const float NominalBaseCapacityKilograms = 25f;
+    public const float HaulingHarnessMultiplier = 1.25f;
+    public const float DefaultMaxCarryMultiplier = 1.5f;
+    public const float MinimumMaxCarryMultiplier = 1f;
+    public const float MaximumMaxCarryMultiplier = 2.5f;
+    public const float MinimumCapacityKilograms = 0.01f;
+
+    public static float ResolveSoftCapacityKilograms(
+        float performanceFactor,
+        bool haulingHarnessEquipped)
+    {
+        if (float.IsNaN(performanceFactor)
+            || float.IsInfinity(performanceFactor)
+            || performanceFactor <= 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(performanceFactor),
+                performanceFactor,
+                "Carry-capacity performance must be finite and greater than zero.");
+        }
+
+        float capacity = NominalBaseCapacityKilograms * performanceFactor;
+        if (haulingHarnessEquipped)
+        {
+            capacity *= HaulingHarnessMultiplier;
+        }
+
+        return Mathf.Max(MinimumCapacityKilograms, capacity);
+    }
+
+    public static float ResolveHardCapacityKilograms(
+        float performanceFactor,
+        bool haulingHarnessEquipped,
+        float maxCarryMultiplier) =>
+        ResolveSoftCapacityKilograms(
+            performanceFactor,
+            haulingHarnessEquipped)
+        * ClampMaxCarryMultiplier(maxCarryMultiplier);
+
+    public static float ClampMaxCarryMultiplier(float value) =>
+        Mathf.Clamp(
+            value,
+            MinimumMaxCarryMultiplier,
+            MaximumMaxCarryMultiplier);
 }
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonPhysicalItemSaveData
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 17;
 
     public int version = CurrentVersion;
     public long nextHaulOperationSequence = 1;
@@ -82,6 +151,30 @@ public sealed class DungeonPhysicalItemSaveData
         new List<WorldItemStackSaveData>();
     public List<UniqueItemInstanceSaveData> uniqueItems = new();
     public List<ItemReservationIntentSaveData> reservationIntents = new();
+    public List<PhysicalItemBatchDispositionSaveData> pendingBatchDispositions = new();
+    public List<FacilityOutputExactRouteOutboxSaveData> pendingExactOutputRoutes =
+        new();
+    public List<ProductionPhysicalCustodyDrainSaveData>
+        pendingProductionCustodyDrains = new();
+    public List<ProductionInputDestinationCustodyDrainSaveData>
+        pendingProductionInputDestinationDrains = new();
+    public List<ProductionCapacityRoutingDrainSaveData>
+        pendingCapacityRoutingDrains = new();
+    public long lastConfirmedExactRouteCheckpointSequence;
+    public string lastConfirmedExactRouteCheckpointDigest = string.Empty;
+}
+
+[Serializable]
+public sealed class PhysicalItemBatchDispositionSaveData
+{
+    public int kind;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string requestFingerprint = string.Empty;
+    public List<string> sourceStackIds = new();
+    public int quantity;
+    public long inputMassGrams;
+    public string commitId = string.Empty;
 }
 
 [Serializable]
@@ -157,6 +250,13 @@ public sealed class WorldItemStackSaveData
     [Range(0f, 100f)] public float contamination;
     public List<ItemInstanceComponentSaveData> components =
         new List<ItemInstanceComponentSaveData>();
+    public WorldItemDropDisposition dropDisposition;
+    public string recoveryOwnerOperationId = string.Empty;
+    public string recoverySourceStackId = string.Empty;
+    public string recoveryCarrierPersistentId = string.Empty;
+    public WorldItemCarryInterruptionKind recoveryInterruptionKind;
+    public double droppedAtGameTime;
+    public double recoveryDeadlineGameTime;
 
     public string GetStackSignature() =>
         ItemStackSignature.Create(itemId, components);
@@ -263,6 +363,7 @@ public static class ItemInstanceComponentIds
     public const string Equipment = "item-state:equipment";
     public const string EquipmentModule = "item-state:equipment-module";
     public const string Provenance = "item-state:provenance";
+    public const string ProductionOutputCommit = "item-state:production-output-commit";
     public const string SeedLot = "item-state:seed-lot";
     public const string FiberBatch = "item-state:fiber-batch";
     public const string Apparel = "item-state:apparel";
@@ -443,11 +544,35 @@ public sealed class HaulDeliveryIntentSaveData
     public int deliveryGridY;
     public int dropGridX;
     public int dropGridY;
+    public List<WarehouseHaulAdmissionSaveData> warehouseAdmissions = new();
     public List<HaulDeliveryItemCommitmentSaveData> commitments = new();
 
     public bool HasCommittedPickup => commitments != null
         && commitments.Any(commitment => commitment != null
             && commitment.quantity > 0);
+}
+
+/// <summary>
+/// Durable projection of a destination-warehouse gram reservation owned by a
+/// haul operation. Pre-pickup plans are not saved. Once pickup commits, this
+/// projection is saved with the delivery intent and rebuilt before AI wake.
+/// </summary>
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class WarehouseHaulAdmissionSaveData
+{
+    public string tokenId = string.Empty;
+    public string ownerAdmissionOperationId = string.Empty;
+    public string warehouseId = string.Empty;
+    public string sourceWarehouseId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public string itemId = string.Empty;
+    public string itemInstanceId = string.Empty;
+    public string lotFingerprint = string.Empty;
+    public int quantity;
+    public long reservedMassGrams;
+    public long catalogRevision;
+    public long sourceRevision;
 }
 
 [Serializable]

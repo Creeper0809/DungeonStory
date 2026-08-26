@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 public static class CharacterMedicalSaveValidation
 {
@@ -9,7 +10,8 @@ public static class CharacterMedicalSaveValidation
     public static void Validate(
         DungeonCharacterMedicalSaveData payload,
         DungeonGameRestoreReport report,
-        IResourceEconomyContentCatalog content)
+        IResourceEconomyContentCatalog content,
+        IItemDefinitionCatalog itemDefinitions)
     {
         if (report == null)
         {
@@ -68,7 +70,16 @@ public static class CharacterMedicalSaveValidation
                 || order.rescuerId == null
                 || order.treatmentFacilityId == null
                 || order.treatmentItemId == null
-                || order.treatmentMaterialDestinationId == null)
+                || order.treatmentMaterialDestinationId == null
+                || order.treatmentSupplyOperationId == null
+                || order.treatmentSupplyReasonCode == null
+                || order.treatmentPhysicalItemId == null
+                || order.treatmentSourceStackIds == null
+                || order.treatmentPhysicalCommitId == null
+                || order.treatmentSupplyOperationSequence <= 0
+                || !Enum.IsDefined(
+                    typeof(CharacterMedicalSupplyCommitPhase),
+                    order.treatmentSupplyCommitPhase))
             {
                 report.AddError(
                     $"Character medical payload contains invalid order '{orderId}'.");
@@ -143,6 +154,7 @@ public static class CharacterMedicalSaveValidation
                 report.AddError(
                     $"Medical order '{orderId}' references unknown treatment item '{order.treatmentItemId}'.");
             }
+            ValidatePhysicalSupplyCommit(order, itemDefinitions, report);
         }
 
         if (payload.orderSequence < highestSequence)
@@ -151,6 +163,100 @@ public static class CharacterMedicalSaveValidation
                 $"Character medical sequence {payload.orderSequence} is below saved order sequence {highestSequence}.");
         }
     }
+
+    private static void ValidatePhysicalSupplyCommit(
+        CharacterMedicalOrder order,
+        IItemDefinitionCatalog itemDefinitions,
+        DungeonGameRestoreReport report)
+    {
+        CharacterMedicalSupplyCommitPhase phase =
+            (CharacterMedicalSupplyCommitPhase)order.treatmentSupplyCommitPhase;
+        if (phase == CharacterMedicalSupplyCommitPhase.None)
+        {
+            if (order.treatmentSupplyOperationId.Length != 0
+                || order.treatmentSupplyReasonCode.Length != 0
+                || order.treatmentPhysicalItemId.Length != 0
+                || order.treatmentPhysicalQuantity != 0
+                || order.treatmentOutputX != 0
+                || order.treatmentOutputY != 0
+                || order.treatmentSourceStackIds.Count != 0
+                || order.treatmentInputMassGrams != 0L
+                || order.treatmentPhysicalCommitId.Length != 0)
+            {
+                report.AddError(
+                    $"Medical order '{order.orderId}' has terminal supply provenance without a pending phase.");
+            }
+            return;
+        }
+
+        string expectedOperation =
+            $"character-medical-supply:{order.orderId}:"
+            + $"{order.treatmentSupplyOperationSequence:D8}";
+        bool commonValid = order.treatmentSupply
+                != CharacterMedicalSupplyKind.None
+            && IsCanonicalRequired(order.treatmentMaterialDestinationId)
+            && IsCanonicalRequired(order.treatmentPhysicalItemId)
+            && order.treatmentPhysicalQuantity == 1
+            && string.Equals(
+                order.treatmentSupplyOperationId,
+                expectedOperation,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.treatmentSupplyReasonCode,
+                "character-medical-treatment-supply",
+                StringComparison.Ordinal)
+            && itemDefinitions != null
+            && itemDefinitions.TryGet(
+                (ItemDefinitionId)order.treatmentPhysicalItemId,
+                out _);
+        if (!commonValid)
+        {
+            report.AddError(
+                $"Medical order '{order.orderId}' has invalid physical supply intent.");
+            return;
+        }
+
+        if (phase == CharacterMedicalSupplyCommitPhase.IntentRecorded)
+        {
+            if (order.treatmentSupplyConsumed
+                || order.treatmentSourceStackIds.Count != 0
+                || order.treatmentInputMassGrams != 0L
+                || order.treatmentPhysicalCommitId.Length != 0)
+            {
+                report.AddError(
+                    $"Medical order '{order.orderId}' supply intent contains a published outcome.");
+            }
+            return;
+        }
+
+        string[] sources = order.treatmentSourceStackIds.ToArray();
+        const int sinkDispositionKindCode = 3;
+        string expectedCommit =
+            $"physical-batch-disposition:{sinkDispositionKindCode}:"
+            + $"{order.treatmentSupplyOperationId}:"
+            + $"{order.treatmentPhysicalQuantity}:"
+            + order.treatmentInputMassGrams;
+        if (!order.treatmentSupplyConsumed
+            || sources.Length == 0
+            || sources.Any(value => !IsCanonicalRequired(value))
+            || sources.Distinct(StringComparer.Ordinal).Count() != sources.Length
+            || !sources.SequenceEqual(
+                sources.OrderBy(value => value, StringComparer.Ordinal),
+                StringComparer.Ordinal)
+            || order.treatmentInputMassGrams <= 0L
+            || !string.Equals(
+                order.treatmentPhysicalCommitId,
+                expectedCommit,
+                StringComparison.Ordinal))
+        {
+            report.AddError(
+                $"Medical order '{order.orderId}' has invalid published supply provenance.");
+        }
+    }
+
+    private static bool IsCanonicalRequired(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     internal static CharacterMedicalAggregateState CreateState(
         DungeonCharacterMedicalSaveData payload)

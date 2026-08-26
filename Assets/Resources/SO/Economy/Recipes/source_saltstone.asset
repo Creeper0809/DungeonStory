@@ -50,13 +50,18 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs: []
   outputs:
-  - itemId: resource:stone
+  - outputLineId: output:source:saltstone/000/main/resource:stone
+    role: 0
+    itemId: resource:stone
     amount: 3
     probability: 1
-  - itemId: resource:saltstone
+  - outputLineId: output:source:saltstone/001/byproduct/resource:saltstone
+    role: 1
+    itemId: resource:saltstone
     amount: 1
     probability: 0.25

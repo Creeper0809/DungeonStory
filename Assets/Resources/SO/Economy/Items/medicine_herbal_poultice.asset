@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8085
+  id: 8086
   itemId: medicine:herbal-poultice
   displayName: "\uC57D\uCD08 \uCC1C\uC9C8\uC57D"
   description: "\uAC00\uBCBC\uC6B4 \uBD80\uC0C1\uC5D0 \uC4F0\uB294 \uAE30\uBCF8 \uC57D\uD488."
@@ -31,24 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 14
   features:
-  - rid: 7737211905666712310
-  - rid: 7737211905666712311
-  - rid: 7737211905666712313
-  - rid: 7737212042857939545
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712310
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:herbalism
-    - rid: 7737211905666712311
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211905666712313
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5782857
+    - rid: 1003
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 1
@@ -56,7 +60,3 @@ MonoBehaviour:
         infectionReduction: 2
         detoxReduction: 0
         painReduction: 4
-    - rid: 7737212042857939545
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.5782857

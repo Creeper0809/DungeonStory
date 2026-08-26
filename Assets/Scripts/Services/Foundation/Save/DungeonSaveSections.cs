@@ -161,6 +161,59 @@ public sealed class DungeonDelegateSaveRestoreStage : IDungeonSaveRestoreStage
     }
 }
 
+/// <summary>
+/// Adds a detached, fallible publication step immediately before an existing
+/// restore stage commits. The inner stage remains responsible for discarding
+/// its own candidate; transaction participants own rollback of any publication
+/// performed by <paramref name="beforeCommit"/>.
+/// </summary>
+public sealed class DungeonBeforeCommitSaveRestoreStage :
+    IDungeonSaveRestoreStage,
+    IDungeonDiscardableSaveRestoreStage
+{
+    private readonly IDungeonSaveRestoreStage inner;
+    private readonly Action beforeCommit;
+    private bool committed;
+
+    public DungeonBeforeCommitSaveRestoreStage(
+        IDungeonSaveRestoreStage inner,
+        Action beforeCommit)
+    {
+        this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        this.beforeCommit = beforeCommit
+            ?? throw new ArgumentNullException(nameof(beforeCommit));
+    }
+
+    public string SectionId => inner.SectionId;
+
+    public void Commit(DungeonGameRestoreReport report)
+    {
+        _ = report ?? throw new ArgumentNullException(nameof(report));
+        if (committed)
+        {
+            throw new InvalidOperationException(
+                $"Restore stage '{SectionId}' was already committed.");
+        }
+
+        beforeCommit();
+        inner.Commit(report);
+        committed = true;
+    }
+
+    public void Discard()
+    {
+        if (committed)
+        {
+            return;
+        }
+
+        if (inner is IDungeonDiscardableSaveRestoreStage discardable)
+        {
+            discardable.Discard();
+        }
+    }
+}
+
 public sealed class DungeonCandidateSaveRestoreStage<TCandidate> :
     IDungeonSaveRestoreStage,
     IDungeonDiscardableSaveRestoreStage
@@ -362,6 +415,18 @@ public interface IDungeonSaveSectionRegistry
         out DungeonSaveSectionEnvelope envelope);
 }
 
+/// <summary>
+/// Validates relations that span multiple raw section envelopes. It runs in
+/// the registry immediately before detached section staging, so direct
+/// registry restores cannot bypass whole-save joins.
+/// </summary>
+public interface IDungeonSaveRegistryPreflightValidator
+{
+    void Validate(
+        IReadOnlyDictionary<string, DungeonSaveSectionEnvelope> envelopes,
+        DungeonGameRestoreReport report);
+}
+
 public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
 {
     private readonly Dictionary<string, IDungeonSaveSection> byId;
@@ -369,6 +434,8 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IReadOnlyList<IDungeonRestoreTransactionParticipant>
         transactionParticipants;
+    private readonly IReadOnlyList<IDungeonSaveRegistryPreflightValidator>
+        registryPreflightValidators;
     private readonly bool rollbackFree;
 
     public DungeonSaveSectionRegistry(
@@ -377,7 +444,8 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         : this(
             sections,
             aggregateRootStore,
-            Array.Empty<IDungeonRestoreTransactionParticipant>())
+            Array.Empty<IDungeonRestoreTransactionParticipant>(),
+            Array.Empty<IDungeonSaveRegistryPreflightValidator>())
     {
     }
 
@@ -385,6 +453,20 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         IEnumerable<IDungeonSaveSection> sections,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         IEnumerable<IDungeonRestoreTransactionParticipant> transactionParticipants)
+        : this(
+            sections,
+            aggregateRootStore,
+            transactionParticipants,
+            Array.Empty<IDungeonSaveRegistryPreflightValidator>())
+    {
+    }
+
+    public DungeonSaveSectionRegistry(
+        IEnumerable<IDungeonSaveSection> sections,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IEnumerable<IDungeonRestoreTransactionParticipant> transactionParticipants,
+        IEnumerable<IDungeonSaveRegistryPreflightValidator>
+            registryPreflightValidators)
     {
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
@@ -430,6 +512,11 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         orderedSections = TopologicalSort(source);
         this.transactionParticipants = ValidateTransactionParticipants(
             transactionParticipants);
+        this.registryPreflightValidators = (registryPreflightValidators
+                ?? Array.Empty<IDungeonSaveRegistryPreflightValidator>())
+            .Where(value => value != null)
+            .OrderBy(value => value.GetType().FullName, StringComparer.Ordinal)
+            .ToArray();
         rollbackFree = source.All(section =>
             section is IDungeonRollbackFreeSaveSection);
     }
@@ -816,6 +903,20 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             else
             {
                 report.AddError($"Unknown required V19 save section '{pair.Key}'.");
+            }
+        }
+
+        foreach (IDungeonSaveRegistryPreflightValidator validator in
+                 registryPreflightValidators)
+        {
+            try
+            {
+                validator.Validate(savedById, report);
+            }
+            catch (Exception exception)
+            {
+                report.AddError(
+                    $"Registry aggregate preflight '{validator.GetType().Name}' failed: {exception.Message}");
             }
         }
 

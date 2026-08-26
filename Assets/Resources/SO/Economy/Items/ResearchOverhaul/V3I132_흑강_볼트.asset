@@ -31,22 +31,22 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 45
   features:
-  - rid: 7737212042857939044
-  - rid: 7737212042857939045
-  - rid: 7737212042857939046
   - rid: 7737212042857939047
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
   references:
     version: 2
     RefIds:
-    - rid: 7737212042857939044
+    - rid: 1000
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:blacksteel-bolt
-    - rid: 7737212042857939045
+    - rid: 1001
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:industry:dark-foundry
-    - rid: 7737212042857939046
+    - rid: 1002
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7

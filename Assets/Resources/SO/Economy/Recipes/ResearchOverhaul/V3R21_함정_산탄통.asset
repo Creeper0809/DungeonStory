@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -61,6 +62,8 @@ MonoBehaviour:
   - itemId: material:paper
     amount: 1
   outputs:
-  - itemId: ammo:trap-canister
+  - outputLineId: output:recipe:ammo:trap-canister/000/main/ammo:trap-canister
+    role: 0
+    itemId: ammo:trap-canister
     amount: 2
     probability: 1

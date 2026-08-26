@@ -121,7 +121,7 @@ MonoBehaviour:
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 6291457
+          supportedWorkTypes: 6324225
           disabledWhenDamaged: 1
     - rid: 7737212042857939326
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}

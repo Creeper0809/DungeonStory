@@ -4,6 +4,7 @@ public sealed class WorldItemReadServices
 {
     public WorldItemReadServices(
         IDungeonItemCatalogProvider catalog,
+        IPhysicalItemMassQuery mass,
         IItemHaulingSettingsProvider haulingSettings,
         WorldItemQueryService queries,
         IItemMarkerPresenter markers,
@@ -11,6 +12,7 @@ public sealed class WorldItemReadServices
         IDungeonDebugRuleQuery debugRules)
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        Mass = mass ?? throw new ArgumentNullException(nameof(mass));
         HaulingSettings = haulingSettings
             ?? throw new ArgumentNullException(nameof(haulingSettings));
         Queries = queries ?? throw new ArgumentNullException(nameof(queries));
@@ -21,6 +23,7 @@ public sealed class WorldItemReadServices
     }
 
     public IDungeonItemCatalogProvider Catalog { get; }
+    public IPhysicalItemMassQuery Mass { get; }
     public IItemHaulingSettingsProvider HaulingSettings { get; }
     public WorldItemQueryService Queries { get; }
     public IItemMarkerPresenter Markers { get; }

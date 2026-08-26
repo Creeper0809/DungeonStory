@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8093
+  id: 8094
   itemId: drug:dreamleaf-analgesic
   displayName: "\uBABD\uC5FD \uC9C4\uD1B5\uC81C"
   description: "\uD1B5\uC99D\uC744 \uD06C\uAC8C \uB0AE\uCD94\uC9C0\uB9CC \uC758\uC874
@@ -32,24 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 41
   features:
-  - rid: 7737211905666712000
-  - rid: 7737211905666712001
-  - rid: 7737211905666712003
-  - rid: 7737212042831201117
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712000
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:anesthesia
-    - rid: 7737211905666712001
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211905666712003
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.597252
+    - rid: 1003
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:dreamleaf-analgesic
@@ -62,7 +66,3 @@ MonoBehaviour:
         workSpeedEffect: 0.05
         combatEffect: -0.03
         durationSeconds: 240
-    - rid: 7737212042831201117
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.597252

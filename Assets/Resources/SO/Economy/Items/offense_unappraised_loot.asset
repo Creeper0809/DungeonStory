@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8106
+  id: 8107
   itemId: offense:unappraised-loot
   displayName: "\uBBF8\uAC10\uC815 \uC804\uB9AC\uD488"
   description: "\uC6D0\uC815\uC5D0\uC11C \uD68C\uC218\uD55C \uBD09\uC778 \uC0C1\uC790\uC640
@@ -33,18 +33,18 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 19
   features:
-  - rid: 7737211905666712069
-  - rid: 7737211905666712070
+  - rid: 1000
+  - rid: 1001
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712069
+    - rid: 1000
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 0
         sharedIntermediate: 0
-    - rid: 7737211905666712070
+    - rid: 1001
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0

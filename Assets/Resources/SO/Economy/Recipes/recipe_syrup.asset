@@ -50,12 +50,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:night-grape
     amount: 3
   outputs:
-  - itemId: material:syrup
+  - outputLineId: output:recipe:syrup/000/main/material:syrup
+    role: 0
+    itemId: material:syrup
     amount: 2
     probability: 1

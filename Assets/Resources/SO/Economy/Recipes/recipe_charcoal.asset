@@ -50,12 +50,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:log
     amount: 3
   outputs:
-  - itemId: material:charcoal
+  - outputLineId: output:recipe:charcoal/000/main/material:charcoal
+    role: 0
+    itemId: material:charcoal
     amount: 2
     probability: 1

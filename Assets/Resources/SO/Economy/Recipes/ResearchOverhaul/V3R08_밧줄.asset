@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:shade-fiber
     amount: 3
   outputs:
-  - itemId: material:rope
+  - outputLineId: output:recipe:material:rope/000/main/material:rope
+    role: 0
+    itemId: material:rope
     amount: 2
     probability: 1

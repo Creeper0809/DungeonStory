@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 0
     recommendedRank: 1
     minimumRiskRank: 0
-  requiredResearchId: research:equipment:blast-protection
+  requiredResearchId: research:equipment:pressure-barrels
   requiredWork: 16
   preparationWork: 0
   finishingWork: 0
@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: textile:quilted-liner
     amount: 1
   outputs:
-  - itemId: component:blast-coat-shell
+  - outputLineId: output:recipe:component:blast-coat-shell/000/main/component:blast-coat-shell
+    role: 0
+    itemId: component:blast-coat-shell
     amount: 1
     probability: 1

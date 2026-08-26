@@ -41,6 +41,70 @@ public enum EquipmentModuleProcessState
     Lost
 }
 
+public enum EquipmentModuleAppraisalCommitPhase
+{
+    None = 0,
+    IntentRecorded = 1,
+    OutcomePublished = 2
+}
+
+[Serializable]
+public sealed class EquipmentModuleAppraisalCommitSaveData
+{
+    public int phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string moduleInstanceId = string.Empty;
+    public string destinationId = string.Empty;
+    public string couponStackId = string.Empty;
+    public string couponItemId = string.Empty;
+    public int quantity;
+    public bool moduleIdentifiedBefore;
+    public bool moduleIdentifiedAfter;
+    public EquipmentModuleProcessState moduleStateBefore;
+    public EquipmentModuleProcessState moduleStateAfter;
+    public string gaugeStackId = string.Empty;
+    public string gaugeItemId = string.Empty;
+    public float gaugeDurabilityBefore;
+    public float gaugeDurabilityAfter;
+    public string lensStackId = string.Empty;
+    public string lensItemId = string.Empty;
+    public float lensDurabilityBefore;
+    public float lensDurabilityAfter;
+    public List<string> sourceStackIds = new();
+    public long inputMassGrams;
+    public string commitId = string.Empty;
+
+    public EquipmentModuleAppraisalCommitSaveData Clone() => new()
+    {
+        phase = phase,
+        operationSequence = operationSequence,
+        operationId = operationId ?? string.Empty,
+        reasonCode = reasonCode ?? string.Empty,
+        moduleInstanceId = moduleInstanceId ?? string.Empty,
+        destinationId = destinationId ?? string.Empty,
+        couponStackId = couponStackId ?? string.Empty,
+        couponItemId = couponItemId ?? string.Empty,
+        quantity = quantity,
+        moduleIdentifiedBefore = moduleIdentifiedBefore,
+        moduleIdentifiedAfter = moduleIdentifiedAfter,
+        moduleStateBefore = moduleStateBefore,
+        moduleStateAfter = moduleStateAfter,
+        gaugeStackId = gaugeStackId ?? string.Empty,
+        gaugeItemId = gaugeItemId ?? string.Empty,
+        gaugeDurabilityBefore = gaugeDurabilityBefore,
+        gaugeDurabilityAfter = gaugeDurabilityAfter,
+        lensStackId = lensStackId ?? string.Empty,
+        lensItemId = lensItemId ?? string.Empty,
+        lensDurabilityBefore = lensDurabilityBefore,
+        lensDurabilityAfter = lensDurabilityAfter,
+        sourceStackIds = new List<string>(sourceStackIds ?? new List<string>()),
+        inputMassGrams = inputMassGrams,
+        commitId = commitId ?? string.Empty
+    };
+}
+
 public static class EquipmentProgressionItemIds
 {
     public const string LineageSeal = "item:lineage-seal";
@@ -88,6 +152,8 @@ public sealed class EquipmentModuleInstance
     public EquipmentModuleProcessState state;
     public string sourceStackId = string.Empty;
     public string attachedEquipmentInstanceId = string.Empty;
+    public int nextAppraisalOperationSequence = 1;
+    public EquipmentModuleAppraisalCommitSaveData pendingAppraisal = new();
     public EquipmentModuleInstance Clone() => new EquipmentModuleInstance
     {
         instanceId = instanceId?.Trim() ?? string.Empty,
@@ -98,7 +164,10 @@ public sealed class EquipmentModuleInstance
         runeTuned = runeTuned,
         state = state,
         sourceStackId = sourceStackId?.Trim() ?? string.Empty,
-        attachedEquipmentInstanceId = attachedEquipmentInstanceId?.Trim() ?? string.Empty
+        attachedEquipmentInstanceId = attachedEquipmentInstanceId?.Trim() ?? string.Empty,
+        nextAppraisalOperationSequence = nextAppraisalOperationSequence,
+        pendingAppraisal = pendingAppraisal?.Clone()
+            ?? new EquipmentModuleAppraisalCommitSaveData()
     };
 }
 

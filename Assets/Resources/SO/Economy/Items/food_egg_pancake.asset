@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8061
+  id: 8062
   itemId: food:egg-pancake
   displayName: "\uB2EC\uAC40\uC804"
   description: "\uC54C\uACFC \uACE1\uBB3C\uB85C \uB9CC\uB4E0 \uCC44\uC2DD\uC2DD."
@@ -31,34 +31,34 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 15
   features:
-  - rid: 7737211905666712283
-  - rid: 7737211905666712284
-  - rid: 7737211905666712286
-  - rid: 7737212042831200872
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712283
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:livestock
-    - rid: 7737211905666712284
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 9
         sharedIntermediate: 0
-    - rid: 7737211905666712286
-      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        quality: 1
-        qualityBand: 1
-        servingRole: 0
-        nutrition: 44
-        mood: 6
-        freshnessSeconds: 360
-        preserved: 0
-    - rid: 7737212042831200872
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.57302225
+    - rid: 1003
+      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        quality: 1
+        qualityBand: 2
+        servingRole: 0
+        nutrition: 50
+        mood: 4
+        freshnessSeconds: 360
+        preserved: 0

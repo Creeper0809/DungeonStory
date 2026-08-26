@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8094
+  id: 8095
   itemId: drug:blood-stimulant
   displayName: "\uD608\uD654 \uCD09\uC9C4\uC81C"
   description: "\uC804\uD22C\uB825\uC744 \uB04C\uC5B4\uC62C\uB9AC\uC9C0\uB9CC \uC911\uB3C5\uACFC
@@ -32,24 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 41
   features:
-  - rid: 7737211905666712317
-  - rid: 7737211905666712318
-  - rid: 7737211905666712320
-  - rid: 7737212042857939177
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712317
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:stimulants
-    - rid: 7737211905666712318
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 4128
         sharedIntermediate: 0
-    - rid: 7737211905666712320
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59191054
+    - rid: 1003
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:blood-stimulant
@@ -62,7 +66,3 @@ MonoBehaviour:
         workSpeedEffect: 0.16
         combatEffect: 0.2
         durationSeconds: 150
-    - rid: 7737212042857939177
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.59191054

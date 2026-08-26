@@ -94,8 +94,8 @@ public static class DungeonCharacterRegistration
         builder.RegisterEntryPoint<NarrativeAuthorityContextBootstrap>(
             Lifetime.Singleton);
         builder.Register<PhysicalAgeTreatmentRuntime>(Lifetime.Singleton)
-            .As<IPhysicalAgeTreatmentService>()
-            .As<ITemporalStasisMaintenanceService>();
+            .As<ITemporalStasisMaintenanceService>()
+            .As<ITemporalStasisMaintenanceRecovery>();
         builder.Register<AgeTreatmentCommandRuntime>(Lifetime.Singleton)
             .As<IAgeTreatmentCommand>();
         builder.RegisterEntryPoint<TemporalStasisMaintenanceAdapter>(Lifetime.Singleton);
@@ -192,9 +192,15 @@ public static class DungeonCharacterRegistration
             .As<IDiseaseSymptomEffectQuery>()
             .As<IPopulationHealthPersistence>();
         builder.Register<PhysicalVaccinationRuntime>(Lifetime.Singleton)
-            .As<IPhysicalVaccinationService>();
+            .As<IPhysicalVaccinationService>()
+            .As<IPhysicalVaccinationRecovery>();
+        builder.RegisterEntryPoint<PhysicalVaccinationRecoveryAdapter>(
+            Lifetime.Singleton);
         builder.Register<DiseaseFieldResponseRuntime>(Lifetime.Singleton)
-            .As<IDiseaseFieldResponseCommand>();
+            .As<IDiseaseFieldResponseCommand>()
+            .As<IDiseaseFieldResponseRecovery>();
+        builder.RegisterEntryPoint<DiseaseFieldResponseRecoveryAdapter>(
+            Lifetime.Singleton);
         builder.RegisterEntryPoint<PopulationHealthApplicationAdapter>(Lifetime.Singleton);
         builder.Register<SpeciesIncidentHandlerRegistry>(Lifetime.Singleton)
             .As<ISpeciesIncidentHandlerRegistry>();

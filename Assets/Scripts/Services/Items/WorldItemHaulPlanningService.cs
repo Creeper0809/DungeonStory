@@ -27,6 +27,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
 
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IDungeonItemCatalogProvider catalogProvider;
+    private readonly IPhysicalItemMassQuery massQuery;
     private readonly IItemHaulingSettingsProvider haulingSettingsProvider;
     private readonly ICharacterIdRegistry characterIdRegistry;
     private readonly IGridPathSearchBroker pathSearchBroker;
@@ -34,6 +35,11 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     private readonly WorldItemRepository repository;
     private readonly IItemQuantityReservationService reservationService;
     private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
+    private readonly IWarehouseMassAdmissionService warehouseMassAdmission;
+    private readonly IFacilityOutputExactRouteOutboxQuery exactRouteQuery;
+    private readonly IProductionCapacityRoutingDrainQuery capacityDrains;
+    private readonly IPreparedOutputExactDestinationAdmissionParticipant
+        exactDestinationAdmission;
     private CharacterActor cachedAvailabilityActor;
     private Vector2Int cachedAvailabilityActorPosition;
     private int cachedAvailabilityHaulVersion = -1;
@@ -52,18 +58,26 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     public WorldItemHaulPlanningService(
         IGridSystemProvider gridSystemProvider,
         IDungeonItemCatalogProvider catalogProvider,
+        IPhysicalItemMassQuery massQuery,
         IItemHaulingSettingsProvider haulingSettingsProvider,
         ICharacterIdRegistry characterIdRegistry,
         IGridPathSearchBroker pathSearchBroker,
         ICharacterAiWorldRegistry worldRegistry,
         WorldItemRepository repository,
         IItemQuantityReservationService reservationService,
-        IFacilityBufferDestinationClaimQuery destinationClaims)
+        IFacilityBufferDestinationClaimQuery destinationClaims,
+        IWarehouseMassAdmissionService warehouseMassAdmission = null,
+        IFacilityOutputExactRouteOutboxQuery exactRouteQuery = null,
+        IPreparedOutputExactDestinationAdmissionParticipant
+            exactDestinationAdmission = null,
+        IProductionCapacityRoutingDrainQuery capacityDrains = null)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.catalogProvider = catalogProvider
             ?? throw new ArgumentNullException(nameof(catalogProvider));
+        this.massQuery = massQuery
+            ?? throw new ArgumentNullException(nameof(massQuery));
         this.haulingSettingsProvider = haulingSettingsProvider
             ?? throw new ArgumentNullException(nameof(haulingSettingsProvider));
         this.characterIdRegistry = characterIdRegistry
@@ -78,6 +92,10 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             ?? throw new ArgumentNullException(nameof(reservationService));
         this.destinationClaims = destinationClaims
             ?? throw new ArgumentNullException(nameof(destinationClaims));
+        this.warehouseMassAdmission = warehouseMassAdmission;
+        this.exactRouteQuery = exactRouteQuery;
+        this.exactDestinationAdmission = exactDestinationAdmission;
+        this.capacityDrains = capacityDrains;
     }
 
     public bool HasAvailablePlan(CharacterActor actor)
@@ -219,15 +237,44 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             seed,
             out float plannedWeight,
             out int expectedDetour);
+        if (seed.DestinationKind == WorldItemHaulDestinationKind.Warehouse
+            && seed.Warehouse?.Inventory?.HasMassCapacityAuthority == true
+            && !IsExactWarehouseCustody(seed.Stack))
+        {
+            // A gram-authoritative destination is admitted one exact lot per
+            // haul operation. This keeps physical publication and the opaque
+            // destination token one-to-one until the staged multi-lot
+            // transaction coordinator replaces this conservative boundary.
+            selected = new List<HaulCandidate> { seed };
+            plannedWeight = seed.TotalWeight;
+            expectedDetour = 0;
+        }
         // A haul operation is one plan, never one actor-wide reusable owner.
         // Its durable identity is retained by the delivery intent across save.
         string ownerOperationId = reserve
-            ? repository.AllocateHaulDeliveryOperationId(actorId)
+            ? AllocateHaulOperationIdWithoutAdmissionHistory(
+                actorId,
+                selected)
             : string.Empty;
         Dictionary<string, ItemQuantityLease> leasesByStack =
             new(StringComparer.Ordinal);
+        List<WarehouseHaulAdmissionSaveData> warehouseAdmissions = new();
+        bool reserveExactWarehouseBeforeLease =
+            RequiresExactWarehouseAdmissionsBeforeLease(
+                selected.Select(candidate => candidate.Stack));
         if (reserve)
         {
+            if (reserveExactWarehouseBeforeLease
+                && !TryReserveWarehouseAdmissions(
+                    ownerOperationId,
+                    selected,
+                    warehouseAdmissions,
+                    out failureReason))
+            {
+                // No item lease, intent or physical mutation exists yet. A
+                // stale capacity preflight is therefore a pure typed no-plan.
+                return false;
+            }
             ItemQuantityReservationRequest[] requests = selected
                 .Select(candidate => new ItemQuantityReservationRequest(
                     new ItemStackId(candidate.Stack.stackId),
@@ -245,6 +292,9 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                     out IReadOnlyList<ItemQuantityLease> leases,
                     out _))
             {
+                ReleaseWarehouseAdmissions(
+                    warehouseAdmissions,
+                    WarehouseMassAdmissionReleaseReason.TransactionRollback);
                 failureReason = "reservation changed";
                 return false;
             }
@@ -253,6 +303,19 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                 if (lease?.slices == null || lease.slices.Count != 1)
                     continue;
                 leasesByStack[lease.slices[0].stackId] = lease;
+            }
+
+            if (!reserveExactWarehouseBeforeLease
+                && !TryReserveWarehouseAdmissions(
+                    ownerOperationId,
+                    selected,
+                    warehouseAdmissions,
+                    out failureReason))
+            {
+                reservationService.ReleaseByOwner(
+                    ownerOperationId,
+                    ItemReservationReleaseReason.Cancelled);
+                return false;
             }
         }
 
@@ -289,8 +352,12 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                 seed.DestinationId,
                 seed.DeliveryPosition,
                 seed.DropPosition,
+                warehouseAdmissions,
                 out string intentFailure))
         {
+            ReleaseWarehouseAdmissions(
+                warehouseAdmissions,
+                WarehouseMassAdmissionReleaseReason.TransactionRollback);
             reservationService.ReleaseByOwner(
                 ownerOperationId,
                 ItemReservationReleaseReason.Cancelled);
@@ -316,6 +383,260 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             seed.DestinationId,
             isPriority: seed.IsPriority);
         return true;
+    }
+
+    private string AllocateHaulOperationIdWithoutAdmissionHistory(
+        string actorId,
+        IReadOnlyList<HaulCandidate> selected)
+    {
+        while (true)
+        {
+            string operationId =
+                repository.AllocateHaulDeliveryOperationId(actorId);
+            if (warehouseMassAdmission == null)
+            {
+                return operationId;
+            }
+
+            int admissionIndex = 0;
+            bool conflicts = false;
+            foreach (HaulCandidate candidate in
+                     (selected ?? Array.Empty<HaulCandidate>())
+                     .Where(candidate => candidate?.Warehouse?.Inventory != null
+                         && candidate.DestinationKind
+                            == WorldItemHaulDestinationKind.Warehouse
+                         && candidate.Warehouse.Inventory.HasMassCapacityAuthority)
+                     .OrderBy(candidate => candidate.Stack.stackId,
+                         StringComparer.Ordinal))
+            {
+                string admissionOperationId =
+                    $"{operationId}:warehouse-admission:{admissionIndex:D2}";
+                if (warehouseMassAdmission.HasOwnerOperationHistory(
+                        admissionOperationId))
+                {
+                    conflicts = true;
+                    break;
+                }
+                admissionIndex++;
+            }
+
+            if (!conflicts)
+            {
+                return operationId;
+            }
+        }
+    }
+
+    private bool TryReserveWarehouseAdmissions(
+        string haulOperationId,
+        IReadOnlyList<HaulCandidate> selected,
+        ICollection<WarehouseHaulAdmissionSaveData> admissions,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        HaulCandidate[] warehouseLegs = (selected ?? Array.Empty<HaulCandidate>())
+            .Where(candidate => candidate?.Warehouse?.Inventory != null
+                && candidate.DestinationKind == WorldItemHaulDestinationKind.Warehouse
+                && candidate.Warehouse.Inventory.HasMassCapacityAuthority)
+            .OrderBy(candidate => candidate.Stack.stackId, StringComparer.Ordinal)
+            .ToArray();
+        if (warehouseLegs.Length == 0)
+        {
+            return true;
+        }
+        if (warehouseMassAdmission == null)
+        {
+            failureReason = "warehouse mass admission service unavailable";
+            return false;
+        }
+
+        for (int index = 0; index < warehouseLegs.Length; index++)
+        {
+            HaulCandidate candidate = warehouseLegs[index];
+            bool exactCustody = FacilityOutputExactRouteCustodyCodec.TryRead(
+                candidate.Stack.components,
+                out FacilityOutputExactRouteCustodyMetadata custody)
+                && custody.Phase ==
+                    FacilityOutputExactRouteCustodyPhase.Routable;
+            if (exactCustody
+                && (candidate.Quantity != candidate.Stack.quantity
+                    || !string.Equals(
+                        WarehouseStorageIdentity.RequireDestinationId(
+                            candidate.Warehouse),
+                        custody.CurrentTargetDestinationId,
+                        StringComparison.Ordinal)))
+            {
+                ReleaseWarehouseAdmissions(
+                    admissions,
+                    WarehouseMassAdmissionReleaseReason.TransactionRollback);
+                failureReason =
+                    "exact warehouse admission target or quantity changed";
+                return false;
+            }
+            string admissionOperationId =
+                $"{haulOperationId}:warehouse-admission:{index:D2}";
+            string lotFingerprint = ItemReservationSignature.Create(
+                candidate.Stack.itemId,
+                candidate.Stack.components);
+            PhysicalItemMassSubject massSubject;
+            try
+            {
+                massSubject = PhysicalItemMassSubjectAdapter.Create(
+                    massQuery,
+                    (ItemDefinitionId)candidate.Stack.itemId,
+                    candidate.Stack.itemInstanceId,
+                    candidate.Stack.components);
+            }
+            catch (Exception exception)
+            {
+                ReleaseWarehouseAdmissions(
+                    admissions,
+                    WarehouseMassAdmissionReleaseReason.TransactionRollback);
+                failureReason =
+                    $"warehouse mass subject invalid:{candidate.Stack.stackId}:{exception.Message}";
+                return false;
+            }
+            WarehouseMassAdmissionRequest request = new(
+                candidate.Warehouse.PersistentInstanceId,
+                admissionOperationId,
+                (ItemDefinitionId)candidate.Stack.itemId,
+                candidate.Stack.itemInstanceId,
+                lotFingerprint,
+                candidate.Quantity,
+                warehouseMassAdmission.GetWarehouseCapacityRevision(
+                    candidate.Warehouse.PersistentInstanceId),
+                warehouseMassAdmission.CatalogRevision,
+                expectedSourceRevision: repository.ItemStackVersion,
+                massSubject: massSubject);
+            bool reserved = warehouseMassAdmission.TryReserve(
+                request,
+                out WarehouseMassAdmissionToken token,
+                out DomainFailure failure);
+            bool exactTokenMismatch = exactCustody
+                && !ExactWarehouseAdmissionMatches(
+                    candidate.Stack,
+                    candidate.Quantity,
+                    token);
+            if (!reserved
+                || token.AcceptedQuantity != candidate.Quantity
+                || exactTokenMismatch)
+            {
+                // A service may return a partial reservation token with a
+                // negative exact-lot result. It is not yet part of admissions,
+                // so release it explicitly before rolling back older tokens.
+                if (!string.IsNullOrEmpty(token.TokenId))
+                {
+                    warehouseMassAdmission.TryRelease(
+                        token.TokenId,
+                        WarehouseMassAdmissionReleaseReason.TransactionRollback,
+                        out _);
+                }
+                ReleaseWarehouseAdmissions(
+                    admissions,
+                    WarehouseMassAdmissionReleaseReason.TransactionRollback);
+                failureReason = !failure.IsFailure
+                    ? "warehouse mass admission was partial"
+                    : $"warehouse mass admission failed:{failure.Code}:"
+                        + string.Join(",", failure.Parameters.ToArray());
+                return false;
+            }
+
+            admissions.Add(CreateWarehouseAdmissionProjection(
+                candidate.Stack,
+                admissionOperationId,
+                token));
+        }
+        return true;
+    }
+
+    internal static WarehouseHaulAdmissionSaveData
+        CreateWarehouseAdmissionProjection(
+            WorldItemStackRecord source,
+            string admissionOperationId,
+            WarehouseMassAdmissionToken token)
+    {
+        if (source == null)
+            throw new ArgumentNullException(nameof(source));
+        return new WarehouseHaulAdmissionSaveData
+        {
+            tokenId = token.TokenId,
+            ownerAdmissionOperationId = admissionOperationId ?? string.Empty,
+            warehouseId = token.WarehouseId.Value,
+            sourceWarehouseId = TryParseWarehouseId(
+                source.sourceStorageDestinationId,
+                out string sourceWarehouseId)
+                    ? sourceWarehouseId
+                    : string.Empty,
+            sourceStackId = source.stackId,
+            itemId = token.ItemId.Value,
+            itemInstanceId = token.ItemInstanceId,
+            lotFingerprint = token.LotFingerprint,
+            quantity = token.AcceptedQuantity,
+            reservedMassGrams = token.ReservedMassGrams,
+            catalogRevision = token.CatalogRevision,
+            sourceRevision = token.SourceRevision
+        };
+    }
+
+    internal static bool ExactWarehouseAdmissionMatches(
+        WorldItemStackRecord stack,
+        int exactQuantity,
+        WarehouseMassAdmissionToken token)
+    {
+        if (stack == null
+            || exactQuantity <= 0
+            || exactQuantity != stack.quantity
+            || !FacilityOutputExactRouteCustodyCodec.TryRead(
+                stack.components,
+                out FacilityOutputExactRouteCustodyMetadata custody)
+            || custody.Phase !=
+                FacilityOutputExactRouteCustodyPhase.Routable
+            || custody.Quantity != stack.quantity)
+        {
+            return false;
+        }
+
+        string tokenDestinationId = token.WarehouseId.IsValid
+            ? WarehouseStorageIdentity.DestinationPrefix + token.WarehouseId.Value
+            : string.Empty;
+        return string.Equals(
+                tokenDestinationId,
+                custody.CurrentTargetDestinationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                token.ItemId.Value,
+                stack.itemId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                token.ItemInstanceId,
+                stack.itemInstanceId ?? string.Empty,
+                StringComparison.Ordinal)
+            && string.Equals(
+                token.LotFingerprint,
+                ItemReservationSignature.Create(
+                    stack.itemId,
+                    stack.components),
+                StringComparison.Ordinal)
+            && token.AcceptedQuantity == exactQuantity
+            && token.ReservedMassGrams == custody.MassGrams;
+    }
+
+    private void ReleaseWarehouseAdmissions(
+        IEnumerable<WarehouseHaulAdmissionSaveData> admissions,
+        WarehouseMassAdmissionReleaseReason reason)
+    {
+        if (warehouseMassAdmission == null)
+        {
+            return;
+        }
+        foreach (WarehouseHaulAdmissionSaveData admission in admissions
+                     ?? Array.Empty<WarehouseHaulAdmissionSaveData>())
+        {
+            if (admission != null && !string.IsNullOrWhiteSpace(admission.tokenId))
+            {
+                warehouseMassAdmission.TryRelease(admission.tokenId, reason, out _);
+            }
+        }
     }
 
     private bool HasAvailablePlanCore(
@@ -354,11 +675,15 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             if (stack.hasDestinationPosition
                 && !string.IsNullOrWhiteSpace(stack.destinationId))
             {
+                WorldItemHaulDestinationKind explicitKind =
+                    TryParseWarehouseId(stack.destinationId, out _)
+                        ? WorldItemHaulDestinationKind.Warehouse
+                        : WorldItemHaulDestinationKind.FacilityBuffer;
                 if (WorldItemHaulDestinationAuthority.TryResolve(
                         grid,
                         worldRegistry,
                         destinationClaims,
-                        WorldItemHaulDestinationKind.FacilityBuffer,
+                        explicitKind,
                         stack.destinationId,
                         stack.destinationPosition,
                         out _,
@@ -403,8 +728,8 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         {
             IWarehouseFacility candidate = warehouses[index];
             if (!IsUsableWarehouse(candidate)
-                || (!isEquipmentItem
-                    && !candidate.Inventory.CanStore(category, 1))
+                || (!isEquipmentItem && !candidate.Inventory.Accepts(category))
+                || !candidate.Inventory.CanStoreItem(stack.itemId, 1)
                 || candidate is not BuildableObject building
                 || building.isDestroy)
             {
@@ -582,11 +907,24 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             return false;
         }
 
-        if (!CanHaul(stack))
+        if (!CanHaul(stack, out FacilityOutputExactRouteFailure routeFailure))
         {
-            failureReason = "stack is not haulable";
+            failureReason = routeFailure.IsFailure
+                ? $"exact route is not haulable:{routeFailure.Code}:"
+                    + routeFailure.Reason
+                : "stack is not haulable";
             return false;
         }
+
+        bool exactWarehouseCustody =
+            FacilityOutputExactRouteCustodyCodec.TryRead(
+                stack.components,
+                out FacilityOutputExactRouteCustodyMetadata exactCustody)
+            && exactCustody.Phase ==
+                FacilityOutputExactRouteCustodyPhase.Routable
+            && TryParseWarehouseId(
+                exactCustody.CurrentTargetDestinationId,
+                out _);
 
         int acceptable = GetAcceptableQuantity(
             inventory,
@@ -597,6 +935,12 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         if (acceptable <= 0)
         {
             failureReason = "carry capacity exhausted";
+            return false;
+        }
+        if (exactWarehouseCustody && acceptable != stack.quantity)
+        {
+            failureReason =
+                "exact warehouse route requires the current physical stack quantity";
             return false;
         }
 
@@ -617,11 +961,15 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         string destinationId = stack.destinationId ?? string.Empty;
         if (stack.hasDestinationPosition && !string.IsNullOrWhiteSpace(destinationId))
         {
+            WorldItemHaulDestinationKind explicitKind =
+                TryParseWarehouseId(destinationId, out _)
+                    ? WorldItemHaulDestinationKind.Warehouse
+                    : WorldItemHaulDestinationKind.FacilityBuffer;
             if (!WorldItemHaulDestinationAuthority.TryResolve(
                     grid,
                     worldRegistry,
                     destinationClaims,
-                    WorldItemHaulDestinationKind.FacilityBuffer,
+                    explicitKind,
                     destinationId,
                     stack.destinationPosition,
                     out WorldItemHaulDestinationAuthority.Resolution destination,
@@ -672,6 +1020,19 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             stack,
             destinationKind,
             acceptable);
+        if (destinationKind == WorldItemHaulDestinationKind.Warehouse
+            && warehouse?.Inventory != null)
+        {
+            acceptable = warehouse.Inventory.GetAcceptableQuantity(
+                stack.itemId,
+                acceptable);
+        }
+        if (exactWarehouseCustody && acceptable != stack.quantity)
+        {
+            failureReason =
+                "exact warehouse route capacity changed before admission";
+            return false;
+        }
         if (acceptable <= 0)
         {
             failureReason = "survival transit reserve protected";
@@ -679,6 +1040,9 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         }
 
         DungeonItemDefinition definition = catalogProvider.GetDefinition(stack.itemId);
+        float unitWeight = massQuery
+            .GetDefinitionUnitMass((ItemDefinitionId)stack.itemId)
+            .Value / 1000f;
         int distance = Manhattan(actor.GetNowXY(), pickupStand)
             + Manhattan(pickupStand, deliveryCell);
         float priorityBonus = repository.PrioritizedHaulStackIds.Contains(stack.stackId)
@@ -699,7 +1063,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                 + definition.UnitPrice * acceptable * 0.02f
                 + Mathf.Min(acceptable, definition.MaxStack) * 0.01f
                 - distance * 0.01f,
-            TotalWeight = definition.UnitWeight * acceptable
+            TotalWeight = unitWeight * acceptable
         };
         return true;
     }
@@ -715,14 +1079,16 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             return 0;
         }
 
-        DungeonItemDefinition definition = catalogProvider.GetDefinition(itemId);
+        float unitWeight = massQuery
+            .GetDefinitionUnitMass((ItemDefinitionId)itemId)
+            .Value / 1000f;
         float maxAllowed = inventory.GetMaxAllowedWeight(haulingSettingsProvider);
         float current = inventory.GetCurrentWeight(catalogProvider);
         float remainingWeight = Mathf.Max(
             0f,
             maxAllowed - current - Mathf.Max(0f, plannedWeight));
         int byWeight = Mathf.FloorToInt(
-            remainingWeight / Mathf.Max(0.01f, definition.UnitWeight));
+            remainingWeight / unitWeight);
         return Mathf.Clamp(byWeight, 0, Mathf.Max(0, requestedQuantity));
     }
 
@@ -833,7 +1199,10 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             .Where(candidate =>
                 candidate.HasWarehouseInventory
                 && candidate.Inventory != null
-                && (isEquipmentItem || candidate.Inventory.CanStore(category, 1))))
+                && candidate.Inventory.Accepts(category)
+                && candidate.Inventory.GetAcceptableQuantity(
+                    stack.itemId,
+                    1) == 1))
         {
             if (candidate is not BuildableObject building
                 || building.isDestroy
@@ -876,6 +1245,16 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     private static int GetWarehouseUtilizationPermille(
         IWarehouseInventoryPort inventory)
     {
+        if (inventory is IWarehouseMassCapacityQuery mass
+            && mass.MaxMassGrams > 0L)
+        {
+            long occupied = checked(
+                mass.StoredMassGrams + mass.ReservedInboundMassGrams);
+            long scaled = checked(Math.Max(0L, occupied) * 1000L);
+            long massRoundedUp = checked(
+                (scaled + mass.MaxMassGrams - 1L) / mass.MaxMassGrams);
+            return checked((int)Math.Min(1000L, massRoundedUp));
+        }
         if (inventory == null || !inventory.HasCapacityLimit)
             return 0;
         int capacity = Mathf.Max(1, inventory.MaxCapacity);
@@ -899,7 +1278,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         repository.HaulableCache.Clear();
         foreach (WorldItemStackRecord stack in repository.Records)
         {
-            if (CanHaul(stack))
+            if (CanHaul(stack, out _))
             {
                 repository.HaulableCache.Add(stack);
             }
@@ -919,20 +1298,254 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     private bool CanUseStack(WorldItemStackRecord stack, string actorId)
     {
         _ = actorId;
-        return CanHaul(stack)
+        return CanHaul(stack, out _)
             && reservationService.GetAvailableQuantity(
                 new ItemStackId(stack.stackId)) > 0;
     }
 
-    private static bool CanHaul(WorldItemStackRecord stack)
+    private bool CanHaul(
+        WorldItemStackRecord stack,
+        out FacilityOutputExactRouteFailure routeFailure)
     {
+        routeFailure = FacilityOutputExactRouteFailure.None;
         return stack != null
             && stack.quantity > 0
             && !stack.forbidden
+            && !FacilityOutputExactRouteCustodyCodec.IsRouteBlocked(
+                stack.components)
+            && !IsCapacityDrainBlocked(stack)
+            && !repository.IsProductionInputDestinationDrainOpen(
+                stack.destinationId)
+            && HasConsistentRoutableCustody(stack)
+            && IsExactRouteDeliveryCandidate(
+                stack,
+                exactRouteQuery,
+                out routeFailure,
+                exactDestinationAdmission)
             && !IsFacilityInputBuffer(stack)
             && (stack.state == WorldItemStackState.Loose
                 || stack.state == WorldItemStackState.FacilityBuffer
                 || IsOutboundStoredStack(stack));
+    }
+
+    private bool IsCapacityDrainBlocked(WorldItemStackRecord stack) =>
+        capacityDrains != null
+        && FacilityOutputExactRouteCustodyCodec.TryRead(
+            stack?.components,
+            out FacilityOutputExactRouteCustodyMetadata custody)
+        && capacityDrains.IsBatchPending(custody.BatchCommitId);
+
+    private static bool HasConsistentRoutableCustody(
+        WorldItemStackRecord stack)
+    {
+        if (stack == null
+            || !FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                stack.components))
+        {
+            return true;
+        }
+        return FacilityOutputExactRouteCustodyCodec.TryRead(
+                stack.components,
+                out FacilityOutputExactRouteCustodyMetadata metadata)
+            && metadata.Phase ==
+                FacilityOutputExactRouteCustodyPhase.Routable
+            && metadata.Quantity == stack.quantity
+            && string.Equals(
+                metadata.ItemId,
+                stack.itemId,
+                StringComparison.Ordinal);
+    }
+
+    internal static bool IsExactWarehouseCustody(WorldItemStackRecord stack) =>
+        stack != null
+        && FacilityOutputExactRouteCustodyCodec.TryRead(
+            stack.components,
+            out FacilityOutputExactRouteCustodyMetadata custody)
+        && custody.Phase == FacilityOutputExactRouteCustodyPhase.Routable
+        && TryParseWarehouseId(custody.CurrentTargetDestinationId, out _);
+
+    internal static bool RequiresExactWarehouseAdmissionsBeforeLease(
+        IEnumerable<WorldItemStackRecord> stacks)
+    {
+        WorldItemStackRecord[] exact = (stacks
+                ?? Array.Empty<WorldItemStackRecord>())
+            .ToArray();
+        return exact.Length > 0 && exact.All(IsExactWarehouseCustody);
+    }
+
+    internal static bool IsExactRouteDeliveryCandidate(
+        WorldItemStackRecord stack,
+        IFacilityOutputExactRouteOutboxQuery query,
+        out FacilityOutputExactRouteFailure failure,
+        IPreparedOutputExactDestinationAdmissionParticipant
+            destinationAdmission = null)
+    {
+        failure = FacilityOutputExactRouteFailure.None;
+        if (stack == null
+            || !FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                stack.components))
+        {
+            // Ordinary hauling deliberately has no dependency on the prepared
+            // output lifecycle.
+            return true;
+        }
+        if (!FacilityOutputExactRouteCustodyCodec.TryRead(
+                stack.components,
+                out FacilityOutputExactRouteCustodyMetadata custody))
+        {
+            return FailExactRouteCandidate(
+                FacilityOutputExactRouteFailureCode.ComponentMismatch,
+                "custody metadata is invalid",
+                out failure);
+        }
+        if (custody.Phase != FacilityOutputExactRouteCustodyPhase.Routable
+            || custody.CurrentDeliveryRevision < 0L
+            || string.IsNullOrEmpty(
+                custody.CurrentDeliveryRevisionFingerprint))
+        {
+            return FailExactRouteCandidate(
+                FacilityOutputExactRouteFailureCode.PhaseMismatch,
+                "current delivery revision is not confirmed",
+                out failure);
+        }
+        if (string.IsNullOrEmpty(custody.CurrentTargetDestinationId))
+        {
+            return FailExactRouteCandidate(
+                FacilityOutputExactRouteFailureCode.PendingRouteMissing,
+                "warehouse selection is still pending",
+                out failure);
+        }
+        if (!stack.hasDestinationPosition
+            || !string.Equals(
+                stack.destinationId,
+                custody.CurrentTargetDestinationId,
+                StringComparison.Ordinal)
+            || stack.destinationPosition != custody.CurrentTargetPosition)
+        {
+            return FailExactRouteCandidate(
+                FacilityOutputExactRouteFailureCode.ReceiptMismatch,
+                "physical target does not match the custody overlay",
+                out failure);
+        }
+        if (query == null)
+        {
+            return FailExactRouteCandidate(
+                FacilityOutputExactRouteFailureCode.PendingRouteMissing,
+                "current delivery query is unavailable",
+                out failure);
+        }
+
+        FacilityOutputExactRoutePendingSnapshot[] matches =
+            (query.CapturePendingRoutes()
+                ?? Array.Empty<FacilityOutputExactRoutePendingSnapshot>())
+            .Where(value => value?.Receipt != null
+                && string.Equals(
+                    value.Receipt.RouteOperationId,
+                    custody.RouteOperationId,
+                    StringComparison.Ordinal))
+            .Take(2)
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            return FailExactRouteCandidate(
+                matches.Length == 0
+                    ? FacilityOutputExactRouteFailureCode.PendingRouteMissing
+                    : FacilityOutputExactRouteFailureCode.OperationConflict,
+                matches.Length == 0
+                    ? "current route is absent from the outbox"
+                    : "current route is duplicated in the outbox",
+                out failure);
+        }
+
+        FacilityOutputExactRoutePendingSnapshot route = matches[0];
+        FacilityOutputExactRouteDeliveryRevisionSnapshot delivery =
+            route.DeliveryRevision;
+        if (route.Phase != FacilityOutputExactRoutePhase.Routable)
+        {
+            return FailExactRouteCandidate(
+                FacilityOutputExactRouteFailureCode.PhaseMismatch,
+                "outbox route is not routable",
+                out failure);
+        }
+        if (delivery == null
+            || !string.Equals(
+                route.Receipt.PhysicalReceiptFingerprint,
+                custody.PhysicalReceiptFingerprint,
+                StringComparison.Ordinal)
+            || delivery.Revision != custody.CurrentDeliveryRevision
+            || !string.Equals(
+                delivery.RevisionFingerprint,
+                custody.CurrentDeliveryRevisionFingerprint,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                delivery.RerouteOperationId,
+                custody.CurrentDeliveryRerouteOperationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                delivery.TargetDestinationId,
+                custody.CurrentTargetDestinationId,
+                StringComparison.Ordinal)
+            || delivery.TargetPositionX != custody.CurrentTargetPosition.x
+            || delivery.TargetPositionY != custody.CurrentTargetPosition.y
+            || !string.Equals(
+                delivery.TargetAuthorityFingerprint,
+                custody.CurrentTargetAuthorityFingerprint,
+                StringComparison.Ordinal))
+        {
+            return FailExactRouteCandidate(
+                FacilityOutputExactRouteFailureCode.ReceiptMismatch,
+                "outbox and custody delivery overlays differ",
+                out failure);
+        }
+
+        if (TryParseWarehouseId(
+                custody.CurrentTargetDestinationId,
+                out _))
+        {
+            PreparedOutputExactDestinationAuthoritySnapshot authority = default;
+            PreparedOutputExactDestinationAdmissionFailureCode authorityFailure =
+                PreparedOutputExactDestinationAdmissionFailureCode.None;
+            string authorityReason = string.Empty;
+            if (custody.CurrentDeliveryRevision <= 0L
+                || string.IsNullOrEmpty(
+                    custody.CurrentTargetAuthorityFingerprint)
+                || destinationAdmission == null
+                || !destinationAdmission.TryCaptureTargetAuthority(
+                    PreparedOutputExactDestinationTargetKind.Warehouse,
+                    custody.CurrentTargetDestinationId,
+                    custody.CurrentTargetPosition,
+                    out authority,
+                    out authorityFailure,
+                    out authorityReason)
+                || authority.Kind !=
+                    PreparedOutputExactDestinationTargetKind.Warehouse
+                || authority.Position != custody.CurrentTargetPosition
+                || !string.Equals(
+                    authority.DestinationId,
+                    custody.CurrentTargetDestinationId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    authority.Fingerprint,
+                    custody.CurrentTargetAuthorityFingerprint,
+                    StringComparison.Ordinal))
+            {
+                return FailExactRouteCandidate(
+                    FacilityOutputExactRouteFailureCode.ReceiptMismatch,
+                    "warehouse target authority is stale:"
+                        + authorityFailure + ":" + authorityReason,
+                    out failure);
+            }
+        }
+        return true;
+    }
+
+    private static bool FailExactRouteCandidate(
+        FacilityOutputExactRouteFailureCode code,
+        string reason,
+        out FacilityOutputExactRouteFailure failure)
+    {
+        failure = new FacilityOutputExactRouteFailure(code, reason);
+        return false;
     }
 
     private static bool IsOutboundStoredStack(WorldItemStackRecord stack)
@@ -975,9 +1588,44 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             return false;
         }
 
+        if (!CanShareOpportunisticRoute(a.Stack, b.Stack))
+        {
+            return false;
+        }
         return a.DestinationKind == WorldItemHaulDestinationKind.FacilityBuffer
             ? string.Equals(a.DestinationId, b.DestinationId, StringComparison.Ordinal)
             : ReferenceEquals(a.Warehouse, b.Warehouse);
+    }
+
+    internal static bool CanShareOpportunisticRoute(
+        WorldItemStackRecord first,
+        WorldItemStackRecord second)
+    {
+        bool firstHasCustody = first != null
+            && FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                first.components);
+        bool secondHasCustody = second != null
+            && FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                second.components);
+        if (!firstHasCustody && !secondHasCustody)
+        {
+            return true;
+        }
+        if (!firstHasCustody
+            || !secondHasCustody
+            || !FacilityOutputExactRouteCustodyCodec.TryRead(
+                first.components,
+                out FacilityOutputExactRouteCustodyMetadata firstCustody)
+            || !FacilityOutputExactRouteCustodyCodec.TryRead(
+                second.components,
+                out FacilityOutputExactRouteCustodyMetadata secondCustody))
+        {
+            return false;
+        }
+        return string.Equals(
+            firstCustody.RouteOperationId,
+            secondCustody.RouteOperationId,
+            StringComparison.Ordinal);
     }
 
     private static int GetDetour(HaulCandidate seed, HaulCandidate candidate)
@@ -1014,6 +1662,23 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                 GridPathSearchPriority.Normal,
                 GridTraversalContext.ForCharacter(
                     CharacterPersistentIdentity.Require(actor)));
+    }
+
+    private static bool TryParseWarehouseId(
+        string destinationId,
+        out string warehouseId)
+    {
+        warehouseId = string.Empty;
+        string destination = destinationId?.Trim() ?? string.Empty;
+        if (!destination.StartsWith(
+                WorldItemStackRuntime.WarehouseStorageDestinationPrefix,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        warehouseId = destination.Substring(
+            WorldItemStackRuntime.WarehouseStorageDestinationPrefix.Length);
+        return warehouseId.Length > 0;
     }
 
     private static bool TryResolvePickupStandCell(

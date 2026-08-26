@@ -46,12 +46,23 @@ namespace DungeonStory.Factions
         public IReadOnlyList<FactionRouteState> Routes => State.Routes;
         public int CurrentDay => State.CurrentDay;
         public int RouteSequence => State.RouteSequence;
+        public int GoodwillOperationSequence => State.GoodwillOperationSequence;
         public bool IsRestoreStaging => aggregateRootStore.IsRestoreStaging;
         public int PublishedRestoreRevision => aggregateRootStore.PublishedRestoreRevision;
 
         public void SetCurrentDay(int day)
         {
             State.CurrentDay = Math.Max(1, day);
+        }
+
+        public int AllocateGoodwillOperationSequence()
+        {
+            if (State.GoodwillOperationSequence == int.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    "Faction goodwill operation sequence is exhausted.");
+            }
+            return ++State.GoodwillOperationSequence;
         }
 
         public bool TryGetFaction(string factionId, out DungeonFactionState faction)
@@ -160,6 +171,14 @@ namespace DungeonStory.Factions
             target.lastBetrayalLootValue = actualLootValue;
             target.restitutionRequiredValue =
                 (int)Math.Ceiling(actualLootValue * 1.5f);
+            target.restitutionTransferOperationId = string.Empty;
+            target.restitutionTransferCommitId = string.Empty;
+            target.restitutionTransferSourceStackIds = new List<string>();
+            target.restitutionTransferQuantity = 0;
+            target.restitutionTransferMassGrams = 0L;
+            target.restitutionTransferredPhysicalValue = 0;
+            target.restitutionCampaignGrievanceTarget = 0;
+            target.restitutionTransferCompleted = false;
             target.discovered = true;
             transitions.Add(new FactionTrustTransition(
                 target.factionId,

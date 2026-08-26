@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: material:salted-meat
     amount: 1
   outputs:
-  - itemId: food:expedition-ration-pack
+  - outputLineId: output:recipe:expedition-ration-pack/000/main/food:expedition-ration-pack
+    role: 0
+    itemId: food:expedition-ration-pack
     amount: 2
     probability: 1

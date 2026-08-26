@@ -23,8 +23,12 @@ public static class CropPlotDebugScenarios
         };
         GameObject plotObject = null;
         GameObject indoorPlotObject = null;
+        GameObject fungalShelfObject = null;
         try
         {
+            Require(
+                CropPhysicalTransactionFixture.Run(),
+                "crop physical transaction fixture failed");
             Require(Application.isPlaying, "Play Mode is required.");
             DungeonRuntimeLifetimeScope scope =
                 UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
@@ -49,12 +53,16 @@ public static class CropPlotDebugScenarios
                 new ResearchProjectId("research:agriculture:gathering"));
             research.State.Projects.Complete(
                 new ResearchProjectId("research:agriculture:indoor"));
+            research.State.Projects.Complete(
+                new ResearchProjectId("research:forestry:fungal"));
             Require(gridProvider.TryGetGrid(out Grid grid), "Grid is missing.");
 
             BuildingSO outdoorPlot = LoadBuilding("P23");
             BuildingSO indoorPlot = LoadBuilding("P24");
+            BuildingSO fungalShelf = LoadBuilding("RF13");
             Require(outdoorPlot != null, "P23 outdoor crop plot is missing.");
             Require(indoorPlot != null, "P24 indoor grow bed is missing.");
+            Require(fungalShelf != null, "RF13 fungal shelf is missing.");
             Require(
                 outdoorPlot.GetAbility<BuildingCropPlotAbility>() is { Indoor: false },
                 "P23 crop plot ability is invalid.");
@@ -66,6 +74,17 @@ public static class CropPlotDebugScenarios
                     FuelPerCycle: 1
                 },
                 "P24 crop plot ability is invalid.");
+            BuildingCropPlotAbility fungalAbility =
+                fungalShelf.GetAbility<BuildingCropPlotAbility>();
+            Require(
+                fungalAbility != null
+                && fungalAbility.Indoor
+                && fungalAbility.CompostPerCycle == 1
+                && fungalAbility.CycleSupplyInputs.Count == 1
+                && fungalAbility.CycleSupplyInputs[0].ItemId
+                    == "supply:inoculated-log"
+                && fungalAbility.CycleSupplyInputs[0].Amount == 1,
+                "RF13 must consume one inoculated-log section per cycle.");
             Require(
                 outdoorPlot.Facility.SupportsWork(BuiltInWorkTypeIds.Sow)
                 && outdoorPlot.Facility.SupportsWork(BuiltInWorkTypeIds.Harvest),
@@ -277,6 +296,78 @@ public static class CropPlotDebugScenarios
                 indoorGrowing.Phase == CropPlotPhase.Growing,
                 $"Indoor crop did not start growing: {indoorGrowing.Phase}");
 
+            Require(
+                catalog.TryGetItem(
+                    "supply:inoculated-log",
+                    out ResourceItemDefinitionSO inoculatedLog)
+                && Mathf.RoundToInt(inoculatedLog.UnitWeight * 1000f) == 700,
+                "Inoculated-log authority must be exactly 700 g.");
+            fungalShelfObject = new GameObject("FungalShelf_Runtime_Verifier");
+            Facility fungal = fungalShelfObject.AddComponent<Facility>();
+            scope.Container.Inject(fungal);
+            fungal.SetGrid(grid);
+            fungal.Initialization(fungalShelf, new Vector2Int(12, 0));
+            runtime.Restore(runtime.BuildRestore(runtime.Capture()));
+            Require(
+                runtime.TrySetCrop(
+                    fungal,
+                    "crop:cave-mushroom",
+                    out string fungalCropMessage),
+                fungalCropMessage);
+            runtime.Tick();
+
+            CropPlotSnapshot fungalWaiting = runtime.Plots.Single(entry =>
+                entry.PlotId == fungal.RequirePersistentInstanceId().Value);
+            Require(
+                fungalWaiting.RequiredMaterials.TryGetValue(
+                    "supply:inoculated-log",
+                    out int requiredLogs)
+                && requiredLogs == 1,
+                "RF13 did not request exactly one inoculated-log section.");
+            int inoculatedBefore = CountItem(items, "supply:inoculated-log");
+            foreach (KeyValuePair<string, int> material in
+                     fungalWaiting.RequiredMaterials)
+            {
+                Require(
+                    SpawnCropMaterial(
+                        items,
+                        transfers,
+                        indoorCrop,
+                        material.Key,
+                        material.Value,
+                        fungal.centerPos,
+                        fungalWaiting.MaterialDestinationId,
+                        out int fungalMaterialSpawned)
+                    && fungalMaterialSpawned == material.Value,
+                    $"RF13 material delivery failed: {material.Key}");
+            }
+
+            runtime.Tick();
+            Require(
+                runtime.TryGetWork(
+                    fungal,
+                    BuiltInWorkTypeIds.Sow,
+                    out CropPlotWorkSnapshot fungalSow)
+                && fungalSow.Available,
+                $"RF13 sowing remained blocked: {fungalSow.UnavailableReason}");
+            Require(
+                runtime.ApplyWork(
+                    fungal,
+                    BuiltInWorkTypeIds.Sow,
+                    fungalSow.RequiredWork,
+                    out bool fungalSowed)
+                && fungalSowed,
+                "RF13 sowing did not complete.");
+            CropPlotSnapshot fungalGrowing = runtime.Plots.Single(entry =>
+                entry.PlotId == fungalWaiting.PlotId);
+            Require(
+                fungalGrowing.Phase == CropPlotPhase.Growing,
+                $"RF13 crop did not start growing: {fungalGrowing.Phase}");
+            Require(
+                CountItem(items, "supply:inoculated-log")
+                    == inoculatedBefore,
+                "RF13 did not consume exactly the one spawned inoculated-log section.");
+
             lines.Add($"plot={waiting.PlotId}");
             lines.Add($"crop={crop.CropId}");
             lines.Add("materials=" + string.Join(
@@ -290,6 +381,13 @@ public static class CropPlotDebugScenarios
                 indoorWaiting.RequiredMaterials.Select(entry =>
                     $"{entry.Key}x{entry.Value}")));
             lines.Add($"indoorPhase={indoorGrowing.Phase}");
+            lines.Add($"fungalPlot={fungalWaiting.PlotId}");
+            lines.Add("fungalMaterials=" + string.Join(
+                ",",
+                fungalWaiting.RequiredMaterials.Select(entry =>
+                    $"{entry.Key}x{entry.Value}")));
+            lines.Add($"inoculatedLog=700g;consumed={requiredLogs}");
+            lines.Add($"fungalPhase={fungalGrowing.Phase}");
             lines.Add("valid=true");
             WriteReport(lines);
             Debug.Log(string.Join(Environment.NewLine, lines));
@@ -312,6 +410,11 @@ public static class CropPlotDebugScenarios
             {
                 UnityEngine.Object.Destroy(indoorPlotObject);
             }
+
+            if (fungalShelfObject != null)
+            {
+                UnityEngine.Object.Destroy(fungalShelfObject);
+            }
         }
     }
 
@@ -320,7 +423,11 @@ public static class CropPlotDebugScenarios
         return AssetDatabase
             .FindAssets(
                 "t:BuildingSO",
-                new[] { "Assets/Resources/SO/Building/Modular" })
+                new[]
+                {
+                    "Assets/Resources/SO/Building/Modular",
+                    "Assets/Resources/SO/Building/ResearchOverhaul"
+                })
             .Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
             .FirstOrDefault(building =>

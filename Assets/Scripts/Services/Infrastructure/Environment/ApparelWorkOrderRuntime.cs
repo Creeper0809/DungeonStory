@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
@@ -23,7 +24,15 @@ public enum ApparelWorkOrderState
     Failed = 5,
     WaitingForOutputSpace = 6,
     WaitingForEligibleWorker = 7,
-    TargetCurrentlyUnreachable = 8
+    TargetCurrentlyUnreachable = 8,
+    WaitingForDispositionFinalization = 9
+}
+
+public enum ApparelRepairCommitPhase
+{
+    None = 0,
+    MaterialCommitted = 1,
+    RepairApplied = 2
 }
 
 [Serializable]
@@ -55,9 +64,51 @@ public sealed class ApparelWorkOrderSaveData
     public bool dismantlingRejectedOutput;
     public bool rejectedOutputConsumed;
     public string rejectedOutputStackId = string.Empty;
+    public string rejectedOutputInstanceId = string.Empty;
     public float craftWorkPerAttempt;
     public int rejectedMaterialAmount;
     public int rejectedMaterialSpawned;
+    public string rejectedRecoveryItemId = string.Empty;
+    public string rejectedDismantleOperationId = string.Empty;
+    public string rejectedDismantleCommitId = string.Empty;
+    public string rejectedDismantleRequestFingerprint = string.Empty;
+    public long rejectedDismantleInputMassGrams;
+    public string rejectedRecoveryOperationId = string.Empty;
+    public string rejectedRecoveryCommitId = string.Empty;
+    public long rejectedRecoveryOutputMassGrams;
+    public int rejectedRecoveryPublicationAttempt;
+    public string rejectedRecoveryOutcomeFingerprint = string.Empty;
+    public string rejectedRecoveryAdmissionTokenId = string.Empty;
+    public string rejectedRecoveryCapacitySourceDigest = string.Empty;
+    public long rejectedRecoveryRequiredMinimumCapacityGrams;
+    public string rejectedRecoveryPlannedOutputFingerprint = string.Empty;
+    public List<string> rejectedRecoveryStackIds = new();
+    public bool rejectedRecoveryPublished;
+    public bool rejectedRecoveryAdmissionCommitted;
+    public bool rejectedRecoveryOutputAcknowledged;
+    public bool rejectedDismantleAcknowledged;
+    public int craftPublicationAttempt;
+    public string craftPublicationOperationId = string.Empty;
+    public string craftOutputBatchCommitId = string.Empty;
+    public string craftOutcomeFingerprint = string.Empty;
+    public string craftOutputComponentFingerprint = string.Empty;
+    public string craftAdmissionTokenId = string.Empty;
+    public string craftCapacitySourceDigest = string.Empty;
+    public long craftRequiredMinimumCapacityGrams;
+    public string craftPlannedOutputFingerprint = string.Empty;
+    public string craftOutputStackId = string.Empty;
+    public string craftOutputInstanceId = string.Empty;
+    public string craftInputCommitId = string.Empty;
+    public string craftInputRequestFingerprint = string.Empty;
+    public long craftInputMassGrams;
+    public long craftOutputMassGrams;
+    public bool craftInputPending;
+    public bool craftOutputPublished;
+    public bool craftAdmissionCommitted;
+    public bool craftInputAcknowledged;
+    public bool craftOutputAcknowledged;
+    public bool craftMarketRouted;
+    public string rejectedOutputLeaseId = string.Empty;
     public ApparelSizeClass targetSize;
     public ApparelModificationKind targetModifications;
     public string facilityInstanceId = string.Empty;
@@ -71,6 +122,56 @@ public sealed class ApparelWorkOrderSaveData
     public float nextRetryGameHour;
     public bool powered;
     public bool shortWardrobeOperation;
+    public ApparelRepairCommitPhase repairCommitPhase;
+    public string repairOperationId = string.Empty;
+    public string repairReasonCode = string.Empty;
+    public string repairCommitId = string.Empty;
+    public List<string> repairSourceStackIds = new();
+    public int repairInputQuantity;
+    public long repairInputMassGrams;
+    public string repairTargetStackId = string.Empty;
+    public string repairOriginalStatePayload = string.Empty;
+    public string repairResolvedStatePayload = string.Empty;
+}
+
+[Serializable]
+public sealed class ApparelWorkOrderTerminalStateSaveData
+{
+    public const int CurrentSchemaVersion = 1;
+
+    public int schemaVersion = CurrentSchemaVersion;
+    public ApparelWorkOrderSaveData sourceOrder;
+    public string sourceOrderFingerprint = string.Empty;
+    public ProductionApparelOrderPendingEffectIdentity pendingEffect;
+    public ProductionApparelOrderTerminalEffectReceipt terminalEffectReceipt;
+    public ProductionApparelOrderSourceTerminalReceipt sourceTerminalReceipt;
+
+    public ApparelWorkOrderTerminalStateSaveData Clone() => new()
+    {
+        schemaVersion = schemaVersion,
+        sourceOrder = ProductionApparelOrderTerminalDrainCanonical.CloneOrder(
+            sourceOrder),
+        sourceOrderFingerprint = sourceOrderFingerprint ?? string.Empty,
+        pendingEffect = pendingEffect?.Clone(),
+        terminalEffectReceipt = terminalEffectReceipt?.Clone(),
+        sourceTerminalReceipt = sourceTerminalReceipt?.Clone()
+    };
+}
+
+public sealed class ApparelWorkOrderRestoreCandidate
+{
+    internal ApparelWorkOrderRestoreCandidate(
+        IReadOnlyList<ApparelWorkOrderSaveData> orders,
+        IReadOnlyList<ApparelWorkOrderTerminalStateSaveData> terminalStates)
+    {
+        Orders = orders ?? throw new ArgumentNullException(nameof(orders));
+        TerminalStates = terminalStates
+            ?? throw new ArgumentNullException(nameof(terminalStates));
+    }
+
+    internal IReadOnlyList<ApparelWorkOrderSaveData> Orders { get; }
+    internal IReadOnlyList<ApparelWorkOrderTerminalStateSaveData>
+        TerminalStates { get; }
 }
 
 public readonly struct ApparelCraftOrderRequest
@@ -155,6 +256,7 @@ public interface IApparelWorkOrderCommand
         float amount,
         out DomainFailure failure);
     bool Cancel(string orderId);
+    bool Cancel(string orderId, out DomainFailure failure);
 }
 
 public interface IApparelWorkOrderQuery
@@ -166,6 +268,11 @@ public interface IApparelWorkOrderQuery
 public interface IApparelWorkOrderPersistence
 {
     ApparelWorkOrderSaveData[] CaptureOrders();
+    ApparelWorkOrderTerminalStateSaveData[] CaptureTerminalStates();
+    ApparelWorkOrderRestoreCandidate PrepareRestoreState(
+        IEnumerable<ApparelWorkOrderSaveData> orders,
+        IEnumerable<ApparelWorkOrderTerminalStateSaveData> terminalStates);
+    void PublishRestoreState(ApparelWorkOrderRestoreCandidate candidate);
     IReadOnlyList<ApparelWorkOrderSaveData> PrepareRestoreOrders(
         IEnumerable<ApparelWorkOrderSaveData> source);
     void PublishRestoreOrders(IEnumerable<ApparelWorkOrderSaveData> source);
@@ -175,15 +282,50 @@ public interface IApparelWorkOrderPersistence
 public sealed class ApparelWorkOrderRuntime :
     IApparelWorkOrderCommand,
     IApparelWorkOrderQuery,
-    IApparelWorkOrderPersistence
+    IApparelWorkOrderPersistence,
+    IProductionApparelOrderTerminalEffectPort,
+    IProductionApparelOrderSourceTerminalPort,
+    IDungeonRestoreTransactionParticipant
 {
+    private sealed class AuthorityState
+    {
+        internal List<ApparelWorkOrderSaveData> Orders { get; } = new();
+        internal Dictionary<string, ApparelWorkOrderTerminalStateSaveData>
+            TerminalStates { get; } = new(StringComparer.Ordinal);
+        internal int NextSequence = 1;
+        internal int Version;
+
+        internal AuthorityState Clone()
+        {
+            AuthorityState clone = new()
+            {
+                NextSequence = NextSequence,
+                Version = Version
+            };
+            clone.Orders.AddRange(Orders.Select(ApparelWorkOrderRuntime.Clone));
+            foreach (KeyValuePair<string,
+                         ApparelWorkOrderTerminalStateSaveData> pair in
+                     TerminalStates)
+            {
+                clone.TerminalStates.Add(pair.Key, pair.Value?.Clone());
+            }
+            return clone;
+        }
+    }
+
     private const int MaximumBatch = 12;
     private const float GameSecondsPerHour = 7.5f;
+    private const string RepairReasonCode =
+        "apparel-repair-input-incorporated";
+    private const string RestoreParticipantId =
+        "226.world.apparel-work-orders";
     private static readonly float[] RetryIntervals = { .25f, .5f, 1f };
 
     private readonly IApparelDefinitionCatalog apparel;
     private readonly ITextileMaterialCatalog materials;
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
+    private readonly IApparelPhysicalTransaction physicalTransactions;
     private readonly ILeasedItemReservationService leases;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IGameClock clock;
@@ -195,8 +337,11 @@ public sealed class ApparelWorkOrderRuntime :
     private readonly ExtremeCraftInspirationRuntime inspirationRuntime;
     private readonly CharacterIdentityEventPublisher identityEvents;
     private readonly ICharacterPerformanceQuery performance;
-    private readonly List<ApparelWorkOrderSaveData> orders = new();
-    private int nextSequence = 1;
+    private AuthorityState authority = new();
+    private ApparelWorkOrderRestoreCandidate stagedRestoreState;
+    private AuthorityState previousRestoreState;
+    private bool restoreActive;
+    private bool restorePublished;
 
     public ApparelWorkOrderRuntime(
         IApparelDefinitionCatalog apparel,
@@ -205,6 +350,8 @@ public sealed class ApparelWorkOrderRuntime :
         ILeasedItemReservationService leases,
         IFacilityCapabilityQuery facilities,
         IGameClock clock,
+        IPhysicalItemBatchDispositionService batchDispositions,
+        IApparelPhysicalTransaction physicalTransactions,
         IBalanceWorkCalculator balanceWorkCalculator = null,
         ICraftQualityResolver qualityResolver = null,
         IRunSeedProvider runSeedProvider = null,
@@ -217,6 +364,10 @@ public sealed class ApparelWorkOrderRuntime :
         this.apparel = apparel ?? throw new ArgumentNullException(nameof(apparel));
         this.materials = materials ?? throw new ArgumentNullException(nameof(materials));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.batchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
+        this.physicalTransactions = physicalTransactions
+            ?? throw new ArgumentNullException(nameof(physicalTransactions));
         this.leases = leases ?? throw new ArgumentNullException(nameof(leases));
         this.facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -232,8 +383,22 @@ public sealed class ApparelWorkOrderRuntime :
             ?? throw new ArgumentNullException(nameof(performance));
     }
 
-    public int Version { get; private set; }
+    private List<ApparelWorkOrderSaveData> orders => authority.Orders;
+    private Dictionary<string, ApparelWorkOrderTerminalStateSaveData>
+        terminalStates => authority.TerminalStates;
+    private int nextSequence
+    {
+        get => authority.NextSequence;
+        set => authority.NextSequence = value;
+    }
+
+    public int Version
+    {
+        get => authority.Version;
+        private set => authority.Version = value;
+    }
     public IReadOnlyList<ApparelWorkOrderSaveData> Orders => orders;
+    public string ParticipantId => RestoreParticipantId;
 
     public bool CreateCraft(
         ApparelCraftOrderRequest request,
@@ -457,6 +622,18 @@ public sealed class ApparelWorkOrderRuntime :
             failure = new DomainFailure(FailureCode.ApparelMaterialUnavailable, order.orderId);
             return false;
         }
+        if (order.state == ApparelWorkOrderState.WaitingForDispositionFinalization)
+        {
+            if (order.kind != ApparelWorkOrderKind.Repair
+                || !ResolveRepair(order, out failure))
+            {
+                return false;
+            }
+            order.state = ApparelWorkOrderState.Completed;
+            leases.Release(order.orderId);
+            Version++;
+            return true;
+        }
         if (order.kind == ApparelWorkOrderKind.Craft
             && apparel.TryGet(
                 order.apparelDefinitionId,
@@ -542,7 +719,8 @@ public sealed class ApparelWorkOrderRuntime :
         }
         if (!Resolve(order, out failure))
         {
-            if (order.state != ApparelWorkOrderState.WaitingForOutputSpace)
+            if (order.state is not (ApparelWorkOrderState.WaitingForOutputSpace
+                    or ApparelWorkOrderState.WaitingForDispositionFinalization))
             {
                 ReturnToWaiting(order, failure);
             }
@@ -557,18 +735,37 @@ public sealed class ApparelWorkOrderRuntime :
         return true;
     }
 
-    public bool Cancel(string orderId)
+    public bool Cancel(string orderId) => Cancel(orderId, out _);
+
+    public bool Cancel(string orderId, out DomainFailure failure)
     {
+        failure = DomainFailure.None;
         ApparelWorkOrderSaveData order = Find(orderId);
         if (order == null)
         {
+            failure = new DomainFailure(
+                FailureCode.ApparelWorkOrderInvalid,
+                orderId ?? string.Empty);
             return false;
         }
-        // Once dismantling has converted the rejected garment into a saved
-        // recovery obligation, removing the order would delete that value.
-        // The player may cancel after the physical recovery has completed.
-        if (order.dismantlingRejectedOutput)
+        // Once a durable physical receipt owns either rejected-output recovery
+        // or repair material disposition, removing the order would orphan that
+        // receipt and its exact mass. Cancellation is legal only after the
+        // physical obligation has reached its terminal acknowledgement.
+        if (order.dismantlingRejectedOutput
+            || order.repairCommitPhase != ApparelRepairCommitPhase.None)
         {
+            string operationId = order.dismantlingRejectedOutput
+                ? order.rejectedDismantleOperationId
+                : order.repairOperationId;
+            string commitId = order.dismantlingRejectedOutput
+                ? order.rejectedDismantleCommitId
+                : order.repairCommitId;
+            failure = new DomainFailure(
+                FailureCode.ApparelRecoveryDeferred,
+                order.orderId ?? string.Empty,
+                operationId ?? string.Empty,
+                commitId ?? string.Empty);
             return false;
         }
         leases.Release(order.orderId);
@@ -583,6 +780,47 @@ public sealed class ApparelWorkOrderRuntime :
         .Select(Clone)
         .ToArray();
 
+    public ApparelWorkOrderTerminalStateSaveData[] CaptureTerminalStates() =>
+        terminalStates.Values
+            .OrderBy(value => value.sourceOrder.orderId, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToArray();
+
+    public ApparelWorkOrderRestoreCandidate PrepareRestoreState(
+        IEnumerable<ApparelWorkOrderSaveData> sourceOrders,
+        IEnumerable<ApparelWorkOrderTerminalStateSaveData> sourceTerminalStates)
+    {
+        ApparelWorkOrderSaveData[] rawOrders = (sourceOrders
+                ?? Enumerable.Empty<ApparelWorkOrderSaveData>())
+            .Select(Clone)
+            .ToArray();
+        IReadOnlyList<ApparelWorkOrderSaveData> restoredOrders =
+            PrepareRestoreOrders(rawOrders);
+        List<ApparelWorkOrderTerminalStateSaveData> restoredTerminalStates =
+            (sourceTerminalStates
+                ?? Enumerable.Empty<ApparelWorkOrderTerminalStateSaveData>())
+            .Select(value => value?.Clone())
+            .OrderBy(value => value?.sourceOrder?.orderId, StringComparer.Ordinal)
+            .ToList();
+        ValidateTerminalStateRows(rawOrders, restoredTerminalStates);
+        Dictionary<string, ApparelWorkOrderSaveData> frozenLive =
+            restoredTerminalStates
+                .Where(value => value.sourceTerminalReceipt == null)
+                .ToDictionary(
+                    value => value.sourceOrder.orderId,
+                    value => Clone(value.sourceOrder),
+                    StringComparer.Ordinal);
+        restoredOrders = restoredOrders.Select(value =>
+                frozenLive.TryGetValue(value.orderId, out var frozen)
+                    ? Clone(frozen)
+                    : Clone(value))
+            .ToArray();
+        ValidateTerminalStateRows(restoredOrders, restoredTerminalStates);
+        return new ApparelWorkOrderRestoreCandidate(
+            restoredOrders,
+            restoredTerminalStates);
+    }
+
     public IReadOnlyList<ApparelWorkOrderSaveData> PrepareRestoreOrders(
         IEnumerable<ApparelWorkOrderSaveData> source)
     {
@@ -595,6 +833,11 @@ public sealed class ApparelWorkOrderRuntime :
                 || value.requiredWork <= 0f
                 || value.completedWork < 0f
                 || value.completedWork > value.requiredWork
+                || !Enum.IsDefined(typeof(ApparelWorkOrderKind), value.kind)
+                || !Enum.IsDefined(typeof(ApparelWorkOrderState), value.state)
+                || !Enum.IsDefined(
+                    typeof(ApparelRepairCommitPhase),
+                    value.repairCommitPhase)
                 || !Enum.IsDefined(
                     typeof(CraftsmanshipQualityTier),
                     value.minimumCraftsmanshipQuality)
@@ -611,14 +854,14 @@ public sealed class ApparelWorkOrderRuntime :
                 || value.consumedWork < 0f
                 || value.rejectedMaterialSpawned < 0
                 || value.rejectedMaterialSpawned > value.rejectedMaterialAmount
-                || (value.rejectedOutputConsumed
-                    && !value.dismantlingRejectedOutput)
-                || (value.dismantlingRejectedOutput
-                    && string.IsNullOrWhiteSpace(value.rejectedOutputStackId))
+                || !ApparelRejectedDismantleOutbox.ValidateOwnerShape(
+                    value,
+                    out _)
                 || (value.kind == ApparelWorkOrderKind.Craft
                     && (value.qualityRoll == null
                         || value.qualityRoll.attemptIndex
-                            != value.qualityAttemptIndex)))
+                            != value.qualityAttemptIndex))
+                || !ValidateRepairPendingShape(value))
             || restored.Select(value => value.orderId)
                 .Distinct(StringComparer.Ordinal).Count() != restored.Count)
         {
@@ -626,7 +869,9 @@ public sealed class ApparelWorkOrderRuntime :
         }
         foreach (ApparelWorkOrderSaveData order in restored)
         {
-            order.state = ApparelWorkOrderState.NeedsRevalidation;
+            order.state = order.repairCommitPhase == ApparelRepairCommitPhase.None
+                ? ApparelWorkOrderState.NeedsRevalidation
+                : ApparelWorkOrderState.WaitingForDispositionFinalization;
             order.nextRetryGameHour = 0f;
         }
         return restored;
@@ -634,17 +879,280 @@ public sealed class ApparelWorkOrderRuntime :
 
     public void PublishRestoreOrders(IEnumerable<ApparelWorkOrderSaveData> source)
     {
-        foreach (ApparelWorkOrderSaveData current in orders)
+        if (terminalStates.Count != 0)
         {
-            leases.Release(current.orderId);
+            throw new InvalidOperationException(
+                "Order-only apparel restore cannot overwrite terminal authority.");
         }
-        orders.Clear();
-        orders.AddRange((source ?? Enumerable.Empty<ApparelWorkOrderSaveData>())
-            .Select(Clone));
-        nextSequence = Math.Max(
-            1,
-            orders.Select(ParseSequence).DefaultIfEmpty(0).Max() + 1);
-        Version++;
+        PublishRestoreState(new ApparelWorkOrderRestoreCandidate(
+            (source ?? Enumerable.Empty<ApparelWorkOrderSaveData>())
+                .Select(Clone)
+                .ToArray(),
+            Array.Empty<ApparelWorkOrderTerminalStateSaveData>()));
+    }
+
+    public void PublishRestoreState(ApparelWorkOrderRestoreCandidate candidate)
+    {
+        if (candidate == null)
+            throw new ArgumentNullException(nameof(candidate));
+        ApparelWorkOrderRestoreCandidate replacement =
+            new ApparelWorkOrderRestoreCandidate(
+                candidate.Orders.Select(Clone).ToArray(),
+                candidate.TerminalStates.Select(value => value.Clone()).ToArray());
+        ValidateTerminalStateRows(
+            replacement.Orders,
+            replacement.TerminalStates);
+        if (restoreActive)
+        {
+            if (stagedRestoreState != null)
+            {
+                throw new InvalidOperationException(
+                    "Apparel work-order restore candidate was staged more than once.");
+            }
+            stagedRestoreState = replacement;
+            return;
+        }
+        ReplaceAuthority(replacement, true);
+    }
+
+    public IReadOnlyList<ProductionApparelOrderTerminalEffectReceipt>
+        CaptureTerminalEffectReceipts() => terminalStates.Values
+        .Select(value => value.terminalEffectReceipt)
+        .Where(value => value != null)
+        .OrderBy(value => value.commitId, StringComparer.Ordinal)
+        .Select(value => value.Clone())
+        .ToArray();
+
+    public bool TryCaptureTerminalEffectReceipt(
+        string commitId,
+        out ProductionApparelOrderTerminalEffectReceipt receipt)
+    {
+        receipt = null;
+        ProductionApparelOrderTerminalEffectReceipt[] matches = terminalStates
+            .Values.Select(value => value.terminalEffectReceipt)
+            .Where(value => value != null && string.Equals(
+                value.commitId,
+                commitId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+            return false;
+        receipt = matches[0].Clone();
+        return true;
+    }
+
+    public bool TryCaptureLiveOrder(
+        string orderId,
+        out ApparelWorkOrderSaveData sourceOrder,
+        out string failureReason)
+    {
+        sourceOrder = null;
+        failureReason = string.Empty;
+        ApparelWorkOrderSaveData[] matches = orders.Where(value => value != null
+                && value.state != ApparelWorkOrderState.Completed
+                && string.Equals(value.orderId, orderId, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            failureReason = matches.Length == 0
+                ? "production-apparel-terminal-source-order-missing"
+                : "production-apparel-terminal-source-order-duplicate";
+            return false;
+        }
+        sourceOrder = Clone(matches[0]);
+        return true;
+    }
+
+    public IReadOnlyList<ProductionApparelOrderSourceTerminalReceipt>
+        CaptureSourceTerminalReceipts() => terminalStates.Values
+        .Select(value => value.sourceTerminalReceipt)
+        .Where(value => value != null)
+        .OrderBy(value => value.commitId, StringComparer.Ordinal)
+        .Select(value => value.Clone())
+        .ToArray();
+
+    public bool TryCaptureSourceTerminalReceipt(
+        string commitId,
+        out ProductionApparelOrderSourceTerminalReceipt receipt)
+    {
+        receipt = null;
+        ProductionApparelOrderSourceTerminalReceipt[] matches = terminalStates
+            .Values.Select(value => value.sourceTerminalReceipt)
+            .Where(value => value != null && string.Equals(
+                value.commitId,
+                commitId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+            return false;
+        receipt = matches[0].Clone();
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Publishes one apparel terminal-effect receipt in the order aggregate before source removal.",
+        "Apparel destructive terminal drain producer only")]
+    public ProductionApparelOrderTerminalEffectApplyResult TryCommitTerminalEffect(
+        ProductionApparelOrderTerminalEffectReceipt expectedReceipt,
+        ProductionApparelOrderPendingEffectIdentity pendingEffect)
+    {
+        string sourceFailure = string.Empty;
+        if (expectedReceipt == null
+            || !TryCaptureLiveOrder(
+                expectedReceipt.orderId,
+                out ApparelWorkOrderSaveData source,
+                out sourceFailure))
+        {
+            return EffectConflict(
+                "production-apparel-terminal-effect-source-conflict:"
+                + sourceFailure);
+        }
+        string sourceFingerprint =
+            ProductionApparelOrderTerminalDrainCanonical
+                .CreateSourceOrderFingerprint(source);
+        string effectFailure = string.Empty;
+        if (!ProductionApparelOrderTerminalDrainCanonical
+                .TryCreatePendingEffectIdentity(
+                    source,
+                    out ProductionApparelOrderPendingEffectIdentity actualEffect,
+                    out effectFailure)
+            || !PendingEffectEquals(actualEffect, pendingEffect)
+            || !ProductionApparelOrderTerminalDrainCanonical.EffectReceiptEquals(
+                expectedReceipt,
+                ProductionApparelOrderTerminalDrainCanonical
+                    .CreateTerminalEffectReceipt(
+                        expectedReceipt.stepOperationId,
+                        source,
+                        sourceFingerprint,
+                        actualEffect)))
+        {
+            return EffectConflict(
+                "production-apparel-terminal-effect-request-conflict:"
+                + effectFailure);
+        }
+
+        if (terminalStates.TryGetValue(
+                source.orderId,
+                out ApparelWorkOrderTerminalStateSaveData existing))
+        {
+            return ProductionApparelOrderTerminalDrainCanonical
+                .EffectReceiptEquals(
+                    existing.terminalEffectReceipt,
+                    expectedReceipt)
+                && PendingEffectEquals(existing.pendingEffect, actualEffect)
+                ? new ProductionApparelOrderTerminalEffectApplyResult(
+                    ProductionApparelOrderTerminalDrainStatus.Replay,
+                    existing.terminalEffectReceipt,
+                    string.Empty)
+                : EffectConflict(
+                    "production-apparel-terminal-effect-row-conflict");
+        }
+        if (terminalStates.Values.Any(value => string.Equals(
+                value.terminalEffectReceipt?.commitId,
+                expectedReceipt.commitId,
+                StringComparison.Ordinal)))
+        {
+            return EffectConflict(
+                "production-apparel-terminal-effect-commit-duplicate");
+        }
+
+        AuthorityState next = authority.Clone();
+        next.TerminalStates.Add(source.orderId, new()
+        {
+            sourceOrder = Clone(source),
+            sourceOrderFingerprint = sourceFingerprint,
+            pendingEffect = actualEffect?.Clone(),
+            terminalEffectReceipt = expectedReceipt.Clone()
+        });
+        next.Version = checked(next.Version + 1);
+        authority = next;
+        return new ProductionApparelOrderTerminalEffectApplyResult(
+            ProductionApparelOrderTerminalDrainStatus.Applied,
+            expectedReceipt,
+            string.Empty);
+    }
+
+    [GameplayInternalOnly(
+        "Removes one exact frozen apparel order and publishes its source-terminal receipt in one authority swap.",
+        "Apparel destructive terminal drain producer only")]
+    public ProductionApparelOrderSourceTerminalApplyResult TryCommitSourceTerminal(
+        ProductionApparelOrderSourceTerminalReceipt expectedReceipt)
+    {
+        if (expectedReceipt == null
+            || !terminalStates.TryGetValue(
+                expectedReceipt.orderId,
+                out ApparelWorkOrderTerminalStateSaveData terminal)
+            || terminal.terminalEffectReceipt == null)
+        {
+            return SourceConflict(
+                "production-apparel-source-terminal-effect-missing");
+        }
+        ProductionApparelOrderSourceTerminalReceipt canonical =
+            ProductionApparelOrderTerminalDrainCanonical
+                .CreateSourceTerminalReceipt(
+                    expectedReceipt.stepOperationId,
+                    terminal.sourceOrder,
+                    terminal.sourceOrderFingerprint,
+                    terminal.terminalEffectReceipt.receiptFingerprint);
+        if (!ProductionApparelOrderTerminalDrainCanonical.SourceReceiptEquals(
+                expectedReceipt,
+                canonical))
+        {
+            return SourceConflict(
+                "production-apparel-source-terminal-request-conflict");
+        }
+        ApparelWorkOrderSaveData[] live = orders.Where(value => value != null
+                && string.Equals(
+                    value.orderId,
+                    expectedReceipt.orderId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (terminal.sourceTerminalReceipt != null)
+        {
+            return live.Length == 0
+                && ProductionApparelOrderTerminalDrainCanonical
+                    .SourceReceiptEquals(
+                        terminal.sourceTerminalReceipt,
+                        expectedReceipt)
+                ? new ProductionApparelOrderSourceTerminalApplyResult(
+                    ProductionApparelOrderTerminalDrainStatus.Replay,
+                    terminal.sourceTerminalReceipt,
+                    string.Empty)
+                : SourceConflict(
+                    "production-apparel-source-terminal-replay-conflict");
+        }
+        if (live.Length != 1
+            || !string.Equals(
+                ProductionApparelOrderTerminalDrainCanonical
+                    .CreateSourceOrderFingerprint(live[0]),
+                terminal.sourceOrderFingerprint,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                JsonUtility.ToJson(live[0]),
+                JsonUtility.ToJson(terminal.sourceOrder),
+                StringComparison.Ordinal)
+            || terminalStates.Values.Any(value => string.Equals(
+                value.sourceTerminalReceipt?.commitId,
+                expectedReceipt.commitId,
+                StringComparison.Ordinal)))
+        {
+            return SourceConflict(
+                "production-apparel-source-terminal-live-source-conflict");
+        }
+
+        AuthorityState next = authority.Clone();
+        next.Orders.RemoveAll(value => string.Equals(
+            value.orderId,
+            expectedReceipt.orderId,
+            StringComparison.Ordinal));
+        next.TerminalStates[expectedReceipt.orderId].sourceTerminalReceipt =
+            expectedReceipt.Clone();
+        next.Version = checked(next.Version + 1);
+        authority = next;
+        return new ProductionApparelOrderSourceTerminalApplyResult(
+            ProductionApparelOrderTerminalDrainStatus.Applied,
+            expectedReceipt,
+            string.Empty);
     }
 
     public void ResetOrders()
@@ -653,9 +1161,84 @@ public sealed class ApparelWorkOrderRuntime :
         {
             leases.Release(order.orderId);
         }
-        orders.Clear();
-        nextSequence = 1;
-        Version++;
+        authority = new AuthorityState
+        {
+            Version = checked(Version + 1)
+        };
+    }
+
+    public void BeginRestoreCandidate()
+    {
+        if (restoreActive)
+        {
+            throw new InvalidOperationException(
+                "Apparel work-order restore transaction is already active.");
+        }
+        restoreActive = true;
+        restorePublished = false;
+        stagedRestoreState = null;
+        previousRestoreState = authority;
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        if (!restoreActive || stagedRestoreState == null)
+        {
+            throw new InvalidOperationException(
+                "Apparel work-order restore candidate was not staged.");
+        }
+
+        ValidatePendingRepairJoins(stagedRestoreState.Orders);
+        HashSet<string> terminalOrderIds = new(
+            stagedRestoreState.TerminalStates.Select(value =>
+                value.sourceOrder.orderId),
+            StringComparer.Ordinal);
+        foreach (ApparelWorkOrderSaveData order in stagedRestoreState.Orders
+                     .Where(value => value.repairCommitPhase
+                          != ApparelRepairCommitPhase.None
+                          && !terminalOrderIds.Contains(value.orderId))
+                     .OrderBy(value => value.orderId, StringComparer.Ordinal))
+        {
+            if (!ResumePendingRepair(order, out DomainFailure failure))
+            {
+                throw new InvalidOperationException(
+                    $"Apparel repair '{order.orderId}' could not be reconciled: {failure}");
+            }
+            order.state = ApparelWorkOrderState.Completed;
+        }
+
+        ReplaceAuthority(stagedRestoreState, false);
+        foreach (ApparelWorkOrderSaveData completed in orders.Where(value =>
+                     value.state == ApparelWorkOrderState.Completed))
+        {
+            leases.Release(completed.orderId);
+        }
+        restorePublished = true;
+    }
+
+    public void RollbackPublishedRestoreCandidate()
+    {
+        if (!restoreActive)
+        {
+            return;
+        }
+        if (restorePublished && previousRestoreState != null)
+        {
+            authority = previousRestoreState;
+        }
+        ClearRestoreTransaction();
+    }
+
+    public void CompleteRestoreCandidate() => ClearRestoreTransaction();
+
+    public void DiscardRestoreCandidate()
+    {
+        if (restorePublished)
+        {
+            RollbackPublishedRestoreCandidate();
+            return;
+        }
+        ClearRestoreTransaction();
     }
 
     private bool CreateItemBatchOrder(
@@ -795,22 +1378,6 @@ public sealed class ApparelWorkOrderRuntime :
                 };
             }
         }
-        string outputDestination = order.rejectedDisposition
-            == RejectedOutputDisposition.MarkForSale
-            && completedQuality != CraftsmanshipQualityTier.Mythic
-                ? QualityRejectedOutputRules.MarketDestinationId
-                : ProductionBillRuntime.OutputDestinationPrefix
-                    + facility.RequirePersistentInstanceId().Value;
-        if (!items.SpawnUniqueItemAt(
-                definition.PhysicalItemId,
-                facility.centerPos,
-                WorldItemStackState.FacilityOutputBuffer,
-                outputDestination,
-                out string stackId))
-        {
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed);
-            return false;
-        }
         ApparelInstanceState state = new()
         {
             apparelDefinitionId = definition.ApparelId,
@@ -826,13 +1393,29 @@ public sealed class ApparelWorkOrderRuntime :
             deterministicBatchHash = Hash(order.orderId),
             mythicProvenance = mythicProvenance
         };
-        if (!items.TrySetInstanceComponent(stackId, ApparelItemStateCodec.Create(state))
-            || !ConsumeNonTargetMaterials(order, string.Empty))
+        bool markForSale = order.rejectedDisposition
+                == RejectedOutputDisposition.MarkForSale
+            && completedQuality != CraftsmanshipQualityTier.Mythic;
+        ApparelPhysicalTransactionResult physical =
+            physicalTransactions.ExecuteCraftOrResume(
+                order,
+                facility,
+                definition.PhysicalItemId,
+                ApparelItemStateCodec.Create(state),
+                markForSale);
+        if (!physical.IsCompleted)
         {
-            items.DeleteStack(stackId);
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed, order.orderId);
+            order.state = physical.Status ==
+                    ApparelPhysicalTransactionStatus.WaitingForOutputSpace
+                ? ApparelWorkOrderState.WaitingForOutputSpace
+                : ApparelWorkOrderState.WaitingForDispositionFinalization;
+            failure = new DomainFailure(
+                FailureCode.ApparelTransferFailed,
+                order.orderId,
+                physical.FailureReason);
             return false;
         }
+        string stackId = physical.OutputStackId;
         if (hasInspiration)
         {
             inspirationRuntime?.RecordEligibleCompletion(
@@ -875,9 +1458,24 @@ public sealed class ApparelWorkOrderRuntime :
         }
         if (order.rejectedDisposition == RejectedOutputDisposition.AutoDismantle)
         {
+            WorldItemStackSnapshot rejected = items.GetAllStacks()
+                .SingleOrDefault(value => value != null
+                    && string.Equals(
+                        value.StackId,
+                        stackId,
+                        StringComparison.Ordinal));
+            if (rejected == null
+                || string.IsNullOrWhiteSpace(rejected.ItemInstanceId))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ApparelPhysicalItemMissing,
+                    stackId);
+                return false;
+            }
             order.dismantlingRejectedOutput = true;
             order.rejectedOutputConsumed = false;
             order.rejectedOutputStackId = stackId;
+            order.rejectedOutputInstanceId = rejected.ItemInstanceId;
             float salvageYield = maker != null
                 ? maker.GetDetailedStatMultiplier(
                     GameplayEffectTargetIds.SalvageYield)
@@ -887,6 +1485,8 @@ public sealed class ApparelWorkOrderRuntime :
                 * 0.50f
                 * Mathf.Max(0f, salvageYield));
             order.rejectedMaterialSpawned = 0;
+            order.rejectedRecoveryItemId = material.PhysicalItemId;
+            ApparelRejectedDismantleOutbox.Clear(order);
             order.requiredWork = Mathf.Max(
                 0.1f,
                 order.craftWorkPerAttempt * 0.20f);
@@ -894,6 +1494,7 @@ public sealed class ApparelWorkOrderRuntime :
             order.contributions.Clear();
             order.state = ApparelWorkOrderState.Ready;
             leases.Release(order.orderId);
+            ApparelPhysicalTransaction.ClearCraftAttempt(order);
             return true;
         }
         return PrepareNextCraftAttempt(order, definition, out failure);
@@ -918,60 +1519,40 @@ public sealed class ApparelWorkOrderRuntime :
             return false;
         }
 
-        if (!order.rejectedOutputConsumed)
-        {
-            if (!items.GetAllStacks().Any(stack => stack != null
-                    && string.Equals(
-                        stack.StackId,
-                        order.rejectedOutputStackId,
-                        StringComparison.Ordinal))
-                || !items.DeleteStack(order.rejectedOutputStackId))
-            {
-                failure = new DomainFailure(
-                    FailureCode.ApparelPhysicalItemMissing,
-                    order.rejectedOutputStackId);
-                return false;
-            }
-            // From this point the order is the authority for the owed salvage.
-            // Saving before output space becomes available cannot reroll or
-            // duplicate the dismantled garment.
-            order.rejectedOutputConsumed = true;
-        }
-        int remainingRecovery = Mathf.Max(
-            0,
-            order.rejectedMaterialAmount - order.rejectedMaterialSpawned);
-        int spawned = 0;
-        if (remainingRecovery > 0
-            && !items.SpawnItemAt(
+        if (!string.Equals(
+                order.rejectedRecoveryItemId,
                 material.PhysicalItemId,
-                remainingRecovery,
-                facility.centerPos,
-                WorldItemStackState.FacilityOutputBuffer,
-                ProductionBillRuntime.OutputDestinationPrefix
-                    + facility.RequirePersistentInstanceId().Value,
-                out spawned))
+                StringComparison.Ordinal))
         {
-            order.rejectedMaterialSpawned += Mathf.Max(0, spawned);
-            order.state = ApparelWorkOrderState.WaitingForOutputSpace;
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed);
+            failure = new DomainFailure(
+                FailureCode.ApparelTransferFailed,
+                "apparel-rejected-recovery-item-authority-drift");
             return false;
         }
-        if (remainingRecovery > 0)
+        ApparelPhysicalTransactionResult physical =
+            physicalTransactions.ExecuteRejectedDismantleOrResume(
+                order,
+                facility,
+                material.PhysicalItemId);
+        if (!physical.IsCompleted)
         {
-            order.rejectedMaterialSpawned += Mathf.Max(0, spawned);
-        }
-        if (order.rejectedMaterialSpawned < order.rejectedMaterialAmount)
-        {
-            order.state = ApparelWorkOrderState.WaitingForOutputSpace;
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed);
+            order.state = physical.Status ==
+                    ApparelPhysicalTransactionStatus.WaitingForOutputSpace
+                ? ApparelWorkOrderState.WaitingForOutputSpace
+                : ApparelWorkOrderState.WaitingForDispositionFinalization;
+            failure = new DomainFailure(
+                FailureCode.ApparelTransferFailed,
+                physical.FailureReason);
             return false;
         }
         order.consumedWork += Mathf.Max(0f, order.requiredWork);
         order.dismantlingRejectedOutput = false;
-        order.rejectedOutputConsumed = false;
         order.rejectedOutputStackId = string.Empty;
+        order.rejectedOutputInstanceId = string.Empty;
         order.rejectedMaterialAmount = 0;
         order.rejectedMaterialSpawned = 0;
+        order.rejectedRecoveryItemId = string.Empty;
+        ApparelRejectedDismantleOutbox.Clear(order);
         return PrepareNextCraftAttempt(order, definition, out failure);
     }
 
@@ -981,6 +1562,7 @@ public sealed class ApparelWorkOrderRuntime :
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
+        ApparelPhysicalTransaction.ClearCraftAttempt(order);
         leases.Release(order.orderId);
         order.qualityAttemptIndex++;
         if (HasReachedApparelRepeatLimit(order))
@@ -1073,6 +1655,10 @@ public sealed class ApparelWorkOrderRuntime :
     private bool ResolveRepair(ApparelWorkOrderSaveData order, out DomainFailure failure)
     {
         failure = DomainFailure.None;
+        if (order.repairCommitPhase != ApparelRepairCommitPhase.None)
+        {
+            return ResumePendingRepair(order, out failure);
+        }
         if (!TryFindApparel(
                 (ItemInstanceId)order.targetItemInstanceId,
                 out WorldItemStackSnapshot stack,
@@ -1087,26 +1673,108 @@ public sealed class ApparelWorkOrderRuntime :
         changed.durability = state.durability >= 60f
             ? Mathf.Min(100f, state.durability + 25f)
             : 70f;
-        if (!CanConsumeNonTargetMaterials(order, stack.StackId))
+        List<PhysicalItemTransformInput> inputs = BuildNonTargetInputs(
+            order,
+            stack.StackId);
+        if (inputs.Count == 0)
         {
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed, order.orderId);
+            if (!items.TrySetInstanceComponent(
+                    stack.StackId,
+                    ApparelItemStateCodec.Create(changed)))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ApparelTransferFailed,
+                    stack.StackId);
+                return false;
+            }
+            return true;
+        }
+        string operationId = RepairOperationId(order.orderId);
+        // The order lease protects selection while work is in progress. The
+        // pending disposition becomes the sole exact custody authority at the
+        // terminal boundary, so release the lease before its atomic preflight.
+        leases.Release(order.orderId);
+        if (!batchDispositions.TryCommitPending(
+                inputs,
+                PhysicalItemDispositionKind.Transfer,
+                operationId,
+                RepairReasonCode,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out string commitFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.ApparelTransferFailed,
+                commitFailure);
             return false;
         }
-        if (!items.TrySetInstanceComponent(
-                stack.StackId,
-                ApparelItemStateCodec.Create(changed)))
+        order.repairCommitPhase = ApparelRepairCommitPhase.MaterialCommitted;
+        order.repairOperationId = operationId;
+        order.repairReasonCode = RepairReasonCode;
+        order.repairCommitId = receipt.CommitId;
+        order.repairSourceStackIds = receipt.SourceStackIds.ToList();
+        order.repairInputQuantity = receipt.Quantity;
+        order.repairInputMassGrams = receipt.InputMassGrams;
+        order.repairTargetStackId = stack.StackId;
+        order.repairOriginalStatePayload = CaptureApparelState(state);
+        order.repairResolvedStatePayload = CaptureApparelState(changed);
+        order.state = ApparelWorkOrderState.WaitingForDispositionFinalization;
+        return ResumePendingRepair(order, out failure);
+    }
+
+    private bool ResumePendingRepair(
+        ApparelWorkOrderSaveData order,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (!TryValidatePendingRepairJoin(
+                order,
+                out WorldItemStackSnapshot stack,
+                out ApparelInstanceState current,
+                out ApparelInstanceState resolved,
+                out string validationFailure))
         {
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed, stack.StackId);
+            failure = new DomainFailure(
+                FailureCode.ApparelTransferFailed,
+                validationFailure);
             return false;
         }
-        if (!ConsumeNonTargetMaterials(order, stack.StackId))
+
+        if (order.repairCommitPhase == ApparelRepairCommitPhase.MaterialCommitted)
         {
-            items.TrySetInstanceComponent(
-                stack.StackId,
-                ApparelItemStateCodec.Create(state));
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed, order.orderId);
+            if (!items.TrySetInstanceComponent(
+                    stack.StackId,
+                    ApparelItemStateCodec.Create(resolved)))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ApparelTransferFailed,
+                    stack.StackId);
+                return false;
+            }
+            order.repairCommitPhase = ApparelRepairCommitPhase.RepairApplied;
+            current = resolved;
+        }
+
+        if (!string.Equals(
+                CaptureApparelState(current),
+                order.repairResolvedStatePayload,
+                StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(
+                FailureCode.ApparelTransferFailed,
+                "apparel-repair-resolved-state-mismatch");
             return false;
         }
+        if (!batchDispositions.Acknowledge(
+                order.repairCommitId,
+                out string acknowledgementFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.ApparelTransferFailed,
+                acknowledgementFailure);
+            return false;
+        }
+
+        ClearRepairPending(order);
         return true;
     }
 
@@ -1333,6 +2001,7 @@ public sealed class ApparelWorkOrderRuntime :
         Dictionary<string, WorldItemStackSnapshot> current = items.GetAllStacks()
             .Where(value => value != null)
             .ToDictionary(value => value.StackId, StringComparer.Ordinal);
+        List<PhysicalItemTransformInput> inputs = new();
         for (int index = 0; index < order.materialStackIds.Count; index++)
         {
             string stackId = order.materialStackIds[index];
@@ -1483,14 +2152,34 @@ public sealed class ApparelWorkOrderRuntime :
         }
     }
 
-    private bool ConsumeNonTargetMaterials(
+    internal static string BuildCraftMaterialOperationId(
+        ApparelWorkOrderSaveData order)
+    {
+        if (order == null
+            || order.kind != ApparelWorkOrderKind.Craft
+            || string.IsNullOrEmpty(order.orderId)
+            || !string.Equals(
+                order.orderId,
+                order.orderId.Trim(),
+                StringComparison.Ordinal)
+            || order.qualityAttemptIndex < 0)
+        {
+            throw new InvalidOperationException(
+                "Apparel craft material operation authority is invalid.");
+        }
+        return "apparel-craft-material:"
+            + order.orderId
+            + ":"
+            + order.qualityAttemptIndex.ToString(
+                "D4",
+                CultureInfo.InvariantCulture);
+    }
+
+    private List<PhysicalItemTransformInput> BuildNonTargetInputs(
         ApparelWorkOrderSaveData order,
         string excludedStackId)
     {
-        if (!CanConsumeNonTargetMaterials(order, excludedStackId))
-        {
-            return false;
-        }
+        List<PhysicalItemTransformInput> inputs = new();
         for (int index = 0; index < order.materialStackIds.Count; index++)
         {
             string stackId = order.materialStackIds[index];
@@ -1501,38 +2190,356 @@ public sealed class ApparelWorkOrderRuntime :
             int amount = index < order.materialStackAmounts.Count
                 ? order.materialStackAmounts[index]
                 : 1;
-            if (!items.TryConsumeStackQuantity(stackId, amount, out _))
+            inputs.Add(new PhysicalItemTransformInput(stackId, amount));
+        }
+        return inputs;
+    }
+
+    private void ValidatePendingRepairJoins(
+        IReadOnlyList<ApparelWorkOrderSaveData> candidate)
+    {
+        HashSet<string> operations = new(StringComparer.Ordinal);
+        foreach (ApparelWorkOrderSaveData order in candidate.Where(value =>
+                     value.repairCommitPhase != ApparelRepairCommitPhase.None))
+        {
+            if (!operations.Add(order.repairOperationId))
             {
-                return false;
+                throw new InvalidOperationException(
+                    $"Apparel repair restore join '{order.orderId}' has a duplicate operation.");
             }
+            if (!TryValidatePendingRepairJoin(
+                    order,
+                    out _,
+                    out _,
+                    out _,
+                    out string failure))
+            {
+                throw new InvalidOperationException(
+                    $"Apparel repair restore join '{order.orderId}' is invalid: {failure}");
+            }
+        }
+    }
+
+    private bool TryValidatePendingRepairJoin(
+        ApparelWorkOrderSaveData order,
+        out WorldItemStackSnapshot stack,
+        out ApparelInstanceState current,
+        out ApparelInstanceState resolved,
+        out string failure)
+    {
+        stack = null;
+        current = null;
+        resolved = null;
+        failure = string.Empty;
+        if (!ValidateRepairPendingShape(order)
+            || !string.Equals(
+                order.repairOperationId,
+                RepairOperationId(order.orderId),
+                StringComparison.Ordinal)
+            || !batchDispositions.TryGetPending(
+                order.repairOperationId,
+                out PhysicalItemBatchDispositionReceipt receipt)
+            || receipt.Kind != PhysicalItemDispositionKind.Transfer
+            || !string.Equals(
+                receipt.OperationId,
+                order.repairOperationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.ReasonCode,
+                order.repairReasonCode,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.CommitId,
+                order.repairCommitId,
+                StringComparison.Ordinal)
+            || receipt.Quantity != order.repairInputQuantity
+            || receipt.InputMassGrams != order.repairInputMassGrams
+            || !receipt.SourceStackIds.SequenceEqual(
+                order.repairSourceStackIds,
+                StringComparer.Ordinal)
+            || !TryFindApparel(
+                (ItemInstanceId)order.targetItemInstanceId,
+                out stack,
+                out current)
+            || !string.Equals(
+                stack.StackId,
+                order.repairTargetStackId,
+                StringComparison.Ordinal)
+            || !TryReadCanonicalApparelState(
+                order.repairOriginalStatePayload,
+                out ApparelInstanceState original)
+            || !TryReadCanonicalApparelState(
+                order.repairResolvedStatePayload,
+                out resolved))
+        {
+            failure = "apparel-repair-pending-authority-mismatch";
+            return false;
+        }
+
+        string expected = order.repairCommitPhase switch
+        {
+            ApparelRepairCommitPhase.MaterialCommitted =>
+                CaptureApparelState(original),
+            ApparelRepairCommitPhase.RepairApplied =>
+                CaptureApparelState(resolved),
+            _ => string.Empty
+        };
+        if (!string.Equals(
+                CaptureApparelState(current),
+                expected,
+                StringComparison.Ordinal))
+        {
+            failure = "apparel-repair-target-state-mismatch";
+            return false;
         }
         return true;
     }
 
-    private bool CanConsumeNonTargetMaterials(
-        ApparelWorkOrderSaveData order,
-        string excludedStackId)
+    private static bool ValidateRepairPendingShape(ApparelWorkOrderSaveData order)
     {
-        Dictionary<string, WorldItemStackSnapshot> current = items.GetAllStacks()
-            .Where(value => value != null)
-            .ToDictionary(value => value.StackId, StringComparer.Ordinal);
-        for (int index = 0; index < order.materialStackIds.Count; index++)
+        bool any = order.repairCommitPhase != ApparelRepairCommitPhase.None
+            || !string.IsNullOrEmpty(order.repairOperationId)
+            || !string.IsNullOrEmpty(order.repairReasonCode)
+            || !string.IsNullOrEmpty(order.repairCommitId)
+            || order.repairSourceStackIds.Count > 0
+            || order.repairInputQuantity != 0
+            || order.repairInputMassGrams != 0L
+            || !string.IsNullOrEmpty(order.repairTargetStackId)
+            || !string.IsNullOrEmpty(order.repairOriginalStatePayload)
+            || !string.IsNullOrEmpty(order.repairResolvedStatePayload);
+        if (!any)
         {
-            string stackId = order.materialStackIds[index];
-            if (string.Equals(stackId, excludedStackId, StringComparison.Ordinal))
+            return true;
+        }
+        return order.kind == ApparelWorkOrderKind.Repair
+            && order.state == ApparelWorkOrderState.WaitingForDispositionFinalization
+            && order.repairCommitPhase is ApparelRepairCommitPhase.MaterialCommitted
+                or ApparelRepairCommitPhase.RepairApplied
+            && string.Equals(
+                order.repairReasonCode,
+                RepairReasonCode,
+                StringComparison.Ordinal)
+            && order.repairOperationId.Length > 0
+            && order.repairCommitId.Length > 0
+            && order.repairSourceStackIds.Count > 0
+            && order.repairSourceStackIds.All(id => !string.IsNullOrWhiteSpace(id))
+            && order.repairSourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                == order.repairSourceStackIds.Count
+            && order.repairInputQuantity > 0
+            && order.repairInputMassGrams > 0L
+            && order.repairTargetStackId.Length > 0
+            && order.repairOriginalStatePayload.Length > 0
+            && order.repairResolvedStatePayload.Length > 0;
+    }
+
+    private static string CaptureApparelState(ApparelInstanceState state) =>
+        JsonUtility.ToJson(CloneState(state));
+
+    private static bool TryReadCanonicalApparelState(
+        string payload,
+        out ApparelInstanceState state)
+    {
+        state = null;
+        if (string.IsNullOrEmpty(payload))
+        {
+            return false;
+        }
+        try
+        {
+            state = JsonUtility.FromJson<ApparelInstanceState>(payload);
+            return state != null
+                && string.Equals(
+                    CaptureApparelState(state),
+                    payload,
+                    StringComparison.Ordinal);
+        }
+        catch
+        {
+            state = null;
+            return false;
+        }
+    }
+
+    private static string RepairOperationId(string orderId) =>
+        $"apparel-repair:{orderId}";
+
+    private static void ClearRepairPending(ApparelWorkOrderSaveData order)
+    {
+        order.repairCommitPhase = ApparelRepairCommitPhase.None;
+        order.repairOperationId = string.Empty;
+        order.repairReasonCode = string.Empty;
+        order.repairCommitId = string.Empty;
+        order.repairSourceStackIds.Clear();
+        order.repairInputQuantity = 0;
+        order.repairInputMassGrams = 0L;
+        order.repairTargetStackId = string.Empty;
+        order.repairOriginalStatePayload = string.Empty;
+        order.repairResolvedStatePayload = string.Empty;
+    }
+
+    private void ReplaceAuthority(
+        ApparelWorkOrderRestoreCandidate candidate,
+        bool releaseCurrentLeases)
+    {
+        if (candidate == null)
+            throw new ArgumentNullException(nameof(candidate));
+        if (releaseCurrentLeases)
+        {
+            foreach (ApparelWorkOrderSaveData current in orders)
             {
-                continue;
-            }
-            int amount = index < order.materialStackAmounts.Count
-                ? order.materialStackAmounts[index]
-                : 1;
-            if (!current.TryGetValue(stackId, out WorldItemStackSnapshot stack)
-                || stack.Quantity < amount)
-            {
-                return false;
+                leases.Release(current.orderId);
             }
         }
-        return true;
+        AuthorityState next = new()
+        {
+            NextSequence = Math.Max(
+                1,
+                candidate.Orders.Select(ParseSequence).DefaultIfEmpty(0).Max()
+                    + 1),
+            Version = checked(Version + 1)
+        };
+        next.Orders.AddRange(candidate.Orders.Select(Clone));
+        foreach (ApparelWorkOrderTerminalStateSaveData terminal in
+                 candidate.TerminalStates)
+        {
+            next.TerminalStates.Add(
+                terminal.sourceOrder.orderId,
+                terminal.Clone());
+        }
+        authority = next;
+    }
+
+    private static void ValidateTerminalStateRows(
+        IReadOnlyList<ApparelWorkOrderSaveData> candidateOrders,
+        IReadOnlyList<ApparelWorkOrderTerminalStateSaveData> candidateTerminals)
+    {
+        IReadOnlyList<ApparelWorkOrderSaveData> ordersToValidate =
+            candidateOrders ?? Array.Empty<ApparelWorkOrderSaveData>();
+        IReadOnlyList<ApparelWorkOrderTerminalStateSaveData> terminalsToValidate =
+            candidateTerminals
+            ?? Array.Empty<ApparelWorkOrderTerminalStateSaveData>();
+        if (terminalsToValidate.Any(value => value == null
+                || value.schemaVersion !=
+                    ApparelWorkOrderTerminalStateSaveData.CurrentSchemaVersion
+                || value.sourceOrder == null
+                || value.terminalEffectReceipt == null)
+            || terminalsToValidate.Select(value => value.sourceOrder.orderId)
+                .Distinct(StringComparer.Ordinal).Count()
+                != terminalsToValidate.Count)
+        {
+            throw new InvalidOperationException(
+                "Apparel terminal-state collection is invalid or duplicated.");
+        }
+
+        HashSet<string> effectCommits = new(StringComparer.Ordinal);
+        HashSet<string> sourceCommits = new(StringComparer.Ordinal);
+        foreach (ApparelWorkOrderTerminalStateSaveData terminal in
+                 terminalsToValidate)
+        {
+            ApparelWorkOrderSaveData frozen = terminal.sourceOrder;
+            string fingerprint = ProductionApparelOrderTerminalDrainCanonical
+                .CreateSourceOrderFingerprint(frozen);
+            if (!ProductionApparelOrderTerminalDrainCanonical
+                    .IsValidSourceOrder(frozen)
+                || !string.Equals(
+                    terminal.sourceOrderFingerprint,
+                    fingerprint,
+                    StringComparison.Ordinal)
+                || !ProductionApparelOrderTerminalDrainCanonical
+                    .TryCreatePendingEffectIdentity(
+                        frozen,
+                        out ProductionApparelOrderPendingEffectIdentity effect,
+                        out _)
+                || !PendingEffectEquals(effect, terminal.pendingEffect)
+                || !ProductionApparelOrderTerminalDrainCanonical
+                    .EffectReceiptEquals(
+                        terminal.terminalEffectReceipt,
+                        ProductionApparelOrderTerminalDrainCanonical
+                            .CreateTerminalEffectReceipt(
+                                terminal.terminalEffectReceipt.stepOperationId,
+                                frozen,
+                                fingerprint,
+                                effect))
+                || !effectCommits.Add(
+                    terminal.terminalEffectReceipt.commitId))
+            {
+                throw new InvalidOperationException(
+                    "Apparel terminal-effect restore row is invalid.");
+            }
+
+            ApparelWorkOrderSaveData[] live = ordersToValidate
+                .Where(value => value != null && string.Equals(
+                    value.orderId,
+                    frozen.orderId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (terminal.sourceTerminalReceipt == null)
+            {
+                if (live.Length != 1
+                    || !string.Equals(
+                        JsonUtility.ToJson(live[0]),
+                        JsonUtility.ToJson(frozen),
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        "Apparel terminal/live source restore join is invalid.");
+                }
+                continue;
+            }
+
+            if (live.Length != 0
+                || !ProductionApparelOrderTerminalDrainCanonical
+                    .SourceReceiptEquals(
+                        terminal.sourceTerminalReceipt,
+                        ProductionApparelOrderTerminalDrainCanonical
+                            .CreateSourceTerminalReceipt(
+                                terminal.sourceTerminalReceipt.stepOperationId,
+                                frozen,
+                                fingerprint,
+                                terminal.terminalEffectReceipt
+                                    .receiptFingerprint))
+                || !sourceCommits.Add(terminal.sourceTerminalReceipt.commitId))
+            {
+                throw new InvalidOperationException(
+                    "Apparel source-terminal restore row is invalid.");
+            }
+        }
+    }
+
+    private static bool PendingEffectEquals(
+        ProductionApparelOrderPendingEffectIdentity left,
+        ProductionApparelOrderPendingEffectIdentity right)
+    {
+        if (left == null || right == null)
+            return left == null && right == null;
+        return string.Equals(
+                left.identityFingerprint,
+                right.identityFingerprint,
+                StringComparison.Ordinal)
+            && string.Equals(
+                JsonUtility.ToJson(left),
+                JsonUtility.ToJson(right),
+                StringComparison.Ordinal);
+    }
+
+    private static ProductionApparelOrderTerminalEffectApplyResult
+        EffectConflict(string failureReason) => new(
+            ProductionApparelOrderTerminalDrainStatus.Conflict,
+            null,
+            failureReason);
+
+    private static ProductionApparelOrderSourceTerminalApplyResult
+        SourceConflict(string failureReason) => new(
+            ProductionApparelOrderTerminalDrainStatus.Conflict,
+            null,
+            failureReason);
+
+    private void ClearRestoreTransaction()
+    {
+        restoreActive = false;
+        restorePublished = false;
+        stagedRestoreState = null;
+        previousRestoreState = null;
     }
 
     private bool FacilityStillOperational(ApparelWorkOrderSaveData order) =>
@@ -1796,6 +2803,8 @@ public sealed class ApparelWorkOrderRuntime :
             value?.rejectedOutputConsumed ?? false,
         rejectedOutputStackId =
             value?.rejectedOutputStackId?.Trim() ?? string.Empty,
+        rejectedOutputInstanceId =
+            value?.rejectedOutputInstanceId?.Trim() ?? string.Empty,
         craftWorkPerAttempt = Mathf.Max(
             0f,
             value?.craftWorkPerAttempt ?? 0f),
@@ -1806,6 +2815,97 @@ public sealed class ApparelWorkOrderRuntime :
             value?.rejectedMaterialSpawned ?? 0,
             0,
             Mathf.Max(0, value?.rejectedMaterialAmount ?? 0)),
+        rejectedRecoveryItemId =
+            value?.rejectedRecoveryItemId?.Trim() ?? string.Empty,
+        rejectedDismantleOperationId =
+            value?.rejectedDismantleOperationId?.Trim() ?? string.Empty,
+        rejectedDismantleCommitId =
+            value?.rejectedDismantleCommitId?.Trim() ?? string.Empty,
+        rejectedDismantleRequestFingerprint =
+            value?.rejectedDismantleRequestFingerprint?.Trim()
+            ?? string.Empty,
+        rejectedDismantleInputMassGrams = Math.Max(
+            0L,
+            value?.rejectedDismantleInputMassGrams ?? 0L),
+        rejectedRecoveryOperationId =
+            value?.rejectedRecoveryOperationId?.Trim() ?? string.Empty,
+        rejectedRecoveryCommitId =
+            value?.rejectedRecoveryCommitId?.Trim() ?? string.Empty,
+        rejectedRecoveryOutputMassGrams = Math.Max(
+            0L,
+            value?.rejectedRecoveryOutputMassGrams ?? 0L),
+        rejectedRecoveryPublicationAttempt = Mathf.Max(
+            0,
+            value?.rejectedRecoveryPublicationAttempt ?? 0),
+        rejectedRecoveryOutcomeFingerprint =
+            value?.rejectedRecoveryOutcomeFingerprint?.Trim() ?? string.Empty,
+        rejectedRecoveryAdmissionTokenId =
+            value?.rejectedRecoveryAdmissionTokenId?.Trim() ?? string.Empty,
+        rejectedRecoveryCapacitySourceDigest =
+            value?.rejectedRecoveryCapacitySourceDigest?.Trim() ?? string.Empty,
+        rejectedRecoveryRequiredMinimumCapacityGrams = Math.Max(
+            0L,
+            value?.rejectedRecoveryRequiredMinimumCapacityGrams ?? 0L),
+        rejectedRecoveryPlannedOutputFingerprint =
+            value?.rejectedRecoveryPlannedOutputFingerprint?.Trim()
+            ?? string.Empty,
+        rejectedRecoveryStackIds = value?.rejectedRecoveryStackIds?
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToList()
+            ?? new List<string>(),
+        rejectedRecoveryPublished =
+            value?.rejectedRecoveryPublished ?? false,
+        rejectedRecoveryAdmissionCommitted =
+            value?.rejectedRecoveryAdmissionCommitted ?? false,
+        rejectedRecoveryOutputAcknowledged =
+            value?.rejectedRecoveryOutputAcknowledged ?? false,
+        rejectedDismantleAcknowledged =
+            value?.rejectedDismantleAcknowledged ?? false,
+        craftPublicationAttempt = Mathf.Max(
+            0,
+            value?.craftPublicationAttempt ?? 0),
+        craftPublicationOperationId =
+            value?.craftPublicationOperationId?.Trim() ?? string.Empty,
+        craftOutputBatchCommitId =
+            value?.craftOutputBatchCommitId?.Trim() ?? string.Empty,
+        craftOutcomeFingerprint =
+            value?.craftOutcomeFingerprint?.Trim() ?? string.Empty,
+        craftOutputComponentFingerprint =
+            value?.craftOutputComponentFingerprint?.Trim() ?? string.Empty,
+        craftAdmissionTokenId =
+            value?.craftAdmissionTokenId?.Trim() ?? string.Empty,
+        craftCapacitySourceDigest =
+            value?.craftCapacitySourceDigest?.Trim() ?? string.Empty,
+        craftRequiredMinimumCapacityGrams = Math.Max(
+            0L,
+            value?.craftRequiredMinimumCapacityGrams ?? 0L),
+        craftPlannedOutputFingerprint =
+            value?.craftPlannedOutputFingerprint?.Trim() ?? string.Empty,
+        craftOutputStackId =
+            value?.craftOutputStackId?.Trim() ?? string.Empty,
+        craftOutputInstanceId =
+            value?.craftOutputInstanceId?.Trim() ?? string.Empty,
+        craftInputCommitId =
+            value?.craftInputCommitId?.Trim() ?? string.Empty,
+        craftInputRequestFingerprint =
+            value?.craftInputRequestFingerprint?.Trim() ?? string.Empty,
+        craftInputMassGrams = Math.Max(
+            0L,
+            value?.craftInputMassGrams ?? 0L),
+        craftOutputMassGrams = Math.Max(
+            0L,
+            value?.craftOutputMassGrams ?? 0L),
+        craftInputPending = value?.craftInputPending ?? false,
+        craftOutputPublished = value?.craftOutputPublished ?? false,
+        craftAdmissionCommitted = value?.craftAdmissionCommitted ?? false,
+        craftInputAcknowledged = value?.craftInputAcknowledged ?? false,
+        craftOutputAcknowledged = value?.craftOutputAcknowledged ?? false,
+        craftMarketRouted = value?.craftMarketRouted ?? false,
+        rejectedOutputLeaseId =
+            value?.rejectedOutputLeaseId?.Trim() ?? string.Empty,
         targetSize = value?.targetSize ?? ApparelSizeClass.Medium,
         targetModifications = value?.targetModifications ?? ApparelModificationKind.None,
         facilityInstanceId = value?.facilityInstanceId?.Trim() ?? string.Empty,
@@ -1822,7 +2922,23 @@ public sealed class ApparelWorkOrderRuntime :
         retryCount = value?.retryCount ?? 0,
         nextRetryGameHour = value?.nextRetryGameHour ?? 0f,
         powered = value?.powered ?? false,
-        shortWardrobeOperation = value?.shortWardrobeOperation ?? false
+        shortWardrobeOperation = value?.shortWardrobeOperation ?? false,
+        repairCommitPhase = value?.repairCommitPhase
+            ?? ApparelRepairCommitPhase.None,
+        repairOperationId = value?.repairOperationId?.Trim() ?? string.Empty,
+        repairReasonCode = value?.repairReasonCode?.Trim() ?? string.Empty,
+        repairCommitId = value?.repairCommitId?.Trim() ?? string.Empty,
+        repairSourceStackIds = value?.repairSourceStackIds?
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .ToList() ?? new List<string>(),
+        repairInputQuantity = value?.repairInputQuantity ?? 0,
+        repairInputMassGrams = value?.repairInputMassGrams ?? 0L,
+        repairTargetStackId = value?.repairTargetStackId?.Trim() ?? string.Empty,
+        repairOriginalStatePayload = value?.repairOriginalStatePayload
+            ?? string.Empty,
+        repairResolvedStatePayload = value?.repairResolvedStatePayload
+            ?? string.Empty
     };
 
     private static int ParseSequence(ApparelWorkOrderSaveData order)

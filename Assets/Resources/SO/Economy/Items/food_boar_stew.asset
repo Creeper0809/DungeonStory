@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8064
+  id: 8065
   itemId: food:boar-stew
   displayName: "\uBA67\uB3FC\uC9C0 \uC2A4\uD29C"
   description: "\uACE0\uAE30\uC640 \uBFCC\uB9AC\uB97C \uB053\uC778 \uD63C\uD569 \uACE0\uAE09\uC2DD."
@@ -31,34 +31,34 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 13
   features:
-  - rid: 7737211905666711868
-  - rid: 7737211905666711869
-  - rid: 7737211905666711871
-  - rid: 7737212042831201107
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666711868
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:livestock
-    - rid: 7737211905666711869
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 17
         sharedIntermediate: 0
-    - rid: 7737211905666711871
-      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        quality: 1
-        qualityBand: 1
-        servingRole: 0
-        nutrition: 50
-        mood: 8
-        freshnessSeconds: 390
-        preserved: 0
-    - rid: 7737212042831201107
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5767948
+    - rid: 1003
+      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        quality: 1
+        qualityBand: 3
+        servingRole: 0
+        nutrition: 55
+        mood: 7
+        freshnessSeconds: 390
+        preserved: 0

@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 0
     recommendedRank: 2
     minimumRiskRank: 2
-  requiredResearchId: research:agriculture:crop-pathology
+  requiredResearchId: research:agriculture:soil-cycles
   requiredWork: 40
   preparationWork: 0
   finishingWork: 0
@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -61,6 +62,8 @@ MonoBehaviour:
   - itemId: resource:clean-water
     amount: 2
   outputs:
-  - itemId: supply:fungicide
+  - outputLineId: output:recipe:supply:fungicide/000/main/supply:fungicide
+    role: 0
+    itemId: supply:fungicide
     amount: 2
     probability: 1

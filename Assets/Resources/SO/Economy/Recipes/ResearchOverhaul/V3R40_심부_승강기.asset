@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -61,6 +62,8 @@ MonoBehaviour:
   - itemId: component:machine-parts
     amount: 1
   outputs:
-  - itemId: tool:deep-shaft-hoist
+  - outputLineId: output:recipe:tool:deep-shaft-hoist/000/main/tool:deep-shaft-hoist
+    role: 0
+    itemId: tool:deep-shaft-hoist
     amount: 1
     probability: 1

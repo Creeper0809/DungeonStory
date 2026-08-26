@@ -43,8 +43,14 @@ public static class SurgeryDebugScenarios
         Run("research_branch", VerifyResearchBranch, lines, errors);
         Run("prosthetic_recipes", VerifyProstheticRecipes, lines, errors);
         Run("risk_formula", VerifyRiskFormula, lines, errors);
+        Run("organ_preservation_restore_join", OrganPreservationRestoreJoinFixture.Run, lines, errors);
         Run("corpse_extraction_ledger", VerifyExtractionLedger, lines, errors);
         Run("unique_part_save_data", VerifyUniquePartSaveData, lines, errors);
+        Run(
+            "surgical_part_installation_pending_outbox",
+            VerifySurgicalPartInstallationPendingOutbox,
+            lines,
+            errors);
         Run("strict_v6_payload", VerifyStrictV6Payload, lines, errors);
         Run(
             "identifier_sequence_exhaustion",
@@ -217,6 +223,23 @@ public static class SurgeryDebugScenarios
             buildings.Any(building =>
                 building.Abilities.OfType<BuildingOrganStorageAbility>().Any()),
             "organ storage facility was missing");
+        BuildingSO organStorage = buildings.SingleOrDefault(building =>
+            string.Equals(
+                building.GetFacilityCode(),
+                "M08",
+                StringComparison.Ordinal));
+        BuildingStorageAbility organWarehouse = organStorage?
+            .Abilities
+            .OfType<BuildingStorageAbility>()
+            .SingleOrDefault();
+        Require(organStorage != null
+                && organWarehouse != null
+                && organWarehouse.category == StockCategory.Biological
+                && organWarehouse.capacity == 8
+                && organWarehouse.maxStoredMassGrams
+                    == SurgeryContentAssetBuilder.OrganStorageMassCapacityGrams
+                && !organWarehouse.allCategories,
+            "M08 organ warehouse is not exact Biological/count 8/12,500g restricted storage");
         Require(
             buildings.Any(building =>
                 building.Abilities.OfType<BuildingProstheticAssemblyAbility>().Any()),
@@ -544,6 +567,153 @@ public static class SurgeryDebugScenarios
                 == SurgeryStatusCode.EnvironmentRecoveryRequested,
             "typed surgery status payload changed during save");
         return "unique donor, graft, freshness, clinical stages, and typed statuses round-trip through V6 section data";
+    }
+
+    private static string VerifySurgicalPartInstallationPendingOutbox()
+    {
+        IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        var rootStore = new DungeonRuntimeAggregateRootStore();
+        var repository = new WorldItemRepository(
+            new GuidPersistentIdGenerator(),
+            rootStore);
+        var batch = new PhysicalItemBatchDispositionService(
+            repository,
+            new PhysicalItemMassQuery(catalog),
+            EditorNullItemMarkerPresenter.Instance);
+        string sourceStackId = repository.AddEditorTestStack(
+            "material:lumber",
+            1,
+            WorldItemStackState.Loose);
+        const string orderId = "surgery:1";
+        const string partId = "surgical-part:1";
+        const string subjectId = "character:contract-patient";
+        string operationId =
+            SurgicalPartInstallationIdentity.FormatOperationId(
+                orderId,
+                partId);
+        Require(batch.TryCommitPending(
+                new[] { new PhysicalItemTransformInput(sourceStackId, 1) },
+                PhysicalItemDispositionKind.Transfer,
+                operationId,
+                SurgicalPartInstallationOutbox.TransferReason,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out string commitFailure),
+            "surgical part fixture could not stage its pending transfer: "
+                + commitFailure);
+        var pending = new SurgicalPartInstance
+        {
+            partInstanceId = partId,
+            kind = SurgicalPartKind.Prosthetic,
+            nodeId = "heart",
+            displayName = "outbox contract part",
+            quality = 1f,
+            freshnessSeconds = 360f,
+            worldStackId = sourceStackId,
+            reservedOrderId = orderId,
+            installationOrderId = orderId,
+            installationOperationId = operationId,
+            installationCommitId = receipt.CommitId,
+            installationSourceStackId = sourceStackId,
+            installationSubjectId = subjectId
+        };
+        Require(repository.GetEditorTestQuantity(sourceStackId) == 0
+            && repository.GetEditorPendingBatchDispositionCount() == 1,
+            "pending surgical transfer did not retain exact physical custody");
+
+        ResourceSurgicalProcedureCatalog procedures = new(
+            LoadAssets<SurgicalProcedureSO>(
+                "Assets/Resources/SO/Medical/Procedures"));
+        ResourceAnatomyProfileCatalog anatomyProfiles = new(
+            LoadAssets<AnatomyProfileSO>(
+                "Assets/Resources/SO/Medical/Anatomy"));
+        DungeonSurgerySaveData pendingSave = new()
+        {
+            orderSequence = 1,
+            partSequence = 1,
+            orders = new List<SurgeryOrder>
+            {
+                new()
+                {
+                    orderId = orderId,
+                    procedureId = "procedure:emergency-suture",
+                    subject = new SurgicalSubjectRef
+                    {
+                        kind = SurgicalSubjectKind.Character,
+                        subjectId = subjectId
+                    },
+                    facilityId = "facility:surgery-outbox-contract",
+                    materialDestinationId =
+                        ReservedTargetDestinationIdentity.SurgeryMaterialsPrefix
+                        + orderId,
+                    state = SurgeryOrderState.Procedure
+                }
+            },
+            parts = new List<SurgicalPartInstance>
+            {
+                SurgeryStateCloner.ClonePart(pending)
+            }
+        };
+        DungeonGameRestoreReport pendingReport = new();
+        SurgerySaveValidation.Validate(
+            pendingSave,
+            procedures,
+            anatomyProfiles,
+            pendingReport);
+        Require(pendingReport.Success,
+            "V9 rejected canonical pending surgical outbox: "
+                + string.Join(" | ", pendingReport.Errors));
+
+        SurgicalPartInstance mismatched = SurgeryStateCloner.ClonePart(pending);
+        mismatched.installationCommitId += "1";
+        Require(!SurgicalPartInstallationOutbox.TryFinalizePending(
+                mismatched,
+                batch,
+                out _)
+            && !mismatched.installed
+            && repository.GetEditorPendingBatchDispositionCount() == 1,
+            "mismatched surgical receipt mutated domain or physical custody");
+        DungeonSurgerySaveData tamperedSave = CloneSaveData(pendingSave);
+        tamperedSave.parts[0].installationCommitId += ":tampered";
+        DungeonGameRestoreReport tamperedReport = new();
+        SurgerySaveValidation.Validate(
+            tamperedSave,
+            procedures,
+            anatomyProfiles,
+            tamperedReport);
+        Require(!tamperedReport.Success,
+            "V9 accepted a tampered surgical installation receipt");
+
+        SurgicalPartInstance restored = SurgeryStateCloner.ClonePart(pending);
+        Require(SurgicalPartInstallationOutbox.TryFinalizePending(
+                restored,
+                batch,
+                out string finalizeFailure)
+            && restored.installed
+            && restored.installedSubjectId == subjectId
+            && string.IsNullOrEmpty(restored.worldStackId)
+            && string.IsNullOrEmpty(restored.reservedOrderId)
+            && repository.GetEditorPendingBatchDispositionCount() == 0,
+            "pending surgical transfer did not finalize exactly once: "
+                + finalizeFailure);
+        Require(SurgicalPartInstallationOutbox.TryFinalizePending(
+                restored,
+                batch,
+                out string replayFailure)
+            && repository.GetEditorPendingBatchDispositionCount() == 0,
+            "installed surgical transfer retry was not idempotent: "
+                + replayFailure);
+        pendingSave.parts[0] = SurgeryStateCloner.ClonePart(restored);
+        DungeonGameRestoreReport installedReport = new();
+        SurgerySaveValidation.Validate(
+            pendingSave,
+            procedures,
+            anatomyProfiles,
+            installedReport);
+        Require(installedReport.Success,
+            "V9 rejected terminal surgical outbox evidence: "
+                + string.Join(" | ", installedReport.Errors));
+
+        return "physical pending receipt survives the crash boundary, mismatched commit is atomic, restore finalizes and acknowledges exactly once";
     }
 
     private static string VerifyStrictV6Payload()

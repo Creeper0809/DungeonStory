@@ -8,7 +8,10 @@ public sealed class CharacterConsumablesRuntime :
     ICharacterConsumablesApplication,
     ICharacterConsumablesPersistence
 {
-    public const string FieldMealFacilityId = "primitive:field-meal";
+    public const string FieldMealFacilityId = "building:primitive-field-meal";
+    public const string MealPhysicalSinkReason = "character-meal-consumed";
+    public const string SubstancePhysicalSinkReason =
+        "character-substance-consumed";
     private const float MealFollowupCooldownSeconds = 15f;
     private const float MealActionSeconds = 4f;
     private const float DeliveryRetrySeconds = 45f;
@@ -365,43 +368,74 @@ public sealed class CharacterConsumablesRuntime :
             return false;
         }
 
+        string physicalFailure = "meal-lease-invalid";
         if (!inventory.RevalidateMealQuantity(leaseId, stackId)
-            || !inventory.TryConsumeReservedMealQuantity(leaseId, stackId, 1))
+            || !inventory.TryCommitReservedMealQuantityPending(
+                operationId,
+                leaseId,
+                1,
+                out CharacterMealPhysicalCommitSnapshot physicalCommit,
+                out physicalFailure))
         {
             inventory.ReleaseMealQuantity(leaseId);
             result = CharacterConsumablesMealResult.Failed(
                 CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
                 stackId.Value,
-                "field-meal-consumption-failed");
+                "field-meal-pending-commit-failed:" + physicalFailure);
             return false;
         }
 
-        result = CharacterConsumablesMealResult.Consumed(
-            operationId,
-            meal,
-            stackId,
-            !policyAllowed,
-            contaminated);
-        RecordCompletedOperation(
-            operationId,
-            characterId,
-            meal.Id,
-            stackId,
-            true,
-            !policyAllowed,
-            contaminated);
-        if (meal.ServingRole is MealServingRole.Snack or MealServingRole.LightMeal)
+        CharacterMealPlan plan = new()
         {
-            WriteState.MealFollowupCooldownUntil[characterId] =
-                clock.Time + MealFollowupCooldownSeconds;
-        }
-        (world as ICharacterRitualFastingMealPort)?.RecordMealConsumed(
+            planId = operationId.Value,
+            characterId = characterId.Value,
+            facilityInstanceId = FieldMealFacilityId,
+            sourceStackId = stackId.Value,
+            transportStackId = stackId.Value,
+            itemDefinitionId = meal.Id.Value,
+            mealQuantityLeaseId = leaseId,
+            phase = CharacterMealPlanPhase.ItemCommitted,
+            createdAt = clock.Time,
+            leaseExpiresAt = clock.Time,
+            expectedCompletionEta = MealActionSeconds,
+            physicalConsumptionCommitted = true,
+            automaticOperation = true,
+            beginContamination = stack.Contamination,
+            facilitySlotReserved = false,
+            physicalCommitOperationId = physicalCommit.OperationId,
+            physicalCommitReasonCode = physicalCommit.ReasonCode,
+            physicalCommitId = physicalCommit.CommitId,
+            physicalCommitSourceStackIds = physicalCommit.SourceStackIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList(),
+            physicalCommitQuantity = physicalCommit.Quantity,
+            physicalCommitInputMassGrams = physicalCommit.InputMassGrams,
+            committedPolicyViolation = !policyAllowed,
+            committedContaminated = contaminated
+        };
+        WriteState.ActiveMealPlans.Add(operationId, plan);
+        ConsumeMealCommand command = new(
+            operationId,
             characterId,
-            directPlayerOrder: false);
-        ApplyMealEffects(
-            new ConsumeMealCommand(operationId, characterId, fieldFacility, stackId),
-            result);
-        return true;
+            fieldFacility,
+            stackId);
+        TryFinalizeCommittedMealPlan(command, plan);
+        if (WriteState.CompletedOperations.ContainsKey(operationId))
+        {
+            result = CharacterConsumablesMealResult.Consumed(
+                operationId,
+                meal,
+                stackId,
+                !policyAllowed,
+                contaminated);
+            return true;
+        }
+
+        result = CharacterConsumablesMealResult.Failed(
+            CharacterConsumablesFailureCode.DeliveryPending,
+            operationId.Value,
+            "field-meal-publication-pending");
+        return false;
     }
 
     public bool TryConsumeMeal(
@@ -714,7 +748,7 @@ public sealed class CharacterConsumablesRuntime :
         foreach (KeyValuePair<ConsumableOperationId, CharacterMealPlan> pair in active)
         {
             CharacterMealPlan plan = pair.Value;
-            if (plan == null || plan.phase != CharacterMealPlanPhase.Eating)
+            if (plan == null)
                 continue;
             ConsumeMealCommand command = new(
                 pair.Key,
@@ -726,6 +760,14 @@ public sealed class CharacterConsumablesRuntime :
                 AbortMealPlan(command, plan);
                 continue;
             }
+            if (plan.phase is CharacterMealPlanPhase.ItemCommitted
+                or CharacterMealPlanPhase.EffectsPublished)
+            {
+                TryFinalizeCommittedMealPlan(command, plan);
+                continue;
+            }
+            if (plan.phase != CharacterMealPlanPhase.Eating)
+                continue;
             if (string.IsNullOrWhiteSpace(plan.mealQuantityLeaseId))
             {
                 if (!inventory.TryRebindMealQuantityLease(
@@ -855,50 +897,119 @@ public sealed class CharacterConsumablesRuntime :
                 "meal-buffer-invalid-at-commit");
             return false;
         }
-        if (!inventory.TryConsumeReservedMealQuantity(
+        if (!inventory.TryCommitReservedMealQuantityPending(
+                command.OperationId,
                 plan.mealQuantityLeaseId,
-                commitStackId,
-                1))
+                1,
+                out CharacterMealPhysicalCommitSnapshot physicalCommit,
+                out string physicalFailure))
         {
             AbortMealPlan(
                 command,
                 plan,
                 CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
-                "meal-quantity-commit-failed");
+                "meal-quantity-pending-commit-failed:" + physicalFailure);
+            return false;
+        }
+        plan.physicalConsumptionCommitted = true;
+        plan.phase = CharacterMealPlanPhase.ItemCommitted;
+        plan.physicalCommitOperationId = physicalCommit.OperationId;
+        plan.physicalCommitReasonCode = physicalCommit.ReasonCode;
+        plan.physicalCommitId = physicalCommit.CommitId;
+        plan.physicalCommitSourceStackIds = physicalCommit.SourceStackIds
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList();
+        plan.physicalCommitQuantity = physicalCommit.Quantity;
+        plan.physicalCommitInputMassGrams = physicalCommit.InputMassGrams;
+        plan.committedPolicyViolation = !policyAllowed;
+        plan.committedContaminated = contaminated;
+        plan.transportStackId = commitStackId.Value;
+        return TryFinalizeCommittedMealPlan(command, plan);
+    }
+
+    private bool TryFinalizeCommittedMealPlan(
+        ConsumeMealCommand command,
+        CharacterMealPlan plan)
+    {
+        if (plan == null
+            || plan.phase is not (CharacterMealPlanPhase.ItemCommitted
+                or CharacterMealPlanPhase.EffectsPublished))
+        {
             return false;
         }
 
-        plan.physicalConsumptionCommitted = true;
-        plan.phase = CharacterMealPlanPhase.Completed;
-        WriteState.ActiveMealPlans.Remove(command.OperationId);
-        mealOperationFailures.Remove(command.OperationId);
-        world.ReleaseMealFacilitySlot(command.OperationId, command.FacilityId);
-
-        CharacterConsumablesMealResult result =
-            CharacterConsumablesMealResult.Consumed(
-                command.OperationId,
-                meal,
-                commitStackId,
-                !policyAllowed,
-                contaminated);
-        RecordCompletedOperation(
-            command.OperationId,
-            command.CharacterId,
-            meal.Id,
-            commitStackId,
-            true,
-            !policyAllowed,
-            contaminated);
-        if (meal.ServingRole is MealServingRole.Snack or MealServingRole.LightMeal)
+        CharacterConsumablesAggregateState state = WriteState;
+        if (plan.phase == CharacterMealPlanPhase.ItemCommitted)
         {
-            WriteState.MealFollowupCooldownUntil[command.CharacterId] =
-                clock.Time + MealFollowupCooldownSeconds;
+            if (!state.CompletedOperations.ContainsKey(command.OperationId))
+            {
+                if (!TryGetActor(
+                        command.CharacterId,
+                        out CharacterConsumablesActorSnapshot actor)
+                    || !actor.Active
+                    || !inventory.TryGetMeal(
+                        new ConsumableItemDefinitionId(plan.itemDefinitionId),
+                        out CharacterConsumablesMealDefinitionSnapshot meal))
+                {
+                    // Physical custody is already a durable pending receipt.
+                    // Retain the plan and retry rather than deleting or minting
+                    // the serving through the ordinary abort path.
+                    return false;
+                }
+
+                ItemStackId committedStackId = new(
+                    plan.physicalCommitSourceStackIds?.FirstOrDefault()
+                    ?? plan.sourceStackId);
+                CharacterConsumablesMealResult result =
+                    CharacterConsumablesMealResult.Consumed(
+                        command.OperationId,
+                        meal,
+                        committedStackId,
+                        plan.committedPolicyViolation,
+                        plan.committedContaminated);
+                if (meal.ServingRole is MealServingRole.Snack
+                    or MealServingRole.LightMeal)
+                {
+                    state.MealFollowupCooldownUntil[command.CharacterId] =
+                        clock.Time + MealFollowupCooldownSeconds;
+                }
+                CompleteDelivery(command.CharacterId, command.FacilityId, meal.Id);
+                (world as ICharacterRitualFastingMealPort)?.RecordMealConsumed(
+                    command.CharacterId,
+                    directPlayerOrder: !plan.automaticOperation);
+                ApplyMealEffects(command, result);
+                RecordCompletedOperation(
+                    command.OperationId,
+                    command.CharacterId,
+                    meal.Id,
+                    committedStackId,
+                    true,
+                    plan.committedPolicyViolation,
+                    plan.committedContaminated);
+            }
+            plan.phase = CharacterMealPlanPhase.EffectsPublished;
         }
-        CompleteDelivery(command.CharacterId, command.FacilityId, meal.Id);
-        (world as ICharacterRitualFastingMealPort)?.RecordMealConsumed(
-            command.CharacterId,
-            directPlayerOrder: !plan.automaticOperation);
-        ApplyMealEffects(command, result);
+
+        if (!inventory.TryAcknowledgeMealConsumption(
+                command.CharacterId,
+                new ConsumableItemDefinitionId(plan.itemDefinitionId),
+                plan.physicalCommitQuantity,
+                plan.physicalCommitId,
+                out _))
+        {
+            return false;
+        }
+
+        plan.phase = CharacterMealPlanPhase.Completed;
+        state.ActiveMealPlans.Remove(command.OperationId);
+        mealOperationFailures.Remove(command.OperationId);
+        // Facility-slot ownership is transient and is deliberately not restored.
+        // Releasing by the stable operation/facility pair is idempotent, and is
+        // required to clear an owner retained by the pre-restore world adapter.
+        // The virtual field-meal facility has no owner entry, so the same call is
+        // also a safe no-op for primitive meals.
+        world.ReleaseMealFacilitySlot(command.OperationId, command.FacilityId);
+        plan.facilitySlotReserved = false;
         return true;
     }
 
@@ -1220,6 +1331,18 @@ public sealed class CharacterConsumablesRuntime :
                 command.OperationId.Value);
             return false;
         }
+        if (ReadState.ActiveSubstanceUsePlans.TryGetValue(
+                command.OperationId,
+                out CharacterSubstanceUsePlan pendingPlan))
+        {
+            TryFinalizeSubstanceUsePlan(command.OperationId, pendingPlan);
+            result = CharacterConsumablesSubstanceResult.Failed(
+                ReadState.CompletedOperations.ContainsKey(command.OperationId)
+                    ? CharacterConsumablesFailureCode.AlreadyProcessed
+                    : CharacterConsumablesFailureCode.DeliveryPending,
+                command.OperationId.Value);
+            return false;
+        }
         if (!TryGetActor(command.CharacterId, out CharacterConsumablesActorSnapshot actor))
         {
             result = CharacterConsumablesSubstanceResult.Failed(
@@ -1278,61 +1401,173 @@ public sealed class CharacterConsumablesRuntime :
                 command.ItemStackId.Value);
             return false;
         }
-        if (!inventory.TryConsumeForCharacter(
+        CharacterSubstanceState currentState = GetWritableSubstanceState(
+            command.CharacterId,
+            substance.Id);
+        SubstanceDefinitionView definition = substance.Definition;
+        float toleranceRatio = currentState.tolerance / 100f;
+        bool wasAddicted = currentState.addicted;
+        bool overdosed = random.Chance(
+            Mathf.Clamp01(definition.OverdoseChance * (1f + toleranceRatio)));
+        float resolvedTolerance = Mathf.Clamp(
+            currentState.tolerance + definition.ToleranceGain,
+            0f,
+            100f);
+        float resolvedAddiction = Mathf.Clamp(
+            currentState.addiction
+                + definition.AddictionChance * 100f * (0.65f + toleranceRatio),
+            0f,
+            100f);
+        bool resolvedAddicted = currentState.addicted || resolvedAddiction >= 60f
+            || random.Chance(definition.AddictionChance * 0.2f);
+        float resolvedScheduledCooldown = policy.mode == SubstancePolicyMode.Scheduled
+            ? GameHourSeconds * 24f
+            : currentState.scheduledCooldownSeconds;
+        if (!inventory.TryCommitSubstanceConsumptionPending(
+                command.OperationId,
                 command.CharacterId,
                 stack.StackId,
-                1))
+                out CharacterSubstancePhysicalCommitSnapshot physicalCommit,
+                out string physicalFailure))
         {
             result = FailedSubstance(
                 CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
                 substance,
                 command.ItemStackId,
-                command.ItemStackId.Value);
+                command.ItemStackId.Value,
+                physicalFailure);
             return false;
         }
 
-        CharacterSubstanceState state = GetWritableSubstanceState(
-            command.CharacterId,
-            substance.Id);
-        SubstanceDefinitionView definition = substance.Definition;
-        float toleranceRatio = state.tolerance / 100f;
-        bool wasAddicted = state.addicted;
-        bool overdosed = random.Chance(
-            Mathf.Clamp01(definition.OverdoseChance * (1f + toleranceRatio)));
-        state.tolerance = Mathf.Clamp(
-            state.tolerance + definition.ToleranceGain,
-            0f,
-            100f);
-        state.addiction = Mathf.Clamp(
-            state.addiction + definition.AddictionChance * 100f * (0.65f + toleranceRatio),
-            0f,
-            100f);
-        state.addicted = state.addicted || state.addiction >= 60f
-            || random.Chance(definition.AddictionChance * 0.2f);
-        state.withdrawal = 0f;
-        state.activeSeconds = Mathf.Max(1f, definition.DurationSeconds);
-        state.secondsSinceLastDose = 0f;
-        state.overdosed = overdosed;
-        if (policy.mode == SubstancePolicyMode.Scheduled)
+        CharacterSubstanceUsePlan plan = new()
         {
-            state.scheduledCooldownSeconds = GameHourSeconds * 24f;
+            operationId = command.OperationId.Value,
+            characterId = command.CharacterId.Value,
+            itemDefinitionId = substance.Id.Value,
+            sourceStackId = stack.StackId.Value,
+            phase = CharacterSubstanceUsePlanPhase.ItemCommitted,
+            automaticOperation = automaticOperation,
+            physicalCommitOperationId = physicalCommit.OperationId,
+            physicalCommitReasonCode = physicalCommit.ReasonCode,
+            physicalCommitId = physicalCommit.CommitId,
+            physicalCommitSourceStackIds = physicalCommit.SourceStackIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList(),
+            physicalCommitQuantity = physicalCommit.Quantity,
+            physicalCommitInputMassGrams = physicalCommit.InputMassGrams,
+            resolvedTolerance = resolvedTolerance,
+            resolvedAddiction = resolvedAddiction,
+            resolvedWithdrawal = 0f,
+            resolvedActiveSeconds = Mathf.Max(1f, definition.DurationSeconds),
+            resolvedSecondsSinceLastDose = 0f,
+            resolvedScheduledCooldownSeconds = resolvedScheduledCooldown,
+            effectToleranceRatio = toleranceRatio,
+            resolvedAddicted = resolvedAddicted,
+            resolvedOverdosed = overdosed,
+            becameAddicted = !wasAddicted && resolvedAddicted
+        };
+        WriteState.ActiveSubstanceUsePlans.Add(command.OperationId, plan);
+        TryFinalizeSubstanceUsePlan(command.OperationId, plan);
+        if (!WriteState.CompletedOperations.ContainsKey(command.OperationId))
+        {
+            result = CharacterConsumablesSubstanceResult.Failed(
+                CharacterConsumablesFailureCode.DeliveryPending,
+                command.OperationId.Value,
+                "substance-effects-publication-pending");
+            return false;
         }
-        RecordCompletedOperation(
-            command.OperationId,
-            command.CharacterId,
-            substance.Id,
-            command.ItemStackId,
-            false);
-        ApplySubstanceEffects(command.CharacterId, substance, state, toleranceRatio, overdosed);
         result = new CharacterConsumablesSubstanceResult(
             true,
             CharacterConsumablesFailureCode.None,
             substance,
             command.ItemStackId,
-            state.tolerance,
-            state.addiction,
-            !wasAddicted && state.addicted,
+            resolvedTolerance,
+            resolvedAddiction,
+            !wasAddicted && resolvedAddicted,
             overdosed);
+        return true;
+    }
+
+    private void AdvanceSubstanceUsePlans()
+    {
+        KeyValuePair<ConsumableOperationId, CharacterSubstanceUsePlan>[] active =
+            WriteState.ActiveSubstanceUsePlans
+                .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
+                .ToArray();
+        foreach (KeyValuePair<ConsumableOperationId, CharacterSubstanceUsePlan> pair
+                 in active)
+        {
+            TryFinalizeSubstanceUsePlan(pair.Key, pair.Value);
+        }
+    }
+
+    private bool TryFinalizeSubstanceUsePlan(
+        ConsumableOperationId operationId,
+        CharacterSubstanceUsePlan plan)
+    {
+        if (!operationId.IsValid
+            || plan == null
+            || !string.Equals(
+                plan.operationId,
+                operationId.Value,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        CharacterId characterId = new(plan.characterId);
+        ConsumableItemDefinitionId itemId = new(plan.itemDefinitionId);
+        if (plan.phase == CharacterSubstanceUsePlanPhase.ItemCommitted)
+        {
+            if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor)
+                || !actor.Active
+                || !inventory.TryResolveSubstance(
+                    itemId,
+                    out CharacterConsumablesSubstanceDefinitionSnapshot substance))
+            {
+                return false;
+            }
+
+            if (!WriteState.CompletedOperations.ContainsKey(operationId))
+            {
+                CharacterSubstanceState state = GetWritableSubstanceState(
+                    characterId,
+                    itemId);
+                state.tolerance = plan.resolvedTolerance;
+                state.addiction = plan.resolvedAddiction;
+                state.withdrawal = plan.resolvedWithdrawal;
+                state.activeSeconds = plan.resolvedActiveSeconds;
+                state.secondsSinceLastDose = plan.resolvedSecondsSinceLastDose;
+                state.scheduledCooldownSeconds =
+                    plan.resolvedScheduledCooldownSeconds;
+                state.addicted = plan.resolvedAddicted;
+                state.overdosed = plan.resolvedOverdosed;
+                ApplySubstanceEffects(
+                    characterId,
+                    substance,
+                    state,
+                    plan.effectToleranceRatio,
+                    plan.resolvedOverdosed);
+                RecordCompletedOperation(
+                    operationId,
+                    characterId,
+                    itemId,
+                    new ItemStackId(plan.sourceStackId),
+                    false);
+            }
+            plan.phase = CharacterSubstanceUsePlanPhase.EffectsPublished;
+        }
+
+        if (!inventory.TryAcknowledgeSubstanceConsumption(
+                characterId,
+                itemId,
+                plan.physicalCommitQuantity,
+                plan.physicalCommitId,
+                out _))
+        {
+            return false;
+        }
+        WriteState.ActiveSubstanceUsePlans.Remove(operationId);
         return true;
     }
 
@@ -1395,7 +1630,9 @@ public sealed class CharacterConsumablesRuntime :
 
     public void Tick()
     {
+        AdvanceSubstanceUsePlans();
         AdvanceMealPlans();
+        PruneExpiredDeliveries();
         float deltaTime = Mathf.Max(0f, clock.DeltaTime);
         if (deltaTime <= 0f)
         {
@@ -1435,7 +1672,6 @@ public sealed class CharacterConsumablesRuntime :
                     2f);
             }
         }
-        PruneExpiredDeliveries();
     }
 
     private void PrimeHungryActorMealDelivery()
@@ -1517,8 +1753,16 @@ public sealed class CharacterConsumablesRuntime :
             + $"lastRequestFailure={LastMealDeliveryRequestFailure}";
     }
 
-    public DungeonCharacterConsumablesSaveData Capture() =>
-        CharacterConsumablesStateRules.Capture(ReadState);
+    public DungeonCharacterConsumablesSaveData Capture()
+    {
+        // Character/customer and facility lifecycles can retire between the
+        // last simulation tick and a save request. A pending meal route is not
+        // durable without both owners, so reconcile that transient edge before
+        // serializing rather than emitting a current-format payload that strict
+        // restore must reject.
+        PruneExpiredDeliveries();
+        return CharacterConsumablesStateRules.Capture(ReadState);
+    }
 
     public void ValidateRestorePayload(
         DungeonCharacterConsumablesSaveData saveData,
@@ -1668,11 +1912,16 @@ public sealed class CharacterConsumablesRuntime :
                      requireExactRoute: false))
         {
             MealDeliveryRoute route = new(actor.Id, facilityId, candidate.Definition.Id);
+            ConsumableDeliveryId expiredDeliveryId = default;
             if (ReadState.DeliveryByRoute.TryGetValue(route, out ConsumableDeliveryId existingId)
                 && ReadState.PendingDeliveries.TryGetValue(existingId, out CharacterMealDeliveryState existing)
                 && clock.Time < existing.retryAfter)
             {
                 return true;
+            }
+            if (ReadState.DeliveryByRoute.TryGetValue(route, out existingId))
+            {
+                expiredDeliveryId = existingId;
             }
             string destinationId = GetMealDestinationId(facilityId);
             if (HasRoutedItem(destinationId, candidate.Definition.Id))
@@ -1694,6 +1943,16 @@ public sealed class CharacterConsumablesRuntime :
                 continue;
             }
             LastMealDeliveryRequestFailure = "none";
+            if (expiredDeliveryId.IsValid)
+            {
+                // The route index is a single-owner authority. Replacing an
+                // expired request without deleting its old ledger row leaves
+                // two pending deliveries for one route, which current-format
+                // restore correctly rejects. Preserve the old row until the
+                // replacement request has succeeded, then swap atomically.
+                WriteState.PendingDeliveries.Remove(expiredDeliveryId);
+                WriteState.DeliveryByRoute.Remove(route);
+            }
             CharacterMealDeliveryState delivery = new()
             {
                 deliveryId = NewDeliveryId().Value,
@@ -1984,14 +2243,66 @@ public sealed class CharacterConsumablesRuntime :
 
     private void PruneExpiredDeliveries()
     {
-        CharacterConsumablesAggregateState state = WriteState;
-        if (state.PendingDeliveries.Count == 0 || clock.Time < state.NextDeliveryPruneAt)
+        CharacterConsumablesAggregateState snapshot = ReadState;
+        if (snapshot.PendingDeliveries.Count == 0
+            && snapshot.DeliveryByRoute.Count == 0)
         {
             return;
         }
+
+        HashSet<CharacterId> liveCharacters = world.CharacterIds
+            .Where(id => id.IsValid)
+            .ToHashSet();
+        HashSet<BuildingInstanceId> liveFacilities = world.FacilityIds
+            .Where(id => id.IsValid)
+            .ToHashSet();
+        ConsumableDeliveryId[] orphanedDeliveries = snapshot.PendingDeliveries
+            .Where(pair => pair.Value == null
+                || !liveCharacters.Contains(pair.Value.CharacterId)
+                || !liveFacilities.Contains(pair.Value.BuildingInstanceId))
+            .Select(pair => pair.Key)
+            .ToArray();
+        MealDeliveryRoute[] staleRoutes = snapshot.DeliveryByRoute
+            .Where(pair => !snapshot.PendingDeliveries.TryGetValue(
+                    pair.Value,
+                    out CharacterMealDeliveryState delivery)
+                || delivery == null
+                || !CharacterConsumablesStateRules.Route(delivery)
+                    .Equals(pair.Key))
+            .Select(pair => pair.Key)
+            .ToArray();
+        bool expiryDue = clock.Time >= snapshot.NextDeliveryPruneAt;
+        if (orphanedDeliveries.Length == 0
+            && staleRoutes.Length == 0
+            && !expiryDue)
+        {
+            return;
+        }
+
+        CharacterConsumablesAggregateState state = WriteState;
+        foreach (ConsumableDeliveryId deliveryId in orphanedDeliveries)
+        {
+            if (state.PendingDeliveries.Remove(
+                    deliveryId,
+                    out CharacterMealDeliveryState orphaned))
+            {
+                state.DeliveryByRoute.Remove(
+                    CharacterConsumablesStateRules.Route(orphaned));
+            }
+        }
+        foreach (MealDeliveryRoute route in staleRoutes)
+        {
+            state.DeliveryByRoute.Remove(route);
+        }
+        if (!expiryDue)
+        {
+            return;
+        }
+
         state.NextDeliveryPruneAt = clock.Time + 1f;
-        foreach (CharacterMealDeliveryState delivery in state.PendingDeliveries.Values
-                     .Where(value => clock.Time >= value.retryAfter).ToArray())
+        foreach (CharacterMealDeliveryState delivery in state.PendingDeliveries
+                     .Values.Where(value => value != null
+                         && clock.Time >= value.retryAfter).ToArray())
         {
             string destinationId = GetMealDestinationId(delivery.BuildingInstanceId);
             if (HasRoutedItem(destinationId, delivery.ItemDefinitionId))

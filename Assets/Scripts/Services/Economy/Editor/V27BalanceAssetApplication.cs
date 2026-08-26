@@ -152,6 +152,170 @@ public static class V27BalanceAssetApplication
         }
     }
 
+    [MenuItem("DungeonStory/V27/Rebase And Apply Previously Approved Labor Facility Drift")]
+    public static void RebaseAndApplyPreviouslyApprovedLaborFacilityDriftFromMenu()
+    {
+        V27BalanceAuditOutput current = V27BalanceAudit.GenerateForApprovalRefresh();
+        V27BalanceLaborFacilityDebugScenarios.RequireIntegrity(
+            current,
+            requireApplied: false,
+            allowUnapprovedCritical: true);
+
+        string approvalPath = ProjectAbsolutePath(V27BalanceAudit.ApprovalPath);
+        byte[] approvalRollback = File.ReadAllBytes(approvalPath);
+        SortedDictionary<string, byte[]> assetRollback = new(
+            StringComparer.Ordinal);
+        const int MaxRebaseIterations = 8;
+        int iterationCount = 0;
+        int totalRebasePatchCount = 0;
+        int totalDirectRefreshPatchCount = 0;
+        int totalChangedAssetCount = 0;
+        string rebasePhase = "prepare-iteration-0";
+
+        try
+        {
+            while (true)
+            {
+                rebasePhase = $"prepare-iteration-{iterationCount}";
+                Dictionary<string, BalanceApprovalEntryData> approvals =
+                    ValidateApprovals(LoadApprovals());
+                List<BalanceAssetPatch> rebasePatches =
+                    CreatePreviouslyApprovedRebasePatches(
+                        current.Ledger,
+                        approvals);
+                List<BalanceAssetPatch> directRefreshCandidates =
+                    CreateLaborFacilityAndMarketRefreshPatches(current.Ledger);
+                HashSet<string> rebasePropertyKeys = rebasePatches
+                    .Select(value => value.AssetPath + "\u001f" + value.PropertyPath)
+                    .ToHashSet(StringComparer.Ordinal);
+                List<BalanceAssetPatch> directRefreshPatches = directRefreshCandidates
+                    .Where(value => !rebasePropertyKeys.Contains(
+                        value.AssetPath + "\u001f" + value.PropertyPath))
+                    .ToList();
+
+                if (rebasePatches.Count == 0 && directRefreshPatches.Count == 0)
+                    break;
+                if (iterationCount >= MaxRebaseIterations)
+                {
+                    throw new InvalidOperationException(
+                        "V27 labor/facility rebase did not converge within "
+                        + $"{MaxRebaseIterations} exact iterations; "
+                        + $"remainingRebase={rebasePatches.Count}; "
+                        + $"remainingDirectRefresh={directRefreshPatches.Count}.");
+                }
+
+                string[] iterationPaths = rebasePatches
+                    .Concat(directRefreshPatches)
+                    .Select(value => value.AssetPath)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(value => value, StringComparer.Ordinal)
+                    .ToArray();
+                foreach (string path in iterationPaths)
+                {
+                    if (!assetRollback.ContainsKey(path))
+                    {
+                        assetRollback.Add(
+                            path,
+                            File.ReadAllBytes(ProjectAbsolutePath(path)));
+                    }
+                }
+
+                // Publish exact temporary custody for the target calculated
+                // from this immutable ledger before mutating any asset. The
+                // next refresh may calculate a new target after BOM/dependency
+                // changes, but it may only do so from this exact approved
+                // authority. The approval file and every touched asset remain
+                // under the same outer rollback transaction.
+                rebasePhase = $"write-iteration-{iterationCount}-custody";
+                WriteApprovals(
+                    current.Ledger,
+                    record => ItemMarketApprovalMetrics.Contains(record.Metric)
+                        || IsLaborFacilityApprovalMetric(record.Metric),
+                    replaceIncludedApprovals: true);
+
+                rebasePhase = $"apply-iteration-{iterationCount}-rebases";
+                BalanceAssetApplicationResult rebased = ApplyPatches(
+                    rebasePatches,
+                    dryRun: false,
+                    requireCleanGit: false,
+                    BalanceAssetApplicationFailurePoint.None);
+                rebasePhase = $"apply-iteration-{iterationCount}-direct-refresh";
+                BalanceAssetApplicationResult directRefresh = ApplyPatches(
+                    directRefreshPatches,
+                    dryRun: false,
+                    requireCleanGit: false,
+                    BalanceAssetApplicationFailurePoint.None);
+
+                totalRebasePatchCount += rebasePatches.Count;
+                totalDirectRefreshPatchCount += directRefreshPatches.Count;
+                totalChangedAssetCount += rebased.AssetCount + directRefresh.AssetCount;
+                iterationCount++;
+
+                rebasePhase = $"refresh-after-iteration-{iterationCount}";
+                current = V27BalanceAudit.GenerateForApprovalRefresh();
+                V27BalanceLaborFacilityDebugScenarios.RequireIntegrity(
+                    current,
+                    requireApplied: false,
+                    allowUnapprovedCritical: true);
+            }
+
+            // The converged ledger owns the final post-application source
+            // digests. Replace temporary custody with final exact approvals
+            // before running the normal, strict audit and no-op application.
+            rebasePhase = "write-converged-approvals";
+            int approvalCount = WriteApprovals(
+                current.Ledger,
+                record => ItemMarketApprovalMetrics.Contains(record.Metric)
+                    || IsLaborFacilityApprovalMetric(record.Metric),
+                replaceIncludedApprovals: true);
+
+            rebasePhase = "standard-verify";
+            V27BalanceAuditOutput verified = V27BalanceAudit.Generate(
+                BalanceLedgerExecutionMode.AuditOnly);
+            V27BalanceLaborFacilityDebugScenarios.RequireIntegrity(
+                verified,
+                requireApplied: true);
+            rebasePhase = "no-op-verify";
+            List<BalanceAssetPatch> verifiedPatches = CreatePatches(
+                verified.Ledger,
+                ValidateApprovals(LoadApprovals()));
+            BalanceAssetApplicationResult noOp = ApplyPatches(
+                verifiedPatches,
+                dryRun: true,
+                requireCleanGit: false,
+                BalanceAssetApplicationFailurePoint.None);
+            if (noOp.DifferingPropertyCount != 0)
+            {
+                throw new InvalidOperationException(
+                    "Rebased V27 labor/facility authority was not a no-op after verification.");
+            }
+
+            Debug.Log(
+                $"V27 labor/facility approved drift rebased: iterations={iterationCount}; "
+                + $"rebasePatches={totalRebasePatchCount}; "
+                + $"directRefreshPatches={totalDirectRefreshPatchCount}; "
+                + $"changedAssets={totalChangedAssetCount}; "
+                + $"rollbackAssets={assetRollback.Count}; "
+                + $"approvals={approvalCount}; "
+                + $"noOpDiff={noOp.DifferingPropertyCount}.");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                $"V27 labor/facility rebase failed in phase '{rebasePhase}': "
+                + exception);
+            File.WriteAllBytes(approvalPath, approvalRollback);
+            foreach (KeyValuePair<string, byte[]> pair in assetRollback)
+                File.WriteAllBytes(ProjectAbsolutePath(pair.Key), pair.Value);
+            AssetDatabase.ImportAsset(
+                V27BalanceAudit.ApprovalPath,
+                ImportAssetOptions.ForceUpdate);
+            foreach (string path in assetRollback.Keys)
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            throw;
+        }
+    }
+
     [MenuItem("DungeonStory/V27/Generate Exact Combat Encounter Approvals")]
     public static void GenerateCombatEncounterApprovalsFromMenu()
     {
@@ -265,14 +429,15 @@ public static class V27BalanceAssetApplication
                 ?? throw new InvalidOperationException(
                     $"Approved property is missing: {patch.AssetPath}:{patch.PropertyPath}");
             string current = CaptureToken(property);
+            if (TokenMatchesProperty(property, patch.After))
+                continue;
             if (!TokenMatchesProperty(property, patch.Before))
             {
                 throw new InvalidOperationException(
                     $"Stale approved patch {patch.AssetPath}:{patch.PropertyPath}; "
                     + $"ledger Before={patch.Before}, authority={current}.");
             }
-            if (!TokenMatchesProperty(property, patch.After))
-                differing++;
+            differing++;
         }
         if (dryRun)
             return new BalanceAssetApplicationResult(patches.Count, paths.Length, differing, true);
@@ -496,6 +661,48 @@ public static class V27BalanceAssetApplication
         return result;
     }
 
+    internal static bool IsPreviouslyApprovedCurrentAuthority(
+        string stableId,
+        string metric,
+        string exactBeforeValue,
+        string currentValue,
+        string sourceDigest)
+    {
+        // Approval refresh is the one boundary where a changed source digest is
+        // expected: a new BOM/dependency revision is precisely what invalidated
+        // the old approval. Never treat that old digest as approval for the new
+        // target. It only proves that the current authored scalar is the exact
+        // After value of a canonical previous approval; the refreshed ledger
+        // captures and approves the new source digest before normal audit runs.
+        RequireCanonicalSha256(sourceDigest, "current source digest");
+        BalanceApprovalEntryData[] matches = ValidateApprovals(LoadApprovals())
+            .Values
+            .Where(value => string.Equals(
+                    value.rootStableId,
+                    stableId,
+                    StringComparison.Ordinal)
+                && string.Equals(value.metric, metric, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length > 1)
+        {
+            throw new InvalidOperationException(
+                $"Duplicate V27 approval identity: {stableId}:{metric}.");
+        }
+        if (matches.Length == 0)
+            return false;
+
+        BalanceApprovalEntryData approval = matches[0];
+        RequireStoredApprovalKeyValid(approval);
+        return string.Equals(
+                approval.exactBeforeValue,
+                exactBeforeValue,
+                StringComparison.Ordinal)
+            && string.Equals(
+                approval.exactAfterValue,
+                currentValue,
+                StringComparison.Ordinal);
+    }
+
     internal static string BuildHistoricalBeforeKey(string stableId, string metric) =>
         stableId + "\u001f" + metric;
 
@@ -582,6 +789,223 @@ public static class V27BalanceAssetApplication
             && metric.StartsWith(
                 "construction-material-amount:",
                 StringComparison.Ordinal));
+
+    private static List<BalanceAssetPatch> CreatePreviouslyApprovedRebasePatches(
+        FrozenBalanceLedger ledger,
+        IReadOnlyDictionary<string, BalanceApprovalEntryData> approvals)
+    {
+        Dictionary<string, BalanceApprovalEntryData> previousByIdentity = new(
+            StringComparer.Ordinal);
+        foreach (BalanceApprovalEntryData approval in approvals.Values)
+        {
+            if (!IsLaborFacilityApprovalMetric(approval.metric)
+                && !ItemMarketApprovalMetrics.Contains(approval.metric))
+            {
+                continue;
+            }
+            RequireStoredApprovalKeyValid(approval);
+            string identity = BuildHistoricalBeforeKey(
+                approval.rootStableId,
+                approval.metric);
+            if (!previousByIdentity.TryAdd(identity, approval))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate previous V27 approval identity: {identity}.");
+            }
+        }
+
+        List<BalanceAssetPatch> patches = new();
+        HashSet<string> propertyKeys = new(StringComparer.Ordinal);
+        foreach (CanonicalBalanceMetricRecord record in ledger.Records)
+        {
+            if ((!IsLaborFacilityApprovalMetric(record.Metric)
+                    && !ItemMarketApprovalMetrics.Contains(record.Metric))
+                || string.Equals(record.Before, record.After, StringComparison.Ordinal)
+                || string.Equals(record.AssetApplied, "true", StringComparison.Ordinal)
+                || !record.SourceAuthority.EndsWith(
+                    ".asset",
+                    StringComparison.OrdinalIgnoreCase)
+                || record.SourcePropertyPath.Length == 0)
+            {
+                continue;
+            }
+
+            string identity = BuildHistoricalBeforeKey(record.StableId, record.Metric);
+            if (!previousByIdentity.TryGetValue(
+                    identity,
+                    out BalanceApprovalEntryData previous))
+            {
+                continue;
+            }
+            if (!string.Equals(
+                    previous.exactBeforeValue,
+                    record.Before,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    previous.reasonCode,
+                    record.ReasonCode,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    previous.balanceBaselineRecordId,
+                    record.BalanceBaselineRecordId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Previously approved V27 authority cannot be rebased: {identity}.");
+            }
+            if (string.Equals(
+                    previous.exactAfterValue,
+                    record.After,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            // The current record intentionally has a new source digest. The
+            // exact old After/current-authority equality below is the rebase
+            // custody gate; the new record digest becomes the replacement
+            // approval and is verified again by the standard audit after apply.
+            RequireCanonicalSha256(record.SourceDigest, "rebase source digest");
+
+            string propertyKey = record.SourceAuthority + "\u001f" + record.SourcePropertyPath;
+            if (!propertyKeys.Add(propertyKey))
+            {
+                throw new InvalidOperationException(
+                    $"Multiple V27 rebase records target {propertyKey}.");
+            }
+            string assetPath = BalanceCanonicalText.ProjectRelativePath(
+                record.SourceAuthority);
+            string propertyPath = BalanceCanonicalText.Detail(
+                record.SourcePropertyPath);
+            UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(assetPath)
+                ?? throw new InvalidOperationException(
+                    $"Previously approved V27 asset is missing: {assetPath}.");
+            SerializedObject serialized = new(asset);
+            SerializedProperty property = serialized.FindProperty(propertyPath)
+                ?? throw new InvalidOperationException(
+                    $"Previously approved V27 property is missing: "
+                    + $"{assetPath}:{propertyPath}.");
+
+            // A later authored-content builder may legitimately restore the
+            // historical Before while adding a new dependency/BOM row. That
+            // state is not permission to reuse the old After: it is a second
+            // exact custody state from which the current ledger's newly
+            // calculated After can be applied. Accept only the canonical old
+            // After or the exact historical Before; every third value remains
+            // an unapproved authority edit and fails before mutation.
+            string current = CaptureToken(property);
+            string patchBefore;
+            if (TokenMatchesProperty(property, previous.exactAfterValue))
+            {
+                patchBefore = previous.exactAfterValue;
+            }
+            else if (TokenMatchesProperty(property, record.Before))
+            {
+                patchBefore = record.Before;
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Previously approved V27 authority changed before rebase: "
+                    + $"{assetPath}:{propertyPath}; "
+                    + $"approvedAfter={previous.exactAfterValue}; "
+                    + $"historicalBefore={record.Before}; authority={current}.");
+            }
+
+            BalanceAssetPatch patch = BalanceAssetPatch.CaptureForApprovedRebase(
+                record,
+                patchBefore,
+                previous.approvalKey);
+            patches.Add(patch);
+        }
+        return patches
+            .OrderBy(value => value.AssetPath, StringComparer.Ordinal)
+            .ThenBy(value => value.PropertyPath, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static List<BalanceAssetPatch> CreateLaborFacilityAndMarketRefreshPatches(
+        FrozenBalanceLedger ledger)
+    {
+        if (ledger == null)
+            throw new ArgumentNullException(nameof(ledger));
+
+        List<BalanceAssetPatch> patches = new();
+        HashSet<string> propertyKeys = new(StringComparer.Ordinal);
+        foreach (CanonicalBalanceMetricRecord record in ledger.Records)
+        {
+            if ((!IsLaborFacilityApprovalMetric(record.Metric)
+                    && !ItemMarketApprovalMetrics.Contains(record.Metric))
+                || string.Equals(record.Before, record.After, StringComparison.Ordinal)
+                || string.Equals(record.AssetApplied, "true", StringComparison.Ordinal)
+                || !record.SourceAuthority.EndsWith(
+                    ".asset",
+                    StringComparison.OrdinalIgnoreCase)
+                || record.SourcePropertyPath.Length == 0)
+            {
+                continue;
+            }
+
+            string propertyKey = record.SourceAuthority + "\u001f"
+                + record.SourcePropertyPath;
+            if (!propertyKeys.Add(propertyKey))
+            {
+                throw new InvalidOperationException(
+                    $"Multiple V27 labor/facility/market refresh records target {propertyKey}.");
+            }
+            patches.Add(BalanceAssetPatch.CaptureForApprovedRefresh(record));
+        }
+
+        return patches
+            .OrderBy(value => value.AssetPath, StringComparer.Ordinal)
+            .ThenBy(value => value.PropertyPath, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static void RequireStoredApprovalKeyValid(
+        BalanceApprovalEntryData approval)
+    {
+        using SHA256 sha = SHA256.Create();
+        string canonical = approval.rootStableId + "\u001f"
+            + approval.metric + "\u001f"
+            + approval.exactAfterValue + "\u001f"
+            + approval.dependencyFingerprint + "\u001f"
+            + approval.sourceDigest + "\u001f"
+            + approval.reasonCode + "\u001f"
+            + approval.balanceBaselineRecordId;
+        byte[] digest = sha.ComputeHash(
+            new UTF8Encoding(false, true).GetBytes(canonical));
+        StringBuilder expected = new(digest.Length * 2);
+        foreach (byte value in digest)
+            expected.Append(value.ToString("x2", CultureInfo.InvariantCulture));
+        if (!string.Equals(
+                approval.approvalKey,
+                expected.ToString(),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Stored V27 approval key is not canonical: {approval.approvalKey}.");
+        }
+    }
+
+    private static void RequireCanonicalSha256(string value, string label)
+    {
+        if (value == null || value.Length != 64)
+        {
+            throw new InvalidOperationException(
+                $"V27 {label} must be a 64-character lowercase SHA-256 token.");
+        }
+        for (int index = 0; index < value.Length; index++)
+        {
+            char character = value[index];
+            if ((character < '0' || character > '9')
+                && (character < 'a' || character > 'f'))
+            {
+                throw new InvalidOperationException(
+                    $"V27 {label} must be a 64-character lowercase SHA-256 token.");
+            }
+        }
+    }
 
     private static List<BalanceAssetPatch> CreatePatches(
         FrozenBalanceLedger ledger,
@@ -917,6 +1341,26 @@ public sealed class BalanceAssetPatch
         BalanceCanonicalText.Display(before),
         BalanceCanonicalText.Display(after),
         "diagnostic:forced-rollback");
+
+    [BalanceCaptureFactory]
+    internal static BalanceAssetPatch CaptureForApprovedRebase(
+        CanonicalBalanceMetricRecord record,
+        string previouslyApprovedValue,
+        string previousApprovalKey) => new(
+        BalanceCanonicalText.ProjectRelativePath(record.SourceAuthority),
+        BalanceCanonicalText.Detail(record.SourcePropertyPath),
+        BalanceCanonicalText.Display(previouslyApprovedValue),
+        BalanceCanonicalText.Display(record.After),
+        BalanceCanonicalText.StableId(previousApprovalKey, "previousApprovalKey"));
+
+    [BalanceCaptureFactory]
+    internal static BalanceAssetPatch CaptureForApprovedRefresh(
+        CanonicalBalanceMetricRecord record) => new(
+        BalanceCanonicalText.ProjectRelativePath(record.SourceAuthority),
+        BalanceCanonicalText.Detail(record.SourcePropertyPath),
+        BalanceCanonicalText.Display(record.Before),
+        BalanceCanonicalText.Display(record.After),
+        "v27:bounded-labor-facility-refresh");
 }
 
 internal enum BalanceAssetApplicationFailurePoint

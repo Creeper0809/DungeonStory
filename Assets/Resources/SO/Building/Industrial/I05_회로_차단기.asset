@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212033836254164
-    - rid: 7737212033836254165
-    - rid: 7737212033836254166
-    - rid: 7737212033836254167
-    - rid: 7737212033836254168
+    - rid: 7737212199244661685
+    - rid: 7737212199244661686
+    - rid: 7737212199244661687
+    - rid: 7737212199244661688
+    - rid: 7737212199244661689
   width: 1
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212033836254164
+    - rid: 7737212199244661685
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I05
-    - rid: 7737212033836254165
+    - rid: 7737212199244661686
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,7 +87,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737212033836254166
+    - rid: 7737212199244661687
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -117,13 +117,13 @@ MonoBehaviour:
           amount: 3
         - itemId: component:precision-parts
           amount: 1
-    - rid: 7737212033836254167
+    - rid: 7737212199244661688
       type: {class: BuildingCircuitBreakerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCircuitBreakerAbility
         overloadTolerance: 1.15
         tripHeat: 100
-    - rid: 7737212033836254168
+    - rid: 7737212199244661689
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

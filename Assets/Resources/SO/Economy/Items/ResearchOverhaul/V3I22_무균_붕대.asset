@@ -31,24 +31,24 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 24
   features:
-  - rid: 7737212042857939135
-  - rid: 7737212042857939136
-  - rid: 7737212042857939137
   - rid: 7737212042857939138
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
   references:
     version: 2
     RefIds:
-    - rid: 7737212042857939135
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:medical:surgery
-    - rid: 7737212042857939136
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 128
         sharedIntermediate: 0
-    - rid: 7737212042857939137
+    - rid: 1002
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 1

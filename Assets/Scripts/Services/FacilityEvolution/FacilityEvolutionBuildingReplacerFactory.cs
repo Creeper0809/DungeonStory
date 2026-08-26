@@ -31,7 +31,8 @@ public sealed class GridFacilityEvolutionBuildingReplacerFactory : IFacilityEvol
             new GridBuildingFactory(
                 gridTextureProvider.Texture,
                 InjectCreatedBuilding,
-                gridBuildingObjectFactory));
+                gridBuildingObjectFactory),
+            ResolveProductionFacilityMutationFence());
     }
 
     private void InjectCreatedBuilding(BuildableObject building)
@@ -40,5 +41,19 @@ public sealed class GridFacilityEvolutionBuildingReplacerFactory : IFacilityEvol
         {
             objectResolver.Inject(building);
         }
+    }
+
+    private IProductionFacilityMutationFence ResolveProductionFacilityMutationFence()
+    {
+        if (objectResolver.TryResolve(
+                typeof(IProductionFacilityMutationFence),
+                out object resolved)
+            && resolved is IProductionFacilityMutationFence fence)
+        {
+            return fence;
+        }
+        throw new InvalidOperationException(
+            $"{nameof(GridFacilityEvolutionBuildingReplacerFactory)} requires "
+            + $"{nameof(IProductionFacilityMutationFence)}.");
     }
 }

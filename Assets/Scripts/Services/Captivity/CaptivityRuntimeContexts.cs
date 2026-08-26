@@ -9,6 +9,7 @@ public sealed class CaptivityCharacterContext
         ICharacterBodyHealthCommand bodyHealthCommands,
         ICombatEquipmentRuntime combatEquipment,
         IWorldItemStackRuntime itemRuntime,
+        IPhysicalItemBatchDispositionService batchDispositions,
         ICharacterPopulationService population,
         ICharacterNarrativeQuery narratives)
     {
@@ -22,6 +23,8 @@ public sealed class CaptivityCharacterContext
             ?? throw new ArgumentNullException(nameof(combatEquipment));
         ItemRuntime = itemRuntime
             ?? throw new ArgumentNullException(nameof(itemRuntime));
+        BatchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
         Population = population
             ?? throw new ArgumentNullException(nameof(population));
         Narratives = narratives
@@ -33,6 +36,7 @@ public sealed class CaptivityCharacterContext
     public ICharacterBodyHealthCommand BodyHealthCommands { get; }
     public ICombatEquipmentRuntime CombatEquipment { get; }
     public IWorldItemStackRuntime ItemRuntime { get; }
+    public IPhysicalItemBatchDispositionService BatchDispositions { get; }
     public ICharacterPopulationService Population { get; }
     public ICharacterNarrativeQuery Narratives { get; }
 }

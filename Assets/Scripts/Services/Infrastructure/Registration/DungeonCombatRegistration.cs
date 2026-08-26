@@ -21,6 +21,8 @@ public static class DungeonCombatRegistration
             .As<ICombatLineOfSightService>();
         builder.Register<GridCombatCoverQuery>(Lifetime.Singleton)
             .As<ICombatCoverQuery>();
+        builder.Register<BuildingDestructiveLossRuntime>(Lifetime.Singleton)
+            .As<IBuildingDestructiveLossRuntime>();
         builder.Register<CombatCoverDurabilityRegistry>(Lifetime.Singleton)
             .As<ICombatCoverDurabilityRegistry>()
             .As<IBuildingCoverDurabilityPort>();
@@ -38,17 +40,30 @@ public static class DungeonCombatRegistration
         builder.Register<CombatEquipmentPhysicalStateWriter>(Lifetime.Singleton);
         builder.Register<CombatEquipmentRuntimeStateStore>(Lifetime.Singleton);
         builder.Register<CombatEquipmentLoadoutStore>(Lifetime.Singleton);
-        builder.Register<EquipmentModuleRuntime>(Lifetime.Singleton);
+        builder.Register<EquipmentModuleRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IEquipmentModuleAppraisalRecovery>();
+        builder.Register<EquipmentModuleAppraisalRestoreRecovery>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<EquipmentHistoryTransferRuntime>(Lifetime.Singleton);
         builder.Register<CombatEquipmentRuntimeCollaborators>(Lifetime.Singleton);
         builder.Register<CombatEquipmentCraftingRuntime>(Lifetime.Singleton);
+        builder.Register<CombatEquipmentCraftMaterialRestoreGuard>(
+                Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<CombatEquipmentLoadoutRuntime>(Lifetime.Singleton);
         builder.Register<CombatEquipmentRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICombatEquipmentRuntime>()
+            .As<ICombatEquipmentCraftQueueQuery>()
             .As<IBuildingEquipmentCraftingRuntimePort>()
             .As<ICombatLoadoutRuntime>()
             .As<ICombatEquipmentBurdenQuery>();
+        builder.Register<RetailEquipmentAuthority>(Lifetime.Singleton)
+            .As<IRetailEquipmentAuthority>();
+        builder.Register<RetailStockPhysicalRuntime>(Lifetime.Singleton)
+            .As<IRetailStockPhysicalRuntime>();
         builder.Register<CharacterTransientGameplayEffectSourceQuery>(Lifetime.Singleton)
             .As<ICharacterTransientGameplayEffectSourceQuery>();
         builder.Register<CharacterEquipmentGameplayEffectSourceQuery>(Lifetime.Singleton)
@@ -60,6 +75,9 @@ public static class DungeonCombatRegistration
             .As<IEquipmentEvolutionRuntime>()
             .As<IEquipmentEvolutionPersistence>()
             .As<IAttunementRuntime>();
+        builder.Register<EquipmentEvolutionMaterialRestoreGuard>(
+                Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<EvolutionHistoryNarrativeRuntime>(
                 Lifetime.Singleton)
             .As<IEvolutionHistoryNarrativeRuntime>();
@@ -76,7 +94,12 @@ public static class DungeonCombatRegistration
         builder.Register<EquipmentMaintenanceClockServices>(Lifetime.Singleton);
         builder.RegisterEntryPoint<EquipmentMaintenancePolicyRuntime>(
                 Lifetime.Singleton)
-            .As<ICombatEquipmentMaintenanceRuntime>();
+            .As<ICombatEquipmentMaintenanceRuntime>()
+            .As<ICombatEquipmentMaintenanceOrderQuery>()
+            .As<ICombatEquipmentRepairTerminalEffectQuery>();
+        builder.Register<EquipmentRepairMaterialRestoreGuard>(
+                Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<CharacterBodyHealthRuntime>(
                 Lifetime.Singleton)
             .AsSelf()
@@ -215,6 +238,10 @@ public static class DungeonCombatRegistration
         builder.Register<DefenseFacilityRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IDefenseFacilityRuntime>();
+        builder.Register<DefenseFacilityPhysicalItemGateway>(Lifetime.Singleton)
+            .As<IDefenseFacilityPhysicalItemGateway>();
+        builder.Register<DefenseFacilityPhysicalRestoreGuard>(Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<DefenseFacilityPersistenceAdapter>(Lifetime.Singleton)
             .As<IDefenseFacilityPersistence>();
         builder.Register<BuildingStructuralIntegrityRuntime>(Lifetime.Singleton)

@@ -900,14 +900,18 @@ public sealed class CargoDamageExteriorIncidentHandler :
 {
     private const string RuinedCargoItemId = "wild:rot";
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalItemTransformService physicalTransforms;
 
     public CargoDamageExteriorIncidentHandler(
         IExteriorIncidentActorService actors,
         IWorldItemStackRuntime items,
+        IPhysicalItemTransformService physicalTransforms,
         IGameEventBus eventBus)
         : base(actors, eventBus)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.physicalTransforms = physicalTransforms
+            ?? throw new ArgumentNullException(nameof(physicalTransforms));
     }
 
     public override ExteriorIncidentKind Kind => ExteriorIncidentKind.CargoDamage;
@@ -975,27 +979,31 @@ public sealed class CargoDamageExteriorIncidentHandler :
             return;
         }
 
-        if (!items.TryConsumeStackQuantity(
+        if (!physicalTransforms.TryTransformQuantity(
                 target.StackId,
                 1,
-                out WorldItemStackSnapshot consumed))
+                new[]
+                {
+                    new PhysicalItemTransformOutput(
+                        RuinedCargoItemId,
+                        1,
+                        target.Position)
+                },
+                $"exterior-cargo-damage:{state.incidentId}",
+                "exterior-cargo-weather-damage",
+                out PhysicalItemTransformReceipt receipt,
+                out _,
+                out _)
+            || !receipt.IsCommitted)
         {
             state.stage = ExteriorIncidentStage.Failed;
             return;
         }
-
-        items.SpawnItemAt(
-            RuinedCargoItemId,
-            1,
-            consumed.Position,
-            WorldItemStackState.Loose,
-            string.Empty,
-            out _);
         state.stage = ExteriorIncidentStage.Resolved;
         state.outcome = ExteriorIncidentOutcome.CargoDamaged;
         EventBus.RaiseAlert(
             "하차장 화물 훼손",
-            $"{consumed.DisplayName} 1개가 망가져 부패 잔해가 되었습니다. 재고는 경고 없이 사라지지 않습니다.",
+            $"{target.DisplayName} 1개가 망가져 부패 잔해가 되었습니다. 재고는 경고 없이 사라지지 않습니다.",
             EventAlertImportance.High,
             "외부");
     }

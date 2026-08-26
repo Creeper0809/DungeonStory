@@ -132,6 +132,24 @@ public sealed class FacilityEvolutionState
 }
 
 [Serializable]
+public sealed class FacilityModificationMaterialTransferInput
+{
+    public string itemId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public int quantity;
+
+    public FacilityModificationMaterialTransferInput Clone()
+    {
+        return new FacilityModificationMaterialTransferInput
+        {
+            itemId = itemId ?? string.Empty,
+            sourceStackId = sourceStackId ?? string.Empty,
+            quantity = quantity
+        };
+    }
+}
+
+[Serializable]
 public sealed class FacilityModificationOrder
 {
     public string orderId = string.Empty;
@@ -150,6 +168,13 @@ public sealed class FacilityModificationOrder
     public int destinationX;
     public int destinationY;
     public bool materialsConsumed;
+    public string materialTransferOperationId = string.Empty;
+    public string materialTransferCommitId = string.Empty;
+    public string materialTransferRequestFingerprint = string.Empty;
+    public long materialTransferMassGrams;
+    public bool materialTransferOutcomePublished;
+    public List<FacilityModificationMaterialTransferInput>
+        materialTransferInputs = new();
 
     public float ProgressRatio => requiredWork <= 0f
         ? 0f
@@ -175,7 +200,21 @@ public sealed class FacilityModificationOrder
             destinationId = destinationId ?? string.Empty,
             destinationX = destinationX,
             destinationY = destinationY,
-            materialsConsumed = materialsConsumed
+            materialsConsumed = materialsConsumed,
+            materialTransferOperationId =
+                materialTransferOperationId ?? string.Empty,
+            materialTransferCommitId =
+                materialTransferCommitId ?? string.Empty,
+            materialTransferRequestFingerprint =
+                materialTransferRequestFingerprint ?? string.Empty,
+            materialTransferMassGrams = materialTransferMassGrams,
+            materialTransferOutcomePublished =
+                materialTransferOutcomePublished,
+            materialTransferInputs = materialTransferInputs?
+                .Where(input => input != null)
+                .Select(input => input.Clone())
+                .ToList() ??
+                new List<FacilityModificationMaterialTransferInput>()
         };
     }
 }
@@ -198,6 +237,10 @@ public sealed class FacilityRelocationOrder
     public float reinstallCompletedWork;
     public FacilityRelocationPhase phase = FacilityRelocationPhase.Dismantling;
     public bool packageConsumed;
+    public string packageTransferOperationId = string.Empty;
+    public string packageTransferCommitId = string.Empty;
+    public long packageTransferMassGrams;
+    public bool packageTransferOutcomePublished;
 
     public Vector2Int SourcePosition => new Vector2Int(sourceX, sourceY);
     public Vector2Int DestinationPosition =>
@@ -238,6 +281,10 @@ public sealed class FacilityRelocationOrder
                 Mathf.Max(0.1f, reinstallRequiredWork)),
             phase = phase,
             packageConsumed = packageConsumed
+            ,packageTransferOperationId = packageTransferOperationId ?? string.Empty
+            ,packageTransferCommitId = packageTransferCommitId ?? string.Empty
+            ,packageTransferMassGrams = packageTransferMassGrams
+            ,packageTransferOutcomePublished = packageTransferOutcomePublished
         };
     }
 }

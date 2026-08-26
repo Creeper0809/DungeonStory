@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DungeonStory.Buildings;
 using UnityEditor;
 using UnityEngine;
 
@@ -42,7 +43,8 @@ public static class FacilityDebugScenarios
         RunScenario("재고/파손 제외", VerifyUnavailableFacilitiesAreExcluded, errors);
         RunScenario("재고 계열 설정", VerifyStockCategories, errors);
         RunScenario("창고 물리 재고 인덱스", VerifyWarehouseInventory, errors);
-        RunScenario("물리 런타임 없는 상점 보충 차단", VerifyShopRestockRequiresPhysicalRuntime, errors);
+        RunScenario("상점 보충 요청은 재고를 직접 변이하지 않음", VerifyShopRestockRequestDoesNotMutateStock, errors);
+        RunScenario("상점 보충 후보는 카테고리가 아닌 exact item lot을 요구", VerifyRestockRequiresExactItemLot, errors);
         RunScenario("운영일 납품 제안", VerifyDailyDeliveryOffers, errors);
         RunScenario("물리 런타임 없는 납품 차단", VerifyDeliveryRequiresPhysicalRuntime, errors);
         RunScenario("재고 구매 실패 조건", VerifyPurchaseDeliveryFailureConditions, errors);
@@ -178,7 +180,7 @@ public static class FacilityDebugScenarios
             && warehouse.Inventory.GetStock(StockCategory.Mana) == 1;
     }
 
-    private static bool VerifyShopRestockRequiresPhysicalRuntime()
+    private static bool VerifyShopRestockRequestDoesNotMutateStock()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
         BuildableObject shopBuilding = world.Place("P1_LowFoodShop", new Vector2Int(1, 0));
@@ -189,17 +191,56 @@ public static class FacilityDebugScenarios
         warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 5);
 
         int beforeWarehouseFood = warehouse.Inventory.GetStock(StockCategory.Food);
-        try
-        {
-            shop.RestockFrom(new[] { warehouse }, 5, out _);
-            return false;
-        }
-        catch (System.InvalidOperationException error)
-        {
-            return error.Message == "Shop restocking requires physical item runtime."
-                && shop.CurrentStock == 0
-                && warehouse.Inventory.GetStock(StockCategory.Food) == beforeWarehouseFood;
-        }
+        int beforeShop = shop.CurrentStock;
+        shop.TryRequestRestock(out _);
+        return shop.CurrentStock == beforeShop
+            && warehouse.Inventory.GetStock(StockCategory.Food) == beforeWarehouseFood;
+    }
+
+    private static bool VerifyRestockRequiresExactItemLot()
+    {
+        const string desiredItemId = "equipment:weapon:dagger";
+        const string decoyItemId = "equipment:weapon:spear";
+        TestShopInventoryOwner owner = new TestShopInventoryOwner();
+        DungeonStory.Buildings.ShopInventoryRuntime inventory =
+            new DungeonStory.Buildings.ShopInventoryRuntime(owner);
+        inventory.Configure(new TestShopStockCatalog(
+            new ShopStockSeed(
+                new ShopSaleItemDefinition(
+                    id: 7001,
+                    name: "단검",
+                    itemDefinitionId: desiredItemId,
+                    unitMassGrams: 1_200L,
+                    requiresUniqueInstance: true,
+                    category: StockCategory.Weapon,
+                    cost: 10,
+                    onBuy: Array.Empty<OnBuyItemSO>()),
+                amount: 1)));
+        inventory.EnsureInitialized();
+
+        TestShopWarehousePort warehouse = new TestShopWarehousePort();
+        warehouse.Set(decoyItemId, 3);
+        bool rejectedCategoryOnly = !inventory.HasRestockSupply(
+            new IBuildingShopWarehousePort[] { warehouse },
+            out _)
+            && !inventory.TryFindRestockSource(
+                new IBuildingShopWarehousePort[] { warehouse },
+                1,
+                out _,
+                out _);
+
+        warehouse.Set(desiredItemId, 1);
+        bool acceptedExact = inventory.HasRestockSupply(
+                new IBuildingShopWarehousePort[] { warehouse },
+                out _)
+            && inventory.TryFindRestockSource(
+                new IBuildingShopWarehousePort[] { warehouse },
+                1,
+                out ShopRestockSource source,
+                out _)
+            && source.Item.ItemDefinitionId == desiredItemId
+            && source.Amount == 1;
+        return rejectedCategoryOnly && acceptedExact;
     }
 
     private static bool VerifyDailyDeliveryOffers()
@@ -508,7 +549,9 @@ public static class FacilityDebugScenarios
                     new DungeonStory.Foundation.RandomStreamProvider(101),
                     null,
                     null,
-                    null);
+                    null,
+                    CharacterAiEditorTestDependencies.RetailStockPhysical,
+                    new EmptyStockQuery());
             }
         }
 
@@ -524,6 +567,53 @@ public static class FacilityDebugScenarios
                 UnityEngine.Object.DestroyImmediate(obj);
             }
         }
+    }
+
+    private sealed class TestShopInventoryOwner : IBuildingShopInventoryOwnerPort
+    {
+        public bool IsConfigured => true;
+        public int ShopId => 7001;
+        public string PersistentOwnerId => "building:test:exact-retail";
+        public string DisplayName => "Exact Retail Fixture";
+        public int ConfiguredInternalStockCapacity => 4;
+        public bool HasRetailSpecialization => false;
+        public StockCategory RetailCategory => StockCategory.Weapon;
+        public int GetRoomStorageCapacity(StockCategory category) => 4;
+        public void PublishRestock(int requested, int received, string message) { }
+        public void NotifyStockChanged() { }
+        public void ReportMissingStockDefinition(int shopId) { }
+    }
+
+    private sealed class TestShopStockCatalog : IBuildingShopStockCatalogPort
+    {
+        private readonly ShopStockDefinition definition;
+
+        public TestShopStockCatalog(ShopStockSeed seed) =>
+            definition = new ShopStockDefinition(1f, new[] { seed });
+
+        public bool TryGetStockDefinition(
+            int shopId,
+            out ShopStockDefinition stockDefinition)
+        {
+            stockDefinition = shopId == 7001 ? definition : null;
+            return stockDefinition != null;
+        }
+
+        public StockCategory GetStockCategory(int saleItemId) =>
+            StockCategory.Weapon;
+    }
+
+    private sealed class TestShopWarehousePort : IBuildingShopWarehousePort
+    {
+        private readonly Dictionary<string, int> quantities =
+            new Dictionary<string, int>(StringComparer.Ordinal);
+
+        public object RuntimeObject => this;
+        public bool HasInventory => true;
+        public int GetStock(string itemDefinitionId) =>
+            quantities.TryGetValue(itemDefinitionId, out int amount) ? amount : 0;
+        public void Set(string itemDefinitionId, int amount) =>
+            quantities[itemDefinitionId] = Mathf.Max(0, amount);
     }
 
     private sealed class EmptyStockQuery : IStockQuery
@@ -670,6 +760,31 @@ public static class FacilityDebugScenarios
                 .Select(AssetDatabase.LoadAssetAtPath<SaleItem>)
                 .FirstOrDefault(candidate => candidate != null && candidate.id == saleItemId);
             return saleItem != null;
+        }
+
+        public bool TryGetPhysicalDescriptor(
+            int saleItemId,
+            out ItemDefinitionId itemDefinitionId,
+            out long unitMassGrams,
+            out bool requiresUniqueInstance)
+        {
+            itemDefinitionId = default;
+            unitMassGrams = 0L;
+            requiresUniqueInstance = false;
+            if (!TryGetSaleItem(saleItemId, out SaleItem saleItem)) return false;
+            ItemDefinitionSO definition = AssetDatabase
+                .FindAssets("t:ItemDefinitionSO", new[] { "Assets" })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<ItemDefinitionSO>)
+                .FirstOrDefault(candidate => candidate != null
+                    && candidate.StableId.Equals(saleItem.ItemDefinitionId));
+            if (definition == null) return false;
+            itemDefinitionId = definition.StableId;
+            unitMassGrams = PhysicalMassGrams
+                .FromCanonicalKilograms(definition.UnitWeight)
+                .Value;
+            requiresUniqueInstance = definition.MaxStack == 1;
+            return true;
         }
 
         public StockCategory GetStockCategory(int saleItemId)

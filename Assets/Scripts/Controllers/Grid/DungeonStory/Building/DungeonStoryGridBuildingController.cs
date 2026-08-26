@@ -137,7 +137,9 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
             buildingFactory,
             new BuildingPlacementValidator(new GridPlacementValidator(), CreateBuildingConditionContext),
             workOrderRuntime,
-            ConfigurePlacedBuilding);
+            ConfigurePlacedBuilding,
+            ResolveWarehouseLifecycleOccupancy(),
+            ResolveProductionFacilityMutationFence());
         if (!HasAnyPlacedStructures(gridSystem.grid))
         {
             placementService.PlaceInitialBuildings(NormalizeInitialPlacementForCurrentGrid(
@@ -150,6 +152,38 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
         gridSystem.OnGridObjectChanged += DrawGridTextureWalls;
         initialized = true;
         DrawGridTextureWalls();
+    }
+
+    private IWarehouseLifecycleOccupancyQuery ResolveWarehouseLifecycleOccupancy()
+    {
+        if (objectResolver != null
+            && objectResolver.TryResolve(
+                typeof(IWarehouseLifecycleOccupancyQuery),
+                out object resolved)
+            && resolved is IWarehouseLifecycleOccupancyQuery occupancy)
+        {
+            return occupancy;
+        }
+
+        throw new InvalidOperationException(
+            $"{nameof(DungeonStoryGridBuildingController)} requires "
+            + $"{nameof(IWarehouseLifecycleOccupancyQuery)}.");
+    }
+
+    private IProductionFacilityMutationFence ResolveProductionFacilityMutationFence()
+    {
+        if (objectResolver != null
+            && objectResolver.TryResolve(
+                typeof(IProductionFacilityMutationFence),
+                out object resolved)
+            && resolved is IProductionFacilityMutationFence fence)
+        {
+            return fence;
+        }
+
+        throw new InvalidOperationException(
+            $"{nameof(DungeonStoryGridBuildingController)} requires "
+            + $"{nameof(IProductionFacilityMutationFence)}.");
     }
 
     private void Update()

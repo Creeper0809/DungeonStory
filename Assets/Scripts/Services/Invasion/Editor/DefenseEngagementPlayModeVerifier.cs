@@ -1,10 +1,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using VContainer;
 
@@ -14,6 +16,9 @@ public static class DefenseEngagementPlayModeVerifier
         "Artifacts/QA/defense-engagement-playmode.txt";
     private const string PendingFlagPath =
         "Temp/defense-engagement-playmode.flag";
+    private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
+    private const int PendingSchema = 1;
+    private static readonly TimeSpan PendingMaximumAge = TimeSpan.FromMinutes(30);
     private const float StartupTimeoutSeconds = 15f;
     private const float EngagementTimeoutSeconds = 180f;
     private static string lastReport = "방어 교전 PlayMode 검증을 실행하지 않았습니다.";
@@ -35,32 +40,66 @@ public static class DefenseEngagementPlayModeVerifier
     {
         if (!Application.isPlaying)
         {
+            if (!TryCaptureCleanSceneRequest(
+                    out PendingRunRequest request,
+                    out string failureReason))
+            {
+                DeletePendingFlag();
+                lastReport = "FAIL: " + failureReason;
+                completed = true;
+                WriteImmediateFailure(lastReport);
+                return;
+            }
             Directory.CreateDirectory("Temp");
-            File.WriteAllText(PendingFlagPath, DateTime.UtcNow.ToString("O"));
+            File.WriteAllLines(PendingFlagPath, request.Serialize());
             EditorApplication.EnterPlaymode();
             return;
         }
 
-        StartRuntimeProbe();
+        RejectUnauthorisedRuntimeStart(
+            "EditMode clean-scene preflight evidence is required.");
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void BootstrapPendingRun()
     {
-        if (!File.Exists(PendingFlagPath)) return;
-        File.Delete(PendingFlagPath);
-        StartRuntimeProbe();
+        if (!File.Exists(PendingFlagPath))
+            return;
+        PendingRunRequest request = default;
+        string failureReason = string.Empty;
+        try
+        {
+            if (!PendingRunRequest.TryParse(
+                    File.ReadAllLines(PendingFlagPath),
+                    out request,
+                    out failureReason)
+                || !request.ValidateRuntime(out failureReason))
+            {
+                lastReport = "FAIL: " + failureReason;
+                completed = true;
+                WriteImmediateFailure(lastReport);
+                return;
+            }
+        }
+        finally
+        {
+            DeletePendingFlag();
+        }
+        StartRuntimeProbe(request);
     }
 
     public static string StartRuntimeProbe()
     {
+        return RejectUnauthorisedRuntimeStart(
+            Application.isPlaying
+                ? "EditMode clean-scene preflight evidence is required."
+                : "PlayMode가 아닙니다.");
+    }
+
+    private static string StartRuntimeProbe(PendingRunRequest request)
+    {
         if (!Application.isPlaying)
-        {
-            lastReport = "FAIL: PlayMode가 아닙니다.";
-            completed = true;
-            WriteImmediateFailure(lastReport);
-            return lastReport;
-        }
+            return RejectUnauthorisedRuntimeStart("PlayMode가 아닙니다.");
 
         foreach (Runner existing in UnityEngine.Object.FindObjectsByType<Runner>(
             FindObjectsInactive.Include,
@@ -83,8 +122,189 @@ public static class DefenseEngagementPlayModeVerifier
         ownerEvacuationProbeDurabilityBoosted = false;
         Time.timeScale = 1f;
         GameObject root = new GameObject("Defense Engagement PlayMode Verifier");
-        root.AddComponent<Runner>();
+        Runner runner = root.AddComponent<Runner>();
+        runner.SetCleanBootEvidence(request);
         return lastReport;
+    }
+
+    private static string RejectUnauthorisedRuntimeStart(string reason)
+    {
+        lastReport = "FAIL: " + (reason ?? string.Empty);
+        completed = true;
+        WriteImmediateFailure(lastReport);
+        return lastReport;
+    }
+
+    private static bool TryCaptureCleanSceneRequest(
+        out PendingRunRequest request,
+        out string failureReason)
+    {
+        request = default;
+        failureReason = string.Empty;
+        Scene active = SceneManager.GetActiveScene();
+        if (!active.IsValid()
+            || !active.isLoaded
+            || !string.Equals(
+                active.path,
+                GameplayScenePath,
+                StringComparison.Ordinal))
+        {
+            failureReason = "The canonical GameplayScene must be active before verification.";
+            return false;
+        }
+        if (SceneManager.sceneCount != 1)
+        {
+            failureReason = "Exactly one loaded scene is required before verification.";
+            return false;
+        }
+        for (int index = 0; index < SceneManager.sceneCount; index++)
+        {
+            Scene loaded = SceneManager.GetSceneAt(index);
+            if (loaded.IsValid() && loaded.isLoaded && loaded.isDirty)
+            {
+                failureReason = "Loaded scenes contain unsaved changes; verification did not save or discard them.";
+                return false;
+            }
+        }
+        request = new PendingRunRequest(
+            DateTime.UtcNow.Ticks,
+            GameplayScenePath,
+            SceneManager.sceneCount,
+            sceneDirty: false);
+        return true;
+    }
+
+    private static void DeletePendingFlag()
+    {
+        if (File.Exists(PendingFlagPath))
+            File.Delete(PendingFlagPath);
+    }
+
+    private readonly struct PendingRunRequest
+    {
+        internal PendingRunRequest(
+            long requestedUtcTicks,
+            string scenePath,
+            int sceneCount,
+            bool sceneDirty)
+        {
+            RequestedUtcTicks = requestedUtcTicks;
+            ScenePath = scenePath ?? string.Empty;
+            SceneCount = sceneCount;
+            SceneDirty = sceneDirty;
+        }
+
+        internal long RequestedUtcTicks { get; }
+        internal string ScenePath { get; }
+        internal int SceneCount { get; }
+        internal bool SceneDirty { get; }
+
+        internal string[] Serialize() => new[]
+        {
+            "schema=" + PendingSchema.ToString(CultureInfo.InvariantCulture),
+            "requestedUtcTicks="
+                + RequestedUtcTicks.ToString(CultureInfo.InvariantCulture),
+            "scenePath=" + ScenePath,
+            "sceneCount=" + SceneCount.ToString(CultureInfo.InvariantCulture),
+            "sceneDirty=" + (SceneDirty ? "1" : "0")
+        };
+
+        internal bool ValidateRuntime(out string failureReason)
+        {
+            failureReason = string.Empty;
+            long now = DateTime.UtcNow.Ticks;
+            if (RequestedUtcTicks <= 0L
+                || RequestedUtcTicks > now
+                || now - RequestedUtcTicks > PendingMaximumAge.Ticks)
+            {
+                failureReason = "Pending verification request is stale or from the future.";
+                return false;
+            }
+            if (SceneDirty
+                || SceneCount != 1
+                || !string.Equals(
+                    ScenePath,
+                    GameplayScenePath,
+                    StringComparison.Ordinal))
+            {
+                failureReason = "Pending verification scene contract is invalid.";
+                return false;
+            }
+            Scene active = SceneManager.GetActiveScene();
+            if (!active.IsValid()
+                || !active.isLoaded
+                || SceneManager.sceneCount != SceneCount
+                || !string.Equals(
+                    active.path,
+                    ScenePath,
+                    StringComparison.Ordinal))
+            {
+                failureReason = "Runtime scene does not match the clean EditMode request.";
+                return false;
+            }
+            return true;
+        }
+
+        internal static bool TryParse(
+            IReadOnlyList<string> lines,
+            out PendingRunRequest request,
+            out string failureReason)
+        {
+            request = default;
+            failureReason = string.Empty;
+            if (lines == null || lines.Count != 5
+                || !TryRead(lines[0], "schema", out string schemaToken)
+                || !TryRead(
+                    lines[1],
+                    "requestedUtcTicks",
+                    out string ticksToken)
+                || !TryRead(lines[2], "scenePath", out string scenePath)
+                || !TryRead(lines[3], "sceneCount", out string countToken)
+                || !TryRead(lines[4], "sceneDirty", out string dirtyToken)
+                || !int.TryParse(
+                    schemaToken,
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture,
+                    out int schema)
+                || schema != PendingSchema
+                || !long.TryParse(
+                    ticksToken,
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture,
+                    out long ticks)
+                || !int.TryParse(
+                    countToken,
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture,
+                    out int count)
+                || (dirtyToken != "0" && dirtyToken != "1"))
+            {
+                failureReason = "Pending verification request is malformed.";
+                return false;
+            }
+            request = new PendingRunRequest(
+                ticks,
+                scenePath,
+                count,
+                dirtyToken == "1");
+            return true;
+        }
+
+        private static bool TryRead(
+            string line,
+            string key,
+            out string value)
+        {
+            string prefix = key + "=";
+            if (line == null
+                || !line.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                value = string.Empty;
+                return false;
+            }
+            value = line.Substring(prefix.Length);
+            return string.Equals(line, prefix + value, StringComparison.Ordinal);
+        }
     }
 
     private static void WriteImmediateFailure(string detail)
@@ -648,6 +868,19 @@ public static class DefenseEngagementPlayModeVerifier
         private bool controlledSuppressionRequested;
         private bool controlledSuppressionCompleted;
         private string controlledSuppressionFailure = string.Empty;
+        private bool cleanBootEvidence;
+        private string cleanBootScenePath = string.Empty;
+
+        internal void SetCleanBootEvidence(PendingRunRequest request)
+        {
+            cleanBootEvidence = !request.SceneDirty
+                && request.SceneCount == 1
+                && string.Equals(
+                    request.ScenePath,
+                    GameplayScenePath,
+                    StringComparison.Ordinal);
+            cleanBootScenePath = request.ScenePath;
+        }
 
         private void Awake()
         {
@@ -1727,6 +1960,7 @@ public static class DefenseEngagementPlayModeVerifier
                 "scope=production-invasion+defense-engagement+medical-recovery",
                 "utc=" + DateTime.UtcNow.ToString("O"),
                 "authority=InvasionDirectorRuntime.TrySpawnIntruder->IDefenseEngagementRuntime->production combat exchanges->autonomous medical terminal",
+                Row(cleanBootEvidence, "GAMEPLAY_SCENE_CLEAN_BOOT", "scene=" + cleanBootScenePath),
                 Row(intruderSpawnedAt > 0f, "COMMAND_INTRUDER_SPAWN", "spawned=" + (intruderSpawnedAt > 0f)),
                 Row(observedRallying && observedApproachWithoutDispatch, "INVASION_ENTRY_PHASES", "rally=" + observedRallying + "; approach=" + observedApproachWithoutDispatch),
                 Row(observedEngagement, "ENGAGEMENT_STARTED", "engagementId=" + observedEngagementId),

@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212042831200505
-    - rid: 7737212042831200506
-    - rid: 7737212042831200507
-    - rid: 7737212042831200508
-    - rid: 7737212042831200509
+    - rid: 1004
+    - rid: 1005
+    - rid: 7737212195140797174
+    - rid: 1006
+    - rid: 1007
   width: 1
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200505
+    - rid: 1004
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS19
-    - rid: 7737212042831200506
+    - rid: 1005
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,7 +87,36 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737212042831200507
+    - rid: 1006
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - production-support
+        - support:wood-treatment
+    - rid: 1007
+      type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionSupportAbility
+        supportId: production-support:ws19
+        featureTags:
+        - support:wood-treatment
+        compatibleWorkstationTags:
+        - workstation:sawmill
+        kind: 0
+        batchCapacity: 1
+        requiresPower: 0
+        cleanWaterPerCycle: 0.15
+        wastewaterPerCycle: 0.1
+        wastewaterComposition: 7
+        allowsManualWaterFallback: 0
+        requiresFuel: 0
+        fuelItemId: resource:log
+        fuelPerCycle: 1
+        workSpeedMultiplier: 1
+        outputMultiplier: 1
+        qualityModifier: 0
+    - rid: 7737212195140797174
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -111,31 +140,3 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 3
-    - rid: 7737212042831200508
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
-      data:
-        abilityId: BuildingSemanticTagsAbility
-        tags:
-        - production-support
-        - support:wood-treatment
-    - rid: 7737212042831200509
-      type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionSupportAbility
-        supportId: production-support:ws19
-        featureTags:
-        - support:wood-treatment
-        compatibleWorkstationTags:
-        - workstation:sawmill
-        kind: 0
-        batchCapacity: 1
-        requiresPower: 0
-        cleanWaterPerCycle: 0.15
-        wastewaterPerCycle: 0.1
-        allowsManualWaterFallback: 0
-        requiresFuel: 0
-        fuelItemId: resource:log
-        fuelPerCycle: 1
-        workSpeedMultiplier: 1
-        outputMultiplier: 1
-        qualityModifier: 0

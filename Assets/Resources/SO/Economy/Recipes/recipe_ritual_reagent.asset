@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9085
+  id: 9086
   recipeId: recipe:ritual-reagent
   displayName: "\uD608\uC561 \uC758\uC2DD\uC7AC"
   description: "\uD608\uC561 \uC758\uC2DD\uC7AC \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: material:rot-toxin
     amount: 1
   outputs:
-  - itemId: craft:ritual-reagent
+  - outputLineId: output:recipe:ritual-reagent/000/main/craft:ritual-reagent
+    role: 0
+    itemId: craft:ritual-reagent
     amount: 1
     probability: 1

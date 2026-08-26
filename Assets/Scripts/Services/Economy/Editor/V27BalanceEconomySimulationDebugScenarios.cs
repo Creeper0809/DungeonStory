@@ -58,8 +58,8 @@ public static class V27BalanceEconomySimulationDebugScenarios
             source.GetAll<CombatEquipmentDefinitionSO>().ToArray();
         CraftMaterialDefinitionSO[] materials =
             source.GetAll<CraftMaterialDefinitionSO>().ToArray();
-        Require(recipes.Length == 354,
-            "Expected 354 recipes, found " + recipes.Length + ".");
+        Require(recipes.Length == 355,
+            "Expected 355 recipes, found " + recipes.Length + ".");
 
         ResourceMaterialEconomicProfileCatalog profiles = new(source);
         V23BalanceWorkCalculator work = new(profiles);

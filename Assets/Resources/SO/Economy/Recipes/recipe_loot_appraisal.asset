@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9108
+  id: 9109
   recipeId: recipe:loot-appraisal
   displayName: "\uC6D0\uC815 \uC804\uB9AC\uD488 \uAC10\uC815"
   description: "\uC6D0\uC815 \uC804\uB9AC\uD488 \uAC10\uC815 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,12 +50,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: offense:unappraised-loot
     amount: 10
   outputs:
-  - itemId: offense:appraised-valuables
+  - outputLineId: output:recipe:loot-appraisal/000/main/offense:appraised-valuables
+    role: 0
+    itemId: offense:appraised-valuables
     amount: 10
     probability: 1

@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: fiber:ember-cotton
     amount: 3
   outputs:
-  - itemId: yarn:ember-cotton
+  - outputLineId: output:recipe:v22:spin:ember-cotton/000/main/yarn:ember-cotton
+    role: 0
+    itemId: yarn:ember-cotton
     amount: 2
     probability: 1

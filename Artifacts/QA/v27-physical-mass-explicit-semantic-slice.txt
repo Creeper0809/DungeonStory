@@ -1,0 +1,54 @@
+RESULT=PASS; phase=explicit-semantic-vertical-slice; assetMutations=0
+ledgerCanonicalItems=414; explicitUnitSemantics=363; missingUnitSemantics=51; materialProfiles=51; transformContracts=42
+authorityBackedEquipmentSemantics=61; authorityBackedApparelItemSemantics=56; authorityBackedApparelDefinitions=56; authorityBackedCommoditySemantics=54; authorityBackedResourceSemantics=22; authorityBackedToolProstheticSemantics=21; authorityBackedComponentSemantics=36; authorityBackedProcessedMaterialSemantics=48; authorityBackedUnpackagedMealProcessSemantics=6
+authoritySolidMedicalSemantics=6
+authorityIntegralSolidConsumables=2
+sliceItems=resource:clean-water|resource:twilight-grain|food:grain-porridge|resource:log|material:lumber|resource:cave-mushroom|food:mushroom-soup|resource:meat|food:roasted-meat|resource:ember-root|food:root-stew|resource:milk|resource:egg|material:flour|food:egg-pancake|resource:saltstone|material:curd|food:fresh-curd|material:cheese|food:cheese-mushroom|resource:night-grape|food:lavish-meat|material:malt|material:syrup|material:grape-juice|food:grape-syrup|material:fermented-liquor|food:malt-porridge|material:young-wine|food:twilight-beer|drug:night-wine|food:night-spirit|material:alcohol|material:washed-vegetable|material:brined-vegetable|craft:fermented-vinegar|food:fermented-pickle|food:preserved-vegetable|material:dough|material:seasoned-filling|food:vegetable-pie|food:stuffed-mushroom|resource:grass-straw|feed:hay|feed:silage|food:meat-pie|food:lavish-vegan|resource:dreamleaf|material:iron-ingot|container:medical-vial|medicine:anesthetic
+GRAIN_PORRIDGE_MASS_CONSERVATION=PASS; input=2100g; infrastructureWater=125g; output=2172g; wastewater=50g; evaporation=3g
+SAWMILL_MASS_CONSERVATION=PASS; input=3600g; output=3300g; cuttingWaste=300g
+MUSHROOM_SOUP_MASS_CONSERVATION=PASS; input=500g; infrastructureWater=125g; output=570g; wastewater=50g; evaporation=5g
+ROASTED_MEAT_MASS_CONSERVATION=PASS; input=1400g; output=1260g; evaporation=140g
+ROOT_STEW_MASS_CONSERVATION=PASS; input=900g; infrastructureWater=125g; output=960g; wastewater=50g; evaporation=15g
+MILLING_FLOUR_MASS_CONSERVATION=PASS; input=1050g; output=1000g; millingByproduct=50g
+EGG_PANCAKE_MASS_CONSERVATION=PASS; physicalInput=1800g; infrastructureWater=100g; output=1600g; wastewater=75g; evaporation=225g
+ANIMAL_PRODUCT_SOURCE_CONTRACTS=PASS; milkBatch=3; eggBatch=3; externalBiomassExcluded=true
+CURD_WHEY_WASTEWATER_MASS_CONSERVATION=PASS; physicalInput=2900g; infrastructureWater=100g; curdOutput=900g; wheyWastewater=2100g; loss=0g
+FRESH_CURD_MASS_CONSERVATION=PASS; input=450g; output=450g; loss=0g
+CHEESE_AGING_MASS_CONSERVATION=PASS; input=900g; output=800g; agingMoistureLoss=100g
+CHEESE_MUSHROOM_MASS_CONSERVATION=PASS; input=900g; output=900g; loss=0g
+LAVISH_MEAT_MASS_CONSERVATION=PASS; physicalInput=2300g; infrastructureWater=150g; output=2000g; wastewater=125g; evaporation=325g
+MALT_MASS_CONSERVATION=PASS; input=700g; output=700g; loss=0g
+CONCENTRATED_SYRUP_MASS_CONSERVATION=PASS; input=750g; output=700g; concentrationLoss=50g
+GRAPE_JUICE_MASS_CONSERVATION=PASS; input=750g; infrastructureWater=50g; output=750g; wastewater=25g; evaporation=25g
+GRAPE_SYRUP_MEAL_MASS_CONSERVATION=PASS; input=375g; output=350g; concentrationLoss=25g
+FERMENTED_LIQUOR_MASS_CONSERVATION=PASS; malt=700g; infrastructureWater=350g; output=1000g; fermentationGasLoss=50g
+MALT_PORRIDGE_MASS_CONSERVATION=PASS; malt=350g; infrastructureWater=750g; output=1100g; loss=0g
+YOUNG_WINE_MASS_CONSERVATION=PASS; input=750g; output=700g; fermentationGasLoss=50g
+TWILIGHT_BEER_MASS_CONSERVATION=PASS; input=1000g; output=950g; fermentationGasLoss=50g
+NIGHT_WINE_MASS_CONSERVATION=PASS; input=700g; output=650g; agingEvaporation=50g
+NIGHT_SPIRIT_MASS_CONSERVATION=PASS; input=1050g; output=900g; agingEvaporation=150g
+ALCOHOL_MASS_CONSERVATION=PASS; input=1000g; output=1000g; loss=0g
+WASHED_VEGETABLE_MASS_CONSERVATION=PASS; input=900g; infrastructureWater=125g; output=900g; wastewater=125g
+BRINED_VEGETABLE_MASS_CONSERVATION=PASS; input=1400g; infrastructureWater=100g; output=1000g; brineWastewater=500g
+FERMENTED_VINEGAR_MASS_CONSERVATION=PASS; input=500g; infrastructureWater=350g; output=800g; fermentationGasLoss=50g
+FERMENTED_PICKLE_MASS_CONSERVATION=PASS; input=1400g; output=900g; brineWastewater=500g
+PRESERVED_VEGETABLE_MASS_CONSERVATION=PASS; input=1350g; output=1100g; cookingEvaporation=250g
+DOUGH_MASS_CONSERVATION=PASS; physicalInput=1250g; infrastructureWater=75g; output=1000g; wastewater=50g; preparationLoss=275g
+SEASONED_FILLING_MASS_CONSERVATION=PASS; input=1850g; output=1300g; preparationWaste=550g
+VEGETABLE_PIE_MASS_CONSERVATION=PASS; input=950g; output=950g; loss=0g
+STUFFED_MUSHROOM_MASS_CONSERVATION=PASS; input=1150g; output=1150g; loss=0g
+HAY_FEED_MASS_CONSERVATION=PASS; input=590g; output=588g; dryingLoss=2g
+SILAGE_MASS_CONSERVATION=PASS; physicalInput=590g; infrastructureWater=100g; output=690g; loss=0g
+DOG_FOOD_MASS_CONSERVATION=PASS; byproductInput=1050g; freshInput=1050g; output=2x525g; loss=0g
+INOCULATED_LOG_MASS_CONSERVATION=PASS; input=1400g; output=2x700g; loss=0g
+MEAT_PIE_MASS_CONSERVATION=PASS; input=1150g; output=1150g; loss=0g
+LAVISH_VEGAN_MASS_CONSERVATION=PASS; physicalInput=1900g; infrastructureWater=150g; output=1800g; wastewater=125g; cookingEvaporation=125g
+MEDICAL_VIAL_MASS_CONSERVATION=PASS; input=900g; output=30x30g; loss=0g
+ANESTHETIC_PACKAGED_MASS_CONSERVATION=PASS; dreamleaf=160g; alcohol=500g; vial=30g; output=120g; extractionResidue=570g; returnedTare=30g
+HAUL_CLASS_CONTRACTS=PASS; ordinaryCommodityBand=6-11kg; individualEquipment=single-unit; heavyBand=11-20kg; oversizeThreshold=20kg
+packageTareContracts=1; packageTareDeferred=partial; medicineSemanticsDeferred=partial
+deterministicRecapture=PASS; byteIdentical=true
+sourceDigest=bdc3e055041b23bf4424937e3de991a02ea76e53617d60e77b141cf99487a8ae
+inspectedAssetDigest=5fcd6596f3f7fce53f4671339ccd3666713b6d8fb9cf0b6e121fc42914430bae
+assignmentsAuthoritative=363; assetApplication=18; reviewStatus=focused-applied-plus-audit-only
+nextGate=MISSING_ITEM_UNIT_SEMANTIC; remaining=51; status=IN_PROGRESS

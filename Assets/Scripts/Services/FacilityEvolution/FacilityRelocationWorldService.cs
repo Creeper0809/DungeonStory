@@ -60,6 +60,43 @@ public sealed class FacilityRelocationWorldService :
             return false;
         }
 
+        if (source is IWarehouseFacility warehouse
+            && warehouse.Inventory?.HasMassCapacityAuthority == true)
+        {
+            IWarehouseLifecycleOccupancyQuery lifecycle =
+                ResolveWarehouseLifecycleOccupancy();
+            if (!lifecycle.TryRequireEmpty(
+                    warehouse,
+                    out _,
+                    out string lifecycleFailure))
+            {
+                failureReason = "재고·예약·운반 중 화물이 남은 창고는 이전할 수 없습니다. "
+                    + lifecycleFailure;
+                return false;
+            }
+        }
+
+        if (source is IRetailFacility retail
+            && (retail.CurrentStock > 0
+                || retail.HasWaitingCheckout
+                || retail.HasServingWorker
+                || (source as IRetailRestockOperationOwner)?
+                    .ActiveRestockOperationCount > 0))
+        {
+            failureReason = "재고·고객·직원·보충 중 화물이 남은 상점은 이전할 수 없습니다.";
+            return false;
+        }
+
+        if (!ResolveProductionFacilityMutationFence().TryRequireNoAuthority(
+                source,
+                ProductionFacilityMutationKind.Relocation,
+                out string productionFailure))
+        {
+            failureReason = "생산 주문·재공품·출력 권위가 남은 시설은 이전할 수 없습니다. "
+                + productionFailure;
+            return false;
+        }
+
         BuildingSO building = source.BuildingData;
         GridBuildingPlacement placement = building.Placement;
         if (source is not IWorkableFacility
@@ -100,6 +137,35 @@ public sealed class FacilityRelocationWorldService :
         }
 
         return true;
+    }
+
+    private IWarehouseLifecycleOccupancyQuery ResolveWarehouseLifecycleOccupancy()
+    {
+        if (objectResolver.TryResolve(
+                typeof(IWarehouseLifecycleOccupancyQuery),
+                out object resolved)
+            && resolved is IWarehouseLifecycleOccupancyQuery occupancy)
+        {
+            return occupancy;
+        }
+
+        throw new InvalidOperationException(
+            $"{nameof(FacilityRelocationWorldService)} requires "
+            + $"{nameof(IWarehouseLifecycleOccupancyQuery)}.");
+    }
+
+    private IProductionFacilityMutationFence ResolveProductionFacilityMutationFence()
+    {
+        if (objectResolver.TryResolve(
+                typeof(IProductionFacilityMutationFence),
+                out object resolved)
+            && resolved is IProductionFacilityMutationFence fence)
+        {
+            return fence;
+        }
+        throw new InvalidOperationException(
+            $"{nameof(FacilityRelocationWorldService)} requires "
+            + $"{nameof(IProductionFacilityMutationFence)}.");
     }
 
     public bool TryPackAtDestination(

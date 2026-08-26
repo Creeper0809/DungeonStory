@@ -81,12 +81,27 @@ public abstract class DungeonStrictJsonSaveSection<TPayload, TRestoreCandidate> 
         return new DungeonCandidateSaveRestoreStage<TRestoreCandidate>(
             SectionId,
             candidate,
-            PublishRestoreCandidate);
+            value =>
+            {
+                PublishRestoreCandidateProjection(payload, value);
+                PublishRestoreCandidate(value);
+            });
     }
 
     protected abstract TPayload CapturePayload();
     protected abstract TRestoreCandidate BuildRestoreCandidate(TPayload payload);
     protected abstract void PublishRestoreCandidate(TRestoreCandidate candidate);
+
+    /// <summary>
+    /// Publishes a normalized DTO projection only during the real detached
+    /// commit transaction. Payload validation and candidate construction never
+    /// invoke this hook, preventing preflight state leakage.
+    /// </summary>
+    protected virtual void PublishRestoreCandidateProjection(
+        TPayload payload,
+        TRestoreCandidate candidate)
+    {
+    }
 
     /// <summary>
     /// Current-generation compatibility hook for explicitly typed character
@@ -213,7 +228,7 @@ public abstract class DungeonStrictJsonSaveSection<TPayload, TRestoreCandidate> 
     }
 }
 
-internal static class DungeonStrictJsonShape
+public static class DungeonStrictJsonShape
 {
     public static void RequireTopLevelArrays(
         string sectionId,

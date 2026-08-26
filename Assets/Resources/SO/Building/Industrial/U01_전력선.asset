@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212033836253912
-    - rid: 7737212033836253913
-    - rid: 7737212033836253914
-    - rid: 7737212033836253915
-    - rid: 7737212033836253916
+    - rid: 7737212199244661555
+    - rid: 7737212199244661556
+    - rid: 7737212199244661557
+    - rid: 7737212199244661558
+    - rid: 7737212199244661559
   width: 1
   height: 1
   layer: 11
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212033836253912
+    - rid: 7737212199244661555
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: U01
-    - rid: 7737212033836253913
+    - rid: 7737212199244661556
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,7 +87,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737212033836253914
+    - rid: 7737212199244661557
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -115,14 +115,14 @@ MonoBehaviour:
           amount: 3
         - itemId: material:cloth
           amount: 1
-    - rid: 7737212033836253915
+    - rid: 7737212199244661558
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7737212033836253916
+    - rid: 7737212199244661559
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

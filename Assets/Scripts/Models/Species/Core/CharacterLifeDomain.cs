@@ -137,9 +137,40 @@ public sealed class CharacterLifeRecordSaveData
 [Serializable]
 public sealed class CharacterLifeWorldSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public List<CharacterLifeRecordSaveData> characters = new();
+    public int nextTemporalStasisMaintenanceOperationSequence = 1;
+    public TemporalStasisMaintenanceCommitSaveData
+        pendingTemporalStasisMaintenance = new();
+}
+
+public enum TemporalStasisMaintenanceCommitPhase
+{
+    None = 0,
+    IntentRecorded = 1,
+    OutcomePublished = 2
+}
+
+[Serializable]
+public sealed class TemporalStasisMaintenanceCommitSaveData
+{
+    public int phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string characterId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public string runeConductorItemId = string.Empty;
+    public int runeConductorQuantity;
+    public string manaCrystalItemId = string.Empty;
+    public int manaCrystalQuantity;
+    public int nextMaintenanceBeforeAbsoluteDay;
+    public int nextMaintenanceAfterAbsoluteDay;
+    public List<string> sourceStackIds = new();
+    public int inputQuantity;
+    public long inputMassGrams;
+    public string commitId = string.Empty;
 }
 
 public readonly struct AgeConditionChange
@@ -785,11 +816,21 @@ public sealed class CharacterLifeRestoreCandidate
 internal sealed class CharacterLifeAggregateState
 {
     internal Dictionary<CharacterId, CharacterLifeRecord> Characters { get; } = new();
+    internal int NextTemporalStasisMaintenanceOperationSequence { get; set; } = 1;
+    internal TemporalStasisMaintenanceCommitSaveData
+        PendingTemporalStasisMaintenance { get; set; } = new();
 
     internal CharacterLifeAggregateState DeepClone(
         ICharacterLifeDefinitionCatalog definitions)
     {
-        CharacterLifeAggregateState clone = new();
+        CharacterLifeAggregateState clone = new()
+        {
+            NextTemporalStasisMaintenanceOperationSequence =
+                NextTemporalStasisMaintenanceOperationSequence,
+            PendingTemporalStasisMaintenance =
+                CloneTemporalStasisMaintenanceCommit(
+                    PendingTemporalStasisMaintenance)
+        };
         foreach (KeyValuePair<CharacterId, CharacterLifeRecord> pair in Characters)
         {
             CharacterLifeRecordSaveData data = pair.Value.Capture();
@@ -799,6 +840,35 @@ internal sealed class CharacterLifeAggregateState
         }
 
         return clone;
+    }
+
+    internal static TemporalStasisMaintenanceCommitSaveData
+        CloneTemporalStasisMaintenanceCommit(
+            TemporalStasisMaintenanceCommitSaveData source)
+    {
+        source ??= new TemporalStasisMaintenanceCommitSaveData();
+        return new TemporalStasisMaintenanceCommitSaveData
+        {
+            phase = source.phase,
+            operationSequence = source.operationSequence,
+            operationId = source.operationId ?? string.Empty,
+            reasonCode = source.reasonCode ?? string.Empty,
+            characterId = source.characterId ?? string.Empty,
+            facilityInstanceId = source.facilityInstanceId ?? string.Empty,
+            runeConductorItemId = source.runeConductorItemId ?? string.Empty,
+            runeConductorQuantity = source.runeConductorQuantity,
+            manaCrystalItemId = source.manaCrystalItemId ?? string.Empty,
+            manaCrystalQuantity = source.manaCrystalQuantity,
+            nextMaintenanceBeforeAbsoluteDay =
+                source.nextMaintenanceBeforeAbsoluteDay,
+            nextMaintenanceAfterAbsoluteDay =
+                source.nextMaintenanceAfterAbsoluteDay,
+            sourceStackIds = (source.sourceStackIds ?? new List<string>())
+                .ToList(),
+            inputQuantity = source.inputQuantity,
+            inputMassGrams = source.inputMassGrams,
+            commitId = source.commitId ?? string.Empty
+        };
     }
 }
 
@@ -1040,7 +1110,12 @@ public sealed class CharacterLifeRuntime :
         characters = Current.Characters.Values
             .OrderBy(value => value.CharacterId.Value, StringComparer.Ordinal)
             .Select(value => value.Capture())
-            .ToList()
+            .ToList(),
+        nextTemporalStasisMaintenanceOperationSequence =
+            Current.NextTemporalStasisMaintenanceOperationSequence,
+        pendingTemporalStasisMaintenance =
+            CharacterLifeAggregateState.CloneTemporalStasisMaintenanceCommit(
+                Current.PendingTemporalStasisMaintenance)
     };
 
     public CharacterLifeRestoreCandidate PrepareRestore(CharacterLifeWorldSaveData data)
@@ -1077,8 +1152,128 @@ public sealed class CharacterLifeRuntime :
             previousId = source.characterId;
         }
 
+        ValidateTemporalStasisMaintenance(data, restored);
+        restored.NextTemporalStasisMaintenanceOperationSequence =
+            data.nextTemporalStasisMaintenanceOperationSequence;
+        restored.PendingTemporalStasisMaintenance =
+            CharacterLifeAggregateState.CloneTemporalStasisMaintenanceCommit(
+                data.pendingTemporalStasisMaintenance);
+
         return new CharacterLifeRestoreCandidate(restored);
     }
+
+    private static void ValidateTemporalStasisMaintenance(
+        CharacterLifeWorldSaveData data,
+        CharacterLifeAggregateState restored)
+    {
+        if (data.nextTemporalStasisMaintenanceOperationSequence <= 0
+            || data.pendingTemporalStasisMaintenance == null)
+        {
+            throw new InvalidOperationException(
+                "Character-life temporal-stasis maintenance authority is invalid.");
+        }
+
+        TemporalStasisMaintenanceCommitSaveData pending =
+            data.pendingTemporalStasisMaintenance;
+        TemporalStasisMaintenanceCommitPhase phase =
+            (TemporalStasisMaintenanceCommitPhase)pending.phase;
+        if (phase == TemporalStasisMaintenanceCommitPhase.None)
+        {
+            if (pending.operationSequence != 0
+                || !string.IsNullOrEmpty(pending.operationId)
+                || !string.IsNullOrEmpty(pending.commitId)
+                || (pending.sourceStackIds?.Count ?? 0) != 0
+                || pending.inputQuantity != 0
+                || pending.inputMassGrams != 0L)
+            {
+                throw new InvalidOperationException(
+                    "Cleared temporal-stasis maintenance provenance is not empty.");
+            }
+            return;
+        }
+
+        if (phase is not TemporalStasisMaintenanceCommitPhase.IntentRecorded
+                and not TemporalStasisMaintenanceCommitPhase.OutcomePublished
+            || pending.operationSequence <= 0
+            || pending.operationSequence
+                != data.nextTemporalStasisMaintenanceOperationSequence
+            || !IsCanonicalRequired(pending.operationId)
+            || !IsCanonicalRequired(pending.reasonCode)
+            || !IsCanonicalRequired(pending.characterId)
+            || !IsCanonicalRequired(pending.facilityInstanceId)
+            || !IsCanonicalRequired(pending.runeConductorItemId)
+            || !IsCanonicalRequired(pending.manaCrystalItemId)
+            || pending.runeConductorQuantity <= 0
+            || pending.manaCrystalQuantity <= 0
+            || pending.nextMaintenanceAfterAbsoluteDay
+                <= pending.nextMaintenanceBeforeAbsoluteDay
+            || pending.sourceStackIds == null
+            || pending.sourceStackIds.Any(id => !IsCanonicalRequired(id))
+            || pending.sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                != pending.sourceStackIds.Count)
+        {
+            throw new InvalidOperationException(
+                "Pending temporal-stasis maintenance provenance is invalid.");
+        }
+        for (int index = 1; index < pending.sourceStackIds.Count; index++)
+        {
+            if (string.CompareOrdinal(
+                    pending.sourceStackIds[index - 1],
+                    pending.sourceStackIds[index]) >= 0)
+            {
+                throw new InvalidOperationException(
+                    "Pending temporal-stasis maintenance source IDs are not canonical.");
+            }
+        }
+
+        CharacterId characterId = new(pending.characterId);
+        if (!restored.Characters.TryGetValue(
+                characterId,
+                out CharacterLifeRecord record)
+            || record.RequestedAgingCareMode != AgingCareMode.TemporalStasis
+            || !string.Equals(
+                record.TemporalStasisFacilityId,
+                pending.facilityInstanceId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Pending temporal-stasis maintenance owner is missing or stale.");
+        }
+
+        if (phase == TemporalStasisMaintenanceCommitPhase.IntentRecorded)
+        {
+            if (record.TemporalStasisNextMaintenanceAbsoluteDay
+                    != pending.nextMaintenanceBeforeAbsoluteDay
+                || pending.sourceStackIds.Count != 0
+                || pending.inputQuantity != 0
+                || pending.inputMassGrams != 0L
+                || !string.IsNullOrEmpty(pending.commitId))
+            {
+                throw new InvalidOperationException(
+                    "Temporal-stasis maintenance intent conflicts with life state.");
+            }
+            return;
+        }
+
+        if (record.TemporalStasisNextMaintenanceAbsoluteDay
+                != pending.nextMaintenanceAfterAbsoluteDay
+            || record.EffectiveAgingCareMode != AgingCareMode.TemporalStasis
+            || pending.sourceStackIds.Count == 0
+            || pending.inputQuantity
+                != checked(pending.runeConductorQuantity
+                    + pending.manaCrystalQuantity)
+            || pending.inputMassGrams <= 0L
+            || !IsCanonicalRequired(pending.commitId))
+        {
+            throw new InvalidOperationException(
+                "Published temporal-stasis maintenance outcome is incomplete.");
+        }
+    }
+
+    private static bool IsCanonicalRequired(string value) =>
+        value != null
+        && value.Length > 0
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     public void PublishRestore(CharacterLifeRestoreCandidate candidate)
     {

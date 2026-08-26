@@ -6,7 +6,8 @@ public sealed class WildlifeActor :
     MonoBehaviour,
     IGridOccupant,
     IInfoable,
-    IWildlifeActorRestoreHost
+    IWildlifeActorRestoreHost,
+    ICapturedWildlifeFeedOutcomeTarget
 {
     private Grid grid;
     private WildlifeSpeciesDefinition species;
@@ -27,6 +28,7 @@ public sealed class WildlifeActor :
     private float headHealth;
     private float torsoHealth;
     private float limbHealth;
+    private string lastCaptiveFeedCommitId = string.Empty;
     private IGridPathSearchBroker pathSearchBroker;
     private ICharacterAiWorldRegistry worldRegistry;
     private IGameClock gameClock;
@@ -83,6 +85,7 @@ public sealed class WildlifeActor :
     public bool IsRestorePublicationPending =>
         RestoreLifecycle.IsPublicationPending;
     public float CombatMobility => Mathf.Lerp(0.45f, 1f, limbHealth / Mathf.Max(1f, GetLimbMaxHealth()));
+    public string LastCaptiveFeedCommitId => lastCaptiveFeedCommitId;
     public void PrepareForDetachedRestore() => RestoreLifecycle.Prepare();
     public void PublishDetachedRestore() => RestoreLifecycle.Publish();
     public void ValidateDetachedRestorePublication() =>
@@ -164,6 +167,8 @@ public sealed class WildlifeActor :
         HuntDesignated = saveData != null && saveData.huntDesignated;
         PriorityHunt = saveData != null && saveData.priorityHunt;
         ReservedByPersistentId = saveData?.reservedByPersistentId ?? string.Empty;
+        lastCaptiveFeedCommitId =
+            saveData?.lastCaptiveFeedCommitId ?? string.Empty;
         NaturalCondition.Initialize(
             saveData,
             position,
@@ -507,12 +512,33 @@ public sealed class WildlifeActor :
         return true;
     }
 
+#if UNITY_EDITOR
+    public bool TryRebindGridAfterExpansionForDebug(
+        Grid expectedCurrent,
+        Grid replacement,
+        out string failureReason) =>
+        TryRebindGridAfterExpansion(expectedCurrent, replacement, out failureReason);
+#endif
+
     internal bool CanRebindGridAfterExpansion(
         Grid expectedCurrent,
         Grid replacement,
         out string failureReason)
     {
         failureReason = string.Empty;
+        if (ReferenceEquals(grid, replacement)
+            && ReferenceEquals(
+                replacement?.GetGridCell(gridPosition)
+                    ?.GetOccupant(GridLayer.Wildlife),
+                this))
+        {
+            // Restore participants roll back in reverse order. The wildlife
+            // participant can therefore restore an actor to the prior grid
+            // before the facility/grid participant publishes that same prior
+            // grid. Treat that publication as an idempotent rebind instead of
+            // rejecting the whole rollback because the actor is already home.
+            return true;
+        }
         if (!ReferenceEquals(grid, expectedCurrent))
         {
             failureReason =
@@ -660,6 +686,42 @@ public sealed class WildlifeActor :
         NaturalCondition.SatisfyNeeds(food, water);
     }
 
+    public bool TryApplyCaptiveFeedOutcome(
+        string commitId,
+        float hungerTarget,
+        int healthTarget,
+        out bool applied)
+    {
+        applied = false;
+        string commit = commitId ?? string.Empty;
+        if (commit.Length == 0
+            || !string.Equals(commit, commit.Trim(), System.StringComparison.Ordinal)
+            || float.IsNaN(hungerTarget)
+            || float.IsInfinity(hungerTarget)
+            || hungerTarget is < 0f or > 1f
+            || healthTarget < 0
+            || healthTarget > MaxHealth)
+        {
+            return false;
+        }
+        if (string.Equals(
+                lastCaptiveFeedCommitId,
+                commit,
+                System.StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        NaturalCondition.SetHunger(hungerTarget);
+        if (CurrentHealth > healthTarget)
+        {
+            ApplyDamage(CurrentHealth - healthTarget, null);
+        }
+        lastCaptiveFeedCommitId = commit;
+        applied = true;
+        return true;
+    }
+
     public void SetIntent(WildlifeIntent newIntent, string reason)
     {
         NaturalCondition.SetIntent(newIntent, reason);
@@ -691,7 +753,8 @@ public sealed class WildlifeActor :
             hasCombatBodyProfile = true,
             headHealth = headHealth,
             torsoHealth = torsoHealth,
-            limbHealth = limbHealth
+            limbHealth = limbHealth,
+            lastCaptiveFeedCommitId = lastCaptiveFeedCommitId
         };
         NaturalCondition.CaptureInto(saveData);
         return saveData;

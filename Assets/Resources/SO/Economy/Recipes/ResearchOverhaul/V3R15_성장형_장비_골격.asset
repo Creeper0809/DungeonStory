@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -63,6 +64,8 @@ MonoBehaviour:
   - itemId: material:treated-lumber
     amount: 1
   outputs:
-  - itemId: component:growth-frame
+  - outputLineId: output:recipe:component:growth-frame/000/main/component:growth-frame
+    role: 0
+    itemId: component:growth-frame
     amount: 1
     probability: 1

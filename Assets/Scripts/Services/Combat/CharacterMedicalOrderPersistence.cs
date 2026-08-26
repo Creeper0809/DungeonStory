@@ -2,18 +2,6 @@ using System.Collections.Generic;
 
 internal static class CharacterMedicalOrderPersistence
 {
-    public static readonly IReadOnlyDictionary<StockCategory, int> MedicineCost =
-        new Dictionary<StockCategory, int>
-        {
-            [StockCategory.Medicine] = 1
-        };
-
-    public static readonly IReadOnlyDictionary<StockCategory, int> ExtractedBloodCost =
-        new Dictionary<StockCategory, int>
-        {
-            [StockCategory.Biological] = 1
-        };
-
     public static CharacterMedicalOrder Clone(CharacterMedicalOrder source)
     {
         return new CharacterMedicalOrder
@@ -38,6 +26,24 @@ internal static class CharacterMedicalOrderPersistence
             treatmentPainReduction = source.treatmentPainReduction,
             treatmentMaterialDestinationId =
                 source.treatmentMaterialDestinationId ?? string.Empty,
+            treatmentSupplyCommitPhase = source.treatmentSupplyCommitPhase,
+            treatmentSupplyOperationSequence =
+                source.treatmentSupplyOperationSequence,
+            treatmentSupplyOperationId =
+                source.treatmentSupplyOperationId ?? string.Empty,
+            treatmentSupplyReasonCode =
+                source.treatmentSupplyReasonCode ?? string.Empty,
+            treatmentPhysicalItemId =
+                source.treatmentPhysicalItemId ?? string.Empty,
+            treatmentPhysicalQuantity = source.treatmentPhysicalQuantity,
+            treatmentOutputX = source.treatmentOutputX,
+            treatmentOutputY = source.treatmentOutputY,
+            treatmentSourceStackIds = source.treatmentSourceStackIds != null
+                ? new List<string>(source.treatmentSourceStackIds)
+                : new List<string>(),
+            treatmentInputMassGrams = source.treatmentInputMassGrams,
+            treatmentPhysicalCommitId =
+                source.treatmentPhysicalCommitId ?? string.Empty,
             patientX = source.patientX,
             patientY = source.patientY,
             bedX = source.bedX,

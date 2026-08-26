@@ -37,12 +37,22 @@ public static class SurvivalDebugScenarios
         Run("consumables_save_payload", VerifyConsumablesSavePayload, errors);
         Run("consumables_typed_failures", VerifyConsumablesTypedFailures, errors);
         Run("consumables_physical_exactly_once", VerifyConsumablesPhysicalExactlyOnce, errors);
+        Run("packaged_consumable_missing_tare_recovery", VerifyPackagedConsumableMissingTareRecovery, errors);
         Run("stale_meal_need_is_benign_cancellation", VerifyStaleMealNeedClassification, errors);
         Run("meal_four_second_commit_and_spoil_abort", VerifyMealFourSecondCommitAndSpoilAbort, errors);
         Run("tavern_recreational_substance_service", VerifyTavernRecreationalSubstanceService, errors);
         Run("consumables_strict_restore", VerifyConsumablesStrictRestore, errors);
         return errors;
     }
+
+    public static string RunMealV7PendingOutboxFocused() =>
+        VerifyMealFourSecondCommitAndSpoilAbort();
+
+    public static string RunSubstanceV8PendingOutboxFocused() =>
+        VerifyConsumablesPhysicalExactlyOnce();
+
+    public static string RunPackagedConsumableTareRecoveryFocused() =>
+        VerifyPackagedConsumableMissingTareRecovery();
 
     private static string VerifyStaleMealNeedClassification()
     {
@@ -99,8 +109,22 @@ public static class SurvivalDebugScenarios
             actor = actorObject.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(actorObject);
             actor.EnsureRuntimeState();
+            CharacterSO characterData = CharacterAiEditorTestDependencies
+                .ContentDefinitions.GetAll<CharacterSO>()
+                .Where(value => value != null
+                    && value.characterType == CharacterType.NPC
+                    && value.role != CharacterRole.Owner
+                    && value.DefinitionId.IsValid)
+                .OrderBy(value => value.DefinitionId.Value, StringComparer.Ordinal)
+                .FirstOrDefault()
+                ?? throw new InvalidOperationException(
+                    "No authored NPC archetype is available for the meal V7 fixture.");
+            actor.data = characterData;
+            actor.characterType = CharacterType.NPC;
             actor.Identity.SetPersistentId("character:meal-action-test");
             actor.SetLifecycleState(CharacterLifecycleState.Active);
+            if (actor.IsUnpublishedComposition)
+                actor.PublishComposition();
             world.RegisterCharacter(actor);
             world.RegisterCharacterLifetime(actor);
 
@@ -124,7 +148,10 @@ public static class SurvivalDebugScenarios
                 out _,
                 out _,
                 out ItemQuantityReservationService reservations,
-                out IReservedItemTransferService reservedTransfers);
+                out IReservedItemTransferService reservedTransfers,
+                out IReservedPhysicalItemBatchDispositionService reservedBatch,
+                out IPhysicalItemBatchDispositionService batch);
+            FailFirstAcknowledgeBatchDisposition failFirstAcknowledge = new(batch);
             IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
                 new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
             GameEventBus eventBus = new();
@@ -136,7 +163,9 @@ public static class SurvivalDebugScenarios
                 EmptyCombatCommands.Instance,
                 CharacterAiEditorTestDependencies.NeutralPerformance,
                 quantityReservations: reservations,
-                reservedTransfers: reservedTransfers);
+                reservedTransfers: reservedTransfers,
+                reservedBatchDispositions: reservedBatch,
+                batchDispositions: failFirstAcknowledge);
             MutableConsumablesClock clock = new();
             CharacterConsumablesRuntime runtime = new(
                 ports,
@@ -218,22 +247,69 @@ public static class SurvivalDebugScenarios
                 "meal committed before four seconds elapsed");
             clock.Advance(0.2f);
             runtime.Tick();
-            DungeonCharacterConsumablesSaveData completedSave = runtime.Capture();
+            DungeonCharacterConsumablesSaveData pendingAckSave = runtime.Capture();
             bool firstStackRemoved = !items.GetAllStacks().Any(
                 stack => stack.StackId == firstStack.StackId);
-            bool resultAvailable = runtime.TryGetMealOperationResult(
+            bool pendingResultAvailable = runtime.TryGetMealOperationResult(
                 firstCommand.OperationId,
-                out CharacterConsumablesMealResult operationResult);
+                out CharacterConsumablesMealResult pendingOperationResult);
             Require(firstStackRemoved
-                    && completedSave.completedOperations.Count == 1,
-                "meal did not commit exactly once after four seconds; "
+                    && pendingAckSave.completedOperations.Count == 1
+                    && pendingAckSave.activeMealPlans.Count == 1
+                    && pendingAckSave.activeMealPlans[0].phase
+                        == CharacterMealPlanPhase.EffectsPublished,
+                "meal did not retain its V7 effects-published outbox after the injected ack failure; "
                 + $"stackRemoved={firstStackRemoved}; "
-                + $"activePlans={completedSave.activeMealPlans.Count}; "
-                + $"completed={completedSave.completedOperations.Count}; "
-                + $"resultAvailable={resultAvailable}; "
-                + $"success={operationResult.Success}; "
-                + $"failure={operationResult.FailureCode}; "
-                + $"parameters=[{string.Join(",", operationResult.Parameters)}]");
+                + $"activePlans={pendingAckSave.activeMealPlans.Count}; "
+                + $"completed={pendingAckSave.completedOperations.Count}; "
+                + $"actorCanRun={actor.CanRunAi}; "
+                + $"resultAvailable={pendingResultAvailable}; "
+                + $"failure={pendingOperationResult.FailureCode}; "
+                + $"parameters=[{string.Join(",", pendingOperationResult.Parameters)}]");
+            DungeonCharacterConsumablesSaveData mismatchedReceipt =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    JsonUtility.ToJson(pendingAckSave));
+            mismatchedReceipt.activeMealPlans[0].physicalCommitInputMassGrams++;
+            RequireThrows<InvalidOperationException>(
+                () => runtime.BuildRestoreCandidate(mismatchedReceipt),
+                "meal V7 restore accepted mismatched pending receipt mass");
+            Require(batch.TryGetPending(firstCommand.OperationId.Value, out _),
+                "failed meal V7 restore validation mutated the pending receipt");
+            float hungerAfterEffects = actor.stats[CharacterCondition.HUNGER];
+            CharacterConsumablesRuntime ackRestoredRuntime = new(
+                ports,
+                ports,
+                ports,
+                clock,
+                new RandomStreamProvider(4204),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            ackRestoredRuntime.PublishRestoreCandidate(
+                ackRestoredRuntime.BuildRestoreCandidate(pendingAckSave));
+            runtime = ackRestoredRuntime;
+            runtime.Tick();
+            DungeonCharacterConsumablesSaveData completedSave = runtime.Capture();
+            bool completedResultAvailable = runtime.TryGetMealOperationResult(
+                firstCommand.OperationId,
+                out CharacterConsumablesMealResult completedOperationResult);
+            Require(completedSave.activeMealPlans.Count == 0
+                    && completedSave.completedOperations.Count == 1
+                    && completedResultAvailable
+                    && completedOperationResult.Success
+                    && Mathf.Approximately(
+                        actor.stats[CharacterCondition.HUNGER],
+                        hungerAfterEffects)
+                    && !batch.TryGetPending(firstCommand.OperationId.Value, out _),
+                "meal pending receipt did not acknowledge exactly once after restore, or effects replayed");
+            DungeonCharacterConsumablesSaveData missingPending =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    JsonUtility.ToJson(pendingAckSave));
+            missingPending.activeMealPlans[0].phase =
+                CharacterMealPlanPhase.ItemCommitted;
+            missingPending.completedOperations.Clear();
+            RequireThrows<InvalidOperationException>(
+                () => runtime.BuildRestoreCandidate(missingPending),
+                "meal V7 restore accepted ItemCommitted without its physical pending receipt");
 
             Require(items.SpawnItemAt(
                     FoodId,
@@ -296,7 +372,85 @@ public static class SurvivalDebugScenarios
                 "spoiled meal abort did not retain its typed diagnostic reason: "
                 + $"code={spoiledResult.FailureCode}; "
                 + $"parameters={string.Join(",", spoiledResult.Parameters)}");
-            return "pending=3.9s; committed=4.1s; spoiled=abort; leaseReleased=True; failure=ItemNotConsumable:meal-spoiled-before-commit";
+
+            FailFirstAcknowledgeBatchDisposition fieldAck = new(batch);
+            CharacterConsumablesApplicationPorts fieldPorts = new(
+                itemCatalog,
+                items,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                quantityReservations: reservations,
+                reservedTransfers: reservedTransfers,
+                reservedBatchDispositions: reservedBatch,
+                batchDispositions: fieldAck);
+            CharacterConsumablesRuntime fieldRuntime = new(
+                fieldPorts,
+                fieldPorts,
+                fieldPorts,
+                clock,
+                new RandomStreamProvider(4205),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            actor.stats[CharacterCondition.HUNGER] = 50f;
+            Require(items.SpawnItemAt(
+                    FoodId,
+                    1,
+                    new Vector2Int(2, 0),
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int fieldSpawned)
+                && fieldSpawned == 1,
+                "field-meal V7 fixture failed to spawn its physical serving");
+            WorldItemStackSnapshot fieldStack = items.GetAllStacks()
+                .Single(value => value.ItemId == FoodId
+                    && value.State == WorldItemStackState.Loose);
+            int fieldQuantityBefore = items.GetAllStacks()
+                .Where(value => value.ItemId == FoodId)
+                .Sum(value => value.Quantity);
+            Require(fieldRuntime.TryConsumeFieldMeal(
+                    CharacterPersistentIdentity.Require(actor),
+                    new ItemStackId(fieldStack.StackId),
+                    out CharacterConsumablesMealResult fieldResult)
+                && fieldResult.Success,
+                "field meal did not publish its result after the pending Sink commit");
+            DungeonCharacterConsumablesSaveData fieldPending = fieldRuntime.Capture();
+            Require(fieldPending.activeMealPlans.Count == 1
+                    && fieldPending.activeMealPlans[0].phase
+                        == CharacterMealPlanPhase.EffectsPublished
+                    && fieldPending.completedOperations.Count == 1
+                    && batch.TryGetPending(
+                        fieldPending.activeMealPlans[0].planId,
+                        out _)
+                    && items.GetAllStacks()
+                        .Where(value => value.ItemId == FoodId)
+                        .Sum(value => value.Quantity) == fieldQuantityBefore - 1,
+                "field meal did not preserve its exact pending receipt after ack failure");
+            float hungerAfterFieldMeal = actor.stats[CharacterCondition.HUNGER];
+            CharacterConsumablesRuntime restoredFieldRuntime = new(
+                fieldPorts,
+                fieldPorts,
+                fieldPorts,
+                clock,
+                new RandomStreamProvider(4205),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            restoredFieldRuntime.PublishRestoreCandidate(
+                restoredFieldRuntime.BuildRestoreCandidate(fieldPending));
+            restoredFieldRuntime.Tick();
+            DungeonCharacterConsumablesSaveData fieldCompleted =
+                restoredFieldRuntime.Capture();
+            Require(fieldCompleted.activeMealPlans.Count == 0
+                    && fieldCompleted.completedOperations.Count == 1
+                    && Mathf.Approximately(
+                        actor.stats[CharacterCondition.HUNGER],
+                        hungerAfterFieldMeal)
+                    && !batch.TryGetPending(
+                        fieldPending.activeMealPlans[0].planId,
+                        out _),
+                "field meal restore replayed effects or failed to acknowledge its receipt");
+            return "facility=pending/restore-exact; field=pending/restore-exact; spoiled=abort; leaseReleased=True";
         }
         finally
         {
@@ -1134,11 +1288,32 @@ public static class SurvivalDebugScenarios
             actor = actorObject.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(actorObject);
             actor.EnsureRuntimeState();
+            CharacterSO characterData = CharacterAiEditorTestDependencies
+                .ContentDefinitions.GetAll<CharacterSO>()
+                .Where(value => value != null
+                    && value.characterType == CharacterType.NPC
+                    && value.DefinitionId.IsValid)
+                .OrderBy(value => value.DefinitionId.Value, StringComparer.Ordinal)
+                .FirstOrDefault()
+                ?? throw new InvalidOperationException(
+                    "No authored NPC archetype is available for the substance V8 fixture.");
+            actor.data = characterData;
+            actor.characterType = CharacterType.NPC;
             actor.Identity.SetPersistentId(new CharacterId("character:consumables-fixture"));
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            if (actor.IsUnpublishedComposition)
+                actor.PublishComposition();
             world.RegisterCharacter(actor);
             world.RegisterCharacterLifetime(actor);
 
-            itemRuntime = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture();
+            itemRuntime = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                out WorldItemRepository repository,
+                out _,
+                out ItemQuantityReservationService reservations,
+                out IReservedItemTransferService reservedTransfers,
+                out IReservedPhysicalItemBatchDispositionService reservedBatch,
+                out IPhysicalItemBatchDispositionService batch);
+            FailFirstAcknowledgeBatchDisposition failFirstAcknowledge = new(batch);
             IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
                 new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
             CharacterConsumablesApplicationPorts ports = new CharacterConsumablesApplicationPorts(
@@ -1147,7 +1322,11 @@ public static class SurvivalDebugScenarios
                 world,
                 new GameEventBus(),
                 EmptyCombatCommands.Instance,
-                CharacterAiEditorTestDependencies.NeutralPerformance);
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                quantityReservations: reservations,
+                reservedTransfers: reservedTransfers,
+                reservedBatchDispositions: reservedBatch,
+                batchDispositions: failFirstAcknowledge);
             CharacterConsumablesRuntime core = new CharacterConsumablesRuntime(
                 ports,
                 ports,
@@ -1176,11 +1355,16 @@ public static class SurvivalDebugScenarios
                 .Single(value => value.ItemId == "drug:vitality-tonic");
             ConsumeSubstanceCommand command = new ConsumeSubstanceCommand(
                 new ConsumableOperationId("consumable-operation:fixture-once"),
-                new CharacterId("character:consumables-fixture"),
+                CharacterPersistentIdentity.Require(actor),
                 new ItemDefinitionId("drug:vitality-tonic"),
                 new ItemStackId(stack.StackId),
                 medicalContext: false,
                 combatContext: false);
+
+            Require(ports.TryGetActor(command.CharacterId, out _),
+                "substance V8 fixture actor was not visible through the production port; "
+                + $"actual={CharacterPersistentIdentity.Require(actor).Value}; "
+                + $"world=[{string.Join(",", ports.CharacterIds.Select(id => id.Value))}]");
 
             Require(runtime.TryConsume(command, out SubstanceUseResult first)
                     && first.Success
@@ -1189,6 +1373,27 @@ public static class SurvivalDebugScenarios
             int quantityAfterFirst = itemRuntime.GetAllStacks()
                 .Where(value => value.ItemId == "drug:vitality-tonic")
                 .Sum(value => value.Quantity);
+            DungeonCharacterConsumablesSaveData pendingSave = core.Capture();
+            Require(pendingSave.version == 8
+                    && pendingSave.activeSubstanceUsePlans.Count == 1
+                    && pendingSave.activeSubstanceUsePlans[0].phase
+                        == CharacterSubstanceUsePlanPhase.EffectsPublished
+                    && pendingSave.completedOperations.Count == 1
+                    && batch.TryGetPending(command.OperationId.Value, out _),
+                "substance V8 did not retain its effects-published pending outbox");
+            DungeonCharacterConsumablesSaveData mismatchedSubstanceReceipt =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    JsonUtility.ToJson(pendingSave));
+            mismatchedSubstanceReceipt.activeSubstanceUsePlans[0]
+                .physicalCommitInputMassGrams++;
+            RequireThrows<InvalidOperationException>(
+                () => core.BuildRestoreCandidate(mismatchedSubstanceReceipt),
+                "substance V8 restore accepted mismatched pending receipt mass");
+            Require(batch.TryGetPending(command.OperationId.Value, out _),
+                "failed substance V8 receipt validation mutated the pending disposition");
+            CharacterSubstanceState stateAfterEffects = core.GetSubstanceState(
+                command.CharacterId,
+                command.ItemDefinitionId.Value);
             Require(!runtime.TryConsume(command, out SubstanceUseResult duplicate)
                     && duplicate.FailureCode
                         == CharacterConsumablesFailureCode.AlreadyProcessed
@@ -1231,13 +1436,373 @@ public static class SurvivalDebugScenarios
                         == CharacterConsumablesFailureCode.ItemStackMissing
                     && missingFailure.Parameters.SequenceEqual(new[] { "stack:missing" }),
                 "missing physical substance did not return a typed failure");
-            DungeonCharacterConsumablesSaveData captured = core.Capture();
+            CharacterConsumablesRuntime restored = new CharacterConsumablesRuntime(
+                ports,
+                ports,
+                ports,
+                new UnityGameClock(),
+                new RandomStreamProvider(777777),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(pendingSave));
+            restored.Tick();
+            DungeonCharacterConsumablesSaveData captured = restored.Capture();
+            CharacterSubstanceState restoredState = restored.GetSubstanceState(
+                command.CharacterId,
+                command.ItemDefinitionId.Value);
             Require(quantityAfterFirst == 1
                     && quantityAfterDuplicate == 1
                     && captured.completedOperations.Count == 1
-                    && captured.completedOperations.Single().itemStackId == stack.StackId,
+                    && captured.completedOperations.Single().itemStackId == stack.StackId
+                    && captured.activeSubstanceUsePlans.Count == 0
+                    && !batch.TryGetPending(command.OperationId.Value, out _)
+                    && Mathf.Approximately(
+                        restoredState.tolerance,
+                        stateAfterEffects.tolerance)
+                    && Mathf.Approximately(
+                        restoredState.addiction,
+                        stateAfterEffects.addiction)
+                    && restoredState.addicted == stateAfterEffects.addicted
+                    && restoredState.overdosed == stateAfterEffects.overdosed,
                 "physical quantity or operation ledger diverged after duplicate command");
-            return $"stack={stack.StackId}; quantity=2->1->1; ledger=1";
+            DungeonCharacterConsumablesSaveData missingSubstanceReceipt =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    JsonUtility.ToJson(pendingSave));
+            missingSubstanceReceipt.activeSubstanceUsePlans[0].phase =
+                CharacterSubstanceUsePlanPhase.ItemCommitted;
+            missingSubstanceReceipt.completedOperations.Clear();
+            RequireThrows<InvalidOperationException>(
+                () => restored.BuildRestoreCandidate(missingSubstanceReceipt),
+                "substance V8 restore accepted ItemCommitted without its pending receipt");
+
+            WorldItemRepositoryEditorAccess.RemoveStack(repository, stack.StackId);
+            string carriedStackId = WorldItemRepositoryEditorAccess.AddStack(
+                repository,
+                "drug:vitality-tonic",
+                1,
+                WorldItemStackState.Carried,
+                destinationId: command.CharacterId.Value,
+                position: actor.GetNowXY());
+            CharacterCarryInventory carry =
+                actorObject.GetComponent<CharacterCarryInventory>()
+                ?? actorObject.AddComponent<CharacterCarryInventory>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            carry.Restore(new CharacterCarryInventorySaveData
+            {
+                items = new List<CharacterCarriedItemSaveData>
+                {
+                    new()
+                    {
+                        carriedStackId = carriedStackId,
+                        sourceStackId = carriedStackId,
+                        ownerOperationId = "consumable-operation:fixture-carried",
+                        itemId = "drug:vitality-tonic",
+                        quantity = 1
+                    }
+                }
+            });
+            FailFirstAcknowledgeBatchDisposition carriedAck = new(batch);
+            CharacterConsumablesApplicationPorts carriedPorts = new(
+                itemCatalog,
+                itemRuntime,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                quantityReservations: reservations,
+                reservedTransfers: reservedTransfers,
+                reservedBatchDispositions: reservedBatch,
+                batchDispositions: carriedAck);
+            CharacterConsumablesRuntime carriedCore = new(
+                carriedPorts,
+                carriedPorts,
+                carriedPorts,
+                new UnityGameClock(),
+                new RandomStreamProvider(90211),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            CharacterConsumablesCompatibilityAdapter carriedRuntime = new(carriedCore);
+            carriedRuntime.SetPolicy(
+                actor,
+                "substance:vitality-tonic",
+                SubstancePolicyMode.MoodThreshold,
+                moodThreshold: 100f);
+            ConsumeSubstanceCommand carriedCommand = new(
+                new ConsumableOperationId("consumable-operation:fixture-carried"),
+                command.CharacterId,
+                command.ItemDefinitionId,
+                new ItemStackId(carriedStackId),
+                medicalContext: false,
+                combatContext: false);
+            Require(carriedRuntime.TryConsume(
+                    carriedCommand,
+                    out SubstanceUseResult carriedResult)
+                    && carriedResult.Success
+                    && carry.Items.Count == 0
+                    && !itemRuntime.GetAllStacks().Any(value =>
+                        string.Equals(
+                            value.StackId,
+                            carriedStackId,
+                            StringComparison.Ordinal))
+                    && batch.TryGetPending(carriedCommand.OperationId.Value, out _),
+                "carried substance did not atomically leave carry/world custody; "
+                + $"success={carriedResult.Success};failure={carriedResult.FailureCode};"
+                + $"parameters=[{string.Join(",", carriedResult.Parameters)}];"
+                + $"carry={carry.Items.Count};"
+                + $"world={itemRuntime.GetAllStacks().Count(value => string.Equals(value.StackId, carriedStackId, StringComparison.Ordinal))};"
+                + $"worldDetail={string.Join("|", itemRuntime.GetAllStacks().Where(value => string.Equals(value.StackId, carriedStackId, StringComparison.Ordinal)).Select(value => $"{value.State}/q{value.Quantity}/r{value.ReservedQuantity}/a{value.AvailableQuantity}/d{value.DestinationId}"))};"
+                + $"pending={batch.TryGetPending(carriedCommand.OperationId.Value, out _)}");
+            DungeonCharacterConsumablesSaveData carriedPending = carriedCore.Capture();
+            CharacterConsumablesRuntime carriedRestored = new(
+                carriedPorts,
+                carriedPorts,
+                carriedPorts,
+                new UnityGameClock(),
+                new RandomStreamProvider(123456),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            carriedRestored.PublishRestoreCandidate(
+                carriedRestored.BuildRestoreCandidate(carriedPending));
+            carriedRestored.Tick();
+            Require(carriedRestored.Capture().activeSubstanceUsePlans.Count == 0
+                    && !batch.TryGetPending(carriedCommand.OperationId.Value, out _)
+                    && carry.Items.Count == 0,
+                "carried substance restore did not acknowledge without reminting cargo");
+            return $"stack={stack.StackId}; quantity=2->1->1; ledger=1; V8=ack-replay; carried=exact";
+        }
+        finally
+        {
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            itemRuntime?.Dispose();
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
+    private static string VerifyPackagedConsumableMissingTareRecovery()
+    {
+        const string ItemId = "drug:vitality-tonic";
+        const string ContainerId = "container:medical-vial";
+        const string OperationId =
+            "consumable-operation:fixture-packaged-missing-tare";
+        GameObject actorObject = new("Packaged Consumable Missing Tare Actor");
+        WorldItemStackRuntime itemRuntime = null;
+        CharacterActor actor = null;
+        ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;
+        try
+        {
+            CharacterId characterId = new(
+                "character:consumables-packaged-missing-tare");
+            PackagedConsumablesTestCatalog physicalCatalog = new();
+            itemRuntime = PhysicalItemDebugScenarios
+                .CreateRuntimeForCrossDomainFixture(
+                    physicalCatalog,
+                    out _,
+                    out _,
+                    out ItemQuantityReservationService reservations,
+                    out IReservedItemTransferService reservedTransfers,
+                    out IReservedPhysicalItemBatchDispositionService reservedBatch,
+                    out IPhysicalItemBatchDispositionService batch);
+
+            // Build the scenario actor after the shared physical-item fixture;
+            // that fixture composes its own temporary equipment owner and must
+            // never be allowed to capture this actor's persistent identity.
+            actor = actorObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.EnsureRuntimeState();
+            actor.data = CharacterAiEditorTestDependencies.ContentDefinitions
+                .GetAll<CharacterSO>()
+                .Where(value => value != null
+                    && value.characterType == CharacterType.NPC
+                    && value.role != CharacterRole.Owner
+                    && value.DefinitionId.IsValid)
+                .OrderBy(value => value.DefinitionId.Value, StringComparer.Ordinal)
+                .FirstOrDefault()
+                ?? throw new InvalidOperationException(
+                    "No authored NPC archetype is available for the packaged consumable fixture.");
+            actor.characterType = CharacterType.NPC;
+            actor.Identity.SetPersistentId(characterId);
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            if (actor.IsUnpublishedComposition)
+                actor.PublishComposition();
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+            IPackagedLotDefinitionQuery packagedLots =
+                itemRuntime.MassQuery as IPackagedLotDefinitionQuery;
+            Require(packagedLots != null
+                    && packagedLots.TryGetPackagedLot(
+                        (ItemDefinitionId)ItemId,
+                        out PackagedLotDefinitionSnapshot packagedLot)
+                    && packagedLot.TareMass.Value == 30L
+                    && packagedLot.TareDisposition
+                        == PackageTareDisposition.ReusableContainerReturn
+                    && packagedLot.ContainerItemId.Value == ContainerId,
+                "fixture vitality tonic was not captured as a reusable packaged lot");
+
+            IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            CharacterConsumablesApplicationPorts missingTarePorts = new(
+                itemCatalog,
+                itemRuntime,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                quantityReservations: reservations,
+                reservedTransfers: reservedTransfers,
+                reservedBatchDispositions: reservedBatch,
+                batchDispositions: batch,
+                tareDispositions: null);
+            CharacterConsumablesRuntime core = new(
+                missingTarePorts,
+                missingTarePorts,
+                missingTarePorts,
+                new UnityGameClock(),
+                new RandomStreamProvider(90212),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            CharacterConsumablesCompatibilityAdapter runtime = new(core);
+            runtime.SetPolicy(
+                actor,
+                "substance:vitality-tonic",
+                SubstancePolicyMode.MoodThreshold,
+                moodThreshold: 100f);
+            Require(itemRuntime.SpawnItemAt(
+                    ItemId,
+                    1,
+                    actor.GetNowXY(),
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int spawned)
+                && spawned == 1,
+                "fixture did not spawn its packaged physical consumable");
+            WorldItemStackSnapshot source = itemRuntime.GetAllStacks()
+                .Single(value => value.ItemId == ItemId);
+            ConsumeSubstanceCommand command = new(
+                new ConsumableOperationId(OperationId),
+                characterId,
+                new ItemDefinitionId(ItemId),
+                new ItemStackId(source.StackId),
+                medicalContext: false,
+                combatContext: false);
+
+            Require(missingTarePorts.TryGetActor(
+                    characterId,
+                    out CharacterConsumablesActorSnapshot actorSnapshot),
+                "packaged consumable fixture actor is not visible through the production port; "
+                + $"requested={characterId.Value};"
+                + $"identity={CharacterPersistentIdentity.Require(actor).Value};"
+                + $"world=[{string.Join(",", missingTarePorts.CharacterIds.Select(id => id.Value))}]");
+            Require(actorSnapshot.Active,
+                "packaged consumable fixture actor is visible but inactive");
+            Require(runtime.TryConsume(command, out SubstanceUseResult first)
+                    && first.Success,
+                $"packaged consumable did not publish its first effect: {first.FailureCode}");
+            DungeonCharacterConsumablesSaveData pending = core.Capture();
+            CharacterSubstanceState stateAfterEffects = core.GetSubstanceState(
+                characterId,
+                ItemId);
+            float toleranceAfterEffects = stateAfterEffects.tolerance;
+            float addictionAfterEffects = stateAfterEffects.addiction;
+            Require(batch.TryGetPending(
+                    OperationId,
+                    out PhysicalItemBatchDispositionReceipt receipt),
+                "missing tare service discarded the pending physical receipt");
+            Require(pending.activeSubstanceUsePlans.Count == 1
+                    && pending.activeSubstanceUsePlans[0].phase
+                        == CharacterSubstanceUsePlanPhase.EffectsPublished
+                    && pending.completedOperations.Count == 1
+                    && !itemRuntime.GetAllStacks().Any(value =>
+                        value.ItemId == ItemId)
+                    && !itemRuntime.GetAllStacks().Any(value =>
+                        value.ItemId == ContainerId),
+                "missing tare service did not retain the effects-published physical outbox");
+            Require(!missingTarePorts.TryAcknowledgeSubstanceConsumption(
+                        characterId,
+                        new ConsumableItemDefinitionId(ItemId),
+                        1,
+                        receipt.CommitId,
+                        out string missingFailure)
+                    && missingFailure
+                        == "substance-packaged-tare-service-missing"
+                    && batch.TryGetPending(OperationId, out _),
+                "packaged Sink bypassed the missing tare service gate");
+
+            core.Tick();
+            core.Tick();
+            DungeonCharacterConsumablesSaveData afterMissingRetries = core.Capture();
+            CharacterSubstanceState afterRetryState = core.GetSubstanceState(
+                characterId,
+                ItemId);
+            Require(afterMissingRetries.activeSubstanceUsePlans.Count == 1
+                    && afterMissingRetries.completedOperations.Count == 1
+                    && batch.TryGetPending(OperationId, out _)
+                    && Mathf.Approximately(
+                        afterRetryState.tolerance,
+                        toleranceAfterEffects)
+                    && Mathf.Approximately(
+                        afterRetryState.addiction,
+                        addictionAfterEffects),
+                "missing tare retries duplicated effects or discarded the pending receipt");
+
+            IPackagedLotTareDispositionService tare =
+                new PackagedLotTareDispositionService(
+                    packagedLots,
+                    new PackagedLotTareOutputGateway(itemRuntime));
+            CharacterConsumablesApplicationPorts restoredPorts = new(
+                itemCatalog,
+                itemRuntime,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                quantityReservations: reservations,
+                reservedTransfers: reservedTransfers,
+                reservedBatchDispositions: reservedBatch,
+                batchDispositions: batch,
+                tareDispositions: tare);
+            CharacterConsumablesRuntime restored = new(
+                restoredPorts,
+                restoredPorts,
+                restoredPorts,
+                new UnityGameClock(),
+                new RandomStreamProvider(90213),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance);
+            restored.PublishRestoreCandidate(
+                restored.BuildRestoreCandidate(afterMissingRetries));
+            restored.Tick();
+            DungeonCharacterConsumablesSaveData recovered = restored.Capture();
+            CharacterSubstanceState recoveredState = restored.GetSubstanceState(
+                characterId,
+                ItemId);
+            WorldItemStackSnapshot[] tareOutputs = itemRuntime.GetAllStacks()
+                .Where(value => value.ItemId == ContainerId)
+                .ToArray();
+            Require(recovered.activeSubstanceUsePlans.Count == 0
+                    && recovered.completedOperations.Count == 1
+                    && !batch.TryGetPending(OperationId, out _)
+                    && tareOutputs.Length == 1
+                    && tareOutputs[0].Quantity == 1
+                    && tareOutputs[0].State == WorldItemStackState.Loose
+                    && Mathf.Approximately(
+                        recoveredState.tolerance,
+                        toleranceAfterEffects)
+                    && Mathf.Approximately(
+                        recoveredState.addiction,
+                        addictionAfterEffects),
+                "restored tare service did not publish one container and close the outbox");
+
+            restored.Tick();
+            Require(itemRuntime.GetAllStacks()
+                        .Where(value => value.ItemId == ContainerId)
+                        .Sum(value => value.Quantity) == 1
+                    && restored.Capture().completedOperations.Count == 1,
+                "completed packaged Sink replay duplicated its tare or gameplay result");
+            return "missing-service=pending; effects=1; restored-tare=1; replay=0";
         }
         finally
         {
@@ -1277,7 +1842,20 @@ public static class SurvivalDebugScenarios
             actor = actorObject.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(actorObject);
             actor.EnsureRuntimeState();
+            actor.data = CharacterAiEditorTestDependencies.ContentDefinitions
+                .GetAll<CharacterSO>()
+                .Where(value => value != null
+                    && value.characterType == CharacterType.NPC
+                    && value.DefinitionId.IsValid)
+                .OrderBy(value => value.DefinitionId.Value, StringComparer.Ordinal)
+                .FirstOrDefault()
+                ?? throw new InvalidOperationException(
+                    "No authored NPC archetype is available for the tavern fixture.");
+            actor.characterType = CharacterType.NPC;
             actor.Identity.SetPersistentId(new CharacterId(actorId));
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            if (actor.IsUnpublishedComposition)
+                actor.PublishComposition();
             world.RegisterCharacter(actor);
             world.RegisterCharacterLifetime(actor);
 
@@ -1285,7 +1863,13 @@ public static class SurvivalDebugScenarios
             CharacterAiEditorTestDependencies.Inject(facility);
             facility.Initialization(d12, new Vector2Int(4, 4));
 
-            itemRuntime = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture();
+            itemRuntime = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                out _,
+                out _,
+                out ItemQuantityReservationService quantityReservations,
+                out IReservedItemTransferService reservedTransfers,
+                out IReservedPhysicalItemBatchDispositionService reservedBatch,
+                out IPhysicalItemBatchDispositionService batch);
             IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
                 new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
             CharacterConsumablesApplicationPorts ports = new CharacterConsumablesApplicationPorts(
@@ -1294,7 +1878,11 @@ public static class SurvivalDebugScenarios
                 world,
                 new GameEventBus(),
                 EmptyCombatCommands.Instance,
-                CharacterAiEditorTestDependencies.NeutralPerformance);
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                quantityReservations: quantityReservations,
+                reservedTransfers: reservedTransfers,
+                reservedBatchDispositions: reservedBatch,
+                batchDispositions: batch);
             CharacterConsumablesRuntime core = new CharacterConsumablesRuntime(
                 ports,
                 ports,
@@ -1936,6 +2524,154 @@ public static class SurvivalDebugScenarios
             Time += DeltaTime;
             FrameCount++;
         }
+    }
+
+    private sealed class FailFirstAcknowledgeBatchDisposition :
+        IPhysicalItemBatchDispositionService,
+        ICarriedPhysicalItemBatchDispositionService
+    {
+        private readonly IPhysicalItemBatchDispositionService inner;
+        private bool failed;
+
+        internal FailFirstAcknowledgeBatchDisposition(
+            IPhysicalItemBatchDispositionService inner)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        public bool TryCommit(
+            IReadOnlyList<PhysicalItemTransformInput> inputs,
+            PhysicalItemDispositionKind kind,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemBatchDispositionReceipt receipt,
+            out string failureReason) => inner.TryCommit(
+            inputs,
+            kind,
+            operationId,
+            reasonCode,
+            out receipt,
+            out failureReason);
+
+        public bool TryCommitPending(
+            IReadOnlyList<PhysicalItemTransformInput> inputs,
+            PhysicalItemDispositionKind kind,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemBatchDispositionReceipt receipt,
+            out string failureReason) => inner.TryCommitPending(
+            inputs,
+            kind,
+            operationId,
+            reasonCode,
+            out receipt,
+            out failureReason);
+
+        public bool Acknowledge(string commitId, out string failureReason)
+        {
+            if (!failed)
+            {
+                failed = true;
+                failureReason = "qa-injected-ack-failure";
+                return false;
+            }
+            return inner.Acknowledge(commitId, out failureReason);
+        }
+
+        public bool TryGetPending(
+            string operationId,
+            out PhysicalItemBatchDispositionReceipt receipt) =>
+            inner.TryGetPending(operationId, out receipt);
+
+        public bool TryCommitCarriedSinkPending(
+            string stackId,
+            int quantity,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemBatchDispositionReceipt receipt,
+            out string failureReason)
+        {
+            if (inner is not ICarriedPhysicalItemBatchDispositionService carried)
+            {
+                receipt = default;
+                failureReason = "qa-carried-pending-service-missing";
+                return false;
+            }
+            return carried.TryCommitCarriedSinkPending(
+                stackId,
+                quantity,
+                operationId,
+                reasonCode,
+                out receipt,
+                out failureReason);
+        }
+    }
+
+    private sealed class PackagedConsumablesTestCatalog :
+        IDungeonItemCatalogProvider
+    {
+        private const string PackagedItemId = "drug:vitality-tonic";
+        private const string ContainerItemId = "container:medical-vial";
+        private readonly Dictionary<string, DungeonItemDefinition> definitions =
+            new(StringComparer.Ordinal);
+
+        internal PackagedConsumablesTestCatalog()
+        {
+            foreach (DungeonItemDefinition source in
+                     EditorItemCatalogFactory.Create().All)
+            {
+                DungeonItemDefinition captured = source;
+                if (string.Equals(
+                        source.ItemId,
+                        PackagedItemId,
+                        StringComparison.Ordinal))
+                {
+                    captured = new DungeonItemDefinition(
+                        source.ItemId,
+                        source.DisplayName,
+                        source.Description,
+                        source.StockCategory,
+                        source.UnitPrice,
+                        source.Sprite,
+                        source.UnitWeight,
+                        source.MaxStack,
+                        source.EquipmentId,
+                        source.ResourceKind,
+                        packageTareGrams: 30,
+                        packageTareDisposition:
+                            PackageTareDisposition.ReusableContainerReturn,
+                        packageContainerItemId: ContainerItemId);
+                }
+                definitions.Add(captured.ItemId, captured);
+            }
+
+            if (!definitions.ContainsKey(PackagedItemId)
+                || !definitions.TryGetValue(
+                    ContainerItemId,
+                    out DungeonItemDefinition container)
+                || PhysicalMassGrams.FromCanonicalKilograms(
+                        container.UnitWeight).Value != 30L)
+            {
+                throw new InvalidOperationException(
+                    "Packaged consumable fixture requires vitality tonic and a 30g medical vial.");
+            }
+        }
+
+        public IReadOnlyList<DungeonItemDefinition> All =>
+            definitions.Values
+                .OrderBy(value => value.ItemId, StringComparer.Ordinal)
+                .ToArray();
+
+        public DungeonItemDefinition GetDefinition(string itemId) =>
+            TryGetDefinition(itemId, out DungeonItemDefinition definition)
+                ? definition
+                : throw new KeyNotFoundException(
+                    $"Unknown packaged consumable fixture item '{itemId}'.");
+
+        public bool TryGetDefinition(
+            string itemId,
+            out DungeonItemDefinition definition) =>
+            definitions.TryGetValue(itemId ?? string.Empty, out definition);
     }
 
     private sealed class FixedClimateQuery : IClimateQuery

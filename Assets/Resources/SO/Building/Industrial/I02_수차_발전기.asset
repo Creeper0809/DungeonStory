@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212033836254117
-    - rid: 7737212033836254118
-    - rid: 7737212033836254119
-    - rid: 7737212033836254120
-    - rid: 7737212033836254121
+    - rid: 7737212199244661648
+    - rid: 7737212199244661649
+    - rid: 7737212199244661650
+    - rid: 7737212199244661651
+    - rid: 7737212199244661652
   width: 3
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212033836254117
+    - rid: 7737212199244661648
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I02
-    - rid: 7737212033836254118
+    - rid: 7737212199244661649
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,7 +87,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737212033836254119
+    - rid: 7737212199244661650
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -117,7 +117,9 @@ MonoBehaviour:
           amount: 3
         - itemId: component:precision-parts
           amount: 1
-    - rid: 7737212033836254120
+        - itemId: component:waterwheel-drive-shaft
+          amount: 1
+    - rid: 7737212199244661651
       type: {class: BuildingPowerProducerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerProducerAbility
@@ -125,7 +127,7 @@ MonoBehaviour:
         requiresFuel: 0
         fuelItemId: material:low-fuel
         secondsPerFuel: 60
-    - rid: 7737212033836254121
+    - rid: 7737212199244661652
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

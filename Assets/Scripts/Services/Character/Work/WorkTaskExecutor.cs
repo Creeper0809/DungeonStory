@@ -179,6 +179,7 @@ public sealed class WorkTaskExecutor
     private float resumedGenericRequiredWork;
     private string activeRestockOperationId = string.Empty;
     private string activeRestockLeaseId = string.Empty;
+    private IRetailRestockOperationOwner activeRestockOwner;
     private IDisposable activeExecutionCancellationResource;
     private WorkPreWuExitKind lastPreWuExitKind;
     private string lastPreWuExitDetail = string.Empty;
@@ -255,6 +256,13 @@ public sealed class WorkTaskExecutor
     {
         ReleaseActiveRestockLease(ItemReservationReleaseReason.Replanned);
         ReleaseActiveExecutionCancellationResource();
+        // A new run is an ownership boundary. In normal flow AbilityWork stops
+        // and settles the previous coroutine first, but restore/replan can leave
+        // the coroutine reference cleared after its ledger operation was already
+        // published. Never erase that operation ID without settling it: doing so
+        // leaves the worker permanently owned by the old emergency ledger row
+        // and the first approved WU of this run fails as WorkerAlreadyActive.
+        CompleteEmergencyAccounting("superseded-before-work-run");
         currentRunId = runId;
         activeEmergencyOperationId = string.Empty;
         emergencyAccountingSequence = 0L;
@@ -990,7 +998,8 @@ public sealed class WorkTaskExecutor
         activeRestockOperationId = CreateRestockOperationId(
             restockActorId.Value,
             restockTargetId.Value,
-            saleItem.Id);
+            saleItem.Id,
+            runId);
         WorldItemReservedStackQuantity stockReservation = default;
         Vector2Int pickupStandPosition = default;
         bool reserved = false;
@@ -1026,6 +1035,20 @@ public sealed class WorkTaskExecutor
             yield break;
         }
         activeRestockLeaseId = stockReservation.LeaseId;
+        activeRestockOwner = restockTarget as IRetailRestockOperationOwner;
+        if (activeRestockOwner == null
+            || !activeRestockOwner.TryBeginRestockOperation(
+                activeRestockOperationId))
+        {
+            ReleaseActiveRestockLease(ItemReservationReleaseReason.Cancelled);
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.ResourceUnavailable,
+                    "restock-operation-owner-rejected"),
+                requestImmediateReplan: false);
+            work.isWorking = false;
+            yield break;
+        }
         actor?.Brain?.SetActionPhase(
             "\uC774\uB3D9",
             warehouseBuilding,
@@ -1155,6 +1178,32 @@ public sealed class WorkTaskExecutor
             yield break;
         }
 
+        CharacterCarryInventory restockCarry = CharacterCarryInventory.Ensure(actor);
+        int physicallyPickedUp = 0;
+        string pickupFailure = "restock-carry-runtime-unavailable";
+        if (restockCarry == null
+            || actor.WorldItemStackRuntime == null
+            || !actor.WorldItemStackRuntime.TryPickupReservedStackQuantity(
+                actor,
+                restockCarry,
+                stockReservation,
+                out physicallyPickedUp,
+                out pickupFailure)
+            || physicallyPickedUp <= 0)
+        {
+            ReleaseActiveRestockLease(ItemReservationReleaseReason.Replanned);
+            actor?.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.ResourceUnavailable,
+                    string.IsNullOrWhiteSpace(pickupFailure)
+                        ? "restock-physical-pickup-failed"
+                        : pickupFailure),
+                requestImmediateReplan: false);
+            work.isWorking = false;
+            yield break;
+        }
+        carriedAmount = physicallyPickedUp;
+
         if (!TryGetPathToBuilding(grid, actor, restockTarget, out Queue<GridMoveStep> pathToShop))
         {
             ReleaseActiveRestockLease(ItemReservationReleaseReason.Replanned);
@@ -1194,10 +1243,20 @@ public sealed class WorkTaskExecutor
             "\uBCF4\uCDA9 \uBC18\uC601",
             restockTarget,
             "restock:commit");
-        if (!reservedItemTransfers.TryConsumeReservedQuantity(
+        ReservedRetailStockTransferReceipt transferReceipt = null;
+        DomainFailure consumeFailure = new DomainFailure(
+            FailureCode.ItemTransferRequestFailed,
+            "retail-transfer-service-unavailable");
+        if (reservedItemTransfers is not IReservedRetailStockTransferService retailTransfers
+            || !retailTransfers.TryTakeReservedRetailLots(
                 activeRestockLeaseId,
                 carriedAmount,
-                out DomainFailure consumeFailure))
+                saleItem.Id,
+                authoredSaleItem.ItemDefinitionId.Value,
+                activeRestockOperationId,
+                restockCarry,
+                out transferReceipt,
+                out consumeFailure))
         {
             actor?.Brain?.ReportRuntimeActionFailure(
                 AIActionFailure.Create(
@@ -1208,18 +1267,31 @@ public sealed class WorkTaskExecutor
             work.isWorking = false;
             yield break;
         }
-        activeRestockLeaseId = string.Empty;
-        activeRestockOperationId = string.Empty;
-
-        int restocked = restockable.ReceiveRestock(
-            saleItem,
-            carriedAmount,
-            carriedAmount,
-            out string resultMessage);
-        int leftover = carriedAmount - restocked;
-        if (leftover > 0)
+        if (!restockable.TryReceiveExactRetailLots(
+                transferReceipt.Lots,
+                carriedAmount,
+                out int restocked,
+                out string resultMessage))
         {
-            ReturnCarriedStock(warehouse, saleItem, leftover);
+            if (!retailTransfers.TryRollbackRetailTransfer(
+                    transferReceipt,
+                    out DomainFailure rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Retail transfer '{transferReceipt.OperationId}' failed to rollback: {rollbackFailure}");
+            }
+            // The exact physical cargo is Carried again after rollback. End the
+            // operation only after that ownership is restored so the normal
+            // cancellation path drops it at the actor's current cell instead
+            // of leaving an ownerless carried slice behind.
+            ReleaseActiveRestockLease(ItemReservationReleaseReason.Cancelled);
+            restocked = 0;
+        }
+        else
+        {
+            // Shop ownership is now authoritative. Only now may the source
+            // quantity lease and the restock operation be completed.
+            ReleaseActiveRestockLease(ItemReservationReleaseReason.Completed);
         }
 
         actor?.AddActivity(CharacterActivityEvent.Work(
@@ -1391,23 +1463,54 @@ public sealed class WorkTaskExecutor
     private static string CreateRestockOperationId(
         string actorId,
         string targetId,
-        int saleItemId)
+        int saleItemId,
+        int runId)
     {
         if (string.IsNullOrWhiteSpace(actorId)
             || string.IsNullOrWhiteSpace(targetId)
-            || saleItemId < 0)
+            || saleItemId < 0
+            || runId <= 0)
         {
             throw new ArgumentException(
                 "Restock operation identity requires actor, target and sale item IDs.");
         }
-        return $"restock:{actorId.Trim()}:{targetId.Trim()}:{saleItemId}";
+        return $"restock:{actorId.Trim()}:{targetId.Trim()}:{saleItemId}:{runId:D8}";
     }
 
     private void ReleaseActiveRestockLease(ItemReservationReleaseReason reason)
     {
         string leaseId = activeRestockLeaseId;
+        string operationId = activeRestockOperationId;
+        IRetailRestockOperationOwner operationOwner = activeRestockOwner;
+        CharacterActor actor = work.WorkerActor;
+        if (!string.IsNullOrWhiteSpace(operationId)
+            && actor != null)
+        {
+            CharacterCarryInventory carry = actor.GetComponent<CharacterCarryInventory>();
+            bool ownsCargo = carry?.Items.Any(item => item != null
+                && item.quantity > 0
+                && string.Equals(
+                    item.ownerOperationId,
+                    operationId,
+                    StringComparison.Ordinal)) == true;
+            string dropFailure = "restock-drop-runtime-unavailable";
+            if (ownsCargo
+                && (actor.WorldItemStackRuntime
+                        is not IWorldItemCarryRecoveryRuntime carryRecovery
+                    || !carryRecovery.TryDropCarriedItems(
+                        actor,
+                        carry,
+                        new[] { operationId },
+                        out dropFailure)))
+            {
+                throw new InvalidOperationException(
+                    $"Restock cargo '{operationId}' could not be physically dropped before lease release: {dropFailure}");
+            }
+        }
         activeRestockLeaseId = string.Empty;
         activeRestockOperationId = string.Empty;
+        activeRestockOwner = null;
+        operationOwner?.EndRestockOperation(operationId);
         if (string.IsNullOrWhiteSpace(leaseId))
             return;
         if (work.WorkerActor?.WorldItemStackRuntime
@@ -1415,35 +1518,6 @@ public sealed class WorkTaskExecutor
         {
             leaseRuntime.ReleaseQuantityLease(leaseId, reason);
         }
-    }
-
-    private void ReturnCarriedStock(
-        IWarehouseFacility warehouse,
-        WarehouseRestockItem saleItem,
-        int amount)
-    {
-        if (warehouse == null
-            || !warehouse.HasWarehouseInventory
-            || warehouse.Inventory == null
-            || amount <= 0)
-        {
-            return;
-        }
-
-        IWorldItemStackRuntime physicalItems = work.WorkerActor?.WorldItemStackRuntime
-            ?? throw new InvalidOperationException(
-                "Returning restock cargo requires physical item runtime.");
-        if (!physicalItems.SpawnStockInWarehouse(
-                warehouse,
-                saleItem.Category,
-                amount,
-                out int restored)
-            || restored != amount)
-        {
-            throw new InvalidOperationException(
-                "Failed to return restock cargo to physical warehouse storage.");
-        }
-        work.MarkFacilityDynamicStateDirty();
     }
 
     private IEnumerator ExecuteWorkOrderRoutine(
@@ -2519,7 +2593,7 @@ public sealed class WorkTaskExecutor
             work.RecordApprovedWorkProgressForDiagnostics(amount);
             PublishWorkStarted(actor, workTypeId);
             if (allowAccident)
-                TryTriggerWorkAccident(actor, amount);
+                TryTriggerWorkAccident(actor, amount, workTypeId);
         }
     }
 
@@ -3028,7 +3102,8 @@ public sealed class WorkTaskExecutor
 
     private bool TryTriggerWorkAccident(
         CharacterActor actor,
-        float approvedWork)
+        float approvedWork,
+        WorkTypeId approvedWorkTypeId)
     {
         if (workAccidentOccurred
             || actor == null
@@ -3038,27 +3113,30 @@ public sealed class WorkTaskExecutor
             return false;
         }
 
+        if (!approvedWorkTypeId.IsValid)
+            throw new InvalidOperationException(
+                "Work accident execution requires the approved work type captured before progress commit.");
         if (performance == null || performanceContext == null)
             throw new InvalidOperationException(
                 "Work accident execution requires the character performance query.");
         if (!performanceContext.TryResolve(
                 actor,
                 work.assignedShop,
-                work.AssignedWorkTypeId,
+                approvedWorkTypeId,
                 out ProficiencyWorkProfile profile,
                 out string failureReason))
             throw new InvalidOperationException(failureReason);
         CharacterPerformanceSnapshot accident = performance.EvaluateWork(
             actor,
-            work.AssignedWorkTypeId,
+            approvedWorkTypeId,
             CharacterPerformanceResultChannel.AccidentRisk,
             performanceContext.BuildEvaluationContext(
                 profile,
-                new GameplayEffectContext(new[] { work.AssignedWorkTypeId.Value })));
+                new GameplayEffectContext(new[] { approvedWorkTypeId.Value })));
         if (!accident.IsApplicable)
             throw new InvalidOperationException(
                 accident.Failure?.Message
-                ?? $"Work accident performance '{work.AssignedWorkTypeId.Value}' is unavailable.");
+                ?? $"Work accident performance '{approvedWorkTypeId.Value}' is unavailable.");
         float accidentMultiplier = Mathf.Max(0f, accident.Value);
         float chance = 1f - Mathf.Exp(
             -BaseAccidentHazardPerApprovedWorkUnit
@@ -3069,7 +3147,7 @@ public sealed class WorkTaskExecutor
             "WorkTaskExecutor.TryTriggerWorkAccident",
             approvedWork,
             chance,
-            work.AssignedWorkTypeId.Value);
+            approvedWorkTypeId.Value);
         if (!workAccidentRandom.Chance(Mathf.Clamp01(chance)))
             return false;
 
@@ -3097,7 +3175,7 @@ public sealed class WorkTaskExecutor
             throw new InvalidOperationException(
                 $"Work accident failed to damage anatomy node '{injured.nodeId}'.");
         actor.AddActivity(CharacterActivityEvent.Work(
-            work.AssignedWorkType,
+            approvedWorkTypeId,
             CharacterActivityOutcomes.Failed,
             "작업 사고로 작업이 중단됨",
             work.assignedShop,

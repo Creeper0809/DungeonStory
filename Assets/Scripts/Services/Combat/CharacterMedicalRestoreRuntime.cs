@@ -171,6 +171,7 @@ internal sealed class CharacterMedicalRestoreServices
         ICharacterBodyHealthQuery bodyHealthQuery,
         ICharacterAiWorldRegistry worldRegistry,
         IResourceEconomyContentCatalog resourceCatalog,
+        IItemDefinitionCatalog itemDefinitions,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         BodyHealthQuery = bodyHealthQuery
@@ -179,6 +180,8 @@ internal sealed class CharacterMedicalRestoreServices
             ?? throw new ArgumentNullException(nameof(worldRegistry));
         ResourceCatalog = resourceCatalog
             ?? throw new ArgumentNullException(nameof(resourceCatalog));
+        ItemDefinitions = itemDefinitions
+            ?? throw new ArgumentNullException(nameof(itemDefinitions));
         AggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
@@ -186,6 +189,7 @@ internal sealed class CharacterMedicalRestoreServices
     internal ICharacterBodyHealthQuery BodyHealthQuery { get; }
     internal ICharacterAiWorldRegistry WorldRegistry { get; }
     internal IResourceEconomyContentCatalog ResourceCatalog { get; }
+    internal IItemDefinitionCatalog ItemDefinitions { get; }
     internal DungeonRuntimeAggregateRootStore AggregateRootStore { get; }
 }
 
@@ -231,6 +235,7 @@ internal sealed class CharacterMedicalRestoreCoordinator
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IResourceEconomyContentCatalog resourceCatalog;
+    private readonly IItemDefinitionCatalog itemDefinitions;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly Dictionary<string, CharacterMedicalDownedRegistration>
         liveDownedRegistrations;
@@ -256,6 +261,7 @@ internal sealed class CharacterMedicalRestoreCoordinator
         bodyHealthQuery = services.BodyHealthQuery;
         worldRegistry = services.WorldRegistry;
         resourceCatalog = services.ResourceCatalog;
+        itemDefinitions = services.ItemDefinitions;
         aggregateRootStore = services.AggregateRootStore;
         liveDownedRegistrations = projection.LiveDownedRegistrations;
         carriedPatientParents = projection.CarriedPatientParents;
@@ -281,7 +287,8 @@ internal sealed class CharacterMedicalRestoreCoordinator
         CharacterMedicalSaveValidation.Validate(
             saveData,
             report,
-            resourceCatalog);
+            resourceCatalog,
+            itemDefinitions);
         if (!report.Success)
         {
             throw new InvalidOperationException(

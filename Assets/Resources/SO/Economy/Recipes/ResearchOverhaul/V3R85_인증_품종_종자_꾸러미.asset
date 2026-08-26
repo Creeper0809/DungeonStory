@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:cloth
     amount: 1
   outputs:
-  - itemId: supply:certified-seed-kit
+  - outputLineId: output:recipe:supply:certified-seed-kit/000/main/supply:certified-seed-kit
+    role: 0
+    itemId: supply:certified-seed-kit
     amount: 2
     probability: 1

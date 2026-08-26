@@ -2513,16 +2513,10 @@ public static class FullGameManualQaRuntimeProbe
 
         int beforeShop = shop.CurrentStock;
         int beforeWarehouse = warehouse.Inventory.TotalStock;
-        bool clearedShopStock = false;
-        if (shop.MissingStock <= 0)
-        {
-            clearedShopStock = ClearShopStockForQa(shop);
-        }
-
-        int moved = shop.RestockFrom(new[] { warehouse }, 5, out string message);
+        bool requested = shop.TryRequestRestock(out string message);
         int afterShop = shop.CurrentStock;
         int afterWarehouse = warehouse.Inventory.TotalStock;
-        lines.Add($"INVENTORY sceneShop=True; sceneWarehouse=True; clearedShopStock={clearedShopStock}; moved={moved}; shopStock={beforeShop}->{afterShop}; warehouseStock={beforeWarehouse}->{afterWarehouse}; message={CompactText(message)}");
+        lines.Add($"INVENTORY sceneShop=True; sceneWarehouse=True; requested={requested}; immediateMutation={(beforeShop != afterShop || beforeWarehouse != afterWarehouse)}; shopStock={beforeShop}->{afterShop}; warehouseStock={beforeWarehouse}->{afterWarehouse}; message={CompactText(message)}");
     }
 
     private static void RunInvasionDefenseSceneProbe(
@@ -3944,23 +3938,6 @@ public static class FullGameManualQaRuntimeProbe
             .OrderByDescending((position) => Mathf.Abs(position.x - startPosition.x) + Mathf.Abs(position.y - startPosition.y))
             .FirstOrDefault();
         return destination != startPosition && grid.IsValidGridPos(destination);
-    }
-
-    private static bool ClearShopStockForQa(Shop shop)
-    {
-        if (shop == null)
-        {
-            return false;
-        }
-
-        FieldInfo field = typeof(Shop).GetField("stocks", BindingFlags.Instance | BindingFlags.NonPublic);
-        if (field == null)
-        {
-            return false;
-        }
-
-        field.SetValue(shop, new List<RemainStock>());
-        return true;
     }
 
     private static void DestroyTempObjects(IEnumerable<UnityEngine.Object> tempObjects)

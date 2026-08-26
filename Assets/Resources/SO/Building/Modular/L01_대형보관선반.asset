@@ -158,4 +158,5 @@ MonoBehaviour:
         abilityId: BuildingStorageAbility
         category: 1
         capacity: 60
+        maxStoredMassGrams: 25000
         allCategories: 1

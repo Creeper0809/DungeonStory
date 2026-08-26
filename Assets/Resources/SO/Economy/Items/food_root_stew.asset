@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8058
+  id: 8059
   itemId: food:root-stew
   displayName: "\uC7BF\uBD88\uBFCC\uB9AC \uC2A4\uD29C"
   description: "\uC5F4\uB7C9\uC774 \uB192\uC740 \uBE44\uAC74 \uC2A4\uD29C."
@@ -31,34 +31,34 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 9
   features:
-  - rid: 7737211905666712214
-  - rid: 7737211905666712215
-  - rid: 7737211905666712217
-  - rid: 7737212042831201249
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712214
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:crops
-    - rid: 7737211905666712215
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211905666712217
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.56337035
+    - rid: 1003
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 0
         qualityBand: 1
         servingRole: 0
-        nutrition: 38
-        mood: 3
+        nutrition: 40
+        mood: 2
         freshnessSeconds: 360
         preserved: 0
-    - rid: 7737212042831201249
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.56337035

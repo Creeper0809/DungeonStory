@@ -299,7 +299,8 @@ public static class CaptivitySaveValidation
         if (captive.status == CaptivityStatus.Labor
             && (captive.laborPermissions == CaptiveLaborPermission.None
                 || captive.assignedLaborToolItemId.Length == 0
-                || captive.assignedLaborToolDurability <= 0f))
+                || captive.assignedLaborToolDurability <= 0f
+                || !captive.laborToolAssignmentCompleted))
         {
             report.AddError(
                 $"Captive '{captiveId}' is in labor state without labor permissions.");
@@ -317,6 +318,8 @@ public static class CaptivitySaveValidation
         }
         bool hasAssignedLaborTool =
             captive.assignedLaborToolItemId.Length > 0;
+        bool laborToolPending =
+            captive.pendingLaborPermissions != CaptiveLaborPermission.None;
         if (hasAssignedLaborTool
                 != (captive.assignedLaborToolInstanceId.Length > 0)
             || (hasAssignedLaborTool
@@ -326,20 +329,77 @@ public static class CaptivitySaveValidation
             report.AddError(
                 $"Captive '{captiveId}' has incoherent assigned labor-tool state.");
         }
-        bool laborToolPending =
-            captive.pendingLaborPermissions != CaptiveLaborPermission.None;
         if (laborToolPending != (captive.laborToolDestinationId.Length > 0)
             || HasUnknownLaborFlags(captive.pendingLaborPermissions))
         {
             report.AddError(
                 $"Captive '{captiveId}' has incoherent labor-tool delivery state.");
         }
+        ValidateLaborToolAssignment(
+            captive,
+            hasAssignedLaborTool,
+            laborToolPending,
+            report);
         if (captive.finalContractPending
             && captive.resolvedMilestoneChoice
                 != CaptivePerformerMilestoneChoice.None)
         {
             report.AddError(
                 $"Captive '{captiveId}' has both pending and resolved final contracts.");
+        }
+    }
+
+    private static void ValidateLaborToolAssignment(
+        CaptiveState captive,
+        bool hasAssignedLaborTool,
+        bool laborToolPending,
+        DungeonGameRestoreReport report)
+    {
+        bool hasProvenance = captive.laborToolAssignmentOperationId.Length > 0
+            || captive.laborToolAssignmentCommitId.Length > 0
+            || captive.laborToolAssignmentSourceStackId.Length > 0
+            || captive.laborToolAssignmentCompleted;
+        if (!hasAssignedLaborTool)
+        {
+            if (hasProvenance)
+            {
+                report.AddError(
+                    $"Captive '{captive.captiveId}' has labor-tool provenance without an assigned tool.");
+            }
+            return;
+        }
+
+        string expectedOperation =
+            CaptivityLaborToolAssignmentIdentity.FormatOperationId(
+                captive.captiveId,
+                captive.assignedLaborToolInstanceId);
+        string commitPrefix =
+            $"physical-batch-disposition:1:{expectedOperation}:1:";
+        string massToken = captive.laborToolAssignmentCommitId.StartsWith(
+                commitPrefix,
+                StringComparison.Ordinal)
+            ? captive.laborToolAssignmentCommitId.Substring(commitPrefix.Length)
+            : string.Empty;
+        bool validCommit = long.TryParse(
+                massToken,
+                System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out long massGrams)
+            && massGrams > 0L;
+        if (!string.Equals(
+                captive.assignedLaborToolItemId,
+                CaptivityItemDefinitions.PrisonerWorkKitItemId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                captive.laborToolAssignmentOperationId,
+                expectedOperation,
+                StringComparison.Ordinal)
+            || !IsCanonicalNonEmpty(captive.laborToolAssignmentSourceStackId)
+            || !validCommit
+            || (!captive.laborToolAssignmentCompleted && !laborToolPending))
+        {
+            report.AddError(
+                $"Captive '{captive.captiveId}' has invalid labor-tool assignment provenance.");
         }
     }
 
@@ -358,6 +418,9 @@ public static class CaptivitySaveValidation
             || captive.laborToolDestinationId == null
             || captive.assignedLaborToolItemId == null
             || captive.assignedLaborToolInstanceId == null
+            || captive.laborToolAssignmentOperationId == null
+            || captive.laborToolAssignmentCommitId == null
+            || captive.laborToolAssignmentSourceStackId == null
             || captive.currentInteractionId == null
             || captive.interactionMaterialDestinationId == null
             || captive.lastResult == null

@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -65,6 +66,8 @@ MonoBehaviour:
   - itemId: resource:clean-water
     amount: 8
   outputs:
-  - itemId: medical:whole-body-regeneration-medium
+  - outputLineId: output:recipe:medical:whole-body-regeneration-medium/000/main/medical:whole-body-regeneration-medium
+    role: 0
+    itemId: medical:whole-body-regeneration-medium
     amount: 1
     probability: 1

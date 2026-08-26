@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:cloth
     amount: 2
   outputs:
-  - itemId: apparel:chest-wrap
+  - outputLineId: output:recipe:v22:apparel:chest-wrap/000/main/apparel:chest-wrap
+    role: 0
+    itemId: apparel:chest-wrap
     amount: 1
     probability: 1

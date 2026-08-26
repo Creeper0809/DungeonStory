@@ -52,6 +52,9 @@ public sealed class BuildingProductionSupportAbility : BuildingAbility
     [Min(0f), InspectorName("단계당 폐수")]
     public float wastewaterPerCycle;
 
+    [InspectorName("폐수 조성")]
+    public ProcessWastewaterComposition wastewaterComposition;
+
     [InspectorName("물통 대체 허용")]
     public bool allowsManualWaterFallback;
 
@@ -140,6 +143,7 @@ public sealed class ProductionItemBufferCapacity
 public sealed class BuildingProductionBufferAbility : BuildingAbility
 {
     [Min(1)] public int defaultBatchCapacity = 4;
+    [Range(2, 4)] public int physicalOutputBufferCycleCapacity = 4;
     public List<ProductionItemBufferCapacity> outputCapacities = new();
     public bool allowOverflowDump = true;
     public Vector2Int overflowOffset = Vector2Int.right;

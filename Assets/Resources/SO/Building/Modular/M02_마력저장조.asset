@@ -165,6 +165,7 @@ MonoBehaviour:
         abilityId: BuildingStorageAbility
         category: 3
         capacity: 36
+        maxStoredMassGrams: 27000
         allCategories: 0
     - rid: 7737211921440178730
       type: {class: BuildingProductionAbility, ns: , asm: Assembly-CSharp}

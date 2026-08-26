@@ -98,12 +98,20 @@ public sealed class RunMilestonesSaveSection :
 {
     public const string Id = "run.milestones";
     private readonly IV20CampaignPersistence persistence;
-    public RunMilestonesSaveSection(IV20CampaignPersistence persistence) => this.persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
+    private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
+    public RunMilestonesSaveSection(
+        IV20CampaignPersistence persistence,
+        IPhysicalItemRestoreCandidateQuery physicalCandidates)
+    {
+        this.persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
+        this.physicalCandidates = physicalCandidates ?? throw new ArgumentNullException(nameof(physicalCandidates));
+    }
     public override string SectionId => Id;
     public override int SectionVersion => RunMilestoneWorldSaveData.CurrentVersion;
     public override DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.Presentation;
     public override IReadOnlyList<string> DependsOn => new[]
     {
+        PhysicalItemsSaveSection.Id,
         BlueprintResearchSaveSection.Id,
         ProductionBillsSaveSection.Id,
         OffenseAggregateSaveSection.Id,
@@ -111,6 +119,47 @@ public sealed class RunMilestonesSaveSection :
         CharacterCareerSaveSection.Id
     };
     protected override RunMilestoneWorldSaveData CapturePayload() => persistence.CaptureMilestones();
-    protected override RunMilestoneAggregateState BuildRestoreCandidate(RunMilestoneWorldSaveData payload) => persistence.PrepareMilestones(payload);
+    protected override RunMilestoneAggregateState BuildRestoreCandidate(RunMilestoneWorldSaveData payload)
+    {
+        ValidateAccordSignalPhysicalJoin(payload, physicalCandidates);
+        return persistence.PrepareMilestones(payload);
+    }
+
+    protected override void ValidateParsedPayload(
+        RunMilestoneWorldSaveData payload)
+    {
+        _ = persistence.PrepareMilestones(payload)
+            ?? throw new InvalidOperationException(
+                "Run milestone restore candidate builder returned null.");
+    }
+
+    public static void ValidateAccordSignalPhysicalJoin(
+        RunMilestoneWorldSaveData payload,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        const string prefix = "accord-signal-support:";
+        const string reason = "alliance-signal-kit-consumed";
+        if (payload == null || query == null || !query.IsCandidateAvailable)
+            throw new InvalidOperationException("Run milestone restore requires the incoming physical candidate.");
+        bool hasOwner = !string.IsNullOrEmpty(payload.pendingAccordSignalOperationId);
+        if (hasOwner)
+        {
+            if (!query.TryGetPendingBatchDisposition(payload.pendingAccordSignalOperationId, out PhysicalItemRestoreCandidateDispositionSnapshot receipt)
+                || receipt.Kind != PhysicalItemDispositionKind.Sink
+                || !string.Equals(receipt.ReasonCode, reason, StringComparison.Ordinal)
+                || !string.Equals(receipt.CommitId, payload.pendingAccordSignalCommitId, StringComparison.Ordinal)
+                || receipt.Quantity != 1
+                || receipt.InputMassGrams != payload.pendingAccordSignalMassGrams
+                || receipt.SourceStackIds.Count != 1
+                || !string.Equals(receipt.SourceStackIds[0], payload.pendingAccordSignalSourceStackId, StringComparison.Ordinal))
+                throw new InvalidOperationException("Pending accord signal has no exact incoming physical Sink receipt.");
+        }
+        foreach (PhysicalItemRestoreCandidateDispositionSnapshot receipt in query.PendingBatchDispositions)
+        {
+            if (receipt?.OperationId == null || !receipt.OperationId.StartsWith(prefix, StringComparison.Ordinal)) continue;
+            if (!hasOwner || !string.Equals(receipt.OperationId, payload.pendingAccordSignalOperationId, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Incoming accord signal Sink '{receipt.OperationId}' has no milestone owner.");
+        }
+    }
     protected override void PublishRestoreCandidate(RunMilestoneAggregateState candidate) => persistence.PublishMilestones(candidate);
 }

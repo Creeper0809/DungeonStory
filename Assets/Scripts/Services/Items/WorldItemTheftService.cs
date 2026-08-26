@@ -63,6 +63,8 @@ public sealed class WorldItemTheftService
                 || stack.quantity <= 0
                 || stack.state != WorldItemStackState.Loose
                 || stack.forbidden
+                || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                    stack.components)
                 || stack.quantity - stack.reservedQuantity <= 0)
             {
                 continue;
@@ -76,6 +78,8 @@ public sealed class WorldItemTheftService
             DungeonItemDefinition definition = catalog.GetDefinition(stack.itemId);
             if (inventory.GetMaxAcceptableQuantity(
                     stack.itemId,
+                    stack.itemInstanceId,
+                    stack.components,
                     1,
                     catalog,
                     haulingSettings) <= 0)
@@ -96,6 +100,13 @@ public sealed class WorldItemTheftService
             failureReason = "items.theft.no_loose_item";
             return false;
         }
+        if (FacilityOutputExactRouteCustodyCodec.HasAnyCustody(best.components))
+        {
+            failureReason = "items.theft.prepared_output_route_protected";
+            return false;
+        }
+
+        CharacterCarryInventorySaveData inventoryBefore = inventory.Capture();
         if (!inventory.TryAddPartialStack(
                 $"floor-theft:{best.stackId}:{clock.FrameCount}",
                 best.itemInstanceId,
@@ -113,6 +124,15 @@ public sealed class WorldItemTheftService
             failureReason = string.IsNullOrWhiteSpace(failureReason)
                 ? "items.theft.carry_limit"
                 : failureReason;
+            return false;
+        }
+
+        // Inventory Changed callbacks are allowed to run during publication.
+        // Revalidate the physical source immediately before its quantity commit.
+        if (FacilityOutputExactRouteCustodyCodec.HasAnyCustody(best.components))
+        {
+            inventory.Restore(inventoryBefore);
+            failureReason = "items.theft.prepared_output_route_protected";
             return false;
         }
 

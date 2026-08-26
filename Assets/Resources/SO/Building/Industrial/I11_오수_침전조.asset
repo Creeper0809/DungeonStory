@@ -53,12 +53,12 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212033836253818
-    - rid: 7737212033836253819
-    - rid: 7737212033836253820
-    - rid: 7737212033836253821
-    - rid: 7737212033836253822
-    - rid: 7737212033836253823
+    - rid: 7737212199244661508
+    - rid: 7737212199244661509
+    - rid: 7737212199244661510
+    - rid: 7737212199244661511
+    - rid: 7737212199244661512
+    - rid: 7737212199244661513
   width: 3
   height: 1
   layer: 1
@@ -74,12 +74,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212033836253818
+    - rid: 7737212199244661508
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I11
-    - rid: 7737212033836253819
+    - rid: 7737212199244661509
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -88,7 +88,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737212033836253820
+    - rid: 7737212199244661510
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -116,14 +116,14 @@ MonoBehaviour:
           amount: 6
         - itemId: component:machine-parts
           amount: 2
-    - rid: 7737212033836253821
+    - rid: 7737212199244661511
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7737212033836253822
+    - rid: 7737212199244661512
       type: {class: BuildingWastewaterProcessorAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWastewaterProcessorAbility
@@ -134,7 +134,7 @@ MonoBehaviour:
         sludgeItemId: industrial:sludge
         sludgeAmount: 1
         secondsPerBatch: 14
-    - rid: 7737212033836253823
+    - rid: 7737212199244661513
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

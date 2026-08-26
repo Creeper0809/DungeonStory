@@ -14,8 +14,16 @@ public sealed class WorldItemStackRuntime :
     IWorldItemQuantityLeaseRuntime,
     IWorldItemCarryRecoveryRuntime,
     IPhysicalItemRestoreStaging,
+    IPhysicalItemRestoreCandidateQuery,
+    IProductionInputDestinationCustodyDrainRestoreCandidateQuery,
+    IPhysicalItemRestoreCandidateOutputQuery,
+    IFacilityBufferPlannedOutputRestoreCandidateQuery,
+    IFacilityOutputExactRouteRestoreCandidateQuery,
+    IFacilityOutputExactRouteDeliveryRevisionRestoreCandidateQuery,
+    IDungeonRestoreTransactionParticipant,
     IWorldItemMarkerDataSource,
     IHaulPlanBuilder,
+    IWarehouseOverCapacityEvacuationQuery,
     IStartable,
     ITickable,
     IDisposable
@@ -27,6 +35,7 @@ public sealed class WorldItemStackRuntime :
 
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IDungeonItemCatalogProvider catalogProvider;
+    private readonly IPhysicalItemMassQuery massQuery;
     private readonly IItemHaulingSettingsProvider haulingSettingsProvider;
     private readonly ICharacterIdRegistry characterIdRegistry;
     private readonly IWorldDropZoneQuery worldDropZoneQuery;
@@ -45,8 +54,34 @@ public sealed class WorldItemStackRuntime :
     private readonly WorldItemWarehouseService warehouseService;
     private readonly IHaulDeliveryIntentQuery haulDeliveryIntentQuery;
     private readonly IHaulDeliveryIntentCommand haulDeliveryIntentCommands;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private int projectedRestoreRevision;
+    private IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
+        restoreCandidateDispositions;
+    private Dictionary<string, PhysicalItemRestoreCandidateDispositionSnapshot>
+        restoreCandidateDispositionsByOperation;
+    private IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
+        restoreCandidateInputDestinationDrains;
+    private Dictionary<string, ProductionInputDestinationCustodyDrainSaveData>
+        restoreCandidateInputDestinationDrainsByStep;
+    private IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot>
+        restoreCandidateOutputs;
+    private Dictionary<string,
+        IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot>>
+        restoreCandidateOutputsByCommit;
+    private IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
+        restoreCandidatePlannedOutputBatches;
+    private Dictionary<string, FacilityBufferPlannedOutputRestoreBatchSnapshot>
+        restoreCandidatePlannedOutputBatchesByCommit;
+    private IReadOnlyList<FacilityOutputExactRouteOutboxSaveData>
+        restoreCandidateExactOutputRoutes;
+    private Dictionary<string, FacilityOutputExactRouteOutboxSaveData>
+        restoreCandidateExactOutputRoutesByOperation;
+    private long restoreCandidateExactRouteCheckpointSequence;
+    private string restoreCandidateExactRouteCheckpointDigest = string.Empty;
+    private bool restoreCandidateLifetimeActive;
+    private bool restoreCandidateLifetimePublished;
 
     private List<WorldItemStackRecord> stacks => itemRepository.Records;
     private Dictionary<string, WorldItemStackRecord> stacksById => itemRepository.RecordsById;
@@ -60,7 +95,8 @@ public sealed class WorldItemStackRuntime :
         WorldItemReadServices readServices,
         WorldItemMutationServices mutationServices,
         WorldItemPersistenceService persistence,
-        WorldItemWarehouseService warehouseService)
+        WorldItemWarehouseService warehouseService,
+        IPhysicalItemBatchDispositionService batchDispositions)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.characterIdRegistry = characterIdRegistry ?? throw new ArgumentNullException(nameof(characterIdRegistry));
@@ -73,6 +109,7 @@ public sealed class WorldItemStackRuntime :
         WorldItemMutationServices requiredMutations = mutationServices
             ?? throw new ArgumentNullException(nameof(mutationServices));
         catalogProvider = requiredRead.Catalog;
+        massQuery = requiredRead.Mass;
         haulingSettingsProvider = requiredRead.HaulingSettings;
         itemQueryService = requiredRead.Queries;
         itemMarkerPresenter = requiredRead.Markers;
@@ -89,20 +126,189 @@ public sealed class WorldItemStackRuntime :
             ?? throw new ArgumentNullException(nameof(persistence));
         this.warehouseService = warehouseService
             ?? throw new ArgumentNullException(nameof(warehouseService));
+        this.batchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
         haulDeliveryIntentQuery = itemRepository.HaulDeliveryIntents;
         haulDeliveryIntentCommands = itemRepository.HaulDeliveryIntents;
     }
 
+    public bool TryCommitBatchPhysicalDisposition(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason) => batchDispositions.TryCommit(
+            inputs,
+            kind,
+            operationId,
+            reasonCode,
+            out receipt,
+            out failureReason);
+
+    public bool TryCommitPendingBatchPhysicalDisposition(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason) => batchDispositions.TryCommitPending(
+            inputs,
+            kind,
+            operationId,
+            reasonCode,
+            out receipt,
+            out failureReason);
+
+    public bool TryGetPendingBatchPhysicalDisposition(
+        string operationId,
+        out PhysicalItemBatchDispositionReceipt receipt) =>
+        batchDispositions.TryGetPending(operationId, out receipt);
+
+    public bool AcknowledgeBatchPhysicalDisposition(
+        string commitId,
+        out string failureReason) => batchDispositions.Acknowledge(
+            commitId,
+            out failureReason);
+
     public IDungeonItemCatalogProvider CatalogProvider => catalogProvider;
+    public IPhysicalItemMassQuery MassQuery => massQuery;
     public IItemHaulingSettingsProvider HaulingSettingsProvider => haulingSettingsProvider;
     public bool StoredItemMarkersVisible =>
         itemQueryService.StoredItemMarkersVisible;
     public int ItemStackVersion => itemRepository.ItemStackVersion;
     public int HaulJobVersion => itemRepository.HaulJobVersion;
+    public int Revision => itemRepository.WarehouseEvacuationRevision;
+
+    public bool SpawnItemAtWithComponents(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out int spawned)
+    {
+        spawned = itemSpawner.Spawn(
+            itemId,
+            amount,
+            position,
+            state,
+            destinationId,
+            components: components);
+        return spawned == amount;
+    }
+
+    public bool TryRemoveInstanceComponent(
+        string stackId,
+        string componentTypeId)
+    {
+        string stack = stackId ?? string.Empty;
+        string type = componentTypeId ?? string.Empty;
+        if (!stacksById.TryGetValue(stack, out WorldItemStackRecord record)
+            || record?.components == null
+            || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                record.components))
+        {
+            return false;
+        }
+        int removed = record.components.RemoveAll(component => component != null
+            && string.Equals(
+                component.componentTypeId,
+                type,
+                StringComparison.Ordinal));
+        if (removed != 1)
+        {
+            return false;
+        }
+        itemRepository.MarkChanged();
+        return true;
+    }
+
+    public IReadOnlyList<string> CapturePendingWarehouseIds() =>
+        itemRepository.CapturePendingWarehouseEvacuationIds();
+
+    public bool IsPending(string warehouseDestinationId)
+    {
+        string destinationId = warehouseDestinationId?.Trim() ?? string.Empty;
+        return destinationId.Length > 0
+            && itemRepository.CapturePendingWarehouseEvacuationIds()
+                .Contains(destinationId, StringComparer.Ordinal);
+    }
     public int GetCommittedHaulDeliveryQuantity(
         string destinationId,
         string itemId) =>
         haulDeliveryIntentQuery.GetCommittedQuantity(destinationId, itemId);
+
+    public long GetCommittedHaulDeliveryMassGrams(string destinationId)
+    {
+        string destination = destinationId ?? string.Empty;
+        if (destination.Length == 0
+            || !string.Equals(
+                destination,
+                destination.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "A canonical haul destination ID is required.",
+                nameof(destinationId));
+        }
+
+        long totalMassGrams = 0L;
+        foreach (HaulDeliveryIntentSaveData intent in
+                 haulDeliveryIntentQuery.CaptureCommitted()
+                     .Where(value => value != null
+                         && string.Equals(
+                             value.destinationId,
+                             destination,
+                             StringComparison.Ordinal))
+                     .OrderBy(value => value.operationId, StringComparer.Ordinal))
+        {
+            foreach (HaulDeliveryItemCommitmentSaveData commitment in
+                     (intent.commitments
+                         ?? new List<HaulDeliveryItemCommitmentSaveData>())
+                     .Where(value => value != null)
+                     .OrderBy(value => value.carriedStackId, StringComparer.Ordinal))
+            {
+                if (!stacksById.TryGetValue(
+                        commitment.carriedStackId,
+                        out WorldItemStackRecord carried)
+                    || carried == null
+                    || carried.state != WorldItemStackState.Carried
+                    || carried.quantity != commitment.quantity
+                    || !string.Equals(
+                        carried.itemId,
+                        commitment.itemId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        ItemReservationSignature.Create(
+                            carried.itemId,
+                            carried.components),
+                        commitment.expectedStackSignature,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Committed haul mass has no exact physical carried lot: "
+                        + $"{intent.operationId}:{commitment.carriedStackId}.");
+                }
+
+                ItemDefinitionId itemId = (ItemDefinitionId)carried.itemId;
+                PhysicalItemMassSubject subject =
+                    PhysicalItemMassSubjectAdapter.Create(
+                        massQuery,
+                        itemId,
+                        carried.itemInstanceId,
+                        carried.components);
+                totalMassGrams = checked(totalMassGrams
+                    + massQuery.GetQuantityMass(
+                        itemId,
+                        subject,
+                        carried.quantity).Value);
+            }
+        }
+
+        return totalMassGrams;
+    }
 
     public bool TryCommitHaulPickup(
         string ownerOperationId,
@@ -190,13 +396,100 @@ public sealed class WorldItemStackRuntime :
             out failureReason);
     }
 
+#if UNITY_EDITOR
+    [GameplayInternalOnly(
+        "Registers a durable haul intent in isolated Editor fixtures without exposing a production planning bypass.",
+        "Physical item focused Editor fixtures only")]
+    public bool TryRegisterHaulDeliveryPlanForEditorTest(
+        string operationId,
+        string ownerCharacterId,
+        WorldItemHaulDestinationKind destinationKind,
+        string destinationId,
+        Vector2Int deliveryPosition,
+        Vector2Int dropPosition,
+        out string failureReason) =>
+        TryRegisterHaulDeliveryPlanForEditorTest(
+            operationId,
+            ownerCharacterId,
+            destinationKind,
+            destinationId,
+            deliveryPosition,
+            dropPosition,
+            Array.Empty<WarehouseHaulAdmissionSaveData>(),
+            out failureReason);
+
+    [GameplayInternalOnly(
+        "Registers an exact warehouse-admission vector in isolated Editor fixtures without exposing a production planning bypass.",
+        "Capacity-routing actor transition focused Editor fixture only")]
+    public bool TryRegisterHaulDeliveryPlanForEditorTest(
+        string operationId,
+        string ownerCharacterId,
+        WorldItemHaulDestinationKind destinationKind,
+        string destinationId,
+        Vector2Int deliveryPosition,
+        Vector2Int dropPosition,
+        IReadOnlyList<WarehouseHaulAdmissionSaveData> warehouseAdmissions,
+        out string failureReason) =>
+        haulDeliveryIntentCommands.TryRegisterPlan(
+            operationId,
+            ownerCharacterId,
+            destinationKind,
+            destinationId,
+            deliveryPosition,
+            dropPosition,
+            warehouseAdmissions
+                ?? Array.Empty<WarehouseHaulAdmissionSaveData>(),
+            out failureReason);
+#endif
+
     public bool TryCaptureHaulDeliveryIntent(
         string ownerOperationId,
         out HaulDeliveryIntentSaveData intent) =>
         haulDeliveryIntentQuery.TryCapture(ownerOperationId, out intent);
 
-    public bool ReleaseHaulDeliveryIntent(string ownerOperationId) =>
-        haulDeliveryIntentCommands.Remove(ownerOperationId);
+    public IReadOnlyList<HaulDeliveryIntentSaveData>
+        CaptureHaulDeliveryIntentsByDestination(string destinationId)
+    {
+        string destination = destinationId?.Trim() ?? string.Empty;
+        if (destination.Length == 0)
+            return Array.Empty<HaulDeliveryIntentSaveData>();
+        return haulDeliveryIntentCommands.CaptureRuntimeState()
+            .Where(intent => intent != null
+                && string.Equals(
+                    intent.destinationId,
+                    destination,
+                    StringComparison.Ordinal))
+            .OrderBy(intent => intent.operationId, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    public bool ReleaseHaulDeliveryIntent(string ownerOperationId)
+    {
+        if (haulDeliveryIntentQuery.TryCapture(
+                ownerOperationId,
+                out HaulDeliveryIntentSaveData intent))
+        {
+            warehouseService.ReleaseHaulAdmissions(
+                intent,
+                WarehouseMassAdmissionReleaseReason.CancelledBeforePickup);
+        }
+        return haulDeliveryIntentCommands.Remove(ownerOperationId);
+    }
+
+    public bool TryRenewWarehouseAdmissionsForHaul(
+        string ownerOperationId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!haulDeliveryIntentQuery.TryCapture(
+                ownerOperationId,
+                out HaulDeliveryIntentSaveData intent))
+        {
+            failureReason = "haul delivery intent missing";
+            return false;
+        }
+        return warehouseService.TryRenewHaulAdmissions(intent, out failureReason);
+    }
     public void Start()
     {
         itemMarkerPresenter.Initialize(this);
@@ -206,17 +499,216 @@ public sealed class WorldItemStackRuntime :
 
     public void Tick()
     {
-        if (projectedRestoreRevision == aggregateRootStore.PublishedRestoreRevision)
+        if (projectedRestoreRevision != aggregateRootStore.PublishedRestoreRevision)
         {
-            return;
+            projectedRestoreRevision = aggregateRootStore.PublishedRestoreRevision;
+            ProjectRestoredWorldState();
         }
-
-        projectedRestoreRevision = aggregateRootStore.PublishedRestoreRevision;
-        ProjectRestoredWorldState();
+        warehouseService.TryScheduleNextOverCapacityEvacuation(
+            itemRepository.CapturePendingWarehouseEvacuationIds());
     }
 
     public void Dispose()
     {
+        ClearPhysicalRestoreCandidateIndex();
+        restoreCandidateLifetimeActive = false;
+        restoreCandidateLifetimePublished = false;
+    }
+
+    public string ParticipantId =>
+        "999.world.physical-item-restore-candidate-lifetime";
+
+    public void BeginRestoreCandidate()
+    {
+        if (restoreCandidateLifetimeActive)
+        {
+            throw new InvalidOperationException(
+                "Physical-item restore candidate lifetime is already active.");
+        }
+        if (!IsCandidateAvailable)
+        {
+            throw new InvalidOperationException(
+                "Physical-item restore candidate lifetime requires a staged candidate index.");
+        }
+
+        restoreCandidateLifetimeActive = true;
+        restoreCandidateLifetimePublished = false;
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        if (!restoreCandidateLifetimeActive
+            || restoreCandidateLifetimePublished
+            || !IsCandidateAvailable)
+        {
+            throw new InvalidOperationException(
+                "Physical-item restore candidate lifetime is not ready to publish.");
+        }
+
+        restoreCandidateLifetimePublished = true;
+    }
+
+    public void RollbackPublishedRestoreCandidate() =>
+        ResetPhysicalRestoreCandidateLifetime();
+
+    public void CompleteRestoreCandidate()
+    {
+        if (!restoreCandidateLifetimeActive
+            || !restoreCandidateLifetimePublished)
+        {
+            throw new InvalidOperationException(
+                "Physical-item restore candidate lifetime cannot complete.");
+        }
+
+        ResetPhysicalRestoreCandidateLifetime();
+    }
+
+    public void DiscardRestoreCandidate() =>
+        ResetPhysicalRestoreCandidateLifetime();
+
+    private void ResetPhysicalRestoreCandidateLifetime()
+    {
+        ClearPhysicalRestoreCandidateIndex();
+        restoreCandidateLifetimeActive = false;
+        restoreCandidateLifetimePublished = false;
+    }
+
+    public bool IsCandidateAvailable => restoreCandidateDispositions != null;
+
+    public IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
+        PendingBatchDispositions => restoreCandidateDispositions
+            ?? Array.Empty<PhysicalItemRestoreCandidateDispositionSnapshot>();
+
+    public bool TryGetPendingBatchDisposition(
+        string operationId,
+        out PhysicalItemRestoreCandidateDispositionSnapshot disposition)
+    {
+        disposition = null;
+        return restoreCandidateDispositionsByOperation != null
+            && restoreCandidateDispositionsByOperation.TryGetValue(
+                operationId ?? string.Empty,
+                out disposition);
+    }
+
+    IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
+        IProductionInputDestinationCustodyDrainRestoreCandidateQuery.Drains =>
+        restoreCandidateInputDestinationDrains
+        ?? Array.Empty<ProductionInputDestinationCustodyDrainSaveData>();
+
+    bool IProductionInputDestinationCustodyDrainRestoreCandidateQuery.TryGetDrain(
+        string stepOperationId,
+        out ProductionInputDestinationCustodyDrainSaveData drain)
+    {
+        drain = null;
+        if (restoreCandidateInputDestinationDrainsByStep == null
+            || !restoreCandidateInputDestinationDrainsByStep.TryGetValue(
+                stepOperationId ?? string.Empty,
+                out ProductionInputDestinationCustodyDrainSaveData found))
+        {
+            return false;
+        }
+        drain = found.Clone();
+        return true;
+    }
+
+    IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot>
+        IPhysicalItemRestoreCandidateOutputQuery.CommittedOutputs =>
+        restoreCandidateOutputs
+        ?? Array.Empty<PhysicalItemRestoreCandidateOutputSnapshot>();
+
+    bool IPhysicalItemRestoreCandidateOutputQuery.TryGetCommittedOutput(
+        string commitId,
+        out IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot> outputs)
+    {
+        outputs = Array.Empty<PhysicalItemRestoreCandidateOutputSnapshot>();
+        return restoreCandidateOutputsByCommit != null
+            && restoreCandidateOutputsByCommit.TryGetValue(
+                commitId ?? string.Empty,
+                out outputs);
+    }
+
+    IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
+        IFacilityBufferPlannedOutputRestoreCandidateQuery.Batches =>
+        restoreCandidatePlannedOutputBatches
+        ?? Array.Empty<FacilityBufferPlannedOutputRestoreBatchSnapshot>();
+
+    bool IFacilityBufferPlannedOutputRestoreCandidateQuery.TryGetBatch(
+        string batchCommitId,
+        out FacilityBufferPlannedOutputRestoreBatchSnapshot batch)
+    {
+        batch = null;
+        return restoreCandidatePlannedOutputBatchesByCommit != null
+            && restoreCandidatePlannedOutputBatchesByCommit.TryGetValue(
+                batchCommitId ?? string.Empty,
+                out batch);
+    }
+
+    IReadOnlyList<FacilityOutputExactRouteOutboxSaveData>
+        IFacilityOutputExactRouteRestoreCandidateQuery.Routes =>
+        restoreCandidateExactOutputRoutes
+        ?? Array.Empty<FacilityOutputExactRouteOutboxSaveData>();
+
+    IReadOnlyList<FacilityOutputExactRouteDeliveryRevisionSnapshot>
+        IFacilityOutputExactRouteDeliveryRevisionRestoreCandidateQuery
+            .CurrentDeliveryRevisions =>
+        (restoreCandidateExactOutputRoutes
+                ?? Array.Empty<FacilityOutputExactRouteOutboxSaveData>())
+            .Select(CreateDeliveryRevisionSnapshot)
+            .ToArray();
+
+    long IFacilityOutputExactRouteRestoreCandidateQuery
+        .LastConfirmedCheckpointSequence =>
+        restoreCandidateExactRouteCheckpointSequence;
+
+    string IFacilityOutputExactRouteRestoreCandidateQuery
+        .LastConfirmedCheckpointDigest =>
+        restoreCandidateExactRouteCheckpointDigest;
+
+    bool IFacilityOutputExactRouteRestoreCandidateQuery.TryGetRoute(
+        string routeOperationId,
+        out FacilityOutputExactRouteOutboxSaveData route)
+    {
+        route = null;
+        return restoreCandidateExactOutputRoutesByOperation != null
+            && restoreCandidateExactOutputRoutesByOperation.TryGetValue(
+                routeOperationId ?? string.Empty,
+                out route);
+    }
+
+    bool IFacilityOutputExactRouteDeliveryRevisionRestoreCandidateQuery
+        .TryGetCurrentDeliveryRevision(
+            string routeOperationId,
+            out FacilityOutputExactRouteDeliveryRevisionSnapshot revision)
+    {
+        revision = null;
+        if (restoreCandidateExactOutputRoutesByOperation == null
+            || !restoreCandidateExactOutputRoutesByOperation.TryGetValue(
+                routeOperationId ?? string.Empty,
+                out FacilityOutputExactRouteOutboxSaveData route))
+        {
+            return false;
+        }
+        revision = CreateDeliveryRevisionSnapshot(route);
+        return true;
+    }
+
+    private static FacilityOutputExactRouteDeliveryRevisionSnapshot
+        CreateDeliveryRevisionSnapshot(
+            FacilityOutputExactRouteOutboxSaveData route)
+    {
+        if (route == null)
+            throw new InvalidOperationException(
+                "Exact-route delivery revision source is null.");
+        return new FacilityOutputExactRouteDeliveryRevisionSnapshot(
+            route.routeOperationId,
+            route.physicalReceiptFingerprint,
+            route.currentDeliveryRevision,
+            route.currentDeliveryRevisionFingerprint,
+            route.currentDeliveryRerouteOperationId,
+            route.currentTargetDestinationId,
+            route.currentTargetPositionX,
+            route.currentTargetPositionY,
+            route.currentTargetAuthorityFingerprint);
     }
 
     public DungeonPhysicalItemSaveData Capture()
@@ -242,6 +734,231 @@ public sealed class WorldItemStackRuntime :
         return new DungeonDelegateSaveRestoreStage(
             PhysicalItemsSaveSection.Id,
             _ => CommitRestore(staged));
+    }
+
+    public IDungeonSaveRestoreStage StageTransactionalRestore(
+        DungeonPhysicalItemSaveData snapshot,
+        IRestoreWorldCandidateQuery restoreWorldCandidates)
+    {
+        IRestoreWorldCandidateQuery candidates = restoreWorldCandidates
+            ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
+        if (!candidates.TryGetBuildings(
+                out IReadOnlyList<BuildableObject> candidateBuildings))
+        {
+            throw new InvalidOperationException(
+                "Physical item transactional restore requires the detached facility-world candidate.");
+        }
+
+        WorldItemRestoreState staged = persistence.StageRestore(
+            snapshot,
+            candidateBuildings,
+            massQuery);
+        PublishPhysicalRestoreCandidateIndex(staged);
+        return new PhysicalItemCandidateSaveRestoreStage(this, staged);
+    }
+
+    private void PublishPhysicalRestoreCandidateIndex(
+        WorldItemRestoreState staged)
+    {
+        if (staged?.RepositoryState == null)
+        {
+            throw new ArgumentNullException(nameof(staged));
+        }
+        if (restoreCandidateDispositions != null
+            || restoreCandidateDispositionsByOperation != null
+            || restoreCandidateInputDestinationDrains != null
+            || restoreCandidateInputDestinationDrainsByStep != null
+            || restoreCandidateOutputs != null
+            || restoreCandidateOutputsByCommit != null
+            || restoreCandidatePlannedOutputBatches != null
+            || restoreCandidatePlannedOutputBatchesByCommit != null
+            || restoreCandidateExactOutputRoutes != null
+            || restoreCandidateExactOutputRoutesByOperation != null)
+        {
+            throw new InvalidOperationException(
+                "A physical-item restore candidate is already indexed.");
+        }
+
+        PhysicalItemRestoreCandidateDispositionSnapshot[] snapshots =
+            staged.RepositoryState.PendingBatchDispositions.Values
+                .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                .Select(value =>
+                    new PhysicalItemRestoreCandidateDispositionSnapshot(value))
+                .ToArray();
+        Dictionary<string, PhysicalItemRestoreCandidateDispositionSnapshot>
+            byOperation = new(StringComparer.Ordinal);
+        foreach (PhysicalItemRestoreCandidateDispositionSnapshot snapshot in
+                 snapshots)
+        {
+            if (!byOperation.TryAdd(snapshot.OperationId, snapshot))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate physical restore candidate operation '{snapshot.OperationId}'.");
+            }
+        }
+
+        ProductionInputDestinationCustodyDrainSaveData[] inputDrains = staged
+            .RepositoryState.PendingProductionInputDestinationDrains.Values
+            .OrderBy(value => value.stepOperationId, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToArray();
+        Dictionary<string, ProductionInputDestinationCustodyDrainSaveData>
+            inputDrainsByStep = new(StringComparer.Ordinal);
+        foreach (ProductionInputDestinationCustodyDrainSaveData drain in inputDrains)
+        {
+            if (drain == null
+                || !inputDrainsByStep.TryAdd(
+                    drain.stepOperationId,
+                    drain.Clone()))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate production input-destination drain restore candidate '{drain?.stepOperationId}'.");
+            }
+        }
+
+        PhysicalItemRestoreCandidateOutputSnapshot[] outputSnapshots =
+            staged.RepositoryState.Records
+                .Select(record => TryCreateCommittedOutputSnapshot(
+                    record,
+                    out PhysicalItemRestoreCandidateOutputSnapshot output)
+                    ? output
+                    : null)
+                .Where(output => output != null)
+                .OrderBy(output => output.CommitId, StringComparer.Ordinal)
+                .ThenBy(output => output.StackId, StringComparer.Ordinal)
+                .ToArray();
+        Dictionary<string,
+            IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot>>
+            outputsByCommit = outputSnapshots
+                .GroupBy(output => output.CommitId, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => (IReadOnlyList<
+                        PhysicalItemRestoreCandidateOutputSnapshot>)
+                        Array.AsReadOnly(group.ToArray()),
+                    StringComparer.Ordinal);
+        FacilityBufferPlannedOutputRestoreBatchSnapshot[] plannedBatches =
+            FacilityBufferPlannedOutputRestoreCandidateFactory
+            .CapturePendingBatches(
+                staged.RepositoryState.Records,
+                massQuery)
+            .OrderBy(value => value.BatchCommitId, StringComparer.Ordinal)
+            .ToArray();
+        Dictionary<string, FacilityBufferPlannedOutputRestoreBatchSnapshot>
+            plannedByCommit = new(StringComparer.Ordinal);
+        foreach (FacilityBufferPlannedOutputRestoreBatchSnapshot planned in
+                 plannedBatches)
+        {
+            if (!plannedByCommit.TryAdd(planned.BatchCommitId, planned))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate planned-output restore batch '{planned.BatchCommitId}'.");
+            }
+        }
+        FacilityOutputExactRouteOutboxSaveData[] exactRoutes =
+            (staged.ExactRouteCandidate?.Routes
+                ?? Array.Empty<FacilityOutputExactRouteOutboxSaveData>())
+            .OrderBy(value => value.routeOperationId, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToArray();
+        long exactRouteCheckpointSequence = staged.ExactRouteCandidate?
+            .CheckpointSequence
+            ?? throw new InvalidOperationException(
+                "Physical restore has no exact-route checkpoint candidate.");
+        string exactRouteCheckpointDigest = staged.ExactRouteCandidate
+            .CheckpointDigest;
+        Dictionary<string, FacilityOutputExactRouteOutboxSaveData>
+            exactRoutesByOperation = new(StringComparer.Ordinal);
+        foreach (FacilityOutputExactRouteOutboxSaveData route in exactRoutes)
+        {
+            if (route == null
+                || !exactRoutesByOperation.TryAdd(
+                    route.routeOperationId,
+                    route))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate exact-output-route restore candidate '{route?.routeOperationId}'.");
+            }
+        }
+        // Candidate publication must be a non-failing pointer/map swap. Keep
+        // every potentially throwing projection and duplicate check above in
+        // locals so a rejected candidate cannot leave a partially visible
+        // cross-section restore index behind.
+        restoreCandidateDispositions = Array.AsReadOnly(snapshots);
+        restoreCandidateDispositionsByOperation = byOperation;
+        restoreCandidateInputDestinationDrains = Array.AsReadOnly(inputDrains);
+        restoreCandidateInputDestinationDrainsByStep = inputDrainsByStep;
+        restoreCandidateOutputs = Array.AsReadOnly(outputSnapshots);
+        restoreCandidateOutputsByCommit = outputsByCommit;
+        restoreCandidatePlannedOutputBatches = Array.AsReadOnly(plannedBatches);
+        restoreCandidatePlannedOutputBatchesByCommit = plannedByCommit;
+        restoreCandidateExactOutputRoutes = Array.AsReadOnly(exactRoutes);
+        restoreCandidateExactOutputRoutesByOperation = exactRoutesByOperation;
+        restoreCandidateExactRouteCheckpointSequence =
+            exactRouteCheckpointSequence;
+        restoreCandidateExactRouteCheckpointDigest =
+            exactRouteCheckpointDigest;
+    }
+
+    private bool TryCreateCommittedOutputSnapshot(
+        WorldItemStackRecord record,
+        out PhysicalItemRestoreCandidateOutputSnapshot output)
+    {
+        output = null;
+        ItemInstanceComponentSaveData commitComponent = (record?.components
+                ?? new List<ItemInstanceComponentSaveData>())
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.componentTypeId,
+                    ItemInstanceComponentIds.ProductionOutputCommit,
+                    StringComparison.Ordinal));
+        ItemStateValueSaveData commitField = commitComponent?.values
+            ?.SingleOrDefault(value => value != null
+                && string.Equals(value.key, "commit-id", StringComparison.Ordinal)
+                && value.kind == ItemStateValueKind.String);
+        string commitId = commitField?.stringValue ?? string.Empty;
+        if (record == null
+            || record.quantity <= 0
+            || string.IsNullOrWhiteSpace(commitId))
+        {
+            return false;
+        }
+
+        PhysicalItemMassSubject subject = PhysicalItemMassSubjectAdapter.Create(
+            massQuery,
+            (ItemDefinitionId)record.itemId,
+            record.itemInstanceId,
+            record.components);
+        long massGrams = massQuery.GetQuantityMass(
+            (ItemDefinitionId)record.itemId,
+            subject,
+            record.quantity).Value;
+        output = new PhysicalItemRestoreCandidateOutputSnapshot(
+            commitId,
+            record.stackId,
+            record.itemId,
+            record.quantity,
+            massGrams,
+            record.state,
+            record.position,
+            record.destinationId);
+        return true;
+    }
+
+    private void ClearPhysicalRestoreCandidateIndex()
+    {
+        restoreCandidateDispositions = null;
+        restoreCandidateDispositionsByOperation = null;
+        restoreCandidateInputDestinationDrains = null;
+        restoreCandidateInputDestinationDrainsByStep = null;
+        restoreCandidateOutputs = null;
+        restoreCandidateOutputsByCommit = null;
+        restoreCandidatePlannedOutputBatches = null;
+        restoreCandidatePlannedOutputBatchesByCommit = null;
+        restoreCandidateExactOutputRoutes = null;
+        restoreCandidateExactOutputRoutesByOperation = null;
+        restoreCandidateExactRouteCheckpointSequence = 0L;
+        restoreCandidateExactRouteCheckpointDigest = string.Empty;
     }
 
     private void CommitRestore(WorldItemRestoreState staged)
@@ -501,7 +1218,9 @@ public sealed class WorldItemStackRuntime :
             || !stacksById.TryGetValue(
                 stackId?.Trim() ?? string.Empty,
                 out WorldItemStackRecord stack)
-            || stack == null)
+            || stack == null
+            || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                stack.components))
         {
             return false;
         }
@@ -975,6 +1694,69 @@ public sealed class WorldItemStackRuntime :
         return false;
     }
 
+    private sealed class PhysicalItemCandidateSaveRestoreStage :
+        IDungeonSaveRestoreStage,
+        IDungeonDiscardableSaveRestoreStage
+    {
+        private WorldItemStackRuntime owner;
+        private WorldItemRestoreState staged;
+        private bool committed;
+
+        internal PhysicalItemCandidateSaveRestoreStage(
+            WorldItemStackRuntime owner,
+            WorldItemRestoreState staged)
+        {
+            this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
+            this.staged = staged ?? throw new ArgumentNullException(nameof(staged));
+        }
+
+        public string SectionId => PhysicalItemsSaveSection.Id;
+
+        public void Commit(DungeonGameRestoreReport report)
+        {
+            _ = report ?? throw new ArgumentNullException(nameof(report));
+            WorldItemStackRuntime requiredOwner = owner
+                ?? throw new InvalidOperationException(
+                    "Physical-item restore stage was already consumed.");
+            requiredOwner.CommitRestore(staged);
+            committed = true;
+            staged = null;
+            owner = null;
+        }
+
+        public void Discard()
+        {
+            if (committed || owner == null)
+            {
+                return;
+            }
+            owner.ClearPhysicalRestoreCandidateIndex();
+            staged = null;
+            owner = null;
+        }
+    }
+
+    public bool TryDropCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IReadOnlyCollection<string> ownerOperationIds,
+        HaulCarryDropContext context,
+        out string failureReason)
+    {
+        if (itemTransferService is ICarriedItemDropService dropService)
+        {
+            return dropService.TryDropCarriedItems(
+                actor,
+                inventory,
+                ownerOperationIds,
+                context,
+                out failureReason);
+        }
+
+        failureReason = "carried item drop service unavailable";
+        return false;
+    }
+
     public bool TryDropCarriedItems(
         CharacterActor actor,
         CharacterCarryInventory inventory,
@@ -1017,8 +1799,9 @@ public sealed class WorldItemStackRuntime :
         out string failureReason)
     {
         failureReason = string.Empty;
+        string canonicalDestination = destinationId?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(stackId)
-            || string.IsNullOrWhiteSpace(destinationId)
+            || canonicalDestination.Length == 0
             || !stacksById.TryGetValue(stackId, out WorldItemStackRecord record)
             || record == null
             || record.quantity <= 0
@@ -1028,8 +1811,24 @@ public sealed class WorldItemStackRuntime :
             return false;
         }
 
+        if (canonicalDestination.StartsWith(
+                ReservedTargetDestinationIdentity.PowerFuelPrefix,
+                StringComparison.Ordinal))
+        {
+            failureReason =
+                "items.delivery.facility_buffer_managed_route_required";
+            return false;
+        }
+        if (FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                record.components))
+        {
+            failureReason =
+                "items.delivery.prepared_output_route_protected";
+            return false;
+        }
+
         record.state = state;
-        record.destinationId = destinationId.Trim();
+        record.destinationId = canonicalDestination;
         record.sourceStorageDestinationId = string.Empty;
         record.hasDestinationPosition = true;
         record.destinationPosition = destinationPosition;
@@ -1042,7 +1841,9 @@ public sealed class WorldItemStackRuntime :
     public bool DeleteStack(string stackId)
     {
         if (string.IsNullOrWhiteSpace(stackId)
-            || !stacksById.TryGetValue(stackId, out WorldItemStackRecord record))
+            || !stacksById.TryGetValue(stackId, out WorldItemStackRecord record)
+            || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                record.components))
         {
             return false;
         }
@@ -1069,6 +1870,8 @@ public sealed class WorldItemStackRuntime :
                 out WorldItemStackRecord record)
             || record == null
             || record.quantity != 1
+            || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                record.components)
             || !string.Equals(
                 record.itemInstanceId,
                 expectedInstanceId.Value,
@@ -1131,6 +1934,14 @@ public sealed class WorldItemStackRuntime :
                     normalizedDestination,
                     StringComparison.Ordinal))
             .ToArray();
+        if (targets.Any(target =>
+                FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                    target.components)))
+        {
+            throw new FacilityOutputExactRouteBypassException(
+                FacilityOutputExactRouteFailureCode.ProtectedRouteBypass,
+                nameof(RemoveStacksByStateAndDestination));
+        }
         int removed = 0;
         foreach (WorldItemStackRecord target in targets)
         {
@@ -1177,6 +1988,14 @@ public sealed class WorldItemStackRuntime :
                     normalizedDestination,
                     StringComparison.Ordinal))
             .ToArray();
+        if (targets.Any(target =>
+                FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                    target.components)))
+        {
+            throw new FacilityOutputExactRouteBypassException(
+                FacilityOutputExactRouteFailureCode.ProtectedRouteBypass,
+                nameof(ReleaseStacksByDestination));
+        }
         int released = 0;
         foreach (WorldItemStackRecord target in targets)
         {

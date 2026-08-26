@@ -25,6 +25,72 @@ public class FacilityEvolutionHistoryEntry
     }
 }
 
+public enum FacilityEvolutionMaterialCommitPhase
+{
+    None = 0,
+    MaterialCommitted = 1,
+    DomainApplied = 2
+}
+
+[Serializable]
+public sealed class FacilityEvolutionPendingMaterialCommitSnapshot
+{
+    public string operationId;
+    public string reasonCode;
+    public string commitId;
+    public string[] sourceStackIds = Array.Empty<string>();
+    public int quantity;
+    public long inputMassGrams;
+    public string recipeId;
+    public string sourceFacilityPersistentId;
+    public string sourceFacilityDefinitionId;
+    public string resultFacilityDefinitionId;
+    public int historySequence;
+    public FacilityEvolutionMaterialCommitPhase phase;
+    public string[] resolvedMutationTags = Array.Empty<string>();
+    public string resolvedResultPayload;
+
+    public FacilityEvolutionPendingMaterialCommitSnapshot Clone()
+    {
+        return new FacilityEvolutionPendingMaterialCommitSnapshot
+        {
+            operationId = operationId,
+            reasonCode = reasonCode,
+            commitId = commitId,
+            sourceStackIds = (sourceStackIds ?? Array.Empty<string>()).ToArray(),
+            quantity = quantity,
+            inputMassGrams = inputMassGrams,
+            recipeId = recipeId,
+            sourceFacilityPersistentId = sourceFacilityPersistentId,
+            sourceFacilityDefinitionId = sourceFacilityDefinitionId,
+            resultFacilityDefinitionId = resultFacilityDefinitionId,
+            historySequence = historySequence,
+            phase = phase,
+            resolvedMutationTags = (resolvedMutationTags ?? Array.Empty<string>()).ToArray(),
+            resolvedResultPayload = resolvedResultPayload
+        };
+    }
+
+    public FacilityEvolutionStateSnapshot ReadResolvedResultState()
+    {
+        if (string.IsNullOrWhiteSpace(resolvedResultPayload))
+        {
+            throw new InvalidOperationException(
+                "Facility evolution pending resolved-result payload is missing.");
+        }
+
+        FacilityEvolutionStateSnapshot resolved =
+            JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(
+                resolvedResultPayload);
+        if (resolved == null)
+        {
+            throw new InvalidOperationException(
+                "Facility evolution pending resolved-result payload is invalid.");
+        }
+        return resolved;
+    }
+}
+
 [Serializable]
 public sealed class FacilityEvolutionStateSnapshot
 {
@@ -42,6 +108,7 @@ public sealed class FacilityEvolutionStateSnapshot
     public FacilityEvolutionValue[] recordMetrics = Array.Empty<FacilityEvolutionValue>();
     public FacilityEvolutionTokenValue[] recordTokens = Array.Empty<FacilityEvolutionTokenValue>();
     public string[] recordRecentEvents = Array.Empty<string>();
+    public FacilityEvolutionPendingMaterialCommitSnapshot pendingMaterialCommit;
 }
 
 public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModule
@@ -63,9 +130,10 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
     [SerializeField] private FacilityEvolutionTokenValue[] recordTokens =
         Array.Empty<FacilityEvolutionTokenValue>();
     [SerializeField] private string[] recordRecentEvents = Array.Empty<string>();
+    [SerializeField] private FacilityEvolutionPendingMaterialCommitSnapshot pendingMaterialCommit;
 
     public string ModuleId => BuildingStateModuleIds.FacilityEvolution;
-    public int CurrentVersion => 3;
+    public int CurrentVersion => 6;
 
     public string BaseFacilityId => baseFacilityId;
     public string CurrentFacilityId => currentFacilityId;
@@ -85,6 +153,11 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
         (instanceEvolution ??= new FacilityEvolutionState()).Clone();
     public string FacilityPersistentId =>
         instanceEvolution?.facilityPersistentId ?? string.Empty;
+    public bool HasPendingMaterialCommit =>
+        pendingMaterialCommit != null
+        && pendingMaterialCommit.phase != FacilityEvolutionMaterialCommitPhase.None;
+    public FacilityEvolutionPendingMaterialCommitSnapshot PendingMaterialCommit =>
+        pendingMaterialCommit?.Clone();
 
     public FacilityEvolutionStateSnapshot CreateSnapshot()
     {
@@ -112,7 +185,8 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
             recordTokens = record.Tokens
                 .Select(entry => new FacilityEvolutionTokenValue(entry.Key, entry.Value))
                 .ToArray(),
-            recordRecentEvents = record.RecentEvents.ToArray()
+            recordRecentEvents = record.RecentEvents.ToArray(),
+            pendingMaterialCommit = pendingMaterialCommit?.Clone()
         };
     }
 
@@ -166,6 +240,7 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
             .Where(entry => !string.IsNullOrWhiteSpace(entry))
             .TakeLast(12)
             .ToArray();
+        pendingMaterialCommit = snapshot.pendingMaterialCommit?.Clone();
     }
 
     public FacilityEvolutionRecord GetRecord()
@@ -279,6 +354,93 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
         instanceEvolution = state?.Clone() ?? new FacilityEvolutionState();
     }
 
+    public void RecordPendingMaterialCommit(
+        FacilityEvolutionMaterialCommitReceipt receipt,
+        FacilityEvolutionRecipeSO recipe,
+        string sourceFacilityDefinitionId,
+        int historySequence,
+        FacilityEvolutionStateSnapshot resolvedResultState,
+        IReadOnlyList<string> resolvedMutationTags,
+        FacilityEvolutionMaterialCommitPhase phase =
+            FacilityEvolutionMaterialCommitPhase.MaterialCommitted)
+    {
+        if (!receipt.IsCommitted)
+        {
+            throw new InvalidOperationException(
+                "Facility evolution pending material receipt is incomplete.");
+        }
+        if (recipe == null || recipe.resultBuilding == null)
+        {
+            throw new InvalidOperationException(
+                "Facility evolution pending material receipt requires an exact recipe result.");
+        }
+        if (resolvedResultState == null)
+        {
+            throw new InvalidOperationException(
+                "Facility evolution pending material receipt requires a resolved result state.");
+        }
+
+        pendingMaterialCommit = new FacilityEvolutionPendingMaterialCommitSnapshot
+        {
+            operationId = receipt.OperationId,
+            reasonCode = receipt.ReasonCode,
+            commitId = receipt.CommitId,
+            sourceStackIds = receipt.SourceStackIds.ToArray(),
+            quantity = receipt.Quantity,
+            inputMassGrams = receipt.InputMassGrams,
+            recipeId = recipe.EffectiveId,
+            sourceFacilityPersistentId = FacilityPersistentId,
+            sourceFacilityDefinitionId = sourceFacilityDefinitionId ?? string.Empty,
+            resultFacilityDefinitionId =
+                FacilityEvolutionUtility.GetFacilityId(recipe.resultBuilding),
+            historySequence = historySequence,
+            phase = phase,
+            resolvedMutationTags = EventPayloadSnapshot.Copy(
+                    resolvedMutationTags)
+                .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(tag => tag, StringComparer.Ordinal)
+                .ToArray(),
+            resolvedResultPayload = JsonUtility.ToJson(CloneSnapshot(
+                resolvedResultState,
+                includePendingMaterialCommit: false))
+        };
+
+        FacilityEvolutionAggregateAdapter.ValidatePendingMaterialCommit(
+            CreateSnapshot());
+    }
+
+    public void MarkPendingMaterialCommitDomainApplied()
+    {
+        if (!HasPendingMaterialCommit
+            || pendingMaterialCommit.phase
+                != FacilityEvolutionMaterialCommitPhase.MaterialCommitted)
+        {
+            throw new InvalidOperationException(
+                "Facility evolution has no material-committed operation to advance.");
+        }
+
+        pendingMaterialCommit.phase = FacilityEvolutionMaterialCommitPhase.DomainApplied;
+    }
+
+    public void ClearPendingMaterialCommit(string expectedCommitId)
+    {
+        if (!HasPendingMaterialCommit)
+        {
+            return;
+        }
+        if (!string.Equals(
+                pendingMaterialCommit.commitId,
+                expectedCommitId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Facility evolution pending material commit identity changed before acknowledgement.");
+        }
+
+        pendingMaterialCommit = null;
+    }
+
     public void AddMastery(float amount)
     {
         instanceEvolution ??= new FacilityEvolutionState();
@@ -339,45 +501,134 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
         }
 
         InitializeIfNeeded(toFacility);
-        currentFacilityId = FacilityEvolutionUtility.GetFacilityId(toFacility.BuildingData);
-        starGrade = Mathf.Max(1, recipe.resultStarGrade);
+        ApplySnapshot(BuildResolvedEvolutionSnapshot(
+            CreateSnapshot(),
+            fromFacility != null ? fromFacility.BuildingData : null,
+            toFacility.BuildingData,
+            recipe,
+            proposal,
+            fromFacilityName,
+            profile,
+            resolvedMutationTags,
+            GetRecord()));
+    }
 
-        HashSet<string> nextLineage = new HashSet<string>(LineageTags.Where((tag) => !string.IsNullOrWhiteSpace(tag)));
-        foreach (string tag in FacilityEvolutionUtility.GetDefaultLineageTags(toFacility.BuildingData))
+    public static FacilityEvolutionStateSnapshot BuildResolvedEvolutionSnapshot(
+        FacilityEvolutionStateSnapshot source,
+        BuildingSO sourceBuilding,
+        BuildingSO resultBuilding,
+        FacilityEvolutionRecipeSO recipe,
+        FacilityEvolutionProposal proposal,
+        string sourceFacilityName,
+        RoomProfile profile,
+        IReadOnlyList<string> resolvedMutationTags,
+        FacilityEvolutionRecord resolvedRecord)
+    {
+        if (source == null || resultBuilding == null || recipe == null)
         {
-            nextLineage.Add(tag);
+            throw new InvalidOperationException(
+                "Facility evolution cannot resolve a result from incomplete authority.");
         }
 
-        lineageTags = nextLineage.ToArray();
+        FacilityEvolutionStateSnapshot result = CloneSnapshot(
+            source,
+            includePendingMaterialCommit: false);
+        result.currentFacilityId = FacilityEvolutionUtility.GetFacilityId(resultBuilding);
+        result.starGrade = Mathf.Max(1, recipe.resultStarGrade);
+        result.lineageTags = (result.lineageTags ?? Array.Empty<string>())
+            .Concat(FacilityEvolutionUtility.GetDefaultLineageTags(resultBuilding))
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(tag => tag, StringComparer.Ordinal)
+            .ToArray();
 
-        HashSet<string> nextMutation = new HashSet<string>(MutationTags.Where((tag) => !string.IsNullOrWhiteSpace(tag)));
-        IEnumerable<string> mutationCandidates = resolvedMutationTags ?? proposal.MutationTagSuggestions;
-        if (mutationCandidates != null)
+        HashSet<string> nextMutation = new HashSet<string>(
+            (result.mutationTags ?? Array.Empty<string>())
+                .Where(tag => !string.IsNullOrWhiteSpace(tag)),
+            StringComparer.Ordinal);
+        IEnumerable<string> mutationCandidates = resolvedMutationTags
+            ?? proposal.MutationTagSuggestions;
+        foreach (string tag in mutationCandidates ?? Array.Empty<string>())
         {
-            foreach (string tag in mutationCandidates.Where((tag) => !string.IsNullOrWhiteSpace(tag)))
+            if (!string.IsNullOrWhiteSpace(tag)
+                && recipe.allowedMutationTags != null
+                && recipe.allowedMutationTags.Contains(tag))
             {
-                if (recipe.allowedMutationTags != null
-                    && recipe.allowedMutationTags.Contains(tag))
-                {
-                    nextMutation.Add(tag);
-                }
+                nextMutation.Add(tag);
             }
         }
-
-        mutationTags = nextMutation.ToArray();
-        lastIdentitySummary = proposal.FacilityIdentitySummary ?? string.Empty;
-        CaptureIdentity(profile);
-
-        evolutionHistory.Add(new FacilityEvolutionHistoryEntry
+        result.mutationTags = nextMutation
+            .OrderBy(tag => tag, StringComparer.Ordinal)
+            .ToArray();
+        result.lastIdentitySummary = proposal.FacilityIdentitySummary ?? string.Empty;
+        CaptureIdentitySnapshot(
+            profile,
+            out result.lastIdentityPressures,
+            out result.dominantIdentityTags);
+        result.evolutionHistory ??= new List<FacilityEvolutionHistoryEntry>();
+        result.evolutionHistory.Add(new FacilityEvolutionHistoryEntry
         {
             evolutionId = recipe.EffectiveId,
-            fromFacility = !string.IsNullOrWhiteSpace(fromFacilityName)
-                ? fromFacilityName
-                : FacilityShopService.GetBuildingName(fromFacility != null ? fromFacility.BuildingData : null),
-            toFacility = FacilityShopService.GetBuildingName(toFacility.BuildingData),
+            fromFacility = !string.IsNullOrWhiteSpace(sourceFacilityName)
+                ? sourceFacilityName
+                : FacilityShopService.GetBuildingName(sourceBuilding),
+            toFacility = FacilityShopService.GetBuildingName(resultBuilding),
             summary = proposal.FlavorText,
-            sequence = evolutionHistory.Count + 1
+            sequence = result.evolutionHistory.Count + 1
         });
+
+        FacilityEvolutionRecord record = resolvedRecord ?? new FacilityEvolutionRecord();
+        result.hasRecordSnapshot = true;
+        result.recordMetrics = record.Metrics
+            .Select(entry => new FacilityEvolutionValue(entry.Key, entry.Value))
+            .ToArray();
+        result.recordTokens = record.Tokens
+            .Select(entry => new FacilityEvolutionTokenValue(entry.Key, entry.Value))
+            .ToArray();
+        result.recordRecentEvents = record.RecentEvents.ToArray();
+        result.pendingMaterialCommit = null;
+        return result;
+    }
+
+    internal static FacilityEvolutionStateSnapshot CloneSnapshot(
+        FacilityEvolutionStateSnapshot source,
+        bool includePendingMaterialCommit)
+    {
+        if (source == null)
+        {
+            return null;
+        }
+
+        return new FacilityEvolutionStateSnapshot
+        {
+            baseFacilityId = source.baseFacilityId,
+            currentFacilityId = source.currentFacilityId,
+            starGrade = source.starGrade,
+            lineageTags = (source.lineageTags ?? Array.Empty<string>()).ToArray(),
+            mutationTags = (source.mutationTags ?? Array.Empty<string>()).ToArray(),
+            lastIdentitySummary = source.lastIdentitySummary,
+            lastIdentityPressures = (source.lastIdentityPressures
+                ?? Array.Empty<FacilityEvolutionValue>()).ToArray(),
+            dominantIdentityTags = (source.dominantIdentityTags
+                ?? Array.Empty<string>()).ToArray(),
+            evolutionHistory = (source.evolutionHistory
+                ?? new List<FacilityEvolutionHistoryEntry>())
+                .Where(entry => entry != null)
+                .Select(entry => entry.Clone())
+                .ToList(),
+            instanceEvolution = source.instanceEvolution?.Clone()
+                ?? new FacilityEvolutionState(),
+            hasRecordSnapshot = source.hasRecordSnapshot,
+            recordMetrics = (source.recordMetrics
+                ?? Array.Empty<FacilityEvolutionValue>()).ToArray(),
+            recordTokens = (source.recordTokens
+                ?? Array.Empty<FacilityEvolutionTokenValue>()).ToArray(),
+            recordRecentEvents = (source.recordRecentEvents
+                ?? Array.Empty<string>()).ToArray(),
+            pendingMaterialCommit = includePendingMaterialCommit
+                ? source.pendingMaterialCommit?.Clone()
+                : null
+        };
     }
 
     private void CaptureIdentity(RoomProfile profile)
@@ -398,6 +649,32 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
         dominantIdentityTags = lastIdentityPressures
             .Where((entry) => entry.value >= 0.35f)
             .Select((entry) => entry.key)
+            .Take(6)
+            .ToArray();
+    }
+
+    private static void CaptureIdentitySnapshot(
+        RoomProfile profile,
+        out FacilityEvolutionValue[] pressures,
+        out string[] dominantTags)
+    {
+        if (profile == null || profile.IdentityPressures == null)
+        {
+            pressures = Array.Empty<FacilityEvolutionValue>();
+            dominantTags = Array.Empty<string>();
+            return;
+        }
+
+        pressures = profile.IdentityPressures
+            .Where(entry => entry.Value > 0.01f)
+            .OrderByDescending(entry => entry.Value)
+            .ThenBy(entry => entry.Key, StringComparer.Ordinal)
+            .Take(12)
+            .Select(entry => new FacilityEvolutionValue(entry.Key, entry.Value))
+            .ToArray();
+        dominantTags = pressures
+            .Where(entry => entry.value >= 0.35f)
+            .Select(entry => entry.key)
             .Take(6)
             .ToArray();
     }

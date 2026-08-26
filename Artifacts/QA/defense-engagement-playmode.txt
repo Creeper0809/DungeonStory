@@ -1,17 +1,5 @@
 # Defense engagement production-live PlayMode verification
-result=PASS
+result=FAIL
 scope=production-invasion+defense-engagement+medical-recovery
-utc=2026-08-15T21:08:57.2124442Z
-authority=InvasionDirectorRuntime.TrySpawnIntruder->IDefenseEngagementRuntime->production combat exchanges->autonomous medical terminal
-PASS	COMMAND_INTRUDER_SPAWN	spawned=True
-PASS	INVASION_ENTRY_PHASES	rally=True; approach=True
-PASS	ENGAGEMENT_STARTED	engagementId=defense-engagement:1
-PASS	COMBAT_3_EXCHANGES_OBSERVED	exchanges=3
-PASS	PRODUCTION_DEFENSE_VICTORY_TERMINAL	requested=True; completed=True; failure=
-PASS	MEDICAL_DOWNED	observed=True
-PASS	MEDICAL_STABILIZATION	observed=True; preStabilized=True; work=0
-PASS	MEDICAL_PHYSICAL_CARRY	observed=True; attached=True
-PASS	MEDICAL_TREATMENT	observed=True; work=57.90941; supplyReady=True; supplyConsumed=True; seeded=14
-PASS	MEDICAL_RECOVERY_TERMINAL	observed=True; treatmentCompleted=True
-PASS	AI_OWNERSHIP_RESUMED	patient=True; rescuer=True
-terminal=PASS: downed=True; stabilization=True; stabWork=0/8; carry=True; carryAttached=True; treatment=True; treatWork=57.909/56.08; supplyConsumed=True; supplyReady=True; seededSupply=14; preStabilized=True; treatmentCompletedStatus=True; recovery=True; order=Completed; medicalTrigger=controlled-post-combat; patient=character:staff:6209156:01; rescuer=character:staff:6209156:02; status=TreatmentCompleted; rescueDiag=revision=1; order=<none>; stage=completed; status=TreatmentCompleted; lifecycle=Active; action=구조; phase=Treating:99; executed=True; actionEnd=False; trace=[AwaitingRescue/AwaitingRescue:stab=0/8:treat=0/58.08:rescuer=,AwaitingRescue/PreparingTransfer:stab=0/8:treat=0/58.08:rescuer=character:staff:6209156:02,Carrying/Carrying:stab=0/8:treat=0/58.08:rescuer=character:staff:6209156:02,Treating/Treating:stab=0/8:treat=1.287/58.08:rescuer=character:staff:6209156:02,Treating/AdditionalTreatmentRequired:stab=0/8:treat=0/56.08:rescuer=character:staff:6209156:02,Treating/Treating:stab=0/8:treat=1.287/56.08:rescuer=character:staff:6209156:02,Completed/TreatmentCompleted:stab=0/8:treat=56.08/56.08:rescuer=character:staff:6209156:02]; patientAi=True; rescuerAi=True; patient=Roma; rescuer=Arin
+utc=2026-08-25T23:15:57.5677621Z
+terminal=FAIL: Loaded scenes contain unsaved changes; verification did not save or discard them.

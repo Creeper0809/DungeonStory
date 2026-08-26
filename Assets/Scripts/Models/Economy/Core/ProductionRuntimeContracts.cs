@@ -79,7 +79,9 @@ public readonly struct ProductionOutputContext
         CharacterActor worker,
         string itemId,
         int amount,
-        float qualityModifier = 0f)
+        float qualityModifier = 0f,
+        float workerQuality = 0.7f,
+        string commitId = "")
     {
         Recipe = recipe;
         Facility = facility;
@@ -87,6 +89,8 @@ public readonly struct ProductionOutputContext
         ItemId = itemId ?? string.Empty;
         Amount = Mathf.Max(1, amount);
         QualityModifier = qualityModifier;
+        WorkerQuality = workerQuality;
+        CommitId = commitId ?? string.Empty;
     }
 
     public ProductionRecipeSO Recipe { get; }
@@ -95,6 +99,8 @@ public readonly struct ProductionOutputContext
     public string ItemId { get; }
     public int Amount { get; }
     public float QualityModifier { get; }
+    public float WorkerQuality { get; }
+    public string CommitId { get; }
 }
 
 public interface IProductionOutputHandler
@@ -114,5 +120,19 @@ public interface IDomainFailureProductionOutputHandler
 {
     bool TryProduce(
         ProductionOutputContext context,
+        out DomainFailure failure);
+}
+
+public interface IIdempotentProductionOutputHandler
+{
+    bool TryProduceIdempotent(
+        ProductionOutputContext context,
+        out DomainFailure failure);
+    bool TryAcknowledge(
+        string commitId,
+        out DomainFailure failure);
+    bool TryGetCommittedMassGrams(
+        string commitId,
+        out long massGrams,
         out DomainFailure failure);
 }

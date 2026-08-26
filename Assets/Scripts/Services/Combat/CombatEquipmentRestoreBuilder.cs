@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 internal static class CombatEquipmentRestoreBuilder
 {
@@ -13,11 +14,12 @@ internal static class CombatEquipmentRestoreBuilder
             || source.loadouts == null
             || source.craftOrders == null
             || source.craftMaterialPolicies == null
+            || source.craftTerminalEffects == null
             || source.historyTransferOrders == null
             || source.claimedLineageSealRegionIds == null)
         {
             throw new InvalidOperationException(
-                "Combat equipment V6 payload is missing a required collection.");
+                "Combat equipment V8 payload is missing a required collection.");
         }
 
         CombatEquipmentRuntimeState restored = new()
@@ -26,6 +28,7 @@ internal static class CombatEquipmentRestoreBuilder
         };
         RestoreLoadouts(source.loadouts, restored, catalog);
         RestoreCraftOrders(source.craftOrders, restored, catalog, crafting);
+        RestoreCraftTerminalEffects(source.craftTerminalEffects, restored);
         RestoreMaterialPolicies(
             source.craftMaterialPolicies,
             restored,
@@ -179,6 +182,9 @@ internal static class CombatEquipmentRestoreBuilder
             RequireCanonicalId(
                 order.materialDestinationId,
                 "combat craft material destination");
+            RequireCanonicalId(
+                order.facilityPersistentId,
+                "combat craft facility");
             bool ammunition = CombatEquipmentCraftingRuntime.IsAmmunitionRecipe(
                 order.definitionId);
             if (!ids.Add(order.orderId)
@@ -218,7 +224,8 @@ internal static class CombatEquipmentRestoreBuilder
                 || (!ammunition
                     && (order.qualityRoll == null
                         || order.qualityRoll.attemptIndex
-                            != order.qualityAttemptIndex)))
+                            != order.qualityAttemptIndex))
+                || !ValidateCraftTransaction(order, crafting))
             {
                 throw new InvalidOperationException(
                     $"Combat craft order '{order.orderId}' has duplicate ID or invalid work.");
@@ -242,6 +249,184 @@ internal static class CombatEquipmentRestoreBuilder
                     $"Ammunition craft order '{order.orderId}' cannot carry an equipment material ID.");
             }
             restored.CraftOrders.Add(order.Clone());
+        }
+    }
+
+    private static void RestoreCraftTerminalEffects(
+        IEnumerable<CombatEquipmentCraftTerminalEffectSaveData> source,
+        CombatEquipmentRuntimeState restored)
+    {
+        HashSet<string> wipCommits = new(StringComparer.Ordinal);
+        HashSet<string> removalCommits = new(StringComparer.Ordinal);
+        foreach (CombatEquipmentCraftTerminalEffectSaveData row in source)
+        {
+            if (row == null
+                || row.schemaVersion !=
+                    CombatEquipmentCraftTerminalEffectSaveData
+                        .CurrentSchemaVersion
+                || !Enum.IsDefined(
+                    typeof(CombatEquipmentCraftTerminalEffectPhase), row.phase)
+                || row.releasedInputQuantity < 0
+                || row.releasedInputMassGrams < 0L
+                || (row.releasedInputQuantity == 0)
+                    != (row.releasedInputMassGrams == 0L)
+                || row.wipInputQuantity < 0
+                || row.wipInputMassGrams < 0L
+                || row.committedOutputMassGrams < 0L
+                || row.declaredLossMassGrams < 0L
+                || row.committedOutputMassGrams >
+                    long.MaxValue - row.declaredLossMassGrams
+                || row.committedOutputMassGrams + row.declaredLossMassGrams
+                    != row.wipInputMassGrams)
+            {
+                throw new InvalidOperationException(
+                    "Combat craft terminal effect has an invalid shape.");
+            }
+            RequireCanonicalId(row.ownerStableId,
+                "combat craft terminal owner");
+            RequireCanonicalId(row.sourceId, "combat craft terminal source");
+            RequireCanonicalId(row.facilityId, "combat craft terminal facility");
+            if (string.IsNullOrEmpty(row.frozenSourcePayload)
+                || !CombatEquipmentTerminalDrainCanonical.IsDigest(
+                    row.sourceFingerprint))
+            {
+                throw new InvalidOperationException(
+                    "Combat craft terminal frozen source is invalid.");
+            }
+
+            bool hasInput = row.releasedInputQuantity > 0;
+            if (hasInput
+                ? string.IsNullOrEmpty(row.inputDispositionStepOperationId)
+                    || !CombatEquipmentTerminalDrainCanonical.IsDigest(
+                        row.inputDispositionRequestFingerprint)
+                    || string.IsNullOrEmpty(row.inputDispositionCommitId)
+                    || !CombatEquipmentTerminalDrainCanonical.IsDigest(
+                        row.inputDispositionReceiptFingerprint)
+                : !string.IsNullOrEmpty(row.inputDispositionStepOperationId)
+                    || !string.IsNullOrEmpty(
+                        row.inputDispositionRequestFingerprint)
+                    || !string.IsNullOrEmpty(row.inputDispositionCommitId)
+                    || !string.IsNullOrEmpty(
+                        row.inputDispositionReceiptFingerprint))
+            {
+                throw new InvalidOperationException(
+                    "Combat craft terminal input evidence is invalid.");
+            }
+
+            CombatEquipmentCraftOrderSaveData frozenOrder;
+            try
+            {
+                frozenOrder = JsonUtility.FromJson<
+                    CombatEquipmentCraftOrderSaveData>(row.frozenSourcePayload);
+            }
+            catch (Exception exception)
+            {
+                throw new InvalidOperationException(
+                    "Combat craft terminal source payload is invalid.",
+                    exception);
+            }
+            CombatEquipmentTerminalMassAccounting mass = new(
+                row.releasedInputQuantity,
+                row.releasedInputMassGrams,
+                row.wipInputQuantity,
+                row.wipInputMassGrams,
+                row.committedOutputMassGrams,
+                row.declaredLossMassGrams);
+            if (!CombatEquipmentTerminalFrozenSubject.TryCreateCraftOrder(
+                    frozenOrder,
+                    mass,
+                    out CombatEquipmentTerminalFrozenSubject frozen,
+                    out _)
+                || !string.Equals(frozen.OwnerStableId, row.ownerStableId,
+                    StringComparison.Ordinal)
+                || !string.Equals(frozen.SourceId, row.sourceId,
+                    StringComparison.Ordinal)
+                || !string.Equals(frozen.FacilityId, row.facilityId,
+                    StringComparison.Ordinal)
+                || !string.Equals(frozen.SourceFingerprint,
+                    row.sourceFingerprint, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Combat craft terminal frozen source drifted.");
+            }
+
+            CombatEquipmentTerminalWipLossReceiptSaveData wip =
+                row.wipInputMassGrams == 0L
+                    ? null
+                    : new CombatEquipmentTerminalWipLossReceiptSaveData
+                    {
+                        commitId = row.wipLossCommitId,
+                        sourceKind = CombatEquipmentTerminalSourceKind.CraftOrder,
+                        ownerStableId = row.ownerStableId,
+                        sourceId = row.sourceId,
+                        facilityId = row.facilityId,
+                        sourceFingerprint = row.sourceFingerprint,
+                        inputQuantity = row.wipInputQuantity,
+                        inputMassGrams = row.wipInputMassGrams,
+                        committedOutputMassGrams =
+                            row.committedOutputMassGrams,
+                        declaredLossMassGrams = row.declaredLossMassGrams,
+                        reason = (ProductionWipTerminalReason)row.terminalReason,
+                        lossKind = (ProductionWipTerminalLossKind)row.lossKind,
+                        receiptFingerprint = row.wipLossReceiptFingerprint
+                    };
+            if (wip != null
+                && (!CombatEquipmentTerminalDrainCanonical
+                        .IsValidWipLossReceipt(wip)
+                    || !wipCommits.Add(wip.commitId)))
+            {
+                throw new InvalidOperationException(
+                    "Combat craft terminal WIP receipt is invalid or duplicate.");
+            }
+            if (wip == null
+                && (!string.IsNullOrEmpty(row.wipLossCommitId)
+                    || !string.IsNullOrEmpty(row.wipLossReceiptFingerprint)))
+            {
+                throw new InvalidOperationException(
+                    "Combat craft terminal empty WIP has receipt authority.");
+            }
+
+            bool removed = row.phase ==
+                CombatEquipmentCraftTerminalEffectPhase.SourceRemoved;
+            CombatEquipmentTerminalSourceRemovalReceiptSaveData removal =
+                removed
+                    ? new CombatEquipmentTerminalSourceRemovalReceiptSaveData
+                    {
+                        commitId = row.sourceRemovalCommitId,
+                        sourceKind = CombatEquipmentTerminalSourceKind.CraftOrder,
+                        ownerStableId = row.ownerStableId,
+                        sourceId = row.sourceId,
+                        facilityId = row.facilityId,
+                        sourceFingerprint = row.sourceFingerprint,
+                        receiptFingerprint =
+                            row.sourceRemovalReceiptFingerprint
+                    }
+                    : null;
+            if (removed
+                ? !CombatEquipmentTerminalDrainCanonical
+                        .IsValidSourceRemovalReceipt(removal)
+                    || !removalCommits.Add(removal.commitId)
+                : !string.IsNullOrEmpty(row.sourceRemovalCommitId)
+                    || !string.IsNullOrEmpty(
+                        row.sourceRemovalReceiptFingerprint))
+            {
+                throw new InvalidOperationException(
+                    "Combat craft terminal removal receipt is invalid.");
+            }
+
+            CombatEquipmentCraftOrderSaveData live = restored.CraftOrders
+                .SingleOrDefault(value => string.Equals(
+                    value.orderId, row.sourceId, StringComparison.Ordinal));
+            if (removed == (live != null)
+                || live != null
+                    && !string.Equals(JsonUtility.ToJson(live),
+                        row.frozenSourcePayload, StringComparison.Ordinal)
+                || !restored.CraftTerminalEffects.TryAdd(
+                    row.sourceId, row.Clone()))
+            {
+                throw new InvalidOperationException(
+                    "Combat craft terminal source/receipt join is invalid.");
+            }
         }
     }
 
@@ -358,6 +543,119 @@ internal static class CombatEquipmentRestoreBuilder
                     $"Duplicate claimed lineage region '{id}'.");
             }
         }
+    }
+
+    private static bool ValidateCraftTransaction(
+        CombatEquipmentCraftOrderSaveData order,
+        CombatEquipmentCraftingRuntime crafting)
+    {
+        if (order.materialTransferInputs == null
+            || order.recoveryOutputs == null
+            || order.spawnedRecoveryAmounts == null
+            || !crafting.TryGetConcreteMaterials(
+                order,
+                out IReadOnlyDictionary<string, int> materials))
+        {
+            return false;
+        }
+
+        if (order.dismantlingRejectedOutput)
+        {
+            bool recoveryShape = !string.IsNullOrWhiteSpace(
+                    order.rejectedInstanceId)
+                && !string.IsNullOrWhiteSpace(order.rejectedStackId)
+                && order.spawnedRecoveryAmounts.Count <=
+                    order.recoveryOutputs.Count
+                && order.recoveryOutputs.All(output =>
+                    output != null
+                    && !string.IsNullOrWhiteSpace(output.itemId)
+                    && output.amount > 0)
+                && order.spawnedRecoveryAmounts.Select((amount, index) =>
+                        amount >= 0
+                        && amount <= order.recoveryOutputs[index].amount)
+                    .All(value => value)
+                && (!order.rejectedRecoveryPublished
+                    || order.recoveryOutputs.Select((output, index) =>
+                            index < order.spawnedRecoveryAmounts.Count
+                            && order.spawnedRecoveryAmounts[index]
+                                == output.amount)
+                        .All(value => value));
+            if (!recoveryShape)
+            {
+                return false;
+            }
+            if (!string.IsNullOrEmpty(order.rejectedDismantleOperationId)
+                && !CombatEquipmentRejectedDismantleOutbox
+                    .ValidateProvenance(order, out _))
+            {
+                return false;
+            }
+        }
+
+        bool hasMaterials = materials.Any(pair => pair.Value > 0);
+        bool hasTransfer = !string.IsNullOrEmpty(
+            order.materialTransferOperationId);
+        if (hasMaterials != hasTransfer
+            && !order.dismantlingRejectedOutput)
+        {
+            // Before a craft attempt starts the physical lots are delivered but
+            // not yet transferred. A resolved or in-progress WIP attempt must
+            // always own the receipt.
+            if (hasTransfer
+                || order.materialsReady
+                || order.completedWork > 0f
+                || order.attemptOutcomeResolved)
+            {
+                return false;
+            }
+        }
+        if (hasTransfer
+            && !CombatEquipmentCraftMaterialOutbox.ValidateProvenance(
+                order,
+                materials,
+                out _))
+        {
+            return false;
+        }
+
+        if (!order.attemptOutcomeResolved)
+        {
+            return !order.outputPublished
+                && string.IsNullOrEmpty(order.outputOperationId)
+                && string.IsNullOrEmpty(order.outputItemId)
+                && order.outputQuantity == 0
+                && string.IsNullOrEmpty(order.outputCommitId)
+                && string.IsNullOrEmpty(order.outputInstanceId)
+                && string.IsNullOrEmpty(order.outputStackId)
+                && order.resolvedMythicProvenance == null
+                && !order.completionEffectsPublished;
+        }
+
+        bool ammunition = CombatEquipmentCraftingRuntime.IsAmmunitionRecipe(
+            order.definitionId);
+        return order.materialsReady
+            && order.completionEffectsPublished
+            && Enum.IsDefined(
+                typeof(CombatEquipmentQuality),
+                order.resolvedQuality)
+            && !string.IsNullOrWhiteSpace(order.outputOperationId)
+            && string.Equals(
+                order.outputOperationId,
+                CombatEquipmentCraftOutputOutbox.FormatOperationId(
+                    order.orderId,
+                    order.qualityAttemptIndex),
+                StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(order.outputItemId)
+            && order.outputQuantity > 0
+            && (!order.outputPublished
+                || (!string.IsNullOrWhiteSpace(order.outputCommitId)
+                    && (ammunition
+                        ? string.IsNullOrEmpty(order.outputInstanceId)
+                            && string.IsNullOrEmpty(order.outputStackId)
+                        : !string.IsNullOrWhiteSpace(order.outputInstanceId)
+                            && !string.IsNullOrWhiteSpace(order.outputStackId))))
+            && (!order.materialTransferAcknowledged
+                || order.outputPublished);
     }
 
     private static bool ValidateMaterial(

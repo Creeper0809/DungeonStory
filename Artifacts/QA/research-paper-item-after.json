@@ -1,0 +1,82 @@
+{
+    "MonoBehaviour": {
+        "m_Enabled": true,
+        "m_EditorHideFlags": 0,
+        "m_Name": "V3I05_종이",
+        "m_EditorClassIdentifier": "Assembly-CSharp::ResourceItemDefinitionSO",
+        "serializationData": {
+            "SerializedFormat": 2,
+            "SerializedBytes": [],
+            "ReferencedUnityObjects": [],
+            "SerializedBytesString": "",
+            "Prefab": {
+                "instanceID": 0
+            },
+            "PrefabModificationsReferencedUnityObjects": [],
+            "PrefabModifications": [],
+            "SerializationNodes": []
+        },
+        "id": 8905,
+        "itemId": "material:paper",
+        "displayName": "종이",
+        "description": "분기형 생산망의 종이.",
+        "stockCategory": 1,
+        "unitWeight": 0.8999999761581421,
+        "maxStack": 50,
+        "sprite": {
+            "instanceID": 0
+        },
+        "unitPrice": 9,
+        "features": [
+            {
+                "rid": 7737212042857939347
+            },
+            {
+                "rid": 1000
+            },
+            {
+                "rid": 1001
+            }
+        ],
+        "references": {
+            "version": 2,
+            "RefIds": [
+                {
+                    "rid": 1000,
+                    "type": {
+                        "class": "ResearchGateItemFeature",
+                        "ns": "",
+                        "asm": "DungeonStory.Economy"
+                    },
+                    "data": {
+                        "requiredResearchId": "research:equipment:engineering-drawing"
+                    }
+                },
+                {
+                    "rid": 1001,
+                    "type": {
+                        "class": "ProductionItemFeature",
+                        "ns": "",
+                        "asm": "DungeonStory.Economy"
+                    },
+                    "data": {
+                        "kind": 1,
+                        "ingredientTags": 1,
+                        "sharedIntermediate": true
+                    }
+                },
+                {
+                    "rid": 7737212042857939347,
+                    "type": {
+                        "class": "MarketItemFeature",
+                        "ns": "",
+                        "asm": "DungeonStory.Economy"
+                    },
+                    "data": {
+                        "saleRate": 0.5666666030883789
+                    }
+                }
+            ]
+        }
+    }
+}

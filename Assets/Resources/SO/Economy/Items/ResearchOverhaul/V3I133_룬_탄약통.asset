@@ -31,22 +31,22 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 25
   features:
-  - rid: 7737212042857939750
-  - rid: 7737212042857939751
-  - rid: 7737212042857939752
   - rid: 7737212042857939753
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
   references:
     version: 2
     RefIds:
-    - rid: 7737212042857939750
+    - rid: 1000
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:rune-cartridge
-    - rid: 7737212042857939751
+    - rid: 1001
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:rune-module-tuning
-    - rid: 7737212042857939752
+    - rid: 1002
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
@@ -55,4 +55,4 @@ MonoBehaviour:
     - rid: 7737212042857939753
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5904933
+        saleRate: 0.5901333

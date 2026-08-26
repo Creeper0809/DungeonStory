@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 0
     recommendedRank: 2
     minimumRiskRank: 0
-  requiredResearchId: research:equipment:engineering-drawing
+  requiredResearchId: research:industry:powered-tools
   requiredWork: 46
   preparationWork: 0
   finishingWork: 0
@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:charcoal
     amount: 1
   outputs:
-  - itemId: component:engineering-drawing
+  - outputLineId: output:recipe:component:engineering-drawing/000/main/component:engineering-drawing
+    role: 0
+    itemId: component:engineering-drawing
     amount: 2
     probability: 1

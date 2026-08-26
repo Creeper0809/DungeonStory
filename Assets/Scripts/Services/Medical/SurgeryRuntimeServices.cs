@@ -89,7 +89,10 @@ public sealed class SurgeryResourceServices
         IProcessFluidUseRuntime processFluids,
         IEnvironmentalFieldQuery environmentalField,
         IFacilityBufferDestinationClaimQuery destinationClaims,
-        IFacilityBufferDestinationClaimCommand destinationClaimCommands)
+        IFacilityBufferDestinationClaimCommand destinationClaimCommands,
+        IPhysicalItemBatchDispositionService batchDispositions,
+        IPhysicalItemMassQuery physicalMass,
+        IPackagedLotTareDispositionService tareDispositions)
     {
         ExtractionLedger = extractionLedger ?? throw new ArgumentNullException(nameof(extractionLedger));
         Items = items ?? throw new ArgumentNullException(nameof(items));
@@ -103,6 +106,12 @@ public sealed class SurgeryResourceServices
             ?? throw new ArgumentNullException(nameof(destinationClaims));
         DestinationClaimCommands = destinationClaimCommands
             ?? throw new ArgumentNullException(nameof(destinationClaimCommands));
+        BatchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
+        PhysicalMass = physicalMass
+            ?? throw new ArgumentNullException(nameof(physicalMass));
+        TareDispositions = tareDispositions
+            ?? throw new ArgumentNullException(nameof(tareDispositions));
     }
 
     public ISurgeryExtractionLedger ExtractionLedger { get; }
@@ -115,6 +124,9 @@ public sealed class SurgeryResourceServices
     public IEnvironmentalFieldQuery EnvironmentalField { get; }
     public IFacilityBufferDestinationClaimQuery DestinationClaims { get; }
     public IFacilityBufferDestinationClaimCommand DestinationClaimCommands { get; }
+    public IPhysicalItemBatchDispositionService BatchDispositions { get; }
+    public IPhysicalItemMassQuery PhysicalMass { get; }
+    public IPackagedLotTareDispositionService TareDispositions { get; }
 }
 
 public static class SurgeryMaterialDestinationAuthority

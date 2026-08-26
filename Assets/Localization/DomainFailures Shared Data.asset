@@ -1535,6 +1535,42 @@ MonoBehaviour:
     m_Key: ItemReservationStackMissing
     m_Metadata:
       m_Items: []
+  - m_Id: 7089378085392384
+    m_Key: WarehouseMassAdmissionCommitConflict
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335424
+    m_Key: WarehouseMassAdmissionFingerprintMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335425
+    m_Key: WarehouseMassAdmissionOwnerUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335426
+    m_Key: WarehouseMassAdmissionRequestInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335427
+    m_Key: WarehouseMassAdmissionRevisionMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335428
+    m_Key: WarehouseMassAdmissionTokenExpired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335429
+    m_Key: WarehouseMassAdmissionTokenMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335430
+    m_Key: WarehouseMassAdmissionTokenTerminal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335431
+    m_Key: WarehouseMassCapacityUnavailable
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

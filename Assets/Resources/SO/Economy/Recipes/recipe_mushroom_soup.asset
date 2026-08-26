@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9059
+  id: 9060
   recipeId: recipe:mushroom-soup
   displayName: "\uB3D9\uAD74\uBC84\uC12F\uAD6D"
   description: "\uB3D9\uAD74\uBC84\uC12F\uAD6D \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.25
   wastewaterPerCycle: 0.1
+  wastewaterComposition: 2
   allowsManualWaterFallback: 1
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:cave-mushroom
     amount: 2
   outputs:
-  - itemId: food:mushroom-soup
+  - outputLineId: output:recipe:mushroom-soup/000/main/food:mushroom-soup
+    role: 0
+    itemId: food:mushroom-soup
     amount: 2
     probability: 1

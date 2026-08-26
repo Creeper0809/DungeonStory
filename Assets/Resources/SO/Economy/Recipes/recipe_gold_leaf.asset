@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: resource:dark-resin
     amount: 1
   outputs:
-  - itemId: craft:gold-ornament
+  - outputLineId: output:recipe:gold-leaf/000/main/craft:gold-ornament
+    role: 0
+    itemId: craft:gold-ornament
     amount: 1
     probability: 1

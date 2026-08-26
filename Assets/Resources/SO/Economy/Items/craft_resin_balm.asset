@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8075
+  id: 8076
   itemId: craft:resin-balm
   displayName: "\uC218\uC561 \uC5F0\uACE0"
   description: "\uD53C\uBD80 \uC190\uC0C1\uACFC \uBC29\uC5B4\uAD6C \uB9C8\uCC30\uC744
@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 30
   features:
-  - rid: 7737211905666712257
-  - rid: 7737211905666712258
-  - rid: 7737212042857939967
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712257
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:antiseptic
-    - rid: 7737211905666712258
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 65
         sharedIntermediate: 0
-    - rid: 7737212042857939967
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5968

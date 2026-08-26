@@ -12,6 +12,7 @@ public sealed class CharacterCarryPresentation : MonoBehaviour
     private CharacterVisual visual;
     private WorldInteractionPresentationCatalogSO catalog;
     private IDungeonItemCatalogProvider itemCatalog;
+    private IPhysicalItemMassQuery itemMassQuery;
     private SpriteRenderer propRenderer;
     private SpriteRenderer itemBadgeRenderer;
     private bool dirty = true;
@@ -56,6 +57,7 @@ public sealed class CharacterCarryPresentation : MonoBehaviour
         this.catalog = catalog
             ?? throw new ArgumentNullException(nameof(catalog));
         itemCatalog = actor?.WorldItemStackRuntime?.CatalogProvider;
+        itemMassQuery = actor?.WorldItemStackRuntime?.MassQuery;
         EnsureRenderers();
         Subscribe();
         dirty = true;
@@ -172,14 +174,18 @@ public sealed class CharacterCarryPresentation : MonoBehaviour
                 continue;
             }
 
-            float unitWeight = 1f;
-            if (itemCatalog != null
-                && itemCatalog.TryGetDefinition(item.itemId, out DungeonItemDefinition definition))
-            {
-                unitWeight = definition.UnitWeight;
-            }
-
-            float weight = unitWeight * item.quantity;
+            IPhysicalItemMassQuery requiredMass = itemMassQuery
+                ?? throw new InvalidOperationException(
+                    "Carry presentation requires the physical mass query.");
+            PhysicalItemMassSubject subject = PhysicalItemMassSubjectAdapter.Create(
+                requiredMass,
+                (ItemDefinitionId)item.itemId,
+                item.itemInstanceId,
+                item.components);
+            float weight = requiredMass
+                .GetStackUnitMass((ItemDefinitionId)item.itemId, subject)
+                .Multiply(item.quantity)
+                .Value / 1000f;
             if (selected == null
                 || weight > selectedWeight
                 || (Mathf.Approximately(weight, selectedWeight)

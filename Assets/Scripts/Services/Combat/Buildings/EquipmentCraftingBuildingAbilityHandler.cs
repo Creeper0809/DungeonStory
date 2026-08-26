@@ -83,14 +83,6 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
             out MythicProvenanceSaveData mythicProvenance);
         if (completed > 0)
         {
-            SpawnCraftedOutput(
-                actor,
-                building,
-                completedEquipmentId,
-                completedMaterialId,
-                completedQuality,
-                mythicProvenance,
-                completed);
             PublishMaterialOutcome(
                 worker,
                 completedEquipmentId,
@@ -153,73 +145,6 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
             definitionId,
             CharacterCommandOrigin.Autonomous,
             Mathf.Max(0, calendar?.Day ?? 0)));
-    }
-
-    private bool SpawnCraftedOutput(
-        IBuildingVisitorPort actor,
-        BuildableObject building,
-        string completedEquipmentId,
-        string completedMaterialId,
-        CombatEquipmentQuality completedQuality,
-        MythicProvenanceSaveData mythicProvenance,
-        int completed)
-    {
-        IBuildingItemStackPort itemRuntime = building.WorldItemStackRuntime;
-        if (completedEquipmentId == CombatItemDefinitions.ArrowBundleRecipeId
-            || completedEquipmentId == CombatItemDefinitions.BoltBundleRecipeId)
-        {
-            string ammunitionItemId =
-                completedEquipmentId == CombatItemDefinitions.ArrowBundleRecipeId
-                    ? CombatItemDefinitions.ArrowItemId
-                    : CombatItemDefinitions.BoltItemId;
-            int outputAmount =
-                completedEquipmentId == CombatItemDefinitions.ArrowBundleRecipeId
-                    ? 20
-                    : 12;
-            return itemRuntime != null
-                && itemRuntime.SpawnFacilityBufferItem(
-                    ammunitionItemId,
-                    outputAmount,
-                    building.centerPos,
-                    $"craft:{building.RequirePersistentInstanceId().Value}",
-                    out int spawned)
-                && spawned == outputAmount;
-        }
-
-        if (combatCatalog.TryGet(completedEquipmentId, out _)
-            && completed == 1
-            && itemRuntime != null)
-        {
-            if (mythicProvenance != null)
-            {
-                mythicProvenance.createdDay = Mathf.Max(0, calendar?.Day ?? 0);
-                mythicProvenance.createdFacilityId =
-                    building.RequirePersistentInstanceId().Value;
-            }
-            CombatEquipmentInstance instance = combatRuntime.CreateInstance(
-                completedEquipmentId,
-                completedQuality,
-                CombatEquipmentWorldState.Loose,
-                completedMaterialId,
-                mythicProvenance);
-            if (!itemRuntime.SpawnExistingFacilityBufferUniqueItem(
-                    PhysicalItemIds.ForEquipment(completedEquipmentId),
-                    (ItemInstanceId)instance.instanceId,
-                    building.centerPos,
-                    $"craft:{building.RequirePersistentInstanceId().Value}",
-                    out string outputStackId))
-            {
-                throw new InvalidOperationException(
-                    $"Failed to materialize crafted equipment '{instance.instanceId}'.");
-            }
-            combatRuntime.TryLinkToWorldStack(
-                instance.instanceId,
-                outputStackId,
-                CombatEquipmentWorldState.Loose);
-            return true;
-        }
-
-        return false;
     }
 
     private static string GetBuildingName(BuildableObject building)

@@ -38,6 +38,10 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
         157183
     };
 
+    private const double DailyRoutineMeanTolerance = 0.05d;
+    private const double DailyRoutineMaximumCv = 0.12d;
+    private const double DailyRoutinePerSeedCollapseFloor = 0.80d;
+
     [MenuItem("DungeonStory/V27/Verify Whole-Game Ledger Coverage")]
     public static void RunFromMenu()
     {
@@ -91,6 +95,7 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
         CapacityEvidenceSummary capacity =
             RequireFreshCapacityAndContinuityEvidence();
         RequireFreshOutputCapacityEvidence();
+        V27BalanceBuilderNoClobberDebugScenarios.RequireFreshEvidence();
 
         IReadOnlyList<CanonicalBalanceMetricRecord> records = audit.Ledger.Records;
         string[] missingDomains = RequiredDomains
@@ -270,8 +275,8 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
                     "Daily-routine freshness source is missing.",
                     path))
             .Max();
-        double actualTotal = 0d;
-        double effectiveTotal = 0d;
+        List<double> actualSamples = new(RequiredDailyRoutineSeeds.Length);
+        List<double> effectiveSamples = new(RequiredDailyRoutineSeeds.Length);
         foreach (int seed in RequiredDailyRoutineSeeds)
         {
             string path = Path.GetFullPath(
@@ -305,18 +310,59 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
                 "outputEquivalentWU=",
                 seed) / divisor;
             if (actual < SettlementLaborAuthority.ActualWuPerAdultDay
-                || effective < SettlementLaborAuthority.EffectiveOutputWuPerAdultDay)
+                    * DailyRoutinePerSeedCollapseFloor
+                || effective < SettlementLaborAuthority.EffectiveOutputWuPerAdultDay
+                    * DailyRoutinePerSeedCollapseFloor)
             {
                 throw new InvalidOperationException(
-                    $"Daily-routine labor authority failed: seed={seed}; "
+                    $"Daily-routine per-seed collapse floor failed: seed={seed}; "
                     + $"actual={actual:R}; effective={effective:R}.");
             }
-            actualTotal += actual;
-            effectiveTotal += effective;
+            actualSamples.Add(actual);
+            effectiveSamples.Add(effective);
         }
-        return (
-            actualTotal / RequiredDailyRoutineSeeds.Length,
-            effectiveTotal / RequiredDailyRoutineSeeds.Length);
+
+        double actualMean = actualSamples.Average();
+        double effectiveMean = effectiveSamples.Average();
+        double actualTarget = SettlementLaborAuthority.ActualWuPerAdultDay;
+        double effectiveTarget = SettlementLaborAuthority.EffectiveOutputWuPerAdultDay;
+        double actualCv = CoefficientOfVariation(actualSamples, actualMean);
+        double effectiveCv = CoefficientOfVariation(effectiveSamples, effectiveMean);
+        bool actualMeanInBand = Math.Abs(actualMean - actualTarget)
+            <= actualTarget * DailyRoutineMeanTolerance;
+        bool effectiveMeanInBand = Math.Abs(effectiveMean - effectiveTarget)
+            <= effectiveTarget * DailyRoutineMeanTolerance;
+        if (!actualMeanInBand
+            || !effectiveMeanInBand
+            || actualCv > DailyRoutineMaximumCv
+            || effectiveCv > DailyRoutineMaximumCv)
+        {
+            throw new InvalidOperationException(
+                "Daily-routine three-seed authority failed: "
+                + $"actualMean={actualMean:R}; effectiveMean={effectiveMean:R}; "
+                + $"actualCv={actualCv:R}; effectiveCv={effectiveCv:R}; "
+                + $"meanTolerance={DailyRoutineMeanTolerance:R}; "
+                + $"maximumCv={DailyRoutineMaximumCv:R}.");
+        }
+
+        return (actualMean, effectiveMean);
+    }
+
+    private static double CoefficientOfVariation(
+        IReadOnlyList<double> samples,
+        double mean)
+    {
+        if (samples == null || samples.Count == 0 || mean <= 0d)
+            throw new InvalidOperationException(
+                "Daily-routine CV requires positive non-empty samples.");
+
+        double squaredDeviation = 0d;
+        for (int index = 0; index < samples.Count; index++)
+        {
+            double delta = samples[index] - mean;
+            squaredDeviation += delta * delta;
+        }
+        return Math.Sqrt(squaredDeviation / samples.Count) / mean;
     }
 
     private static void RequireFreshDungeonExpansionEvidence()

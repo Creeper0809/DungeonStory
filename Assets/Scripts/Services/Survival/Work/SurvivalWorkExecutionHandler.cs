@@ -20,13 +20,15 @@ public sealed class SurvivalWorkExecutionHandler :
     private readonly IProductionBillWorkExecution productionBills;
     private readonly IProcessFluidUseRuntime processFluids;
     private readonly ICharacterSpeciesRechargeService golemRecharge;
+    private readonly ICropPlotRuntime cropPlots;
     private readonly IReadOnlyDictionary<WorkTypeId, Func<BuildableObject, float>> workAmounts;
 
     public SurvivalWorkExecutionHandler(
         ISurvivalFoodQuery survivalRuntime,
         IProductionBillWorkExecution productionBills,
         IProcessFluidUseRuntime processFluids,
-        ICharacterSpeciesRechargeService golemRecharge)
+        ICharacterSpeciesRechargeService golemRecharge,
+        ICropPlotRuntime cropPlots)
     {
         this.survivalRuntime = survivalRuntime
             ?? throw new ArgumentNullException(nameof(survivalRuntime));
@@ -36,6 +38,8 @@ public sealed class SurvivalWorkExecutionHandler :
             ?? throw new ArgumentNullException(nameof(processFluids));
         this.golemRecharge = golemRecharge
             ?? throw new ArgumentNullException(nameof(golemRecharge));
+        this.cropPlots = cropPlots
+            ?? throw new ArgumentNullException(nameof(cropPlots));
         workAmounts = new Dictionary<WorkTypeId, Func<BuildableObject, float>>
         {
             [BuiltInWorkTypeIds.DrawWater] = target =>
@@ -84,6 +88,15 @@ public sealed class SurvivalWorkExecutionHandler :
                 ? availability.Failure.Code.ToString()
                 : string.Empty;
         }
+        if (workTypeId == BuiltInWorkTypeIds.Treat
+            && cropPlots.TryGetWork(
+                target,
+                workTypeId,
+                out CropPlotWorkSnapshot cropTreatment))
+        {
+            reason = cropTreatment.UnavailableReason;
+            return cropTreatment.Available;
+        }
 
         bool survivalAvailable = workTypeId.IsValid
             && survivalRuntime.HasSurvivalWorkAvailable(target, workTypeId);
@@ -102,6 +115,12 @@ public sealed class SurvivalWorkExecutionHandler :
         if (workTypeId == BuiltInWorkTypeIds.Refuel
             && target?.BuildingData?.GetAbility<BuildingGolemRechargeAbility>() != null)
             return golemRecharge.GetRechargeUrgency(actor, target);
+        if (workTypeId == BuiltInWorkTypeIds.Treat
+            && cropPlots.TryGetWork(
+                target,
+                workTypeId,
+                out CropPlotWorkSnapshot cropTreatment))
+            return cropTreatment.Available ? 42f : 0f;
         return workTypeId.IsValid
             ? survivalRuntime.GetSurvivalWorkUrgency(target, workTypeId)
             : 0f;
@@ -109,6 +128,35 @@ public sealed class SurvivalWorkExecutionHandler :
 
     public IEnumerator Execute(WorkExecutionContext context, WorkExecutionResult result)
     {
+        if (context.WorkTypeId == BuiltInWorkTypeIds.Treat
+            && cropPlots.TryGetWork(
+                context.Target,
+                context.WorkTypeId,
+                out CropPlotWorkSnapshot cropTreatment)
+            && cropTreatment.Available)
+        {
+            bool applied = true;
+            bool completed = false;
+            yield return context.ExecutePersistentWorkAmount(
+                cropTreatment.RequiredWork,
+                cropTreatment.CompletedWork,
+                cropTreatment.DisplayName,
+                delta =>
+                {
+                    applied &= cropPlots.ApplyWork(
+                        context.Target,
+                        context.WorkTypeId,
+                        delta,
+                        context.Actor,
+                        out bool cycleCompleted);
+                    completed |= cycleCompleted;
+                    return applied;
+                });
+            result.CompletedSuccessfully = applied && completed;
+            result.CompletionEffectsAlreadyApplied = completed;
+            yield break;
+        }
+
         if (context.WorkTypeId == BuiltInWorkTypeIds.Refuel
             && context.Target?.BuildingData?
                 .GetAbility<BuildingGolemRechargeAbility>()

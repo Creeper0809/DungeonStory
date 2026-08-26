@@ -284,7 +284,7 @@ internal static class WorldItemHaulDestinationAuthority
         $"{WorkOrderRuntime.ConstructionDestinationPrefix}"
         + $"{site.TargetBuilding.id}:{site.GridPosition.x}:{site.GridPosition.y}";
 
-    private static bool TryResolveDeliveryCell(
+    internal static bool TryResolveDeliveryCell(
         Grid grid,
         BuildableObject building,
         out Vector2Int deliveryCell)

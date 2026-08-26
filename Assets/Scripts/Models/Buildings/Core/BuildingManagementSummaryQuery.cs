@@ -30,16 +30,31 @@ public readonly struct ShopManagementSummary
 
 public readonly struct WarehouseManagementSummary
 {
-    public WarehouseManagementSummary(int warehouseCount, int totalStock, int totalCapacity, IReadOnlyDictionary<StockCategory, int> stockByCategory)
+    public WarehouseManagementSummary(
+        int warehouseCount,
+        int totalStock,
+        int totalCapacity,
+        IReadOnlyDictionary<StockCategory, int> stockByCategory,
+        int massWarehouseCount = 0,
+        long totalStoredMassGrams = 0L,
+        long totalMaxMassGrams = 0L)
     {
         WarehouseCount = warehouseCount; TotalStock = totalStock; TotalCapacity = totalCapacity;
         StockByCategory = stockByCategory != null ? new Dictionary<StockCategory, int>(stockByCategory) : new Dictionary<StockCategory, int>();
+        MassWarehouseCount = massWarehouseCount;
+        TotalStoredMassGrams = totalStoredMassGrams;
+        TotalMaxMassGrams = totalMaxMassGrams;
     }
     public int WarehouseCount { get; }
     public int TotalStock { get; }
     public int TotalCapacity { get; }
+    public int MassWarehouseCount { get; }
+    public int LegacyCountWarehouseCount => WarehouseCount - MassWarehouseCount;
+    public long TotalStoredMassGrams { get; }
+    public long TotalMaxMassGrams { get; }
     public IReadOnlyDictionary<StockCategory, int> StockByCategory { get; }
     public bool HasCapacityLimit => TotalCapacity > 0;
+    public bool HasMassCapacityAuthority => MassWarehouseCount > 0;
     public int GetStock(StockCategory category) => StockByCategory.TryGetValue(category, out int amount) ? amount : 0;
     public IReadOnlyList<KeyValuePair<StockCategory, int>> EnumerateStock() => StockByCategory.OrderBy(pair => (int)pair.Key).ToArray();
 }
@@ -61,11 +76,29 @@ public readonly struct ShopManagementSnapshot
 
 public readonly struct WarehouseManagementSnapshot
 {
-    public WarehouseManagementSnapshot(int totalStock, int capacity, bool hasCapacityLimit, IReadOnlyDictionary<StockCategory, int> stock)
-    { TotalStock = totalStock; Capacity = capacity; HasCapacityLimit = hasCapacityLimit; Stock = stock ?? throw new ArgumentNullException(nameof(stock)); }
+    public WarehouseManagementSnapshot(
+        int totalStock,
+        int capacity,
+        bool hasCapacityLimit,
+        IReadOnlyDictionary<StockCategory, int> stock,
+        bool hasMassCapacityAuthority = false,
+        long storedMassGrams = 0L,
+        long maxMassGrams = 0L)
+    {
+        TotalStock = totalStock;
+        Capacity = capacity;
+        HasCapacityLimit = hasCapacityLimit;
+        Stock = stock ?? throw new ArgumentNullException(nameof(stock));
+        HasMassCapacityAuthority = hasMassCapacityAuthority;
+        StoredMassGrams = storedMassGrams;
+        MaxMassGrams = maxMassGrams;
+    }
     public int TotalStock { get; }
     public int Capacity { get; }
     public bool HasCapacityLimit { get; }
+    public bool HasMassCapacityAuthority { get; }
+    public long StoredMassGrams { get; }
+    public long MaxMassGrams { get; }
     public IReadOnlyDictionary<StockCategory, int> Stock { get; }
 }
 
@@ -110,6 +143,16 @@ public static class BuildingManagementSummaryQuery
         WarehouseManagementSnapshot[] values = source?.ToArray() ?? Array.Empty<WarehouseManagementSnapshot>();
         bool limited = values.Any(v => v.HasCapacityLimit);
         Dictionary<StockCategory, int> stock = values.SelectMany(v => v.Stock).GroupBy(p => p.Key).ToDictionary(g => g.Key, g => g.Sum(p => p.Value));
-        return new WarehouseManagementSummary(values.Length, values.Sum(v => v.TotalStock), limited ? values.Where(v => v.HasCapacityLimit).Sum(v => v.Capacity) : 0, stock);
+        WarehouseManagementSnapshot[] massValues = values
+            .Where(value => value.HasMassCapacityAuthority)
+            .ToArray();
+        return new WarehouseManagementSummary(
+            values.Length,
+            values.Sum(v => v.TotalStock),
+            limited ? values.Where(v => v.HasCapacityLimit).Sum(v => v.Capacity) : 0,
+            stock,
+            massValues.Length,
+            massValues.Aggregate(0L, (sum, value) => checked(sum + value.StoredMassGrams)),
+            massValues.Aggregate(0L, (sum, value) => checked(sum + value.MaxMassGrams)));
     }
 }

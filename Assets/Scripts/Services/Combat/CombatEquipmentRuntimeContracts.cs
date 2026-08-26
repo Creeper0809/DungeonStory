@@ -32,13 +32,18 @@ public static class EquipmentProgressionFacilityContract
     }
 }
 
+public interface ICombatEquipmentCraftQueueQuery
+{
+    IReadOnlyList<CombatEquipmentCraftOrderSaveData> CraftQueue { get; }
+}
+
 public interface ICombatEquipmentRuntime :
+    ICombatEquipmentCraftQueueQuery,
     IBuildingEquipmentCraftingRuntimePort,
     ICombatFallbackWeaponRuntimePort
 {
     IReadOnlyList<CombatEquipmentDefinitionSO> Definitions { get; }
     IReadOnlyCollection<CombatEquipmentInstance> Instances { get; }
-    IReadOnlyList<CombatEquipmentCraftOrderSaveData> CraftQueue { get; }
     bool TryGetDefinition(string definitionId, out CombatEquipmentDefinitionSO definition);
     bool IsDefinitionUnlocked(string definitionId, out string failureReason);
     int GetAvailableCount(string definitionId);
@@ -173,6 +178,26 @@ public interface ICombatEquipmentRuntime :
         out string failureReason);
     bool TrySetWorldStateBySourceStack(string sourceStackId, CombatEquipmentWorldState worldState);
     bool TryMarkLost(string instanceId);
+    bool TryBindRetailStock(
+        string instanceId,
+        string retailSourceOperationId,
+        out string failureReason);
+    bool TryBindPhysicalToRetailStock(
+        string instanceId,
+        string expectedSourceStackId,
+        string retailSourceOperationId,
+        out string failureReason);
+    bool TryConsumeRetailStock(
+        string instanceId,
+        string retailSourceOperationId,
+        out CombatEquipmentInstance consumedInstance,
+        out string failureReason);
+    bool TryRestoreRetailStockToPhysical(
+        string instanceId,
+        string retailSourceOperationId,
+        string sourceStackId,
+        CombatEquipmentWorldState restoredWorldState,
+        out string failureReason);
     bool TryAssignToCharacter(string characterId, string instanceId, out string failureReason);
     bool TryUnassignSlot(
         string characterId,

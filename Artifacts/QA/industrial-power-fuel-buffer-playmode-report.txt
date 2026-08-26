@@ -1,0 +1,9 @@
+schemaVersion=1
+scenario=industrial-power-fuel-buffer
+route=loose-source->exact-stack-managed-admission->actual-ai-haul->carried-save-restore->facility-buffer->fuel-consumption->power
+powerRawRoute=REJECTED:facility_buffer_managed_route_required
+powerFuelCarriedRestore=350g
+power=6.4/10
+powerFuelRoute=exact-stack-admission-ai-haul
+mode=power-fuel-only
+result=PASS

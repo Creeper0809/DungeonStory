@@ -131,7 +131,17 @@ public sealed class SampleSceneRationRuntime : IStartable, ITickable
                 && stack.ItemId == itemId
                 && stack.DestinationId == RationDestinationId);
         if (ration == null
-            || !itemStackRuntime.TryConsumeStackQuantity(ration.StackId, 1, out _))
+            || !actor.BuildingCharacterId.IsValid
+            || !itemStackRuntime.TryCommitPhysicalDisposition(
+                ration.StackId,
+                1,
+                PhysicalItemDispositionKind.Sink,
+                $"sample-ration:{actor.BuildingCharacterId.Value}:{condition}",
+                condition == CharacterCondition.THIRST
+                    ? "sample-ration-drink"
+                    : "sample-ration-meal",
+                out _,
+                out _))
         {
             return;
         }

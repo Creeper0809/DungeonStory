@@ -640,6 +640,15 @@ public static class CharacterWorldSaveValidation
             report.AddError(
                 $"{label} haul delivery '{operation}' does not exactly own its carried stacks.");
         }
+        if (!ExactWarehouseHaulAdmissionJoin.TryValidateSavedIntent(
+                intent,
+                haulCarried,
+                out string admissionFailure))
+        {
+            report.AddError(
+                $"{label} haul delivery '{operation}' has an invalid warehouse admission join: "
+                + admissionFailure);
+        }
     }
 
     private static bool IsFinite(float value)

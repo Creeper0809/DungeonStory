@@ -207,7 +207,8 @@ public sealed class CombatEquipmentRuntime :
 
         if (instance.worldState is CombatEquipmentWorldState.Equipped
             or CombatEquipmentWorldState.ExpeditionPacked
-            or CombatEquipmentWorldState.MaintenanceBuffer)
+            or CombatEquipmentWorldState.MaintenanceBuffer
+            or CombatEquipmentWorldState.RetailStock)
         {
             failureReason = "장착·출정·수리 중인 장비는 해체할 수 없습니다.";
             return false;
@@ -280,7 +281,8 @@ public sealed class CombatEquipmentRuntime :
         }
         if (instance.worldState is CombatEquipmentWorldState.Equipped
             or CombatEquipmentWorldState.ExpeditionPacked
-            or CombatEquipmentWorldState.MaintenanceBuffer)
+            or CombatEquipmentWorldState.MaintenanceBuffer
+            or CombatEquipmentWorldState.RetailStock)
         {
             failureReason = "장착·출정·수리 중인 장비는 폐기할 수 없습니다.";
             return false;
@@ -684,6 +686,191 @@ public sealed class CombatEquipmentRuntime :
                 module.condition = 0f;
             }
         }
+        return true;
+    }
+
+    public bool TryBindRetailStock(
+        string instanceId,
+        string retailSourceOperationId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string normalizedInstanceId = instanceId?.Trim() ?? string.Empty;
+        string normalizedOperationId = retailSourceOperationId?.Trim() ?? string.Empty;
+        if (normalizedInstanceId.Length == 0
+            || normalizedOperationId.Length == 0
+            || !string.Equals(instanceId, normalizedInstanceId, StringComparison.Ordinal)
+            || !string.Equals(
+                retailSourceOperationId,
+                normalizedOperationId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "retail-stock-identity-not-canonical";
+            return false;
+        }
+        if (!instances.TryGetValue(
+                normalizedInstanceId,
+                out CombatEquipmentInstance instance))
+        {
+            failureReason = "retail-stock-equipment-instance-missing";
+            return false;
+        }
+        if (!string.IsNullOrWhiteSpace(instance.ownerCharacterId)
+            || instance.worldState is CombatEquipmentWorldState.ExpeditionPacked
+                or CombatEquipmentWorldState.MaintenanceBuffer
+                or CombatEquipmentWorldState.Carried)
+        {
+            failureReason = "retail-stock-equipment-owned-by-active-domain";
+            return false;
+        }
+        if (!string.IsNullOrWhiteSpace(instance.sourceStackId)
+            && !string.Equals(
+                instance.sourceStackId,
+                normalizedOperationId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "retail-stock-equipment-source-conflict";
+            return false;
+        }
+
+        loadoutRuntime.RemoveEquipment(instance.instanceId);
+        instance.ownerCharacterId = string.Empty;
+        instance.sourceStackId = normalizedOperationId;
+        instance.worldState = CombatEquipmentWorldState.RetailStock;
+        return true;
+    }
+
+    public bool TryBindPhysicalToRetailStock(
+        string instanceId,
+        string expectedSourceStackId,
+        string retailSourceOperationId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string normalizedInstanceId = instanceId?.Trim() ?? string.Empty;
+        string normalizedStackId = expectedSourceStackId?.Trim() ?? string.Empty;
+        string normalizedOperationId = retailSourceOperationId?.Trim() ?? string.Empty;
+        if (normalizedInstanceId.Length == 0
+            || normalizedStackId.Length == 0
+            || normalizedOperationId.Length == 0
+            || !string.Equals(instanceId, normalizedInstanceId, StringComparison.Ordinal)
+            || !string.Equals(expectedSourceStackId, normalizedStackId, StringComparison.Ordinal)
+            || !string.Equals(retailSourceOperationId, normalizedOperationId, StringComparison.Ordinal)
+            || !instances.TryGetValue(normalizedInstanceId, out CombatEquipmentInstance instance)
+            || instance.worldState != CombatEquipmentWorldState.Carried
+            || !string.IsNullOrWhiteSpace(instance.ownerCharacterId)
+            || !string.Equals(instance.sourceStackId, normalizedStackId, StringComparison.Ordinal))
+        {
+            failureReason = "retail-stock-physical-bind-authority-mismatch";
+            return false;
+        }
+
+        loadoutRuntime.RemoveEquipment(instance.instanceId);
+        instance.ownerCharacterId = string.Empty;
+        instance.sourceStackId = normalizedOperationId;
+        instance.worldState = CombatEquipmentWorldState.RetailStock;
+        return true;
+    }
+
+    public bool TryConsumeRetailStock(
+        string instanceId,
+        string retailSourceOperationId,
+        out CombatEquipmentInstance consumedInstance,
+        out string failureReason)
+    {
+        consumedInstance = null;
+        failureReason = string.Empty;
+        string normalizedInstanceId = instanceId?.Trim() ?? string.Empty;
+        string normalizedOperationId = retailSourceOperationId?.Trim() ?? string.Empty;
+        if (!instances.TryGetValue(
+                normalizedInstanceId,
+                out CombatEquipmentInstance instance)
+            || instance.worldState != CombatEquipmentWorldState.RetailStock
+            || !string.Equals(
+                instance.sourceStackId,
+                normalizedOperationId,
+                StringComparison.Ordinal)
+            || !string.IsNullOrWhiteSpace(instance.ownerCharacterId))
+        {
+            failureReason = "retail-stock-equipment-authority-mismatch";
+            return false;
+        }
+
+        string[] attachedModuleIds = (instance.moduleSlots
+                ?? new List<EquipmentModuleSlotState>())
+            .Where(slot => slot != null
+                && !string.IsNullOrWhiteSpace(slot.moduleInstanceId))
+            .Select(slot => slot.moduleInstanceId)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        foreach (string moduleId in attachedModuleIds)
+        {
+            if (!moduleInstances.ContainsKey(moduleId))
+            {
+                failureReason = "retail-stock-attached-module-missing";
+                return false;
+            }
+        }
+
+        consumedInstance = instance.Clone();
+        loadoutRuntime.RemoveEquipment(instance.instanceId);
+        instances.Remove(instance.instanceId);
+        foreach (string moduleId in attachedModuleIds)
+        {
+            moduleInstances.Remove(moduleId);
+        }
+        return true;
+    }
+
+    public bool TryRestoreRetailStockToPhysical(
+        string instanceId,
+        string retailSourceOperationId,
+        string sourceStackId,
+        CombatEquipmentWorldState restoredWorldState,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string normalizedInstanceId = instanceId?.Trim() ?? string.Empty;
+        string normalizedOperationId = retailSourceOperationId?.Trim() ?? string.Empty;
+        string normalizedStackId = sourceStackId?.Trim() ?? string.Empty;
+        if (restoredWorldState is not (
+                CombatEquipmentWorldState.Stored
+                or CombatEquipmentWorldState.Loose
+                or CombatEquipmentWorldState.Carried
+                or CombatEquipmentWorldState.MaintenanceBuffer)
+            || normalizedStackId.Length == 0
+            || !instances.TryGetValue(
+                normalizedInstanceId,
+                out CombatEquipmentInstance instance)
+            || instance.worldState != CombatEquipmentWorldState.RetailStock
+            || !string.Equals(
+                instance.sourceStackId,
+                normalizedOperationId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "retail-stock-physical-restore-authority-mismatch";
+            return false;
+        }
+        WorldItemStackSnapshot physicalStack = itemStackRuntime.GetAllStacks()
+            .FirstOrDefault(stack => stack != null
+                && string.Equals(
+                    stack.StackId,
+                    normalizedStackId,
+                    StringComparison.Ordinal));
+        if (physicalStack == null
+            || !string.Equals(
+                physicalStack.ItemInstanceId,
+                normalizedInstanceId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "retail-stock-physical-restore-stack-missing";
+            return false;
+        }
+
+        instance.sourceStackId = normalizedStackId;
+        instance.ownerCharacterId = string.Empty;
+        instance.worldState = restoredWorldState;
+        PersistPhysicalState(instance);
         return true;
     }
 
@@ -1327,6 +1514,11 @@ public sealed class CombatEquipmentRuntime :
             loadouts = loadoutRuntime.Capture().ToList(),
             craftOrders = crafting.CaptureOrders().ToList(),
             craftMaterialPolicies = crafting.CapturePolicies().ToList(),
+            craftTerminalEffects = stateStore.Current.CraftTerminalEffects
+                .Values
+                .OrderBy(value => value.sourceId, StringComparer.Ordinal)
+                .Select(value => value.Clone())
+                .ToList(),
             historyTransferOrders = historyRuntime.CaptureOrders().ToList(),
             claimedLineageSealRegionIds =
                 historyRuntime.CaptureClaimedRegionIds().ToList()

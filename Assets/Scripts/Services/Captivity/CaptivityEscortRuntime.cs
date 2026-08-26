@@ -473,14 +473,7 @@ internal static class CaptivityDurableToolRuntime
             state?.assignedLaborToolInstanceId,
             state?.assignedLaborToolDurability ?? 0f,
             position,
-            () =>
-            {
-                state.assignedLaborToolItemId = string.Empty;
-                state.assignedLaborToolInstanceId = string.Empty;
-                state.assignedLaborToolDurability = 0f;
-                state.assignedLaborToolMaximumDurability = 0f;
-                state.nextLaborToolWearAt = 0f;
-            });
+            () => CaptivityLaborToolAssignmentOutbox.ClearAssignment(state));
 
     private static bool TryReturn(
         IWorldItemStackRuntime items,

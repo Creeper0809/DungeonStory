@@ -590,7 +590,7 @@ public static class RuntimeAuthorityV18Validator
                 "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureSaveSections.cs",
                 "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs",
                 FluidInfrastructureSaveSection.Id,
-                4,
+                6,
                 DungeonSaveRestorePhase.RuntimeState,
                 "PrepareRestore"),
             new(
@@ -2708,6 +2708,288 @@ public static class RuntimeAuthorityV18Validator
             defenseFacilitySavePath,
             "new DefenseFacilitySaveData()",
             "Defense-facility restore must not synthesize missing or invalid state.");
+        const string defenseFacilityRuntimePath =
+            "Assets/Scripts/Services/Defense/DefenseFacilityRuntime.cs";
+        ForbidSourceContract(
+            errors,
+            defenseFacilityRuntimePath,
+            "TryConsumeFacilityItemBuffer(",
+            "Defense maintenance and supply must use exact-lot pending physical receipts.");
+        ForbidSourceContract(
+            errors,
+            defenseFacilityRuntimePath,
+            "TryConsumeFacilityBuffer(",
+            "Defense supply must not consume category-only quantities.");
+        RequireSourceContract(
+            errors,
+            defenseFacilityRuntimePath,
+            "DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(",
+            "Defense physical debits must be owned by the durable outbox.");
+        RequireSourceContract(
+            errors,
+            defenseFacilityValidationPath,
+            "public const int CurrentVersion = 2;",
+            "Defense current-format saves must persist physical transaction ownership.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Defense/DefenseFacilityPhysicalRestoreGuard.cs",
+            "Incoming defense physical receipt has no facility owner",
+            "Defense restore must reject incoming physical receipts without an owner.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Defense/Editor/DefenseFacilityPhysicalTransactionFixture.cs",
+            "FailNextAcknowledgement = true",
+            "Defense focused evidence must cover acknowledgement-fault recovery.");
+        const string cropEcologyRuntimePath =
+            "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs";
+        const string cropPlotRuntimePath =
+            "Assets/Scripts/Services/Economy/CropPlotRuntime.cs";
+        const string certifiedSeedRuntimePath =
+            "Assets/Scripts/Services/Economy/CertifiedSeedRuntime.cs";
+        ForbidSourceContract(
+            errors,
+            cropEcologyRuntimePath,
+            "TryConsumeFacilityItemBuffer(",
+            "Crop inputs must use exact-lot pending physical receipts.");
+        ForbidSourceContract(
+            errors,
+            certifiedSeedRuntimePath,
+            "TryConsumeSowingInputs(",
+            "Certified-seed inputs must not use the legacy immediate debit.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "CropPhysicalTransactionOutbox.TryCommitOrResume(",
+            "Crop sow input custody must be owned by the durable outbox.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "ecologyBeforeFingerprint",
+            "Crop sow must persist its ecology before/after envelope.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Models/Economy/Core/CropPlotModels.cs",
+            "public const int CurrentVersion = 7;",
+            "Crop-plot current-format saves must persist sow and treatment transaction ownership.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Models/Economy/Core/CropPlotModels.cs",
+            "public bool hasSeedLot;",
+            "Crop-plot JSON must distinguish absent seed provenance from JsonUtility's empty nested object.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "TryAcknowledgeDestroyedPlotLoss(",
+            "Destroyed crop plots must terminate committed sow WIP explicitly.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "ecology.AbandonPlot(plotId.Value)",
+            "Destroyed crop plots must remove their ecology owner after WIP termination.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/CropPhysicalTransactionOutbox.cs",
+            "DestroyedWithPlotLoss",
+            "Destroyed crop WIP must preserve an exact typed terminal loss receipt.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Editor/CropPhysicalTransactionFixture.cs",
+            "VerifyDestroyedPlotLoss",
+            "Crop focused evidence must cover destroyed-plot WIP loss replay.");
+        RequireSourceContract(
+            errors,
+            certifiedSeedRuntimePath,
+            "ICertifiedSeedPersistence",
+            "Certified-seed orders must have a persistent domain owner.");
+        RequireSourceContract(
+            errors,
+            certifiedSeedRuntimePath,
+            "TryEnsureSeedLotOutput(",
+            "Certified-seed output must be published exact-once.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/CropPhysicalRestoreGuard.cs",
+            "Incoming crop physical receipt has no domain owner",
+            "Crop restore must reject incoming physical receipts without an owner.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Editor/CropPhysicalTransactionFixture.cs",
+            "FailNextAcknowledgement = true",
+            "Crop focused evidence must cover acknowledgement-fault recovery.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "public bool TryScheduleTreatment(",
+            "Crop treatment must have a live crop-plot UI/planner entry point.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "CropTreatmentPhysicalOutbox.TryCommitOrResume(",
+            "Crop treatment must commit its exact physical Sink through a durable outbox.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "CropTreatmentPhysicalOutbox.EnsureTareOutputs(",
+            "Crop treatment must publish reusable or disposable package tare before its ecology outcome.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/CropTreatmentPhysicalOutbox.cs",
+            "receipt.Kind == PhysicalItemDispositionKind.Sink",
+            "Crop treatment restore must require an exact Sink receipt.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/CropPhysicalRestoreGuard.cs",
+            "Incoming crop treatment receipt has no domain owner",
+            "Crop treatment restore must reject an incoming receipt without a crop owner.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Editor/CropPhysicalTransactionFixture.cs",
+            "VerifyCropTreatment",
+            "Crop focused evidence must cover exact Sink, tare, ecology and acknowledgement replay.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Editor/CropPhysicalTransactionFixture.cs",
+            "VerifyDestroyedTreatmentLoss",
+            "Destroyed crop treatment WIP must have focused terminal-loss replay evidence.");
+        const string productionItemGatewayPath =
+            "Assets/Scripts/Services/Economy/ProductionItemGateway.cs";
+        const string productionStockSensorPath =
+            "Assets/Scripts/Models/Economy/Content/ProductionStockSensorRuntime.cs";
+        const string productionBillModelsPath =
+            "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs";
+        const string productionBillsSavePath =
+            "Assets/Scripts/Services/Economy/ProductionBillsSaveSection.cs";
+        ForbidSourceContract(
+            errors,
+            productionItemGatewayPath,
+            "TryConsumeFacilityItemBuffer(",
+            "Production gateway must not retain a count-only FacilityBuffer debit.");
+        ForbidSourceContract(
+            errors,
+            productionStockSensorPath,
+            ".ConsumeDelivered(",
+            "Stock-sensor installation must not use the legacy count-only production debit.");
+        ForbidSourceContract(
+            errors,
+            productionStockSensorPath,
+            ".SpawnOutput(",
+            "Stock-sensor removal must not clear installed state before an unowned loose spawn.");
+        RequireSourceContract(
+            errors,
+            productionStockSensorPath,
+            "CommitStockSensorInstallPending(",
+            "Stock-sensor installation must publish an exact physical Sink owner.");
+        RequireSourceContract(
+            errors,
+            productionStockSensorPath,
+            "ProductionStockSensorCommitPhase.OutcomePublished",
+            "Stock-sensor installation must support acknowledgement-only replay.");
+        RequireSourceContract(
+            errors,
+            productionBillModelsPath,
+            "public const int CurrentVersion = 17;",
+            "Production V16 must persist prepared output, installed sensor mass, and removal output ownership.");
+        RequireSourceContract(
+            errors,
+            productionStockSensorPath,
+            "ProductionStockSensorRemovalPhase.OutputPublished",
+            "Stock-sensor removal must publish its exact physical output before clearing installed state.");
+        RequireSourceContract(
+            errors,
+            productionStockSensorPath,
+            "expectedOutputMassGrams = installedRecord.embeddedMassGrams",
+            "Stock-sensor removal output mass must come from the installed input receipt.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/ProductionStockSensorRemovalOutputGateway.cs",
+            "TryEnsureLooseOutputs(",
+            "Stock-sensor removal must use deterministic physical Source publication.");
+        RequireSourceContract(
+            errors,
+            productionBillsSavePath,
+            "ValidateStockSensorPhysicalRestoreCandidate(",
+            "Production restore must join stock-sensor owners to incoming physical receipts.");
+        RequireSourceContract(
+            errors,
+            productionBillsSavePath,
+            "ValidateStockSensorRemovalOutputCandidate(payload, outputCandidates);",
+            "Production restore must validate pending stock-sensor removal outputs against the incoming physical candidate.");
+        RequireSourceContract(
+            errors,
+            productionBillsSavePath,
+            "Incoming production stock-sensor Sink has no exact owner",
+            "Production restore must reject orphan stock-sensor physical receipts.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+            ".As<IProductionStockSensorPhysicalGateway>()",
+            "Production composition must bind the stock-sensor physical gateway.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+            ".As<IProductionStockSensorRemovalOutputGateway>()",
+            "Production composition must bind the stock-sensor removal output gateway.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+            ".As<IPhysicalItemRestoreCandidateOutputQuery>()",
+            "Physical restore must expose committed output candidates to dependent sections.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Editor/ProductionEconomyDebugScenarios.cs",
+            "FailStockSensorAcknowledgeOnce();",
+            "Production focused evidence must cover stock-sensor acknowledgement recovery.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Editor/ProductionEconomyDebugScenarios.cs",
+            "FailStockSensorRemovalOnce();",
+            "Production focused evidence must cover removal output-space recovery.");
+        const string fluidRuntimePath =
+            "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs";
+        const string fluidModelsPath =
+            "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureModels.cs";
+        const string fluidSavePath =
+            "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureSaveSections.cs";
+        ForbidSourceContract(
+            errors,
+            fluidRuntimePath,
+            "TryConsumeFacilityItemBuffer(",
+            "Manual water must not retain the count-only item debit.");
+        ForbidSourceContract(
+            errors,
+            fluidRuntimePath,
+            "TryConsumeFacilityBuffer(",
+            "Container-to-network feed must not retain category-only deletion.");
+        RequireSourceContract(
+            errors,
+            fluidModelsPath,
+            "public const int CurrentVersion = 6;",
+            "Fluid V6 must persist immediate and network-feed physical ownership.");
+        RequireSourceContract(
+            errors,
+            fluidRuntimePath,
+            "NextImmediateManualWaterOperationSequence",
+            "Immediate manual-water calls require a durable monotonic identity.");
+        RequireSourceContract(
+            errors,
+            fluidRuntimePath,
+            "PendingContainerFeed",
+            "Automatic container feed must retain outcome-before-ack ownership.");
+        RequireSourceContract(
+            errors,
+            fluidSavePath,
+            "ValidatePhysicalRestoreCandidate(payload, physicalCandidates);",
+            "Fluid restore must join its owners to the incoming physical candidate.");
+        RequireSourceContract(
+            errors,
+            fluidSavePath,
+            "Incoming container-water feed Transfer",
+            "Fluid restore must reject orphan container-feed receipts.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Items/Editor/PhysicalItemDebugScenarios.cs",
+            "dispositions.FailNextAcknowledgement = true;",
+            "Manual-water focused evidence must cover acknowledgement-only replay.");
         const string factionSavePath =
             "Assets/Scripts/Services/Factions/FactionSaveSection.cs";
         RequireSourceContract(
@@ -2794,6 +3076,16 @@ public static class RuntimeAuthorityV18Validator
             grandProjectSavePath,
             "GrandProjectSaveValidation.Validate(",
             "Grand-project section preflight must share its strict payload validator.");
+        RequireSourceContract(
+            errors,
+            grandProjectSavePath,
+            "ValidatePhysicalRestoreCandidate(payload, physicalCandidates)",
+            "Grand-project restore must join its physical Sink owner to the incoming item candidate.");
+        RequireSourceContract(
+            errors,
+            grandProjectSavePath,
+            "Incoming grand-project physical Sink has no exact domain owner",
+            "Grand-project restore must reject orphan incoming physical receipts.");
         const string grandProjectRuntimePath =
             "Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs";
         RequireSourceContract(
@@ -2811,6 +3103,21 @@ public static class RuntimeAuthorityV18Validator
             grandProjectRuntimePath,
             "public DungeonGrandProjectSaveData Payload",
             "Grand-project restore candidates must remain opaque outside their aggregate.");
+        RequireSourceContract(
+            errors,
+            grandProjectRuntimePath,
+            "CommitDeliveredMaterialsPending(",
+            "Grand-project materials must enter one exact pending physical Sink.");
+        RequireSourceContract(
+            errors,
+            grandProjectRuntimePath,
+            "GrandProjectPhysicalCommitPhase.OutcomePublished",
+            "Grand-project completion must persist an acknowledgement-only replay phase.");
+        ForbidSourceContract(
+            errors,
+            grandProjectRuntimePath,
+            ".ConsumeDelivered(",
+            "Grand-project completion must not use the legacy count-only facility-buffer debit.");
         const string grandProjectValidationPath =
             "Assets/Scripts/Models/Economy/Content/GrandProjectSaveValidation.cs";
         RequireSourceContract(
@@ -2823,6 +3130,26 @@ public static class RuntimeAuthorityV18Validator
             grandProjectValidationPath,
             "Inactive grand-project state must have an empty destination and zero work",
             "Grand-project restore must reject lossy inactive-state normalization.");
+        RequireSourceContract(
+            errors,
+            grandProjectValidationPath,
+            "Grand-project physical owner is non-canonical or incomplete",
+            "Grand-project restore must validate exact physical provenance and mass.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Planning/GrandProjectApplicationAdapter.cs",
+            "physicalSinks.TryCommitSinkPending(",
+            "Grand-project application must select exact FacilityBuffer lots through the physical Sink gateway.");
+        ForbidSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Planning/GrandProjectApplicationAdapter.cs",
+            "items.ConsumeDelivered(",
+            "Grand-project application must not retain the count-only production gateway path.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Editor/ProductionEconomyDebugScenarios.cs",
+            "ValidateGrandProjectPhysicalTransaction();",
+            "Grand-project production QA must include acknowledgement-fault and restore-join coverage.");
         ForbidSourceContract(
             errors,
             grandProjectSavePath,
@@ -2877,11 +3204,145 @@ public static class RuntimeAuthorityV18Validator
             stockPolicyValidationPath,
             "catalog.TryGetItem(policy.itemId, out _)",
             "Stock policies must reference concrete authored item definitions.");
+        RequireSourceContract(
+            errors,
+            stockPolicyValidationPath,
+            "ResourceStockPolicySaleOutbox.HasCanonicalPending(pending)",
+            "Stock-policy restore must validate its exact sale outbox provenance.");
+        RequireSourceContract(
+            errors,
+            stockPolicySavePath,
+            "!physicalCandidates.IsCandidateAvailable",
+            "Stock-policy restore must join against the incoming physical candidate rather than live state.");
+        RequireSourceContract(
+            errors,
+            stockPolicySavePath,
+            "has no exact incoming physical Transfer receipt",
+            "Every pending stock-policy sale must own an exact incoming physical Transfer.");
+        RequireSourceContract(
+            errors,
+            stockPolicySavePath,
+            "has no exact sale owner",
+            "Every incoming stock-policy Transfer must have an exact sale owner.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Planning/ResourceStockPolicyRuntime.cs",
+            "ResourceStockPolicySaleOutbox.TryFinalizePending(",
+            "Stock-policy generic sales must recover through their durable Transfer outbox.");
+        const string untypedFacilityBufferConsume =
+            "TryConsumeFacilityItem" + "Buffer(";
+        ForbidSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Planning/ResourceStockPolicyRuntime.cs",
+            untypedFacilityBufferConsume,
+            "Stock-policy generic sales must not count-delete FacilityBuffer goods.");
+        const string stockPolicySaleFixturePath =
+            "Assets/Scripts/Services/Economy/Editor/ResourceStockPolicySaleOutboxDebugScenarios.cs";
+        RequireSourceContract(
+            errors,
+            stockPolicySaleFixturePath,
+            "accepted a missing incoming Transfer",
+            "Stock-policy focused coverage must reject a missing incoming receipt.");
+        RequireSourceContract(
+            errors,
+            stockPolicySaleFixturePath,
+            "accepted an orphan incoming Transfer",
+            "Stock-policy focused coverage must reject an orphan incoming receipt.");
+        RequireSourceContract(
+            errors,
+            stockPolicySaleFixturePath,
+            "acknowledgement-only completion",
+            "Stock-policy focused coverage must prove no duplicate income after acknowledgement failure.");
         ForbidSourceContract(
             errors,
             stockPolicySavePath,
             "new DungeonResourceStockPolicySaveData()",
             "Stock-policy restore must not synthesize missing or invalid state.");
+        const string removedCropTreatmentRuntimePath =
+            "Assets/Scripts/Services/Economy/PhysicalCropTreatmentRuntime.cs";
+        if (File.Exists(removedCropTreatmentRuntimePath))
+        {
+            errors.Add(
+                "Callerless PhysicalCropTreatmentRuntime must not return before a live planner/runner/outbox path exists.");
+        }
+        ForbidSourceContract(
+            errors,
+            "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+            "IPhysicalCropTreatmentService",
+            "Callerless crop-treatment mutation must not be registered as a live gameplay service.");
+        const string facilityInstanceEvolutionPath =
+            "Assets/Scripts/Services/FacilityEvolution/FacilityInstanceEvolutionRuntime.cs";
+        ForbidSourceContract(
+            errors,
+            facilityInstanceEvolutionPath,
+            untypedFacilityBufferConsume,
+            "Facility instance evolution must not count-delete modification or recalibration materials.");
+        RequireSourceContract(
+            errors,
+            facilityInstanceEvolutionPath,
+            "FacilityModificationMaterialOutbox.TryCommitOrFinalize(",
+            "Facility modification materials must use the atomic Transfer-to-WIP outbox.");
+        const string facilityEvolutionRestoreGuardPath =
+            "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionPendingMaterialProjection.cs";
+        RequireSourceContract(
+            errors,
+            facilityEvolutionRestoreGuardPath,
+            "ValidateModificationMaterialOwnerSet(orders, query)",
+            "Facility modification restore must validate both material owner and incoming receipt sets.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/FacilityEvolution/Editor/FacilityModificationMaterialOutboxFixture.cs",
+            "VerifyAtomicMissingInput(catalog)",
+            "Facility modification focused evidence must prove a missing input cannot partially debit the batch.");
+        const string equipmentEvolutionRuntimePath =
+            "Assets/Scripts/Services/Combat/EquipmentEvolutionRuntime.cs";
+        ForbidSourceContract(
+            errors,
+            equipmentEvolutionRuntimePath,
+            untypedFacilityBufferConsume,
+            "Equipment reforge and reattunement must not count-delete WIP materials.");
+        RequireSourceContract(
+            errors,
+            equipmentEvolutionRuntimePath,
+            "EquipmentEvolutionMaterialOutbox.TryCommitOrFinalize(",
+            "Equipment evolution materials must use the exact Transfer-to-WIP outbox.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Combat/EquipmentEvolutionMaterialRestoreGuard.cs",
+            "ValidateOwnerSet(",
+            "Equipment evolution restore must validate owner and incoming receipt sets bidirectionally.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Combat/Editor/EquipmentEvolutionMaterialOutboxFixture.cs",
+            "VerifyMissingInputIsAtomic(catalog)",
+            "Equipment evolution focused evidence must prove missing inputs cannot partially debit a batch.");
+        const string equipmentMaintenanceRuntimePath =
+            "Assets/Scripts/Services/Combat/EquipmentMaintenanceRuntime.cs";
+        ForbidSourceContract(
+            errors,
+            equipmentMaintenanceRuntimePath,
+            untypedFacilityBufferConsume,
+            "Equipment repair must not count-delete repair material before durability publication.");
+        RequireSourceContract(
+            errors,
+            equipmentMaintenanceRuntimePath,
+            "EquipmentRepairMaterialOutbox.TryCommitOrResume(",
+            "Equipment repair material must enter an exact Transfer-to-WIP outbox.");
+        RequireSourceContract(
+            errors,
+            equipmentMaintenanceRuntimePath,
+            "TryPublishRepairOutcome(order, out message)",
+            "Equipment repair durability must publish through a replay-safe before/after envelope.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Combat/EquipmentRepairMaterialRestoreGuard.cs",
+            "ValidateOwnerSet(maintenance.Orders, physicalCandidates)",
+            "Equipment repair restore must join pending material owners with incoming Physical receipts.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Combat/Editor/EquipmentRepairMaterialOutboxFixture.cs",
+            "VerifyMissingInputIsAtomic(catalog)",
+            "Equipment repair focused evidence must prove missing material cannot debit a partial batch.");
         const string removedStockCategoryLookup =
             "TryGetStock" + "Category";
         ForbidSourceInvocationAcrossScripts(
@@ -2948,6 +3409,73 @@ public static class RuntimeAuthorityV18Validator
             "Assets/Scripts/Models/Economy/Content/RegionalSupplyContractRuntime.cs",
             "EnsureOffers(restored)",
             "Regional-contract restore must not generate or expire offers while publishing a save snapshot.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Models/Economy/Content/RegionalSupplyContractRuntime.cs",
+            "RegionalSupplyContractDeliveryOutbox.TryFinalizePending(",
+            "Regional-contract physical exports must recover through their durable delivery outbox.");
+        RequireSourceContract(
+            errors,
+            regionalContractValidationPath,
+            "RegionalSupplyContractDeliveryOutbox.HasCanonicalPending(contract)",
+            "Regional-contract restore must validate exact physical transfer provenance.");
+        RequireSourceContract(
+            errors,
+            regionalContractSavePath,
+            "!physicalCandidates.IsCandidateAvailable",
+            "Regional-contract restore must join against the incoming physical candidate rather than live state.");
+        RequireSourceContract(
+            errors,
+            regionalContractSavePath,
+            "has no exact incoming physical Transfer receipt",
+            "Every pending regional-contract outbox must own an exact incoming physical Transfer.");
+        RequireSourceContract(
+            errors,
+            regionalContractSavePath,
+            "has no exact contract owner",
+            "Every incoming regional-supply Transfer must have an exact contract owner.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+            ".As<IPhysicalItemRestoreCandidateQuery>()",
+            "The physical runtime must expose its detached restore-candidate query to dependent save sections.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+            ".As<IDungeonRestoreTransactionParticipant>()",
+            "The physical candidate index lifetime must remain inside the restore transaction boundary.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+            "return new PhysicalItemCandidateSaveRestoreStage(this, staged);",
+            "Physical transactional restore must retain a discardable candidate-view lifetime.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+            "ResetPhysicalRestoreCandidateLifetime();",
+            "Physical candidate views must clear only after participant completion, rollback, or discard.");
+        const string regionalTransferFixturePath =
+            "Assets/Scripts/Services/Economy/Editor/RegionalSupplyContractTransferOutboxDebugScenarios.cs";
+        RequireSourceContract(
+            errors,
+            regionalTransferFixturePath,
+            "accepted a missing incoming physical Transfer",
+            "Regional supply focused coverage must reject a missing incoming receipt.");
+        RequireSourceContract(
+            errors,
+            regionalTransferFixturePath,
+            "accepted an orphan incoming physical Transfer",
+            "Regional supply focused coverage must reject an orphan incoming receipt.");
+        RequireSourceContract(
+            errors,
+            regionalTransferFixturePath,
+            "accepted mismatched physical mass provenance",
+            "Regional supply focused coverage must reject mismatched receipt mass.");
+        ForbidSourceContract(
+            errors,
+            "Assets/Scripts/Services/Economy/Planning/RegionalSupplyContractApplicationAdapter.cs",
+            "TryConsumeFacilityItemBuffer(",
+            "Regional-contract exports must use a typed physical Transfer rather than count deletion.");
         const string productionEconomyFixturePath =
             "Assets/Scripts/Services/Economy/Editor/ProductionEconomyDebugScenarios.cs";
         RequireSourceContract(
@@ -2974,6 +3502,43 @@ public static class RuntimeAuthorityV18Validator
             errors.Add(
                 "Combat equipment restore must not rewrite physical item repository state.");
         }
+        const string combatCraftPath =
+            "Assets/Scripts/Services/Combat/CombatEquipmentCraftingRuntime.cs";
+        ForbidSourceContract(
+            errors,
+            combatCraftPath,
+            "TryConsumeFacilityItemBuffer(",
+            "Combat equipment crafting inputs must use an exact pending Transfer rather than count deletion.");
+        ForbidSourceContract(
+            errors,
+            combatCraftPath,
+            "physicalItems.DeleteStack(",
+            "Rejected combat equipment must enter a typed dismantle WIP outbox rather than be deleted directly.");
+        RequireSourceContract(
+            errors,
+            combatCraftPath,
+            "CombatEquipmentCraftMaterialOutbox.TryCommitOrResume(",
+            "Combat equipment crafting must own exact material WIP provenance.");
+        RequireSourceContract(
+            errors,
+            combatCraftPath,
+            "TryFinalizeResolvedAttempt(",
+            "Combat equipment crafting must retain resolved output until publication and acknowledgement complete.");
+        RequireSourceContract(
+            errors,
+            combatCraftPath,
+            "CombatEquipmentRejectedDismantleOutbox.TryCommitOrResume(",
+            "Rejected combat equipment must own an exact input receipt until recovery outputs are published.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Infrastructure/Registration/DungeonCombatRegistration.cs",
+            "CombatEquipmentCraftMaterialRestoreGuard",
+            "Combat craft material receipts must participate in transactional whole-save validation.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Combat/Editor/CombatEquipmentCraftTransactionFixture.cs",
+            "CountCommittedOutput(gateway, restored.outputCommitId) != 20",
+            "Combat craft focused coverage must prove output replay cannot mint a second stack.");
 
         const string researchSavePath =
             "Assets/Scripts/Services/Infrastructure/BlueprintResearchSaveSection.cs";
@@ -4063,8 +4628,67 @@ public static class RuntimeAuthorityV18Validator
             workOrderValidationPath,
             "!string.IsNullOrEmpty(order.reservedWorkerPersistentId)",
             "Work-order save validation must reject transient worker reservations.");
+        const string workOrderMaterialOutboxPath =
+            "Assets/Scripts/Services/Character/Work/WorkOrderMaterialOutbox.cs";
+        const string workOrderContractsPath =
+            "Assets/Scripts/Services/Character/Work/WorkOrderContracts.cs";
+        ForbidSourceContract(
+            errors,
+            workOrderRuntimePath,
+            "TryConsumeFacilityItemBuffer(",
+            "Work-order construction materials must never return to count-only FacilityBuffer deletion.");
+        ForbidSourceContract(
+            errors,
+            workOrderRuntimePath,
+            "RemoveStacksByStateAndDestination(",
+            "Work-order cancellation must not delete destination stacks through an untyped bulk mutation.");
+        RequireSourceContract(
+            errors,
+            workOrderMaterialOutboxPath,
+            "TryCommitPendingBatchPhysicalDisposition(",
+            "Work-order materials must enter construction WIP through one exact pending Transfer.");
+        RequireSourceContract(
+            errors,
+            workOrderMaterialOutboxPath,
+            "TryPublishRestitution(",
+            "Cancelled acknowledged construction WIP must publish deterministic physical restitution.");
+        RequireSourceContract(
+            errors,
+            workOrderSavePath,
+            "ValidateRestitutionOutputCandidate(payload, outputCandidates);",
+            "Work-order restore must preflight partial restitution outputs against the incoming physical candidate.");
+        RequireSourceContract(
+            errors,
+            workOrderSavePath,
+            "Incoming work-order material Transfer has no exact domain owner",
+            "Work-order restore must reject orphan incoming material Transfers.");
+        RequireSourceContract(
+            errors,
+            workOrderContractsPath,
+            "public const int CurrentVersion = 6;",
+            "Work-order material custody requires current-format V6 persistence.");
         const string workAmountFixturePath =
             "Assets/Scripts/Services/Character/Work/Editor/WorkAmountDebugScenarios.cs";
+        RequireSourceContract(
+            errors,
+            workAmountFixturePath,
+            "itemRuntime.FailNextAcknowledgement = true;",
+            "Work-order material coverage must inject acknowledgement failure after custody publication.");
+        RequireSourceContract(
+            errors,
+            workAmountFixturePath,
+            "itemRuntime.PhysicalCommitCount == 1",
+            "Work-order material retry coverage must prove a single physical Transfer.");
+        RequireSourceContract(
+            errors,
+            workAmountFixturePath,
+            "WorkOrderMaterialTransferPhase.Acknowledged",
+            "Work-order material coverage must prove acknowledgement-only recovery reaches durable custody.");
+        RequireSourceContract(
+            errors,
+            workAmountFixturePath,
+            "construction restitution output restore preflight",
+            "Work-order focused evidence must cover partial and complete restitution output preflight.");
         RequireSourceContract(
             errors,
             workAmountFixturePath,
@@ -6304,10 +6928,10 @@ public static class RuntimeAuthorityV18Validator
             typeof(CombatEquipmentSaveSection)
                 .GetField(nameof(CombatEquipmentSaveSection.CurrentVersion))
                 .GetRawConstantValue());
-        if (combatEquipmentSaveVersion != 6)
+        if (combatEquipmentSaveVersion != 7)
         {
             errors.Add(
-                $"Combat equipment save section is not V6 (found V{combatEquipmentSaveVersion}).");
+                $"Combat equipment save section is not V7 (found V{combatEquipmentSaveVersion}).");
         }
     }
 

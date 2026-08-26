@@ -210,6 +210,7 @@ public sealed class SpeciesIncidentHandlerRegistry :
 
     public SpeciesIncidentHandlerRegistry(
         IWorldItemStackRuntime items,
+        IPhysicalItemRelocationService relocations,
         IWorldFilthQuery filth,
         IWorldWaterContaminationCommand water,
         ICharacterAiWorldRegistry world)
@@ -219,9 +220,9 @@ public sealed class SpeciesIncidentHandlerRegistry :
             new SlimeContaminationHandler(filth, water),
             new BeastkinCommotionHandler(world),
             new DemonContractCurseHandler(world),
-            new KoboldPartsHoardingHandler(items),
+            new KoboldPartsHoardingHandler(items, relocations),
             new MyconidSporeBloomHandler(filth),
-            new HarpyGaleCommotionHandler(items),
+            new HarpyGaleCommotionHandler(items, relocations),
             new GolemCoreOverloadHandler(world)
         };
         handlers = values.ToDictionary(
@@ -1047,8 +1048,14 @@ internal sealed class KoboldPartsHoardingHandler :
     SpeciesIncidentHandlerBase
 {
     private readonly IWorldItemStackRuntime items;
-    public KoboldPartsHoardingHandler(IWorldItemStackRuntime items) =>
+    private readonly IPhysicalItemRelocationService relocations;
+    public KoboldPartsHoardingHandler(
+        IWorldItemStackRuntime items,
+        IPhysicalItemRelocationService relocations)
+    {
         this.items = items;
+        this.relocations = relocations;
+    }
     public override string IncidentId =>
         CharacterSpeciesIncidentIds.KoboldPartsHoarding;
 
@@ -1069,34 +1076,26 @@ internal sealed class KoboldPartsHoardingHandler :
                 + Mathf.Abs(stack.Position.y - origin.y))
             .ThenBy(stack => stack.StackId, StringComparer.Ordinal)
             .FirstOrDefault();
+        Vector2Int hidePosition = origin + Vector2Int.right;
         if (source == null
-            || !items.TryConsumeStackQuantity(
+            || !relocations.TryRelocateQuantity(
                 source.StackId,
                 1,
-                out WorldItemStackSnapshot consumed))
+                hidePosition,
+                WorldItemStackState.Loose,
+                string.Empty,
+                $"species-kobold-hoard:{context.State.CharacterId.Value}:{context.State.IncidentCount}",
+                "species-kobold-parts-hoarding",
+                out PhysicalItemRelocationReceipt receipt,
+                out _))
         {
             summary = "숨길 부품을 찾지 못해 코볼트의 사재기가 미수에 그쳤습니다.";
             return true;
         }
 
-        Vector2Int hidePosition = origin + Vector2Int.right;
-        items.SpawnItemAt(
-            consumed.ItemId,
-            1,
-            hidePosition,
-            WorldItemStackState.Loose,
-            string.Empty,
-            out _);
-        WorldItemStackSnapshot hidden = items.GetStacksAt(hidePosition)
-            .Where(stack => stack.ItemId == consumed.ItemId)
-            .OrderByDescending(stack => stack.StackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        if (hidden != null)
-        {
-            items.SetForbidden(hidden.StackId, true);
-        }
+        items.SetForbidden(receipt.DestinationStackId, true);
 
-        summary = $"{consumed.DisplayName} 1개를 인접 칸에 숨기고 금지 표시했습니다.";
+        summary = $"{source.DisplayName} 1개를 인접 칸에 숨기고 금지 표시했습니다.";
         return true;
     }
 }
@@ -1130,8 +1129,14 @@ internal sealed class HarpyGaleCommotionHandler :
     SpeciesIncidentHandlerBase
 {
     private readonly IWorldItemStackRuntime items;
-    public HarpyGaleCommotionHandler(IWorldItemStackRuntime items) =>
+    private readonly IPhysicalItemRelocationService relocations;
+    public HarpyGaleCommotionHandler(
+        IWorldItemStackRuntime items,
+        IPhysicalItemRelocationService relocations)
+    {
         this.items = items;
+        this.relocations = relocations;
+    }
     public override string IncidentId =>
         CharacterSpeciesIncidentIds.HarpyGaleCommotion;
 
@@ -1150,28 +1155,27 @@ internal sealed class HarpyGaleCommotionHandler :
                     <= 3)
             .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
             .FirstOrDefault();
+        Vector2Int destination = source?.Position
+            + ((CharacterGrowthRules.StableHash(source?.StackId ?? string.Empty) & 1) == 0
+                ? Vector2Int.left
+                : Vector2Int.up) ?? default;
         if (source == null
-            || !items.TryConsumeStackQuantity(
+            || !relocations.TryRelocateQuantity(
                 source.StackId,
                 1,
-                out WorldItemStackSnapshot consumed))
+                destination,
+                WorldItemStackState.Loose,
+                string.Empty,
+                $"species-harpy-gale:{context.State.CharacterId.Value}:{context.State.IncidentCount}",
+                "species-harpy-gale-relocation",
+                out _,
+                out _))
         {
             summary = "돌풍이 불었지만 흩어질 loose stack이 없었습니다.";
             return true;
         }
 
-        Vector2Int destination = source.Position
-            + ((CharacterGrowthRules.StableHash(source.StackId) & 1) == 0
-                ? Vector2Int.left
-                : Vector2Int.up);
-        items.SpawnItemAt(
-            consumed.ItemId,
-            1,
-            destination,
-            WorldItemStackState.Loose,
-            string.Empty,
-            out _);
-        summary = $"{consumed.DisplayName} 1개가 돌풍에 인접 칸으로 흩어졌습니다.";
+        summary = $"{source.DisplayName} 1개가 돌풍에 인접 칸으로 흩어졌습니다.";
         return true;
     }
 }

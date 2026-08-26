@@ -130,6 +130,7 @@ MonoBehaviour:
         abilityId: BuildingStorageAbility
         category: 1
         capacity: 12
+        maxStoredMassGrams: 12500
         allCategories: 0
     - rid: 7737211921440178563
       type: {class: BuildingRetailAbility, ns: , asm: DungeonStory.Buildings}

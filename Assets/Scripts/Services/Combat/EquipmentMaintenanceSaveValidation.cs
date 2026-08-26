@@ -8,6 +8,7 @@ internal static class EquipmentMaintenanceSaveValidation
     internal const int MaximumPolicies = 64;
     internal const int MaximumAssignments = 512;
     internal const int MaximumOrders = 512;
+    internal const int MaximumTerminalEffects = 512;
     private const int MaximumDisplayNameLength = 80;
     private const int MaximumMaterialAmount = 1000;
     private const string CustomPolicyPrefix = "equipment-maintenance:custom:";
@@ -37,14 +38,16 @@ internal static class EquipmentMaintenanceSaveValidation
             || payload.orderSequence < 0
             || payload.policies == null
             || payload.assignments == null
-            || payload.orders == null)
+            || payload.orders == null
+            || payload.repairTerminalEffects == null)
         {
             report.AddError("Equipment-maintenance payload has missing collections or a negative sequence.");
             return;
         }
         if (payload.policies.Count > MaximumPolicies
             || payload.assignments.Count > MaximumAssignments
-            || payload.orders.Count > MaximumOrders)
+            || payload.orders.Count > MaximumOrders
+            || payload.repairTerminalEffects.Count > MaximumTerminalEffects)
         {
             report.AddError("Equipment-maintenance payload exceeds its bounded collection limits.");
         }
@@ -53,6 +56,7 @@ internal static class EquipmentMaintenanceSaveValidation
             ValidatePolicies(payload, report);
         ValidateAssignments(payload, policies, report, worldServices.WorldRegistry);
         ValidateOrders(payload, report, itemServices, worldServices.WorldRegistry);
+        ValidateTerminalEffects(payload, report);
     }
 
     internal static EquipmentMaintenanceAggregateState CreateState(
@@ -74,6 +78,11 @@ internal static class EquipmentMaintenanceSaveValidation
         foreach (CombatEquipmentRepairOrder order in payload.orders)
         {
             state.Orders.Add(order.orderId, order.Clone());
+        }
+        foreach (CombatEquipmentRepairTerminalEffectSaveData effect in
+                 payload.repairTerminalEffects)
+        {
+            state.TerminalEffects.Add(effect.sourceId, effect.Clone());
         }
 
         return state;
@@ -269,6 +278,41 @@ internal static class EquipmentMaintenanceSaveValidation
             {
                 report.AddError($"Equipment-maintenance order '{orderId}' has a mismatched repair material.");
             }
+
+            if (!EquipmentRepairMaterialOutbox.ValidateProvenance(
+                    order,
+                    out string provenanceFailure))
+            {
+                report.AddError(
+                    $"Equipment-maintenance order '{orderId}' has invalid repair material provenance: {provenanceFailure}.");
+                continue;
+            }
+
+            if (order.materialsConsumed)
+            {
+                if (!string.Equals(
+                        instance.sourceStackId,
+                        order.repairEquipmentSourceStackId,
+                        StringComparison.Ordinal))
+                {
+                    report.AddError(
+                        $"Equipment-maintenance order '{orderId}' changed its repair equipment source stack.");
+                }
+
+                bool exactBefore = Approximately(
+                    instance.durabilityRatio,
+                    order.repairDurabilityBefore);
+                bool exactAfter = Approximately(
+                    instance.durabilityRatio,
+                    order.repairDurabilityAfter);
+                if (order.repairOutcomePublished
+                    ? !exactAfter
+                    : !exactBefore && !exactAfter)
+                {
+                    report.AddError(
+                        $"Equipment-maintenance order '{orderId}' has a conflicting durability outcome envelope.");
+                }
+            }
         }
         if (payload.orderSequence < highestSequence)
         {
@@ -276,6 +320,170 @@ internal static class EquipmentMaintenanceSaveValidation
                 $"Equipment-maintenance order sequence {payload.orderSequence} is below saved order {highestSequence}.");
         }
     }
+
+    private static void ValidateTerminalEffects(
+        CombatEquipmentMaintenanceSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        Dictionary<string, CombatEquipmentRepairOrder> liveOrders =
+            new(StringComparer.Ordinal);
+        foreach (CombatEquipmentRepairOrder order in payload.orders)
+        {
+            if (order != null && !string.IsNullOrEmpty(order.orderId))
+                liveOrders.TryAdd(order.orderId, order);
+        }
+
+        HashSet<string> sourceIds = new(StringComparer.Ordinal);
+        foreach (CombatEquipmentRepairTerminalEffectSaveData row in
+                 payload.repairTerminalEffects)
+        {
+            string sourceId = row?.sourceId ?? string.Empty;
+            if (row == null
+                || row.schemaVersion !=
+                    CombatEquipmentRepairTerminalEffectSaveData
+                        .CurrentSchemaVersion
+                || !sourceIds.Add(sourceId)
+                || !IsCanonical(row.ownerStableId)
+                || !IsCanonical(sourceId)
+                || !IsCanonical(row.facilityId)
+                || string.IsNullOrEmpty(row.frozenSourcePayload)
+                || !CombatEquipmentTerminalDrainCanonical.IsDigest(
+                    row.sourceFingerprint)
+                || !Enum.IsDefined(
+                    typeof(CombatEquipmentRepairTerminalEffectPhase),
+                    row.phase))
+            {
+                report.AddError(
+                    $"Equipment repair terminal effect '{sourceId}' is structurally invalid or duplicated.");
+                continue;
+            }
+
+            CombatEquipmentRepairOrder frozen;
+            try
+            {
+                frozen = UnityEngine.JsonUtility.FromJson<
+                    CombatEquipmentRepairOrder>(row.frozenSourcePayload);
+            }
+            catch (Exception exception)
+            {
+                report.AddError(
+                    $"Equipment repair terminal effect '{sourceId}' has an invalid frozen payload: {exception.GetType().Name}.");
+                continue;
+            }
+
+            bool hasWip = frozen != null && frozen.materialsConsumed;
+            int wipQuantity = hasWip
+                ? frozen.requiredMaterialAmount
+                : 0;
+            long wipMass = hasWip
+                ? frozen.materialTransferMassGrams
+                : 0L;
+            CombatEquipmentTerminalMassAccounting mass;
+            CombatEquipmentTerminalFrozenSubject source;
+            try
+            {
+                mass = new CombatEquipmentTerminalMassAccounting(
+                    row.releasedInputQuantity,
+                    row.releasedInputMassGrams,
+                    wipQuantity,
+                    wipMass,
+                    0L,
+                    wipMass);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                report.AddError(
+                    $"Equipment repair terminal effect '{sourceId}' has invalid mass accounting.");
+                continue;
+            }
+            if (frozen == null
+                || !string.Equals(
+                    UnityEngine.JsonUtility.ToJson(frozen),
+                    row.frozenSourcePayload,
+                    StringComparison.Ordinal)
+                || !EquipmentRepairMaterialOutbox.ValidateProvenance(
+                    frozen,
+                    out _)
+                || !CombatEquipmentTerminalFrozenSubject.TryCreateRepairOrder(
+                    frozen,
+                    mass,
+                    out source,
+                    out _)
+                || !string.Equals(source.OwnerStableId, row.ownerStableId,
+                    StringComparison.Ordinal)
+                || !string.Equals(source.SourceId, sourceId,
+                    StringComparison.Ordinal)
+                || !string.Equals(source.FacilityId, row.facilityId,
+                    StringComparison.Ordinal)
+                || !string.Equals(source.SourceFingerprint,
+                    row.sourceFingerprint, StringComparison.Ordinal)
+                || row.wipInputQuantity != source.WipInputQuantity
+                || row.wipInputMassGrams != source.WipInputMassGrams
+                || row.committedOutputMassGrams != 0L
+                || row.declaredLossMassGrams != source.DeclaredLossMassGrams)
+            {
+                report.AddError(
+                    $"Equipment repair terminal effect '{sourceId}' does not match its frozen repair source.");
+                continue;
+            }
+
+            CombatEquipmentTerminalInputDispositionEvidence input = new(
+                row.inputDispositionStepOperationId,
+                row.inputDispositionRequestFingerprint,
+                row.inputDispositionCommitId,
+                row.inputDispositionReceiptFingerprint,
+                row.releasedInputQuantity,
+                row.releasedInputMassGrams);
+            CombatEquipmentTerminalWipLossReceiptSaveData expectedWip =
+                CombatEquipmentTerminalDrainCanonical
+                    .CreateWipLossReceipt(source);
+            CombatEquipmentTerminalSourceRemovalReceiptSaveData
+                expectedRemoval = CombatEquipmentTerminalDrainCanonical
+                    .CreateSourceRemovalReceipt(source);
+            bool wipMatches = expectedWip == null
+                ? string.IsNullOrEmpty(row.wipLossCommitId)
+                    && string.IsNullOrEmpty(row.wipLossReceiptFingerprint)
+                    && row.terminalReason == 0
+                    && row.lossKind == 0
+                : string.Equals(row.wipLossCommitId,
+                        expectedWip.commitId, StringComparison.Ordinal)
+                    && string.Equals(row.wipLossReceiptFingerprint,
+                        expectedWip.receiptFingerprint,
+                        StringComparison.Ordinal)
+                    && row.terminalReason == (int)expectedWip.reason
+                    && row.lossKind == (int)expectedWip.lossKind;
+            bool removed = row.phase ==
+                CombatEquipmentRepairTerminalEffectPhase.SourceRemoved;
+            bool removalMatches = removed
+                ? string.Equals(row.sourceRemovalCommitId,
+                        expectedRemoval.commitId, StringComparison.Ordinal)
+                    && string.Equals(row.sourceRemovalReceiptFingerprint,
+                        expectedRemoval.receiptFingerprint,
+                        StringComparison.Ordinal)
+                : string.IsNullOrEmpty(row.sourceRemovalCommitId)
+                    && string.IsNullOrEmpty(
+                        row.sourceRemovalReceiptFingerprint);
+            bool liveExists = liveOrders.TryGetValue(
+                sourceId,
+                out CombatEquipmentRepairOrder live);
+            bool liveMatches = liveExists && string.Equals(
+                    UnityEngine.JsonUtility.ToJson(live),
+                    row.frozenSourcePayload,
+                    StringComparison.Ordinal);
+            if (!input.IsValidFor(source)
+                || !wipMatches
+                || !removalMatches
+                || removed && liveExists
+                || !removed && !liveMatches)
+            {
+                report.AddError(
+                    $"Equipment repair terminal effect '{sourceId}' has an invalid receipt or live-source join.");
+            }
+        }
+    }
+
+    private static bool Approximately(float left, float right) =>
+        Math.Abs(left - right) <= 0.0001f;
 
     private static bool IsBuiltInPolicy(string id) =>
         id is EquipmentMaintenancePolicyRuntime.StandardPolicyId

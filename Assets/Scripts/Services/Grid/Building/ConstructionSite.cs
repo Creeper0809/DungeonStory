@@ -548,8 +548,13 @@ public sealed class ConstructionSite : BuildableObject,
 
     public void CancelConstruction()
     {
-        workOrderRuntime?.CancelOrder(workOrderId, refundDeliveredMaterials: true);
-        RemoveSiteOnly();
+        if (workOrderRuntime == null
+            || workOrderRuntime.CancelOrder(
+                workOrderId,
+                refundDeliveredMaterials: true))
+        {
+            RemoveSiteOnly();
+        }
     }
 
     public void RemoveSiteOnly()

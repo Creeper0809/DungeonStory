@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 1
     recommendedRank: 2
     minimumRiskRank: 0
-  requiredResearchId: research:industry:rune-grid
+  requiredResearchId: research:industry:mana-power
   requiredWork: 42
   preparationWork: 0
   finishingWork: 0
@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:gold-ingot
     amount: 1
   outputs:
-  - itemId: component:rune-bus-coupler
+  - outputLineId: output:recipe:component:rune-bus-coupler/000/main/component:rune-bus-coupler
+    role: 0
+    itemId: component:rune-bus-coupler
     amount: 1
     probability: 1

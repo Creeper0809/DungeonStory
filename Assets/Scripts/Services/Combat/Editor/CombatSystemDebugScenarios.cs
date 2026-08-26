@@ -2050,7 +2050,7 @@ public static class CombatSystemDebugScenarios
         DungeonSaveSectionPayload.Write(
             source,
             EquipmentMaintenanceSaveSection.Id,
-            2,
+            EquipmentMaintenanceSaveSection.CurrentVersion,
             DungeonSaveRestorePhase.RuntimeState,
             new CombatEquipmentMaintenanceSaveData
         {

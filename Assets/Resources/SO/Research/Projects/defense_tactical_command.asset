@@ -41,9 +41,9 @@ MonoBehaviour:
   blueprint: {fileID: 11400000, guid: 74711e8d7994655e884e29ceb31c6100, type: 2}
   unlocks:
     items:
-    - rid: 7737211905660421033
-    - rid: 7737211905660421034
-    - rid: 7737211905660421035
+    - rid: 7737212199327498502
+    - rid: 7737212199327498503
+    - rid: 7737212199327498504
   facilityRequirements:
   - capability: 0
     requiredCount: 2
@@ -54,15 +54,15 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660421033
+    - rid: 7737212199327498502
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe_fortress_banner_2
-    - rid: 7737211905660421034
+    - rid: 7737212199327498503
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 9961
-    - rid: 7737211905660421035
+    - rid: 7737212199327498504
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1040

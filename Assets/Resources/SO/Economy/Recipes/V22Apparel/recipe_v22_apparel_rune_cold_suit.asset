@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:cloth
     amount: 3
   outputs:
-  - itemId: equipment:rune-cold-suit
+  - outputLineId: output:recipe:v22:apparel:rune-cold-suit/000/main/equipment:rune-cold-suit
+    role: 0
+    itemId: equipment:rune-cold-suit
     amount: 1
     probability: 1

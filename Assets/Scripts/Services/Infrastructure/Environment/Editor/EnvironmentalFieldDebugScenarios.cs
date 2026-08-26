@@ -277,7 +277,13 @@ public static class EnvironmentalFieldDebugScenarios
             "character environment aggregate is not keyed by CharacterId");
 
         RecordingCharacterEnvironmentRuntime runtime = new();
-        CharacterEnvironmentSaveSection section = new(runtime);
+        CharacterEnvironmentSaveSection section = new(
+            runtime,
+            ProductionOutputLifecycleRestoreCandidatePublisher
+                .IsolatedSectionFixtureOnly,
+            new ApparelRejectedDismantleRestoreGuard(
+                EmptyDispositionRestoreCandidateQuery.Instance,
+                EmptyFacilityBufferPlannedOutputRestoreCandidateQuery.Instance));
         DungeonCharacterEnvironmentSaveData invalid = new()
         {
             version = DungeonCharacterEnvironmentSaveData.CurrentVersion,
@@ -291,7 +297,9 @@ public static class EnvironmentalFieldDebugScenarios
             },
             equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
             equippedApparel = Array.Empty<EquippedApparelSaveData>(),
-            apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>()
+            apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>(),
+            apparelWorkOrderTerminalStates =
+                Array.Empty<ApparelWorkOrderTerminalStateSaveData>()
         };
         RequireRejectedWithoutPublish(
             section,
@@ -317,7 +325,9 @@ public static class EnvironmentalFieldDebugScenarios
             exposures = Array.Empty<CharacterEnvironmentExposure>(),
             equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
             equippedApparel = Array.Empty<EquippedApparelSaveData>(),
-            apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>()
+            apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>(),
+            apparelWorkOrderTerminalStates =
+                Array.Empty<ApparelWorkOrderTerminalStateSaveData>()
         };
         DungeonGameRestoreReport validValidation = new();
         CharacterEnvironmentSaveValidation.Validate(valid, validValidation);
@@ -884,7 +894,9 @@ public static class EnvironmentalFieldDebugScenarios
                 exposures = Array.Empty<CharacterEnvironmentExposure>(),
                 equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
                 equippedApparel = Array.Empty<EquippedApparelSaveData>(),
-                apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>()
+                apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>(),
+                apparelWorkOrderTerminalStates =
+                    Array.Empty<ApparelWorkOrderTerminalStateSaveData>()
             };
         public CharacterEnvironmentRestoreCandidate BuildRestoreCandidate(
             DungeonCharacterEnvironmentSaveData saveData)
@@ -901,6 +913,26 @@ public static class EnvironmentalFieldDebugScenarios
 
         public void PublishRestoreCandidate(
             CharacterEnvironmentRestoreCandidate candidate) => RestoreCount++;
+    }
+
+    private sealed class EmptyDispositionRestoreCandidateQuery :
+        IPhysicalItemRestoreCandidateQuery
+    {
+        internal static readonly EmptyDispositionRestoreCandidateQuery Instance =
+            new();
+
+        public bool IsCandidateAvailable => true;
+        public IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
+            PendingBatchDispositions =>
+                Array.Empty<PhysicalItemRestoreCandidateDispositionSnapshot>();
+
+        public bool TryGetPendingBatchDisposition(
+            string operationId,
+            out PhysicalItemRestoreCandidateDispositionSnapshot disposition)
+        {
+            disposition = null;
+            return false;
+        }
     }
 
     private sealed class TestGridProvider : IGridSystemProvider

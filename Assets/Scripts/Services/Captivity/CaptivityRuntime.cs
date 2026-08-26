@@ -29,6 +29,7 @@ public sealed class CaptivityRuntime :
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICombatEquipmentRuntime combatEquipment;
     private readonly IWorldItemStackRuntime itemRuntime;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private readonly ICharacterPopulationService characterPopulation;
     private readonly ICharacterNarrativeQuery narratives;
     private readonly IGridSystemProvider gridProvider;
@@ -72,6 +73,7 @@ public sealed class CaptivityRuntime :
         bodyHealthCommands = characters.BodyHealthCommands;
         combatEquipment = characters.CombatEquipment;
         itemRuntime = characters.ItemRuntime;
+        batchDispositions = characters.BatchDispositions;
         characterPopulation = characters.Population;
         narratives = characters.Narratives;
         gridProvider = world.GridProvider;
@@ -140,7 +142,8 @@ public sealed class CaptivityRuntime :
             this.aggregateRootStore,
             actorAccess,
             doorSubjectRegistry,
-            escortRuntime);
+            escortRuntime,
+            batchDispositions);
         queryView = new CaptivityQueryView(actorAccess, policyRuntime);
     }
 
@@ -357,6 +360,18 @@ public sealed class CaptivityRuntime :
             return;
         }
 
+        if (CaptivityLaborToolAssignmentOutbox.RequiresFinalization(state))
+        {
+            if (CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
+                    state,
+                    batchDispositions,
+                    out _))
+            {
+                CompleteLaborToolAssignment(state);
+            }
+            return;
+        }
+
         WorldItemStackSnapshot delivered = itemRuntime.GetAllStacks()
             .Where(stack => stack != null
                 && stack.Quantity > 0
@@ -371,20 +386,61 @@ public sealed class CaptivityRuntime :
                     StringComparison.Ordinal))
             .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
             .FirstOrDefault();
+        CaptiveState assignmentProbe = state.Clone();
         if (delivered == null
             || !((ItemInstanceId)delivered.ItemInstanceId).IsValid
             || DurableToolItemRules.ReadCurrentDurability(
                 delivered.ItemId,
                 delivered.Components) <= 0f
-            || !itemRuntime.TryConsumeStackQuantity(
-                delivered.StackId,
-                1,
-                out WorldItemStackSnapshot assigned)
-            || !CaptivityDurableToolRuntime.TryAssignLaborTool(state, assigned))
+            || !CaptivityDurableToolRuntime.TryAssignLaborTool(
+                assignmentProbe,
+                delivered))
         {
             return;
         }
 
+        string operationId = CaptivityLaborToolAssignmentOutbox.FormatOperationId(
+            state.captiveId,
+            delivered.ItemInstanceId);
+        state.assignedLaborToolItemId = assignmentProbe.assignedLaborToolItemId;
+        state.assignedLaborToolInstanceId = assignmentProbe.assignedLaborToolInstanceId;
+        state.assignedLaborToolDurability = assignmentProbe.assignedLaborToolDurability;
+        state.assignedLaborToolMaximumDurability =
+            assignmentProbe.assignedLaborToolMaximumDurability;
+        state.laborToolAssignmentOperationId = operationId;
+        state.laborToolAssignmentSourceStackId = delivered.StackId;
+        state.laborToolAssignmentCommitId = string.Empty;
+        state.laborToolAssignmentCompleted = false;
+        if (!batchDispositions.TryCommitPending(
+                new[]
+                {
+                    new PhysicalItemTransformInput(delivered.StackId, 1)
+                },
+                PhysicalItemDispositionKind.Transfer,
+                operationId,
+                CaptivityLaborToolAssignmentOutbox.TransferReason,
+                out PhysicalItemBatchDispositionReceipt disposition,
+                out _))
+        {
+            CaptivityLaborToolAssignmentOutbox.ClearAssignment(state);
+            return;
+        }
+
+        state.laborToolAssignmentCommitId = disposition.CommitId;
+        if (!CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
+                state,
+                batchDispositions,
+                out string finalizeFailure))
+        {
+            throw new InvalidOperationException(
+                $"Validated captive labor tool '{delivered.ItemInstanceId}' could not be finalized after physical transfer: {finalizeFailure}");
+        }
+
+        CompleteLaborToolAssignment(state);
+    }
+
+    private void CompleteLaborToolAssignment(CaptiveState state)
+    {
         CaptiveLaborPermission permissions = state.pendingLaborPermissions;
         state.pendingLaborPermissions = CaptiveLaborPermission.None;
         state.laborToolDestinationId = string.Empty;
@@ -398,6 +454,7 @@ public sealed class CaptivityRuntime :
     {
         if (state?.status != CaptivityStatus.Labor
             || string.IsNullOrWhiteSpace(state.assignedLaborToolItemId)
+            || !state.laborToolAssignmentCompleted
             || gameClock.Time + 0.001f < state.nextLaborToolWearAt
             || actor?.GetAbility<AbilityWork>()?.isWorking != true)
         {
@@ -448,11 +505,20 @@ public sealed class CaptivityRuntime :
             : "노역 허용";
     }
 
-    private void CancelLaborToolPreparation(CaptiveState state)
+    private bool CancelLaborToolPreparation(CaptiveState state)
     {
         if (state == null)
         {
-            return;
+            return true;
+        }
+
+        if (CaptivityLaborToolAssignmentOutbox.RequiresFinalization(state)
+            && !CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
+                state,
+                batchDispositions,
+                out _))
+        {
+            return false;
         }
 
         if (!string.IsNullOrWhiteSpace(state.laborToolDestinationId))
@@ -463,6 +529,7 @@ public sealed class CaptivityRuntime :
         }
         state.pendingLaborPermissions = CaptiveLaborPermission.None;
         state.laborToolDestinationId = string.Empty;
+        return true;
     }
 
     private void ReturnAssignedCaptivityTools(CaptiveState state)
@@ -472,7 +539,10 @@ public sealed class CaptivityRuntime :
             return;
         }
 
-        CancelLaborToolPreparation(state);
+        if (!CancelLaborToolPreparation(state))
+        {
+            return;
+        }
         CaptivityDurableToolRuntime.TryReturnLaborTool(
             itemRuntime,
             state,
@@ -801,7 +871,11 @@ public bool IsWorkAllowed(
         CaptiveLaborPermission requested = requestedPermissions;
         if (requested == CaptiveLaborPermission.None)
         {
-            CancelLaborToolPreparation(state);
+            if (!CancelLaborToolPreparation(state))
+            {
+                failureReason = "포로 작업 도구 소유권을 정리할 수 없습니다.";
+                return false;
+            }
             CaptivityDurableToolRuntime.TryReturnLaborTool(
                 itemRuntime,
                 state,
@@ -811,7 +885,8 @@ public bool IsWorkAllowed(
         }
 
         if (!string.IsNullOrWhiteSpace(state.assignedLaborToolItemId)
-            && state.assignedLaborToolDurability > 0f)
+            && state.assignedLaborToolDurability > 0f
+            && state.laborToolAssignmentCompleted)
         {
             ApplyLaborPermissions(state, requested);
             return true;
@@ -1472,4 +1547,120 @@ public bool IsWorkAllowed(
         Vector2Int.up,
         Vector2Int.down
     };
+}
+
+public static class CaptivityLaborToolAssignmentOutbox
+{
+    public const string TransferReason = "captive-labor-tool-transferred";
+
+    public static string FormatOperationId(
+        string captiveId,
+        string itemInstanceId) =>
+        CaptivityLaborToolAssignmentIdentity.FormatOperationId(
+            captiveId,
+            itemInstanceId);
+
+    public static bool RequiresFinalization(CaptiveState state) =>
+        state != null
+        && !string.IsNullOrEmpty(state.laborToolAssignmentOperationId)
+        && (!state.laborToolAssignmentCompleted
+            || state.pendingLaborPermissions != CaptiveLaborPermission.None
+            || !string.IsNullOrEmpty(state.laborToolDestinationId));
+
+    public static bool TryFinalizePending(
+        CaptiveState state,
+        IPhysicalItemBatchDispositionService batchDispositions,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (state == null
+            || batchDispositions == null
+            || !IsCanonical(state.captiveId)
+            || !string.Equals(
+                state.assignedLaborToolItemId,
+                CaptivityItemDefinitions.PrisonerWorkKitItemId,
+                StringComparison.Ordinal)
+            || !((ItemInstanceId)state.assignedLaborToolInstanceId).IsValid
+            || state.assignedLaborToolDurability <= 0f
+            || state.assignedLaborToolMaximumDurability <= 0f
+            || !IsCanonical(state.laborToolAssignmentSourceStackId)
+            || !string.Equals(
+                state.laborToolAssignmentOperationId,
+                FormatOperationId(
+                    state.captiveId,
+                    state.assignedLaborToolInstanceId),
+                StringComparison.Ordinal)
+            || !IsCanonical(state.laborToolAssignmentCommitId))
+        {
+            failureReason = "captive-labor-tool-assignment-invalid";
+            return false;
+        }
+
+        if (!batchDispositions.TryGetPending(
+                state.laborToolAssignmentOperationId,
+                out PhysicalItemBatchDispositionReceipt receipt))
+        {
+            if (state.laborToolAssignmentCompleted)
+            {
+                return true;
+            }
+            failureReason = "captive-labor-tool-assignment-receipt-missing";
+            return false;
+        }
+
+        if (receipt.Kind != PhysicalItemDispositionKind.Transfer
+            || receipt.Quantity != 1
+            || receipt.SourceStackIds.Count != 1
+            || !string.Equals(
+                receipt.OperationId,
+                state.laborToolAssignmentOperationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.ReasonCode,
+                TransferReason,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.CommitId,
+                state.laborToolAssignmentCommitId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.SourceStackIds[0],
+                state.laborToolAssignmentSourceStackId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "captive-labor-tool-assignment-receipt-mismatch";
+            return false;
+        }
+
+        state.laborToolAssignmentCompleted = true;
+        if (!batchDispositions.Acknowledge(
+                state.laborToolAssignmentCommitId,
+                out failureReason))
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public static void ClearAssignment(CaptiveState state)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        state.assignedLaborToolItemId = string.Empty;
+        state.assignedLaborToolInstanceId = string.Empty;
+        state.assignedLaborToolDurability = 0f;
+        state.assignedLaborToolMaximumDurability = 0f;
+        state.laborToolAssignmentOperationId = string.Empty;
+        state.laborToolAssignmentCommitId = string.Empty;
+        state.laborToolAssignmentSourceStackId = string.Empty;
+        state.laborToolAssignmentCompleted = false;
+        state.nextLaborToolWearAt = 0f;
+    }
+
+    private static bool IsCanonical(string value) =>
+        !string.IsNullOrEmpty(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 }

@@ -287,6 +287,17 @@ public static class SurgerySaveValidation
             {
                 report.AddError($"Loose surgical part '{id}' has an installed subject.");
             }
+            ValidateInstallationDisposition(part, id, orderIds, report);
+            ValidatePreservationDisposition(part, id, report);
+            if (!string.IsNullOrEmpty(part.sourceProductionCommitId)
+                && !string.Equals(
+                    part.sourceProductionCommitId,
+                    part.sourceProductionCommitId.Trim(),
+                    StringComparison.Ordinal))
+            {
+                report.AddError(
+                    $"Surgical part '{id}' has a non-canonical production commit ID.");
+            }
         }
         if (sequence < largestSequence)
         {
@@ -295,6 +306,117 @@ public static class SurgerySaveValidation
         }
         return ids;
     }
+
+    private static void ValidatePreservationDisposition(
+        SurgicalPartInstance part,
+        string partId,
+        DungeonGameRestoreReport report)
+    {
+        bool pending = !string.IsNullOrEmpty(part.preservationOperationId);
+        if (!pending)
+        {
+            if (!string.IsNullOrEmpty(part.preservationCommitId)
+                || !string.IsNullOrEmpty(part.preservationSourceStackId)
+                || part.preservationInputMassGrams != 0
+                || part.preservationOutcomePublished)
+                report.AddError($"Surgical part '{partId}' has orphan preservation provenance.");
+            return;
+        }
+        string expectedOperation = $"surgical-organ-preservation:{partId}";
+        string expectedCommit = $"physical-batch-disposition:3:{expectedOperation}:1:{part.preservationInputMassGrams}";
+        if (part.kind != SurgicalPartKind.NaturalOrgan
+            || !string.Equals(part.preservationOperationId, expectedOperation, StringComparison.Ordinal)
+            || !string.Equals(part.preservationCommitId, expectedCommit, StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(part.preservationSourceStackId)
+            || part.preservationInputMassGrams <= 0
+            || part.preservationOutcomePublished != part.preservationCanisterApplied)
+            report.AddError($"Surgical part '{partId}' has invalid preservation Sink provenance.");
+    }
+
+    private static void ValidateInstallationDisposition(
+        SurgicalPartInstance part,
+        string partId,
+        ISet<string> orderIds,
+        DungeonGameRestoreReport report)
+    {
+        bool hasAny = !string.IsNullOrEmpty(part.installationOrderId)
+            || !string.IsNullOrEmpty(part.installationOperationId)
+            || !string.IsNullOrEmpty(part.installationCommitId)
+            || !string.IsNullOrEmpty(part.installationSourceStackId)
+            || !string.IsNullOrEmpty(part.installationSubjectId);
+        if (!hasAny)
+        {
+            if (part.installed)
+            {
+                report.AddError(
+                    $"Installed surgical part '{partId}' has no physical transfer receipt.");
+            }
+            return;
+        }
+
+        string expectedOperation =
+            SurgicalPartInstallationIdentity.FormatOperationId(
+                part.installationOrderId,
+                partId);
+        string commitPrefix =
+            $"physical-batch-disposition:1:{expectedOperation}:1:";
+        string massToken = part.installationCommitId.StartsWith(
+                commitPrefix,
+                StringComparison.Ordinal)
+            ? part.installationCommitId.Substring(commitPrefix.Length)
+            : string.Empty;
+        bool validCommit = long.TryParse(
+                massToken,
+                System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out long massGrams)
+            && massGrams > 0L;
+        if (!IsCanonical(part.installationOrderId)
+            || !orderIds.Contains(part.installationOrderId)
+            || !string.Equals(
+                part.installationOperationId,
+                expectedOperation,
+                StringComparison.Ordinal)
+            || !IsCanonical(part.installationSourceStackId)
+            || !IsCanonical(part.installationSubjectId)
+            || !validCommit)
+        {
+            report.AddError(
+                $"Surgical part '{partId}' has invalid installation disposition provenance.");
+            return;
+        }
+
+        if (part.installed)
+        {
+            if (!string.IsNullOrEmpty(part.worldStackId)
+                || !string.IsNullOrEmpty(part.reservedOrderId)
+                || !string.Equals(
+                    part.installedSubjectId,
+                    part.installationSubjectId,
+                    StringComparison.Ordinal))
+            {
+                report.AddError(
+                    $"Installed surgical part '{partId}' has inconsistent terminal transfer state.");
+            }
+        }
+        else if (!string.Equals(
+                     part.worldStackId,
+                     part.installationSourceStackId,
+                     StringComparison.Ordinal)
+                 || !string.Equals(
+                     part.reservedOrderId,
+                     part.installationOrderId,
+                     StringComparison.Ordinal)
+                 || !string.IsNullOrEmpty(part.installedSubjectId))
+        {
+            report.AddError(
+                $"Pending surgical part '{partId}' has inconsistent transfer intent state.");
+        }
+    }
+
+    private static bool IsCanonical(string value) =>
+        !string.IsNullOrEmpty(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     private static void ValidateStorage(
         IReadOnlyList<SurgicalOrganStorageState> states,

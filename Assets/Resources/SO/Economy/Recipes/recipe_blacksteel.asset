@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: material:charcoal
     amount: 1
   outputs:
-  - itemId: material:blacksteel-ingot
+  - outputLineId: output:recipe:blacksteel/000/main/material:blacksteel-ingot
+    role: 0
+    itemId: material:blacksteel-ingot
     amount: 1
     probability: 1

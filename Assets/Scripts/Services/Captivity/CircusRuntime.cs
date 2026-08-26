@@ -42,6 +42,7 @@ public sealed class CircusRuntime :
     private readonly IGameEventBus events;
     private readonly IExternalInfluenceRuntime externalInfluence;
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private readonly CircusProgramForecastService forecastService;
     private readonly CircusProgramForecastProjectionAdapter forecastProjection;
     private readonly CircusStateSession stateSession;
@@ -74,6 +75,7 @@ public sealed class CircusRuntime :
         wildlifeCapture = program.WildlifeCapture;
         externalInfluence = program.ExternalInfluence;
         items = program.Items;
+        batchDispositions = program.BatchDispositions;
         world = worldContext.World;
         gridProvider = worldContext.GridProvider;
         rooms = worldContext.Rooms;
@@ -390,6 +392,18 @@ public sealed class CircusRuntime :
         out string status)
     {
         status = string.Empty;
+        if (CircusShowSupplyOutbox.HasPending(order))
+        {
+            return CircusShowSupplyOutbox.TryFinalize(
+                order,
+                items,
+                batchDispositions,
+                out status);
+        }
+        if (order.preparationSuppliesCommitted)
+        {
+            return true;
+        }
         WorldItemStackSnapshot propBox = FindUsableStageItem(
             order,
             PerformancePropBoxItemId,
@@ -432,12 +446,16 @@ public sealed class CircusRuntime :
             return false;
         }
 
-        if (!items.TryConsumeFacilityItemBuffer(
-                order.stageId,
-                new Dictionary<string, int>(StringComparer.Ordinal)
-                {
-                    [PerformancePropBoxItemId] = 1
-                },
+        int sequence = order.nextSupplyOperationSequence;
+        string operationId = CircusShowSupplyOutbox.FormatOperationId(
+            order.orderId,
+            sequence);
+        if (!batchDispositions.TryCommitPending(
+                new[] { new PhysicalItemTransformInput(propBox.StackId, 1) },
+                PhysicalItemDispositionKind.Sink,
+                operationId,
+                CircusShowSupplyOutbox.ReasonCode,
+                out PhysicalItemBatchDispositionReceipt receipt,
                 out string failureReason))
         {
             status = string.IsNullOrWhiteSpace(failureReason)
@@ -449,17 +467,18 @@ public sealed class CircusRuntime :
         float current = DurableToolItemRules.ReadCurrentDurability(
             cart.ItemId,
             cart.Components);
-        if (!items.TrySetInstanceComponent(
-                cart.StackId,
-                DurableToolItemRules.CreateDurability(
-                    cart.ItemId,
-                    current - BanquetCartWearPerShow)))
-        {
-            throw new InvalidOperationException(
-                $"Validated banquet cart '{cart.StackId}' disappeared during show preparation.");
-        }
-
-        return true;
+        CircusShowSupplyOutbox.Record(
+            order,
+            sequence,
+            receipt,
+            cart.StackId,
+            current,
+            Mathf.Max(0f, current - BanquetCartWearPerShow));
+        return CircusShowSupplyOutbox.TryFinalize(
+            order,
+            items,
+            batchDispositions,
+            out status);
     }
 
     private WorldItemStackSnapshot FindUsableStageItem(

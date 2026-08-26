@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: resource:cave-mushroom
     amount: 1
   outputs:
-  - itemId: supply:inoculated-log
+  - outputLineId: output:recipe:supply:inoculated-log/000/main/supply:inoculated-log
+    role: 0
+    itemId: supply:inoculated-log
     amount: 2
     probability: 1

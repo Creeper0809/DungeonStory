@@ -59,8 +59,8 @@ MonoBehaviour:
     - rid: 7737211921440178873
     - rid: 7737211921440178874
     - rid: 7737211921440178875
-    - rid: 7737212042831200678
-    - rid: 7737212042831200679
+    - rid: 1002
+    - rid: 1003
   width: 3
   height: 1
   layer: 1
@@ -76,6 +76,34 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 1002
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:quarry
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 1003
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
     - rid: 7737211921440178869
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
@@ -156,31 +184,3 @@ MonoBehaviour:
           - key: Mining
             value: 2
           metrics: []
-    - rid: 7737212042831200678
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:quarry
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737212042831200679
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 4
-        outputCapacities:
-        - itemId: material:lead-ingot
-          capacity: 24
-        - itemId: material:lead-shot
-          capacity: 96
-        - itemId: material:black-powder
-          capacity: 48
-        - itemId: material:paper
-          capacity: 64
-        - itemId: ammo:paper-cartridge
-          capacity: 120
-        - itemId: component:machine-parts
-          capacity: 16
-        - itemId: component:precision-parts
-          capacity: 16
-        allowOverflowDump: 1
-        overflowOffset: {x: 1, y: 0}

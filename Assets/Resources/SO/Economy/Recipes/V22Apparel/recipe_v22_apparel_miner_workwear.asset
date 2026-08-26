@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:cloth
     amount: 3
   outputs:
-  - itemId: apparel:miner-workwear
+  - outputLineId: output:recipe:v22:apparel:miner-workwear/000/main/apparel:miner-workwear
+    role: 0
+    itemId: apparel:miner-workwear
     amount: 1
     probability: 1

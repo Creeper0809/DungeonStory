@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:plate-blank
     amount: 1
   outputs:
-  - itemId: component:material-test-coupon
+  - outputLineId: output:recipe:component:material-test-coupon/000/main/component:material-test-coupon
+    role: 0
+    itemId: component:material-test-coupon
     amount: 2
     probability: 1

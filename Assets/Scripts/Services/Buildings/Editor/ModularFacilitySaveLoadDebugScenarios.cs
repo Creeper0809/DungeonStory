@@ -94,15 +94,17 @@ public static class ModularFacilitySaveLoadDebugScenarios
             Require(warehouse != null && warehouse.HasWarehouseInventory, "source warehouse exists");
             warehouse.Inventory.ApplySnapshot(new WarehouseInventorySnapshot
             {
-                maxCapacity = 18,
                 restrictCategory = true,
                 acceptedCategoryId = StockCategoryPersistenceId.ToId(StockCategory.Food)
             });
 
             Require(shop != null, "source shop exists");
             ShopStockStateSnapshot shopStock = shop.CreateStockSnapshot();
-            Require(shopStock.items != null && shopStock.items.Count > 0, "source shop has stock snapshot");
-            shopStock.items[0].amount = 2;
+            Require(shopStock.schemaVersion == ShopStockStateSnapshot.CurrentSchemaVersion
+                && shopStock.lots != null
+                && shopStock.lots.Count > 0,
+                "source shop has exact lot snapshot");
+            shopStock.lots[0].quantity = 2;
             shop.ApplyStockSnapshot(shopStock);
 
             BuildableObject alarm = Place(sourceGrid, alarmBell, new Vector2Int(20, 0), sourceBuildings);
@@ -113,6 +115,12 @@ public static class ModularFacilitySaveLoadDebugScenarios
 
             Place(targetGrid, hallway, new Vector2Int(25, 0), targetStaleBuildings);
             Place(targetGrid, diningCore, new Vector2Int(22, 0), targetStaleBuildings);
+            int staleWorldDestructionEventCount = 0;
+            foreach (BuildableObject staleBuilding in targetStaleBuildings)
+            {
+                staleBuilding.OnBuildingDestroyed += () =>
+                    staleWorldDestructionEventCount++;
+            }
 
             GridTexture texture = textureObject.AddComponent<GridTexture>();
             TestGridSystemPublisher gridPublisher = new(targetGrid);
@@ -215,6 +223,11 @@ public static class ModularFacilitySaveLoadDebugScenarios
 
             Check(lines, "restore_success", restored && report.Success, $"cleared={report.clearedCount}; restored={candidate?.RestoredCount ?? 0}; errors={string.Join("|", report.errors)}");
             Check(lines, "stale_world_cleared", targetStaleBuildings.All(item => item == null || item.IsGridDestroyed), $"stale={targetStaleBuildings.Count}");
+            Check(
+                lines,
+                "world_replacement_retirement_skips_gameplay_destruction",
+                staleWorldDestructionEventCount == 0,
+                $"destructionEvents={staleWorldDestructionEventCount}");
             Check(
                 lines,
                 "facility_restore_does_not_mutate_session",

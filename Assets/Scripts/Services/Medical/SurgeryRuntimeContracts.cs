@@ -192,6 +192,7 @@ public interface ISurgicalPartRuntime
         SurgicalPartKind kind,
         float quality,
         Vector2Int position,
+        string sourceProductionCommitId,
         out SurgicalPartInstance part,
         out DomainFailure failure);
     bool TryReserveForOrder(

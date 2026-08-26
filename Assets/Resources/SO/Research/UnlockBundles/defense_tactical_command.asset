@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7024
   researchId: research:defense:tactical-command
-  role: 1
+  role: 0
   designIntent: "\uB2E4\uC911 \uACBD\uBE44\uC758 \uC804\uC120\uACFC \uAD50\uB300\uB97C
     \uD1B5\uD569 \uC9C0\uD718\uD55C\uB2E4."
   rewardGroups:
@@ -57,4 +57,5 @@ MonoBehaviour:
   - kind: 4
     displayOrder: 60
     heading: "\uC758\uB8CC \uC2DC\uC220"
-  singletonReason: 
+  singletonReason: "\uC5EC\uB7EC \uD6C4\uC18D \uC5F0\uAD6C\uC640 \uAE30\uC874 \uC81C\uC791
+    \uACC4\uD1B5\uC744 \uC5EC\uB294 \uAE30\uBC18 \uC5F0\uAD6C\uB2E4."

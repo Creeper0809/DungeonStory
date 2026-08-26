@@ -52,12 +52,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.25
   wastewaterPerCycle: 0.25
+  wastewaterComposition: 2
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:ember-root
     amount: 2
   outputs:
-  - itemId: material:washed-vegetable
+  - outputLineId: output:recipe:washed-vegetable/000/main/material:washed-vegetable
+    role: 0
+    itemId: material:washed-vegetable
     amount: 2
     probability: 1

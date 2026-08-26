@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -62,6 +63,8 @@ MonoBehaviour:
   - itemId: craft:fermented-vinegar
     amount: 1
   outputs:
-  - itemId: food:preserved-vegetable
+  - outputLineId: output:recipe:preserved-vegetable/000/main/food:preserved-vegetable
+    role: 0
+    itemId: food:preserved-vegetable
     amount: 2
     probability: 1

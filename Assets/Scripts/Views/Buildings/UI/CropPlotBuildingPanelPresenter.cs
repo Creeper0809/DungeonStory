@@ -119,6 +119,14 @@ public sealed class CropPlotBuildingPanelPresenter :
             showFeedback,
             refresh,
             created);
+        RenderTreatmentControls(
+            parent,
+            building,
+            plot,
+            font,
+            showFeedback,
+            refresh,
+            created);
 
         AddText(
             parent,
@@ -166,6 +174,153 @@ public sealed class CropPlotBuildingPanelPresenter :
 
         return created;
     }
+
+    private void RenderTreatmentControls(
+        Transform parent,
+        BuildableObject building,
+        CropPlotSnapshot plot,
+        TMP_FontAsset font,
+        Action<string> showFeedback,
+        Action refresh,
+        ICollection<GameObject> created)
+    {
+        AddText(
+            parent,
+            "작물 처리",
+            font,
+            18f,
+            DungeonUiTheme.TextPrimary,
+            30f,
+            created);
+        if (plot.TreatmentScheduled)
+        {
+            string progress = plot.TreatmentRequiredWork <= 0f
+                ? string.Empty
+                : $" · 작업 {plot.TreatmentCompletedWork:0.#}/"
+                    + $"{plot.TreatmentRequiredWork:0.#} WU";
+            string delivery = $" · 배송 {plot.TreatmentDeliveredQuantity}/"
+                + plot.TreatmentRequiredQuantity;
+            AddText(
+                parent,
+                $"{plot.TreatmentItemName} · {FormatTreatmentPhase(plot.TreatmentPhase)}"
+                    + delivery + progress,
+                font,
+                14f,
+                DungeonUiTheme.TextSecondary,
+                38f,
+                created);
+            if (!string.IsNullOrWhiteSpace(plot.TreatmentFailureReason))
+            {
+                AddText(
+                    parent,
+                    plot.TreatmentFailureReason,
+                    font,
+                    13f,
+                    DungeonUiTheme.Warning,
+                    30f,
+                    created);
+            }
+            bool cancellable = plot.TreatmentPhase is
+                CropTreatmentOrderPhase.WaitingForDelivery
+                or CropTreatmentOrderPhase.ReadyForWork
+                or CropTreatmentOrderPhase.Working;
+            GameObject cancelRow = CreateRow(
+                parent,
+                "CropTreatmentCancel",
+                34f);
+            created.Add(cancelRow);
+            AddButton(
+                cancelRow.transform,
+                "처리 취소",
+                font,
+                selected: false,
+                interactable: cancellable,
+                () =>
+                {
+                    bool succeeded = cropPlots.TryCancelTreatment(
+                        building,
+                        out string message);
+                    feedbackByPlot[plot.PlotId] = message;
+                    showFeedback?.Invoke(message);
+                    if (succeeded)
+                        refresh?.Invoke();
+                });
+            return;
+        }
+
+        foreach (ResourceItemDefinitionSO item in catalog.Items
+                     .Where(value => value != null
+                         && value.TryGetCropTreatment(
+                             out CropTreatmentPolicy _))
+                     .OrderBy(value => value.ItemId, StringComparer.Ordinal))
+        {
+            ResourceItemDefinitionSO captured = item;
+            captured.TryGetCropTreatment(out CropTreatmentPolicy policy);
+            bool available = cropPlots.CanScheduleTreatment(
+                building,
+                captured.ItemId,
+                out string unavailable);
+            int nextAllowed = policy.Kind switch
+            {
+                CropTreatmentKind.PestLure => plot.PestLureNextAllowedDay,
+                CropTreatmentKind.BotanicalPesticide =>
+                    plot.BotanicalPesticideNextAllowedDay,
+                CropTreatmentKind.Fungicide => plot.FungicideNextAllowedDay,
+                _ => int.MaxValue
+            };
+            string cooldown = nextAllowed > plot.CurrentAbsoluteDay
+                ? $" · 재사용 {nextAllowed - plot.CurrentAbsoluteDay}일"
+                : string.Empty;
+            GameObject row = CreateRow(
+                parent,
+                $"CropTreatment_{captured.ItemId}",
+                54f);
+            created.Add(row);
+            AddText(
+                row.transform,
+                $"{captured.DisplayName} · {policy.RequiredWork:0.#} WU"
+                    + $" · 압력 -{policy.EffectAmount:0.#}{cooldown}"
+                    + (available || string.IsNullOrWhiteSpace(unavailable)
+                        ? string.Empty
+                        : $"\n{unavailable}"),
+                font,
+                13f,
+                available
+                    ? DungeonUiTheme.TextPrimary
+                    : DungeonUiTheme.TextSecondary,
+                50f,
+                created);
+            AddButton(
+                row.transform,
+                "처리 예약",
+                font,
+                selected: false,
+                interactable: available,
+                () =>
+                {
+                    bool succeeded = cropPlots.TryScheduleTreatment(
+                        building,
+                        captured.ItemId,
+                        out string message);
+                    feedbackByPlot[plot.PlotId] = message;
+                    showFeedback?.Invoke(message);
+                    if (succeeded)
+                        refresh?.Invoke();
+                });
+        }
+    }
+
+    private static string FormatTreatmentPhase(CropTreatmentOrderPhase phase) =>
+        phase switch
+        {
+            CropTreatmentOrderPhase.WaitingForDelivery => "운반 대기",
+            CropTreatmentOrderPhase.ReadyForWork => "작업 대기",
+            CropTreatmentOrderPhase.Working => "작업 중",
+            CropTreatmentOrderPhase.InputCommitted => "물리 소비 확정",
+            CropTreatmentOrderPhase.OutcomePublished => "결과 승인 대기",
+            CropTreatmentOrderPhase.PlotDestroyedLossPending => "파괴 손실 처리",
+            _ => "없음"
+        };
 
     private void RenderGoldenHarvestControls(
         Transform parent,

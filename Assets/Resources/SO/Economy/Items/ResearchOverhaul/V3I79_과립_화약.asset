@@ -26,22 +26,22 @@ MonoBehaviour:
   displayName: "\uACFC\uB9BD \uD654\uC57D"
   description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uACFC\uB9BD \uD654\uC57D."
   stockCategory: 1
-  unitWeight: 2.15
+  unitWeight: 0.85
   maxStack: 50
   sprite: {fileID: 0}
   unitPrice: 13
   features:
-  - rid: 7737212042857938998
-  - rid: 7737212042857938999
   - rid: 7737212042857939000
+  - rid: 1000
+  - rid: 1001
   references:
     version: 2
     RefIds:
-    - rid: 7737212042857938998
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:equipment:standard-ammunition
-    - rid: 7737212042857938999
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
@@ -50,4 +50,4 @@ MonoBehaviour:
     - rid: 7737212042857939000
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.578641
+        saleRate: 0.577

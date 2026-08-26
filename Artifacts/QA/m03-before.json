@@ -1,0 +1,293 @@
+{
+    "MonoBehaviour": {
+        "m_Enabled": true,
+        "m_EditorHideFlags": 0,
+        "m_Name": "M03_외과수술대",
+        "m_EditorClassIdentifier": "Assembly-CSharp::BuildingSO",
+        "serializationData": {
+            "SerializedFormat": 2,
+            "SerializedBytes": [],
+            "ReferencedUnityObjects": [],
+            "SerializedBytesString": "",
+            "Prefab": {
+                "instanceID": 0
+            },
+            "PrefabModificationsReferencedUnityObjects": [],
+            "PrefabModifications": [],
+            "SerializationNodes": [
+                {
+                    "Name": "tiles",
+                    "Entry": 6,
+                    "Data": ""
+                },
+                {
+                    "Name": "OnBuildCondition",
+                    "Entry": 6,
+                    "Data": ""
+                }
+            ]
+        },
+        "id": 9503,
+        "objectName": "외과 수술대",
+        "sprite": {
+            "fileID": 21300000,
+            "guid": "a96532d7c4dcec446816c2312e6801b0",
+            "type": 3
+        },
+        "icon": {
+            "fileID": 21300000,
+            "guid": "a96532d7c4dcec446816c2312e6801b0",
+            "type": 3
+        },
+        "contentDefinitionId": "",
+        "authoringRevision": 1,
+        "sourceNote": "",
+        "deprecatedCompatibilityAsset": false,
+        "useClassification": 0,
+        "researchFacilityCommand": 0,
+        "constructionProficiency": {
+            "primaryProficiencyId": "proficiency:construction-engineering",
+            "secondaryProficiencyId": "",
+            "primaryWeight": 1.0,
+            "combinationMode": 0,
+            "recommendedRank": 2,
+            "minimumRiskRank": 0
+        },
+        "operationProficiency": {
+            "primaryProficiencyId": "",
+            "secondaryProficiencyId": "",
+            "primaryWeight": 0.0,
+            "combinationMode": 0,
+            "recommendedRank": 0,
+            "minimumRiskRank": 0
+        },
+        "abilityModules": {
+            "items": [
+                {
+                    "rid": 1000
+                },
+                {
+                    "rid": 1001
+                },
+                {
+                    "rid": 1002
+                },
+                {
+                    "rid": 1003
+                },
+                {
+                    "rid": 1004
+                },
+                {
+                    "rid": 1005
+                },
+                {
+                    "rid": 7737211857806557813
+                },
+                {
+                    "rid": 1006
+                },
+                {
+                    "rid": 1007
+                },
+                {
+                    "rid": 1008
+                }
+            ]
+        },
+        "width": 3,
+        "height": 1,
+        "layer": 1,
+        "category": 6,
+        "horizontalDraggable": false,
+        "verticalDraggable": false,
+        "runtimeArchetype": 1,
+        "movementAnchorOffset": {
+            "x": 0.0,
+            "y": 0.0
+        },
+        "movementTravelTime": 1.2000000476837159,
+        "facilityAnchors": {
+            "slots": []
+        },
+        "unlocked": false,
+        "references": {
+            "version": 2,
+            "RefIds": [
+                {
+                    "rid": 1000,
+                    "type": {
+                        "class": "BuildingFacilityPartAbility",
+                        "ns": "",
+                        "asm": "DungeonStory.Buildings"
+                    },
+                    "data": {
+                        "abilityId": "BuildingFacilityPartAbility",
+                        "code": "M03"
+                    }
+                },
+                {
+                    "rid": 1001,
+                    "type": {
+                        "class": "BuildingSemanticTagsAbility",
+                        "ns": "",
+                        "asm": "DungeonStory.Buildings"
+                    },
+                    "data": {
+                        "abilityId": "BuildingSemanticTagsAbility",
+                        "tags": [
+                            "medical",
+                            "surgery",
+                            "m03"
+                        ]
+                    }
+                },
+                {
+                    "rid": 1002,
+                    "type": {
+                        "class": "BuildingEconomyAbility",
+                        "ns": "",
+                        "asm": "DungeonStory.Buildings"
+                    },
+                    "data": {
+                        "abilityId": "BuildingEconomyAbility",
+                        "constructionValue": 0,
+                        "constructionCost": 180,
+                        "maintenance": 1,
+                        "unlockPhase": 1,
+                        "demolitionRefundRate": 0.5
+                    }
+                },
+                {
+                    "rid": 1003,
+                    "type": {
+                        "class": "BuildingFacilityAbility",
+                        "ns": "",
+                        "asm": "Assembly-CSharp"
+                    },
+                    "data": {
+                        "abilityId": "BuildingFacilityAbility",
+                        "settings": {
+                            "roles": 4096,
+                            "capacity": 1,
+                            "useDuration": 1.5,
+                            "requiredWorkers": 1,
+                            "supportedWorkTypes": 134250496,
+                            "disabledWhenDamaged": true
+                        }
+                    }
+                },
+                {
+                    "rid": 1004,
+                    "type": {
+                        "class": "BuildingRoomRequirementAbility",
+                        "ns": "",
+                        "asm": "DungeonStory.Buildings"
+                    },
+                    "data": {
+                        "abilityId": "BuildingRoomRequirementAbility"
+                    }
+                },
+                {
+                    "rid": 1005,
+                    "type": {
+                        "class": "BuildingInternalStockAbility",
+                        "ns": "",
+                        "asm": "DungeonStory.Buildings"
+                    },
+                    "data": {
+                        "abilityId": "BuildingInternalStockAbility",
+                        "capacity": 12,
+                        "restockRequestThreshold": 3
+                    }
+                },
+                {
+                    "rid": 1006,
+                    "type": {
+                        "class": "BuildingEvolutionAbility",
+                        "ns": "",
+                        "asm": "Assembly-CSharp"
+                    },
+                    "data": {
+                        "abilityId": "BuildingEvolutionAbility",
+                        "settings": {
+                            "contributesToRoomProfile": true,
+                            "tags": [
+                                "medical",
+                                "surgery",
+                                "m03"
+                            ],
+                            "scores": [],
+                            "metrics": []
+                        }
+                    }
+                },
+                {
+                    "rid": 1007,
+                    "type": {
+                        "class": "BuildingMedicalAbility",
+                        "ns": "",
+                        "asm": "DungeonStory.Survival"
+                    },
+                    "data": {
+                        "abilityId": "BuildingMedicalAbility",
+                        "workSeconds": 1.7999999523162842,
+                        "severityReduction": 0.4000000059604645,
+                        "requiresMedicine": true
+                    }
+                },
+                {
+                    "rid": 1008,
+                    "type": {
+                        "class": "BuildingSurgeryTableAbility",
+                        "ns": "",
+                        "asm": "DungeonStory.Medical"
+                    },
+                    "data": {
+                        "abilityId": "BuildingSurgeryTableAbility",
+                        "allowedProcedureTags": 4,
+                        "successBonus": 0.07999999821186066,
+                        "workSpeedMultiplier": 1.0,
+                        "baseSterility": 0.3499999940395355,
+                        "patientSlots": 1
+                    }
+                },
+                {
+                    "rid": 7737211857806557813,
+                    "type": {
+                        "class": "BuildingWorkAmountAbility",
+                        "ns": "",
+                        "asm": "Assembly-CSharp"
+                    },
+                    "data": {
+                        "abilityId": "BuildingWorkAmountAbility",
+                        "constructionProjectScale": 0,
+                        "constructionWorkRequired": 971.0,
+                        "repairWorkRequired": 14.40000057220459,
+                        "cleanWorkRequired": 8.0,
+                        "researchWorkRequired": 6.0,
+                        "operateWorkRequired": 12.0,
+                        "defaultWorkerPolicy": {
+                            "mode": 0,
+                            "matchMode": 0,
+                            "sortMode": 4,
+                            "specificCharacterIds": [],
+                            "excludedCharacterIds": [],
+                            "minimumSkillId": "",
+                            "minimumSkillExperience": 0,
+                            "minimumCareerRank": 0,
+                            "requiredTraitIds": [],
+                            "excludedTraitIds": []
+                        },
+                        "constructionMaterials": [
+                            {
+                                "itemId": "material:lumber",
+                                "amount": 11
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+}

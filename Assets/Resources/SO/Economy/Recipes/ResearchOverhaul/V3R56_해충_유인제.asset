@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 0
     recommendedRank: 2
     minimumRiskRank: 2
-  requiredResearchId: research:agriculture:pest-control
+  requiredResearchId: research:agriculture:soil-cycles
   requiredWork: 40
   preparationWork: 0
   finishingWork: 0
@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -61,6 +62,8 @@ MonoBehaviour:
   - itemId: material:paper
     amount: 1
   outputs:
-  - itemId: supply:pest-lure
+  - outputLineId: output:recipe:supply:pest-lure/000/main/supply:pest-lure
+    role: 0
+    itemId: supply:pest-lure
     amount: 2
     probability: 1

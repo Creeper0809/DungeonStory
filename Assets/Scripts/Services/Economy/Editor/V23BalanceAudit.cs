@@ -234,8 +234,8 @@ public static class V23BalanceAudit
     {
         if (buildings.Count == 0)
             failures.Add("Root catalog has no player building definitions.");
-        if (recipes.Count != 354)
-            failures.Add($"Expected 354 recipes, found {recipes.Count}.");
+        if (recipes.Count != 355)
+            failures.Add($"Expected 355 recipes, found {recipes.Count}.");
         if (equipment.Count != 61)
             failures.Add($"Expected 61 combat equipment definitions, found {equipment.Count}.");
         if (apparel.Count != 56)

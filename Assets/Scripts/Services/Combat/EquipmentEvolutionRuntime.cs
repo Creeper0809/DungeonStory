@@ -16,6 +16,7 @@ public sealed class EquipmentEvolutionRuntime :
     private readonly IEvolutionModuleRegistry modules;
     private readonly IResourceEconomyContentCatalog economyCatalog;
     private readonly IWorldItemStackRuntime worldItems;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private readonly IFacilityEvolutionStateComponentFactory facilityStates;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
 
@@ -36,6 +37,7 @@ public sealed class EquipmentEvolutionRuntime :
         IEvolutionModuleRegistry modules,
         IResourceEconomyContentCatalog economyCatalog,
         IWorldItemStackRuntime worldItems,
+        IPhysicalItemBatchDispositionService batchDispositions,
         IFacilityEvolutionStateComponentFactory facilityStates,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
@@ -46,7 +48,10 @@ public sealed class EquipmentEvolutionRuntime :
         this.modules = modules
             ?? throw new ArgumentNullException(nameof(modules));
         this.economyCatalog = economyCatalog;
-        this.worldItems = worldItems;
+        this.worldItems = worldItems
+            ?? throw new ArgumentNullException(nameof(worldItems));
+        this.batchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
         this.facilityStates = facilityStates
             ?? throw new ArgumentNullException(nameof(facilityStates));
         this.aggregateRootStore = aggregateRootStore
@@ -218,6 +223,11 @@ public sealed class EquipmentEvolutionRuntime :
             failureReason = "재단조할 장비를 찾을 수 없습니다.";
             return false;
         }
+        if (instance.worldState == CombatEquipmentWorldState.RetailStock)
+        {
+            failureReason = "상점 재고인 장비는 재단조할 수 없습니다.";
+            return false;
+        }
 
         EquipmentEvolutionState state = instance.evolution?.Clone()
             ?? new EquipmentEvolutionState();
@@ -322,7 +332,14 @@ public sealed class EquipmentEvolutionRuntime :
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(instance.sourceStackId))
+        if (string.IsNullOrWhiteSpace(instance.sourceStackId))
+        {
+            worldItems.ReleaseStacksByDestination(destinationId, position);
+            failureReason =
+                "장비를 물리 창고나 바닥에 내려놓은 뒤 재단조할 수 있습니다.";
+            return false;
+        }
+        else
         {
             if (!worldItems.TryRequestStackDelivery(
                     instance.sourceStackId,
@@ -340,15 +357,6 @@ public sealed class EquipmentEvolutionRuntime :
                 return false;
             }
         }
-        else if (instance.worldState is CombatEquipmentWorldState.Equipped
-                 or CombatEquipmentWorldState.Carried
-                 or CombatEquipmentWorldState.ExpeditionPacked)
-        {
-            worldItems.ReleaseStacksByDestination(destinationId, position);
-            failureReason = "장착하거나 운반 중인 장비는 먼저 창고에 내려놓아야 합니다.";
-            return false;
-        }
-
         orders.Add(created);
         order = created.Clone();
         return true;
@@ -378,7 +386,10 @@ public sealed class EquipmentEvolutionRuntime :
 
         if (!EnsureMaterialsReady(order, out failureReason))
         {
-            order.state = EvolutionReforgeOrderState.WaitingForMaterials;
+            if (!order.materialsConsumed)
+            {
+                order.state = EvolutionReforgeOrderState.WaitingForMaterials;
+            }
             return false;
         }
 
@@ -498,6 +509,14 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
 
+        if (order.materialsConsumed
+            || !string.IsNullOrEmpty(order.materialTransferOperationId))
+        {
+            failureReason =
+                "재료가 재단조 재공품으로 이전된 주문은 취소할 수 없습니다.";
+            return false;
+        }
+
         order.state = EvolutionReforgeOrderState.Cancelled;
         worldItems?.ReleaseStacksByDestination(
             order.destinationId,
@@ -573,6 +592,11 @@ public sealed class EquipmentEvolutionRuntime :
                 out CombatEquipmentDefinitionSO definition))
         {
             failureReason = "재귀속할 장비를 찾을 수 없습니다.";
+            return false;
+        }
+        if (instance.worldState == CombatEquipmentWorldState.RetailStock)
+        {
+            failureReason = "상점 재고인 장비는 재귀속할 수 없습니다.";
             return false;
         }
 
@@ -718,7 +742,10 @@ public sealed class EquipmentEvolutionRuntime :
 
         if (!EnsureReattunementMaterialsReady(order, out failureReason))
         {
-            order.state = EvolutionReforgeOrderState.WaitingForMaterials;
+            if (!order.materialsConsumed)
+            {
+                order.state = EvolutionReforgeOrderState.WaitingForMaterials;
+            }
             return false;
         }
 
@@ -801,6 +828,15 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
 
+
+        if (order.materialsConsumed
+            || !string.IsNullOrEmpty(order.materialTransferOperationId))
+        {
+            failureReason =
+                "촉매가 재귀속 재공품으로 이전된 주문은 취소할 수 없습니다.";
+            return false;
+        }
+
         order.state = EvolutionReforgeOrderState.Cancelled;
         worldItems?.ReleaseStacksByDestination(
             order.destinationId,
@@ -846,7 +882,8 @@ public sealed class EquipmentEvolutionRuntime :
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (order.materialsConsumed)
+        if (order.materialsConsumed
+            && string.IsNullOrEmpty(order.materialTransferOperationId))
         {
             return true;
         }
@@ -880,18 +917,16 @@ public sealed class EquipmentEvolutionRuntime :
             }
         }
 
-        if (worldItems == null
-            || !worldItems.TryConsumeFacilityItemBuffer(
-                order.destinationId,
-                BuildRequirements(order),
+        if (!EquipmentEvolutionMaterialOutbox.TryCommitOrFinalize(
+                order,
+                worldItems,
+                batchDispositions,
+                instance.sourceStackId,
                 out failureReason))
         {
             return false;
         }
 
-        order.materialsConsumed = true;
-        order.equipmentDelivered = true;
-        order.state = EvolutionReforgeOrderState.Ready;
         return true;
     }
 
@@ -900,7 +935,8 @@ public sealed class EquipmentEvolutionRuntime :
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (order.materialsConsumed)
+        if (order.materialsConsumed
+            && string.IsNullOrEmpty(order.materialTransferOperationId))
         {
             return true;
         }
@@ -931,23 +967,16 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
 
-        Dictionary<string, int> requirements =
-            new Dictionary<string, int>(StringComparer.Ordinal)
-            {
-                [order.catalystItemId] = 1
-            };
-        if (worldItems == null
-            || !worldItems.TryConsumeFacilityItemBuffer(
-                order.destinationId,
-                requirements,
+        if (!EquipmentEvolutionMaterialOutbox.TryCommitOrFinalize(
+                order,
+                worldItems,
+                batchDispositions,
+                instance.sourceStackId,
                 out failureReason))
         {
             return false;
         }
 
-        order.materialsConsumed = true;
-        order.equipmentDelivered = true;
-        order.state = EvolutionReforgeOrderState.Ready;
         return true;
     }
 

@@ -17,12 +17,24 @@ public sealed class CharacterEnvironmentSaveSection :
     };
 
     private readonly ICharacterEnvironmentPersistence persistence;
+    private readonly IProductionOutputLifecycleRestoreCandidatePublisher
+        lifecycleRestoreCandidates;
+    private readonly ApparelRejectedDismantleRestoreGuard
+        rejectedDismantleRestoreGuard;
 
     public CharacterEnvironmentSaveSection(
-        ICharacterEnvironmentPersistence persistence)
+        ICharacterEnvironmentPersistence persistence,
+        IProductionOutputLifecycleRestoreCandidatePublisher
+            lifecycleRestoreCandidates,
+        ApparelRejectedDismantleRestoreGuard rejectedDismantleRestoreGuard)
     {
         this.persistence = persistence
             ?? throw new ArgumentNullException(nameof(persistence));
+        this.lifecycleRestoreCandidates = lifecycleRestoreCandidates
+            ?? throw new ArgumentNullException(nameof(lifecycleRestoreCandidates));
+        this.rejectedDismantleRestoreGuard = rejectedDismantleRestoreGuard
+            ?? throw new ArgumentNullException(
+                nameof(rejectedDismantleRestoreGuard));
     }
 
     public override string SectionId => Id;
@@ -43,12 +55,20 @@ public sealed class CharacterEnvironmentSaveSection :
             (value, path) => NormalizeV18CharacterReference(value, report, path));
 
     protected override CharacterEnvironmentRestoreCandidate
-        BuildRestoreCandidate(DungeonCharacterEnvironmentSaveData payload) =>
-        persistence.BuildRestoreCandidate(payload);
+        BuildRestoreCandidate(DungeonCharacterEnvironmentSaveData payload)
+    {
+        rejectedDismantleRestoreGuard.Validate(payload.apparelWorkOrders);
+        return persistence.BuildRestoreCandidate(payload);
+    }
 
     protected override void PublishRestoreCandidate(
         CharacterEnvironmentRestoreCandidate candidate) =>
         persistence.PublishRestoreCandidate(candidate);
+
+    protected override void PublishRestoreCandidateProjection(
+        DungeonCharacterEnvironmentSaveData payload,
+        CharacterEnvironmentRestoreCandidate candidate) =>
+        lifecycleRestoreCandidates.SetEnvironment(payload);
 }
 
 public static class CharacterEnvironmentSaveValidation
@@ -61,7 +81,8 @@ public static class CharacterEnvironmentSaveValidation
             || payload.exposures == null
             || payload.equippedWorkwear == null
             || payload.equippedApparel == null
-            || payload.apparelWorkOrders == null)
+            || payload.apparelWorkOrders == null
+            || payload.apparelWorkOrderTerminalStates == null)
         {
             report.AddError(
                 "Character-environment payload or required collection is null.");

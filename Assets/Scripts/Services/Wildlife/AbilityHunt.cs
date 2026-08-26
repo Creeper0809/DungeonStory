@@ -233,7 +233,10 @@ public sealed class AbilityHunt : MonoBehaviour
                 }
 
                 actor.Brain?.SetActionPhase("사냥 위치로 이동", null, job.Target.DisplayName);
-                yield return move.MoveByPath(path, expectedAction);
+                yield return MoveAlongHuntPath(
+                    path,
+                    job,
+                    expectedAction);
                 if (IsActionCancelled(expectedAction))
                 {
                     ReleaseReservation(job);
@@ -316,6 +319,27 @@ public sealed class AbilityHunt : MonoBehaviour
         huntingRoutine = null;
         activeJob = default;
         EndAiAction(CharacterAiActionTerminalKind.Completed, clearFailures: true);
+    }
+
+    private IEnumerator MoveAlongHuntPath(
+        Queue<GridMoveStep> path,
+        WildlifeHuntJob job,
+        AIAction expectedAction)
+    {
+        while (path != null
+            && path.Count > 0
+            && job.Target != null
+            && job.Target.IsAlive)
+        {
+            Queue<GridMoveStep> oneStep = new();
+            oneStep.Enqueue(path.Dequeue());
+            yield return move.MoveByPath(oneStep, expectedAction);
+            if (move.LastGridMoveWasBlocked
+                || IsActionCancelled(expectedAction))
+            {
+                yield break;
+            }
+        }
     }
 
     private bool TryGetGrid(out Grid grid)

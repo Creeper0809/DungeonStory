@@ -51,6 +51,13 @@ public enum CharacterMedicalStatusCode
     ManualRescueAssigned
 }
 
+public enum CharacterMedicalSupplyCommitPhase
+{
+    None = 0,
+    IntentRecorded = 1,
+    SupplyPublished = 2
+}
+
 [Serializable]
 public sealed class CharacterMedicalOrder
 {
@@ -73,6 +80,17 @@ public sealed class CharacterMedicalOrder
     public float treatmentInfectionReduction;
     public float treatmentPainReduction;
     public string treatmentMaterialDestinationId = string.Empty;
+    public int treatmentSupplyCommitPhase;
+    public int treatmentSupplyOperationSequence = 1;
+    public string treatmentSupplyOperationId = string.Empty;
+    public string treatmentSupplyReasonCode = string.Empty;
+    public string treatmentPhysicalItemId = string.Empty;
+    public int treatmentPhysicalQuantity;
+    public int treatmentOutputX;
+    public int treatmentOutputY;
+    public List<string> treatmentSourceStackIds = new();
+    public long treatmentInputMassGrams;
+    public string treatmentPhysicalCommitId = string.Empty;
     public int patientX;
     public int patientY;
     public int bedX;
@@ -141,9 +159,9 @@ public readonly struct CharacterMedicalBloodContactEvent
 [Serializable]
 public sealed class DungeonCharacterMedicalSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
-    public int version;
+    public int version = CurrentVersion;
     public List<CharacterMedicalOrder> orders = new List<CharacterMedicalOrder>();
     public int orderSequence;
 }

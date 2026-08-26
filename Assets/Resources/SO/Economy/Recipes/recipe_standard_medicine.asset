@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9089
+  id: 9090
   recipeId: recipe:standard-medicine
   displayName: "\uD45C\uC900 \uC57D\uD488"
   description: "\uD45C\uC900 \uC57D\uD488 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: material:alchemical-solvent
     amount: 1
   outputs:
-  - itemId: medicine:standard
+  - outputLineId: output:recipe:standard-medicine/000/main/medicine:standard
+    role: 0
+    itemId: medicine:standard
     amount: 2
     probability: 1

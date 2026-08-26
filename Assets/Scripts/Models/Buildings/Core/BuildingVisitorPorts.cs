@@ -337,8 +337,9 @@ public sealed class BuildingRetailPurchaseCommitResult
     public bool IsResolved { get; private set; }
     public bool Committed { get; private set; }
     public string FailureCode { get; private set; } = string.Empty;
+    public RetailStockLotSnapshot CommittedLot { get; private set; }
 
-    public void Commit()
+    public void Commit(RetailStockLotSnapshot committedLot)
     {
         if (IsResolved)
         {
@@ -346,9 +347,20 @@ public sealed class BuildingRetailPurchaseCommitResult
                 $"{nameof(BuildingRetailPurchaseCommitResult)} was resolved more than once.");
         }
 
+        if (committedLot == null
+            || committedLot.quantity != 1
+            || string.IsNullOrWhiteSpace(committedLot.itemDefinitionId)
+            || committedLot.unitMassGrams <= 0L)
+        {
+            throw new ArgumentException(
+                "A purchase commit requires one exact physical retail lot.",
+                nameof(committedLot));
+        }
+
         IsResolved = true;
         Committed = true;
         FailureCode = string.Empty;
+        CommittedLot = committedLot.Clone();
     }
 
     public void Reject(string failureCode)
@@ -361,6 +373,7 @@ public sealed class BuildingRetailPurchaseCommitResult
 
         IsResolved = true;
         Committed = false;
+        CommittedLot = null;
         FailureCode = string.IsNullOrWhiteSpace(failureCode)
             ? "purchase-commit-rejected"
             : failureCode.Trim();

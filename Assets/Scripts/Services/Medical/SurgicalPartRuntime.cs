@@ -7,6 +7,7 @@ using VContainer.Unity;
 
 public sealed class SurgicalPartRuntime :
     ISurgicalPartRuntime,
+    ISurgicalPartPreparedOutputRuntime,
     ISurgicalAugmentationQuery,
     ITickable
 {
@@ -25,6 +26,7 @@ public sealed class SurgicalPartRuntime :
     private readonly IAnatomyProfileCatalog anatomyProfiles;
     private readonly IGameClock clock;
     private readonly SurgeryAggregateStateStore stateStore;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private float nextFuelRefreshAt;
 
     private List<SurgicalPartInstance> parts => stateStore.State.Parts;
@@ -42,7 +44,8 @@ public sealed class SurgicalPartRuntime :
         ISurgicalFacilityQuery facilities,
         IAnatomyProfileCatalog anatomyProfiles,
         IGameClock clock,
-        SurgeryAggregateStateStore stateStore)
+        SurgeryAggregateStateStore stateStore,
+        IPhysicalItemBatchDispositionService batchDispositions)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
@@ -52,6 +55,8 @@ public sealed class SurgicalPartRuntime :
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
+        this.batchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
     }
 
     public IReadOnlyList<SurgicalPartInstance> Parts => parts;
@@ -163,18 +168,79 @@ public sealed class SurgicalPartRuntime :
         SurgicalPartKind kind,
         float quality,
         Vector2Int position,
+        string sourceProductionCommitId,
         out SurgicalPartInstance part,
         out DomainFailure failure)
     {
         part = null;
+        failure = new DomainFailure(
+            FailureCode.ProductionOutputUnavailable,
+            sourceProductionCommitId ?? string.Empty,
+            "surgical-part-prepared-output-route-required");
+        return false;
+    }
+
+    bool ISurgicalPartPreparedOutputRuntime.TryPrepareCraftedOutput(
+        string itemId,
+        string nodeId,
+        string displayName,
+        SurgicalPartKind kind,
+        float quality,
+        string commitId,
+        out SurgicalPartPreparedOutput prepared,
+        out DomainFailure failure)
+    {
+        prepared = null;
         failure = DomainFailure.None;
-        if (string.IsNullOrWhiteSpace(nodeId)
-            || kind == SurgicalPartKind.NaturalOrgan)
+        string canonicalCommit = commitId ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(itemId)
+            || !string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(nodeId)
+            || !string.Equals(nodeId, nodeId.Trim(), StringComparison.Ordinal)
+            || kind == SurgicalPartKind.NaturalOrgan
+            || string.IsNullOrWhiteSpace(canonicalCommit)
+            || !string.Equals(
+                canonicalCommit,
+                canonicalCommit.Trim(),
+                StringComparison.Ordinal))
         {
             failure = new DomainFailure(
-                FailureCode.SurgeryTargetNodeMissing,
-                nodeId ?? string.Empty);
+                FailureCode.SurgeryEffectFailed,
+                canonicalCommit,
+                "crafted-output-identity-invalid");
             return false;
+        }
+
+        SurgicalPartInstance existing = parts.SingleOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.sourceProductionCommitId,
+                canonicalCommit,
+                StringComparison.Ordinal));
+        if (existing != null)
+        {
+            if (existing.kind != kind
+                || !string.Equals(existing.nodeId, nodeId, StringComparison.Ordinal))
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgeryEffectFailed,
+                    canonicalCommit,
+                    "production-commit-conflict");
+                return false;
+            }
+            prepared = new SurgicalPartPreparedOutput
+            {
+                ItemId = itemId,
+                PartInstanceId = existing.partInstanceId,
+                NodeId = existing.nodeId,
+                DisplayName = existing.displayName,
+                Kind = existing.kind,
+                Quality = existing.quality,
+                CommitId = canonicalCommit,
+                ExpectedSequence = sequence,
+                IsReplay = true
+            };
+            return true;
         }
 
         SurgeryAggregateState state = stateStore.State;
@@ -185,39 +251,326 @@ public sealed class SurgicalPartRuntime :
         {
             return false;
         }
-
-        string itemId = SurgeryItemDefinitions.GetProstheticItemId(nodeId);
-        if (!items.SpawnUniqueItemAt(
-                itemId,
-                position,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out string stackId))
+        DungeonItemDefinition definition = items.CatalogProvider.GetDefinition(itemId);
+        if (definition == null || definition.MaxStack != 1)
         {
-            failure = new DomainFailure(FailureCode.SurgeryEffectFailed, itemId);
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                itemId,
+                "surgical-part-definition-must-be-unique");
             return false;
         }
-
-        DungeonItemDefinition definition = items.CatalogProvider.GetDefinition(itemId);
-        part = new SurgicalPartInstance
+        prepared = new SurgicalPartPreparedOutput
         {
-            partInstanceId = partInstanceId,
-            kind = kind,
-            nodeId = nodeId.Trim(),
-            displayName = string.IsNullOrWhiteSpace(displayName)
+            ItemId = itemId,
+            PartInstanceId = partInstanceId,
+            NodeId = nodeId,
+            DisplayName = string.IsNullOrWhiteSpace(displayName)
                 ? definition.DisplayName
                 : displayName.Trim(),
+            Kind = kind,
+            Quality = Mathf.Clamp(quality, 0.1f, 1.75f),
+            CommitId = canonicalCommit,
+            ExpectedSequence = nextPartSequence,
+            IsReplay = false
+        };
+        return true;
+    }
+
+    bool ISurgicalPartPreparedOutputRuntime.TryCommitCraftedOutput(
+        SurgicalPartPreparedOutput prepared,
+        FacilityBufferPlannedOutputPublicationReceipt published,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (!TryValidatePublishedCandidate(
+                prepared,
+                published,
+                out WorldItemStackSnapshot stack,
+                out _,
+                out failure))
+        {
+            return false;
+        }
+        SurgicalPartInstance existing = parts.SingleOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.sourceProductionCommitId,
+                prepared.CommitId,
+                StringComparison.Ordinal));
+        if (existing != null)
+        {
+            return string.Equals(existing.partInstanceId, prepared.PartInstanceId,
+                    StringComparison.Ordinal)
+                && string.Equals(existing.worldStackId, stack.StackId,
+                    StringComparison.Ordinal)
+                || FailCraftedOutput(
+                    prepared.CommitId,
+                    "crafted-output-replay-conflict",
+                    out failure);
+        }
+        if (prepared.IsReplay
+            || sequence != prepared.ExpectedSequence - 1
+            || parts.Any(candidate => candidate != null
+                && string.Equals(
+                    candidate.partInstanceId,
+                    prepared.PartInstanceId,
+                    StringComparison.Ordinal)))
+        {
+            return FailCraftedOutput(
+                prepared.CommitId,
+                "crafted-output-sequence-conflict",
+                out failure);
+        }
+
+        parts.Add(new SurgicalPartInstance
+        {
+            partInstanceId = prepared.PartInstanceId,
+            kind = prepared.Kind,
+            nodeId = prepared.NodeId,
+            displayName = prepared.DisplayName,
             donorId = string.Empty,
             donorName = "제작품",
             donorSpeciesId = string.Empty,
             anatomyFamily = "humanoid",
-            quality = Mathf.Clamp(quality, 0.1f, 1.75f),
+            quality = prepared.Quality,
             freshnessSeconds = float.PositiveInfinity,
-            worldStackId = stackId
-        };
-        sequence = nextPartSequence;
-        parts.Add(part);
+            worldStackId = stack.StackId,
+            sourceProductionCommitId = prepared.CommitId
+        });
+        sequence = prepared.ExpectedSequence;
         return true;
+    }
+
+    bool ISurgicalPartPreparedOutputRuntime.TryRollbackCraftedOutput(
+        SurgicalPartPreparedOutput prepared,
+        FacilityBufferPlannedOutputPublicationReceipt published,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (prepared == null || prepared.IsReplay)
+            return true;
+        SurgicalPartInstance[] matches = parts.Where(candidate => candidate != null
+                && string.Equals(
+                    candidate.sourceProductionCommitId,
+                    prepared.CommitId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length == 0)
+            return true;
+        if (matches.Length != 1
+            || sequence != prepared.ExpectedSequence
+            || published.Stacks.Count != 1
+            || !string.Equals(
+                matches[0].worldStackId,
+                published.Stacks[0].StackId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "crafted-output-runtime-rollback-conflict";
+            return false;
+        }
+        parts.Remove(matches[0]);
+        sequence = prepared.ExpectedSequence - 1;
+        return true;
+    }
+
+    bool ISurgicalPartPreparedOutputRuntime.TryValidateCommittedCraftedOutput(
+        string commitId,
+        bool requireAcknowledged,
+        out SurgicalPartPublishedOutputSnapshot joined,
+        out DomainFailure failure)
+    {
+        joined = default;
+        failure = DomainFailure.None;
+        SurgicalPartInstance[] matches = parts.Where(candidate => candidate != null
+                && string.Equals(
+                    candidate.sourceProductionCommitId,
+                    commitId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            return FailCraftedOutput(
+                commitId,
+                "crafted-output-owner-missing-or-duplicate",
+                out failure);
+        }
+        SurgicalPartInstance part = matches[0];
+        WorldItemStackSnapshot[] stacks = items.GetAllStacks()
+            .Where(candidate => candidate != null
+                && string.Equals(
+                    candidate.StackId,
+                    part.worldStackId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (stacks.Length != 1
+            || !TryValidatePhysicalJoin(
+                part,
+                stacks[0],
+                requireAcknowledged,
+                out PlannedOutputPublicationMetadata metadata,
+                out failure))
+        {
+            if (!failure.IsFailure)
+            {
+                FailCraftedOutput(
+                    commitId,
+                    "crafted-output-physical-owner-missing",
+                    out failure);
+            }
+            return false;
+        }
+        joined = new SurgicalPartPublishedOutputSnapshot(
+            stacks[0].StackId,
+            stacks[0].ItemInstanceId,
+            metadata.MassGrams,
+            metadata.Acknowledged);
+        return true;
+    }
+
+    private bool TryValidatePublishedCandidate(
+        SurgicalPartPreparedOutput prepared,
+        FacilityBufferPlannedOutputPublicationReceipt published,
+        out WorldItemStackSnapshot stack,
+        out PlannedOutputPublicationMetadata metadata,
+        out DomainFailure failure)
+    {
+        stack = null;
+        metadata = default;
+        failure = DomainFailure.None;
+        if (prepared == null
+            || published.Stacks.Count != 1
+            || !string.Equals(
+                published.BatchCommitId,
+                prepared.CommitId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                published.Stacks[0].ItemDefinitionId.Value,
+                prepared.ItemId,
+                StringComparison.Ordinal)
+            || published.Stacks[0].Quantity != 1
+            || published.Stacks[0].MassGrams <= 0L)
+        {
+            return FailCraftedOutput(
+                prepared?.CommitId,
+                "crafted-output-publication-receipt-invalid",
+                out failure);
+        }
+        stack = items.GetAllStacks().SingleOrDefault(candidate => candidate != null
+            && string.Equals(
+                candidate.StackId,
+                published.Stacks[0].StackId,
+                StringComparison.Ordinal));
+        if (stack == null
+            || stack.State != WorldItemStackState.FacilityOutputBuffer
+            || !string.Equals(
+                stack.DestinationId,
+                published.DestinationId,
+                StringComparison.Ordinal)
+            || !TryValidatePreparedComponent(prepared, stack, out failure)
+            || !PlannedOutputPublicationComponentCodec.TryRead(
+                stack.Components,
+                out metadata)
+            || metadata.Acknowledged
+            || metadata.MassGrams != published.Stacks[0].MassGrams)
+        {
+            if (!failure.IsFailure)
+            {
+                FailCraftedOutput(
+                    prepared.CommitId,
+                    "crafted-output-publication-join-invalid",
+                    out failure);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private static bool TryValidatePreparedComponent(
+        SurgicalPartPreparedOutput prepared,
+        WorldItemStackSnapshot stack,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (stack.Quantity != 1
+            || string.IsNullOrWhiteSpace(stack.ItemInstanceId)
+            || !string.Equals(stack.ItemId, prepared.ItemId, StringComparison.Ordinal)
+            || !SurgicalPartPreparedOutputComponentCodec.TryRead(
+                stack.Components,
+                out string partId,
+                out string nodeId,
+                out SurgicalPartKind kind,
+                out float quality,
+                out string commitId)
+            || !string.Equals(partId, prepared.PartInstanceId, StringComparison.Ordinal)
+            || !string.Equals(nodeId, prepared.NodeId, StringComparison.Ordinal)
+            || kind != prepared.Kind
+            || quality != prepared.Quality
+            || !string.Equals(commitId, prepared.CommitId, StringComparison.Ordinal))
+        {
+            return FailCraftedOutput(
+                prepared.CommitId,
+                "crafted-output-component-join-invalid",
+                out failure);
+        }
+        return true;
+    }
+
+    private static bool TryValidatePhysicalJoin(
+        SurgicalPartInstance part,
+        WorldItemStackSnapshot stack,
+        bool requireAcknowledged,
+        out PlannedOutputPublicationMetadata metadata,
+        out DomainFailure failure)
+    {
+        metadata = default;
+        failure = DomainFailure.None;
+        if (stack.Quantity != 1
+            || string.IsNullOrWhiteSpace(stack.ItemInstanceId)
+            || !SurgicalPartPreparedOutputComponentCodec.TryRead(
+                stack.Components,
+                out string partId,
+                out string nodeId,
+                out SurgicalPartKind kind,
+                out float quality,
+                out string componentCommit)
+            || !string.Equals(partId, part.partInstanceId, StringComparison.Ordinal)
+            || !string.Equals(nodeId, part.nodeId, StringComparison.Ordinal)
+            || kind != part.kind
+            || quality != part.quality
+            || !string.Equals(
+                componentCommit,
+                part.sourceProductionCommitId,
+                StringComparison.Ordinal)
+            || !PlannedOutputPublicationComponentCodec.TryRead(
+                stack.Components,
+                out metadata)
+            || !string.Equals(
+                metadata.BatchCommitId,
+                part.sourceProductionCommitId,
+                StringComparison.Ordinal)
+            || metadata.Quantity != 1
+            || metadata.MassGrams <= 0L
+            || requireAcknowledged && !metadata.Acknowledged)
+        {
+            return FailCraftedOutput(
+                part.sourceProductionCommitId,
+                "crafted-output-physical-join-invalid",
+                out failure);
+        }
+        return true;
+    }
+
+    private static bool FailCraftedOutput(
+        string commitId,
+        string detail,
+        out DomainFailure failure)
+    {
+        failure = new DomainFailure(
+            FailureCode.ProductionOutputUnavailable,
+            commitId ?? string.Empty,
+            detail);
+        return false;
     }
 
     public bool TryReserveForOrder(
@@ -274,10 +627,18 @@ public sealed class SurgicalPartRuntime :
         out SurgicalPartInstance part,
         out DomainFailure failure)
     {
+        part = null;
         failure = DomainFailure.None;
-        if (!TryGet(partInstanceId, out part)
-            || part.installed
-            || !string.Equals(part.reservedOrderId, orderId, StringComparison.Ordinal))
+        if (string.IsNullOrEmpty(partInstanceId)
+            || string.IsNullOrEmpty(orderId)
+            || string.IsNullOrEmpty(subjectId)
+            || !string.Equals(
+                partInstanceId,
+                partInstanceId.Trim(),
+                StringComparison.Ordinal)
+            || !string.Equals(orderId, orderId.Trim(), StringComparison.Ordinal)
+            || !string.Equals(subjectId, subjectId.Trim(), StringComparison.Ordinal)
+            || !TryGet(partInstanceId, out part))
         {
             failure = new DomainFailure(
                 FailureCode.SurgeryPartUnavailable,
@@ -285,8 +646,48 @@ public sealed class SurgicalPartRuntime :
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(part.worldStackId)
-            && !items.TryConsumeStackQuantity(part.worldStackId, 1, out _))
+        string operationId = SurgicalPartInstallationIdentity.FormatOperationId(
+            orderId,
+            partInstanceId);
+        if (part.installed)
+        {
+            if (!string.Equals(
+                    part.installationOrderId,
+                    orderId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    part.installationOperationId,
+                    operationId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    part.installationSubjectId,
+                    subjectId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    part.installedSubjectId,
+                    subjectId,
+                    StringComparison.Ordinal))
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgeryPartUnavailable,
+                    partInstanceId ?? string.Empty,
+                    "installation-replay-conflict");
+                return false;
+            }
+            if (!SurgicalPartInstallationOutbox.TryFinalizePending(
+                    part,
+                    batchDispositions,
+                    out string replayFailure))
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgeryPartUnavailable,
+                    partInstanceId ?? string.Empty,
+                    replayFailure);
+                return false;
+            }
+            return true;
+        }
+        if (!string.Equals(part.reservedOrderId, orderId, StringComparison.Ordinal))
         {
             failure = new DomainFailure(
                 FailureCode.SurgeryPartUnavailable,
@@ -294,12 +695,85 @@ public sealed class SurgicalPartRuntime :
             return false;
         }
 
-        part.installed = true;
-        part.installedSubjectId = subjectId ?? string.Empty;
-        part.worldStackId = string.Empty;
-        part.storedFacilityId = string.Empty;
-        part.reservedOrderId = string.Empty;
+        bool createdIntent = string.IsNullOrEmpty(part.installationOperationId);
+        if (createdIntent)
+        {
+            part.installationOrderId = orderId ?? string.Empty;
+            part.installationOperationId = operationId;
+            part.installationSourceStackId = part.worldStackId ?? string.Empty;
+            part.installationSubjectId = subjectId ?? string.Empty;
+        }
+        if (!string.Equals(part.installationOrderId, orderId, StringComparison.Ordinal)
+            || !string.Equals(
+                part.installationOperationId,
+                operationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                part.installationSourceStackId,
+                part.worldStackId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                part.installationSubjectId,
+                subjectId,
+                StringComparison.Ordinal)
+            || string.IsNullOrEmpty(part.installationSourceStackId))
+        {
+            if (createdIntent)
+            {
+                ClearInstallationIntent(part);
+            }
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                partInstanceId ?? string.Empty,
+                "installation-intent-conflict");
+            return false;
+        }
+        if (!batchDispositions.TryCommitPending(
+                new[]
+                {
+                    new PhysicalItemTransformInput(
+                        part.installationSourceStackId,
+                        1)
+                },
+                PhysicalItemDispositionKind.Transfer,
+                operationId,
+                SurgicalPartInstallationOutbox.TransferReason,
+                out PhysicalItemBatchDispositionReceipt disposition,
+                out string dispositionFailure))
+        {
+            if (createdIntent)
+            {
+                ClearInstallationIntent(part);
+            }
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                partInstanceId ?? string.Empty,
+                dispositionFailure ?? string.Empty);
+            return false;
+        }
+
+        part.installationCommitId = disposition.CommitId;
+        if (!SurgicalPartInstallationOutbox.TryFinalizePending(
+                part,
+                batchDispositions,
+                out string finalizeFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                partInstanceId ?? string.Empty,
+                finalizeFailure);
+            return false;
+        }
         return true;
+    }
+
+    private static void ClearInstallationIntent(SurgicalPartInstance part)
+    {
+        part.installationOrderId = string.Empty;
+        part.installationOperationId = string.Empty;
+        part.installationCommitId = string.Empty;
+        part.installationSourceStackId = string.Empty;
+        part.installationSubjectId = string.Empty;
     }
 
     public void TickFreshness(float deltaTime)
@@ -370,21 +844,28 @@ public sealed class SurgicalPartRuntime :
         WorldItemStackSnapshot organStack,
         string storageId)
     {
+        if (SurgicalOrganPreservationOutbox.HasPending(part))
+        {
+            return SurgicalOrganPreservationOutbox.TryFinalize(part,batchDispositions,out _);
+        }
         if (part.preservationCanisterApplied)
         {
             return true;
         }
 
-        if (items.TryConsumeFacilityItemBuffer(
-                storageId,
-                new Dictionary<string, int>(StringComparer.Ordinal)
-                {
-                    [OrganPreservationCanisterItemId] = 1
-                },
-                out _))
+        WorldItemStackSnapshot canister = items.GetAllStacks().FirstOrDefault(candidate => candidate != null
+            && candidate.ItemId == OrganPreservationCanisterItemId
+            && candidate.DestinationId == storageId
+            && candidate.State == WorldItemStackState.FacilityBuffer
+            && candidate.AvailableQuantity > 0);
+        if (canister != null)
         {
-            part.preservationCanisterApplied = true;
-            return true;
+            string operationId = SurgicalOrganPreservationOutbox.FormatOperationId(part.partInstanceId);
+            if (!batchDispositions.TryCommitPending(new[] { new PhysicalItemTransformInput(canister.StackId, 1) },
+                    PhysicalItemDispositionKind.Sink, operationId, SurgicalOrganPreservationOutbox.ReasonCode,
+                    out PhysicalItemBatchDispositionReceipt receipt, out _)) return false;
+            SurgicalOrganPreservationOutbox.Record(part,receipt);
+            return SurgicalOrganPreservationOutbox.TryFinalize(part,batchDispositions,out _);
         }
 
         bool deliveryPending = items.GetAllStacks().Any(candidate =>
@@ -410,6 +891,7 @@ public sealed class SurgicalPartRuntime :
 
         return false;
     }
+
 
     public IReadOnlyList<SurgicalPartInstance> CaptureParts()
     {
@@ -701,5 +1183,79 @@ public sealed class SurgicalPartRuntime :
             ResolveSpecialEffectId(speciesId, nodeId))
                 ? 0f
                 : 1f;
+    }
+}
+
+public static class SurgicalPartInstallationOutbox
+{
+    public const string TransferReason =
+        "surgical-part-transferred-to-subject";
+
+    public static bool TryFinalizePending(
+        SurgicalPartInstance part,
+        IPhysicalItemBatchDispositionService batchDispositions,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (part == null
+            || batchDispositions == null
+            || string.IsNullOrEmpty(part.installationOperationId)
+            || string.IsNullOrEmpty(part.installationCommitId)
+            || string.IsNullOrEmpty(part.installationSourceStackId)
+            || string.IsNullOrEmpty(part.installationSubjectId))
+        {
+            failureReason = "surgical-part-installation-outbox-invalid";
+            return false;
+        }
+
+        bool hasPending = batchDispositions.TryGetPending(
+            part.installationOperationId,
+            out PhysicalItemBatchDispositionReceipt receipt);
+        if (hasPending
+            && (receipt.Kind != PhysicalItemDispositionKind.Transfer
+                || !string.Equals(
+                    receipt.OperationId,
+                    part.installationOperationId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.ReasonCode,
+                    TransferReason,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.CommitId,
+                    part.installationCommitId,
+                    StringComparison.Ordinal)
+                || receipt.Quantity != 1
+                || receipt.SourceStackIds.Count != 1
+                || !string.Equals(
+                    receipt.SourceStackIds[0],
+                    part.installationSourceStackId,
+                    StringComparison.Ordinal)))
+        {
+            failureReason = "surgical-part-installation-outbox-mismatch";
+            return false;
+        }
+        if (!hasPending && !part.installed)
+        {
+            failureReason = "surgical-part-installation-outbox-missing";
+            return false;
+        }
+
+        if (!part.installed)
+        {
+            part.installed = true;
+            part.installedSubjectId = part.installationSubjectId;
+            part.worldStackId = string.Empty;
+            part.storedFacilityId = string.Empty;
+            part.reservedOrderId = string.Empty;
+        }
+        if (hasPending
+            && !batchDispositions.Acknowledge(
+                receipt.CommitId,
+                out failureReason))
+        {
+            return false;
+        }
+        return true;
     }
 }

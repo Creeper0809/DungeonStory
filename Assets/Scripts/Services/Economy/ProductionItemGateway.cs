@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 public interface IProductionItemGateway
 {
     int CountDelivered(string itemId, string destinationId);
     int CountPending(string itemId, string destinationId);
+    long CountPendingMassGrams(string destinationId);
+    long GetDefinitionQuantityMassGrams(string itemId, int quantity);
     int CountAvailableStock(string itemId, string excludedDestinationId);
     bool RequestDelivery(
         string itemId,
@@ -15,9 +18,14 @@ public interface IProductionItemGateway
         string destinationId,
         out int requested,
         out string failureReason);
-    bool ConsumeDelivered(
+    bool ConsumeDeliveredToWip(
         string destinationId,
         IReadOnlyDictionary<string, int> costs,
+        string operationId,
+        out ProductionWipInputReceipt receipt,
+        out string failureReason);
+    bool AcknowledgeWipInput(
+        string commitId,
         out string failureReason);
     bool CanSpawnOutput(
         string itemId,
@@ -27,6 +35,11 @@ public interface IProductionItemGateway
     bool SpawnOutput(string itemId, int amount, Vector2Int position);
     void PrioritizeDestination(string destinationId);
     int ReleaseDestination(string destinationId, Vector2Int releasePosition);
+    bool TryReleaseDestinationAtomically(
+        string destinationId,
+        Vector2Int releasePosition,
+        out int released,
+        out string failureReason);
     int RemoveDestination(string destinationId);
 }
 
@@ -39,6 +52,20 @@ public interface IProductionOutputBufferGateway
         int amount,
         Vector2Int position,
         string destinationId);
+    bool TryCommitBufferedOutput(
+        string commitId,
+        string itemId,
+        int amount,
+        Vector2Int position,
+        string destinationId,
+        out DomainFailure failure);
+    bool AcknowledgeBufferedOutput(
+        string commitId,
+        out DomainFailure failure);
+    bool TryGetBufferedOutputCommitMassGrams(
+        string commitId,
+        out long massGrams,
+        out DomainFailure failure);
     int ReleaseBufferedOutput(string destinationId, Vector2Int releasePosition);
     bool TryRouteBufferedOutput(
         string sourceDestinationId,
@@ -55,6 +82,80 @@ public interface IProductionSupplyInventoryGateway
     string GetOldestAvailableStackId(string itemId, string excludedDestinationId);
 }
 
+public interface IProductionStockSensorPhysicalGateway
+{
+    bool CommitPending(
+        string destinationId,
+        string itemId,
+        string operationId,
+        string reasonCode,
+        out ProductionStockSensorPhysicalReceipt receipt,
+        out string failureReason);
+    bool TryGetPending(
+        string operationId,
+        out ProductionStockSensorPhysicalReceipt receipt);
+    bool Acknowledge(string commitId, out string failureReason);
+}
+
+public sealed class ProductionStockSensorPhysicalGateway :
+    IProductionStockSensorPhysicalGateway
+{
+    private readonly IPhysicalFacilityItemSinkGateway physical;
+
+    public ProductionStockSensorPhysicalGateway(
+        IPhysicalFacilityItemSinkGateway physical)
+    {
+        this.physical = physical
+            ?? throw new ArgumentNullException(nameof(physical));
+    }
+
+    public bool CommitPending(
+        string destinationId,
+        string itemId,
+        string operationId,
+        string reasonCode,
+        out ProductionStockSensorPhysicalReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        if (!physical.TryCommitSinkPending(
+                destinationId,
+                itemId,
+                1,
+                operationId,
+                reasonCode,
+                out PhysicalItemBatchDispositionReceipt committed,
+                out failureReason))
+            return false;
+        receipt = Map(committed);
+        return receipt.IsCommitted;
+    }
+
+    public bool TryGetPending(
+        string operationId,
+        out ProductionStockSensorPhysicalReceipt receipt)
+    {
+        receipt = default;
+        if (!physical.TryGetPending(operationId, out var committed))
+            return false;
+        receipt = Map(committed);
+        return receipt.IsCommitted;
+    }
+
+    public bool Acknowledge(string commitId, out string failureReason) =>
+        physical.Acknowledge(commitId, out failureReason);
+
+    private static ProductionStockSensorPhysicalReceipt Map(
+        PhysicalItemBatchDispositionReceipt value) => new(
+        value.OperationId,
+        value.ReasonCode,
+        value.RequestFingerprint,
+        value.CommitId,
+        value.Quantity,
+        value.InputMassGrams,
+        value.SourceStackIds);
+}
+
 public sealed class ProductionItemGateway :
     IProductionItemGateway,
     IProductionOutputBufferGateway,
@@ -64,12 +165,14 @@ public sealed class ProductionItemGateway :
     private readonly IItemTransferService transfers;
     private readonly IWorldItemStackRuntime worldItems;
     private readonly IDungeonItemCatalogProvider itemCatalog;
+    private readonly IFacilityBufferDestinationReleaseService destinationRelease;
 
     public ProductionItemGateway(
         IStockQuery stock,
         IItemTransferService transfers,
         IWorldItemStackRuntime worldItems,
-        IDungeonItemCatalogProvider itemCatalog)
+        IDungeonItemCatalogProvider itemCatalog,
+        IFacilityBufferDestinationReleaseService destinationRelease)
     {
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
         this.transfers = transfers
@@ -78,6 +181,8 @@ public sealed class ProductionItemGateway :
             ?? throw new ArgumentNullException(nameof(worldItems));
         this.itemCatalog = itemCatalog
             ?? throw new ArgumentNullException(nameof(itemCatalog));
+        this.destinationRelease = destinationRelease
+            ?? throw new ArgumentNullException(nameof(destinationRelease));
     }
 
     public int CountDelivered(string itemId, string destinationId)
@@ -102,6 +207,70 @@ public sealed class ProductionItemGateway :
             destinationId,
             itemId);
         return checked(worldQuantity + carriedQuantity);
+    }
+
+    public long CountPendingMassGrams(string destinationId)
+    {
+        string destination = destinationId ?? string.Empty;
+        if (destination.Length == 0
+            || !string.Equals(
+                destination,
+                destination.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "A canonical production destination ID is required.",
+                nameof(destinationId));
+        }
+
+        long totalMassGrams = 0L;
+        foreach (WorldItemStackSnapshot stack in worldItems.GetAllStacks()
+                     .Where(stack => stack != null
+                         && stack.Quantity > 0
+                         && stack.State != WorldItemStackState.Carried
+                         && string.Equals(
+                             stack.DestinationId,
+                             destination,
+                             StringComparison.Ordinal))
+                     .OrderBy(stack => stack.StackId, StringComparer.Ordinal))
+        {
+            ItemDefinitionId itemId = (ItemDefinitionId)stack.ItemId;
+            PhysicalItemMassSubject subject =
+                PhysicalItemMassSubjectAdapter.Create(
+                    worldItems.MassQuery,
+                    itemId,
+                    stack.ItemInstanceId,
+                    stack.Components);
+            totalMassGrams = checked(totalMassGrams
+                + worldItems.MassQuery.GetQuantityMass(
+                    itemId,
+                    subject,
+                    stack.Quantity).Value);
+        }
+
+        return checked(totalMassGrams
+            + worldItems.GetCommittedHaulDeliveryMassGrams(destination));
+    }
+
+    public long GetDefinitionQuantityMassGrams(string itemId, int quantity)
+    {
+        string canonicalItemId = itemId ?? string.Empty;
+        if (canonicalItemId.Length == 0
+            || quantity <= 0
+            || !string.Equals(
+                canonicalItemId,
+                canonicalItemId.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "A canonical item ID and positive quantity are required.");
+        }
+
+        ItemDefinitionId definitionId = (ItemDefinitionId)canonicalItemId;
+        return worldItems.MassQuery.GetQuantityMass(
+            definitionId,
+            PhysicalItemMassSubject.ForDefinition(definitionId),
+            quantity).Value;
     }
 
     public int CountAvailableStock(
@@ -159,17 +328,6 @@ public sealed class ProductionItemGateway :
         return succeeded;
     }
 
-    public bool ConsumeDelivered(
-        string destinationId,
-        IReadOnlyDictionary<string, int> costs,
-        out string failureReason)
-    {
-        return transfers.TryConsumeFacilityItemBuffer(
-            destinationId,
-            costs,
-            out failureReason);
-    }
-
     public bool SpawnOutput(string itemId, int amount, Vector2Int position)
     {
         return transfers.TrySpawnItem(
@@ -181,6 +339,85 @@ public sealed class ProductionItemGateway :
             out int spawned)
             && spawned == amount;
     }
+
+    public bool ConsumeDeliveredToWip(
+        string destinationId,
+        IReadOnlyDictionary<string, int> costs,
+        string operationId,
+        out ProductionWipInputReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        failureReason = string.Empty;
+        string destination = destinationId ?? string.Empty;
+        string operation = operationId ?? string.Empty;
+        if (destination.Length == 0
+            || operation.Length == 0
+            || !string.Equals(destination, destination.Trim(), StringComparison.Ordinal)
+            || !string.Equals(operation, operation.Trim(), StringComparison.Ordinal)
+            || costs == null
+            || costs.Count == 0
+            || costs.Any(cost => string.IsNullOrWhiteSpace(cost.Key)
+                || cost.Value <= 0))
+        {
+            failureReason = "production-wip-input-invalid-request";
+            return false;
+        }
+
+        List<PhysicalItemTransformInput> inputs = new();
+        foreach (KeyValuePair<string, int> cost in costs
+                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            int remaining = cost.Value;
+            foreach (WorldItemStackSnapshot stack in stock.GetAllStacks()
+                         .Where(stack => stack != null
+                             && stack.State == WorldItemStackState.FacilityBuffer
+                             && string.Equals(stack.DestinationId, destination,
+                                 StringComparison.Ordinal)
+                              && string.Equals(stack.ItemId, cost.Key,
+                                  StringComparison.Ordinal)
+                              && stack.AvailableQuantity > 0
+                              && stack.ReservedQuantity == 0
+                              && !stack.Forbidden)
+                         .OrderBy(stack => stack.StackId, StringComparer.Ordinal))
+            {
+                int selected = Math.Min(remaining, stack.AvailableQuantity);
+                inputs.Add(new PhysicalItemTransformInput(stack.StackId, selected));
+                remaining -= selected;
+                if (remaining == 0)
+                {
+                    break;
+                }
+            }
+            if (remaining != 0)
+            {
+                failureReason = "production-wip-input-missing:" + cost.Key;
+                return false;
+            }
+        }
+
+        if (!worldItems.TryCommitPendingBatchPhysicalDisposition(
+                inputs,
+                PhysicalItemDispositionKind.Transfer,
+                operation,
+                "production.inputs-to-wip",
+                out PhysicalItemBatchDispositionReceipt physicalReceipt,
+                out failureReason))
+        {
+            return false;
+        }
+
+        receipt = new ProductionWipInputReceipt(
+            physicalReceipt.CommitId,
+            physicalReceipt.Quantity,
+            physicalReceipt.InputMassGrams);
+        return receipt.IsCommitted;
+    }
+
+    public bool AcknowledgeWipInput(
+        string commitId,
+        out string failureReason) => worldItems
+        .AcknowledgeBatchPhysicalDisposition(commitId, out failureReason);
 
     public bool CanSpawnOutput(
         string itemId,
@@ -259,6 +496,169 @@ public sealed class ProductionItemGateway :
             out int spawned);
     }
 
+    public bool TryCommitBufferedOutput(
+        string commitId,
+        string itemId,
+        int amount,
+        Vector2Int position,
+        string destinationId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        string commit = commitId ?? string.Empty;
+        string item = itemId ?? string.Empty;
+        string destination = destinationId ?? string.Empty;
+        if (commit.Length == 0
+            || item.Length == 0
+            || destination.Length == 0
+            || amount <= 0
+            || !string.Equals(commit, commit.Trim(), StringComparison.Ordinal)
+            || !string.Equals(item, item.Trim(), StringComparison.Ordinal)
+            || !string.Equals(destination, destination.Trim(), StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                item,
+                "commit-invalid");
+            return false;
+        }
+
+        WorldItemStackSnapshot[] existing = worldItems.GetAllStacks()
+            .Where(stack => stack != null
+                && ProductionOutputCommitComponentCodec.Matches(
+                    stack.Components,
+                    commit))
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .ToArray();
+        if (existing.Length > 0)
+        {
+            bool exact = existing.All(stack =>
+                    string.Equals(stack.ItemId, item, StringComparison.Ordinal)
+                    && stack.State == WorldItemStackState.FacilityOutputBuffer
+                    && stack.Position == position
+                    && string.Equals(
+                        stack.DestinationId,
+                        destination,
+                        StringComparison.Ordinal))
+                && existing.Sum(stack => stack.Quantity) == amount;
+            if (!exact)
+            {
+                failure = new DomainFailure(
+                    FailureCode.ProductionOutputUnavailable,
+                    item,
+                    "commit-conflict");
+            }
+            return exact;
+        }
+
+        if (!worldItems.SpawnItemAtWithComponents(
+                item,
+                amount,
+                position,
+                WorldItemStackState.FacilityOutputBuffer,
+                destination,
+                new[] { ProductionOutputCommitComponentCodec.Create(commit) },
+                out int spawned)
+            || spawned != amount)
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                item,
+                "commit-spawn-failed");
+            return false;
+        }
+        return true;
+    }
+
+    public bool AcknowledgeBufferedOutput(
+        string commitId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        string commit = commitId ?? string.Empty;
+        if (commit.Length == 0
+            || !string.Equals(commit, commit.Trim(), StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                "commit-ack-invalid");
+            return false;
+        }
+        foreach (WorldItemStackSnapshot stack in worldItems.GetAllStacks()
+                     .Where(stack => stack != null
+                         && ProductionOutputCommitComponentCodec.Matches(
+                             stack.Components,
+                             commit))
+                     .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            if (!worldItems.TryRemoveInstanceComponent(
+                    stack.StackId,
+                    ItemInstanceComponentIds.ProductionOutputCommit))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ProductionOutputUnavailable,
+                    commit,
+                    "commit-ack-failed");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public bool TryGetBufferedOutputCommitMassGrams(
+        string commitId,
+        out long massGrams,
+        out DomainFailure failure)
+    {
+        massGrams = 0L;
+        failure = DomainFailure.None;
+        string commit = commitId ?? string.Empty;
+        if (commit.Length == 0
+            || !string.Equals(commit, commit.Trim(), StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                commit,
+                "commit-invalid");
+            return false;
+        }
+        WorldItemStackSnapshot[] stacks = worldItems.GetAllStacks()
+            .Where(stack => stack != null
+                && ProductionOutputCommitComponentCodec.Matches(
+                    stack.Components,
+                    commit))
+            .ToArray();
+        if (stacks.Length == 0)
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                commit,
+                "commit-missing");
+            return false;
+        }
+        try
+        {
+            foreach (WorldItemStackSnapshot stack in stacks)
+            {
+                massGrams = checked(
+                    massGrams
+                    + PhysicalMassGrams.FromCanonicalKilograms(stack.UnitWeight)
+                        .Multiply(stack.Quantity).Value);
+            }
+        }
+        catch (Exception)
+        {
+            massGrams = 0L;
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                commit,
+                "commit-mass-invalid");
+            return false;
+        }
+        return massGrams > 0L;
+    }
+
     public int ReleaseBufferedOutput(
         string destinationId,
         Vector2Int releasePosition)
@@ -300,6 +700,17 @@ public sealed class ProductionItemGateway :
             destinationId,
             releasePosition);
     }
+
+    public bool TryReleaseDestinationAtomically(
+        string destinationId,
+        Vector2Int releasePosition,
+        out int released,
+        out string failureReason) => destinationRelease.TryReleaseAtOwnerPosition(
+            destinationId,
+            releasePosition,
+            "production-input-destination-cancelled",
+            out released,
+            out failureReason);
 
     public int RemoveDestination(string destinationId)
     {

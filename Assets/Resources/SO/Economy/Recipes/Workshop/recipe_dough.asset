@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.15
   wastewaterPerCycle: 0.1
+  wastewaterComposition: 2
   allowsManualWaterFallback: 1
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:egg
     amount: 1
   outputs:
-  - itemId: material:dough
+  - outputLineId: output:recipe:dough/000/main/material:dough
+    role: 0
+    itemId: material:dough
     amount: 2
     probability: 1

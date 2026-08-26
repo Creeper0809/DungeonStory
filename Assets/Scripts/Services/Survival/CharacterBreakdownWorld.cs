@@ -55,12 +55,20 @@ internal sealed class CharacterBreakdownWorld
     public bool TryConsumeStack(
         string stackId,
         int quantity,
+        string operationId,
+        string reasonCode,
         out WorldItemStackSnapshot consumed)
     {
-        return itemStackRuntime.TryConsumeStackQuantity(
+        bool committed = itemStackRuntime.TryCommitPhysicalDisposition(
             stackId,
             quantity,
-            out consumed);
+            PhysicalItemDispositionKind.Sink,
+            operationId,
+            reasonCode,
+            out PhysicalItemDispositionReceipt receipt,
+            out _);
+        consumed = committed ? receipt.Consumed : null;
+        return committed;
     }
 
     public IReadOnlyList<WorldItemStackSnapshot> GetStacksAt(

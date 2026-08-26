@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:rope
     amount: 1
   outputs:
-  - itemId: tool:hauling-harness
+  - outputLineId: output:recipe:tool:hauling-harness/000/main/tool:hauling-harness
+    role: 0
+    itemId: tool:hauling-harness
     amount: 1
     probability: 1

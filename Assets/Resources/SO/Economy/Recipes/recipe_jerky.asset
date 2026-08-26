@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9066
+  id: 9067
   recipeId: recipe:jerky
   displayName: "\uC721\uD3EC \uD6C8\uC5F0"
   description: "\uC721\uD3EC \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:salted-meat
     amount: 2
   outputs:
-  - itemId: food:jerky
+  - outputLineId: output:recipe:jerky/000/main/food:jerky
+    role: 0
+    itemId: food:jerky
     amount: 2
     probability: 1

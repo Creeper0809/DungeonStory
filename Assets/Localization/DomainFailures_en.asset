@@ -1579,6 +1579,50 @@ MonoBehaviour:
     m_Localized: 'The reserved item stack is missing. Stack: {0}'
     m_Metadata:
       m_Items: []
+  - m_Id: 7089378085392384
+    m_Localized: 'The warehouse mass admission token was committed with a different
+      commit ID. Token: {0}, commit: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335424
+    m_Localized: 'The warehouse mass admission lot fingerprint changed. Operation:
+      {0}, fingerprint: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335425
+    m_Localized: 'The warehouse mass admission owner is unavailable or incompatible.
+      Warehouse: {0}, category: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335426
+    m_Localized: 'The warehouse mass admission request is invalid. Operation or token:
+      {0}, detail: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335427
+    m_Localized: 'The warehouse mass admission revision changed. Warehouse or token:
+      {0}, expected: {1}, actual: {2}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335428
+    m_Localized: 'The warehouse mass admission token expired. Token: {0}, status:
+      {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335429
+    m_Localized: 'The warehouse mass admission token is missing. Token: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335430
+    m_Localized: 'The warehouse mass admission token is already terminal. Token:
+      {0}, status: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7089378127335431
+    m_Localized: 'The warehouse has insufficient mass capacity. Warehouse: {0}, item:
+      {1}, remaining grams: {2}'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

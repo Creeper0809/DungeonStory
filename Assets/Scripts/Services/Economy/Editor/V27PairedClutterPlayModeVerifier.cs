@@ -189,6 +189,8 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
     private DungeonRuntimeLifetimeScope scope;
     private IDungeonGameSaveService saves;
     private IWorldItemStackRuntime items;
+    private IDungeonItemCatalogProvider itemCatalog;
+    private IWarehousePhysicalMassQueryPort warehouseMassQuery;
     private IItemTransferService itemTransfers;
     private IFloorClutterDiagnosticsQuery clutter;
     private IRandomStreamProvider randomProvider;
@@ -434,6 +436,8 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
 
         saves = Resolve<IDungeonGameSaveService>();
         items = Resolve<IWorldItemStackRuntime>();
+        itemCatalog = items?.CatalogProvider;
+        warehouseMassQuery = Resolve<IStockQuery>() as IWarehousePhysicalMassQueryPort;
         itemTransfers = Resolve<IItemTransferService>();
         clutter = Resolve<IFloorClutterDiagnosticsQuery>();
         randomProvider = Resolve<IRandomStreamProvider>();
@@ -468,7 +472,8 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
                 ?.GetValue(buildingController) as GridBuildingPlacementService
             : null;
         world?.TryGetGrid(out grid);
-        bool ready = saves != null && items != null && itemTransfers != null
+        bool ready = saves != null && items != null && itemCatalog != null
+            && warehouseMassQuery != null && itemTransfers != null
             && clutter != null
             && randomProvider != null && randomDiagnostics != null
             && world != null && dropZones != null && haulPlanning != null
@@ -495,6 +500,8 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         ready &= unresolvedTransitions.Length == 0;
         Check(ready, "PAIRED_AUTHORITIES_READY",
             $"save={saves != null};items={items != null};"
+            + $"itemCatalog={itemCatalog != null};"
+            + $"warehouseMass={warehouseMassQuery != null};"
             + $"transfers={itemTransfers != null};clutter={clutter != null};"
             + $"random={randomProvider != null}/{randomDiagnostics != null};"
             + $"clockDiagnostics={clockDiagnostics != null};"
@@ -1218,16 +1225,43 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
                 .ToHashSet(StringComparer.Ordinal);
             if (arm == "clutterStress")
             {
-                int target = Mathf.FloorToInt(warehouse.Inventory.MaxCapacity * 0.9f);
-                int missing = Mathf.Max(0, target - warehouse.Inventory.TotalStock);
-                if (missing > 0)
+                DungeonItemDefinition fillDefinition = itemCatalog.All
+                    .Where(candidate => candidate != null
+                        && candidate.StockCategory == StockCategory.General
+                        && candidate.MaxStack > 1)
+                    .OrderBy(candidate => candidate.ItemId, StringComparer.Ordinal)
+                    .FirstOrDefault()
+                    ?? throw new InvalidOperationException(
+                        "Paired clutter requires one stackable General item.");
+                long unitMassGrams = warehouseMassQuery
+                    .GetDefinitionUnitMassGrams(fillDefinition.ItemId);
+                long targetMassGrams = warehouse.Inventory.MaxMassGrams * 9L / 10L;
+                long missingMassGrams = Math.Max(
+                    0L,
+                    targetMassGrams - warehouse.Inventory.StoredMassGrams);
+                int missingQuantity = missingMassGrams == 0L
+                    ? 0
+                    : checked((int)((missingMassGrams + unitMassGrams - 1L)
+                        / unitMassGrams));
+                if (missingQuantity > 0)
                 {
                     bool filled = items.SpawnStockInWarehouse(
-                        warehouse, StockCategory.General, missing, out int spawned);
-                    Check(filled && spawned == missing,
+                        warehouse,
+                        StockCategory.General,
+                        missingQuantity,
+                        out int spawned);
+                    long storedMassGrams = warehouse.Inventory.StoredMassGrams;
+                    Check(filled
+                            && spawned == missingQuantity
+                            && storedMassGrams >= targetMassGrams
+                            && storedMassGrams <= warehouse.Inventory.MaxMassGrams,
                         "PAIRED_STORAGE_NINETY_PERCENT",
-                        $"seed={seed};target={target};spawned={spawned};"
-                        + $"total={warehouse.Inventory.TotalStock}");
+                        $"seed={seed};targetMassGrams={targetMassGrams};"
+                        + $"unitMassGrams={unitMassGrams};"
+                        + $"requested={missingQuantity};spawned={spawned};"
+                        + $"storedMassGrams={storedMassGrams};"
+                        + $"maxMassGrams={warehouse.Inventory.MaxMassGrams};"
+                        + $"totalQuantity={warehouse.Inventory.TotalStock}");
                 }
             }
 

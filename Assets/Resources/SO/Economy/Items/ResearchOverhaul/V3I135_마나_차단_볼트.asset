@@ -32,22 +32,22 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 31
   features:
-  - rid: 7737212042857939767
-  - rid: 7737212042857939768
-  - rid: 7737212042857939769
   - rid: 7737212042857939770
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
   references:
     version: 2
     RefIds:
-    - rid: 7737212042857939767
+    - rid: 1000
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:mana-disruptor-bolt
-    - rid: 7737212042857939768
+    - rid: 1001
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:defense:rune-identification
-    - rid: 7737212042857939769
+    - rid: 1002
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7

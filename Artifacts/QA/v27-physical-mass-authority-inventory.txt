@@ -1,0 +1,10 @@
+RESULT=PASS; phase=authority-inventory; assetMutations=0
+ledgerCanonicalItems=414; serializedWeightSites=1074; catalogDefinitions=1074; ledgerSites=414; nonLedgerSites=660
+recipes=355; equipment=61; apparel=56; textiles=12; craftMaterials=12
+equipmentMappingFailures=0; apparelMappingFailures=0; textileMappingFailures=0; unknownWeightWriters=0
+writerFiles=21; schemaContract=PASS; deterministicRecapture=PASS; byteIdentical=true
+unitSemanticCandidates=414; highConfidenceCandidates=228; requiresReview=186; assignmentsAuthoritative=0
+unitSemanticAssigned=0/414; nextGate=MISSING_ITEM_UNIT_SEMANTIC; status=IN_PROGRESS
+sourceDigest=309d5672c673756d8e42564fd1dba3b86e73539780b89559f62e4f9be1840e0f
+inspectedAssetDigest=fed657cdfd402a8cadd7143d3b72d0952ccf9803a75d3522d11cea00f074a8c5
+classification=balance-baseline-captured; item kg assets unchanged

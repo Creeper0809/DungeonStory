@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: fiber:cave-silk
     amount: 3
   outputs:
-  - itemId: yarn:cave-silk
+  - outputLineId: output:recipe:v22:spin-powered:cave-silk/000/main/yarn:cave-silk
+    role: 0
+    itemId: yarn:cave-silk
     amount: 2
     probability: 1

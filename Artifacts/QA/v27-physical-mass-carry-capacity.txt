@@ -1,0 +1,5 @@
+RESULT=PASS; cases=3; failed=0
+case	result	details
+carry_target_band_authority	PASS	representative=19/28.5kg; harness=23.75/35.625kg; stress=19/28.5/47.5kg; live=25/37.5kg; performance=1
+carry_weight_penalty	PASS	weight=27/25/37.5; speed=0.91
+equipped_hauling_harness_mass_single_authority	PASS	V27_HAULING_HARNESS_1150G_COUNTED_ONCE=PASS; V27_EQUIPPED_APPAREL_AND_CARGO_BURDEN_EXACT=PASS; mass=1.15kg; total=12.4kg; soft=31.25kg

@@ -144,6 +144,7 @@ MonoBehaviour:
         abilityId: BuildingStorageAbility
         category: 0
         capacity: 14
+        maxStoredMassGrams: 12500
         allCategories: 0
     - rid: 7737211921440178790
       type: {class: BuildingWaterSourceAbility, ns: , asm: DungeonStory.Survival}

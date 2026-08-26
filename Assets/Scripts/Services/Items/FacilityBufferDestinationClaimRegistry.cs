@@ -12,14 +12,19 @@ public enum FacilityBufferDestinationAnchorKind
 
 public static class ReservedTargetDestinationIdentity
 {
+    public const string ProductionInputPrefix = "production:";
     public const string ExpeditionPrefix = "expedition:";
     public const string EquipmentRepairPrefix = "equipment-repair:";
     public const string SurgeryMaterialsPrefix = "surgery-materials:";
     public const string ResearchArchivePrefix = "research-archive:";
+    public const string PowerFuelPrefix = "power:";
 
     public static bool RequiresExactClaim(string destinationId) =>
         !string.IsNullOrWhiteSpace(destinationId)
-        && (destinationId.StartsWith(ExpeditionPrefix, StringComparison.Ordinal)
+        && (destinationId.StartsWith(
+                ProductionInputPrefix,
+                StringComparison.Ordinal)
+            || destinationId.StartsWith(ExpeditionPrefix, StringComparison.Ordinal)
             || destinationId.StartsWith(
                 EquipmentRepairPrefix,
                 StringComparison.Ordinal)
@@ -28,6 +33,9 @@ public static class ReservedTargetDestinationIdentity
                 StringComparison.Ordinal)
             || destinationId.StartsWith(
                 ResearchArchivePrefix,
+                StringComparison.Ordinal)
+            || destinationId.StartsWith(
+                PowerFuelPrefix,
                 StringComparison.Ordinal));
 }
 
@@ -89,6 +97,20 @@ public interface IFacilityBufferDestinationClaimQuery
     IReadOnlyList<FacilityBufferDestinationClaim> CaptureClaims();
 }
 
+/// <summary>
+/// Internal authoring view used while a dungeon restore transaction is
+/// staging. Ordinary gameplay queries continue to observe only live claims.
+/// </summary>
+public interface IFacilityBufferDestinationClaimAuthorityQuery
+{
+    bool TryGetAuthorityClaim(
+        string destinationId,
+        Vector2Int dropPosition,
+        out FacilityBufferDestinationClaim claim);
+
+    IReadOnlyList<FacilityBufferDestinationClaim> CaptureAuthorityClaims();
+}
+
 public interface IFacilityBufferDestinationClaimCommand
 {
     bool TryClaim(
@@ -115,6 +137,7 @@ public interface IFacilityBufferDestinationClaimCommand
 /// </summary>
 public sealed class FacilityBufferDestinationClaimRegistry :
     IFacilityBufferDestinationClaimQuery,
+    IFacilityBufferDestinationClaimAuthorityQuery,
     IFacilityBufferDestinationClaimCommand,
     IDungeonRestoreTransactionParticipant
 {
@@ -126,6 +149,8 @@ public sealed class FacilityBufferDestinationClaimRegistry :
     private Dictionary<string, FacilityBufferDestinationClaim> candidate;
     private Dictionary<string, FacilityBufferDestinationClaim> previousLive;
     private long revision;
+    private long preparedPublishRevision;
+    private long preparedRollbackRevision;
     private bool restoreActive;
     private bool published;
 
@@ -155,6 +180,32 @@ public sealed class FacilityBufferDestinationClaimRegistry :
         live.Values
             .OrderBy(value => value.DestinationId, StringComparer.Ordinal)
             .ToArray();
+
+    public bool TryGetAuthorityClaim(
+        string destinationId,
+        Vector2Int dropPosition,
+        out FacilityBufferDestinationClaim claim)
+    {
+        claim = null;
+        IReadOnlyDictionary<string, FacilityBufferDestinationClaim> authority =
+            GetAuthorityView();
+        if (!IsCanonicalRequiredId(destinationId)
+            || !authority.TryGetValue(
+                destinationId,
+                out FacilityBufferDestinationClaim found)
+            || found.DropPosition != dropPosition)
+        {
+            return false;
+        }
+
+        claim = found;
+        return true;
+    }
+
+    public IReadOnlyList<FacilityBufferDestinationClaim>
+        CaptureAuthorityClaims() => GetAuthorityView().Values
+        .OrderBy(value => value.DestinationId, StringComparer.Ordinal)
+        .ToArray();
 
     [GameplayInternalOnly(
         "Facility domains publish exact destination ownership before haul planning or restore rebind.",
@@ -309,6 +360,14 @@ public sealed class FacilityBufferDestinationClaimRegistry :
             }
         }
 
+        if (!restoreActive
+            && OwnedClaimSetMatches(target, ownerDomain, replacements))
+        {
+            failureCode = FacilityBufferDestinationClaimFailureCode.None;
+            failureReason = string.Empty;
+            return true;
+        }
+
         Dictionary<string, FacilityBufferDestinationClaim> next =
             CopyClaims(target);
         foreach (string destinationId in next.Values
@@ -359,24 +418,30 @@ public sealed class FacilityBufferDestinationClaimRegistry :
                 "Facility-buffer destination restore is already active.");
         }
 
-        previousLive = CopyClaims(live);
-        candidate = CreateClaimMap();
+        // Preflight every allocation and checked revision before exposing the
+        // candidate. Publish and rollback are aggregate-restore callbacks and
+        // must only swap references/values after Begin succeeds.
+        Dictionary<string, FacilityBufferDestinationClaim> preparedPrevious =
+            CopyClaims(live);
+        Dictionary<string, FacilityBufferDestinationClaim> preparedCandidate =
+            CreateClaimMap();
+        long nextPublishRevision = checked(revision + 1L);
+        long nextRollbackRevision = checked(nextPublishRevision + 1L);
+
+        previousLive = preparedPrevious;
+        candidate = preparedCandidate;
+        preparedPublishRevision = nextPublishRevision;
+        preparedRollbackRevision = nextRollbackRevision;
         restoreActive = true;
         published = false;
     }
 
     public void PublishRestoreCandidate()
     {
-        if (!restoreActive || published || candidate == null)
-        {
-            throw new InvalidOperationException(
-                "Facility-buffer destination restore is not ready to publish.");
-        }
-
         live = candidate;
         candidate = null;
         published = true;
-        AdvanceRevision();
+        revision = preparedPublishRevision;
     }
 
     public void RollbackPublishedRestoreCandidate()
@@ -387,7 +452,7 @@ public sealed class FacilityBufferDestinationClaimRegistry :
         if (published && previousLive != null)
         {
             live = previousLive;
-            AdvanceRevision();
+            revision = preparedRollbackRevision;
         }
         ResetRestoreState();
     }
@@ -501,6 +566,39 @@ public sealed class FacilityBufferDestinationClaimRegistry :
             right.OwnerFacilityId,
             StringComparison.Ordinal);
 
+    private static bool OwnedClaimSetMatches(
+        IReadOnlyDictionary<string, FacilityBufferDestinationClaim> current,
+        string ownerDomain,
+        IReadOnlyDictionary<string, FacilityBufferDestinationClaim> desired)
+    {
+        if (current == null || desired == null)
+            return false;
+        int ownedCount = 0;
+        foreach (FacilityBufferDestinationClaim claim in current.Values)
+        {
+            if (claim != null && string.Equals(
+                    claim.OwnerDomain,
+                    ownerDomain,
+                    StringComparison.Ordinal))
+            {
+                ownedCount++;
+            }
+        }
+        if (ownedCount != desired.Count)
+            return false;
+        foreach (KeyValuePair<string, FacilityBufferDestinationClaim> pair in desired)
+        {
+            if (!current.TryGetValue(
+                    pair.Key,
+                    out FacilityBufferDestinationClaim candidate)
+                || !ClaimsMatch(candidate, pair.Value))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static bool IsCanonicalRequiredId(string value) =>
         !string.IsNullOrWhiteSpace(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
@@ -519,6 +617,12 @@ public sealed class FacilityBufferDestinationClaimRegistry :
             copy.Add(pair.Key, pair.Value);
         return copy;
     }
+
+    private IReadOnlyDictionary<string, FacilityBufferDestinationClaim>
+        GetAuthorityView() =>
+        restoreActive && !published && candidate != null
+            ? candidate
+            : live;
 
     private void AdvanceRevision()
     {
@@ -550,6 +654,8 @@ public sealed class FacilityBufferDestinationClaimRegistry :
     {
         candidate = null;
         previousLive = null;
+        preparedPublishRevision = 0L;
+        preparedRollbackRevision = 0L;
         restoreActive = false;
         published = false;
     }

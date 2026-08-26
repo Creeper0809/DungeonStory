@@ -42,7 +42,7 @@ MonoBehaviour:
   effects: []
   allowMythicInspiration: 1
   verbs:
-  - rid: 7737211905660420926
+  - rid: 7737212199327498398
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.75
@@ -66,7 +66,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420926
+    - rid: 7737212199327498398
       type: {class: RecoverableThrowVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1.1

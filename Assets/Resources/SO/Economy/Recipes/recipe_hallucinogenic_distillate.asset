@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9099
+  id: 9100
   recipeId: recipe:hallucinogenic-distillate
   displayName: "\uD658\uAC01\uADE0 \uC99D\uB958\uC561"
   description: "\uD658\uAC01\uADE0 \uC99D\uB958\uC561 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: material:alcohol
     amount: 1
   outputs:
-  - itemId: drug:hallucinogenic-distillate
+  - outputLineId: output:recipe:hallucinogenic-distillate/000/main/drug:hallucinogenic-distillate
+    role: 0
+    itemId: drug:hallucinogenic-distillate
     amount: 1
     probability: 1

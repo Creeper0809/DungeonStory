@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9076
+  id: 9077
   recipeId: recipe:candle
   displayName: "\uC591\uCD08"
   description: "\uC591\uCD08 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: resource:shade-fiber
     amount: 1
   outputs:
-  - itemId: craft:candle
+  - outputLineId: output:recipe:candle/000/main/craft:candle
+    role: 0
+    itemId: craft:candle
     amount: 2
     probability: 1

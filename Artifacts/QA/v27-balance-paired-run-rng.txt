@@ -1,4 +1,4 @@
-RESULT=PASS; seeds=32; windows=512; floorRows=640; failures=0; consoleIssues=0; sourceDigest=1c4a5cf0edfc43e8c28d758b8a7c2932ea19cfccc9998007f3ede2f76a3765cb; pairedCsvSha256=2b9f3a90808dd7473a7a812c0356cf1951fd6217315643ec0c64a84121f87430; floorCsvSha256=ef13e9588b0b0d6f85e9b6460cfe25b31a9ec0f9a7224d3865724a07c8e9e598;
+RESULT=PASS; seeds=32; windows=512; floorRows=640; failures=0; consoleIssues=0; sourceDigest=a10238d738e453d3a30cd69c824a4ac80b9138eec5355d4dbd58a408ccf7521e; pairedCsvSha256=5e27179316dc40a7cbc512b0251a22215484ad2e9d46253423222cf6efa25c1f; floorCsvSha256=61320000a473577ac1109c1bb4f09b07930994cba63959c87acd6b7ade8471b0;
 PASS	PAIRED_RUN_CLEAN_REPEATABILITY_EXACT	seeds=32
 PASS	PAIRED_RUN_EXOGENOUS_EVENTS_EXACT	allWindows=true
 PASS	PAIRED_CLUTTER_ATTRIBUTION	samples=32;medianPermille=0;p95Permille=0;maxPermille=0;madPermille=0

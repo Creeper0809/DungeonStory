@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9080
+  id: 9081
   recipeId: recipe:slime-warming-pad
   displayName: "\uBCF4\uC628 \uC810\uC561 \uD328\uB4DC"
   description: "\uBCF4\uC628 \uC810\uC561 \uD328\uB4DC \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: resource:dark-resin
     amount: 1
   outputs:
-  - itemId: equipment:slime-warming-pad
+  - outputLineId: output:recipe:slime-warming-pad/000/main/equipment:slime-warming-pad
+    role: 0
+    itemId: equipment:slime-warming-pad
     amount: 1
     probability: 1

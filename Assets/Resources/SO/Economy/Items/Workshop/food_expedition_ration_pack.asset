@@ -32,18 +32,18 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 18
   features:
-  - rid: 7737212042831200688
-  - rid: 7737212042831200689
-  - rid: 7737212042831200690
   - rid: 7737212042857939541
+  - rid: 1003
+  - rid: 1004
+  - rid: 1005
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200688
+    - rid: 1003
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:survival:field-rations
-    - rid: 7737212042831200689
+    - rid: 1004
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 3
@@ -53,7 +53,7 @@ MonoBehaviour:
         mood: 1
         freshnessSeconds: 1800
         preserved: 1
-    - rid: 7737212042831200690
+    - rid: 1005
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2

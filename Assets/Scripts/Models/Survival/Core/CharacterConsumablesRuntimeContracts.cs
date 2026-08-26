@@ -622,6 +622,70 @@ public interface ICharacterConsumablesInventoryPort
         ItemStackId stackId,
         int quantity) => string.IsNullOrWhiteSpace(leaseId)
             && TryConsume(stackId, quantity);
+    bool TryCommitReservedMealQuantityPending(
+        ConsumableOperationId operationId,
+        string leaseId,
+        int quantity,
+        out CharacterMealPhysicalCommitSnapshot commit,
+        out string failureReason)
+    {
+        commit = default;
+        failureReason = "meal-pending-disposition-unavailable";
+        return false;
+    }
+    bool TryGetPendingMealConsumption(
+        ConsumableOperationId operationId,
+        out CharacterMealPhysicalCommitSnapshot commit)
+    {
+        commit = default;
+        return false;
+    }
+    bool TryAcknowledgeMealConsumption(
+        string commitId,
+        out string failureReason)
+    {
+        failureReason = "meal-pending-disposition-unavailable";
+        return false;
+    }
+    bool TryAcknowledgeMealConsumption(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId,
+        int quantity,
+        string commitId,
+        out string failureReason) =>
+        TryAcknowledgeMealConsumption(commitId, out failureReason);
+    bool TryCommitSubstanceConsumptionPending(
+        ConsumableOperationId operationId,
+        CharacterId characterId,
+        ItemStackId stackId,
+        out CharacterSubstancePhysicalCommitSnapshot commit,
+        out string failureReason)
+    {
+        commit = default;
+        failureReason = "substance-pending-disposition-unavailable";
+        return false;
+    }
+    bool TryGetPendingSubstanceConsumption(
+        ConsumableOperationId operationId,
+        out CharacterSubstancePhysicalCommitSnapshot commit)
+    {
+        commit = default;
+        return false;
+    }
+    bool TryAcknowledgeSubstanceConsumption(
+        string commitId,
+        out string failureReason)
+    {
+        failureReason = "substance-pending-disposition-unavailable";
+        return false;
+    }
+    bool TryAcknowledgeSubstanceConsumption(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId,
+        int quantity,
+        string commitId,
+        out string failureReason) =>
+        TryAcknowledgeSubstanceConsumption(commitId, out failureReason);
     void ReleaseMealQuantity(string leaseId)
     {
     }
@@ -639,8 +703,62 @@ public enum CharacterMealPlanPhase
 {
     Reserved,
     Eating,
+    ItemCommitted,
+    EffectsPublished,
     Completed,
     Aborted
+}
+
+public readonly struct CharacterMealPhysicalCommitSnapshot
+{
+    public CharacterMealPhysicalCommitSnapshot(
+        string operationId,
+        string reasonCode,
+        string commitId,
+        IReadOnlyList<string> sourceStackIds,
+        int quantity,
+        long inputMassGrams)
+    {
+        OperationId = operationId ?? string.Empty;
+        ReasonCode = reasonCode ?? string.Empty;
+        CommitId = commitId ?? string.Empty;
+        SourceStackIds = sourceStackIds ?? Array.Empty<string>();
+        Quantity = quantity;
+        InputMassGrams = inputMassGrams;
+    }
+
+    public string OperationId { get; }
+    public string ReasonCode { get; }
+    public string CommitId { get; }
+    public IReadOnlyList<string> SourceStackIds { get; }
+    public int Quantity { get; }
+    public long InputMassGrams { get; }
+}
+
+public readonly struct CharacterSubstancePhysicalCommitSnapshot
+{
+    public CharacterSubstancePhysicalCommitSnapshot(
+        string operationId,
+        string reasonCode,
+        string commitId,
+        IReadOnlyList<string> sourceStackIds,
+        int quantity,
+        long inputMassGrams)
+    {
+        OperationId = operationId ?? string.Empty;
+        ReasonCode = reasonCode ?? string.Empty;
+        CommitId = commitId ?? string.Empty;
+        SourceStackIds = sourceStackIds ?? Array.Empty<string>();
+        Quantity = quantity;
+        InputMassGrams = inputMassGrams;
+    }
+
+    public string OperationId { get; }
+    public string ReasonCode { get; }
+    public string CommitId { get; }
+    public IReadOnlyList<string> SourceStackIds { get; }
+    public int Quantity { get; }
+    public long InputMassGrams { get; }
 }
 
 [Serializable]
@@ -661,6 +779,47 @@ public sealed class CharacterMealPlan
     public bool automaticOperation;
     public float beginContamination;
     public bool facilitySlotReserved;
+    public string physicalCommitOperationId = string.Empty;
+    public string physicalCommitReasonCode = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public List<string> physicalCommitSourceStackIds = new();
+    public int physicalCommitQuantity;
+    public long physicalCommitInputMassGrams;
+    public bool committedPolicyViolation;
+    public bool committedContaminated;
+}
+
+public enum CharacterSubstanceUsePlanPhase
+{
+    ItemCommitted = 0,
+    EffectsPublished = 1
+}
+
+[Serializable]
+public sealed class CharacterSubstanceUsePlan
+{
+    public string operationId = string.Empty;
+    public string characterId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public CharacterSubstanceUsePlanPhase phase;
+    public bool automaticOperation;
+    public string physicalCommitOperationId = string.Empty;
+    public string physicalCommitReasonCode = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public List<string> physicalCommitSourceStackIds = new();
+    public int physicalCommitQuantity;
+    public long physicalCommitInputMassGrams;
+    public float resolvedTolerance;
+    public float resolvedAddiction;
+    public float resolvedWithdrawal;
+    public float resolvedActiveSeconds;
+    public float resolvedSecondsSinceLastDose;
+    public float resolvedScheduledCooldownSeconds;
+    public float effectToleranceRatio;
+    public bool resolvedAddicted;
+    public bool resolvedOverdosed;
+    public bool becameAddicted;
 }
 
 public interface ICharacterConsumablesEventPort

@@ -5,271 +5,70 @@ using DungeonStory.Foundation;
 using DungeonStory.Operation;
 using VContainer.Unity;
 
-public interface IPhysicalAgeTreatmentService
-{
-    bool TryApplyWholeBodyRegeneration(
-        CharacterId characterId,
-        string medicalFacilityDestinationId,
-        string treatmentItemId,
-        out IReadOnlyList<AgeConditionChange> changes,
-        out DomainFailure failure);
-    bool TryActivateTemporalStasis(
-        CharacterId characterId,
-        string facilityDestinationId,
-        string stasisSealItemId,
-        out DomainFailure failure);
-}
-
 public interface ITemporalStasisMaintenanceService
 {
     void RefreshDailyMaintenance();
 }
 
+public interface ITemporalStasisMaintenanceRecovery
+{
+    bool TryRecoverPending(out DomainFailure failure);
+}
+
 /// <summary>
-/// Consumes authored physical treatment supplies before changing the life
-/// aggregate. All fallible reference validation occurs before consumption.
+/// Maintains already-assigned temporal-stasis care. Age-treatment activation
+/// and regeneration are owned by the surgery workflow.
 /// </summary>
 public sealed class PhysicalAgeTreatmentRuntime :
-    IPhysicalAgeTreatmentService,
-    ITemporalStasisMaintenanceService
+    ITemporalStasisMaintenanceService,
+    ITemporalStasisMaintenanceRecovery
 {
-    public const string WholeBodyRegenerationProcedureId =
-        "procedure:whole-body-regeneration";
-    public const string TemporalStasisProcedureId =
-        "procedure:temporal-stasis";
     public const string RuneConductorItemId = "component:rune-conductor";
     public const string ManaCrystalItemId = "resource:mana-crystal";
     public const float RequiredRunePower = 10f;
+    public const string DispositionReasonCode =
+        "temporal-stasis-seasonal-maintenance";
 
-    private readonly IItemDefinitionCatalog items;
-    private readonly IItemTransferService transfers;
+    private readonly IPhysicalFacilityItemBatchSinkGateway physicalItems;
     private readonly ICharacterLifeQuery life;
     private readonly ICharacterLifeCommand lifeCommands;
-    private readonly ICharacterLifeDefinitionCatalog lifeDefinitions;
-    private readonly ICharacterWorldQuery characterWorld;
-    private readonly IAnatomyHealthRuntime anatomy;
+    private readonly ICharacterLifePersistence persistence;
     private readonly IGameCalendar calendar;
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IPowerInfrastructureQuery power;
 
     public PhysicalAgeTreatmentRuntime(
-        IItemDefinitionCatalog items,
-        IItemTransferService transfers,
+        IPhysicalFacilityItemBatchSinkGateway physicalItems,
         ICharacterLifeQuery life,
         ICharacterLifeCommand lifeCommands,
-        ICharacterLifeDefinitionCatalog lifeDefinitions,
-        ICharacterWorldQuery characterWorld,
-        IAnatomyHealthRuntime anatomy,
+        ICharacterLifePersistence persistence,
         IGameCalendar calendar,
         IBuildingWorldQuery buildingWorld,
         IPowerInfrastructureQuery power)
     {
-        this.items = items ?? throw new ArgumentNullException(nameof(items));
-        this.transfers = transfers ?? throw new ArgumentNullException(nameof(transfers));
+        this.physicalItems = physicalItems
+            ?? throw new ArgumentNullException(nameof(physicalItems));
         this.life = life ?? throw new ArgumentNullException(nameof(life));
         this.lifeCommands = lifeCommands
             ?? throw new ArgumentNullException(nameof(lifeCommands));
-        this.lifeDefinitions = lifeDefinitions
-            ?? throw new ArgumentNullException(nameof(lifeDefinitions));
-        this.characterWorld = characterWorld
-            ?? throw new ArgumentNullException(nameof(characterWorld));
-        this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
-        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
+        this.calendar = calendar
+            ?? throw new ArgumentNullException(nameof(calendar));
         this.buildingWorld = buildingWorld
             ?? throw new ArgumentNullException(nameof(buildingWorld));
         this.power = power ?? throw new ArgumentNullException(nameof(power));
     }
 
-    public bool TryApplyWholeBodyRegeneration(
-        CharacterId characterId,
-        string medicalFacilityDestinationId,
-        string treatmentItemId,
-        out IReadOnlyList<AgeConditionChange> changes,
-        out DomainFailure failure)
-    {
-        changes = Array.Empty<AgeConditionChange>();
-        if (!characterId.IsValid
-            || !life.TryGet(characterId, out CharacterLifeRecord lifeRecord))
-        {
-            failure = new DomainFailure(
-                FailureCode.AgeTreatmentCharacterMissing,
-                characterId.Value);
-            return false;
-        }
-
-        ItemDefinitionId definitionId = (ItemDefinitionId)(
-            treatmentItemId?.Trim() ?? string.Empty);
-        if (!definitionId.IsValid
-            || !items.TryGet(definitionId, out ItemDefinitionSO definition)
-            || definition is not ResourceItemDefinitionSO treatment)
-        {
-            failure = new DomainFailure(
-                FailureCode.AgeTreatmentDefinitionMissing,
-                definitionId.Value);
-            return false;
-        }
-
-        if (!string.Equals(
-                treatment.MedicalProcedureId,
-                WholeBodyRegenerationProcedureId,
-                StringComparison.Ordinal))
-        {
-            failure = new DomainFailure(
-                FailureCode.AgeTreatmentProcedureMismatch,
-                definitionId.Value,
-                treatment.MedicalProcedureId);
-            return false;
-        }
-
-        CharacterActor actor = characterWorld.Characters.FirstOrDefault(candidate =>
-            candidate != null && !candidate.IsDead
-            && CharacterPersistentIdentity.TryGet(candidate, out CharacterId id)
-            && id.Equals(characterId));
-        if (actor == null)
-        {
-            failure = new DomainFailure(
-                FailureCode.AgeTreatmentCharacterMissing,
-                characterId.Value);
-            return false;
-        }
-
-        if (!TryBuildRegenerationRepairs(
-                actor,
-                lifeRecord,
-                out Dictionary<string, float> repairs,
-                out failure))
-        {
-            return false;
-        }
-
-        string destinationId = medicalFacilityDestinationId?.Trim()
-            ?? string.Empty;
-        if (!transfers.TryConsumeFacilityItemBuffer(
-                destinationId,
-                new Dictionary<string, int>(StringComparer.Ordinal)
-                {
-                    [definitionId.Value] = 1
-                },
-                out string consumeFailure))
-        {
-            failure = new DomainFailure(
-                FailureCode.AgeTreatmentSupplyUnavailable,
-                destinationId,
-                definitionId.Value,
-                consumeFailure ?? string.Empty);
-            return false;
-        }
-
-        changes = lifeCommands.ApplyWholeBodyRegeneration(characterId);
-        foreach ((string nodeId, float health) in repairs
-                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        {
-            AnatomyHealthSnapshot current = anatomy.GetAnatomySnapshot(actor);
-            AnatomyNodeHealthState node = current.Nodes.First(value =>
-                string.Equals(value.nodeId, nodeId, StringComparison.Ordinal));
-            if (node.currentHealth >= node.maxHealth || health <= 0f)
-            {
-                continue;
-            }
-            if (!anatomy.TryHealNode(
-                    actor,
-                    nodeId,
-                    Math.Min(health, node.maxHealth - node.currentHealth),
-                    infectionReduction: 0f))
-            {
-                throw new InvalidOperationException(
-                    $"Whole-body regeneration could not repair anatomy node '{nodeId}' for '{characterId.Value}'.");
-            }
-        }
-        failure = DomainFailure.None;
-        return true;
-    }
-
-    public bool TryActivateTemporalStasis(
-        CharacterId characterId,
-        string facilityDestinationId,
-        string stasisSealItemId,
-        out DomainFailure failure)
-    {
-        if (!characterId.IsValid || !life.TryGet(characterId, out _))
-        {
-            failure = new DomainFailure(
-                FailureCode.AgeTreatmentCharacterMissing,
-                characterId.Value);
-            return false;
-        }
-
-        ItemDefinitionId definitionId = (ItemDefinitionId)(
-            stasisSealItemId?.Trim() ?? string.Empty);
-        if (!definitionId.IsValid
-            || !items.TryGet(definitionId, out ItemDefinitionSO definition)
-            || definition is not ResourceItemDefinitionSO seal)
-        {
-            failure = new DomainFailure(
-                FailureCode.AgeTreatmentDefinitionMissing,
-                definitionId.Value);
-            return false;
-        }
-
-        if (!string.Equals(
-                seal.MedicalProcedureId,
-                TemporalStasisProcedureId,
-                StringComparison.Ordinal))
-        {
-            failure = new DomainFailure(
-                FailureCode.AgeTreatmentProcedureMismatch,
-                definitionId.Value,
-                seal.MedicalProcedureId);
-            return false;
-        }
-
-        string facilityId = facilityDestinationId?.Trim() ?? string.Empty;
-        BuildableObject facility = FindFacility(facilityId);
-        if (facility == null)
-        {
-            failure = new DomainFailure(
-                FailureCode.TemporalStasisFacilityMissing,
-                facilityId);
-            return false;
-        }
-
-        if (!HasRequiredPower(facility))
-        {
-            failure = new DomainFailure(
-                FailureCode.TemporalStasisPowerInsufficient,
-                facilityId,
-                RequiredRunePower.ToString("0"));
-            return false;
-        }
-
-        if (!transfers.TryConsumeFacilityItemBuffer(
-                facilityId,
-                new Dictionary<string, int>(StringComparer.Ordinal)
-                {
-                    [definitionId.Value] = 1
-                },
-                out string consumeFailure))
-        {
-            failure = new DomainFailure(
-                FailureCode.AgeTreatmentSupplyUnavailable,
-                facilityId,
-                definitionId.Value,
-                consumeFailure ?? string.Empty);
-            return false;
-        }
-
-        lifeCommands.ConfigureTemporalStasis(
-            characterId,
-            facilityId,
-            operational: true,
-            nextMaintenanceAbsoluteDay:
-                calendar.Day + GameCalendarRules.DaysPerSeason);
-        failure = DomainFailure.None;
-        return true;
-    }
-
     public void RefreshDailyMaintenance()
     {
+        if (!TryRecoverPending(out DomainFailure recoveryFailure))
+        {
+            throw new InvalidOperationException(
+                "Temporal-stasis maintenance recovery failed: "
+                + recoveryFailure);
+        }
+
         CharacterLifeRecord[] assignments = life.Records
             .Where(value => value.RequestedAgingCareMode
                 == AgingCareMode.TemporalStasis)
@@ -284,19 +83,16 @@ public sealed class PhysicalAgeTreatmentRuntime :
                 record.TemporalStasisNextMaintenanceAbsoluteDay;
             if (operational && calendar.Day >= nextMaintenance)
             {
-                operational = transfers.TryConsumeFacilityItemBuffer(
-                    facilityId,
-                    new Dictionary<string, int>(StringComparer.Ordinal)
-                    {
-                        [RuneConductorItemId] = 1,
-                        [ManaCrystalItemId] = 1
-                    },
-                    out _);
-                if (operational)
+                if (TryPerformMaintenance(record, out DomainFailure failure))
                 {
-                    nextMaintenance = calendar.Day
-                        + GameCalendarRules.DaysPerSeason;
+                    continue;
                 }
+                if (failure.Code != FailureCode.TemporalStasisMaintenanceUnavailable)
+                {
+                    throw new InvalidOperationException(
+                        "Temporal-stasis maintenance failed: " + failure);
+                }
+                operational = false;
             }
 
             lifeCommands.ConfigureTemporalStasis(
@@ -305,6 +101,266 @@ public sealed class PhysicalAgeTreatmentRuntime :
                 operational,
                 nextMaintenance);
         }
+    }
+
+    public bool TryRecoverPending(out DomainFailure failure) =>
+        TryRecoverPendingCore(out _, out failure);
+
+    public static string FormatOperationId(
+        CharacterId characterId,
+        int sequence) =>
+        $"temporal-stasis-maintenance:{characterId.Value}:{sequence:D8}";
+
+    private bool TryPerformMaintenance(
+        CharacterLifeRecord record,
+        out DomainFailure failure)
+    {
+        if (!TryRecoverPendingCore(out _, out failure))
+        {
+            return false;
+        }
+
+        CharacterLifeWorldSaveData intent = persistence.Capture();
+        int sequence = intent.nextTemporalStasisMaintenanceOperationSequence;
+        string operationId = FormatOperationId(record.CharacterId, sequence);
+        int afterDay = checked(calendar.Day + GameCalendarRules.DaysPerSeason);
+        intent.pendingTemporalStasisMaintenance =
+            new TemporalStasisMaintenanceCommitSaveData
+            {
+                phase = (int)TemporalStasisMaintenanceCommitPhase.IntentRecorded,
+                operationSequence = sequence,
+                operationId = operationId,
+                reasonCode = DispositionReasonCode,
+                characterId = record.CharacterId.Value,
+                facilityInstanceId = record.TemporalStasisFacilityId,
+                runeConductorItemId = RuneConductorItemId,
+                runeConductorQuantity = 1,
+                manaCrystalItemId = ManaCrystalItemId,
+                manaCrystalQuantity = 1,
+                nextMaintenanceBeforeAbsoluteDay =
+                    record.TemporalStasisNextMaintenanceAbsoluteDay,
+                nextMaintenanceAfterAbsoluteDay = afterDay
+            };
+        try
+        {
+            persistence.PublishRestore(persistence.PrepareRestore(intent));
+        }
+        catch (Exception exception)
+        {
+            failure = new DomainFailure(
+                FailureCode.TemporalStasisMaintenanceUnavailable,
+                operationId,
+                "maintenance-intent-rejected",
+                exception.GetType().Name);
+            return false;
+        }
+
+        if (!physicalItems.TryCommitSinkPending(
+                record.TemporalStasisFacilityId,
+                new Dictionary<string, int>(StringComparer.Ordinal)
+                {
+                    [RuneConductorItemId] = 1,
+                    [ManaCrystalItemId] = 1
+                },
+                operationId,
+                DispositionReasonCode,
+                out _,
+                out string consumeFailure))
+        {
+            TryClearUncommittedIntent(operationId);
+            failure = new DomainFailure(
+                FailureCode.TemporalStasisMaintenanceUnavailable,
+                record.TemporalStasisFacilityId,
+                RuneConductorItemId,
+                ManaCrystalItemId,
+                consumeFailure ?? string.Empty);
+            return false;
+        }
+
+        if (!TryRecoverPendingCore(out bool completed, out failure)
+            || !completed)
+        {
+            return false;
+        }
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    private bool TryRecoverPendingCore(
+        out bool completedOperation,
+        out DomainFailure failure)
+    {
+        completedOperation = false;
+        CharacterLifeWorldSaveData captured = persistence.Capture();
+        TemporalStasisMaintenanceCommitSaveData pending =
+            captured.pendingTemporalStasisMaintenance
+            ?? new TemporalStasisMaintenanceCommitSaveData();
+        TemporalStasisMaintenanceCommitPhase phase =
+            (TemporalStasisMaintenanceCommitPhase)pending.phase;
+        if (phase == TemporalStasisMaintenanceCommitPhase.None)
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        if (!MatchesAuthoredContract(pending))
+        {
+            failure = new DomainFailure(
+                FailureCode.TemporalStasisMaintenanceUnavailable,
+                pending.operationId,
+                "maintenance-contract-mismatch");
+            return false;
+        }
+
+        bool hasReceipt = physicalItems.TryGetPending(
+            pending.operationId,
+            out PhysicalItemBatchDispositionReceipt receipt);
+        if (hasReceipt && !ReceiptMatches(pending, receipt))
+        {
+            failure = new DomainFailure(
+                FailureCode.TemporalStasisMaintenanceUnavailable,
+                pending.operationId,
+                "maintenance-receipt-mismatch");
+            return false;
+        }
+
+        if (phase == TemporalStasisMaintenanceCommitPhase.IntentRecorded)
+        {
+            if (!hasReceipt)
+            {
+                ClearPending(captured, advanceSequence: false);
+                persistence.PublishRestore(persistence.PrepareRestore(captured));
+                failure = DomainFailure.None;
+                return true;
+            }
+
+            CharacterLifeRecordSaveData record = captured.characters
+                .Single(value => string.Equals(
+                    value.characterId,
+                    pending.characterId,
+                    StringComparison.Ordinal));
+            record.effectiveAgingCareMode = AgingCareMode.TemporalStasis;
+            record.temporalStasisNextMaintenanceAbsoluteDay =
+                pending.nextMaintenanceAfterAbsoluteDay;
+            pending.phase =
+                (int)TemporalStasisMaintenanceCommitPhase.OutcomePublished;
+            pending.sourceStackIds = receipt.SourceStackIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList();
+            pending.inputQuantity = receipt.Quantity;
+            pending.inputMassGrams = receipt.InputMassGrams;
+            pending.commitId = receipt.CommitId;
+            try
+            {
+                persistence.PublishRestore(persistence.PrepareRestore(captured));
+                completedOperation = true;
+            }
+            catch (Exception exception)
+            {
+                failure = new DomainFailure(
+                    FailureCode.TemporalStasisMaintenanceUnavailable,
+                    pending.operationId,
+                    "maintenance-outcome-publication-failed",
+                    exception.GetType().Name);
+                return false;
+            }
+        }
+        else
+        {
+            completedOperation = true;
+        }
+
+        if (hasReceipt
+            && !physicalItems.Acknowledge(
+                receipt.CommitId,
+                out string acknowledgeFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.TemporalStasisMaintenanceUnavailable,
+                pending.operationId,
+                "maintenance-acknowledge-failed",
+                acknowledgeFailure ?? string.Empty);
+            return false;
+        }
+
+        CharacterLifeWorldSaveData terminal = persistence.Capture();
+        ClearPending(terminal, advanceSequence: true);
+        persistence.PublishRestore(persistence.PrepareRestore(terminal));
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    private void TryClearUncommittedIntent(string operationId)
+    {
+        if (physicalItems.TryGetPending(operationId, out _))
+        {
+            return;
+        }
+        CharacterLifeWorldSaveData captured = persistence.Capture();
+        TemporalStasisMaintenanceCommitSaveData pending =
+            captured.pendingTemporalStasisMaintenance;
+        if ((TemporalStasisMaintenanceCommitPhase)pending.phase
+                == TemporalStasisMaintenanceCommitPhase.IntentRecorded
+            && string.Equals(
+                pending.operationId,
+                operationId,
+                StringComparison.Ordinal))
+        {
+            ClearPending(captured, advanceSequence: false);
+            persistence.PublishRestore(persistence.PrepareRestore(captured));
+        }
+    }
+
+    private static bool MatchesAuthoredContract(
+        TemporalStasisMaintenanceCommitSaveData pending) =>
+        pending.runeConductorQuantity == 1
+        && pending.manaCrystalQuantity == 1
+        && string.Equals(
+            pending.runeConductorItemId,
+            RuneConductorItemId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            pending.manaCrystalItemId,
+            ManaCrystalItemId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            pending.reasonCode,
+            DispositionReasonCode,
+            StringComparison.Ordinal)
+        && string.Equals(
+            pending.operationId,
+            FormatOperationId(
+                new CharacterId(pending.characterId),
+                pending.operationSequence),
+            StringComparison.Ordinal);
+
+    private static bool ReceiptMatches(
+        TemporalStasisMaintenanceCommitSaveData pending,
+        PhysicalItemBatchDispositionReceipt receipt) =>
+        receipt.IsCommitted
+        && receipt.Kind == PhysicalItemDispositionKind.Sink
+        && string.Equals(
+            receipt.OperationId,
+            pending.operationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.ReasonCode,
+            pending.reasonCode,
+            StringComparison.Ordinal)
+        && receipt.Quantity
+            == pending.runeConductorQuantity + pending.manaCrystalQuantity;
+
+    private static void ClearPending(
+        CharacterLifeWorldSaveData data,
+        bool advanceSequence)
+    {
+        if (advanceSequence)
+        {
+            data.nextTemporalStasisMaintenanceOperationSequence = checked(
+                data.nextTemporalStasisMaintenanceOperationSequence + 1);
+        }
+        data.pendingTemporalStasisMaintenance =
+            new TemporalStasisMaintenanceCommitSaveData();
     }
 
     private BuildableObject FindFacility(string facilityId)
@@ -325,65 +381,12 @@ public sealed class PhysicalAgeTreatmentRuntime :
             && node.DemandPerSecond >= RequiredRunePower
             && node.SuppliedFraction >= 0.999f;
     }
-
-    private bool TryBuildRegenerationRepairs(
-        CharacterActor actor,
-        CharacterLifeRecord lifeRecord,
-        out Dictionary<string, float> repairs,
-        out DomainFailure failure)
-    {
-        repairs = new Dictionary<string, float>(StringComparer.Ordinal);
-        AnatomyHealthSnapshot anatomySnapshot = anatomy.GetAnatomySnapshot(actor);
-        Dictionary<string, AnatomyNodeHealthState> anatomyNodes = anatomySnapshot.Nodes
-            .Where(node => node != null)
-            .ToDictionary(node => node.nodeId, StringComparer.Ordinal);
-
-        foreach (CharacterAgeConditionState condition in lifeRecord.AgeConditions
-                     .Where(value => value.Severity <= AgeConditionSeverity.Severe)
-                     .OrderBy(value => value.ConditionId, StringComparer.Ordinal))
-        {
-            AgeConditionDefinition definition = lifeDefinitions.RequireAgeCondition(
-                condition.ConditionId);
-            string[] matchingNodeIds = definition.AffectedAnatomyNodeIds
-                .Where(anatomyNodes.ContainsKey)
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(value => value, StringComparer.Ordinal)
-                .ToArray();
-            if (matchingNodeIds.Length == 0
-                || matchingNodeIds.Any(nodeId => anatomyNodes[nodeId].missing))
-            {
-                failure = new DomainFailure(
-                    FailureCode.AgeTreatmentAnatomyUnavailable,
-                    lifeRecord.CharacterId.Value,
-                    condition.ConditionId,
-                    anatomySnapshot.ProfileId);
-                return false;
-            }
-
-            float repairedFraction = condition.Severity switch
-            {
-                AgeConditionSeverity.Mild => 0.05f,
-                AgeConditionSeverity.Moderate => 0.15f,
-                AgeConditionSeverity.Severe => 0.30f,
-                _ => 0f
-            };
-            foreach (string nodeId in matchingNodeIds)
-            {
-                float health = anatomyNodes[nodeId].maxHealth * repairedFraction;
-                repairs[nodeId] = repairs.TryGetValue(nodeId, out float existing)
-                    ? existing + health
-                    : health;
-            }
-        }
-
-        failure = DomainFailure.None;
-        return true;
-    }
 }
 
 public sealed class TemporalStasisMaintenanceAdapter : IStartable, IDisposable
 {
     private readonly ITemporalStasisMaintenanceService maintenance;
+    private readonly ITemporalStasisMaintenanceRecovery recovery;
     private readonly ICharacterLifeQuery life;
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly IGameEventBus events;
@@ -392,12 +395,15 @@ public sealed class TemporalStasisMaintenanceAdapter : IStartable, IDisposable
 
     public TemporalStasisMaintenanceAdapter(
         ITemporalStasisMaintenanceService maintenance,
+        ITemporalStasisMaintenanceRecovery recovery,
         ICharacterLifeQuery life,
         IMilestoneGameplayModifierQuery milestoneModifiers,
         IGameEventBus events)
     {
         this.maintenance = maintenance
             ?? throw new ArgumentNullException(nameof(maintenance));
+        this.recovery = recovery
+            ?? throw new ArgumentNullException(nameof(recovery));
         this.life = life ?? throw new ArgumentNullException(nameof(life));
         this.milestoneModifiers = milestoneModifiers
             ?? throw new ArgumentNullException(nameof(milestoneModifiers));
@@ -406,6 +412,12 @@ public sealed class TemporalStasisMaintenanceAdapter : IStartable, IDisposable
 
     public void Start()
     {
+        if (!recovery.TryRecoverPending(out DomainFailure failure))
+        {
+            throw new InvalidOperationException(
+                "Temporal-stasis maintenance startup recovery failed: "
+                + failure);
+        }
         dayStartedSubscription = events.Subscribe<OperatingDayStartedEvent>(
             OnDayStarted);
         dayEndedSubscription = events.Subscribe<OperatingDayEndedEvent>(

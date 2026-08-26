@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using VContainer;
 
 public enum BuildingCrackStage
 {
@@ -43,18 +44,21 @@ public readonly struct BuildingStructuralDamageResult
         bool applied,
         bool destroyed,
         float damage,
-        BuildingStructuralIntegritySnapshot snapshot)
+        BuildingStructuralIntegritySnapshot snapshot,
+        string failureReason = "")
     {
         Applied = applied;
         Destroyed = destroyed;
         Damage = Mathf.Max(0f, damage);
         Snapshot = snapshot;
+        FailureReason = failureReason ?? string.Empty;
     }
 
     public bool Applied { get; }
     public bool Destroyed { get; }
     public float Damage { get; }
     public BuildingStructuralIntegritySnapshot Snapshot { get; }
+    public string FailureReason { get; }
 }
 
 public interface IBuildingStructuralIntegrityRuntime
@@ -249,11 +253,6 @@ public sealed class BuildingStructuralIntegrity :
             applied,
             destroyed,
             building.ReducedMotion);
-        if (destroyed)
-        {
-            building.DestroySelf();
-        }
-
         return new BuildingStructuralDamageResult(
             applied > 0f,
             destroyed,
@@ -377,6 +376,20 @@ public sealed class BuildingStructuralIntegrity :
 public sealed class BuildingStructuralIntegrityRuntime :
     IBuildingStructuralIntegrityRuntime
 {
+    private readonly IBuildingDestructiveLossRuntime destructiveLoss;
+
+    public BuildingStructuralIntegrityRuntime()
+    {
+    }
+
+    [Inject]
+    public BuildingStructuralIntegrityRuntime(
+        IBuildingDestructiveLossRuntime destructiveLoss)
+    {
+        this.destructiveLoss = destructiveLoss
+            ?? throw new ArgumentNullException(nameof(destructiveLoss));
+    }
+
     public bool TryGet(
         BuildableObject building,
         out BuildingStructuralIntegritySnapshot snapshot)
@@ -405,11 +418,77 @@ public sealed class BuildingStructuralIntegrityRuntime :
         BuildableObject building,
         float damage)
     {
-        return BuildingStructuralIntegrity.TryGet(
+        if (!BuildingStructuralIntegrity.TryGet(
                 building,
-                out BuildingStructuralIntegrity runtime)
-            ? runtime.ApplyDamage(damage)
-            : new BuildingStructuralDamageResult(false, false, 0f, default);
+                out BuildingStructuralIntegrity runtime))
+        {
+            return new BuildingStructuralDamageResult(
+                false,
+                false,
+                0f,
+                default,
+                "building-structural-integrity-missing");
+        }
+
+        BuildingStructuralIntegritySnapshot before = runtime.GetSnapshot();
+        bool lethal = damage > 0f
+            && before.Breachable
+            && damage >= before.CurrentHitPoints;
+        if (!lethal)
+            return runtime.ApplyDamage(damage);
+
+        if (destructiveLoss == null)
+        {
+            return new BuildingStructuralDamageResult(
+                false,
+                false,
+                0f,
+                before,
+                "building-destructive-loss-runtime-missing");
+        }
+
+        string operationId = "production-mutation:structural-loss:"
+            + building.PersistentInstanceId.Value;
+        if (!destructiveLoss.TryPrepare(
+                building,
+                operationId,
+                out BuildingDestructiveLossCandidate candidate,
+                out string prepareFailure))
+        {
+            return new BuildingStructuralDamageResult(
+                false,
+                false,
+                0f,
+                before,
+                prepareFailure);
+        }
+
+        BuildingDestructiveLossResult removal = destructiveLoss.TryCommit(candidate);
+        if (!removal.Removed)
+        {
+            return new BuildingStructuralDamageResult(
+                false,
+                false,
+                0f,
+                before,
+                removal.FailureReason);
+        }
+
+        float applied = Mathf.Min(damage, before.CurrentHitPoints);
+        BuildingStructuralIntegritySnapshot destroyed =
+            new BuildingStructuralIntegritySnapshot(
+                building,
+                0f,
+                before.MaxHitPoints,
+                before.Toughness,
+                before.Breachable,
+                BuildingCrackStage.Critical);
+        return new BuildingStructuralDamageResult(
+            true,
+            true,
+            applied,
+            destroyed,
+            removal.FailureReason);
     }
 
     public bool TryApplyRepairWork(

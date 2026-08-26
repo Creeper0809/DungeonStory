@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:ember-root
     amount: 1
   outputs:
-  - itemId: food:salted-meat-stew
+  - outputLineId: output:recipe:salted-meat-stew/000/main/food:salted-meat-stew
+    role: 0
+    itemId: food:salted-meat-stew
     amount: 2
     probability: 1

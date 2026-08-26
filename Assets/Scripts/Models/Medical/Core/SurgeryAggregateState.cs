@@ -248,8 +248,22 @@ public static class SurgeryStateCloner
             storedFacilityId = source.storedFacilityId ?? string.Empty,
             reservedOrderId = source.reservedOrderId ?? string.Empty,
             preservationCanisterApplied = source.preservationCanisterApplied,
+            preservationOperationId = source.preservationOperationId ?? string.Empty,
+            preservationCommitId = source.preservationCommitId ?? string.Empty,
+            preservationSourceStackId = source.preservationSourceStackId ?? string.Empty,
+            preservationInputMassGrams = source.preservationInputMassGrams,
+            preservationOutcomePublished = source.preservationOutcomePublished,
             installed = source.installed,
-            installedSubjectId = source.installedSubjectId ?? string.Empty
+            installedSubjectId = source.installedSubjectId ?? string.Empty,
+            sourceProductionCommitId = source.sourceProductionCommitId
+                ?? string.Empty,
+            installationOrderId = source.installationOrderId ?? string.Empty,
+            installationOperationId = source.installationOperationId
+                ?? string.Empty,
+            installationCommitId = source.installationCommitId ?? string.Empty,
+            installationSourceStackId = source.installationSourceStackId
+                ?? string.Empty,
+            installationSubjectId = source.installationSubjectId ?? string.Empty
         };
     }
 

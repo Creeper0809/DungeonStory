@@ -961,7 +961,13 @@ namespace DungeonStory.Balance
             float ageSeconds,
             SpatialCellRole roles,
             bool immediateFailure,
-            bool persistent)
+            bool persistent,
+            WorldItemDropDisposition dropDisposition = WorldItemDropDisposition.None,
+            string recoveryOwnerOperationId = "",
+            string recoveryCarrierPersistentId = "",
+            WorldItemCarryInterruptionKind recoveryInterruptionKind =
+                WorldItemCarryInterruptionKind.None,
+            float recoveryDeadlineGameTime = 0f)
         {
             StackId = stackId ?? string.Empty;
             Position = position;
@@ -970,6 +976,11 @@ namespace DungeonStory.Balance
             Roles = roles;
             ImmediateFailure = immediateFailure;
             Persistent = persistent;
+            DropDisposition = dropDisposition;
+            RecoveryOwnerOperationId = recoveryOwnerOperationId ?? string.Empty;
+            RecoveryCarrierPersistentId = recoveryCarrierPersistentId ?? string.Empty;
+            RecoveryInterruptionKind = recoveryInterruptionKind;
+            RecoveryDeadlineGameTime = recoveryDeadlineGameTime;
         }
 
         public string StackId { get; }
@@ -979,6 +990,11 @@ namespace DungeonStory.Balance
         public SpatialCellRole Roles { get; }
         public bool ImmediateFailure { get; }
         public bool Persistent { get; }
+        public WorldItemDropDisposition DropDisposition { get; }
+        public string RecoveryOwnerOperationId { get; }
+        public string RecoveryCarrierPersistentId { get; }
+        public WorldItemCarryInterruptionKind RecoveryInterruptionKind { get; }
+        public float RecoveryDeadlineGameTime { get; }
     }
 
     public sealed class FloorClutterAssessment

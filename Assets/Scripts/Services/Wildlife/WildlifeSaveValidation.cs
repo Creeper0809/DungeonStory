@@ -189,7 +189,13 @@ internal static class WildlifeSaveValidation
 
             if (!Enum.IsDefined(typeof(WildlifeIntent), animal.intent)
                 || animal.reservedByPersistentId == null
-                || animal.intentReason == null)
+                || animal.intentReason == null
+                || animal.lastCaptiveFeedCommitId == null
+                || animal.lastCaptiveFeedCommitId.Length > 0
+                    && (!IsCanonicalNonEmpty(animal.lastCaptiveFeedCommitId)
+                        || !animal.lastCaptiveFeedCommitId.StartsWith(
+                            "physical-batch-disposition:3:captivity-wildlife-feed:",
+                            StringComparison.Ordinal)))
             {
                 report.AddError(
                     $"Wildlife '{id}' has invalid intent or null text state.");
@@ -286,6 +292,7 @@ internal static class WildlifeSaveValidation
                 || !Enum.IsDefined(
                     typeof(WildlifeFoodRaidOrderState),
                     order.state)
+                || !WildlifeFoodRaidDispositionOutbox.HasValidShape(order)
                 || order.stolenQuantity < 0
                 || order.outcomeReason == null
                 || (targetStackId.Length > 0

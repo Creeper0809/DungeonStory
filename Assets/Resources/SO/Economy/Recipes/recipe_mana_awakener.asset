@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9097
+  id: 9098
   recipeId: recipe:mana-awakener
   displayName: "\uB9C8\uB098 \uAC01\uC131\uC81C"
   description: "\uB9C8\uB098 \uAC01\uC131\uC81C \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: material:alchemical-solvent
     amount: 1
   outputs:
-  - itemId: drug:mana-awakener
+  - outputLineId: output:recipe:mana-awakener/000/main/drug:mana-awakener
+    role: 0
+    itemId: drug:mana-awakener
     amount: 1
     probability: 1

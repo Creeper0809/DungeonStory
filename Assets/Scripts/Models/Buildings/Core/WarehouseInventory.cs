@@ -12,6 +12,62 @@ public interface IWarehousePhysicalStockQueryPort
     int GetWarehouseTotal(BuildingInstanceId warehouseId);
 }
 
+public interface IWarehousePhysicalMassQueryPort
+{
+    int PhysicalItemStackVersion { get; }
+    long PhysicalMassAuthorityRevision { get; }
+    long GetWarehouseStoredMassGrams(BuildingInstanceId warehouseId);
+    long GetWarehouseStoredMassRevision(BuildingInstanceId warehouseId);
+    long GetDefinitionUnitMassGrams(string itemDefinitionId);
+}
+
+public interface IWarehouseMassCapacityQuery
+{
+    long StoredMassGrams { get; }
+    long ReservedInboundMassGrams { get; }
+    long MaxMassGrams { get; }
+    long RemainingMassGrams { get; }
+}
+
+public interface IWarehouseMassAdmissionLedgerQuery
+{
+    long Revision { get; }
+    long GetWarehouseCapacityRevision(BuildingInstanceId warehouseId);
+    long GetReservedInboundMassGrams(BuildingInstanceId warehouseId);
+}
+
+public readonly struct WarehouseLifecycleOccupancySnapshot
+{
+    public WarehouseLifecycleOccupancySnapshot(
+        long storedMassGrams,
+        long reservedInboundMassGrams,
+        int referencedPhysicalStackCount,
+        int activeHaulIntentCount)
+    {
+        StoredMassGrams = Math.Max(0L, storedMassGrams);
+        ReservedInboundMassGrams = Math.Max(0L, reservedInboundMassGrams);
+        ReferencedPhysicalStackCount = Math.Max(0, referencedPhysicalStackCount);
+        ActiveHaulIntentCount = Math.Max(0, activeHaulIntentCount);
+    }
+
+    public long StoredMassGrams { get; }
+    public long ReservedInboundMassGrams { get; }
+    public int ReferencedPhysicalStackCount { get; }
+    public int ActiveHaulIntentCount { get; }
+    public bool IsEmpty => StoredMassGrams == 0L
+        && ReservedInboundMassGrams == 0L
+        && ReferencedPhysicalStackCount == 0
+        && ActiveHaulIntentCount == 0;
+}
+
+public interface IWarehouseLifecycleOccupancyQuery
+{
+    bool TryRequireEmpty(
+        IWarehouseFacility warehouse,
+        out WarehouseLifecycleOccupancySnapshot occupancy,
+        out string failureReason);
+}
+
 public interface IWarehouseStockCategoryCatalogPort
 {
     IReadOnlyList<StockCategoryDefinition> All { get; }
@@ -58,10 +114,7 @@ public interface IRestockableFacility : IStockedFacility
     int MaxStock { get; }
     int MissingStock { get; }
     bool NeedsRestock { get; }
-    int RestockFrom(
-        IEnumerable<IWarehouseFacility> warehouses,
-        int maxAmount,
-        out string resultMessage);
+    bool TryRequestRestock(out string resultMessage);
     bool TryFindRestockSource(
         IEnumerable<IWarehouseFacility> warehouses,
         int maxAmount,
@@ -69,10 +122,10 @@ public interface IRestockableFacility : IStockedFacility
         out WarehouseRestockItem saleItem,
         out int availableAmount,
         out string failureReason);
-    int ReceiveRestock(
-        WarehouseRestockItem saleItem,
-        int amount,
+    bool TryReceiveExactRetailLots(
+        IReadOnlyList<RetailStockLotSnapshot> incoming,
         int requestedAmount,
+        out int received,
         out string resultMessage);
     bool HasRestockSupply(
         IEnumerable<IWarehouseFacility> warehouses,
@@ -92,12 +145,18 @@ public interface IWarehouseFacility
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public class WarehouseInventory : IWarehouseInventoryPort
+public class WarehouseInventory : IWarehouseInventoryPort, IWarehouseMassCapacityQuery
 {
     [NonSerialized] private IWarehousePhysicalStockQueryPort physicalStockQuery;
+    [NonSerialized] private IWarehousePhysicalMassQueryPort physicalMassQuery;
     [NonSerialized] private IWarehouseStockCategoryCatalogPort categoryCatalog;
+    [NonSerialized] private IWarehouseMassAdmissionLedgerQuery massAdmissionLedger;
     [NonSerialized] private BuildingInstanceId warehouseId;
+    [NonSerialized] private int cachedStoredMassItemStackVersion = int.MinValue;
+    [NonSerialized] private long cachedStoredMassAuthorityRevision = long.MinValue;
+    [NonSerialized] private long cachedStoredMassGrams;
     [SerializeField] private int maxCapacity;
+    [NonSerialized] private long maxStoredMassGrams;
     [SerializeField] private bool restrictCategory;
     [SerializeField] private StockCategory acceptedCategory;
 
@@ -107,6 +166,43 @@ public class WarehouseInventory : IWarehouseInventoryPort
     public int MaxCapacity => maxCapacity > 0 ? maxCapacity : int.MaxValue;
     public int RemainingCapacity => Mathf.Max(0, MaxCapacity - TotalStock);
     public bool HasCapacityLimit => maxCapacity > 0;
+    public bool HasMassCapacityAuthority => maxStoredMassGrams > 0L;
+    public long StoredMassGrams
+    {
+        get
+        {
+            if (!HasMassCapacityAuthority)
+            {
+                return 0L;
+            }
+
+            IWarehousePhysicalMassQueryPort query = RequirePhysicalMassQuery();
+            int itemStackVersion = query.PhysicalItemStackVersion;
+            long massAuthorityRevision = query.PhysicalMassAuthorityRevision;
+            if (cachedStoredMassItemStackVersion == itemStackVersion
+                && cachedStoredMassAuthorityRevision == massAuthorityRevision)
+            {
+                return cachedStoredMassGrams;
+            }
+
+            long storedMassGrams = query.GetWarehouseStoredMassGrams(warehouseId);
+            cachedStoredMassGrams = storedMassGrams;
+            cachedStoredMassItemStackVersion = itemStackVersion;
+            cachedStoredMassAuthorityRevision = massAuthorityRevision;
+            return storedMassGrams;
+        }
+    }
+    public long ReservedInboundMassGrams => HasMassCapacityAuthority
+        && massAdmissionLedger != null
+            ? massAdmissionLedger.GetReservedInboundMassGrams(warehouseId)
+            : 0L;
+    public long MaxMassGrams => HasMassCapacityAuthority
+        ? maxStoredMassGrams
+        : 0L;
+    public long RemainingMassGrams => HasMassCapacityAuthority
+        ? Math.Max(0L, checked(
+            maxStoredMassGrams - StoredMassGrams - ReservedInboundMassGrams))
+        : 0L;
     public bool RestrictsCategory => restrictCategory;
     public StockCategory AcceptedCategory => acceptedCategory;
 
@@ -123,8 +219,22 @@ public class WarehouseInventory : IWarehouseInventoryPort
         int maxCapacity,
         StockCategory acceptedCategory,
         bool restrictCategory)
+        : this(maxCapacity, 0L, acceptedCategory, restrictCategory)
     {
-        this.maxCapacity = Mathf.Max(0, maxCapacity);
+    }
+
+    public WarehouseInventory(
+        int legacyMaxCapacity,
+        long maxStoredMassGrams,
+        StockCategory acceptedCategory,
+        bool restrictCategory)
+    {
+        this.maxCapacity = Mathf.Max(0, legacyMaxCapacity);
+        if (maxStoredMassGrams < 0L)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxStoredMassGrams));
+        }
+        this.maxStoredMassGrams = maxStoredMassGrams;
         this.acceptedCategory = acceptedCategory;
         this.restrictCategory = restrictCategory;
     }
@@ -156,6 +266,32 @@ public class WarehouseInventory : IWarehouseInventoryPort
     public bool CanStore(int amount) => RemainingCapacity >= Mathf.Max(0, amount);
     public bool CanStore(StockCategory category, int amount) =>
         Accepts(category) && CanStore(amount);
+
+    public int GetAcceptableQuantity(string itemDefinitionId, int requestedQuantity)
+    {
+        if (requestedQuantity <= 0)
+        {
+            return 0;
+        }
+        if (!HasMassCapacityAuthority)
+        {
+            return Math.Min(requestedQuantity, RemainingCapacity);
+        }
+
+        long unitMassGrams = RequirePhysicalMassQuery()
+            .GetDefinitionUnitMassGrams(itemDefinitionId);
+        if (unitMassGrams <= 0L)
+        {
+            throw new InvalidOperationException(
+                $"Warehouse item '{itemDefinitionId}' has nonpositive canonical mass.");
+        }
+
+        long byMass = RemainingMassGrams / unitMassGrams;
+        return (int)Math.Min(requestedQuantity, Math.Min(int.MaxValue, byMass));
+    }
+
+    public bool CanStoreItem(string itemDefinitionId, int quantity) =>
+        quantity > 0 && GetAcceptableQuantity(itemDefinitionId, quantity) >= quantity;
     public bool Accepts(StockCategory category) =>
         !restrictCategory || category == acceptedCategory;
 
@@ -164,7 +300,6 @@ public class WarehouseInventory : IWarehouseInventoryPort
         return new WarehouseInventorySnapshot
         {
             version = WarehouseInventorySnapshot.CurrentVersion,
-            maxCapacity = maxCapacity,
             restrictCategory = restrictCategory,
             acceptedCategoryId = StockCategoryPersistenceId.ToId(acceptedCategory)
         };
@@ -198,7 +333,6 @@ public class WarehouseInventory : IWarehouseInventoryPort
             return false;
         }
 
-        maxCapacity = Mathf.Max(0, snapshot.maxCapacity);
         restrictCategory = snapshot.restrictCategory;
         acceptedCategory = restoredAcceptedCategory;
         error = string.Empty;
@@ -219,16 +353,50 @@ public class WarehouseInventory : IWarehouseInventoryPort
                 nameof(persistentWarehouseId));
         categoryCatalog = stockCategoryCatalog
             ?? throw new ArgumentNullException(nameof(stockCategoryCatalog));
+        physicalMassQuery = stockQuery as IWarehousePhysicalMassQueryPort;
+        cachedStoredMassItemStackVersion = int.MinValue;
+        cachedStoredMassAuthorityRevision = long.MinValue;
+        cachedStoredMassGrams = 0L;
+        if (HasMassCapacityAuthority && physicalMassQuery == null)
+        {
+            throw new InvalidOperationException(
+                "A mass-authoritative warehouse requires IWarehousePhysicalMassQueryPort.");
+        }
     }
+
+    public void BindMassAdmissionLedger(
+        IWarehouseMassAdmissionLedgerQuery admissionLedger)
+    {
+        if (!HasMassCapacityAuthority)
+        {
+            throw new InvalidOperationException(
+                "A count-only warehouse cannot bind the gram admission ledger.");
+        }
+        if (admissionLedger == null)
+        {
+            throw new ArgumentNullException(nameof(admissionLedger));
+        }
+        if (massAdmissionLedger != null
+            && !ReferenceEquals(massAdmissionLedger, admissionLedger))
+        {
+            throw new InvalidOperationException(
+                "Warehouse gram admission ledger is already bound to another authority.");
+        }
+        massAdmissionLedger = admissionLedger;
+    }
+
+    private IWarehousePhysicalMassQueryPort RequirePhysicalMassQuery() =>
+        physicalMassQuery
+        ?? throw new InvalidOperationException(
+            "Warehouse canonical mass query is not bound.");
 }
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class WarehouseInventorySnapshot
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
     public int version = CurrentVersion;
-    public int maxCapacity;
     public bool restrictCategory;
     public string acceptedCategoryId =
         StockCategoryPersistenceId.ToId(StockCategory.General);

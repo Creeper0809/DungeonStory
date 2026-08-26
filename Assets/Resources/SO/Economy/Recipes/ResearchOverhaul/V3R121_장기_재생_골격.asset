@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: medicine:mycelial-culture-pack
     amount: 1
   outputs:
-  - itemId: medical:organ-regeneration-scaffold
+  - outputLineId: output:recipe:medical:organ-regeneration-scaffold/000/main/medical:organ-regeneration-scaffold
+    role: 0
+    itemId: medical:organ-regeneration-scaffold
     amount: 1
     probability: 1

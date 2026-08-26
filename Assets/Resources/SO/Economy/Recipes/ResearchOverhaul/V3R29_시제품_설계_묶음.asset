@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: component:machine-parts
     amount: 1
   outputs:
-  - itemId: component:prototype-package
+  - outputLineId: output:recipe:component:prototype-package/000/main/component:prototype-package
+    role: 0
+    itemId: component:prototype-package
     amount: 1
     probability: 1

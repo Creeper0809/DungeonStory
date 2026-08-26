@@ -61,6 +61,14 @@ public static class WildlifeDebugScenarios
         Run("visual_grounding_and_wounded_healthbar", VerifyVisualGroundingAndWoundedHealthbar, lines, errors);
         Run("shared_combat_body_profile", VerifySharedCombatBodyProfile, lines, errors);
         Run("natural_motion_dwell_and_facing", VerifyNaturalMotionDwellAndFacing, lines, errors);
+        Run("restore_grid_rebind_is_idempotent_after_wildlife_rollback",
+            VerifyRestoreGridRebindIsIdempotentAfterWildlifeRollback,
+            lines,
+            errors);
+        Run("food_raid_pending_disposition_outbox",
+            WildlifeFoodRaidOutboxDebugScenarios.VerifyPendingDispositionOutbox,
+            lines,
+            errors);
         Run("ecosystem_patch_resource_loop", VerifyEcosystemPatchResourceLoop, lines, errors);
         Run("authored_habitat_decoration_palette", VerifyAuthoredHabitatDecorationPalette, lines, errors);
         Run("habitat_decoration_consumption_visual", VerifyHabitatDecorationConsumptionVisual, lines, errors);
@@ -534,6 +542,44 @@ public static class WildlifeDebugScenarios
             Require(!actor.VisualRenderer.flipX,
                 "world-right route should preserve the right-facing source sprite");
             return "arrival dwell, threat interruption, eased travel, and world-space sprite facing verified";
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
+    private static string VerifyRestoreGridRebindIsIdempotentAfterWildlifeRollback()
+    {
+        Grid live = CreateExteriorGrid(8);
+        GameObject actorObject = new GameObject("WildlifeRestoreGridRollbackContract");
+        try
+        {
+            WildlifeActor actor = actorObject.AddComponent<WildlifeActor>();
+            ConfigureActor(actor, 39117);
+            actor.Initialize(
+                live,
+                WildlifeTestFixtures.CaveRat,
+                "restore-grid-rollback",
+                new Vector2Int(3, 0));
+
+            Grid candidate = live.TryExpandGrid(2, 0);
+            Require(candidate != null, "candidate grid expansion failed");
+            Require(actor.TryRebindGridAfterExpansionForDebug(live, candidate, out string publishFailure),
+                "initial grid publication failed: " + publishFailure);
+            Require(actor.TryRebindGridAfterExpansionForDebug(candidate, live, out string wildlifeRollbackFailure),
+                "wildlife participant rollback failed: " + wildlifeRollbackFailure);
+
+            // The facility participant now publishes the same prior grid.
+            // This second candidate->live request must be a safe no-op.
+            Require(actor.TryRebindGridAfterExpansionForDebug(candidate, live, out string facilityRollbackFailure),
+                "facility rollback rejected an already-restored actor: "
+                + facilityRollbackFailure);
+            Require(ReferenceEquals(
+                    live.GetGridCell(actor.GridPosition)?.GetOccupant(GridLayer.Wildlife),
+                    actor),
+                "idempotent rollback lost the live wildlife occupant");
+            return "wildlife rollback then facility rollback preserves the same live binding";
         }
         finally
         {

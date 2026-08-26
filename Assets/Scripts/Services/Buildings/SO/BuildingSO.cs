@@ -425,6 +425,7 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     public BuildingAbilityCollection AbilityModules =>
         abilityModules ??= new BuildingAbilityCollection();
     public string ContentDefinitionId => contentDefinitionId?.Trim() ?? string.Empty;
+    internal string AuthoredContentDefinitionId => contentDefinitionId ?? string.Empty;
     public int AuthoringRevision => authoringRevision;
     public string SourceNote => sourceNote?.Trim() ?? string.Empty;
     public bool IsDeprecatedCompatibilityAsset => deprecatedCompatibilityAsset;
@@ -639,6 +640,14 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
                 $"BuildingSO '{name}' (id={id}) has "
                 + $"{nameof(BuildingEquipmentMaintenanceAbility)} without a "
                 + $"non-null {nameof(BuildingFacilityAbility)} settings authority.");
+        }
+
+        BuildingStorageAbility storage = GetAbility<BuildingStorageAbility>();
+        if (storage != null && !storage.IsValid)
+        {
+            throw new InvalidOperationException(
+                $"BuildingSO '{name}' (id={id}) has an invalid storage ability: "
+                + "both legacy count capacity and canonical gram capacity are nonpositive.");
         }
     }
 

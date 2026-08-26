@@ -1,7 +1,38 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using UnityEngine;
+
+internal static class ProductionFacilityDefinitionIdentity
+{
+    internal static string Resolve(BuildingSO definition)
+    {
+        if (definition == null)
+        {
+            throw new InvalidOperationException(
+                "Production facility has no building definition authority.");
+        }
+
+        string authored = definition.AuthoredContentDefinitionId;
+        if (authored.Length > 0)
+        {
+            if (string.IsNullOrWhiteSpace(authored)
+                || !string.Equals(authored, authored.Trim(), StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Production facility definition ID is noncanonical.");
+            }
+            return authored;
+        }
+        if (definition.id < 0)
+        {
+            throw new InvalidOperationException(
+                "Production facility has neither a definition ID nor numeric authority.");
+        }
+        return "building:" + definition.id.ToString(CultureInfo.InvariantCulture);
+    }
+}
 
 /// <summary>
 /// The only adapter allowed to unwrap production scene handles. It keeps the
@@ -11,6 +42,7 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
 {
     private readonly IProductionItemGateway items;
     private readonly IProductionOutputBufferGateway outputBuffer;
+    private readonly IProductionStockSensorPhysicalGateway stockSensorPhysical;
     private readonly IProductionInputLogisticsService inputLogistics;
     private readonly IProductionCycleUtilityService cycleUtilities;
     private readonly IProductionWorkshopRuntime workshops;
@@ -24,6 +56,7 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
     public ProductionAssemblyBridgeAdapter(
         IProductionItemGateway items,
         IProductionOutputBufferGateway outputBuffer,
+        IProductionStockSensorPhysicalGateway stockSensorPhysical,
         IProductionInputLogisticsService inputLogistics,
         IProductionCycleUtilityService cycleUtilities,
         IProductionWorkshopRuntime workshops,
@@ -37,6 +70,8 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.outputBuffer = outputBuffer
             ?? throw new ArgumentNullException(nameof(outputBuffer));
+        this.stockSensorPhysical = stockSensorPhysical
+            ?? throw new ArgumentNullException(nameof(stockSensorPhysical));
         this.inputLogistics = inputLogistics
             ?? throw new ArgumentNullException(nameof(inputLogistics));
         this.cycleUtilities = cycleUtilities
@@ -55,6 +90,8 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
     }
+
+    public int BuildingVersion => buildings.BuildingVersion;
 
     public IReadOnlyList<ProductionFacilityHandle> Facilities =>
         (buildings.Buildings ?? Array.Empty<BuildableObject>())
@@ -78,6 +115,8 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
             ?? string.Empty;
         BuildingProductionBufferAbility bufferAbility = facility.BuildingData
             ?.GetProductionBufferAbility();
+        BuildingProductionWorkstationAbility workstation =
+            facility.BuildingData?.GetProductionWorkstationAbility();
         return new ProductionFacilityHandle(
             facility,
             facility.PersistentInstanceId,
@@ -85,7 +124,10 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
             facility.IsGridDestroyed,
             sensorItemId,
             bufferAbility?.allowOverflowDump == true,
-            bufferAbility?.overflowOffset ?? default);
+            bufferAbility?.overflowOffset ?? default,
+            ProductionFacilityDefinitionIdentity.Resolve(facility.BuildingData),
+            workstation?.WorkstationTag ?? string.Empty,
+            bufferAbility?.physicalOutputBufferCycleCapacity ?? 4);
     }
 
     public ProductionWorkerHandle CaptureWorker(object runtimeObject)
@@ -165,15 +207,53 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
             destinationId,
             out requested,
             out failureReason);
-    public bool ConsumeDelivered(
+    public bool ConsumeDeliveredToWip(
         string destinationId,
         IReadOnlyDictionary<string, int> costs,
-        out string failureReason) => items.ConsumeDelivered(
+        string operationId,
+        out ProductionWipInputReceipt receipt,
+        out string failureReason) => items.ConsumeDeliveredToWip(
             destinationId,
             costs,
+            operationId,
+        out receipt,
+        out failureReason);
+    public bool AcknowledgeWipInput(
+        string commitId,
+        out string failureReason) => items.AcknowledgeWipInput(
+            commitId,
             out failureReason);
+    public bool CommitStockSensorInstallPending(
+        string destinationId,
+        string itemId,
+        string operationId,
+        string reasonCode,
+        out ProductionStockSensorPhysicalReceipt receipt,
+        out string failureReason)
+    {
+        return stockSensorPhysical.CommitPending(
+                destinationId,
+                itemId,
+                operationId,
+                reasonCode,
+                out receipt,
+                out failureReason);
+    }
+
+    public bool TryGetPendingStockSensorInstall(
+        string operationId,
+        out ProductionStockSensorPhysicalReceipt receipt)
+    {
+        return stockSensorPhysical.TryGetPending(operationId, out receipt);
+    }
+
+    public bool AcknowledgeStockSensorInstall(
+        string commitId,
+        out string failureReason) =>
+        stockSensorPhysical.Acknowledge(commitId, out failureReason);
     public bool SpawnOutput(string itemId, int amount, Vector2Int position) =>
         items.SpawnOutput(itemId, amount, position);
+
     public bool SpawnBufferedOutput(
         string itemId,
         int amount,
@@ -183,6 +263,24 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
             amount,
             position,
             destinationId);
+    public bool TryCommitBufferedOutput(
+        string commitId,
+        string itemId,
+        int amount,
+        Vector2Int position,
+        string destinationId,
+        out DomainFailure failure) => outputBuffer.TryCommitBufferedOutput(
+            commitId,
+            itemId,
+            amount,
+            position,
+            destinationId,
+            out failure);
+    public bool AcknowledgeBufferedOutput(
+        string commitId,
+        out DomainFailure failure) => outputBuffer.AcknowledgeBufferedOutput(
+            commitId,
+            out failure);
     public bool TryRouteBufferedOutput(
         string sourceDestinationId,
         string itemId,
@@ -205,6 +303,15 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         Vector2Int releasePosition) => items.ReleaseDestination(
             destinationId,
             releasePosition);
+    public bool TryReleaseDestinationAtomically(
+        string destinationId,
+        Vector2Int releasePosition,
+        out int released,
+        out string failureReason) => items.TryReleaseDestinationAtomically(
+            destinationId,
+            releasePosition,
+            out released,
+            out failureReason);
     public int RemoveDestination(string destinationId) =>
         items.RemoveDestination(destinationId);
     public string GetOldestAvailableStackId(
@@ -238,6 +345,14 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         ProductionBillRecord record,
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility) => inputLogistics.RequestMissingInputs(
+            record,
+            recipe,
+            Unwrap(facility));
+    public long ResolveInputBufferMassCapacity(
+        ProductionBillRecord record,
+        ProductionRecipeSO recipe,
+        ProductionFacilityHandle facility) =>
+        inputLogistics.ResolveInputBufferMassCapacity(
             record,
             recipe,
             Unwrap(facility));
@@ -285,11 +400,20 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
             Unwrap(facility),
             out failureReason);
     public bool TryConsumeCycleUtilities(
+        ProductionBillRecord record,
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility,
+        out ProductionProcessFluidReceipt receipt,
         out string failureReason) => cycleUtilities.TryConsumeCycleUtilities(
+            record,
             recipe,
             Unwrap(facility),
+            out receipt,
+            out failureReason);
+    public bool AcknowledgeCycleUtilities(
+        ProductionProcessFluidReceipt receipt,
+        out string failureReason) => cycleUtilities.AcknowledgeCycleUtilities(
+            receipt,
             out failureReason);
     public bool TryResolveBatchSupport(
         ProductionBillRecord record,
@@ -331,6 +455,21 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
             .GetProductionBufferAbility()
             ?.ResolveOutputCapacity(itemId, outputPerBatch, stackLimit)
             ?? Mathf.Max(stackLimit, Mathf.Max(1, outputPerBatch) * 4);
+    }
+
+    public int ResolveOutputBufferCycleCapacity(
+        ProductionFacilityHandle facility)
+    {
+        BuildingProductionBufferAbility ability = Unwrap(facility)
+            ?.BuildingData
+            ?.GetProductionBufferAbility();
+        int capacity = ability?.physicalOutputBufferCycleCapacity ?? 4;
+        if (capacity < 2 || capacity > 4)
+        {
+            throw new InvalidOperationException(
+                $"Physical production output buffer cycle capacity '{capacity}' must be authored in [2,4].");
+        }
+        return capacity;
     }
 
     public float ResolveSupportModifier(
@@ -388,6 +527,8 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         string itemId,
         int amount,
         float qualityModifier,
+        float workerQuality,
+        string commitId,
         out bool handled,
         out DomainFailure failure)
     {
@@ -407,29 +548,82 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
             Unwrap(worker),
             itemId,
             amount,
-            qualityModifier);
-        if (handler is IDomainFailureProductionOutputHandler domainHandler)
+            qualityModifier,
+            workerQuality,
+            commitId);
+        if (handler is not IIdempotentProductionOutputHandler idempotent)
         {
-            if (domainHandler.TryProduce(context, out failure))
-            {
-                return true;
-            }
-            if (!failure.IsFailure)
-            {
-                failure = new DomainFailure(
-                    FailureCode.ProductionOutputUnavailable,
-                    itemId);
-            }
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                itemId,
+                "handler-not-idempotent");
             return false;
         }
-
-        if (handler.TryProduce(context, out _))
+        if (idempotent.TryProduceIdempotent(context, out failure))
         {
             return true;
         }
+        if (!failure.IsFailure)
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                itemId);
+        }
+        return false;
+    }
+
+    public bool AcknowledgeHandledOutput(
+        string itemId,
+        string commitId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        IProductionOutputHandler handler = outputHandlers.FirstOrDefault(
+            candidate => candidate != null && candidate.CanHandle(itemId));
+        if (handler == null)
+        {
+            return outputBuffer.AcknowledgeBufferedOutput(
+                commitId,
+                out failure);
+        }
+        if (handler is not IIdempotentProductionOutputHandler idempotent)
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                itemId,
+                "handler-not-idempotent");
+            return false;
+        }
+        return idempotent.TryAcknowledge(commitId, out failure);
+    }
+
+    public bool TryGetCommittedOutputMassGrams(
+        string itemId,
+        string commitId,
+        out long massGrams,
+        out DomainFailure failure)
+    {
+        IProductionOutputHandler handler = outputHandlers.FirstOrDefault(
+            candidate => candidate != null && candidate.CanHandle(itemId));
+        if (handler == null)
+        {
+            return outputBuffer.TryGetBufferedOutputCommitMassGrams(
+                commitId,
+                out massGrams,
+                out failure);
+        }
+        if (handler is IIdempotentProductionOutputHandler idempotent)
+        {
+            return idempotent.TryGetCommittedMassGrams(
+                commitId,
+                out massGrams,
+                out failure);
+        }
+        massGrams = 0L;
         failure = new DomainFailure(
             FailureCode.ProductionOutputUnavailable,
-            itemId);
+            itemId,
+            "handler-not-idempotent");
         return false;
     }
 
@@ -446,12 +640,16 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
             requiredFeatureTags,
             out failureReason);
 
-    public bool HasCompatibleWarehouse(StockCategory category) =>
+    public bool HasCompatibleWarehouse(string itemId, StockCategory category) =>
+        !string.IsNullOrWhiteSpace(itemId)
+        && string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal)
+        &&
         (warehouses.Warehouses ?? Array.Empty<IWarehouseFacility>())
         .Any(warehouse => warehouse != null
             && warehouse.HasWarehouseInventory
             && warehouse.Inventory != null
-            && warehouse.Inventory.CanStore(category, 1));
+            && warehouse.Inventory.Accepts(category)
+            && warehouse.Inventory.CanStoreItem(itemId, 1));
 
     public void RequestWorkReplan(WorkTypeId workTypeId) =>
         workforce.RequestOneWorkerToReplanFor(workTypeId);

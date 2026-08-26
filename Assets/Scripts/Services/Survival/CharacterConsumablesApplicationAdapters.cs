@@ -24,6 +24,10 @@ public sealed class CharacterConsumablesApplicationPorts :
     private readonly ICharacterRitualFastingCommand ritualFastingCommand;
     private readonly IItemQuantityReservationService quantityReservations;
     private readonly IReservedItemTransferService reservedTransfers;
+    private readonly IReservedPhysicalItemBatchDispositionService
+        reservedBatchDispositions;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
+    private readonly IPackagedLotTareDispositionService tareDispositions;
     private readonly IWorkforceReplanService workforce;
     private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
     private readonly Dictionary<string, HashSet<string>> mealFacilitySlotOwners =
@@ -43,7 +47,10 @@ public sealed class CharacterConsumablesApplicationPorts :
         IItemQuantityReservationService quantityReservations = null,
         IReservedItemTransferService reservedTransfers = null,
         IWorkforceReplanService workforce = null,
-        IRestoreWorldCandidateQuery restoreWorldCandidates = null)
+        IRestoreWorldCandidateQuery restoreWorldCandidates = null,
+        IReservedPhysicalItemBatchDispositionService reservedBatchDispositions = null,
+        IPhysicalItemBatchDispositionService batchDispositions = null,
+        IPackagedLotTareDispositionService tareDispositions = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -59,6 +66,9 @@ public sealed class CharacterConsumablesApplicationPorts :
         this.ritualFastingCommand = ritualFastingCommand;
         this.quantityReservations = quantityReservations;
         this.reservedTransfers = reservedTransfers;
+        this.reservedBatchDispositions = reservedBatchDispositions;
+        this.batchDispositions = batchDispositions;
+        this.tareDispositions = tareDispositions;
         this.workforce = workforce;
         this.restoreWorldCandidates = restoreWorldCandidates;
     }
@@ -539,8 +549,14 @@ public sealed class CharacterConsumablesApplicationPorts :
     public bool TryConsume(ItemStackId stackId, int quantity) =>
         stackId.IsValid
         && quantity > 0
-        && items.TryConsumeStackQuantity(stackId.Value, quantity, out WorldItemStackSnapshot consumed)
-        && consumed != null;
+        && items.TryCommitPhysicalDisposition(
+            stackId.Value,
+            quantity,
+            PhysicalItemDispositionKind.Sink,
+            $"character-consumable:{stackId.Value}:{quantity}",
+            "character-consumable-consumed",
+            out _,
+            out _);
 
     public bool TryConsumeForCharacter(
         CharacterId characterId,
@@ -573,12 +589,23 @@ public sealed class CharacterConsumablesApplicationPorts :
             return false;
         }
 
-        if (!TryConsume(stackId, quantity))
+        CharacterCarryInventorySaveData carryBefore = carry.Capture();
+        if (!carry.TryConsumeCarriedStack(
+                stackId.Value,
+                stack.ItemId,
+                quantity))
             return false;
-        if (!carry.TryConsumeCarriedStack(stackId.Value, stack.ItemId, quantity))
+        if (!items.TryCommitPhysicalDisposition(
+                stackId.Value,
+                quantity,
+                PhysicalItemDispositionKind.Sink,
+                $"character-consumable:{characterId.Value}:{stackId.Value}:{quantity}",
+                "character-carried-consumable-consumed",
+                out _,
+                out _))
         {
-            throw new InvalidOperationException(
-                $"Carried stack '{stackId.Value}' was consumed physically but remained in character '{characterId.Value}' inventory.");
+            carry.Restore(carryBefore);
+            return false;
         }
         return true;
     }
@@ -697,6 +724,295 @@ public sealed class CharacterConsumablesApplicationPorts :
             quantity,
             out _);
     }
+
+    public bool TryCommitReservedMealQuantityPending(
+        ConsumableOperationId operationId,
+        string leaseId,
+        int quantity,
+        out CharacterMealPhysicalCommitSnapshot commit,
+        out string failureReason)
+    {
+        commit = default;
+        if (reservedBatchDispositions == null)
+        {
+            failureReason = "meal-reserved-pending-service-missing";
+            return false;
+        }
+        if (!reservedBatchDispositions.TryCommitReservedSinkPending(
+                leaseId,
+                quantity,
+                operationId.Value,
+                CharacterConsumablesRuntime.MealPhysicalSinkReason,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out failureReason))
+        {
+            return false;
+        }
+        commit = ToMealCommit(receipt);
+        return true;
+    }
+
+    public bool TryGetPendingMealConsumption(
+        ConsumableOperationId operationId,
+        out CharacterMealPhysicalCommitSnapshot commit)
+    {
+        commit = default;
+        if (batchDispositions == null
+            || !batchDispositions.TryGetPending(
+                operationId.Value,
+                out PhysicalItemBatchDispositionReceipt receipt)
+            || receipt.Kind != PhysicalItemDispositionKind.Sink
+            || !string.Equals(
+                receipt.ReasonCode,
+                CharacterConsumablesRuntime.MealPhysicalSinkReason,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        commit = ToMealCommit(receipt);
+        return true;
+    }
+
+    public bool TryAcknowledgeMealConsumption(
+        string commitId,
+        out string failureReason)
+    {
+        if (batchDispositions == null)
+        {
+            failureReason = "meal-pending-ack-service-missing";
+            return false;
+        }
+        return batchDispositions.Acknowledge(commitId, out failureReason);
+    }
+
+    public bool TryAcknowledgeMealConsumption(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId,
+        int quantity,
+        string commitId,
+        out string failureReason) =>
+        TryPublishTareAndAcknowledge(
+            characterId,
+            itemId,
+            quantity,
+            commitId,
+            "meal",
+            out failureReason);
+
+    public bool TryCommitSubstanceConsumptionPending(
+        ConsumableOperationId operationId,
+        CharacterId characterId,
+        ItemStackId stackId,
+        out CharacterSubstancePhysicalCommitSnapshot commit,
+        out string failureReason)
+    {
+        commit = default;
+        if (batchDispositions == null)
+        {
+            failureReason = "substance-pending-service-missing";
+            return false;
+        }
+        if (TryGetPendingSubstanceConsumption(operationId, out commit))
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        WorldItemStackSnapshot stack = items.GetAllStacks().FirstOrDefault(value =>
+            value != null
+            && string.Equals(value.StackId, stackId.Value, StringComparison.Ordinal));
+        if (stack == null)
+        {
+            failureReason = "substance-source-stack-missing";
+            return false;
+        }
+
+        CharacterCarryInventory carry = null;
+        CharacterCarryInventorySaveData carryBefore = null;
+        if (stack.State == WorldItemStackState.Carried)
+        {
+            CharacterActor actor = FindActor(characterId);
+            carry = actor != null ? CharacterCarryInventory.Ensure(actor) : null;
+            if (carry == null
+                || carry.Items.Where(item => item != null
+                        && string.Equals(
+                            item.carriedStackId,
+                            stackId.Value,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            item.itemId,
+                            stack.ItemId,
+                            StringComparison.Ordinal))
+                    .Sum(item => item.quantity) < 1)
+            {
+                failureReason = "substance-carried-source-missing";
+                return false;
+            }
+            carryBefore = carry.Capture();
+            if (!carry.TryConsumeCarriedStack(stackId.Value, stack.ItemId, 1))
+            {
+                failureReason = "substance-carried-debit-failed";
+                return false;
+            }
+        }
+
+        try
+        {
+            failureReason = string.Empty;
+            PhysicalItemBatchDispositionReceipt receipt = default;
+            bool committed;
+            if (stack.State == WorldItemStackState.Carried)
+            {
+                committed = batchDispositions is ICarriedPhysicalItemBatchDispositionService
+                    carriedDispositions
+                    && carriedDispositions.TryCommitCarriedSinkPending(
+                        stackId.Value,
+                        1,
+                        operationId.Value,
+                        CharacterConsumablesRuntime.SubstancePhysicalSinkReason,
+                        out receipt,
+                        out failureReason);
+            }
+            else
+            {
+                committed = batchDispositions.TryCommitPending(
+                    new[] { new PhysicalItemTransformInput(stackId.Value, 1) },
+                    PhysicalItemDispositionKind.Sink,
+                    operationId.Value,
+                    CharacterConsumablesRuntime.SubstancePhysicalSinkReason,
+                    out receipt,
+                    out failureReason);
+            }
+            if (!committed)
+            {
+                if (string.IsNullOrEmpty(failureReason)
+                    && stack.State == WorldItemStackState.Carried)
+                {
+                    failureReason = "substance-carried-pending-service-missing";
+                }
+                carry?.Restore(carryBefore);
+                return false;
+            }
+            commit = ToSubstanceCommit(receipt);
+            return true;
+        }
+        catch
+        {
+            carry?.Restore(carryBefore);
+            throw;
+        }
+    }
+
+    public bool TryGetPendingSubstanceConsumption(
+        ConsumableOperationId operationId,
+        out CharacterSubstancePhysicalCommitSnapshot commit)
+    {
+        commit = default;
+        if (batchDispositions == null
+            || !batchDispositions.TryGetPending(
+                operationId.Value,
+                out PhysicalItemBatchDispositionReceipt receipt)
+            || receipt.Kind != PhysicalItemDispositionKind.Sink
+            || !string.Equals(
+                receipt.ReasonCode,
+                CharacterConsumablesRuntime.SubstancePhysicalSinkReason,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        commit = ToSubstanceCommit(receipt);
+        return true;
+    }
+
+    public bool TryAcknowledgeSubstanceConsumption(
+        string commitId,
+        out string failureReason)
+    {
+        if (batchDispositions == null)
+        {
+            failureReason = "substance-pending-ack-service-missing";
+            return false;
+        }
+        return batchDispositions.Acknowledge(commitId, out failureReason);
+    }
+
+    public bool TryAcknowledgeSubstanceConsumption(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId,
+        int quantity,
+        string commitId,
+        out string failureReason) =>
+        TryPublishTareAndAcknowledge(
+            characterId,
+            itemId,
+            quantity,
+            commitId,
+            "substance",
+            out failureReason);
+
+    private bool TryPublishTareAndAcknowledge(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId,
+        int quantity,
+        string commitId,
+        string consumerKind,
+        out string failureReason)
+    {
+        if (batchDispositions == null)
+        {
+            failureReason = consumerKind + "-pending-ack-service-missing";
+            return false;
+        }
+        bool isPackagedLot = items.MassQuery is IPackagedLotDefinitionQuery packagedLots
+            && packagedLots.TryGetPackagedLot(
+                (ItemDefinitionId)itemId.Value,
+                out _);
+        if (isPackagedLot && tareDispositions == null)
+        {
+            failureReason = consumerKind + "-packaged-tare-service-missing";
+            return false;
+        }
+        if (tareDispositions != null)
+        {
+            CharacterActor actor = FindActor(characterId);
+            if (actor == null || quantity <= 0 || !itemId.IsValid)
+            {
+                failureReason = consumerKind + "-tare-output-context-invalid";
+                return false;
+            }
+            if (!tareDispositions.EnsureTerminalSinkOutputs(
+                    new Dictionary<string, int>(StringComparer.Ordinal)
+                    {
+                        [itemId.Value] = quantity
+                    },
+                    actor.GetNowXY(),
+                    commitId,
+                    out _,
+                    out failureReason))
+            {
+                return false;
+            }
+        }
+        return batchDispositions.Acknowledge(commitId, out failureReason);
+    }
+
+    private static CharacterMealPhysicalCommitSnapshot ToMealCommit(
+        PhysicalItemBatchDispositionReceipt receipt) => new(
+        receipt.OperationId,
+        receipt.ReasonCode,
+        receipt.CommitId,
+        receipt.SourceStackIds,
+        receipt.Quantity,
+        receipt.InputMassGrams);
+
+    private static CharacterSubstancePhysicalCommitSnapshot ToSubstanceCommit(
+        PhysicalItemBatchDispositionReceipt receipt) => new(
+        receipt.OperationId,
+        receipt.ReasonCode,
+        receipt.CommitId,
+        receipt.SourceStackIds,
+        receipt.Quantity,
+        receipt.InputMassGrams);
 
     public void ReleaseMealQuantity(string leaseId)
     {

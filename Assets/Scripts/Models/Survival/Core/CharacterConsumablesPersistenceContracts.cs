@@ -297,6 +297,14 @@ public sealed class CharacterMealPlanSaveData
     public float expectedCompletionEta;
     public bool automaticOperation;
     public float beginContamination;
+    public string physicalCommitOperationId = string.Empty;
+    public string physicalCommitReasonCode = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public List<string> physicalCommitSourceStackIds = new();
+    public int physicalCommitQuantity;
+    public long physicalCommitInputMassGrams;
+    public bool committedPolicyViolation;
+    public bool committedContaminated;
 
     public ConsumableOperationId OperationId =>
         (ConsumableOperationId)planId;
@@ -309,10 +317,45 @@ public sealed class CharacterMealPlanSaveData
 }
 
 [Serializable]
+public sealed class CharacterSubstanceUsePlanSaveData
+{
+    public string operationId = string.Empty;
+    public string characterId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public CharacterSubstanceUsePlanPhase phase =
+        CharacterSubstanceUsePlanPhase.ItemCommitted;
+    public bool automaticOperation;
+    public string physicalCommitOperationId = string.Empty;
+    public string physicalCommitReasonCode = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public List<string> physicalCommitSourceStackIds = new();
+    public int physicalCommitQuantity;
+    public long physicalCommitInputMassGrams;
+    public float resolvedTolerance;
+    public float resolvedAddiction;
+    public float resolvedWithdrawal;
+    public float resolvedActiveSeconds;
+    public float resolvedSecondsSinceLastDose;
+    public float resolvedScheduledCooldownSeconds;
+    public float effectToleranceRatio;
+    public bool resolvedAddicted;
+    public bool resolvedOverdosed;
+    public bool becameAddicted;
+
+    public ConsumableOperationId OperationId =>
+        (ConsumableOperationId)operationId;
+    public CharacterId CharacterId => (CharacterId)characterId;
+    public ConsumableItemDefinitionId ItemDefinitionId =>
+        (ConsumableItemDefinitionId)itemDefinitionId;
+    public ItemStackId SourceStackId => (ItemStackId)sourceStackId;
+}
+
+[Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonCharacterConsumablesSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 8;
 
     public int version = CurrentVersion;
     public long nextOperationSequence = 1;
@@ -325,6 +368,7 @@ public sealed class DungeonCharacterConsumablesSaveData
     public List<CharacterMealFollowupCooldownSaveData> mealFollowupCooldowns = new();
     public List<CharacterMealQualityPolicyState> mealQualityPolicies = new();
     public List<CharacterMealPlanSaveData> activeMealPlans = new();
+    public List<CharacterSubstanceUsePlanSaveData> activeSubstanceUsePlans = new();
 }
 
 [Serializable]

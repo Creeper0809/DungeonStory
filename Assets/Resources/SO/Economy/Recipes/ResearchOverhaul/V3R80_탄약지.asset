@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:starch
     amount: 1
   outputs:
-  - itemId: material:cartridge-paper
+  - outputLineId: output:recipe:material:cartridge-paper/000/main/material:cartridge-paper
+    role: 0
+    itemId: material:cartridge-paper
     amount: 6
     probability: 1

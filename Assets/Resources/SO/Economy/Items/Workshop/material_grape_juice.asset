@@ -27,22 +27,22 @@ MonoBehaviour:
   description: "\uC791\uC5C5\uC2E4\uC758 \uB2E4\uC74C \uACF5\uC815\uC73C\uB85C \uC2E4\uC81C
     \uC6B4\uBC18\uB418\uB294 \uBB3C\uB9AC \uC911\uAC04\uC7AC."
   stockCategory: 0
-  unitWeight: 0.45
+  unitWeight: 0.375
   maxStack: 50
   sprite: {fileID: 0}
   unitPrice: 11
   features:
-  - rid: 7737212042831200453
-  - rid: 7737212042831200454
   - rid: 7737212042857939571
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200453
+    - rid: 1002
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:fermentation
-    - rid: 7737212042831200454
+    - rid: 1003
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
@@ -51,4 +51,4 @@ MonoBehaviour:
     - rid: 7737212042857939571
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5602727
+        saleRate: 0.5599393

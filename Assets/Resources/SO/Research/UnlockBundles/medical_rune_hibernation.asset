@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7269
   researchId: research:medical:rune-hibernation
-  role: 5
+  role: 3
   designIntent: "\uC0DD\uBB3C\uD559\uC801 \uC5F0\uB839 \uACC4\uCE21\uACFC \uACF5\uBA85,
     \uB8EC \uC804\uB825\xB7\uB0C9\uAC01\uC744 \uB3D9\uBA74 \uC720\uC9C0\uC5D0 \uD1B5\uD569\uD55C\uB2E4."
   rewardGroups:
@@ -57,6 +57,4 @@ MonoBehaviour:
   - kind: 4
     displayOrder: 60
     heading: "\uC758\uB8CC \uC2DC\uC220"
-  singletonReason: "\uAC8C\uC784 \uADDC\uCE59\uC744 \uBC14\uAFB8\uB294 \uCD5C\uC885
-    \uAE30\uC220\uC774\uBBC0\uB85C \uD575\uC2EC \uBCF4\uC0C1 \uD558\uB098\uB9CC\uC73C\uB85C\uB3C4
-    \uC644\uACB0\uB41C\uB2E4."
+  singletonReason: 

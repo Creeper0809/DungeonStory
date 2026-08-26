@@ -677,11 +677,10 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
 
         const string kitId = "supply:alliance-signal-kit";
         string destinationId = signalPost.PersistentInstanceId.Value;
-        bool consumed = itemStackRuntime.TryConsumeFacilityItemBuffer(
-            destinationId,
-            new Dictionary<string, int> { [kitId] = 1 },
-            out _);
-        if (!consumed)
+        WorldItemStackSnapshot kit = itemStackRuntime.GetAllStacks().FirstOrDefault(stack => stack != null
+            && stack.ItemId == kitId && stack.DestinationId == destinationId && stack.State == WorldItemStackState.FacilityBuffer
+            && stack.AvailableQuantity > 0);
+        if (kit == null)
         {
             if (!itemStackRuntime.GetAllStacks().Any(stack => stack != null
                     && string.Equals(stack.ItemId, kitId, StringComparison.Ordinal)
@@ -701,7 +700,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             return 1f;
         }
 
-        return milestoneCommands.TryActivateAccordSignalSupport(calendar.Day)
+        return milestoneCommands.TryActivateAccordSignalSupport(calendar.Day, kit.StackId)
             ? 1.15f
             : 1f;
     }

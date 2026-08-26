@@ -27,6 +27,10 @@ public static class BatchACoreSessionSaveDebugScenarios
         List<string> failures = new();
         Verify("ExperiencePacing", VerifyExperiencePacing, failures);
         Verify("ExternalInfluence", VerifyExternalInfluence, failures);
+        Verify(
+            "ExternalInfluenceTrailCharmOutbox",
+            VerifyExternalInfluenceTrailCharmOutbox,
+            failures);
         Verify("RunFlow", VerifyRunFlow, failures);
         Verify("RunVariable", VerifyRunVariablePreflight, failures);
         Verify("DungeonDebug", VerifyDungeonDebug, failures);
@@ -56,6 +60,12 @@ public static class BatchACoreSessionSaveDebugScenarios
                 + "rollback-free contracts.");
         }
         return failures.Count == 0;
+    }
+
+    private static bool VerifyExternalInfluenceTrailCharmOutbox()
+    {
+        ExternalInfluenceTrailCharmOutboxDebugScenarios.RunAll();
+        return true;
     }
 
     private static bool VerifyCoreSessionStateOwnership()
@@ -689,6 +699,7 @@ public static class BatchACoreSessionSaveDebugScenarios
                 events,
                 new IntegratedMoneyAccount(1000),
                 DefaultInterfaceProxy.Create<IWorldItemStackRuntime>(),
+                DefaultInterfaceProxy.Create<IPhysicalItemBatchDispositionService>(),
                 items,
                 DefaultInterfaceProxy.Create<IWildlifeRuntime>(),
                 DefaultInterfaceProxy.Create<ISurvivalEnvironmentQuery>(),

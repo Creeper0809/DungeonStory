@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: fiber:mire-reed
     amount: 3
   outputs:
-  - itemId: yarn:mire-canvas
+  - outputLineId: output:recipe:v22:spin-powered:mire-canvas/000/main/yarn:mire-canvas
+    role: 0
+    itemId: yarn:mire-canvas
     amount: 2
     probability: 1

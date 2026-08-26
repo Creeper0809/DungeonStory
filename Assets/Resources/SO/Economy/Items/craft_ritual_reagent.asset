@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8083
+  id: 8084
   itemId: craft:ritual-reagent
   displayName: "\uD608\uC561 \uC758\uC2DD\uC7AC"
   description: "\uD53C\uC640 \uB3C5\uC18C\uB97C \uC548\uC815\uD654\uD55C \uAE08\uAE30
@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 31
   features:
-  - rid: 7737211905666712436
-  - rid: 7737211905666712437
-  - rid: 7737212042857939423
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712436
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:control:blood-show
-    - rid: 7737211905666712437
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 4128
         sharedIntermediate: 0
-    - rid: 7737212042857939423
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5849139

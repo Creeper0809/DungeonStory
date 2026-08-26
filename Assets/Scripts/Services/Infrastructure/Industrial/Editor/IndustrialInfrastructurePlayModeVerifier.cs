@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
@@ -13,12 +14,24 @@ public static class IndustrialInfrastructurePlayModeVerifier
 {
     public const string ReportPath =
         "Temp/IndustrialInfrastructure/playmode-live-report.txt";
+    public const string PowerFuelEvidencePath =
+        "Artifacts/QA/industrial-power-fuel-buffer-playmode-report.txt";
     public const string ScreenshotPath =
         "Temp/IndustrialInfrastructure/playmode-live.png";
 
     [MenuItem(
         "DungeonStory/Debug/Infrastructure/Run Live Industrial PlayMode Scenario")]
     public static void Run()
+    {
+        CreateRunner(powerFuelOnly: false);
+    }
+
+    public static void RunPowerFuelOnly()
+    {
+        CreateRunner(powerFuelOnly: true);
+    }
+
+    private static void CreateRunner(bool powerFuelOnly)
     {
         if (!Application.isPlaying)
         {
@@ -36,18 +49,21 @@ public static class IndustrialInfrastructurePlayModeVerifier
 
         GameObject runnerObject = new GameObject(
             "IndustrialInfrastructurePlayModeVerifier");
-        runnerObject.AddComponent<
-            IndustrialInfrastructurePlayModeVerificationRunner>();
+        IndustrialInfrastructurePlayModeVerificationRunner runner =
+            runnerObject.AddComponent<
+                IndustrialInfrastructurePlayModeVerificationRunner>();
+        runner.PowerFuelOnly = powerFuelOnly;
     }
 }
 
 public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     MonoBehaviour
 {
+    public bool PowerFuelOnly { get; set; }
     private const string ConveyorDestination = "qa:industrial-output";
     private const string NormalStackIdPrefix = "qa:normal-stack";
     private const string OverflowPayloadPrefix = "qa:overflow-payload:";
-    private const float TimeoutSeconds = 12f;
+    private const float TimeoutSeconds = 30f;
 
     private readonly List<BuildableObject> createdBuildings =
         new List<BuildableObject>();
@@ -71,15 +87,20 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private IAutomationInfrastructurePersistence automationPersistence;
     private IWorldItemStackRuntime items;
     private IItemTransferService itemTransfers;
+    private IDungeonSaveSectionRegistry saveSections;
+    private IFacilityBufferPhysicalOccupancyQuery bufferOccupancy;
     private IGameClock clock;
     private GameManager gameManager;
     private OwnerSelectionPanel ownerSelection;
     private Camera mainCamera;
+    private CharacterActor fuelHauler;
     private Vector3 originalCameraPosition;
     private float originalCameraSize;
     private float originalTimeScale;
     private bool originalPause;
     private bool ownerSelectionWasActive;
+    private bool originalFuelHaulerAiPause;
+    private Vector3 originalFuelHaulerWorldPosition;
 
     private DungeonPowerInfrastructureSaveData originalPower;
     private DungeonFluidInfrastructureSaveData originalFluid;
@@ -122,6 +143,10 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private IEnumerator RunVerification()
     {
             yield return ResolveRuntime();
+            yield return EnsurePlayableRun();
+            fuelHauler = FindHauler();
+            Require(fuelHauler != null,
+                "발전기 exact-stack 운반을 실행할 실제 캐릭터가 없습니다.");
             CaptureOriginalState();
             VerifyDetachedRestorePreparation();
             ConfigureVerificationTime();
@@ -144,6 +169,11 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 "실제 배치 이후 기반 시설 토폴로지가 생성되지 않았습니다.");
 
             yield return VerifyPowerAndFluids();
+            if (PowerFuelOnly)
+            {
+                report.Add("mode=power-fuel-only");
+                yield break;
+            }
             yield return VerifyConveyorTransport(origin);
             yield return VerifyAutomation();
             yield return VerifyDeadlockAndOverflow();
@@ -247,11 +277,31 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             scope.Container.Resolve<IAutomationInfrastructurePersistence>();
         items = scope.Container.Resolve<IWorldItemStackRuntime>();
         itemTransfers = scope.Container.Resolve<IItemTransferService>();
+        saveSections = scope.Container.Resolve<IDungeonSaveSectionRegistry>();
+        bufferOccupancy = scope.Container.Resolve<
+            IFacilityBufferPhysicalOccupancyQuery>();
         clock = scope.Container.Resolve<IGameClock>();
         gameManager = UnityEngine.Object.FindFirstObjectByType<GameManager>();
         ownerSelection =
             UnityEngine.Object.FindFirstObjectByType<OwnerSelectionPanel>();
         mainCamera = Camera.main;
+    }
+
+    private IEnumerator EnsurePlayableRun()
+    {
+        OwnerRunManager ownerManager =
+            UnityEngine.Object.FindFirstObjectByType<OwnerRunManager>();
+        if (ownerManager == null || ownerManager.CurrentOwnerActor == null)
+        {
+            report.Add("fastPartyCommit="
+                + StartPartyPreparationPlayModeVerifier.RunFastCommitForDebug());
+            for (int frame = 0; frame < 8; frame++)
+                yield return null;
+        }
+
+        ownerManager = UnityEngine.Object.FindFirstObjectByType<OwnerRunManager>();
+        Require(ownerManager != null && ownerManager.CurrentOwnerActor != null,
+            "산업 PlayMode 검증용 실제 플레이 파티를 준비하지 못했습니다.");
     }
 
     private void CaptureOriginalState()
@@ -265,6 +315,8 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         originalPause = gameManager != null && gameManager.isPause;
         ownerSelectionWasActive =
             ownerSelection != null && ownerSelection.gameObject.activeSelf;
+        originalFuelHaulerAiPause = fuelHauler.IsAiPaused();
+        originalFuelHaulerWorldPosition = fuelHauler.transform.position;
         if (mainCamera != null)
         {
             originalCameraPosition = mainCamera.transform.position;
@@ -317,6 +369,12 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         }
 
         Time.timeScale = 5f;
+        fuelHauler.SetAiPaused(true);
+        fuelHauler.Brain?.StopAllAiForLifecycleTransition(
+            "qa-industrial-power-fuel-isolation");
+        fuelHauler.GetComponent<AbilityMove>()?.CancelActiveMovement();
+        fuelHauler.GetComponent<AbilityHaul>()?.StopHauling(
+            "qa-industrial-power-fuel-isolation");
     }
 
     private void SetOwnerSelectionVisible(bool visible)
@@ -400,7 +458,6 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         int maxX = positions.Max(position => position.x);
         int minY = positions.Min(position => position.y);
         int maxY = positions.Max(position => position.y);
-
         for (int y = minY; y <= maxY - 2; y++)
         {
             for (int x = minX; x <= maxX - 11; x++)
@@ -554,20 +611,159 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         BuildableObject cleanTank = FindBuilding("I08");
         BuildableObject shower = FindBuilding("I14");
         BuildableObject wastewaterTank = FindBuilding("I09");
-        string generatorDestination = "power:" + GetNodeId(generator);
+        string generatorNodeId = GetNodeId(generator);
+        string generatorDestination = "power:" + generatorNodeId;
+        string pumpNodeId = GetNodeId(pump);
+        Vector2Int generatorAccess = new[]
+            {
+                generator.centerPos + Vector2Int.right,
+                generator.centerPos + Vector2Int.left,
+                generator.centerPos + Vector2Int.up,
+                generator.centerPos + Vector2Int.down
+            }
+            .First(position => grid.IsValidGridPos(position)
+                && grid.IsWalkable(position));
+        Vector2Int fuelSourcePosition = grid.SearchPath(generatorAccess)
+            .GetReachablePositions()
+            .Where(position => grid.IsValidGridPos(position)
+                && grid.IsWalkable(position))
+            .Where(position =>
+            {
+                int distance = Mathf.Abs(position.x - generator.centerPos.x)
+                    + Mathf.Abs(position.y - generator.centerPos.y);
+                return distance >= 3 && distance <= 8;
+            })
+            .OrderByDescending(position =>
+                Mathf.Abs(position.x - generator.centerPos.x)
+                + Mathf.Abs(position.y - generator.centerPos.y))
+            .ThenBy(position => position.y)
+            .ThenBy(position => position.x)
+            .FirstOrDefault();
+        if (!grid.IsValidGridPos(fuelSourcePosition)
+            || !grid.IsWalkable(fuelSourcePosition))
+        {
+            fuelSourcePosition = generatorAccess;
+        }
+        fuelHauler.transform.position = grid.GetWorldPos(fuelSourcePosition);
+        fuelHauler.Brain?.ClearPathSearchCache();
         Require(items.SpawnItemAt(
                 "resource:mana-crystal",
                 1,
-                generator.centerPos,
-                WorldItemStackState.FacilityBuffer,
-                generatorDestination,
+                fuelSourcePosition,
+                WorldItemStackState.Loose,
+                string.Empty,
                 out int spawnedFuel)
             && spawnedFuel == 1,
-            "마나 발전기에 실제 연료 스택을 공급하지 못했습니다.");
+            "마나 발전기 운반용 실제 연료 스택을 생성하지 못했습니다.");
+        WorldItemStackSnapshot fuelSource = items.GetStacksAt(fuelSourcePosition)
+            .Single(value => string.Equals(
+                value.ItemId,
+                "resource:mana-crystal",
+                StringComparison.Ordinal));
+        Require(!items.TryRouteStackToDestination(
+                fuelSource.StackId,
+                WorldItemStackState.FacilityBuffer,
+                generatorDestination,
+                generator.centerPos,
+                out string rawRouteFailure)
+            && rawRouteFailure.Contains(
+                "facility_buffer_managed_route_required",
+                StringComparison.Ordinal),
+            "발전기 연료가 공통 질량 admission을 우회해 직접 라우팅됐습니다.");
+        report.Add(
+            "powerRawRoute=REJECTED:facility_buffer_managed_route_required");
+        Require(items.TryRequestStackDelivery(
+                fuelSource.StackId,
+                1,
+                generator.centerPos,
+                generatorDestination,
+                out int requestedFuel,
+                out string requestFailure)
+            && requestedFuel == 1,
+            "발전기 exact-stack 연료 운반 요청이 실패했습니다: "
+            + requestFailure);
 
-        yield return WaitUntil(
-            () => power.IsPowered(pump),
-            "발전기와 연결된 양수 펌프에 전력이 공급되지 않았습니다.");
+        AIHaul fuelHaulAction = ScriptableObject.CreateInstance<AIHaul>();
+        try
+        {
+            Require(fuelHaulAction.CanStart(fuelHauler),
+                "발전기 exact-stack 요청을 실제 AIHaul이 선택하지 못했습니다: "
+                + DescribePowerFuelHaul(generatorDestination));
+            AbilityHaul.Ensure(fuelHauler);
+            fuelHaulAction.Execute(fuelHauler);
+            yield return WaitUntil(
+                () => items.CaptureHaulDeliveryIntentsByDestination(
+                        generatorDestination)
+                    .Any(intent => intent.HasCommittedPickup),
+                "발전기 연료 픽업의 exact carried intent가 발행되지 않았습니다: "
+                + DescribePowerFuelHaul(generatorDestination),
+                realTimeTimeout: 10f);
+            HaulDeliveryIntentSaveData carriedBeforeRestore = items
+                .CaptureHaulDeliveryIntentsByDestination(generatorDestination)
+                .Single(intent => intent.HasCommittedPickup);
+            long carriedMassBeforeRestore = bufferOccupancy
+                .Capture(generatorDestination)
+                .CommittedCarriedMassGrams;
+            Require(carriedMassBeforeRestore > 0L,
+                "복원 직전 발전기 연료 carried 질량이 0g입니다.");
+
+            List<DungeonSaveSectionEnvelope> checkpoint =
+                saveSections.CaptureAll();
+            DungeonGameRestoreReport restoreReport = new();
+            Require(saveSections.RestoreAll(checkpoint, restoreReport),
+                "발전기 연료 carried checkpoint 복원 실패: "
+                + string.Join(" | ", restoreReport.Errors));
+            for (int settleFrame = 0; settleFrame < 4; settleFrame++)
+                yield return null;
+
+            fuelHauler = FindHauler();
+            Require(fuelHauler != null,
+                "발전기 연료 복원 후 운반자를 다시 찾지 못했습니다.");
+            HaulDeliveryIntentSaveData carriedAfterRestore = items
+                .CaptureHaulDeliveryIntentsByDestination(generatorDestination)
+                .Single(intent => intent.HasCommittedPickup);
+            long carriedMassAfterRestore = bufferOccupancy
+                .Capture(generatorDestination)
+                .CommittedCarriedMassGrams;
+            Require(string.Equals(
+                    carriedBeforeRestore.operationId,
+                    carriedAfterRestore.operationId,
+                    StringComparison.Ordinal)
+                && carriedMassAfterRestore == carriedMassBeforeRestore,
+                "발전기 연료 save/restore가 exact carried intent 또는 gram을 바꿨습니다.");
+            report.Add($"powerFuelCarriedRestore={carriedMassAfterRestore}g");
+
+            yield return WaitUntil(
+                () => TryResolveLiveBuilding(pumpNodeId, out BuildableObject livePump)
+                    && power.IsPowered(livePump),
+                "exact-stack 요청 연료가 AI 운반·입고·소비되지 않아 양수 펌프에 전력이 공급되지 않았습니다: "
+                + DescribePowerFuelHaul(generatorDestination));
+        }
+        finally
+        {
+            Destroy(fuelHaulAction);
+        }
+        Require(items.CaptureHaulDeliveryIntentsByDestination(
+                    generatorDestination).Count == 0,
+            "연료 입고·소비 이후 발전기 haul intent가 남았습니다.");
+
+        if (PowerFuelOnly)
+        {
+            Require(TryResolveLiveBuilding(
+                    generatorNodeId,
+                    out BuildableObject liveGenerator),
+                "발전기 연료 복원 후 실제 발전기를 다시 찾지 못했습니다.");
+            PowerNetworkSnapshot focusedPowerNetwork = power.Networks.First(
+                network => network.Nodes.Any(node =>
+                    node.BuildingId.Equals(
+                        liveGenerator.RequirePersistentInstanceId())));
+            report.Add(
+                $"power={focusedPowerNetwork.ProductionPerSecond:0.##}/"
+                + $"{focusedPowerNetwork.DemandPerSecond:0.##}");
+            report.Add("powerFuelRoute=exact-stack-admission-ai-haul");
+            yield break;
+        }
+
         yield return WaitUntil(
             () => water.TryGetNetwork(
                     cleanTank,
@@ -594,10 +790,14 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 && snapshot.Wastewater >= 0.4f,
             "샤워 사용 후 실제 오수가 하수 탱크에 들어오지 않았습니다.");
 
+        Require(TryResolveLiveBuilding(
+                generatorNodeId,
+                out BuildableObject currentGenerator),
+            "발전기 연료 복원 후 실제 발전기를 다시 찾지 못했습니다.");
         PowerNetworkSnapshot poweredNetwork = power.Networks.First(
             network => network.Nodes.Any(node =>
                 node.BuildingId.Equals(
-                    generator.RequirePersistentInstanceId())));
+                    currentGenerator.RequirePersistentInstanceId())));
         FluidNetworkSnapshot cleanNetwork = water.Networks.First(
             network => network.Channel == UtilityChannel.CleanWater
                 && network.CleanWater > 0f);
@@ -607,6 +807,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         report.Add(
             $"power={poweredNetwork.ProductionPerSecond:0.##}/"
             + $"{poweredNetwork.DemandPerSecond:0.##}");
+        report.Add("powerFuelRoute=exact-stack-admission-ai-haul");
         report.Add($"cleanWater={cleanNetwork.CleanWater:0.###}");
         report.Add($"wastewater={wasteNetwork.Wastewater:0.###}");
     }
@@ -715,6 +916,17 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                         StringComparison.Ordinal)));
         Require(targetNetwork != null,
             "배치한 순환 벨트의 실제 네트워크를 찾지 못했습니다.");
+        HashSet<string> createdNodeIds = createdBuildings
+            .Select(GetNodeId)
+            .Where(nodeId => !string.IsNullOrWhiteSpace(nodeId))
+            .ToHashSet(StringComparer.Ordinal);
+        string[] foreignNodeIds = targetNetwork.Nodes
+            .Select(node => node.BuildingId.Value)
+            .Where(nodeId => !createdNodeIds.Contains(nodeId))
+            .OrderBy(nodeId => nodeId, StringComparer.Ordinal)
+            .ToArray();
+        report.Add("deadlockExistingNetworkNodes="
+            + foreignNodeIds.Length);
         List<string> nodeIds = targetNetwork.Nodes
             .SelectMany(node => Enumerable.Repeat(
                 node.BuildingId.Value,
@@ -734,11 +946,8 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         List<string> transitStackIds = new List<string>(nodeIds.Count);
         for (int index = 0; index < nodeIds.Count; index++)
         {
-            BuildableObject nodeBuilding = createdBuildings.First(building =>
-                string.Equals(
-                    GetNodeId(building),
-                    nodeIds[index],
-                    StringComparison.Ordinal));
+            BuildableObject nodeBuilding = ResolveLiveBuilding(
+                nodeIds[index]);
             Require(items.SpawnItemAt(
                     "material:lumber",
                     1,
@@ -841,7 +1050,10 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             "가장 오래 정지한 화물의 오버플로 배출을 승인하지 못했습니다.");
         yield return WaitUntil(
             () => items.GetAllStacks().Any(stack =>
-                stack.StackId == transitStackIds[0]),
+                stack.StackId == transitStackIds[0]
+                && stack.State == WorldItemStackState.Loose
+                && stack.ItemId == "material:lumber"
+                && stack.Quantity == 1),
             "승인한 교착 화물이 loose stack으로 배출되지 않았습니다.");
 
         WorldItemStackSnapshot restored = items.GetAllStacks().First(
@@ -923,6 +1135,83 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             ?? string.Empty;
     }
 
+    private static BuildableObject ResolveLiveBuilding(string nodeId)
+    {
+        BuildableObject[] matches = UnityEngine.Object
+            .FindObjectsByType<BuildableObject>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None)
+            .Where(building => string.Equals(
+                GetNodeId(building),
+                nodeId,
+                StringComparison.Ordinal))
+            .ToArray();
+        Require(matches.Length == 1,
+            "교착 검증 네트워크 노드의 실제 시설을 정확히 찾지 못했습니다: "
+            + nodeId
+            + ";matches="
+            + matches.Length);
+        return matches[0];
+    }
+
+    private static bool TryResolveLiveBuilding(
+        string nodeId,
+        out BuildableObject building)
+    {
+        BuildableObject[] matches = UnityEngine.Object
+            .FindObjectsByType<BuildableObject>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None)
+            .Where(candidate => string.Equals(
+                GetNodeId(candidate),
+                nodeId,
+                StringComparison.Ordinal))
+            .ToArray();
+        building = matches.Length == 1 ? matches[0] : null;
+        return building != null;
+    }
+
+    private static CharacterActor FindHauler()
+    {
+        return CharacterActorCollection.DistinctByGameObject(
+                UnityEngine.Object.FindObjectsByType<CharacterActor>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None))
+            .Where(actor => actor != null && !actor.IsDead)
+            .OrderByDescending(actor => actor.TryGetAbility(out AbilityWork _))
+            .ThenBy(actor => actor.Identity != null
+                && actor.Identity.Role == CharacterRole.Owner ? 1 : 0)
+            .FirstOrDefault(actor => actor.TryGetAbility(out AbilityMove _)
+                && (actor.TryGetAbility(out AbilityWork _)
+                    || actor.Identity != null
+                    && actor.Identity.Role == CharacterRole.Owner));
+    }
+
+    private string DescribePowerFuelHaul(string destinationId)
+    {
+        AbilityHaul ability = fuelHauler?.GetComponent<AbilityHaul>();
+        string stacks = string.Join(
+            "|",
+            items.GetAllStacks()
+                .Where(value => value != null
+                    && (string.Equals(
+                            value.DestinationId,
+                            destinationId,
+                            StringComparison.Ordinal)
+                        || string.Equals(
+                            value.ItemId,
+                            "resource:mana-crystal",
+                            StringComparison.Ordinal)))
+                .OrderBy(value => value.StackId, StringComparer.Ordinal)
+                .Select(value =>
+                    $"{value.StackId}:{value.State}:{value.Quantity}:"
+                    + $"{value.DestinationId}:{value.Position}"));
+        return $"actor={fuelHauler?.BuildingCharacterId.Value ?? "missing"};"
+            + $"hauling={ability?.IsHauling == true};"
+            + $"intents={items.CaptureHaulDeliveryIntentsByDestination(destinationId).Count};"
+            + $"stacks={stacks}";
+    }
+
     private void FocusCamera(Vector2Int origin)
     {
         if (mainCamera == null)
@@ -952,10 +1241,64 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         File.WriteAllLines(
             IndustrialInfrastructurePlayModeVerifier.ReportPath,
             report);
+        if (PowerFuelOnly && verificationFailure == null)
+            WritePowerFuelEvidence();
+    }
+
+    private void WritePowerFuelEvidence()
+    {
+        string[] stableEvidence =
+        {
+            "schemaVersion=1",
+            "scenario=industrial-power-fuel-buffer",
+            "route=loose-source->exact-stack-managed-admission->actual-ai-haul"
+                + "->carried-save-restore->facility-buffer->fuel-consumption->power",
+            RequireSingleReportLine("powerRawRoute="),
+            RequireSingleReportLine("powerFuelCarriedRestore="),
+            RequireSingleReportLine("power="),
+            RequireSingleReportLine("powerFuelRoute="),
+            RequireSingleReportLine("mode="),
+            RequireSingleReportLine("result=")
+        };
+        V27BalanceArtifactWriter.WriteIfDifferent(
+            IndustrialInfrastructurePlayModeVerifier.PowerFuelEvidencePath,
+            stream =>
+            {
+                using StreamWriter writer = new(
+                    stream,
+                    new UTF8Encoding(false, true),
+                    4096,
+                    leaveOpen: true);
+                writer.NewLine = "\n";
+                foreach (string line in stableEvidence)
+                    writer.WriteLine(line);
+                writer.Flush();
+            });
+    }
+
+    private string RequireSingleReportLine(string prefix)
+    {
+        string[] matches = report
+            .Where(line => line.StartsWith(prefix, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                $"Expected exactly one '{prefix}' evidence line; actual={matches.Length}.");
+        }
+        return matches[0];
     }
 
     private void Cleanup()
     {
+        fuelHauler?.GetComponent<AbilityHaul>()?.StopHauling(
+            "qa-industrial-power-fuel-cleanup");
+        if (fuelHauler != null)
+        {
+            fuelHauler.SetAiPaused(originalFuelHaulerAiPause);
+            fuelHauler.transform.position = originalFuelHaulerWorldPosition;
+            fuelHauler.Brain?.ClearPathSearchCache();
+        }
         Time.timeScale = originalTimeScale;
         if (gameManager != null)
         {

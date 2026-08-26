@@ -63,7 +63,7 @@ MonoBehaviour:
     - rid: 7737211921440178685
     - rid: 7737211921440178686
     - rid: 7737211921440178687
-    - rid: 7737212042831200462
+    - rid: 7737212199327498289
   width: 2
   height: 1
   layer: 1
@@ -181,7 +181,7 @@ MonoBehaviour:
         roomTemperatureOffset: 1
         coldProtection: 5
         heatProtection: 3
-    - rid: 7737212042831200462
+    - rid: 7737212199327498289
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

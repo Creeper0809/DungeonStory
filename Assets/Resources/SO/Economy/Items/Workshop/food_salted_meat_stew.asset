@@ -32,18 +32,18 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 12
   features:
-  - rid: 7737212042831200612
-  - rid: 7737212042831200613
-  - rid: 7737212042831200614
   - rid: 7737212042857939012
+  - rid: 1003
+  - rid: 1004
+  - rid: 1005
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200612
+    - rid: 1003
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:livestock
-    - rid: 7737212042831200613
+    - rid: 1004
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 1
@@ -53,7 +53,7 @@ MonoBehaviour:
         mood: 6
         freshnessSeconds: 720
         preserved: 1
-    - rid: 7737212042831200614
+    - rid: 1005
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2

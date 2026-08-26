@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8092
+  id: 8093
   itemId: drug:vitality-tonic
   displayName: "\uD65C\uB825 \uAC15\uC7A5\uC81C"
   description: "\uD53C\uB85C\uB97C \uC904\uC774\uB294 \uBE44\uC911\uB3C5\uC131 \uAC15\uC7A5\uC81C."
@@ -31,24 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 18
   features:
-  - rid: 7737211905666712018
-  - rid: 7737211905666712019
-  - rid: 7737211905666712021
-  - rid: 7737212042857939237
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712018
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:distillation
-    - rid: 7737211905666712019
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211905666712021
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5893703
+    - rid: 1003
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:vitality-tonic
@@ -61,7 +65,3 @@ MonoBehaviour:
         workSpeedEffect: 0.12
         combatEffect: 0
         durationSeconds: 150
-    - rid: 7737212042857939237
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.5893703

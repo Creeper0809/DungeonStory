@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -10,6 +11,9 @@ public static class CircusSaveValidation
     public const int MaximumCapturedWildlife = 512;
     public const int MaximumParticipantsPerGroup = 256;
     private const string OrderPrefix = "circus:";
+    private const string FeedOperationPrefix = "captivity-wildlife-feed:";
+    private const string FeedReasonCode = "captivity-wildlife-feed-consumed";
+    private const string FeedConsumedStatus = "FeedConsumed";
 
     public static void Validate(
         CircusSaveData payload,
@@ -233,6 +237,38 @@ public static class CircusSaveValidation
             report.AddError(
                 $"Circus order '{orderId}' has negative venue revenue.");
         }
+        ValidateSupplyState(order, orderId, report);
+    }
+
+    private static void ValidateSupplyState(
+        CircusShowOrder order,
+        string orderId,
+        DungeonGameRestoreReport report)
+    {
+        bool empty = order.pendingSupplyPhase == CircusShowSupplyCommitPhase.None;
+        if (order.nextSupplyOperationSequence <= 0
+            || !Enum.IsDefined(typeof(CircusShowSupplyCommitPhase), order.pendingSupplyPhase)
+            || empty && (order.pendingSupplyOperationSequence != 0
+                || !string.IsNullOrEmpty(order.pendingSupplyOperationId)
+                || !string.IsNullOrEmpty(order.pendingSupplyCommitId)
+                || order.pendingSupplySourceStackIds == null
+                || order.pendingSupplySourceStackIds.Count != 0
+                || order.pendingSupplyQuantity != 0
+                || order.pendingSupplyMassGrams != 0)
+            || !empty && (order.pendingSupplyOperationSequence != order.nextSupplyOperationSequence
+                || order.pendingSupplyQuantity != 1
+                || order.pendingSupplyMassGrams <= 0
+                || order.pendingSupplySourceStackIds == null
+                || order.pendingSupplySourceStackIds.Count == 0
+                || string.IsNullOrWhiteSpace(order.pendingSupplyOperationId)
+                || string.IsNullOrWhiteSpace(order.pendingSupplyCommitId)
+                || string.IsNullOrWhiteSpace(order.pendingSupplyCartStackId)
+                || order.pendingSupplyCartDurabilityBefore <= order.pendingSupplyCartDurabilityAfter
+                || order.pendingSupplyCartDurabilityAfter < 0f)
+            || order.preparationSuppliesCommitted != !string.IsNullOrEmpty(order.preparationSupplyCommitId))
+        {
+            report.AddError($"Circus order '{orderId}' has invalid supply outbox state.");
+        }
     }
 
     private static void ValidateParticipantGroup(
@@ -315,6 +351,120 @@ public static class CircusSaveValidation
         {
             report.AddError(
                 $"Captured wildlife '{wildlifeId}' has invalid numeric state.");
+        }
+        ValidateCapturedWildlifeFeed(wildlife, report);
+    }
+
+    private static void ValidateCapturedWildlifeFeed(
+        CapturedWildlifeState wildlife,
+        DungeonGameRestoreReport report)
+    {
+        if (wildlife.nextFeedOperationSequence < 0
+            || !Enum.IsDefined(
+                typeof(CapturedWildlifeFeedCommitPhase),
+                wildlife.pendingFeedPhase)
+            || wildlife.pendingFeedSourceStackIds == null)
+        {
+            report.AddError(
+                $"Captured wildlife '{wildlife.wildlifeId}' has invalid feed sequence or collection state.");
+            return;
+        }
+
+        if (wildlife.pendingFeedPhase == CapturedWildlifeFeedCommitPhase.None)
+        {
+            if (wildlife.pendingFeedOperationSequence != 0
+                || !string.IsNullOrEmpty(wildlife.pendingFeedOperationId)
+                || !string.IsNullOrEmpty(wildlife.pendingFeedReasonCode)
+                || !string.IsNullOrEmpty(wildlife.pendingFeedCommitId)
+                || wildlife.pendingFeedSourceStackIds.Count != 0
+                || wildlife.pendingFeedQuantity != 0
+                || wildlife.pendingFeedMassGrams != 0L
+                || !string.IsNullOrEmpty(wildlife.pendingFeedItemId)
+                || wildlife.pendingFeedNutrition != 0f
+                || wildlife.pendingFeedDiseaseChance != 0f
+                || wildlife.pendingFeedDiseaseTriggered
+                || wildlife.pendingFeedHungerTarget != 0f
+                || wildlife.pendingFeedHealthTarget != 0
+                || wildlife.pendingFeedSicknessTarget != 0f)
+            {
+                report.AddError(
+                    $"Captured wildlife '{wildlife.wildlifeId}' has orphan feed provenance without a pending phase.");
+            }
+            return;
+        }
+
+        string expectedOperation = FeedOperationPrefix
+            + wildlife.wildlifeId
+            + ":"
+            + wildlife.pendingFeedOperationSequence.ToString("D8");
+        string expectedCommit = "physical-batch-disposition:3:"
+            + expectedOperation
+            + ":1:"
+            + wildlife.pendingFeedMassGrams;
+        bool sourcesCanonical = wildlife.pendingFeedSourceStackIds.Count > 0
+            && wildlife.pendingFeedSourceStackIds.All(IsCanonical)
+            && wildlife.pendingFeedSourceStackIds
+                .Distinct(StringComparer.Ordinal).Count()
+                == wildlife.pendingFeedSourceStackIds.Count
+            && wildlife.pendingFeedSourceStackIds.SequenceEqual(
+                wildlife.pendingFeedSourceStackIds.OrderBy(
+                    value => value,
+                    StringComparer.Ordinal),
+                StringComparer.Ordinal);
+        bool structurallyValid =
+            wildlife.pendingFeedOperationSequence > 0
+            && wildlife.pendingFeedOperationSequence
+                == wildlife.nextFeedOperationSequence
+            && string.Equals(
+                wildlife.pendingFeedOperationId,
+                expectedOperation,
+                StringComparison.Ordinal)
+            && string.Equals(
+                wildlife.pendingFeedReasonCode,
+                FeedReasonCode,
+                StringComparison.Ordinal)
+            && string.Equals(
+                wildlife.pendingFeedCommitId,
+                expectedCommit,
+                StringComparison.Ordinal)
+            && sourcesCanonical
+            && wildlife.pendingFeedQuantity == 1
+            && wildlife.pendingFeedMassGrams > 0L
+            && IsCanonical(wildlife.pendingFeedItemId)
+            && IsFiniteRange(wildlife.pendingFeedNutrition, 0f, 1f)
+            && wildlife.pendingFeedNutrition > 0f
+            && IsFiniteRange(wildlife.pendingFeedDiseaseChance, 0f, 1f)
+            && (!wildlife.pendingFeedDiseaseTriggered
+                || wildlife.pendingFeedDiseaseChance > 0f)
+            && IsFiniteRange(wildlife.pendingFeedHungerTarget, 0f, 1f)
+            && wildlife.pendingFeedHealthTarget >= 0
+            && IsFiniteRange(wildlife.pendingFeedSicknessTarget, 0f, 100f);
+        if (!structurallyValid)
+        {
+            report.AddError(
+                $"Captured wildlife '{wildlife.wildlifeId}' has invalid pending feed provenance.");
+            return;
+        }
+
+        if (wildlife.pendingFeedPhase
+                == CapturedWildlifeFeedCommitPhase.CarePublished
+            && (!string.Equals(
+                    wildlife.lastFeedItemId,
+                    wildlife.pendingFeedItemId,
+                    StringComparison.Ordinal)
+                || !Mathf.Approximately(
+                    wildlife.lastFeedDiseaseChance,
+                    wildlife.pendingFeedDiseaseChance)
+                || !Mathf.Approximately(
+                    wildlife.feedSicknessSeverity,
+                    wildlife.pendingFeedSicknessTarget)
+                || !string.Equals(
+                    wildlife.lastCareStatus,
+                    FeedConsumedStatus,
+                    StringComparison.Ordinal)))
+        {
+            report.AddError(
+                $"Captured wildlife '{wildlife.wildlifeId}' has a feed publication phase without its terminal state.");
         }
     }
 

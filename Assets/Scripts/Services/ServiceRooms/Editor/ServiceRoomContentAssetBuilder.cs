@@ -94,6 +94,28 @@ public static class ServiceRoomContentAssetBuilder
         EnsureProcessAssets();
     }
 
+    public static bool ApplyDirectMedicalHubOverlay(BuildingSO building)
+    {
+        if (!string.Equals(
+                building?.GetAbility<BuildingFacilityPartAbility>()?.code,
+                "M01",
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        ApplyDirectHub(
+            building,
+            ServiceCategory.Medical,
+            "service:medical",
+            "service:medical:treat",
+            10,
+            48f,
+            new[] { "service:medical-triage", "service:medical-call" },
+            new[] { "service:queue" });
+        return true;
+    }
+
     public static IReadOnlyDictionary<string, int[]> GetResearchUnlockIds() =>
         new Dictionary<string, int[]>(StringComparer.Ordinal)
         {
@@ -125,23 +147,49 @@ public static class ServiceRoomContentAssetBuilder
                 $"Direct service hub '{code}' was not found.");
         }
 
-        building.AbilityModules.Remove<BuildingServiceHubAbility>();
-        building.AbilityModules.Add(new BuildingServiceHubAbility
-        {
-            serviceCategory = category,
-            serviceHubTag = hubTag,
-            supportedProcessIds = new[] { processId },
-            baseCapacity = 1,
-            allowedModes = ServiceOperationModeMask.All,
-            allowInternalStaffDirectUse = true,
-            paymentPolicy = ServicePaymentPolicy.InternalStaffFree,
-            directPrice = price,
-            directSatisfaction = satisfaction,
-            managedRequiredFeatureTags = managedFeatures ?? Array.Empty<string>(),
-            automatedRequiredFeatureTags = automatedFeatures ?? Array.Empty<string>()
-        });
-        building.unlocked = true;
+        ApplyDirectHub(
+            building,
+            category,
+            hubTag,
+            processId,
+            price,
+            satisfaction,
+            managedFeatures,
+            automatedFeatures);
         FinalizeBuilding(building);
+    }
+
+    private static void ApplyDirectHub(
+        BuildingSO building,
+        ServiceCategory category,
+        string hubTag,
+        string processId,
+        int price,
+        float satisfaction,
+        string[] managedFeatures,
+        string[] automatedFeatures)
+    {
+
+        BuildingServiceHubAbility hub =
+            building.GetAbility<BuildingServiceHubAbility>();
+        if (hub == null)
+        {
+            hub = new BuildingServiceHubAbility();
+            building.AbilityModules.Add(hub);
+        }
+
+        hub.serviceCategory = category;
+        hub.serviceHubTag = hubTag;
+        hub.supportedProcessIds = new[] { processId };
+        hub.baseCapacity = 1;
+        hub.allowedModes = ServiceOperationModeMask.All;
+        hub.allowInternalStaffDirectUse = true;
+        hub.paymentPolicy = ServicePaymentPolicy.InternalStaffFree;
+        hub.directPrice = price;
+        hub.directSatisfaction = satisfaction;
+        hub.managedRequiredFeatureTags = managedFeatures ?? Array.Empty<string>();
+        hub.automatedRequiredFeatureTags = automatedFeatures ?? Array.Empty<string>();
+        building.unlocked = true;
     }
 
     private static void PatchExistingSupport(
@@ -161,18 +209,22 @@ public static class ServiceRoomContentAssetBuilder
                 $"Service support '{code}' was not found.");
         }
 
-        building.AbilityModules.Remove<BuildingServiceSupportAbility>();
-        building.AbilityModules.Add(new BuildingServiceSupportAbility
+        BuildingServiceSupportAbility support =
+            building.GetAbility<BuildingServiceSupportAbility>();
+        if (support == null)
         {
-            supportId = supportId,
-            featureTags = features,
-            compatibleHubTags = hubs,
-            modifierType = modifier,
-            capacity = capacity,
-            workSpeedMultiplier = 1f,
-            satisfactionModifier = satisfaction,
-            revenueModifier = revenue
-        });
+            support = new BuildingServiceSupportAbility();
+            building.AbilityModules.Add(support);
+        }
+
+        support.supportId = supportId;
+        support.featureTags = features;
+        support.compatibleHubTags = hubs;
+        support.modifierType = modifier;
+        support.capacity = capacity;
+        support.workSpeedMultiplier = 1f;
+        support.satisfactionModifier = satisfaction;
+        support.revenueModifier = revenue;
         FinalizeBuilding(building);
     }
 

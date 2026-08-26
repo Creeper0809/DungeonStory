@@ -197,15 +197,98 @@ public sealed class CharacterCarryInventoryRegistry :
 [DisallowMultipleComponent]
 public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionInventory
 {
+    internal sealed class ExactPhysicalTransferCandidate
+    {
+        internal readonly struct Entry
+        {
+            internal Entry(
+                int index,
+                CharacterCarriedItemSaveData live,
+                CharacterCarriedItemSaveData snapshot)
+            {
+                Index = index;
+                Live = live;
+                Snapshot = snapshot;
+            }
+
+            internal int Index { get; }
+            internal CharacterCarriedItemSaveData Live { get; }
+            internal CharacterCarriedItemSaveData Snapshot { get; }
+        }
+
+        private readonly CharacterCarryInventory owner;
+        private readonly Entry[] entries;
+        private bool published;
+        private bool completed;
+
+        internal ExactPhysicalTransferCandidate(
+            CharacterCarryInventory owner,
+            IEnumerable<Entry> entries)
+        {
+            this.owner = owner;
+            this.entries = entries.OrderBy(value => value.Index).ToArray();
+        }
+
+        internal IReadOnlyList<CharacterCarriedItemSaveData> Items =>
+            Array.AsReadOnly(entries
+                .Select(value => CloneCarriedItem(value.Snapshot))
+                .ToArray());
+
+        internal bool TryPublish(out string failureReason)
+        {
+            failureReason = string.Empty;
+            if (completed)
+            {
+                failureReason = "carry-exact-removal-already-completed";
+                return false;
+            }
+            if (published)
+                return true;
+            if (entries.Length == 0
+                || entries.Any(value => value.Index < 0
+                    || value.Index >= owner.carriedItems.Count
+                    || !ReferenceEquals(
+                        owner.carriedItems[value.Index],
+                        value.Live)))
+            {
+                failureReason = "carry-exact-removal-source-changed";
+                return false;
+            }
+            for (int index = entries.Length - 1; index >= 0; index--)
+                owner.carriedItems.RemoveAt(entries[index].Index);
+            published = true;
+            return true;
+        }
+
+        internal void Rollback()
+        {
+            if (!published || completed)
+                return;
+            foreach (Entry entry in entries)
+                owner.carriedItems.Insert(entry.Index, entry.Live);
+            published = false;
+        }
+
+        internal void Complete()
+        {
+            if (!published || completed)
+                return;
+            completed = true;
+            owner.Changed?.Invoke();
+        }
+    }
+
     [SerializeField] private List<CharacterCarriedItemSaveData> carriedItems =
         new List<CharacterCarriedItemSaveData>();
 
     private CharacterActor actor;
     private IDungeonItemCatalogProvider catalogProvider;
+    private IPhysicalItemMassQuery massQuery;
     private IItemHaulingSettingsProvider haulingSettingsProvider;
     private ICharacterCarryInventoryRegistry registry;
     private IEnvironmentalWorkwearQuery environmentalWorkwear;
     private IEnvironmentalWorkwearCommand environmentalWorkwearCommands;
+    private IEquippedApparelPhysicalMassQuery equippedApparelMass;
 
     public IReadOnlyList<CharacterCarriedItemSaveData> Items => carriedItems;
     public Vector2Int OwnerGridPosition => actor != null
@@ -312,6 +395,16 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             .Select(component => component.Clone())
             .ToList()
     };
+
+    private static bool HasPreparedOutputCustody(
+        CharacterCarriedItemSaveData item) =>
+        item != null
+        && FacilityOutputExactRouteCustodyCodec.HasAnyCustody(item.components);
+
+    private static FacilityOutputExactRouteBypassException
+        CreatePreparedOutputCustodyBypass(string operation) => new(
+            FacilityOutputExactRouteFailureCode.ProtectedRouteBypass,
+            operation);
     public bool HasItems => carriedItems.Any(item => item != null && item.quantity > 0);
     internal CharacterId CharacterId
     {
@@ -361,6 +454,14 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             ?? throw new ArgumentNullException(nameof(environmentalWorkwearCommands));
     }
 
+    [Inject]
+    public void ConstructEquippedApparelMass(
+        IEquippedApparelPhysicalMassQuery equippedApparelMass)
+    {
+        this.equippedApparelMass = equippedApparelMass
+            ?? throw new ArgumentNullException(nameof(equippedApparelMass));
+    }
+
     public static CharacterCarryInventory Ensure(CharacterActor actor)
     {
         if (actor == null)
@@ -379,11 +480,14 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
 
     public void Configure(
         IDungeonItemCatalogProvider catalogProvider,
+        IPhysicalItemMassQuery massQuery,
         IItemHaulingSettingsProvider haulingSettingsProvider,
         ICharacterCarryInventoryRegistry registry)
     {
         this.catalogProvider = catalogProvider
             ?? throw new ArgumentNullException(nameof(catalogProvider));
+        this.massQuery = massQuery
+            ?? throw new ArgumentNullException(nameof(massQuery));
         this.haulingSettingsProvider = haulingSettingsProvider
             ?? throw new ArgumentNullException(nameof(haulingSettingsProvider));
         Construct(registry);
@@ -398,11 +502,11 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         CharacterStats stats = actor?.Stats
             ?? throw new InvalidOperationException(
                 "Carry capacity requires an initialized character runtime.");
-        float baseLimit = 20f * stats.EvaluatePerformance(
+        float performanceFactor = stats.EvaluatePerformance(
             "performance:survival:haul-capacity").Value;
-        if (IsHaulingHarnessEquipped())
-            baseLimit *= 1.25f;
-        return Mathf.Max(0.01f, baseLimit);
+        return CharacterCarryTuning.ResolveSoftCapacityKilograms(
+            performanceFactor,
+            IsHaulingHarnessEquipped());
     }
 
     public bool TryPrepareHaulingHarness(out bool equippedForThisRun)
@@ -493,7 +597,8 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         float multiplier = (settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider)))
             .MaxCarryMultiplier;
-        return GetBaseCarryLimit() * Mathf.Clamp(multiplier, 1f, 2.5f);
+        return GetBaseCarryLimit()
+            * CharacterCarryTuning.ClampMaxCarryMultiplier(multiplier);
     }
 
     public float GetMaxAllowedWeight() =>
@@ -506,7 +611,10 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             throw new ArgumentNullException(nameof(catalogProvider));
         }
 
-        float total = 0f;
+        IPhysicalItemMassQuery requiredMass = RequireMassQuery();
+        long totalGrams = equippedApparelMass == null || !CharacterId.IsValid
+            ? 0L
+            : equippedApparelMass.GetEquippedMassGrams(CharacterId);
         foreach (CharacterCarriedItemSaveData item in carriedItems)
         {
             if (item == null || item.quantity <= 0)
@@ -514,13 +622,18 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
                 continue;
             }
 
-            DungeonItemDefinition definition = ResolveDefinition(
-                item.itemId,
-                catalogProvider);
-            total += definition.UnitWeight * Mathf.Max(0, item.quantity);
+            PhysicalItemMassSubject subject = PhysicalItemMassSubjectAdapter.Create(
+                requiredMass,
+                (ItemDefinitionId)item.itemId,
+                item.itemInstanceId,
+                item.components);
+            PhysicalMassGrams lineMass = requiredMass
+                .GetStackUnitMass((ItemDefinitionId)item.itemId, subject)
+                .Multiply(item.quantity);
+            totalGrams = checked(totalGrams + lineMass.Value);
         }
 
-        return total;
+        return totalGrams / 1000f;
     }
 
     public float GetCurrentWeight() => GetCurrentWeight(RequireCatalog());
@@ -559,6 +672,10 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         ?? throw new InvalidOperationException(
             $"{nameof(CharacterCarryInventory)} requires an item catalog.");
 
+    private IPhysicalItemMassQuery RequireMassQuery() => massQuery
+        ?? throw new InvalidOperationException(
+            $"{nameof(CharacterCarryInventory)} requires a physical mass query.");
+
     private IItemHaulingSettingsProvider RequireHaulingSettings() =>
         haulingSettingsProvider
         ?? throw new InvalidOperationException(
@@ -570,16 +687,41 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         IDungeonItemCatalogProvider catalogProvider,
         IItemHaulingSettingsProvider settingsProvider)
     {
+        return GetMaxAcceptableQuantity(
+            itemId,
+            string.Empty,
+            null,
+            requestedQuantity,
+            catalogProvider,
+            settingsProvider);
+    }
+
+    public int GetMaxAcceptableQuantity(
+        string itemId,
+        string itemInstanceId,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        int requestedQuantity,
+        IDungeonItemCatalogProvider catalogProvider,
+        IItemHaulingSettingsProvider settingsProvider)
+    {
         int safeQuantity = Mathf.Max(0, requestedQuantity);
         if (safeQuantity == 0)
         {
             return 0;
         }
 
-        DungeonItemDefinition definition = ResolveDefinition(
-            itemId,
-            catalogProvider ?? this.catalogProvider);
-        float unitWeight = Mathf.Max(0.01f, definition.UnitWeight);
+        _ = catalogProvider ?? this.catalogProvider
+            ?? throw new InvalidOperationException(
+                $"{nameof(CharacterCarryInventory)} requires an item catalog.");
+        IPhysicalItemMassQuery requiredMass = RequireMassQuery();
+        PhysicalItemMassSubject subject = PhysicalItemMassSubjectAdapter.Create(
+            requiredMass,
+            (ItemDefinitionId)itemId,
+            itemInstanceId,
+            components);
+        float unitWeight = requiredMass
+            .GetStackUnitMass((ItemDefinitionId)itemId, subject)
+            .Value / 1000f;
         float remainingWeight = Mathf.Max(0f, GetMaxAllowedWeight(settingsProvider) - GetCurrentWeight(catalogProvider));
         return Mathf.Clamp(Mathf.FloorToInt(remainingWeight / unitWeight), 0, safeQuantity);
     }
@@ -705,7 +847,13 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             failureReason = "invalid unique item identity";
             return false;
         }
-        acceptedQuantity = GetMaxAcceptableQuantity(itemId, quantity, catalogProvider, settingsProvider);
+        acceptedQuantity = GetMaxAcceptableQuantity(
+            itemId,
+            itemInstanceId,
+            components,
+            quantity,
+            catalogProvider,
+            settingsProvider);
         if (acceptedQuantity <= 0)
         {
             failureReason = "carry limit";
@@ -780,7 +928,13 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
     public bool TryConsumeItem(string itemId, int quantity)
     {
         int remaining = Mathf.Max(0, quantity);
-        if (remaining <= 0 || CountItem(itemId) < remaining)
+        int consumable = carriedItems
+            .Where(item => item != null
+                && item.quantity > 0
+                && !HasPreparedOutputCustody(item)
+                && string.Equals(item.itemId, itemId, StringComparison.Ordinal))
+            .Sum(item => item.quantity);
+        if (remaining <= 0 || consumable < remaining)
         {
             return false;
         }
@@ -790,6 +944,7 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             CharacterCarriedItemSaveData item = carriedItems[index];
             if (item == null
                 || item.quantity <= 0
+                || HasPreparedOutputCustody(item)
                 || !string.Equals(item.itemId, itemId, StringComparison.Ordinal))
             {
                 continue;
@@ -823,6 +978,7 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             CharacterCarriedItemSaveData item = carriedItems[index];
             if (item == null
                 || item.quantity <= 0
+                || HasPreparedOutputCustody(item)
                 || !string.Equals(item.itemId, itemId, StringComparison.Ordinal))
             {
                 continue;
@@ -866,11 +1022,25 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             return false;
         }
 
+        int available = carriedItems
+            .Where(item => item != null
+                && item.quantity > 0
+                && !HasPreparedOutputCustody(item)
+                && string.Equals(item.sourceStackId, sourceStackId, StringComparison.Ordinal)
+                && (string.IsNullOrWhiteSpace(itemId)
+                    || string.Equals(item.itemId, itemId, StringComparison.Ordinal)))
+            .Sum(item => item.quantity);
+        if (available < remaining)
+        {
+            return false;
+        }
+
         for (int index = carriedItems.Count - 1; index >= 0 && remaining > 0; index--)
         {
             CharacterCarriedItemSaveData item = carriedItems[index];
             if (item == null
                 || item.quantity <= 0
+                || HasPreparedOutputCustody(item)
                 || !string.Equals(item.sourceStackId, sourceStackId, StringComparison.Ordinal)
                 || (!string.IsNullOrWhiteSpace(itemId)
                     && !string.Equals(item.itemId, itemId, StringComparison.Ordinal)))
@@ -910,6 +1080,7 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         int available = carriedItems
             .Where(item => item != null
                 && item.quantity > 0
+                && !HasPreparedOutputCustody(item)
                 && string.Equals(
                     item.carriedStackId,
                     normalizedStackId,
@@ -927,6 +1098,7 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             CharacterCarriedItemSaveData item = carriedItems[index];
             if (item == null
                 || item.quantity <= 0
+                || HasPreparedOutputCustody(item)
                 || !string.Equals(
                     item.carriedStackId,
                     normalizedStackId,
@@ -951,30 +1123,15 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
 
     public List<CharacterCarriedItemSaveData> RemoveAllItems()
     {
-        List<CharacterCarriedItemSaveData> result = carriedItems
-            .Where(item => item != null && item.quantity > 0)
-            .Select(item => new CharacterCarriedItemSaveData
-            {
-                carriedStackId = item.carriedStackId,
-                sourceStackId = item.sourceStackId,
-                ownerOperationId = item.ownerOperationId,
-                itemInstanceId = item.itemInstanceId,
-                itemId = item.itemId,
-                quantity = item.quantity,
-                wasteOrigin = item.wasteOrigin,
-                contamination = item.contamination,
-                components = (item.components ?? new List<ItemInstanceComponentSaveData>())
-                    .Where(component => component != null)
-                    .Select(component => component.Clone())
-                    .ToList()
-            })
-            .ToList();
-        if (carriedItems.Count > 0)
+        if (carriedItems.Any(item => item != null
+                && item.quantity > 0
+                && HasPreparedOutputCustody(item)))
         {
-            carriedItems.Clear();
-            Changed?.Invoke();
+            throw CreatePreparedOutputCustodyBypass(
+                "CharacterCarryInventory.RemoveAllItems");
         }
-        return result;
+
+        return RemoveAllItemsForPhysicalTransfer();
     }
 
     public List<CharacterCarriedItemSaveData> RemoveItemsOwnedByOperations(
@@ -986,6 +1143,49 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
                 .Where(value => value.Length > 0),
             StringComparer.Ordinal);
         List<CharacterCarriedItemSaveData> result = new List<CharacterCarriedItemSaveData>();
+        if (owners.Count == 0)
+        {
+            return result;
+        }
+
+        if (carriedItems.Any(item => item != null
+                && item.quantity > 0
+                && owners.Contains(item.ownerOperationId?.Trim() ?? string.Empty)
+                && HasPreparedOutputCustody(item)))
+        {
+            throw CreatePreparedOutputCustodyBypass(
+                "CharacterCarryInventory.RemoveItemsOwnedByOperations");
+        }
+
+        return RemoveItemsOwnedByOperationsForPhysicalTransfer(owners);
+    }
+
+    internal List<CharacterCarriedItemSaveData> RemoveAllItemsForPhysicalTransfer()
+    {
+        List<CharacterCarriedItemSaveData> result = carriedItems
+            .Where(item => item != null && item.quantity > 0)
+            .Select(CloneCarriedItem)
+            .ToList();
+        if (carriedItems.Count > 0)
+        {
+            carriedItems.Clear();
+            Changed?.Invoke();
+        }
+        return result;
+    }
+
+    internal List<CharacterCarriedItemSaveData>
+        RemoveItemsOwnedByOperationsForPhysicalTransfer(
+            IReadOnlyCollection<string> ownerOperationIds)
+    {
+        HashSet<string> owners = ownerOperationIds is HashSet<string> exactOwners
+            ? exactOwners
+            : new HashSet<string>(
+                (ownerOperationIds ?? Array.Empty<string>())
+                    .Select(value => value?.Trim() ?? string.Empty)
+                    .Where(value => value.Length > 0),
+                StringComparer.Ordinal);
+        List<CharacterCarriedItemSaveData> result = new();
         if (owners.Count == 0)
         {
             return result;
@@ -1011,6 +1211,94 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             Changed?.Invoke();
         }
         return result;
+    }
+
+    internal bool TryPrepareCapacityRoutingExactPhysicalTransfer(
+        IReadOnlyList<ProductionCapacityRoutingDrainActorCarrySaveData>
+            expectedCarries,
+        out ExactPhysicalTransferCandidate candidate,
+        out string failureReason)
+    {
+        candidate = null;
+        failureReason = string.Empty;
+        ProductionCapacityRoutingDrainActorCarrySaveData[] expected =
+            (expectedCarries
+                ?? Array.Empty<ProductionCapacityRoutingDrainActorCarrySaveData>())
+            .Where(value => value != null)
+            .OrderBy(value => value.carriedStackId, StringComparer.Ordinal)
+            .ToArray();
+        CharacterCarriedItemSaveData[] positive = carriedItems
+            .Where(value => value != null && value.quantity > 0)
+            .ToArray();
+        if (expected.Length == 0
+            || expected.Select(value => value.carriedStackId)
+                .Distinct(StringComparer.Ordinal).Count() != expected.Length)
+        {
+            failureReason = "capacity-routing-carry-expectation-invalid";
+            return false;
+        }
+        if (positive.Length != expected.Length)
+        {
+            failureReason = "capacity-routing-mixed-or-extra-carried-cargo";
+            return false;
+        }
+
+        List<ExactPhysicalTransferCandidate.Entry> entries = new(expected.Length);
+        foreach (ProductionCapacityRoutingDrainActorCarrySaveData expectation in
+                 expected)
+        {
+            int index = carriedItems.FindIndex(value => value != null
+                && value.quantity > 0
+                && string.Equals(
+                    value.carriedStackId,
+                    expectation.carriedStackId,
+                    StringComparison.Ordinal));
+            if (index < 0)
+            {
+                failureReason = "capacity-routing-carried-stack-missing:"
+                    + expectation.carriedStackId;
+                return false;
+            }
+            CharacterCarriedItemSaveData live = carriedItems[index];
+            string signature = ProductionCapacityRoutingDrainFingerprint
+                .CreateActorCarryStackSignature(
+                    live.itemId,
+                    live.itemInstanceId,
+                    live.components);
+            if (!string.Equals(
+                    live.sourceStackId,
+                    expectation.sourceStackId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    live.ownerOperationId,
+                    expectation.haulIntentOperationId,
+                    StringComparison.Ordinal)
+                || live.quantity != expectation.quantity
+                || !string.Equals(
+                    signature,
+                    expectation.stackSignature,
+                    StringComparison.Ordinal))
+            {
+                failureReason = "capacity-routing-carried-row-conflict:"
+                    + expectation.carriedStackId;
+                return false;
+            }
+            entries.Add(new ExactPhysicalTransferCandidate.Entry(
+                index,
+                live,
+                CloneCarriedItem(live)));
+        }
+
+        candidate = new ExactPhysicalTransferCandidate(this, entries);
+        return true;
+    }
+
+    internal void DiscardAllItemsForRestoredWorldReplacement()
+    {
+        if (carriedItems.Count == 0)
+            return;
+        carriedItems.Clear();
+        Changed?.Invoke();
     }
 
     /// <summary>

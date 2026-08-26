@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 1
     recommendedRank: 2
     minimumRiskRank: 0
-  requiredResearchId: research:industry:rune-grid
+  requiredResearchId: research:industry:mana-power
   requiredWork: 42
   preparationWork: 0
   finishingWork: 0
@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -61,6 +62,8 @@ MonoBehaviour:
   - itemId: resource:rune-dust
     amount: 1
   outputs:
-  - itemId: component:rune-conductor
+  - outputLineId: output:recipe:component:rune-conductor/000/main/component:rune-conductor
+    role: 0
+    itemId: component:rune-conductor
     amount: 1
     probability: 1

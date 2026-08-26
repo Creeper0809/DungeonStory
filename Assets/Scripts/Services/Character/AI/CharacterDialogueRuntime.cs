@@ -186,7 +186,17 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
     private void OnLogAdded(CharacterLogEntry entry)
     {
         EnsureRuntimeReferences();
-        if (gameClock.Time < nextRequestTime || !ShouldRequestBubble(entry))
+        // Ability shutdown can publish one last activity after the scene scope
+        // has begun disposal and before OnDisable unsubscribes this listener.
+        // Dialogue is presentation-only, so suppress that teardown event when
+        // its injected runtime authority is no longer available.
+        if (!isActiveAndEnabled
+            || !runtimeInjected
+            || gameClock == null
+            || aiSchedulingService == null
+            || actor == null
+            || gameClock.Time < nextRequestTime
+            || !ShouldRequestBubble(entry))
         {
             return;
         }

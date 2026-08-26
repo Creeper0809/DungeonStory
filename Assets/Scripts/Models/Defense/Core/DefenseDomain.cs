@@ -115,6 +115,75 @@ public sealed class DefenseFacilityGrowthState
     };
 }
 
+public enum DefenseFacilityPhysicalCommitPhase
+{
+    None = 0,
+    IntentRecorded = 1,
+    OutcomePublished = 2
+}
+
+public enum DefenseFacilityPhysicalCommitKind
+{
+    None = 0,
+    MaintenanceSink = 1,
+    SupplyTransfer = 2
+}
+
+[Serializable]
+public sealed class DefenseFacilityPhysicalInputSaveData
+{
+    public string itemId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public int quantity;
+
+    public DefenseFacilityPhysicalInputSaveData DeepClone() => new()
+    {
+        itemId = itemId ?? string.Empty,
+        sourceStackId = sourceStackId ?? string.Empty,
+        quantity = quantity
+    };
+}
+
+[Serializable]
+public sealed class DefenseFacilityPhysicalCommitSaveData
+{
+    public DefenseFacilityPhysicalCommitPhase phase;
+    public DefenseFacilityPhysicalCommitKind kind;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string destinationId = string.Empty;
+    public string itemId = string.Empty;
+    public int inputQuantity;
+    public long inputMassGrams;
+    public string commitId = string.Empty;
+    public string requestFingerprint = string.Empty;
+    public int supplyBefore;
+    public int supplyAfter;
+    public int supplyUnitsGranted;
+    public List<DefenseFacilityPhysicalInputSaveData> inputs = new();
+
+    public DefenseFacilityPhysicalCommitSaveData DeepClone() => new()
+    {
+        phase = phase,
+        kind = kind,
+        operationSequence = operationSequence,
+        operationId = operationId ?? string.Empty,
+        reasonCode = reasonCode ?? string.Empty,
+        destinationId = destinationId ?? string.Empty,
+        itemId = itemId ?? string.Empty,
+        inputQuantity = inputQuantity,
+        inputMassGrams = inputMassGrams,
+        commitId = commitId ?? string.Empty,
+        requestFingerprint = requestFingerprint ?? string.Empty,
+        supplyBefore = supplyBefore,
+        supplyAfter = supplyAfter,
+        supplyUnitsGranted = supplyUnitsGranted,
+        inputs = (inputs ?? new List<DefenseFacilityPhysicalInputSaveData>())
+            .ConvertAll(value => value?.DeepClone())
+    };
+}
+
 public sealed class DefenseFacilityState
 {
     public string facilityPersistentId = string.Empty;
@@ -133,6 +202,10 @@ public sealed class DefenseFacilityState
     public List<string> allowedPersistentIds = new();
     public DefenseFacilityGrowthState growth = new();
     public string blockedReason = string.Empty;
+    public int nextMaintenanceOperationSequence;
+    public DefenseFacilityPhysicalCommitSaveData pendingMaintenance = new();
+    public int nextSupplyOperationSequence;
+    public DefenseFacilityPhysicalCommitSaveData pendingSupply = new();
 
     public DefenseFacilityState DeepClone() => new()
     {
@@ -151,7 +224,13 @@ public sealed class DefenseFacilityState
         allowedPersistentIds = new List<string>(
             allowedPersistentIds ?? new List<string>()),
         growth = growth?.DeepClone() ?? new DefenseFacilityGrowthState(),
-        blockedReason = blockedReason ?? string.Empty
+        blockedReason = blockedReason ?? string.Empty,
+        nextMaintenanceOperationSequence = nextMaintenanceOperationSequence,
+        pendingMaintenance = pendingMaintenance?.DeepClone()
+            ?? new DefenseFacilityPhysicalCommitSaveData(),
+        nextSupplyOperationSequence = nextSupplyOperationSequence,
+        pendingSupply = pendingSupply?.DeepClone()
+            ?? new DefenseFacilityPhysicalCommitSaveData()
     };
 }
 
@@ -215,12 +294,16 @@ public sealed class DefenseFacilityRecordSaveData
     public List<string> allowedPersistentIds = new();
     public DefenseFacilityGrowthSaveData growth = new();
     public string blockedReason = string.Empty;
+    public int nextMaintenanceOperationSequence;
+    public DefenseFacilityPhysicalCommitSaveData pendingMaintenance = new();
+    public int nextSupplyOperationSequence;
+    public DefenseFacilityPhysicalCommitSaveData pendingSupply = new();
 }
 
 [Serializable]
 public sealed class DefenseFacilitySaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public int version = CurrentVersion;
     public List<DefenseFacilityRecordSaveData> facilities = new();
 }
@@ -436,10 +519,25 @@ public static class DefenseFacilitySaveRules
             errors.Add($"Defense facility '{id}' has invalid condition or cooldown state.");
         if (facility.supply < 0 || facility.activationCount < 0)
             errors.Add($"Defense facility '{id}' has a negative supply or activation count.");
+        if (facility.nextMaintenanceOperationSequence < 0
+            || facility.nextSupplyOperationSequence < 0)
+            errors.Add($"Defense facility '{id}' has a negative physical operation sequence.");
         if ((facility.allowedGroups & ~DefenseFacilityRules.AllAccessGroupsMask) != 0)
             errors.Add($"Defense facility '{id}' has unknown access-group flags.");
         ValidateAllowed(facility, id, errors);
         ValidateGrowth(facility.growth, id, errors);
+        ValidatePhysicalCommit(
+            facility.pendingMaintenance,
+            DefenseFacilityPhysicalCommitKind.MaintenanceSink,
+            facility.nextMaintenanceOperationSequence,
+            id,
+            errors);
+        ValidatePhysicalCommit(
+            facility.pendingSupply,
+            DefenseFacilityPhysicalCommitKind.SupplyTransfer,
+            facility.nextSupplyOperationSequence,
+            id,
+            errors);
         if (facility.blockedReason == null
             || !string.Equals(facility.blockedReason, facility.blockedReason.Trim(), StringComparison.Ordinal))
             errors.Add($"Defense facility '{id}' has a non-canonical blocked reason.");
@@ -479,6 +577,104 @@ public static class DefenseFacilitySaveRules
             || growth.effectStrengthLevel < 0 || growth.detectionRangeLevel < 0
             || growth.identificationLevel < 0 || growth.outageResistanceLevel < 0)
             errors.Add($"Defense facility '{id}' has a negative growth level.");
+    }
+
+    private static void ValidatePhysicalCommit(
+        DefenseFacilityPhysicalCommitSaveData pending,
+        DefenseFacilityPhysicalCommitKind expectedKind,
+        int expectedSequence,
+        string facilityId,
+        ICollection<string> errors)
+    {
+        if (pending == null)
+        {
+            errors.Add($"Defense facility '{facilityId}' has no physical commit state.");
+            return;
+        }
+
+        if (pending.phase == DefenseFacilityPhysicalCommitPhase.None)
+        {
+            bool empty = pending.kind == DefenseFacilityPhysicalCommitKind.None
+                && pending.operationSequence == 0
+                && string.IsNullOrEmpty(pending.operationId)
+                && string.IsNullOrEmpty(pending.reasonCode)
+                && string.IsNullOrEmpty(pending.destinationId)
+                && string.IsNullOrEmpty(pending.itemId)
+                && pending.inputQuantity == 0
+                && pending.inputMassGrams == 0L
+                && string.IsNullOrEmpty(pending.commitId)
+                && string.IsNullOrEmpty(pending.requestFingerprint)
+                && pending.supplyBefore == 0
+                && pending.supplyAfter == 0
+                && pending.supplyUnitsGranted == 0
+                && pending.inputs != null
+                && pending.inputs.Count == 0;
+            if (!empty)
+            {
+                errors.Add($"Defense facility '{facilityId}' has partial empty physical commit state.");
+            }
+            return;
+        }
+
+        bool canonicalInputs = pending.inputs != null
+            && pending.inputs.Count > 0;
+        string previousSource = string.Empty;
+        long totalQuantity = 0L;
+        if (canonicalInputs)
+        {
+            foreach (DefenseFacilityPhysicalInputSaveData input in pending.inputs)
+            {
+                if (input == null
+                    || !DefenseFacilityRules.IsCanonical(input.itemId)
+                    || !DefenseFacilityRules.IsCanonical(input.sourceStackId)
+                    || !string.Equals(input.itemId, pending.itemId, StringComparison.Ordinal)
+                    || input.quantity <= 0
+                    || previousSource.Length > 0
+                        && string.CompareOrdinal(previousSource, input.sourceStackId) >= 0)
+                {
+                    canonicalInputs = false;
+                    break;
+                }
+                previousSource = input.sourceStackId;
+                totalQuantity += input.quantity;
+            }
+        }
+
+        bool valid = Enum.IsDefined(
+                typeof(DefenseFacilityPhysicalCommitPhase),
+                pending.phase)
+            && pending.phase != DefenseFacilityPhysicalCommitPhase.None
+            && pending.kind == expectedKind
+            && pending.operationSequence == expectedSequence
+            && DefenseFacilityRules.IsCanonical(pending.operationId)
+            && DefenseFacilityRules.IsCanonical(pending.reasonCode)
+            && DefenseFacilityRules.IsCanonical(pending.destinationId)
+            && DefenseFacilityRules.IsCanonical(pending.itemId)
+            && pending.inputQuantity > 0
+            && pending.inputMassGrams > 0L
+            && DefenseFacilityRules.IsCanonical(pending.commitId)
+            && DefenseFacilityRules.IsCanonical(pending.requestFingerprint)
+            && pending.supplyBefore >= 0
+            && pending.supplyAfter >= 0
+            && canonicalInputs
+            && totalQuantity == pending.inputQuantity;
+        if (expectedKind == DefenseFacilityPhysicalCommitKind.MaintenanceSink)
+        {
+            valid &= pending.supplyUnitsGranted == 0
+                && pending.supplyAfter == pending.supplyBefore;
+        }
+        else
+        {
+            long expectedSupplyAfter = (long)pending.supplyBefore
+                + pending.supplyUnitsGranted;
+            valid &= pending.supplyUnitsGranted > 0
+                && expectedSupplyAfter <= int.MaxValue
+                && pending.supplyAfter == expectedSupplyAfter;
+        }
+        if (!valid)
+        {
+            errors.Add($"Defense facility '{facilityId}' has an invalid {expectedKind} commit.");
+        }
     }
 
     private static bool IsFinite(float value) =>

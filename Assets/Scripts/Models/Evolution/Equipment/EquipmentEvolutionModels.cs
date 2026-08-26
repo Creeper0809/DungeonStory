@@ -26,6 +26,24 @@ public enum EvolutionReforgeOrderState
 }
 
 [Serializable]
+public sealed class EquipmentEvolutionMaterialTransferInput
+{
+    public string itemId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public int quantity;
+
+    public EquipmentEvolutionMaterialTransferInput Clone()
+    {
+        return new EquipmentEvolutionMaterialTransferInput
+        {
+            itemId = itemId ?? string.Empty,
+            sourceStackId = sourceStackId ?? string.Empty,
+            quantity = Mathf.Max(0, quantity)
+        };
+    }
+}
+
+[Serializable]
 public sealed class EquipmentCatalystDefinition
 {
     public string itemId = string.Empty;
@@ -133,6 +151,13 @@ public sealed class EvolutionReforgeOrder
     public EquipmentEvolutionDirection lockedDirection;
     public bool materialsConsumed;
     public bool equipmentDelivered;
+    public string materialTransferOperationId = string.Empty;
+    public string materialTransferCommitId = string.Empty;
+    public string materialTransferRequestFingerprint = string.Empty;
+    public long materialTransferMassGrams;
+    public bool materialTransferOutcomePublished;
+    public List<EquipmentEvolutionMaterialTransferInput> materialTransferInputs =
+        new List<EquipmentEvolutionMaterialTransferInput>();
     public bool preciseCalibration;
     public bool burdenSuppression;
     public bool externalTechnicalSupport;
@@ -177,6 +202,20 @@ public sealed class EvolutionReforgeOrder
             lockedDirection = lockedDirection,
             materialsConsumed = materialsConsumed,
             equipmentDelivered = equipmentDelivered,
+            materialTransferOperationId =
+                materialTransferOperationId ?? string.Empty,
+            materialTransferCommitId =
+                materialTransferCommitId ?? string.Empty,
+            materialTransferRequestFingerprint =
+                materialTransferRequestFingerprint ?? string.Empty,
+            materialTransferMassGrams = materialTransferMassGrams,
+            materialTransferOutcomePublished =
+                materialTransferOutcomePublished,
+            materialTransferInputs = materialTransferInputs?
+                .Where(input => input != null)
+                .Select(input => input.Clone())
+                .ToList() ??
+                new List<EquipmentEvolutionMaterialTransferInput>(),
             preciseCalibration = preciseCalibration,
             burdenSuppression = burdenSuppression,
             externalTechnicalSupport = externalTechnicalSupport,
@@ -209,6 +248,13 @@ public sealed class EquipmentReattunementOrder
     public string lockedStateHash = string.Empty;
     public bool materialsConsumed;
     public bool equipmentDelivered;
+    public string materialTransferOperationId = string.Empty;
+    public string materialTransferCommitId = string.Empty;
+    public string materialTransferRequestFingerprint = string.Empty;
+    public long materialTransferMassGrams;
+    public bool materialTransferOutcomePublished;
+    public List<EquipmentEvolutionMaterialTransferInput> materialTransferInputs =
+        new List<EquipmentEvolutionMaterialTransferInput>();
 
     public float ProgressRatio => requiredWork <= 0f
         ? 0f
@@ -242,7 +288,21 @@ public sealed class EquipmentReattunementOrder
             destinationY = destinationY,
             lockedStateHash = lockedStateHash ?? string.Empty,
             materialsConsumed = materialsConsumed,
-            equipmentDelivered = equipmentDelivered
+            equipmentDelivered = equipmentDelivered,
+            materialTransferOperationId =
+                materialTransferOperationId ?? string.Empty,
+            materialTransferCommitId =
+                materialTransferCommitId ?? string.Empty,
+            materialTransferRequestFingerprint =
+                materialTransferRequestFingerprint ?? string.Empty,
+            materialTransferMassGrams = materialTransferMassGrams,
+            materialTransferOutcomePublished =
+                materialTransferOutcomePublished,
+            materialTransferInputs = materialTransferInputs?
+                .Where(input => input != null)
+                .Select(input => input.Clone())
+                .ToList() ??
+                new List<EquipmentEvolutionMaterialTransferInput>()
         };
     }
 }
@@ -265,6 +325,11 @@ public sealed class FacilityRecalibrationOrder
     public int destinationX;
     public int destinationY;
     public bool materialsConsumed;
+    public string materialTransferOperationId = string.Empty;
+    public string materialTransferCommitId = string.Empty;
+    public string materialTransferSourceStackId = string.Empty;
+    public long materialTransferMassGrams;
+    public bool materialTransferOutcomePublished;
 
     public FacilityRecalibrationOrder Clone()
     {
@@ -287,6 +352,11 @@ public sealed class FacilityRecalibrationOrder
             destinationX = destinationX,
             destinationY = destinationY,
             materialsConsumed = materialsConsumed
+            ,materialTransferOperationId = materialTransferOperationId ?? string.Empty
+            ,materialTransferCommitId = materialTransferCommitId ?? string.Empty
+            ,materialTransferSourceStackId = materialTransferSourceStackId ?? string.Empty
+            ,materialTransferMassGrams = materialTransferMassGrams
+            ,materialTransferOutcomePublished = materialTransferOutcomePublished
         };
     }
 }

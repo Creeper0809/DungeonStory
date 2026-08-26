@@ -98,6 +98,10 @@ public static class DefenseFacilityDebugScenarios
         RunScenario("경비실 경비 작업과 교전", VerifyGuardRoom, errors);
 
         RunScenario("strict save boundary", VerifyStrictSaveBoundary, errors);
+        RunScenario(
+            "physical supply and maintenance transaction",
+            DefenseFacilityPhysicalTransactionFixture.Run,
+            errors);
 
         if (errors.Count > 0)
         {

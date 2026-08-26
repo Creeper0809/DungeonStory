@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: component:rune-conductor
     amount: 1
   outputs:
-  - itemId: component:rune-tuning-shield
+  - outputLineId: output:recipe:component:rune-tuning-shield/000/main/component:rune-tuning-shield
+    role: 0
+    itemId: component:rune-tuning-shield
     amount: 1
     probability: 1

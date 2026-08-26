@@ -11,7 +11,7 @@ public static class EquipmentEvolutionRestoreBuilder
             || source.reattunementOrders == null)
         {
             throw new InvalidOperationException(
-                "Equipment evolution V3 payload is missing a required collection.");
+                "Equipment evolution V4 payload is missing a required collection.");
         }
 
         EquipmentEvolutionAggregateState restored = new();
@@ -85,6 +85,8 @@ public static class EquipmentEvolutionRestoreBuilder
             throw new InvalidOperationException(
                 $"Reforge order '{order.orderId}' has duplicate IDs, invalid references, or out-of-range state.");
         }
+
+        ValidateReforgeMaterialTransfer(order);
     }
 
     private static void ValidateReattunement(
@@ -125,6 +127,119 @@ public static class EquipmentEvolutionRestoreBuilder
         {
             throw new InvalidOperationException(
                 $"Reattunement order '{order.orderId}' has duplicate IDs, invalid references, or out-of-range state.");
+        }
+
+        ValidateReattunementMaterialTransfer(order);
+    }
+
+    private static void ValidateReforgeMaterialTransfer(
+        EvolutionReforgeOrder order)
+    {
+        ValidateMaterialTransfer(
+            order.orderId,
+            order.materialsConsumed,
+            order.equipmentDelivered,
+            order.materialTransferOperationId,
+            order.materialTransferCommitId,
+            order.materialTransferRequestFingerprint,
+            order.materialTransferMassGrams,
+            order.materialTransferOutcomePublished,
+            order.materialTransferInputs,
+            EquipmentEvolutionRules.BuildRequirements(order),
+            EquipmentEvolutionMaterialOutbox.FormatReforgeOperationId(
+                order.orderId),
+            EquipmentEvolutionMaterialOutbox.ReforgeReasonCode,
+            "reforge");
+    }
+
+    private static void ValidateReattunementMaterialTransfer(
+        EquipmentReattunementOrder order)
+    {
+        ValidateMaterialTransfer(
+            order.orderId,
+            order.materialsConsumed,
+            order.equipmentDelivered,
+            order.materialTransferOperationId,
+            order.materialTransferCommitId,
+            order.materialTransferRequestFingerprint,
+            order.materialTransferMassGrams,
+            order.materialTransferOutcomePublished,
+            order.materialTransferInputs,
+            new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                [order.catalystItemId] = 1
+            },
+            EquipmentEvolutionMaterialOutbox.FormatReattunementOperationId(
+                order.orderId),
+            EquipmentEvolutionMaterialOutbox.ReattunementReasonCode,
+            "reattunement");
+    }
+
+    private static void ValidateMaterialTransfer(
+        string orderId,
+        bool materialsConsumed,
+        bool equipmentDelivered,
+        string operationId,
+        string commitId,
+        string requestFingerprint,
+        long massGrams,
+        bool outcomePublished,
+        IReadOnlyList<EquipmentEvolutionMaterialTransferInput> inputs,
+        IReadOnlyDictionary<string, int> requirements,
+        string expectedOperationId,
+        string reasonCode,
+        string label)
+    {
+        if (inputs == null)
+        {
+            throw new InvalidOperationException(
+                $"Equipment {label} order '{orderId}' has no material input collection.");
+        }
+
+        bool hasPending = !string.IsNullOrEmpty(operationId);
+        if (!hasPending)
+        {
+            if (!string.IsNullOrEmpty(commitId)
+                || !string.IsNullOrEmpty(requestFingerprint)
+                || massGrams != 0L
+                || outcomePublished
+                || inputs.Count != 0
+                || equipmentDelivered != materialsConsumed)
+            {
+                throw new InvalidOperationException(
+                    $"Equipment {label} order '{orderId}' has partial material provenance.");
+            }
+            return;
+        }
+
+        if (!string.Equals(
+                operationId,
+                expectedOperationId,
+                StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(commitId)
+            || !string.Equals(commitId, commitId.Trim(), StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(requestFingerprint)
+            || !string.Equals(
+                requestFingerprint,
+                requestFingerprint.Trim(),
+                StringComparison.Ordinal)
+            || massGrams <= 0L
+            || !materialsConsumed
+            || !equipmentDelivered
+            || !outcomePublished
+            || !EquipmentEvolutionMaterialOutbox.TryValidateInputs(
+                requirements,
+                inputs,
+                out _)
+            || !string.Equals(
+                requestFingerprint,
+                EquipmentEvolutionMaterialOutbox.CreateRequestFingerprint(
+                    reasonCode,
+                    inputs),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Equipment {label} order '{orderId}' has invalid material Transfer provenance.");
         }
     }
 

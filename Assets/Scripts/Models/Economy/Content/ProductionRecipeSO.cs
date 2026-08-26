@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -47,6 +48,7 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     [SerializeField] private Vector2 warningTemperatureC = new Vector2(4f, 32f);
     [Min(0f), SerializeField] private float cleanWaterPerCycle;
     [Min(0f), SerializeField] private float wastewaterPerCycle;
+    [SerializeField] private ProcessWastewaterComposition wastewaterComposition;
     [SerializeField] private bool allowsManualWaterFallback;
     [SerializeField] private string spoilageItemId = "waste:mixed-rot";
     [SerializeField] private List<ItemAmountDefinition> inputs = new List<ItemAmountDefinition>();
@@ -96,6 +98,8 @@ public sealed class ProductionRecipeSO : DataScriptableObject
         warningTemperatureC.y);
     public float CleanWaterPerCycle => Mathf.Max(0f, cleanWaterPerCycle);
     public float WastewaterPerCycle => Mathf.Max(0f, wastewaterPerCycle);
+    public ProcessWastewaterComposition WastewaterComposition =>
+        wastewaterComposition;
     public bool AllowsManualWaterFallback => allowsManualWaterFallback;
     public string SpoilageItemId => string.IsNullOrWhiteSpace(spoilageItemId)
         ? "waste:mixed-rot"
@@ -103,6 +107,55 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     public IReadOnlyList<ItemAmountDefinition> Inputs => inputs ??= new List<ItemAmountDefinition>();
     public IReadOnlyList<ProductionOutputDefinition> Outputs =>
         outputs ??= new List<ProductionOutputDefinition>();
+
+    public IReadOnlyList<ProductionOutputDefinition> CaptureCanonicalOutputs()
+    {
+        ProductionOutputDefinition[] snapshot =
+            (outputs ?? new List<ProductionOutputDefinition>()).ToArray();
+        ValidateCanonicalOutputLinesOrThrow(RecipeId, snapshot);
+        return snapshot;
+    }
+
+    public void ValidateCanonicalOutputLinesOrThrow() =>
+        ValidateCanonicalOutputLinesOrThrow(
+            RecipeId,
+            outputs ?? new List<ProductionOutputDefinition>());
+
+    private static void ValidateCanonicalOutputLinesOrThrow(
+        string ownerRecipeId,
+        IEnumerable<ProductionOutputDefinition> candidates)
+    {
+        string recipeContext = string.IsNullOrWhiteSpace(ownerRecipeId)
+            ? "<missing-recipe-id>"
+            : ownerRecipeId;
+        var lineIds = new HashSet<string>(StringComparer.Ordinal);
+        int outputIndex = 0;
+        foreach (ProductionOutputDefinition output in candidates)
+        {
+            if (output == null)
+            {
+                throw new InvalidOperationException(
+                    $"Production recipe '{recipeContext}' has a null output "
+                    + $"at index {outputIndex}.");
+            }
+            if (!output.HasCanonicalAuthoredValue)
+            {
+                throw new InvalidOperationException(
+                    $"Production recipe '{recipeContext}' output at index "
+                    + $"{outputIndex} is not canonically authored: "
+                    + $"lineId='{output.OutputLineId}', itemId='{output.ItemId}', "
+                    + $"role='{output.Role}'.");
+            }
+            if (!lineIds.Add(output.OutputLineId))
+            {
+                throw new InvalidOperationException(
+                    $"Production recipe '{recipeContext}' contains duplicate "
+                    + $"output line ID '{output.OutputLineId}'.");
+            }
+
+            outputIndex++;
+        }
+    }
 
 #if UNITY_EDITOR
     public void Configure(
@@ -127,8 +180,11 @@ public sealed class ProductionRecipeSO : DataScriptableObject
         requiredWork = Mathf.Max(0.1f, work);
         inputs = recipeInputs?.Where(input => input != null).ToList()
             ?? new List<ItemAmountDefinition>();
-        outputs = recipeOutputs?.Where(output => output != null).ToList()
-            ?? new List<ProductionOutputDefinition>();
+        ProductionOutputDefinition[] configuredOutputs =
+            recipeOutputs?.ToArray()
+            ?? Array.Empty<ProductionOutputDefinition>();
+        ValidateCanonicalOutputLinesOrThrow(recipeId, configuredOutputs);
+        outputs = configuredOutputs.ToList();
     }
 
     public void ConfigureWorkshop(
@@ -146,7 +202,9 @@ public sealed class ProductionRecipeSO : DataScriptableObject
         float cleanWater = 0f,
         float wastewater = 0f,
         bool allowManualWater = false,
-        string failedBatchItemId = "waste:mixed-rot")
+        string failedBatchItemId = "waste:mixed-rot",
+        ProcessWastewaterComposition wastewaterKind =
+            ProcessWastewaterComposition.None)
     {
         workstationTag = ownerWorkstationTag?.Trim() ?? string.Empty;
         requiredSupportTags = supportTags?
@@ -168,6 +226,7 @@ public sealed class ProductionRecipeSO : DataScriptableObject
             Mathf.Max(warningMinimumC, warningMaximumC));
         cleanWaterPerCycle = Mathf.Max(0f, cleanWater);
         wastewaterPerCycle = Mathf.Max(0f, wastewater);
+        wastewaterComposition = wastewaterKind;
         allowsManualWaterFallback = allowManualWater;
         spoilageItemId = failedBatchItemId?.Trim() ?? "waste:mixed-rot";
     }

@@ -144,7 +144,8 @@ public sealed class GameplayFlowDiagnosticsQuery : IGameplayFlowDiagnosticsQuery
         bool canAcceptLoose = inventory != null && stacks.Any(stack =>
             stack.State == WorldItemStackState.Loose
             && string.IsNullOrWhiteSpace(stack.DestinationId)
-            && inventory.CanStore(stack.StockCategory, 1));
+            && inventory.Accepts(stack.StockCategory)
+            && inventory.CanStoreItem(stack.ItemId, 1));
         return new GameplayFlowWarehouseSnapshot
         {
             Name = warehouse is BuildableObject building

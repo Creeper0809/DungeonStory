@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: resource:dark-resin
     amount: 1
   outputs:
-  - itemId: craft:toxic-trap-coating
+  - outputLineId: output:recipe:craft:toxic-trap-coating/000/main/craft:toxic-trap-coating
+    role: 0
+    itemId: craft:toxic-trap-coating
     amount: 2
     probability: 1

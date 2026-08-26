@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8078
+  id: 8079
   itemId: equipment:slime-warming-pad
   displayName: "\uBCF4\uC628 \uC810\uC561 \uD328\uB4DC"
   description: "\uC2AC\uB77C\uC784 \uC804\uC6A9 \uCD08\uAE30 \uC800\uC628 \uC791\uC5C5\uBCF5."
@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 15
   features:
-  - rid: 7737211905666711913
-  - rid: 7737211905666711914
-  - rid: 7737212042831200907
+  - rid: 1002
+  - rid: 1003
+  - rid: 1004
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666711913
-      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        requiredResearchId: research:environment:cold-work
-    - rid: 7737211905666711914
+        saleRate: 0.5940222
+    - rid: 1003
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 128
         sharedIntermediate: 0
-    - rid: 7737212042831200907
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+    - rid: 1004
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5940222
+        requiredResearchId: research:environment:cold-work

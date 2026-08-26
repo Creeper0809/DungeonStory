@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8095
+  id: 8096
   itemId: drug:mana-awakener
   displayName: "\uB9C8\uB098 \uAC01\uC131\uC81C"
   description: "\uC5F0\uAD6C\uC640 \uBE44\uC804 \uAC10\uAC01\uC744 \uC99D\uD3ED\uD558\uB294
@@ -32,24 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 42
   features:
-  - rid: 7737211905666712218
-  - rid: 7737211905666712219
-  - rid: 7737211905666712221
-  - rid: 7737212042857939628
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712218
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:stimulants
-    - rid: 7737211905666712219
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737211905666712221
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59331745
+    - rid: 1003
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:mana-awakener
@@ -62,7 +66,3 @@ MonoBehaviour:
         workSpeedEffect: 0.18
         combatEffect: 0.08
         durationSeconds: 180
-    - rid: 7737212042857939628
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.59331745

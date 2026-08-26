@@ -1,0 +1,8 @@
+RESULT=IN_PROGRESS; phase=mass-family-proposal; assetMutations=0
+rows=414; recipes=355; canonicalSemantics=363
+proposedChanges=7; ready=7; unchanged=356; critical=51; warning=0
+proposalMode=AuditOnly; appliesScriptableObjects=false; missingSemanticPolicy=fail-visible-no-guess
+sort=stableId:ordinal; csv=rfc4180-crlf; deterministicRecapture=PASS; byteIdentical=true
+sourceDigest=340780e57803bc3af3fe07a77cf6f6e6decc6d00c82caed4ed2d7d770a4c8f1d
+inspectedAssetDigest=3a1d5bdfca32ad2a7a1f62fcbfdc24c865aa7413c251f40dc85e36b34caa1b9d
+nextGate=REVIEW_ANOMALIES_THEN_APPLY_APPROVED_ONLY

@@ -13,6 +13,7 @@ internal sealed class CaptivityRestoreCoordinator
     private readonly CaptivityActorAccess actors;
     private readonly IDoorAccessSubjectRegistry doorSubjects;
     private readonly ICaptivityEscortRestoreLifecycle escortRestore;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private bool restoreTransactionActive;
     private bool restoreCandidatePrepared;
     private bool restorePublicationPending;
@@ -25,7 +26,8 @@ internal sealed class CaptivityRestoreCoordinator
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         CaptivityActorAccess actors,
         IDoorAccessSubjectRegistry doorSubjects,
-        ICaptivityEscortRestoreLifecycle escortRestore)
+        ICaptivityEscortRestoreLifecycle escortRestore,
+        IPhysicalItemBatchDispositionService batchDispositions)
     {
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
@@ -40,6 +42,8 @@ internal sealed class CaptivityRestoreCoordinator
             ?? throw new ArgumentNullException(nameof(doorSubjects));
         this.escortRestore = escortRestore
             ?? throw new ArgumentNullException(nameof(escortRestore));
+        this.batchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
     }
 
     internal string ParticipantId => RestoreParticipantId;
@@ -104,6 +108,33 @@ internal sealed class CaptivityRestoreCoordinator
             restoreTransactionActive,
             restoreCandidatePrepared,
             aggregateRootStore);
+
+        candidate.ReconcileCaptives(captive =>
+        {
+            if (!CaptivityLaborToolAssignmentOutbox.RequiresFinalization(captive))
+            {
+                return;
+            }
+            if (!CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
+                    captive,
+                    batchDispositions,
+                    out string failureReason))
+            {
+                throw new InvalidOperationException(
+                    $"Captive '{captive.captiveId}' labor-tool assignment could not be reconciled: {failureReason}");
+            }
+
+            CaptiveLaborPermission permissions = captive.pendingLaborPermissions;
+            if (permissions == CaptiveLaborPermission.None)
+            {
+                throw new InvalidOperationException(
+                    $"Captive '{captive.captiveId}' pending labor-tool assignment has no permissions.");
+            }
+            captive.pendingLaborPermissions = CaptiveLaborPermission.None;
+            captive.laborToolDestinationId = string.Empty;
+            captive.laborPermissions = permissions;
+            captive.status = CaptivityStatus.Labor;
+        });
 
         actors.Replace(candidate);
         doorSubjects.ReplaceCaptiveSubjects(

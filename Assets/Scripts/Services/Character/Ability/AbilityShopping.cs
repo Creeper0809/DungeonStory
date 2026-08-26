@@ -45,6 +45,9 @@ public class AbilityShopping : CharacterAbility
     private AIAction activeShoppingAction;
     private BuildableObject activeShoppingTarget;
     private Action activeShoppingTargetDestroyedHandler;
+    private int committedPurchaseCount;
+    private long committedPurchaseMassGrams;
+    private RetailStockLotSnapshot lastCommittedPurchaseLot;
 #if UNITY_EDITOR
     public Action<AIAction> DebugBeforeShoppingRoutineStart;
 #endif
@@ -67,6 +70,11 @@ public class AbilityShopping : CharacterAbility
     public ShoppingVisitOutcome LastVisitOutcome { get; private set; }
     public bool HasActiveShoppingRoutineForDiagnostics => shoppingExecutionActive;
     public BuildableObject CurrentVisitTargetForDiagnostics => currentVisitTarget;
+    public int CommittedPurchaseCountForDiagnostics => committedPurchaseCount;
+    public long CommittedPurchaseMassGramsForDiagnostics =>
+        committedPurchaseMassGrams;
+    public RetailStockLotSnapshot LastCommittedPurchaseLotForDiagnostics =>
+        lastCommittedPurchaseLot?.Clone();
 
     [Inject]
     public void ConstructAbilityShopping(
@@ -98,6 +106,9 @@ public class AbilityShopping : CharacterAbility
         attemptedLooseItemTheftBeforeExit = false;
         currentVisitTarget = null;
         LastVisitOutcome = ShoppingVisitOutcome.None;
+        committedPurchaseCount = 0;
+        committedPurchaseMassGrams = 0L;
+        lastCommittedPurchaseLot = null;
         holdingMoney = data != null
             ? Mathf.Max(0, data.GetHoldingMoney(randomStream))
             : 0;
@@ -851,26 +862,57 @@ public class AbilityShopping : CharacterAbility
             yield break;
         }
 
-        // Unity coroutines resume on the main thread. Stock, payment and the
-        // commit result are therefore mutated without a yield between them so
-        // a second customer cannot purchase the same final unit.
-        item.stock--;
+        string lotFailure = "retail-lot-unavailable-before-commit";
+        if (expectedFacility is not Shop shop
+            || !shop.TryTakeExactRetailLot(
+                item.id,
+                out RetailStockLotSnapshot purchasedLot,
+                out lotFailure))
+        {
+            commitResult.Reject(string.IsNullOrWhiteSpace(lotFailure)
+                ? "retail-lot-unavailable-before-commit"
+                : lotFailure);
+            yield break;
+        }
+        if (!shop.TryCommitExactRetailExternalSink(
+                purchasedLot,
+                out string sinkFailure))
+        {
+            if (!shop.TryRestoreTakenExactRetailLot(
+                    purchasedLot,
+                    out string restoreFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Retail purchase sink '{purchasedLot.sourceOperationId}' failed and its exact lot could not be restored: {restoreFailure}");
+            }
+            commitResult.Reject(string.IsNullOrWhiteSpace(sinkFailure)
+                ? "retail-terminal-sink-failed"
+                : sinkFailure);
+            yield break;
+        }
+
+        // Unity coroutines resume on the main thread. Exact lot removal,
+        // payment and receipt publication remain in one no-yield commit
+        // region, so a second customer cannot buy the same physical unit.
         if (!IsInternalStaffUse())
         {
             holdingMoney -= normalizedCost;
         }
 
-        if (!IsInternalStaffUse() && iteminfo != null)
-        {
-            AddPurchasedItemToCarry(iteminfo);
-        }
+        // Receipt publication is part of the atomic commit. On-buy effects are
+        // post-commit consequences; an effect exception must not make an
+        // already externalized physical lot appear uncommitted.
+        commitResult.Commit(purchasedLot);
+        committedPurchaseCount = checked(committedPurchaseCount + 1);
+        committedPurchaseMassGrams = checked(
+            committedPurchaseMassGrams
+            + purchasedLot.unitMassGrams * purchasedLot.quantity);
+        lastCommittedPurchaseLot = purchasedLot.Clone();
 
         foreach(var events in item.onbuy)
         {
             events.Onbuy(actor?.BuildingVisitor);
         }
-
-        commitResult.Commit();
     }
 
     private bool CanCommitShoppingTransaction(
@@ -900,37 +942,6 @@ public class AbilityShopping : CharacterAbility
             0,
             Mathf.RoundToInt(holdingMoney * multiplier));
         spendingProjectionApplied = true;
-    }
-
-    private void AddPurchasedItemToCarry(SaleItem itemInfo)
-    {
-        if (actor == null || itemInfo == null)
-        {
-            return;
-        }
-
-        CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(actor);
-        IWorldItemStackRuntime itemRuntime = actor.WorldItemStackRuntime;
-        if (inventory == null || itemRuntime == null)
-        {
-            return;
-        }
-
-        ItemDefinitionId itemId = itemInfo.ItemDefinitionId;
-        if (!itemId.IsValid
-            || !itemRuntime.CatalogProvider.TryGetDefinition(itemId.Value, out _))
-        {
-            throw new InvalidOperationException(
-                $"Sale item '{itemInfo.id}' has no valid authored physical item definition.");
-        }
-
-        inventory.TryAdd(
-            $"purchase:{itemInfo.id}:{RequireGameClock().FrameCount}",
-            itemId.Value,
-            1,
-            itemRuntime.CatalogProvider,
-            itemRuntime.HaulingSettingsProvider,
-            out _);
     }
 
     public bool TryStealLooseItemBeforeExit()

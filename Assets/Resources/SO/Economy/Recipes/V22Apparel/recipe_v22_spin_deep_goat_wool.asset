@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: fiber:deep-goat-wool
     amount: 3
   outputs:
-  - itemId: yarn:deep-goat-wool
+  - outputLineId: output:recipe:v22:spin:deep-goat-wool/000/main/yarn:deep-goat-wool
+    role: 0
+    itemId: yarn:deep-goat-wool
     amount: 2
     probability: 1

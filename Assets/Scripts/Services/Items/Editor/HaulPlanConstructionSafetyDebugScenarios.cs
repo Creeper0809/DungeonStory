@@ -319,9 +319,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 "durability mutation was incorrectly ignored by reservation identity");
             EquipmentModuleInstance attachedModule = new()
             {
-                instanceId = "equipment-module-instance:qa-haul-signature",
+                instanceId = "item-instance:qa-haul-signature-module",
                 definitionId = "module:weapon:balanced-core",
-                sourceStackId = stackId,
                 state = EquipmentModuleProcessState.Installed,
                 attachedEquipmentInstanceId = linkedBaseline.instanceId
             };
@@ -724,7 +723,10 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     new DungeonRuntimeAggregateRootStore());
                 FacilityBufferDestinationClaimRegistry destinationClaims = new();
                 warehouse.BindPhysicalStock(
-                    new PhysicalStockQuery(repository, itemCatalog));
+                    new PhysicalStockQuery(
+                        repository,
+                        itemCatalog,
+                        new PhysicalItemMassQuery(itemCatalog)));
                 ItemQuantityReservationService quantityReservations =
                     new ItemQuantityReservationService(
                         repository,
@@ -745,8 +747,11 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     itemCatalog,
                     repository,
                     EditorNullItemMarkerPresenter.Instance);
+                IPhysicalItemMassQuery massQuery =
+                    new PhysicalItemMassQuery(itemCatalog);
                 WorldItemQueryService query = new WorldItemQueryService(
                     itemCatalog,
+                    massQuery,
                     repository,
                     EditorNullItemMarkerPresenter.Instance);
                 EditorEquipmentPhysicalItemGatewayProxy equipmentItemGateway =
@@ -765,6 +770,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     new WorldItemHaulPlanningService(
                         gridProvider,
                         itemCatalog,
+                        massQuery,
                         haulingSettings,
                         idRegistry,
                         pathBroker,
@@ -774,6 +780,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                         destinationClaims);
                 WorldItemReadServices readServices = new WorldItemReadServices(
                     itemCatalog,
+                    massQuery,
                     haulingSettings,
                     query,
                     EditorNullItemMarkerPresenter.Instance,
@@ -1013,13 +1020,25 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         private readonly float stockWeight;
         private readonly ResourceDungeonItemCatalogProvider authoredCatalog =
             EditorItemCatalogFactory.Create();
+        private readonly IReadOnlyList<DungeonItemDefinition> all;
 
         public TestCatalogProvider(float stockWeight)
         {
             this.stockWeight = Mathf.Max(0.01f, stockWeight);
+            all = new[]
+                {
+                    LumberItemId,
+                    "food:preserved-ration",
+                    "resource:twilight-grain",
+                    PhysicalItemIds.ForEquipment("weapon:dagger"),
+                    PhysicalItemIds.ForEquipmentModule()
+                }
+                .Select(GetDefinition)
+                .OrderBy(value => value.ItemId, StringComparer.Ordinal)
+                .ToArray();
         }
 
-        public IReadOnlyList<DungeonItemDefinition> All => Array.Empty<DungeonItemDefinition>();
+        public IReadOnlyList<DungeonItemDefinition> All => all;
 
         public DungeonItemDefinition GetDefinition(string itemId)
         {

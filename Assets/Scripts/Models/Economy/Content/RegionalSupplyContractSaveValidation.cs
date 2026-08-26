@@ -102,10 +102,22 @@ public static class RegionalSupplyContractSaveValidation
             || !IsCanonicalOptional(contract.lastStatus)
             || !Enum.IsDefined(
                 typeof(RegionalSupplyContractStatus),
-                contract.status))
+                contract.status)
+            || !Enum.IsDefined(
+                typeof(RegionalSupplyDeliveryCommitPhase),
+                contract.deliveryCommitPhase))
         {
             report.AddError(
                 $"Regional contract '{contract.contractId}' has invalid text or status.");
+        }
+
+        if (contract.deliveryCommitPhase ==
+                RegionalSupplyDeliveryCommitPhase.None
+            ? !RegionalSupplyContractDeliveryOutbox.HasCanonicalEmpty(contract)
+            : !RegionalSupplyContractDeliveryOutbox.HasCanonicalPending(contract))
+        {
+            report.AddError(
+                $"Regional contract '{contract.contractId}' has invalid delivery outbox provenance.");
         }
 
         string expectedDestination =

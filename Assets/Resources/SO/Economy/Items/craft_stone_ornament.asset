@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8082
+  id: 8083
   itemId: craft:stone-ornament
   displayName: "\uC11D\uC870 \uC7A5\uC2DD"
   description: "\uBC29\uC758 \uBBF8\uAD00\uACFC \uB300\uD615 \uC0AC\uC5C5\uC5D0 \uC4F0\uB294
@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 21
   features:
-  - rid: 7737211905666711845
-  - rid: 7737211905666711846
-  - rid: 7737212042831201179
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666711845
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:mining:stonecutting
-    - rid: 7737211905666711846
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 512
         sharedIntermediate: 0
-    - rid: 7737212042831201179
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.573619

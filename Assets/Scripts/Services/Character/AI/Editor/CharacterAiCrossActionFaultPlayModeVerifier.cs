@@ -71,6 +71,7 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
     private CharacterActor actor;
     private IWorldItemStackRuntime items;
     private WorldItemRepository repository;
+    private WorldItemPersistenceService itemPersistence;
     private IItemQuantityReservationService reservations;
     private IFieldMealConsumptionCommand fieldMeals;
     private ICharacterSubstanceRuntime substances;
@@ -178,6 +179,7 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         yield return VerifyHaulSourceFault(remove: true);
         yield return VerifyHaulSourceFault(remove: false);
         yield return VerifyHaulDestinationFault();
+        yield return VerifyHaulCarrierDeathDrop();
         yield return VerifyRescueLifecycleAndRestore();
         yield return VerifyRescuePatientDeath();
         yield return VerifyRescueBedDestroyed();
@@ -211,6 +213,7 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         if (scope?.Container == null || actor == null) yield break;
         items = scope.Container.Resolve<IWorldItemStackRuntime>();
         repository = scope.Container.Resolve<WorldItemRepository>();
+        itemPersistence = scope.Container.Resolve<WorldItemPersistenceService>();
         reservations = scope.Container.Resolve<IItemQuantityReservationService>();
         fieldMeals = scope.Container.Resolve<IFieldMealConsumptionCommand>();
         substances = scope.Container.Resolve<ICharacterSubstanceRuntime>();
@@ -305,32 +308,201 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         Check(destination != null, "haul-destination-destroy: temporary warehouse created");
         if (destination == null) yield break;
         string itemId = FindStackableItemId();
-        Vector2Int sourceCell = actor.GetNowXY();
+        Vector2Int sourceCell = FindIsolatedItemSeedPosition();
         HashSet<string> beforeIds = items.GetAllStacks()
             .Where(stack => stack != null).Select(stack => stack.StackId).ToHashSet();
-        items.SpawnItemAt(itemId, 1, sourceCell, WorldItemStackState.Loose,
-            string.Empty, out _);
+        Check(items.SpawnItemAt(
+                itemId,
+                1,
+                sourceCell,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out int spawned)
+            && spawned == 1,
+            "haul-destination-destroy: isolated physical source spawned");
         WorldItemStackSnapshot source = items.GetAllStacks().FirstOrDefault(stack =>
             stack != null && !beforeIds.Contains(stack.StackId)
             && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal));
-        if (source != null) items.PrioritizeHaul(source.StackId);
+        Check(source != null && items.PrioritizeHaul(source.StackId),
+            "haul-destination-destroy: isolated source identified and prioritized");
+        if (source == null) yield break;
+        int totalBeforeFault = TotalQuantity(itemId);
         AbilityHaul haul = AbilityHaul.Ensure(actor);
         haul.StartHauling();
         float deadline = Time.realtimeSinceStartup + 5f;
-        while (haul.IsHauling
-            && !haul.CurrentExecutionStage.StartsWith("배송", StringComparison.Ordinal)
+        while (actor.CarryInventory?.HasItems != true
             && Time.realtimeSinceStartup < deadline)
             yield return null;
+        Check(actor.CarryInventory?.HasItems == true,
+            "haul-active-replan: physical pickup committed");
+        if (actor.CarryInventory?.HasItems != true) yield break;
+
+        Vector2Int sourcePosition = source.Position;
+        Vector2Int destinationPosition = destination.centerPos;
+        haul.StopHaulingForReplan("qa-destination-destroyed");
+        yield return null;
+        Check(!haul.IsHauling
+                && actor.CarryInventory?.HasItems == true
+                && haul.HasBoundDeliveryIntent
+                && haul.LastInterruptionDisposition == HaulInterruptionDisposition
+                    .ReleaseUnpickedAndRetainCarriedForReplan,
+            "haul-active-replan: carried cargo retained with delivery ownership");
+        Check(TotalQuantity(itemId) == totalBeforeFault,
+            "haul-active-replan: physical quantity conserved without source return");
+        evidence.Add("HAUL_ACTIVE_REPLAN_RETAINS_CARRIED=PASS");
+
         destination.DestroySelf();
         yield return null;
-        haul.StopHauling("qa-destination-destroyed");
+        Vector2Int dropCell = FindDistinctReachableCell(
+            actor,
+            sourcePosition,
+            destinationPosition);
+        actor.transform.position = grid.GetWorldPos(dropCell);
+        actor.SetLifecycleState(CharacterLifecycleState.Downed);
         yield return null;
-        Check(!haul.IsHauling && actor.CarryInventory?.HasItems != true,
-            "haul-destination-destroy: carry recovered and coroutine terminal");
-        if (source != null)
-            Check(reservations.GetReservedQuantity(new ItemStackId(source.StackId)) == 0,
-                "haul-destination-destroy: source lease released exactly once");
+        WorldItemStackSnapshot recovery = FindRecoveryDrop(
+            actor.BuildingCharacterId.Value,
+            WorldItemCarryInterruptionKind.Downed);
+        Check(actor.CarryInventory?.HasItems != true
+                && recovery != null
+                && recovery.Position == dropCell
+                && recovery.Position != sourcePosition
+                && recovery.Position != destinationPosition,
+            "haul-downed-drop: exact actor-cell physical drop without teleport");
+        Check(recovery != null
+                && recovery.RecoveryDeadlineGameTime > recovery.DroppedAtGameTime
+                && !string.IsNullOrWhiteSpace(recovery.RecoveryOwnerOperationId)
+                && !string.IsNullOrWhiteSpace(recovery.RecoverySourceStackId),
+            "haul-downed-drop: transient provenance and recovery deadline exact");
+        Check(TotalQuantity(itemId) == totalBeforeFault,
+            "haul-downed-drop: source+carried+drop quantity conserved");
+        DungeonPhysicalItemSaveData physicalSave = itemPersistence.Capture();
+        Check(physicalSave.stacks.Any(stack => stack != null
+                && recovery != null
+                && string.Equals(stack.stackId, recovery.StackId, StringComparison.Ordinal)
+                && stack.dropDisposition ==
+                    WorldItemDropDisposition.TransientCarryRecoveryDrop
+                && stack.recoveryInterruptionKind ==
+                    WorldItemCarryInterruptionKind.Downed
+                && stack.recoveryDeadlineGameTime > stack.droppedAtGameTime),
+            "haul-downed-drop: V9 physical save preserves recovery provenance");
+        evidence.Add("HAUL_DOWNED_CURRENT_CELL_TRANSIENT_DROP=PASS");
+        evidence.Add("HAUL_DOWNED_QUANTITY_NO_TELEPORT=PASS");
+        actor.SetLifecycleState(CharacterLifecycleState.Active);
         evidence.Add("haul-destination-destroy=PASS");
+    }
+
+    private IEnumerator VerifyHaulCarrierDeathDrop()
+    {
+        CharacterActor carrier = CreateTemporaryActor("HaulDeathFault", 990823);
+        Check(carrier != null, "haul-dead-drop: temporary carrier created");
+        if (carrier == null) yield break;
+        Vector2Int? carrierStart = grid.SearchPath(actor.GetNowXY())
+            .GetReachablePositions()
+            .Where(position => grid.IsValidGridPos(position)
+                && grid.IsWalkable(position)
+                && position != actor.GetNowXY())
+            .Distinct()
+            .OrderBy(position => Mathf.Abs(position.x - actor.GetNowXY().x)
+                + Mathf.Abs(position.y - actor.GetNowXY().y))
+            .Skip(2)
+            .Select(position => (Vector2Int?)position)
+            .FirstOrDefault();
+        Check(carrierStart.HasValue,
+            "haul-dead-drop: reachable carrier start located");
+        if (!carrierStart.HasValue) yield break;
+        carrier.transform.position = grid.GetWorldPos(carrierStart.Value);
+        Facility destination = CreateTemporaryWarehouse(carrier);
+        Check(destination != null, "haul-dead-drop: temporary warehouse created");
+        if (destination == null) yield break;
+
+        string itemId = FindStackableItemId();
+        Vector2Int sourceCell = carrier.GetNowXY();
+        HashSet<string> beforeIds = items.GetAllStacks()
+            .Where(stack => stack != null)
+            .Select(stack => stack.StackId)
+            .ToHashSet(StringComparer.Ordinal);
+        int totalBefore = TotalQuantity(itemId);
+        Check(items.SpawnItemAt(itemId, 1, sourceCell,
+                WorldItemStackState.Loose, string.Empty, out int spawned)
+            && spawned == 1,
+            "haul-dead-drop: physical source spawned");
+        WorldItemStackSnapshot source = items.GetAllStacks().FirstOrDefault(stack =>
+            stack != null
+            && !beforeIds.Contains(stack.StackId)
+            && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal));
+        Check(source != null && items.PrioritizeHaul(source.StackId),
+            "haul-dead-drop: source prioritized");
+        if (source == null) yield break;
+
+        AbilityHaul haul = AbilityHaul.Ensure(carrier);
+        haul.StartHauling();
+        float deadline = Time.realtimeSinceStartup + 5f;
+        while (carrier.CarryInventory?.HasItems != true
+            && Time.realtimeSinceStartup < deadline)
+            yield return null;
+        Check(carrier.CarryInventory?.HasItems == true,
+            "haul-dead-drop: physical pickup committed");
+        if (carrier.CarryInventory?.HasItems != true) yield break;
+
+        string carrierId = carrier.BuildingCharacterId.Value;
+        CharacterCarryInventory carrierInventory = carrier.CarryInventory;
+        Vector2Int destinationPosition = destination.centerPos;
+        Vector2Int dropCell = FindDistinctReachableCell(
+            carrier,
+            source.Position,
+            destinationPosition);
+        carrier.transform.position = grid.GetWorldPos(dropCell);
+        carrier.Die(CharacterDeathCauseCode.Combat, "qa-haul-carrier-dead");
+        yield return null;
+        yield return null;
+        WorldItemStackSnapshot recovery = FindRecoveryDrop(
+            carrierId,
+            WorldItemCarryInterruptionKind.Dead);
+        Check(recovery != null
+                && recovery.Position == dropCell
+                && recovery.Position != source.Position
+                && recovery.Position != destinationPosition
+                && (carrierInventory == null || !carrierInventory.HasItems),
+            "haul-dead-drop: exact last actor-cell physical drop without teleport");
+        Check(TotalQuantity(itemId) == totalBefore + 1,
+            "haul-dead-drop: quantity conserved across death interruption");
+        evidence.Add("HAUL_DEAD_CURRENT_CELL_TRANSIENT_DROP=PASS");
+        evidence.Add("HAUL_DEAD_QUANTITY_NO_TELEPORT=PASS");
+    }
+
+    private WorldItemStackSnapshot FindRecoveryDrop(
+        string carrierId,
+        WorldItemCarryInterruptionKind interruptionKind)
+    {
+        return items.GetAllStacks().FirstOrDefault(stack => stack != null
+            && stack.IsTransientCarryRecoveryDrop
+            && stack.RecoveryInterruptionKind == interruptionKind
+            && string.Equals(
+                stack.RecoveryCarrierPersistentId,
+                carrierId,
+                StringComparison.Ordinal));
+    }
+
+    private Vector2Int FindDistinctReachableCell(
+        CharacterActor carrier,
+        Vector2Int source,
+        Vector2Int destination)
+    {
+        Vector2Int? selected = grid.SearchPath(carrier.GetNowXY())
+            .GetReachablePositions()
+            .Where(position => grid.IsValidGridPos(position)
+                && grid.IsWalkable(position)
+                && position != source
+                && position != destination)
+            .OrderByDescending(position =>
+                Mathf.Abs(position.x - source.x) + Mathf.Abs(position.y - source.y))
+            .Select(position => (Vector2Int?)position)
+            .FirstOrDefault();
+        if (!selected.HasValue)
+            throw new InvalidOperationException(
+                "No distinct reachable recovery-drop cell is available.");
+        return selected.Value;
     }
 
     private IEnumerator VerifyRescueLifecycleAndRestore()
@@ -436,8 +608,12 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         // StartCoroutine runs synchronously to its first movement yield.  Destroying
         // here faults the reserved target before any later movement/attack commit.
         Destroy(despawnPrey.gameObject);
-        yield return null;
-        yield return null;
+        float despawnTerminalDeadline = Time.realtimeSinceStartup + 5f;
+        while (despawnHunt.IsHunting
+            && Time.realtimeSinceStartup < despawnTerminalDeadline)
+        {
+            yield return null;
+        }
         Check(!despawnHunt.IsHunting && CountCarcasses() == carcassesBefore,
             "hunt-prey-despawn: failed terminal without carcass late commit");
         despawnHunt.StopHunting("qa-idempotent-second-cleanup");
@@ -751,7 +927,7 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         evidence.Add("substance-item-loss=PASS");
     }
 
-    private Facility CreateTemporaryWarehouse()
+    private Facility CreateTemporaryWarehouse(CharacterActor referenceActor = null)
     {
         BuildingSO data = AssetDatabase.FindAssets("t:BuildingSO")
             .Select(AssetDatabase.GUIDToAssetPath)
@@ -762,7 +938,7 @@ public sealed class CharacterAiCrossActionFaultPlayModeRunner : MonoBehaviour
         GridSystemManager gridManager = FindFirstObjectByType<GridSystemManager>(
             FindObjectsInactive.Include);
         if (data == null || gridManager?.grid == null) return null;
-        Vector2Int actorPosition = actor.GetNowXY();
+        Vector2Int actorPosition = (referenceActor ?? actor).GetNowXY();
         Vector2Int? reachable = gridManager.grid.SearchPath(actorPosition)
             .GetReachablePositions()
             .Where(position => gridManager.grid.IsValidGridPos(position)

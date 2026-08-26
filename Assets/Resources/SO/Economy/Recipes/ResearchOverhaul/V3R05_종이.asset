@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 0
     recommendedRank: 2
     minimumRiskRank: 0
-  requiredResearchId: research:equipment:engineering-drawing
+  requiredResearchId: research:industry:powered-tools
   requiredWork: 68
   preparationWork: 0
   finishingWork: 0
@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: resource:clean-water
     amount: 1
   outputs:
-  - itemId: material:paper
+  - outputLineId: output:recipe:material:paper/000/main/material:paper
+    role: 0
+    itemId: material:paper
     amount: 4
     probability: 1

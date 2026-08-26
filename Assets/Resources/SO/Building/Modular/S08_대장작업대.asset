@@ -59,13 +59,13 @@ MonoBehaviour:
     - rid: 7737211921440178880
     - rid: 7737211921440178881
     - rid: 7737211921440178882
-    - rid: 7737211921440178883
-    - rid: 7737212033836254182
-    - rid: 7737212033836254183
-    - rid: 7737212033836254184
-    - rid: 7737212033836254185
-    - rid: 7737212042831200568
-    - rid: 7737212042831200569
+    - rid: 1006
+    - rid: 1007
+    - rid: 1002
+    - rid: 1003
+    - rid: 1009
+    - rid: 1010
+    - rid: 1000
   width: 2
   height: 1
   layer: 1
@@ -81,6 +81,135 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 1000
+      type: {class: BuildingEquipmentCraftingAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingEquipmentCraftingAbility
+        craftableEquipmentIds:
+        - armor:articulated-plate
+        - armor:blacksteel-carapace
+        - armor:blast-coat
+        - armor:breastplate
+        - armor:brigandine
+        - armor:closed-plate-helm
+        - armor:cloth-hood
+        - armor:gambeson
+        - armor:hardened-leather-coat
+        - armor:iron-helmet
+        - armor:jack-of-plates
+        - armor:leather
+        - armor:leather-cap
+        - armor:mail-coif
+        - armor:mail-shirt
+        - armor:padded-hood
+        - armor:powder-cuirass
+        - armor:powered-harness
+        - armor:rune-ward-mail
+        - armor:scale-coat
+        - armor:smoke-hood
+        - craft:ammo:arrow
+        - craft:ammo:bolt
+        - shield:blacksteel
+        - shield:buckler
+        - shield:iron
+        - shield:mana-buckler
+        - shield:pavise
+        - shield:powered
+        - shield:rune
+        - shield:tower
+        - shield:wood
+        - weapon:arquebus
+        - weapon:blacksteel-poleaxe
+        - weapon:composite-bow
+        - weapon:crossbow
+        - weapon:dagger
+        - weapon:estoc
+        - weapon:falchion
+        - weapon:greatsword
+        - weapon:halberd
+        - weapon:handgonne
+        - weapon:heavy-matchlock
+        - weapon:javelin
+        - weapon:longbow
+        - weapon:longsword
+        - weapon:mace
+        - weapon:mana-lance
+        - weapon:matchlock-long-gun
+        - weapon:matchlock-pistol
+        - weapon:pollaxe
+        - weapon:powered-striking-gauntlet
+        - weapon:repeating-crossbow
+        - weapon:rune-blade
+        - weapon:rune-bow
+        - weapon:shortbow
+        - weapon:shotgun
+        - weapon:siege-arbalest
+        - weapon:sniper-arquebus
+        - weapon:spear
+        - weapon:throwing-axe
+        - weapon:warhammer
+        - weapon:windlass-crossbow
+        workUnitsPerCycle: 1
+    - rid: 1002
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 1
+        maxThroughput: 25
+        normallyOpen: 1
+    - rid: 1003
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 5
+        priority: 4
+        minimumSupplyFraction: 0.75
+    - rid: 1006
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:forge-basic
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 1007
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
+    - rid: 1009
+      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAutomationAbility
+        maximumMode: 2
+        assistedPowerDemand: 2
+        automaticPowerDemand: 5
+        assistedWorkMultiplier: 1.35
+        automaticWorkPerSecond: 1
+        automaticQualityCap: 0.75
+        maintenancePerGameHour: 1
+    - rid: 1010
+      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingConveyorPortAbility
+        mode: 2
+        destinationId: 
+        capacity: 4
     - rid: 7737211921440178876
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
@@ -155,132 +284,3 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7737211921440178883
-      type: {class: BuildingEquipmentCraftingAbility, ns: , asm: DungeonStory.Buildings}
-      data:
-        abilityId: BuildingEquipmentCraftingAbility
-        craftableEquipmentIds:
-        - armor:articulated-plate
-        - armor:blacksteel-carapace
-        - armor:blast-coat
-        - armor:breastplate
-        - armor:brigandine
-        - armor:closed-plate-helm
-        - armor:cloth-hood
-        - armor:gambeson
-        - armor:hardened-leather-coat
-        - armor:iron-helmet
-        - armor:jack-of-plates
-        - armor:leather
-        - armor:leather-cap
-        - armor:mail-coif
-        - armor:mail-shirt
-        - armor:padded-hood
-        - armor:powder-cuirass
-        - armor:powered-harness
-        - armor:rune-ward-mail
-        - armor:scale-coat
-        - armor:smoke-hood
-        - craft:ammo:arrow
-        - craft:ammo:bolt
-        - shield:blacksteel
-        - shield:buckler
-        - shield:iron
-        - shield:mana-buckler
-        - shield:pavise
-        - shield:powered
-        - shield:rune
-        - shield:tower
-        - shield:wood
-        - weapon:arquebus
-        - weapon:blacksteel-poleaxe
-        - weapon:composite-bow
-        - weapon:crossbow
-        - weapon:dagger
-        - weapon:estoc
-        - weapon:falchion
-        - weapon:greatsword
-        - weapon:halberd
-        - weapon:handgonne
-        - weapon:heavy-matchlock
-        - weapon:javelin
-        - weapon:longbow
-        - weapon:longsword
-        - weapon:mace
-        - weapon:mana-lance
-        - weapon:matchlock-long-gun
-        - weapon:matchlock-pistol
-        - weapon:pollaxe
-        - weapon:powered-striking-gauntlet
-        - weapon:repeating-crossbow
-        - weapon:rune-blade
-        - weapon:rune-bow
-        - weapon:shortbow
-        - weapon:shotgun
-        - weapon:siege-arbalest
-        - weapon:sniper-arquebus
-        - weapon:spear
-        - weapon:throwing-axe
-        - weapon:warhammer
-        - weapon:windlass-crossbow
-        workUnitsPerCycle: 1
-    - rid: 7737212033836254182
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 1
-        maxThroughput: 25
-        normallyOpen: 1
-    - rid: 7737212033836254183
-      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingPowerConsumerAbility
-        demandPerSecond: 5
-        priority: 4
-        minimumSupplyFraction: 0.75
-    - rid: 7737212033836254184
-      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingAutomationAbility
-        maximumMode: 2
-        assistedPowerDemand: 2
-        automaticPowerDemand: 5
-        assistedWorkMultiplier: 1.35
-        automaticWorkPerSecond: 1
-        automaticQualityCap: 0.75
-        maintenancePerGameHour: 1
-    - rid: 7737212033836254185
-      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingConveyorPortAbility
-        mode: 2
-        destinationId: 
-        capacity: 4
-    - rid: 7737212042831200568
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:forge-basic
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737212042831200569
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 4
-        outputCapacities:
-        - itemId: material:lead-ingot
-          capacity: 24
-        - itemId: material:lead-shot
-          capacity: 96
-        - itemId: material:black-powder
-          capacity: 48
-        - itemId: material:paper
-          capacity: 64
-        - itemId: ammo:paper-cartridge
-          capacity: 120
-        - itemId: component:machine-parts
-          capacity: 16
-        - itemId: component:precision-parts
-          capacity: 16
-        allowOverflowDump: 1
-        overflowOffset: {x: 1, y: 0}

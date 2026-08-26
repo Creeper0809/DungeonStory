@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:cloth
     amount: 1
   outputs:
-  - itemId: apparel:horn-ring
+  - outputLineId: output:recipe:v22:apparel:horn-ring/000/main/apparel:horn-ring
+    role: 0
+    itemId: apparel:horn-ring
     amount: 1
     probability: 1

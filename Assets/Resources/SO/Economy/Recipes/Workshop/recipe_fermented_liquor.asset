@@ -50,14 +50,17 @@ MonoBehaviour:
   processingGameHours: 12
   optimalTemperatureC: {x: 12, y: 24}
   warningTemperatureC: {x: 4, y: 32}
-  cleanWaterPerCycle: 0
+  cleanWaterPerCycle: 0.7
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:plant-rot
   inputs:
   - itemId: material:malt
     amount: 2
   outputs:
-  - itemId: material:fermented-liquor
+  - outputLineId: output:recipe:fermented-liquor/000/main/material:fermented-liquor
+    role: 0
+    itemId: material:fermented-liquor
     amount: 2
     probability: 1

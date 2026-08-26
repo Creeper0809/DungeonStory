@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -291,18 +293,67 @@ public sealed class DungeonGameSaveSlotService : IDungeonGameSaveSlotService
 
     private readonly IDungeonGameSaveService saveService;
     private readonly IDungeonSaveSlotCatalog slotCatalog;
+    private readonly IDungeonDurableSaveCommitCoordinator durableSaveCommits;
+    private readonly IDungeonAtomicSaveFilePort filePort;
+
+    public DungeonGameSaveSlotService(
+        IDungeonGameSaveService saveService,
+        IDungeonSaveSlotCatalog slotCatalog,
+        IPreparedOutputCheckpointGcCoordinator checkpointGc)
+        : this(
+            saveService,
+            slotCatalog,
+            CreateLegacyDurableSaveCoordinator(checkpointGc),
+            new DungeonAtomicSaveFilePort())
+    {
+    }
 
     [VContainer.Inject]
     public DungeonGameSaveSlotService(
         IDungeonGameSaveService saveService,
-        IDungeonSaveSlotCatalog slotCatalog)
+        IDungeonSaveSlotCatalog slotCatalog,
+        IDungeonDurableSaveCommitCoordinator durableSaveCommits)
+        : this(
+            saveService,
+            slotCatalog,
+            durableSaveCommits,
+            new DungeonAtomicSaveFilePort())
+    {
+    }
+
+    internal DungeonGameSaveSlotService(
+        IDungeonGameSaveService saveService,
+        IDungeonSaveSlotCatalog slotCatalog,
+        IPreparedOutputCheckpointGcCoordinator checkpointGc,
+        IDungeonAtomicSaveFilePort filePort)
+        : this(
+            saveService,
+            slotCatalog,
+            CreateLegacyDurableSaveCoordinator(checkpointGc),
+            filePort)
+    {
+    }
+
+    internal DungeonGameSaveSlotService(
+        IDungeonGameSaveService saveService,
+        IDungeonSaveSlotCatalog slotCatalog,
+        IDungeonDurableSaveCommitCoordinator durableSaveCommits,
+        IDungeonAtomicSaveFilePort filePort)
     {
         this.saveService = saveService ?? throw new ArgumentNullException(nameof(saveService));
         this.slotCatalog = slotCatalog ?? throw new ArgumentNullException(nameof(slotCatalog));
+        this.durableSaveCommits = durableSaveCommits
+            ?? throw new ArgumentNullException(nameof(durableSaveCommits));
+        this.filePort = filePort ?? throw new ArgumentNullException(nameof(filePort));
     }
 
-    internal DungeonGameSaveSlotService(IDungeonGameSaveService saveService, string saveDirectory)
-        : this(saveService, new DungeonSaveSlotCatalog(saveDirectory))
+    internal DungeonGameSaveSlotService(
+        IDungeonGameSaveService saveService,
+        string saveDirectory,
+        IPreparedOutputCheckpointGcCoordinator checkpointGc,
+        IDungeonAtomicSaveFilePort filePort)
+        : this(saveService, new DungeonSaveSlotCatalog(saveDirectory),
+            checkpointGc, filePort)
     {
     }
 
@@ -312,22 +363,54 @@ public sealed class DungeonGameSaveSlotService : IDungeonGameSaveSlotService
         Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Application.persistentDataPath);
         string temporaryPath = path + ".tmp";
         string backupPath = path + ".bak";
-        File.WriteAllText(temporaryPath, saveService.ToJson(saveService.Capture(), prettyPrint));
+        string serialized = saveService.ToJson(saveService.Capture(), prettyPrint);
+        byte[] serializedBytes = new UTF8Encoding(
+            encoderShouldEmitUTF8Identifier: false,
+            throwOnInvalidBytes: true).GetBytes(serialized);
+        string serializedByteDigest = ComputeSha256(serializedBytes);
+        try
+        {
+            filePort.WriteTemporary(temporaryPath, serializedBytes);
+            filePort.CommitTemporary(temporaryPath, path, backupPath);
+        }
+        catch
+        {
+            filePort.TryDelete(temporaryPath);
+            throw;
+        }
 
-        if (File.Exists(path))
+        DungeonDurableSaveCommitResult commitResult = durableSaveCommits
+            .OnDurableSaveCommitted(slotId, serializedByteDigest);
+        if (commitResult.Status == DungeonDurableSaveCommitStatus.Corruption)
         {
-            File.Replace(temporaryPath, path, backupPath, true);
-            if (File.Exists(backupPath))
-            {
-                File.Delete(backupPath);
-            }
+            throw new InvalidOperationException(
+                "Save bytes are durable, but durable-save commit processing failed at '"
+                + commitResult.ParticipantId + "': " + commitResult.Message);
         }
-        else
-        {
-            File.Move(temporaryPath, path);
-        }
+        filePort.TryDelete(backupPath);
 
         return path;
+    }
+
+    private static IDungeonDurableSaveCommitCoordinator
+        CreateLegacyDurableSaveCoordinator(
+            IPreparedOutputCheckpointGcCoordinator checkpointGc) =>
+        new DungeonDurableSaveCommitCoordinator(
+            new IDungeonDurableSaveCommitParticipant[]
+            {
+                new PreparedOutputCheckpointGcDurableSaveParticipant(
+                    checkpointGc ?? throw new ArgumentNullException(
+                        nameof(checkpointGc)))
+            });
+
+    private static string ComputeSha256(byte[] bytes)
+    {
+        using SHA256 sha = SHA256.Create();
+        byte[] digest = sha.ComputeHash(bytes ?? Array.Empty<byte>());
+        StringBuilder builder = new(digest.Length * 2);
+        for (int index = 0; index < digest.Length; index++)
+            builder.Append(digest[index].ToString("x2", CultureInfo.InvariantCulture));
+        return builder.ToString();
     }
 
     public bool TryLoad(string slotId, out DungeonGameRestoreReport report)
@@ -395,4 +478,58 @@ public sealed class DungeonGameSaveSlotService : IDungeonGameSaveSlotService
         }
     }
 
+}
+
+internal interface IDungeonAtomicSaveFilePort
+{
+    void WriteTemporary(string temporaryPath, byte[] serializedBytes);
+    void CommitTemporary(
+        string temporaryPath,
+        string destinationPath,
+        string backupPath);
+    void TryDelete(string path);
+}
+
+internal sealed class DungeonAtomicSaveFilePort : IDungeonAtomicSaveFilePort
+{
+    public void WriteTemporary(string temporaryPath, byte[] serializedBytes)
+    {
+        string path = temporaryPath
+            ?? throw new ArgumentNullException(nameof(temporaryPath));
+        byte[] bytes = serializedBytes
+            ?? throw new ArgumentNullException(nameof(serializedBytes));
+        using FileStream stream = new(
+            path,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 4096,
+            FileOptions.WriteThrough);
+        stream.Write(bytes, 0, bytes.Length);
+        stream.Flush(flushToDisk: true);
+    }
+
+    public void CommitTemporary(
+        string temporaryPath,
+        string destinationPath,
+        string backupPath)
+    {
+        if (File.Exists(destinationPath))
+            File.Replace(temporaryPath, destinationPath, backupPath, true);
+        else
+            File.Move(temporaryPath, destinationPath);
+    }
+
+    public void TryDelete(string path)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                File.Delete(path);
+        }
+        catch
+        {
+            // Backup/temp cleanup is non-authoritative after atomic replacement.
+        }
+    }
 }

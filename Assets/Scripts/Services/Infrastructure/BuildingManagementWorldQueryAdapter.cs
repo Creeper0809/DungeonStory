@@ -30,10 +30,20 @@ public sealed class BuildingManagementWorldQueryAdapter : IBuildingManagementWor
 
     public IReadOnlyList<WarehouseManagementSnapshot> CaptureWarehouses() => warehouses.Warehouses
         .Where(warehouse => warehouse != null && warehouse.HasWarehouseInventory && warehouse.Inventory != null)
-        .Select(warehouse => new WarehouseManagementSnapshot(
-            warehouse.Inventory.TotalStock,
-            warehouse.Inventory.MaxCapacity,
-            warehouse.Inventory.HasCapacityLimit,
-            warehouse.Inventory.EnumerateStock().ToDictionary(pair => pair.Key, pair => pair.Value)))
+        .Select(warehouse =>
+        {
+            WarehouseInventory inventory = warehouse.Inventory;
+            bool massAuthoritative = inventory.HasMassCapacityAuthority;
+            return new WarehouseManagementSnapshot(
+                inventory.TotalStock,
+                massAuthoritative ? 0 : inventory.MaxCapacity,
+                !massAuthoritative && inventory.HasCapacityLimit,
+                inventory.EnumerateStock().ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value),
+                massAuthoritative,
+                massAuthoritative ? inventory.StoredMassGrams : 0L,
+                massAuthoritative ? inventory.MaxMassGrams : 0L);
+        })
         .ToArray();
 }

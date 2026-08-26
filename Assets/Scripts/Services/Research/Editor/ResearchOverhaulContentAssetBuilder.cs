@@ -126,7 +126,6 @@ public static class ResearchOverhaulContentAssetBuilder
         BuildItemsAndRecipes();
         GameContentCatalogAssetBuilder.ReindexItemDefinitions();
         V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
-        V23MarketValueCalibrator.Apply();
     }
 
     public static IReadOnlyDictionary<string, int[]> GetFacilityUnlockIds() =>
@@ -185,7 +184,11 @@ public static class ResearchOverhaulContentAssetBuilder
             FacilitySpec spec = specs[index];
             string code = $"RF{index + 1:D2}";
             string path = $"{FacilityRoot}/{code}_{Sanitize(spec.Name)}.asset";
-            BuildingSO building = GetOrCreate<BuildingSO>(path);
+            BuildingSO asset = GetOrCreate<BuildingSO>(path);
+            void ConfigureBuilding(BuildingSO building)
+            {
+            BuildingWorkAmountAbility approvedWorkAmount =
+                building.GetAbility<BuildingWorkAmountAbility>();
             building.id = 8801 + index;
             building.objectName = spec.Name;
             building.sprite = fallbackSprite;
@@ -232,7 +235,8 @@ public static class ResearchOverhaulContentAssetBuilder
             });
             abilities.Add(new BuildingProductionBufferAbility
             {
-                defaultBatchCapacity = 4
+                defaultBatchCapacity = 4,
+                physicalOutputBufferCycleCapacity = 4
             });
             if (string.Equals(
                     spec.ResearchId,
@@ -304,6 +308,8 @@ public static class ResearchOverhaulContentAssetBuilder
                     },
                     cleanWaterPerCycle = 0.2f,
                     wastewaterPerCycle = 0.2f,
+                    wastewaterComposition =
+                        ProcessWastewaterComposition.MedicalEffluent,
                     minimumQuality = WorldWaterQuality.Clean,
                     allowsManualWaterFallback = true
                 });
@@ -328,7 +334,7 @@ public static class ResearchOverhaulContentAssetBuilder
                 operateWorkRequired = 12f
             };
             workAmount.SetConstructionMaterials(constructionMaterials);
-            abilities.Add(workAmount);
+            abilities.Add(approvedWorkAmount ?? workAmount);
             if (string.Equals(
                     spec.ResearchId,
                     "research:industry:maintenance",
@@ -348,7 +354,11 @@ public static class ResearchOverhaulContentAssetBuilder
             building.AbilityModules.EnsureStableIds();
             building.ValidateAbilitiesOrThrow();
             ValidateCultivationInputs(spec, building);
-            EditorUtility.SetDirty(building);
+            }
+            if (!WouldChange(asset, ConfigureBuilding))
+                continue;
+            ConfigureBuilding(asset);
+            EditorUtility.SetDirty(asset);
         }
     }
 
@@ -420,7 +430,7 @@ public static class ResearchOverhaulContentAssetBuilder
             case FacilityBomProfile.GGreenhouse:
                 roles = FacilityRole.Logistics;
                 workTypes = FacilityWorkType.Sow | FacilityWorkType.Harvest
-                    | FacilityWorkType.Operate;
+                    | FacilityWorkType.Treat | FacilityWorkType.Operate;
                 break;
             case FacilityBomProfile.HObservationTower:
                 roles = FacilityRole.Research;
@@ -833,8 +843,13 @@ public static class ResearchOverhaulContentAssetBuilder
         for (int index = 0; index < specs.Length; index++)
         {
             ItemSpec spec = specs[index];
-            ResourceItemDefinitionSO item =
-                GetOrCreate<ResourceItemDefinitionSO>(ItemPath(index, spec));
+            string itemPath = ItemPath(index, spec);
+            ResourceItemDefinitionSO existingItem =
+                AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>(itemPath);
+            ResourceItemDefinitionSO asset =
+                GetOrCreate<ResourceItemDefinitionSO>(itemPath);
+            void ConfigureItem(ResourceItemDefinitionSO item)
+            {
             item.id = 8901 + index;
             item.Configure(
                 spec.ItemId,
@@ -845,8 +860,10 @@ public static class ResearchOverhaulContentAssetBuilder
                     : CategoryFor(spec.Kind),
                 spec.Kind,
                 spec.Tags,
-                ResolveGeneratedUnitPrice(spec),
-                ResolveGeneratedUnitWeight(spec),
+                existingItem != null
+                    ? existingItem.UnitPrice
+                    : ResolveGeneratedUnitPrice(spec),
+                ResolveAuthoredUnitWeight(spec, existingItem),
                 spec.ItemId == PhysicalItemIds.EquipmentModule
                     ? 1
                     : DurableToolItemRules.TryGetMaximumDurability(spec.ItemId, out _)
@@ -889,25 +906,48 @@ public static class ResearchOverhaulContentAssetBuilder
             }
             if (spec.ItemId == "supply:pest-lure")
             {
-                item.ConfigureCropTreatment(CropTreatmentKind.PestLure);
+                item.ConfigureCropTreatment(
+                    CropTreatmentKind.PestLure,
+                    quantityPerApplication: 1,
+                    requiredWork: 3f,
+                    effectAmount: 15f,
+                    cooldownDays: 1);
             }
             if (spec.ItemId == "supply:botanical-pesticide")
             {
-                item.ConfigureCropTreatment(CropTreatmentKind.BotanicalPesticide);
+                item.ConfigureCropTreatment(
+                    CropTreatmentKind.BotanicalPesticide,
+                    quantityPerApplication: 1,
+                    requiredWork: 5f,
+                    effectAmount: 35f,
+                    cooldownDays: 2);
             }
             if (spec.ItemId == "supply:fungicide")
             {
-                item.ConfigureCropTreatment(CropTreatmentKind.Fungicide);
+                item.ConfigureCropTreatment(
+                    CropTreatmentKind.Fungicide,
+                    quantityPerApplication: 1,
+                    requiredWork: 5f,
+                    effectAmount: 25f,
+                    cooldownDays: 1);
             }
-            EditorUtility.SetDirty(item);
+            }
+            if (WouldChange(asset, ConfigureItem))
+            {
+                ConfigureItem(asset);
+                EditorUtility.SetDirty(asset);
+            }
 
             if (!spec.Craftable)
             {
                 continue;
             }
 
+            string recipePath = RecipePath(index, spec);
+            ProductionRecipeSO existingRecipe =
+                AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>(recipePath);
             ProductionRecipeSO recipe =
-                GetOrCreate<ProductionRecipeSO>(RecipePath(index, spec));
+                GetOrCreate<ProductionRecipeSO>(recipePath);
             recipe.id = 19101 + index;
             recipe.Configure(
                 $"recipe:{spec.ItemId}",
@@ -916,12 +956,14 @@ public static class ResearchOverhaulContentAssetBuilder
                 spec.WorkstationTag,
                 BuiltInWorkTypeIds.Craft.Value,
                 spec.ResearchId,
-                10f,
+                existingRecipe != null ? existingRecipe.RequiredWork : 10f,
                 spec.Inputs.Select(input =>
                     new ItemAmountDefinition(input.ItemId, input.Amount)),
                 new[]
                 {
                     new ProductionOutputDefinition(
+                        "output:main",
+                        ProductionOutputRole.Main,
                         spec.ItemId,
                         Mathf.Max(1, spec.OutputAmount))
                 });
@@ -942,10 +984,67 @@ public static class ResearchOverhaulContentAssetBuilder
                     spec.ItemId);
             recipe.ConfigureProcessClass(processClass);
             recipe.ConfigureBalanceWork(
-                V23BalanceWorkCalculator.CalculateRecipeBaseWork(
-                    recipe,
-                    processClass));
+                existingRecipe != null
+                    ? existingRecipe.RequiredWork
+                    : V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                        recipe,
+                        processClass));
             EditorUtility.SetDirty(recipe);
+        }
+
+        ValidateInoculatedLogTopology();
+    }
+
+    private static void ValidateInoculatedLogTopology()
+    {
+        ResourceItemDefinitionSO treatedLumber =
+            AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>(
+                "Assets/Resources/SO/Economy/Items/material_treated_lumber.asset");
+        ResourceItemDefinitionSO caveMushroom =
+            AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>(
+                "Assets/Resources/SO/Economy/Items/resource_cave_mushroom.asset");
+        ResourceItemDefinitionSO inoculatedLog =
+            AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>(
+                $"{ItemRoot}/V3I90_접종_원목.asset");
+        ProductionRecipeSO recipe =
+            AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>(
+                $"{RecipeRoot}/V3R90_접종_원목.asset");
+        if (treatedLumber == null
+            || caveMushroom == null
+            || inoculatedLog == null
+            || recipe == null)
+        {
+            throw new InvalidOperationException(
+                "The inoculated-log mass authority is incomplete.");
+        }
+
+        int treatedLumberGrams = Mathf.RoundToInt(
+            treatedLumber.UnitWeight * 1000f);
+        int caveMushroomGrams = Mathf.RoundToInt(
+            caveMushroom.UnitWeight * 1000f);
+        int inoculatedLogGrams = Mathf.RoundToInt(
+            inoculatedLog.UnitWeight * 1000f);
+        bool recipeShapeValid = recipe.Inputs.Count == 2
+            && recipe.Inputs.Count(value =>
+                value.ItemId == "material:treated-lumber"
+                && value.Amount == 1) == 1
+            && recipe.Inputs.Count(value =>
+                value.ItemId == "resource:cave-mushroom"
+                && value.Amount == 1) == 1
+            && recipe.Outputs.Count == 1
+            && recipe.Outputs[0].ItemId == "supply:inoculated-log"
+            && recipe.Outputs[0].Amount == 2
+            && Mathf.Approximately(recipe.Outputs[0].Probability, 1f);
+        if (!recipeShapeValid
+            || treatedLumberGrams != 1150
+            || caveMushroomGrams != 250
+            || inoculatedLogGrams != 700
+            || treatedLumberGrams + caveMushroomGrams
+                != inoculatedLogGrams * 2)
+        {
+            throw new InvalidOperationException(
+                "The inoculated-log recipe must conserve exactly 1,400 g "
+                + "as two 700 g cultivation-log sections.");
         }
     }
 
@@ -1060,40 +1159,40 @@ public static class ResearchOverhaulContentAssetBuilder
         S("research:mining:surface", "resource:sulfur", "황", ResourceItemKind.Raw, ResourceIngredientTag.Mineral, "workstation:v3:material-test", 2, false, true),
         S("research:mining:surface", "resource:lead-ore", "납광석", ResourceItemKind.Raw, ResourceIngredientTag.Mineral, "workstation:v3:material-test", 2, false, true),
         S("research:equipment:black-powder", "material:niter", "초석", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral, "workstation:v3:powder-mill", 2, true, true, A("resource:manure", 3), A("resource:clean-water", 1)),
-        S("research:equipment:engineering-drawing", "material:paper", "종이", ResourceItemKind.Intermediate, ResourceIngredientTag.Plant, "workstation:v3:prototype", 4, true, true, A("material:lumber", 1), A("resource:clean-water", 1)),
+        S("research:industry:powered-tools", "material:paper", "종이", ResourceItemKind.Intermediate, ResourceIngredientTag.Plant, "workstation:v3:prototype", 4, true, true, A("material:lumber", 1), A("resource:clean-water", 1)),
         S("research:metallurgy:iron", "material:lead-ingot", "납괴", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral, "workstation:v3:material-test", 1, true, true, A("resource:lead-ore", 2), A("material:charcoal", 1)),
         S("research:equipment:standard-ammunition", "material:lead-shot", "납탄", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral, "workstation:v3:ammo-press", 12, true, true, A("material:lead-ingot", 1)),
         S("research:textile:fiber", "material:rope", "밧줄", ResourceItemKind.Intermediate, ResourceIngredientTag.Fiber, "workstation:v3:bow-jig", 2, true, true, A("resource:shade-fiber", 3)),
         S("research:industry:assisted-processing", "component:machine-parts", "기계 부품", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral, "workstation:v3:machine-parts", 1, true, true, A("material:iron-ingot", 2)),
         S("research:equipment:precision-fitting", "component:precision-parts", "정밀 부품", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral, "workstation:v3:precision-parts", 1, true, true, A("material:steel-ingot", 2), A("material:iron-ingot", 1)),
-        S("research:industry:rune-grid", "component:rune-conductor", "룬 도체", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral | ResourceIngredientTag.Arcane, "workstation:v3:rune-conductor", 1, true, true, A("material:gold-ingot", 1), A("resource:mana-crystal", 1), A("resource:rune-dust", 1)),
+        S("research:industry:mana-power", "component:rune-conductor", "룬 도체", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral | ResourceIngredientTag.Arcane, "workstation:v3:rune-conductor", 1, true, true, A("material:gold-ingot", 1), A("resource:mana-crystal", 1), A("resource:rune-dust", 1)),
         S("research:medical:surgery", "textile:sterile-cloth", "무균 천", ResourceItemKind.Intermediate, ResourceIngredientTag.Fiber, "workstation:v3:armor-tailoring", 2, true, true, A("material:cloth", 2), A("resource:saltstone", 1), A("resource:clean-water", 1)),
         S("research:equipment:black-powder", "material:black-powder", "흑색화약", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral, "workstation:v3:powder-mill", 6, true, true, A("material:charcoal", 2), A("resource:sulfur", 1), A("material:niter", 2)),
         S("research:textile:layered", "textile:quilted-liner", "층상 충전재", ResourceItemKind.Intermediate, ResourceIngredientTag.Fiber, "workstation:v3:armor-tailoring", 1, true, true, A("material:cloth", 2), A("resource:wool", 1)),
         S("research:equipment:modular-frames", "component:growth-frame", "성장형 장비 골격", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral | ResourceIngredientTag.Wood, "workstation:v3:growth-frame", 1, true, true, A("material:steel-ingot", 2), A("component:machine-parts", 1), A("component:precision-parts", 1), A("material:treated-lumber", 1)),
         S("research:agriculture:compost", "supply:nitrate-fertilizer", "질산 비료", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v3:subterranean", 4, false, true, A("material:niter", 1), A("material:compost", 2)),
-        S("research:equipment:engineering-drawing", "component:engineering-drawing", "공학 도면", ResourceItemKind.Intermediate, ResourceIngredientTag.Plant, "workstation:v3:prototype", 2, true, true, A("material:paper", 2), A("material:charcoal", 1)),
+        S("research:industry:powered-tools", "component:engineering-drawing", "공학 도면", ResourceItemKind.Intermediate, ResourceIngredientTag.Plant, "workstation:v3:prototype", 2, true, true, A("material:paper", 2), A("material:charcoal", 1)),
         S("research:mining:deep", "component:lead-counterweight", "납 균형추", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral, "workstation:v3:windlass", 1, true, true, A("material:lead-ingot", 2)),
         S("research:mining:mana", "component:mana-shield-plate", "마나 차폐판", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral | ResourceIngredientTag.Arcane, "workstation:v3:material-test", 1, true, true, A("material:lead-ingot", 1), A("resource:rune-dust", 1)),
         S("research:mining:deep", "ammo:blasting-charge", "발파 장약", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 2, false, true, A("material:black-powder", 2), A("material:paper", 1), A("material:rope", 1)),
         S("research:equipment:standard-ammunition", "ammo:trap-canister", "함정 산탄통", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 2, false, true, A("material:lead-shot", 6), A("material:black-powder", 1), A("material:paper", 1)),
         S("research:medical:surgery", "medical:sterile-bandage", "무균 붕대", ResourceItemKind.Medicine, ResourceIngredientTag.Fiber, "workstation:v3:restoration", 2, false, true, A("textile:sterile-cloth", 1), A("medicine:antiseptic", 1)),
         S("research:equipment:standard-ammunition", "ammo:paper-cartridge", "종이 탄약통", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:ammo-press", 12, false, true, A("material:lead-shot", 6), A("material:black-powder", 1), A("material:paper", 1)),
-        S("research:industry:stock-sensors", "component:stock-sensor-panel", "재고 감지반", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:metrology", 1, false, true, A("component:machine-parts", 1), A("component:precision-parts", 1)),
-        S("research:industry:maintenance", "tool:maintenance-kit", "정비 키트", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:maintenance", 1, false, true, A("component:machine-parts", 1), A("material:cloth", 1)),
+        S("research:industry:automatic-bills", "component:stock-sensor-panel", "재고 감지반", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:metrology", 1, false, true, A("component:machine-parts", 1), A("component:precision-parts", 1)),
+        S("research:industry:breakers", "tool:maintenance-kit", "정비 키트", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:maintenance", 1, false, true, A("component:machine-parts", 1), A("material:cloth", 1)),
         S("research:industry:powered-tools", "tool:powered-tool-head", "동력 공구날", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:powered-tools", 1, false, true, A("component:machine-parts", 1), A("material:steel-ingot", 1)),
         S("research:mining:mana", "tool:mana-probe", "마나 탐침", ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, "workstation:v3:material-test", 1, false, true, A("component:precision-parts", 1), A("component:mana-shield-plate", 1)),
         S("research:equipment:industrial-metrology", "tool:precision-gauge", "정밀 게이지", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:metrology", 1, false, true, A("component:precision-parts", 1), A("component:engineering-drawing", 1)),
         S("research:equipment:prototype-engineering", "component:prototype-package", "시제품 설계 묶음", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v3:prototype", 1, false, true, A("component:engineering-drawing", 1), A("component:machine-parts", 1)),
-        S("research:industry:factory-layout", "component:factory-installation-plan", "공장 설치 도면", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v3:factory-layout", 1, false, true, A("component:engineering-drawing", 1), A("material:paper", 1), A("component:paper-paste", 1)),
+        S("research:industry:powered-tools", "component:factory-installation-plan", "공장 설치 도면", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v3:factory-layout", 1, false, true, A("component:engineering-drawing", 1), A("material:paper", 1), A("component:paper-paste", 1)),
         S("research:equipment:mechanical-projectiles", "component:siege-counterweight", "공성 균형추 조립품", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:windlass", 1, false, true, A("component:lead-counterweight", 1), A("component:machine-parts", 1)),
         S("research:equipment:rune-module-tuning", "component:rune-tuning-shield", "룬 조율 차폐판", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral | ResourceIngredientTag.Arcane, "workstation:v3:precision-fitting", 1, false, true, A("component:mana-shield-plate", 1), A("component:rune-conductor", 1)),
         S("research:medical:mana-core-engineering", "medical:mana-core-case", "마핵 케이스", ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, "workstation:v3:precision-fitting", 1, false, true, A("component:rune-conductor", 1), A("component:precision-parts", 1)),
         S("research:industry:rune-automation", "component:rune-control-panel", "룬 제어반", ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, "workstation:v3:rune-control", 1, false, true, A("component:rune-conductor", 1), A("component:precision-parts", 1)),
-        S("research:industry:rune-grid", "component:rune-bus-coupler", "룬 버스 결합기", ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, "workstation:v3:rune-conductor", 1, false, true, A("component:rune-conductor", 1), A("material:gold-ingot", 1)),
+        S("research:industry:mana-power", "component:rune-bus-coupler", "룬 버스 결합기", ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, "workstation:v3:rune-conductor", 1, false, true, A("component:rune-conductor", 1), A("material:gold-ingot", 1)),
         S("research:medical:mycelial-grafting", "medical:sterile-mycelium-graft", "무균 균사 이식편", ResourceItemKind.FinishedGood, ResourceIngredientTag.Fungus | ResourceIngredientTag.Fiber, "workstation:v3:restoration", 1, false, true, A("textile:sterile-cloth", 1), A("resource:cave-mushroom", 2)),
         S("research:medical:slime-bioengineering", "medical:slime-coagulation-frame", "점액 응고틀", ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, "workstation:v3:restoration", 1, false, true, A("textile:sterile-cloth", 1), A("material:alchemical-solvent", 1)),
-        S("research:equipment:blast-protection", "component:blast-coat-shell", "방폭 외투 내피", ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, "workstation:v3:armor-tailoring", 1, false, true, A("textile:sterile-cloth", 1), A("textile:quilted-liner", 1)),
+        S("research:equipment:pressure-barrels", "component:blast-coat-shell", "방폭 외투 내피", ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, "workstation:v3:armor-tailoring", 1, false, true, A("textile:sterile-cloth", 1), A("textile:quilted-liner", 1)),
         S("research:equipment:armor-tailoring", "component:brigandine-padding", "브리간딘 안감", ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, "workstation:v3:armor-tailoring", 1, false, true, A("textile:quilted-liner", 1), A("material:leather", 1)),
         S("research:mining:deep", "tool:deep-shaft-hoist", "심부 승강기", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:windlass", 1, false, true, A("material:rope", 2), A("component:lead-counterweight", 1), A("component:machine-parts", 1)),
         S("research:mining:surface", "tool:prospecting-kit", "탐광 키트", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:material-test", 1, false, true, A("material:rope", 1), A("material:treated-lumber", 1)),
@@ -1111,9 +1210,9 @@ public static class ResearchOverhaulContentAssetBuilder
         S("research:agriculture:subterranean", "supply:mushroom-substrate", "균사 재배 배지", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant | ResourceIngredientTag.Fungus, "workstation:v3:subterranean", 2, false, true, A("material:compost", 1), A("resource:cave-mushroom", 1)),
         S("research:medical:whole-body-regeneration", "medical:whole-body-regeneration-medium", "전신 재생 배지", ResourceItemKind.Medicine, ResourceIngredientTag.Arcane, "workstation:v19:whole-body-regeneration", 1, false, true, A("medicine:advanced", 4), A("textile:sterile-cloth", 4), A("medicine:mycelial-culture-pack", 2), A("resource:mana-crystal", 2), A("resource:clean-water", 8)),
         S("research:medical:temporal-stasis", "component:temporal-stasis-seal", "시간 고정 인장", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral | ResourceIngredientTag.Arcane, "workstation:v19:temporal-stasis", 1, false, true, A("component:precision-parts", 2), A("component:rune-conductor", 2), A("component:mana-shield-plate", 1), A("resource:mana-crystal", 2)),
-        S("research:agriculture:pest-control", "supply:pest-lure", "해충 유인제", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v19:pest-control", 2, false, true, A("resource:dark-resin", 1), A("resource:meat", 1), A("material:paper", 1)),
-        S("research:agriculture:pest-control", "supply:botanical-pesticide", "식물성 살충제", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v19:pest-control", 2, false, true, A("material:rot-toxin", 1), A("material:alcohol", 1), A("resource:clean-water", 2)),
-        S("research:agriculture:crop-pathology", "supply:fungicide", "살균제", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v19:crop-pathology", 2, false, true, A("medicine:antiseptic", 1), A("material:charcoal", 1), A("resource:clean-water", 2)),
+        S("research:agriculture:soil-cycles", "supply:pest-lure", "해충 유인제", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v19:pest-control", 2, false, true, A("resource:dark-resin", 1), A("resource:meat", 1), A("material:paper", 1)),
+        S("research:agriculture:soil-cycles", "supply:botanical-pesticide", "식물성 살충제", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v19:pest-control", 2, false, true, A("material:rot-toxin", 1), A("material:alcohol", 1), A("resource:clean-water", 2)),
+        S("research:agriculture:soil-cycles", "supply:fungicide", "살균제", ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, "workstation:v19:crop-pathology", 2, false, true, A("medicine:antiseptic", 1), A("material:charcoal", 1), A("resource:clean-water", 2)),
 
         S("research:health:pathogen-observation", "sample:antigen:cave-flu", "동굴 독감 항원 표본", ResourceItemKind.FinishedGood, ResourceIngredientTag.None, string.Empty, 1, false, false),
         S("research:health:pathogen-observation", "sample:antigen:red-fever", "적열병 항원 표본", ResourceItemKind.FinishedGood, ResourceIngredientTag.None, string.Empty, 1, false, false),
@@ -1306,6 +1405,37 @@ public static class ResearchOverhaulContentAssetBuilder
             8f);
     }
 
+    private static float ResolveAuthoredUnitWeight(
+        ItemSpec spec,
+        ResourceItemDefinitionSO existingItem)
+    {
+        if (string.Equals(
+                spec.ItemId,
+                "material:granulated-powder",
+                StringComparison.Ordinal))
+        {
+            // V27 physical-mass authority: 2 black-powder lots plus one paper
+            // lot are 5,300 g and produce six 850 g charges plus 200 g of
+            // screened dust. Do not restore the old generic mineral default.
+            return 0.85f;
+        }
+
+        if (string.Equals(
+                spec.ItemId,
+                "supply:inoculated-log",
+                StringComparison.Ordinal))
+        {
+            // V27 physical-mass authority: one 1,150 g treated-lumber
+            // bundle and one 250 g mushroom basket produce two complete
+            // 700 g cultivation-log sections without package tare or loss.
+            return 0.7f;
+        }
+
+        return existingItem != null
+            ? existingItem.UnitWeight
+            : ResolveGeneratedUnitWeight(spec);
+    }
+
     private static string ItemPath(int index, ItemSpec spec) =>
         $"{ItemRoot}/V3I{index + 1:D2}_{Sanitize(spec.Name)}.asset";
 
@@ -1322,6 +1452,35 @@ public static class ResearchOverhaulContentAssetBuilder
         asset = ScriptableObject.CreateInstance<T>();
         AssetDatabase.CreateAsset(asset, path);
         return asset;
+    }
+
+    private static string CanonicalizeSemanticJson(string json) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            json ?? string.Empty,
+            "\\\"rid\\\"\\s*:\\s*-?[0-9]+",
+            "\\\"rid\\\":0",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    private static bool WouldChange<T>(T asset, Action<T> configure)
+        where T : ScriptableObject
+    {
+        string before = CanonicalizeSemanticJson(
+            EditorJsonUtility.ToJson(asset, false));
+        T candidate = UnityEngine.Object.Instantiate(asset);
+        try
+        {
+            candidate.name = asset.name;
+            configure(candidate);
+            return !string.Equals(
+                before,
+                CanonicalizeSemanticJson(
+                    EditorJsonUtility.ToJson(candidate, false)),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(candidate);
+        }
     }
 
     private static void DeleteStale<T>(string root, ISet<string> expected)

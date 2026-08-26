@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -61,6 +62,8 @@ MonoBehaviour:
   - itemId: material:niter
     amount: 2
   outputs:
-  - itemId: material:black-powder
+  - outputLineId: output:recipe:material:black-powder/000/main/material:black-powder
+    role: 0
+    itemId: material:black-powder
     amount: 6
     probability: 1

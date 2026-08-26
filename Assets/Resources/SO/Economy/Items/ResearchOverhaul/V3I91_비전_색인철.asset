@@ -31,17 +31,17 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 44
   features:
-  - rid: 7737212042857939472
-  - rid: 7737212042857939473
   - rid: 7737212042857939474
+  - rid: 1000
+  - rid: 1001
   references:
     version: 2
     RefIds:
-    - rid: 7737212042857939472
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:arcane:records
-    - rid: 7737212042857939473
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

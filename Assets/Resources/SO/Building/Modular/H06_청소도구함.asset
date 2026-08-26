@@ -138,6 +138,7 @@ MonoBehaviour:
         abilityId: BuildingStorageAbility
         category: 1
         capacity: 8
+        maxStoredMassGrams: 12500
         allCategories: 0
     - rid: 7737211921440179113
       type: {class: BuildingCleaningAbility, ns: , asm: DungeonStory.Buildings}

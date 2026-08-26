@@ -11,15 +11,21 @@ public sealed class ModularFacilityWorldSaveSection :
 
     private readonly IModularFacilityWorldSaveService worldSaveService;
     private readonly IGridSystemProvider gridSystemProvider;
+    private readonly IProductionOutputLifecycleRestoreCandidatePublisher
+        lifecycleRestoreCandidates;
 
     public ModularFacilityWorldSaveSection(
         IModularFacilityWorldSaveService worldSaveService,
-        IGridSystemProvider gridSystemProvider)
+        IGridSystemProvider gridSystemProvider,
+        IProductionOutputLifecycleRestoreCandidatePublisher
+            lifecycleRestoreCandidates)
     {
         this.worldSaveService = worldSaveService
             ?? throw new ArgumentNullException(nameof(worldSaveService));
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
+        this.lifecycleRestoreCandidates = lifecycleRestoreCandidates
+            ?? throw new ArgumentNullException(nameof(lifecycleRestoreCandidates));
     }
 
     public override string SectionId => Id;
@@ -73,6 +79,11 @@ public sealed class ModularFacilityWorldSaveSection :
         worldSaveService.StageRestoreCandidate(candidate);
     }
 
+    protected override void PublishRestoreCandidateProjection(
+        ModularFacilityWorldSaveData payload,
+        ModularFacilityWorldRestoreCandidate candidate) =>
+        lifecycleRestoreCandidates.SetWorld(payload);
+
     private Grid ResolveWorld()
     {
         if (!gridSystemProvider.TryGetGrid(out Grid grid))
@@ -96,11 +107,15 @@ public sealed class CharacterWorldSaveSection :
     private readonly ICharacterWorldSaveService saveService;
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
+    private readonly IProductionOutputLifecycleRestoreCandidatePublisher
+        lifecycleRestoreCandidates;
 
     public CharacterWorldSaveSection(
         ICharacterWorldSaveService saveService,
         IGridSystemProvider gridSystemProvider,
-        IRestoreWorldCandidateQuery restoreWorldCandidates)
+        IRestoreWorldCandidateQuery restoreWorldCandidates,
+        IProductionOutputLifecycleRestoreCandidatePublisher
+            lifecycleRestoreCandidates)
     {
         this.saveService = saveService
             ?? throw new ArgumentNullException(nameof(saveService));
@@ -108,6 +123,8 @@ public sealed class CharacterWorldSaveSection :
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.restoreWorldCandidates = restoreWorldCandidates
             ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
+        this.lifecycleRestoreCandidates = lifecycleRestoreCandidates
+            ?? throw new ArgumentNullException(nameof(lifecycleRestoreCandidates));
     }
 
     public override string SectionId => Id;
@@ -148,6 +165,11 @@ public sealed class CharacterWorldSaveSection :
     {
         saveService.StageRestoreCandidate(candidate);
     }
+
+    protected override void PublishRestoreCandidateProjection(
+        DungeonCharacterWorldSaveData payload,
+        CharacterWorldRestoreCandidate candidate) =>
+        lifecycleRestoreCandidates.SetCharacters(payload);
 
     private Grid ResolveRestoreGrid()
     {

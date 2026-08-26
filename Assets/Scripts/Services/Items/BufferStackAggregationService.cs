@@ -171,6 +171,10 @@ public sealed class BufferStackAggregationService :
                 continue;
             }
 
+            RequireNoPreparedOutputCustody(
+                record.components,
+                nameof(ProcessPending));
+
             CharacterCarriedItemSaveData item = new()
             {
                 carriedStackId = record.stackId,
@@ -206,6 +210,13 @@ public sealed class BufferStackAggregationService :
         out BufferAggregationReceipt receipt,
         out DomainFailure failure)
     {
+        RequireNoPreparedOutputCustody(
+            item?.components,
+            nameof(TryDepositAndAggregate));
+        RequireRepositoryStackHasNoPreparedOutputCustody(
+            item?.carriedStackId,
+            nameof(TryDepositAndAggregate));
+
         if (aggregationOperationsThisTick >= MaximumAggregationsPerTick)
         {
             return TryStagePendingAggregation(
@@ -240,6 +251,9 @@ public sealed class BufferStackAggregationService :
     {
         receipt = default;
         failure = DomainFailure.None;
+        RequireNoPreparedOutputCustody(
+            item?.components,
+            nameof(TryStagePendingAggregation));
         string stackId = item?.carriedStackId?.Trim() ?? string.Empty;
         if (item == null
             || item.quantity <= 0
@@ -293,6 +307,10 @@ public sealed class BufferStackAggregationService :
             return false;
         }
 
+        RequireNoPreparedOutputCustody(
+            transport.components,
+            nameof(TryStagePendingAggregation));
+
         string normalizedDestination = destinationId.Trim();
         string normalizedCohort = aggregationCohortId.Trim();
         repository.Relocate(transport, destinationPosition);
@@ -335,6 +353,9 @@ public sealed class BufferStackAggregationService :
     {
         receipt = default;
         failure = DomainFailure.None;
+        RequireNoPreparedOutputCustody(
+            item?.components,
+            nameof(TryDepositAndAggregateCore));
         if (item == null
             || item.quantity <= 0
             || string.IsNullOrWhiteSpace(item.itemId)
@@ -387,6 +408,9 @@ public sealed class BufferStackAggregationService :
                     item.itemId);
                 return false;
             }
+            RequireNoPreparedOutputCustody(
+                resolvedTransport.components,
+                nameof(TryDepositAndAggregateCore));
             transport = resolvedTransport;
         }
 
@@ -767,6 +791,8 @@ public sealed class BufferStackAggregationService :
         if (record == null
             || record.quantity <= 0
             || record.state != WorldItemStackState.FacilityBuffer
+            || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                record.components)
             || !string.Equals(record.destinationId, key.DestinationId, StringComparison.Ordinal)
             || !string.Equals(
                 record.aggregationCohortId,
@@ -790,6 +816,35 @@ public sealed class BufferStackAggregationService :
         return !current.HasValue
             || Mathf.FloorToInt(current.RemainingSeconds / FreshnessBucketSeconds)
                 == key.FreshnessBucket;
+    }
+
+    private void RequireRepositoryStackHasNoPreparedOutputCustody(
+        string stackId,
+        string operation)
+    {
+        string canonical = stackId?.Trim() ?? string.Empty;
+        if (canonical.Length > 0
+            && repository.RecordsById.TryGetValue(
+                canonical,
+                out WorldItemStackRecord record))
+        {
+            RequireNoPreparedOutputCustody(record?.components, operation);
+        }
+    }
+
+    private static void RequireNoPreparedOutputCustody(
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        string operation)
+    {
+        if (!FacilityOutputExactRouteCustodyCodec.HasAnyCustody(components))
+            return;
+
+        // The live facility-deposit caller falls back to generic physical spawn
+        // when aggregation returns false. Throwing the typed bypass exception is
+        // therefore required to stop both the merge and that fallback boundary.
+        throw new FacilityOutputExactRouteBypassException(
+            FacilityOutputExactRouteFailureCode.ProtectedRouteBypass,
+            operation);
     }
 
     private void AddTarget(BufferAggregationKey key, string stackId)

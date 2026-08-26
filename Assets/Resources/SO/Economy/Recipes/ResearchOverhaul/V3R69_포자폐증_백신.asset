@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -61,6 +62,8 @@ MonoBehaviour:
   - itemId: resource:clean-water
     amount: 1
   outputs:
-  - itemId: medicine:vaccine:spore-lung
+  - outputLineId: output:recipe:medicine:vaccine:spore-lung/000/main/medicine:vaccine:spore-lung
+    role: 0
+    itemId: medicine:vaccine:spore-lung
     amount: 4
     probability: 1

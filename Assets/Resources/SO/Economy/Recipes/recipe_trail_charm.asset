@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9079
+  id: 9080
   recipeId: recipe:trail-charm
   displayName: "\uAE38\uC7A1\uC774 \uBD80\uC801"
   description: "\uAE38\uC7A1\uC774 \uBD80\uC801 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: resource:fang
     amount: 1
   outputs:
-  - itemId: resource:trail-charm
+  - outputLineId: output:recipe:trail-charm/000/main/resource:trail-charm
+    role: 0
+    itemId: resource:trail-charm
     amount: 1
     probability: 1

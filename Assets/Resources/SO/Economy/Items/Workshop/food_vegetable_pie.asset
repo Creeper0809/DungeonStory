@@ -27,23 +27,23 @@ MonoBehaviour:
   description: "\uC791\uC5C5\uC2E4\uC758 \uB2E4\uC74C \uACF5\uC815\uC73C\uB85C \uC2E4\uC81C
     \uC6B4\uBC18\uB418\uB294 \uBB3C\uB9AC \uC911\uAC04\uC7AC."
   stockCategory: 0
-  unitWeight: 0.7
+  unitWeight: 0.475
   maxStack: 50
   sprite: {fileID: 0}
   unitPrice: 17
   features:
-  - rid: 7737212042831200448
-  - rid: 7737212042831200449
-  - rid: 7737212042831200450
   - rid: 7737212042857939074
+  - rid: 1003
+  - rid: 1004
+  - rid: 1005
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200448
+    - rid: 1003
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:baking
-    - rid: 7737212042831200449
+    - rid: 1004
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 1
@@ -53,7 +53,7 @@ MonoBehaviour:
         mood: 5
         freshnessSeconds: 450
         preserved: 0
-    - rid: 7737212042831200450
+    - rid: 1005
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
@@ -62,4 +62,4 @@ MonoBehaviour:
     - rid: 7737212042857939074
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59031373
+        saleRate: 0.5897647

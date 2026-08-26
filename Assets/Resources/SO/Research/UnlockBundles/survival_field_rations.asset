@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7222
   researchId: research:survival:field-rations
-  role: 1
+  role: 0
   designIntent: "\uC6D0\uC815 \uC911\uC5D0\uB3C4 \uC6B4\uBC18\uACFC \uC12D\uCDE8\uAC00
     \uC26C\uC6B4 \uBCF4\uC874 \uC2DD\uB7C9 \uADDC\uACA9\uC744 \uD655\uB9BD\uD55C\uB2E4."
   rewardGroups:
@@ -57,4 +57,5 @@ MonoBehaviour:
   - kind: 4
     displayOrder: 60
     heading: "\uC758\uB8CC \uC2DC\uC220"
-  singletonReason: 
+  singletonReason: "\uC5EC\uB7EC \uD6C4\uC18D \uC5F0\uAD6C\uC640 \uAE30\uC874 \uC81C\uC791
+    \uACC4\uD1B5\uC744 \uC5EC\uB294 \uAE30\uBC18 \uC5F0\uAD6C\uB2E4."

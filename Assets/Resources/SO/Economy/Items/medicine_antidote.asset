@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8089
+  id: 8090
   itemId: medicine:antidote
   displayName: "\uD574\uB3C5\uC81C"
   description: "\uB3C5\uC18C\uC640 \uACFC\uB2E4 \uBCF5\uC6A9 \uC99D\uC0C1\uC744 \uC644\uD654\uD55C\uB2E4."
@@ -31,24 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 38
   features:
-  - rid: 7737211905666712052
-  - rid: 7737211905666712053
-  - rid: 7737211905666712055
-  - rid: 7737212042857939246
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712052
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:advanced
-    - rid: 7737211905666712053
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1025
         sharedIntermediate: 0
-    - rid: 7737211905666712055
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59244734
+    - rid: 1003
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -56,7 +60,3 @@ MonoBehaviour:
         infectionReduction: 2
         detoxReduction: 30
         painReduction: 0
-    - rid: 7737212042857939246
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.59244734

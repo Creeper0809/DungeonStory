@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9084
+  id: 9085
   recipeId: recipe:stone-ornament
   displayName: "\uC11D\uC870 \uC7A5\uC2DD"
   description: "\uC11D\uC870 \uC7A5\uC2DD \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: resource:stone
     amount: 1
   outputs:
-  - itemId: craft:stone-ornament
+  - outputLineId: output:recipe:stone-ornament/000/main/craft:stone-ornament
+    role: 0
+    itemId: craft:stone-ornament
     amount: 1
     probability: 1

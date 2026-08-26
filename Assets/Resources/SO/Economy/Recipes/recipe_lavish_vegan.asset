@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9067
+  id: 9068
   recipeId: recipe:lavish-vegan
   displayName: "\uC6D4\uC57C \uBE44\uAC74 \uB9CC\uCC2C"
   description: "\uC6D4\uC57C \uBE44\uAC74 \uB9CC\uCC2C \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -54,6 +54,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.3
   wastewaterPerCycle: 0.25
+  wastewaterComposition: 2
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -66,6 +67,8 @@ MonoBehaviour:
   - itemId: resource:ember-root
     amount: 1
   outputs:
-  - itemId: food:lavish-vegan
+  - outputLineId: output:recipe:lavish-vegan/000/main/food:lavish-vegan
+    role: 0
+    itemId: food:lavish-vegan
     amount: 2
     probability: 1

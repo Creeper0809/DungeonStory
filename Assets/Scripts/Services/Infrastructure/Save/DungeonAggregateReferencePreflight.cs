@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 public interface IDungeonSavePreflightValidator
 {
@@ -99,6 +100,10 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             DungeonSaveSectionPayload.ReadOrNew<DungeonCropPlotSaveData>(
                 saveData,
                 CropPlotSaveSection.Id);
+        CertifiedSeedWorldSaveData certifiedSeeds =
+            DungeonSaveSectionPayload.ReadOrNew<CertifiedSeedWorldSaveData>(
+                saveData,
+                CertifiedSeedSaveSection.Id);
         TreasuryEconomySaveData treasury =
             DungeonSaveSectionPayload.ReadOrNew<TreasuryEconomySaveData>(
                 saveData,
@@ -119,6 +124,10 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             DungeonSaveSectionPayload.ReadOrNew<PopulationHealthWorldSaveData>(
                 saveData,
                 PopulationHealthSaveSection.Id);
+        DungeonCharacterMedicalSaveData characterMedical =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterMedicalSaveData>(
+                saveData,
+                CharacterMedicalSaveSection.Id);
         CharacterCareerWorldSaveData careers =
             DungeonSaveSectionPayload.ReadOrNew<CharacterCareerWorldSaveData>(
                 saveData,
@@ -131,6 +140,11 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             DungeonSaveSectionPayload.ReadOrNew<CropEcologyWorldSaveData>(
                 saveData,
                 CropEcologySaveSection.Id);
+        DungeonPowerInfrastructureSaveData powerInfrastructure =
+            DungeonSaveSectionPayload.ReadOrNew<
+                DungeonPowerInfrastructureSaveData>(
+                saveData,
+                PowerInfrastructureSaveSection.Id);
 
         // ReadOrNew deserializes detached DTO graphs. Normalize only the explicitly
         // typed early-V18 character-reference paths on those graphs before building
@@ -146,6 +160,12 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         HashSet<string> characterIds = ValidateCharacters(characters, report);
         AddActiveInvasionCharacterIds(invasion, characterIds, report);
         BuildingReferenceIndex buildingIds = ValidateBuildings(buildings, report);
+        ValidateRetailStockJoins(buildings, physical, report);
+        ValidatePowerFuelPhysicalReceipts(
+            powerInfrastructure,
+            buildingIds.InstanceIds,
+            physical,
+            report);
         ValidateOffenseMembers(offense, characterIds, report);
         ValidateOffenseReferences(
             offense,
@@ -168,6 +188,11 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         ValidateMeta(meta, report);
         ValidateResearch(research, buildings, offense, report);
         ValidateCropPlots(cropPlots, buildingIds, report);
+        ValidateCertifiedSeeds(
+            certifiedSeeds,
+            buildingIds.InstanceIds,
+            physical,
+            report);
         ValidateTreasury(
             treasury,
             characterIds,
@@ -177,6 +202,8 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         HashSet<string> lifeCharacterIds = ValidateCharacterLife(
             life,
             characterIds,
+            buildingIds.InstanceIds,
+            physical,
             report);
         KinshipReferenceIndex kinship = ValidateKinshipHouseholds(
             kinshipHouseholds,
@@ -188,7 +215,18 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             characterIds,
             kinship.AllCharacterIds,
             report);
-        ValidatePopulationHealth(populationHealth, characterIds, report);
+        ValidatePopulationHealth(
+            populationHealth,
+            characterIds,
+            buildingIds.InstanceIds,
+            physical,
+            report);
+        ValidateCharacterMedicalPhysicalReceipts(
+            characterMedical,
+            characterIds,
+            buildingIds.InstanceIds,
+            physical,
+            report);
         ValidateCareers(
             careers,
             characterIds,
@@ -368,6 +406,7 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             }
 
             CollectSeedLot(stack.components, stack.itemId, result, report);
+            CollectProductionOutputCommit(stack, result, report);
         }
 
         foreach (UniqueItemInstanceSaveData unique in source?.uniqueItems
@@ -394,6 +433,9 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             if (uniqueItemInstanceId.Length > 0)
             {
                 result.ItemInstanceIds.Add(uniqueItemInstanceId);
+                result.UniqueItems.TryAdd(
+                    uniqueItemInstanceId,
+                    unique);
             }
             RequireItemDefinition(unique.definitionId, report);
             CollectSeedLot(unique.components, unique.definitionId, result, report);
@@ -429,10 +471,75 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
                     report.AddError(
                         $"Physical equipment '{equipment.instanceId}' references unknown equipment definition '{equipment.definitionId}'.");
                 }
+                else
+                {
+                    result.EquipmentInstances[equipment.instanceId] =
+                        equipment.Clone();
+                }
+            }
+        }
+
+        foreach (ItemReservationIntentSaveData reservation in
+                 source?.reservationIntents
+                 ?? new List<ItemReservationIntentSaveData>())
+        {
+            if (reservation != null
+                && reservation.hadActiveItemReservation
+                && !string.IsNullOrWhiteSpace(reservation.ownerOperationId))
+            {
+                result.ReservationOwnerOperationIds.Add(
+                    reservation.ownerOperationId);
+            }
+        }
+
+        foreach (PhysicalItemBatchDispositionSaveData pending in
+                 source?.pendingBatchDispositions
+                 ?? new List<PhysicalItemBatchDispositionSaveData>())
+        {
+            if (pending == null)
+            {
+                report.AddError(
+                    "Physical item aggregate contains a null pending batch disposition.");
+                continue;
+            }
+            if (!result.PendingBatchByOperation.TryAdd(
+                    pending.operationId ?? string.Empty,
+                    pending)
+                || !result.PendingBatchCommitIds.Add(
+                    pending.commitId ?? string.Empty))
+            {
+                report.AddError(
+                    $"Physical pending batch disposition '{pending.operationId}' has duplicate operation or commit identity.");
             }
         }
 
         return result;
+    }
+
+    private static void CollectProductionOutputCommit(
+        WorldItemStackSaveData stack,
+        PhysicalReferenceIndex index,
+        DungeonGameRestoreReport report)
+    {
+        ItemInstanceComponentSaveData component = (stack?.components
+                ?? new List<ItemInstanceComponentSaveData>())
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.componentTypeId,
+                    ItemInstanceComponentIds.ProductionOutputCommit,
+                    StringComparison.Ordinal));
+        if (component == null) return;
+        ItemStateValueSaveData field = component.values?.SingleOrDefault(value =>
+            value != null
+            && string.Equals(value.key, "commit-id", StringComparison.Ordinal)
+            && value.kind == ItemStateValueKind.String);
+        string commitId = field?.stringValue ?? string.Empty;
+        if (component.schemaVersion != 1
+            || !string.Equals(commitId, commitId.Trim(), StringComparison.Ordinal)
+            || commitId.Length == 0
+            || !index.OutputByCommitId.TryAdd(commitId, stack))
+            report.AddError(
+                $"Physical production output commit '{commitId}' is invalid or duplicated.");
     }
 
     private static void CollectSeedLot(
@@ -541,6 +648,177 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         }
 
         return result;
+    }
+
+    private static void ValidateRetailStockJoins(
+        ModularFacilityWorldSaveData buildings,
+        PhysicalReferenceIndex physical,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> joinedRetailInstances = new(StringComparer.Ordinal);
+        HashSet<string> joinedRetailOperations = new(StringComparer.Ordinal);
+        HashSet<string> activeRestockOperations = new(StringComparer.Ordinal);
+        foreach (ModularFacilityBuildingSaveData building in buildings?.buildings
+                     ?? new List<ModularFacilityBuildingSaveData>())
+        {
+            foreach (BuildingStateModuleSaveData module in building?.stateModules
+                         ?? new List<BuildingStateModuleSaveData>())
+            {
+                if (module == null
+                    || !string.Equals(
+                        module.moduleId,
+                        BuildingStateModuleIds.ShopStock,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                ShopStockStateSnapshot snapshot;
+                try
+                {
+                    snapshot = JsonUtility.FromJson<ShopStockStateSnapshot>(
+                        module.payload ?? string.Empty);
+                }
+                catch (Exception exception)
+                {
+                    report.AddError(
+                        $"Shop '{building.persistentInstanceId}' has an unreadable exact-stock payload: {exception.Message}");
+                    continue;
+                }
+                if (module.version != 1
+                    || snapshot == null
+                    || snapshot.schemaVersion != ShopStockStateSnapshot.CurrentSchemaVersion
+                    || snapshot.lots == null)
+                {
+                    report.AddError(
+                        $"Shop '{building.persistentInstanceId}' does not contain the current exact-stock schema.");
+                    continue;
+                }
+
+                int[] activatedSources = (snapshot.activatedAuthoredSaleItemIds
+                        ?? new List<int>())
+                    .ToArray();
+                if (activatedSources.Distinct().Count()
+                    != activatedSources.Length)
+                {
+                    report.AddError(
+                        $"Shop '{building.persistentInstanceId}' contains duplicate authored-source activation authority.");
+                }
+                foreach (string operationId in snapshot.activeRestockOperationIds
+                             ?? new List<string>())
+                {
+                    if (string.IsNullOrWhiteSpace(operationId)
+                        || !string.Equals(
+                            operationId,
+                            operationId.Trim(),
+                            StringComparison.Ordinal)
+                        || !operationId.StartsWith(
+                            "restock:",
+                            StringComparison.Ordinal)
+                        || !activeRestockOperations.Add(operationId)
+                        || !physical.ReservationOwnerOperationIds.Contains(
+                            operationId))
+                    {
+                        report.AddError(
+                            $"Shop '{building.persistentInstanceId}' has an orphan or duplicate active restock operation '{operationId ?? string.Empty}'.");
+                    }
+                }
+
+                foreach (RetailStockLotSnapshot lot in snapshot.lots)
+                {
+                    if (lot == null
+                        || lot.quantity <= 0
+                        || lot.unitMassGrams <= 0L
+                        || string.IsNullOrEmpty(lot.itemDefinitionId)
+                        || string.IsNullOrEmpty(lot.sourceOperationId)
+                        || !string.Equals(
+                            lot.itemDefinitionId,
+                            lot.itemDefinitionId.Trim(),
+                            StringComparison.Ordinal)
+                        || !string.Equals(
+                            lot.sourceOperationId,
+                            lot.sourceOperationId.Trim(),
+                            StringComparison.Ordinal)
+                        || !joinedRetailOperations.Add(lot.sourceOperationId))
+                    {
+                        report.AddError(
+                            $"Shop '{building.persistentInstanceId}' has a duplicate or invalid exact retail source operation '{lot?.sourceOperationId ?? string.Empty}'.");
+                        continue;
+                    }
+                    if (string.IsNullOrEmpty(lot.itemInstanceId))
+                    {
+                        continue;
+                    }
+                    if (lot.quantity != 1
+                        || !joinedRetailInstances.Add(lot.itemInstanceId))
+                    {
+                        report.AddError(
+                            $"Shop '{building.persistentInstanceId}' has a duplicate or invalid unique retail lot '{lot.itemInstanceId ?? string.Empty}'.");
+                        continue;
+                    }
+                    if (!physical.EquipmentInstances.TryGetValue(
+                            lot.itemInstanceId,
+                            out CombatEquipmentInstance equipment)
+                        || equipment.worldState != CombatEquipmentWorldState.RetailStock
+                        || !string.IsNullOrEmpty(equipment.ownerCharacterId)
+                        || !string.Equals(
+                            equipment.sourceStackId,
+                            lot.sourceOperationId,
+                            StringComparison.Ordinal))
+                    {
+                        report.AddError(
+                            $"Shop '{building.persistentInstanceId}' unique retail lot '{lot.itemInstanceId}' has no exact RetailStock equipment authority.");
+                        continue;
+                    }
+
+                    physical.UniqueItems.TryGetValue(
+                        lot.itemInstanceId,
+                        out UniqueItemInstanceSaveData unique);
+                    string physicalFingerprint = unique == null
+                        ? string.Empty
+                        : ItemStackSignature.Create(
+                            unique.definitionId,
+                            unique.components);
+                    if (unique == null
+                        || !string.Equals(
+                            unique.definitionId,
+                            lot.itemDefinitionId,
+                            StringComparison.Ordinal)
+                        || !string.Equals(
+                            physicalFingerprint,
+                            lot.componentFingerprint,
+                            StringComparison.Ordinal))
+                    {
+                        report.AddError(
+                            $"Shop '{building.persistentInstanceId}' unique retail lot '{lot.itemInstanceId}' does not match its physical component envelope.");
+                    }
+                }
+            }
+        }
+
+        foreach (CombatEquipmentInstance retail in physical.EquipmentInstances.Values
+                     .Where(instance => instance != null
+                         && instance.worldState == CombatEquipmentWorldState.RetailStock))
+        {
+            if (!joinedRetailInstances.Contains(retail.instanceId))
+            {
+                report.AddError(
+                    $"RetailStock equipment '{retail.instanceId}' has no owning shop exact-lot record.");
+            }
+        }
+
+
+        foreach (string reservationOwner in physical.ReservationOwnerOperationIds
+                     .Where(id => id.StartsWith(
+                         "restock:",
+                         StringComparison.Ordinal)))
+        {
+            if (!activeRestockOperations.Contains(reservationOwner))
+            {
+                report.AddError(
+                    $"Restock reservation '{reservationOwner}' has no owning shop operation record.");
+            }
+        }
     }
 
     private static void ValidateOffenseMembers(
@@ -657,12 +935,51 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             }
         }
 
+        foreach (OffenseUrgentMitigationOrderStateData order in
+                 world?.mitigationOrders
+                 ?? new List<OffenseUrgentMitigationOrderStateData>())
+        {
+            if (order == null
+                || (OffenseUrgentMitigationCommitPhase)order.physicalCommitPhase
+                    == OffenseUrgentMitigationCommitPhase.None)
+            {
+                continue;
+            }
+            bool hasPending = physical.PendingBatchByOperation.TryGetValue(
+                order.physicalOperationId ?? string.Empty,
+                out PhysicalItemBatchDispositionSaveData pending);
+            if (order.physicalReceiptAcknowledged)
+            {
+                if (hasPending)
+                {
+                    report.AddError(
+                        $"Acknowledged mitigation order '{order.orderId}' still has a pending physical receipt.");
+                }
+                continue;
+            }
+            if (!hasPending
+                || pending == null
+                || !string.Equals(
+                    pending.commitId,
+                    order.physicalCommitId,
+                    StringComparison.Ordinal)
+                || pending.quantity != order.inputQuantity
+                || pending.inputMassGrams != order.inputMassGrams)
+            {
+                report.AddError(
+                    $"Mitigation order '{order.orderId}' does not join its exact pending physical receipt.");
+            }
+        }
+
         foreach (OffenseSupplyPackingItemStateData cost in
                  (world?.supplyPackages
-                     ?? new List<OffenseSupplyPackingStateData>())
-                 .Where(package => package != null)
-                 .SelectMany(package => package.costs
-                     ?? new List<OffenseSupplyPackingItemStateData>()))
+                      ?? new List<OffenseSupplyPackingStateData>())
+                  .Where(package => package != null)
+                  .SelectMany(package =>
+                      (package.costs
+                          ?? new List<OffenseSupplyPackingItemStateData>())
+                      .Concat(package.returnedCosts
+                          ?? new List<OffenseSupplyPackingItemStateData>())))
         {
             if (cost != null)
             {
@@ -1019,6 +1336,119 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         }
     }
 
+    private void ValidateCertifiedSeeds(
+        CertifiedSeedWorldSaveData source,
+        ISet<string> buildingIds,
+        PhysicalReferenceIndex physical,
+        DungeonGameRestoreReport report)
+    {
+        if (source == null
+            || source.version != CertifiedSeedWorldSaveData.CurrentVersion
+            || source.nextOrderSequence < 0
+            || source.orders == null)
+        {
+            report.AddError("Certified-seed aggregate is missing or invalid.");
+            return;
+        }
+        HashSet<string> orderIds = new(StringComparer.Ordinal);
+        foreach (CertifiedSeedOrderSaveData order in source.orders)
+        {
+            if (order == null
+                || string.IsNullOrWhiteSpace(order.orderId)
+                || !string.Equals(
+                    order.orderId,
+                    order.orderId.Trim(),
+                    StringComparison.Ordinal)
+                || !orderIds.Add(order.orderId)
+                || order.orderSequence < 0
+                || order.orderSequence >= source.nextOrderSequence)
+            {
+                report.AddError(
+                    $"Certified-seed aggregate contains an invalid or duplicate order '{order?.orderId ?? string.Empty}'.");
+                continue;
+            }
+            RequireReference(
+                order.facilityInstanceId,
+                buildingIds,
+                "Certified-seed facility",
+                report);
+            if (!economyContent.TryGetCrop(
+                    order.cropId,
+                    out CropDefinitionSO crop)
+                || crop == null)
+            {
+                report.AddError(
+                    $"Certified-seed order '{order.orderId}' references unknown crop '{order.cropId}'.");
+                continue;
+            }
+            if (order.phase == CertifiedSeedOrderPhase.Planned)
+                continue;
+            CropPhysicalCommitSaveData owner = order.pendingInput;
+            if (owner == null
+                || !physical.PendingBatchByOperation.TryGetValue(
+                    owner.operationId ?? string.Empty,
+                    out PhysicalItemBatchDispositionSaveData pending)
+                || pending == null
+                || pending.kind != (int)PhysicalItemDispositionKind.Transfer
+                || !string.Equals(
+                    pending.reasonCode,
+                    owner.reasonCode,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    pending.commitId,
+                    owner.commitId,
+                    StringComparison.Ordinal)
+                || pending.quantity != owner.inputQuantity
+                || pending.inputMassGrams != owner.inputMassGrams)
+            {
+                report.AddError(
+                    $"Certified-seed order '{order.orderId}' has no exact pending input receipt.");
+                continue;
+            }
+            if (order.phase != CertifiedSeedOrderPhase.OutputPublished)
+                continue;
+            if (!physical.OutputByCommitId.TryGetValue(
+                    order.outputCommitId ?? string.Empty,
+                    out WorldItemStackSaveData output)
+                || output == null
+                || output.quantity != 1
+                || !string.Equals(
+                    output.itemId,
+                    crop.SeedItemId,
+                    StringComparison.Ordinal)
+                || order.certifiedSeedLot == null)
+            {
+                report.AddError(
+                    $"Certified-seed order '{order.orderId}' has no exact physical output.");
+                continue;
+            }
+            try
+            {
+                SeedLotState outputState = SeedLotItemStateCodec.Decode(
+                    output.components);
+                if (!SeedLotEquals(outputState, order.certifiedSeedLot))
+                    report.AddError(
+                        $"Certified-seed order '{order.orderId}' output state does not match its owner.");
+            }
+            catch (Exception exception)
+            {
+                report.AddError(
+                    $"Certified-seed order '{order.orderId}' output is invalid: {exception.Message}");
+            }
+        }
+    }
+
+    private static bool SeedLotEquals(SeedLotState left, SeedLotState right) =>
+        left != null
+        && right != null
+        && string.Equals(left.cropId, right.cropId, StringComparison.Ordinal)
+        && string.Equals(
+            left.cultivarGenomeId,
+            right.cultivarGenomeId,
+            StringComparison.Ordinal)
+        && left.generation == right.generation
+        && left.pathogenLoad.Equals(right.pathogenLoad);
+
     private static void ValidateTreasury(
         TreasuryEconomySaveData source,
         ISet<string> characterIds,
@@ -1124,6 +1554,8 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
     private HashSet<string> ValidateCharacterLife(
         CharacterLifeWorldSaveData source,
         ISet<string> characterIds,
+        ISet<string> buildingInstanceIds,
+        PhysicalReferenceIndex physical,
         DungeonGameRestoreReport report)
     {
         HashSet<string> lifeIds = new(StringComparer.Ordinal);
@@ -1179,7 +1611,140 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             }
         }
 
+        TemporalStasisMaintenanceCommitSaveData maintenance =
+            source?.pendingTemporalStasisMaintenance;
+        TemporalStasisMaintenanceCommitPhase phase =
+            (TemporalStasisMaintenanceCommitPhase)(maintenance?.phase ?? 0);
+        if (maintenance != null
+            && phase != TemporalStasisMaintenanceCommitPhase.None)
+        {
+            RequireReference(
+                maintenance.characterId,
+                characterIds,
+                "Temporal-stasis maintenance character",
+                report);
+            RequireReference(
+                maintenance.facilityInstanceId,
+                buildingInstanceIds,
+                "Temporal-stasis maintenance facility",
+                report);
+            RequireItemDefinition(maintenance.runeConductorItemId, report);
+            RequireItemDefinition(maintenance.manaCrystalItemId, report);
+
+            bool hasPending = physical.PendingBatchByOperation.TryGetValue(
+                maintenance.operationId ?? string.Empty,
+                out PhysicalItemBatchDispositionSaveData receipt);
+            if (hasPending)
+            {
+                int expectedQuantity = checked(
+                    maintenance.runeConductorQuantity
+                    + maintenance.manaCrystalQuantity);
+                bool exact = receipt != null
+                    && receipt.kind
+                        == (int)PhysicalItemDispositionKind.Sink
+                    && string.Equals(
+                        receipt.operationId,
+                        maintenance.operationId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        receipt.reasonCode,
+                        maintenance.reasonCode,
+                        StringComparison.Ordinal)
+                    && receipt.quantity == expectedQuantity;
+                if (phase
+                    == TemporalStasisMaintenanceCommitPhase.OutcomePublished)
+                {
+                    exact = exact
+                        && string.Equals(
+                            receipt.commitId,
+                            maintenance.commitId,
+                            StringComparison.Ordinal)
+                        && receipt.inputMassGrams
+                            == maintenance.inputMassGrams
+                        && receipt.sourceStackIds.SequenceEqual(
+                            maintenance.sourceStackIds,
+                            StringComparer.Ordinal);
+                }
+                if (!exact)
+                {
+                    report.AddError(
+                        $"Temporal-stasis maintenance '{maintenance.operationId}' does not join its exact pending physical Sink receipt.");
+                }
+            }
+        }
+
         return lifeIds;
+    }
+
+    private void ValidatePowerFuelPhysicalReceipts(
+        DungeonPowerInfrastructureSaveData source,
+        ISet<string> buildingInstanceIds,
+        PhysicalReferenceIndex physical,
+        DungeonGameRestoreReport report)
+    {
+        foreach (PowerNodeSaveData node in source?.nodes
+                     ?? new List<PowerNodeSaveData>())
+        {
+            if (node == null)
+            {
+                continue;
+            }
+            RequireReference(
+                node.buildingInstanceId,
+                buildingInstanceIds,
+                "Power infrastructure node",
+                report);
+            PowerFuelCommitSaveData pending = node.pendingFuel;
+            PowerFuelCommitPhase phase =
+                (PowerFuelCommitPhase)(pending?.phase ?? 0);
+            if (pending == null || phase == PowerFuelCommitPhase.None)
+            {
+                continue;
+            }
+
+            RequireItemDefinition(pending.itemId, report);
+            bool hasPending = physical.PendingBatchByOperation.TryGetValue(
+                pending.operationId ?? string.Empty,
+                out PhysicalItemBatchDispositionSaveData receipt);
+            if (!hasPending)
+            {
+                if (phase == PowerFuelCommitPhase.OutcomePublished)
+                {
+                    report.AddError(
+                        $"Power fuel commit '{pending.operationId}' lost its published physical Sink receipt.");
+                }
+                continue;
+            }
+
+            bool exact = receipt != null
+                && receipt.kind == (int)PhysicalItemDispositionKind.Sink
+                && string.Equals(
+                    receipt.operationId,
+                    pending.operationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    receipt.reasonCode,
+                    pending.reasonCode,
+                    StringComparison.Ordinal)
+                && receipt.quantity == pending.quantity;
+            if (phase == PowerFuelCommitPhase.OutcomePublished)
+            {
+                exact = exact
+                    && string.Equals(
+                        receipt.commitId,
+                        pending.commitId,
+                        StringComparison.Ordinal)
+                    && receipt.inputMassGrams == pending.inputMassGrams
+                    && receipt.sourceStackIds.SequenceEqual(
+                        pending.sourceStackIds,
+                        StringComparer.Ordinal);
+            }
+            if (!exact)
+            {
+                report.AddError(
+                    $"Power fuel commit '{pending.operationId}' does not join its exact pending physical Sink receipt.");
+            }
+        }
     }
 
     private static KinshipReferenceIndex ValidateKinshipHouseholds(
@@ -1352,6 +1917,8 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
     private void ValidatePopulationHealth(
         PopulationHealthWorldSaveData source,
         ISet<string> livingCharacterIds,
+        ISet<string> buildingInstanceIds,
+        PhysicalReferenceIndex physical,
         DungeonGameRestoreReport report)
     {
         HashSet<string> recordIds = new(StringComparer.Ordinal);
@@ -1393,6 +1960,188 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
                 continue;
             }
             RequireDiseaseDefinition(epidemic.diseaseId, report);
+        }
+        DiseaseFieldResponseCommitSaveData pending =
+            source?.pendingFieldResponse;
+        if (pending != null
+            && (DiseaseFieldResponseCommitPhase)pending.phase
+                != DiseaseFieldResponseCommitPhase.None)
+        {
+            RequireReference(
+                pending.characterId,
+                livingCharacterIds,
+                "Disease field-response character",
+                report);
+            RequireReference(
+                pending.facilityInstanceId,
+                buildingInstanceIds,
+                "Disease field-response facility",
+                report);
+            RequireDiseaseDefinition(pending.diseaseId, report);
+            RequireItemDefinition(pending.itemId, report);
+            ValidatePopulationHealthPhysicalReceipt(
+                "Disease field-response",
+                pending.operationId,
+                pending.reasonCode,
+                pending.quantity,
+                (DiseaseFieldResponseCommitPhase)pending.phase
+                    == DiseaseFieldResponseCommitPhase.OutcomePublished,
+                pending.commitId,
+                pending.inputMassGrams,
+                physical,
+                report);
+        }
+
+        VaccinationCommitSaveData vaccination = source?.pendingVaccination;
+        if (vaccination != null
+            && (VaccinationCommitPhase)vaccination.phase
+                != VaccinationCommitPhase.None)
+        {
+            RequireReference(
+                vaccination.characterId,
+                livingCharacterIds,
+                "Vaccination character",
+                report);
+            RequireReference(
+                vaccination.facilityInstanceId,
+                buildingInstanceIds,
+                "Vaccination facility",
+                report);
+            RequireDiseaseDefinition(vaccination.diseaseId, report);
+            RequireItemDefinition(vaccination.itemId, report);
+            ValidatePopulationHealthPhysicalReceipt(
+                "Vaccination",
+                vaccination.operationId,
+                vaccination.reasonCode,
+                vaccination.quantity,
+                (VaccinationCommitPhase)vaccination.phase
+                    == VaccinationCommitPhase.OutcomePublished,
+                vaccination.commitId,
+                vaccination.inputMassGrams,
+                physical,
+                report);
+        }
+    }
+
+    private static void ValidatePopulationHealthPhysicalReceipt(
+        string label,
+        string operationId,
+        string reasonCode,
+        int quantity,
+        bool outcomePublished,
+        string commitId,
+        long inputMassGrams,
+        PhysicalReferenceIndex physical,
+        DungeonGameRestoreReport report)
+    {
+        bool hasPending = physical.PendingBatchByOperation.TryGetValue(
+            operationId ?? string.Empty,
+            out PhysicalItemBatchDispositionSaveData receipt);
+        if (!hasPending)
+        {
+            // Intent may be captured before its physical commit. An outcome may
+            // be captured after acknowledgement but before its terminal clear.
+            return;
+        }
+
+        bool exact = receipt != null
+            && receipt.kind == (int)PhysicalItemDispositionKind.Sink
+            && string.Equals(
+                receipt.operationId,
+                operationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                receipt.reasonCode,
+                reasonCode,
+                StringComparison.Ordinal)
+            && receipt.quantity == quantity;
+        if (outcomePublished)
+        {
+            exact = exact
+                && string.Equals(
+                    receipt.commitId,
+                    commitId,
+                    StringComparison.Ordinal)
+                && receipt.inputMassGrams == inputMassGrams;
+        }
+        if (!exact)
+        {
+            report.AddError(
+                $"{label} '{operationId}' does not join its exact pending physical Sink receipt.");
+        }
+    }
+
+    private void ValidateCharacterMedicalPhysicalReceipts(
+        DungeonCharacterMedicalSaveData source,
+        ISet<string> livingCharacterIds,
+        ISet<string> buildingInstanceIds,
+        PhysicalReferenceIndex physical,
+        DungeonGameRestoreReport report)
+    {
+        foreach (CharacterMedicalOrder order in source?.orders
+                     ?? new List<CharacterMedicalOrder>())
+        {
+            if (order == null)
+            {
+                continue;
+            }
+            RequireReference(
+                order.patientId,
+                livingCharacterIds,
+                $"Medical order '{order.orderId}' patient",
+                report);
+            if (!string.IsNullOrEmpty(order.treatmentFacilityId))
+            {
+                RequireReference(
+                    order.treatmentFacilityId,
+                    buildingInstanceIds,
+                    $"Medical order '{order.orderId}' facility",
+                    report);
+            }
+
+            CharacterMedicalSupplyCommitPhase phase =
+                (CharacterMedicalSupplyCommitPhase)
+                    order.treatmentSupplyCommitPhase;
+            if (phase == CharacterMedicalSupplyCommitPhase.None)
+            {
+                continue;
+            }
+            RequireItemDefinition(order.treatmentPhysicalItemId, report);
+            bool hasPending = physical.PendingBatchByOperation.TryGetValue(
+                order.treatmentSupplyOperationId ?? string.Empty,
+                out PhysicalItemBatchDispositionSaveData receipt);
+            if (!hasPending)
+            {
+                // Intent may precede the physical commit. SupplyPublished may
+                // follow acknowledgement and precede terminal provenance clear.
+                continue;
+            }
+
+            bool exact = receipt != null
+                && receipt.kind == (int)PhysicalItemDispositionKind.Sink
+                && string.Equals(
+                    receipt.operationId,
+                    order.treatmentSupplyOperationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    receipt.reasonCode,
+                    order.treatmentSupplyReasonCode,
+                    StringComparison.Ordinal)
+                && receipt.quantity == order.treatmentPhysicalQuantity;
+            if (phase == CharacterMedicalSupplyCommitPhase.SupplyPublished)
+            {
+                exact = exact
+                    && string.Equals(
+                        receipt.commitId,
+                        order.treatmentPhysicalCommitId,
+                        StringComparison.Ordinal)
+                    && receipt.inputMassGrams == order.treatmentInputMassGrams;
+            }
+            if (!exact)
+            {
+                report.AddError(
+                    $"Medical order '{order.orderId}' does not join its exact pending physical Sink receipt.");
+            }
         }
     }
 
@@ -1680,7 +2429,20 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             new HashSet<string>(StringComparer.Ordinal);
         internal Dictionary<string, string> EquipmentDefinitionIds { get; } =
             new Dictionary<string, string>(StringComparer.Ordinal);
+        internal Dictionary<string, CombatEquipmentInstance> EquipmentInstances { get; } =
+            new Dictionary<string, CombatEquipmentInstance>(StringComparer.Ordinal);
+        internal Dictionary<string, UniqueItemInstanceSaveData> UniqueItems { get; } =
+            new Dictionary<string, UniqueItemInstanceSaveData>(StringComparer.Ordinal);
         internal List<(string itemDefinitionId, SeedLotState state)> SeedLots { get; } = new();
+        internal HashSet<string> ReservationOwnerOperationIds { get; } =
+            new HashSet<string>(StringComparer.Ordinal);
+        internal Dictionary<string, PhysicalItemBatchDispositionSaveData>
+            PendingBatchByOperation { get; } =
+                new(StringComparer.Ordinal);
+        internal HashSet<string> PendingBatchCommitIds { get; } =
+            new(StringComparer.Ordinal);
+        internal Dictionary<string, WorldItemStackSaveData> OutputByCommitId
+            { get; } = new(StringComparer.Ordinal);
     }
 
     private sealed class BuildingReferenceIndex

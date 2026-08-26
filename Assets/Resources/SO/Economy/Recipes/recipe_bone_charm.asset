@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9078
+  id: 9079
   recipeId: recipe:bone-charm
   displayName: "\uBF08\uBFD4 \uC7A5\uC2E0\uAD6C"
   description: "\uBF08\uBFD4 \uC7A5\uC2E0\uAD6C \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:fang
     amount: 1
   outputs:
-  - itemId: craft:bone-charm
+  - outputLineId: output:recipe:bone-charm/000/main/craft:bone-charm
+    role: 0
+    itemId: craft:bone-charm
     amount: 1
     probability: 1

@@ -187,12 +187,70 @@ public sealed class EpidemicStateSaveData
     public List<int> recentDiagnosisDays = new();
 }
 
+public enum DiseaseFieldResponseCommitPhase
+{
+    None = 0,
+    IntentRecorded = 1,
+    OutcomePublished = 2
+}
+
+[Serializable]
+public sealed class DiseaseFieldResponseCommitSaveData
+{
+    public int phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string characterId = string.Empty;
+    public string diseaseId = string.Empty;
+    public string responseId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public int outputGridX;
+    public int outputGridY;
+    public string itemId = string.Empty;
+    public int quantity;
+    public float severityReduction;
+    public List<string> sourceStackIds = new();
+    public long inputMassGrams;
+    public string commitId = string.Empty;
+}
+
+public enum VaccinationCommitPhase
+{
+    None = 0,
+    IntentRecorded = 1,
+    OutcomePublished = 2
+}
+
+[Serializable]
+public sealed class VaccinationCommitSaveData
+{
+    public int phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string characterId = string.Empty;
+    public string diseaseId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public int outputGridX;
+    public int outputGridY;
+    public string itemId = string.Empty;
+    public int quantity;
+    public List<string> sourceStackIds = new();
+    public long inputMassGrams;
+    public string commitId = string.Empty;
+}
+
 [Serializable]
 public sealed class PopulationHealthWorldSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public int currentAbsoluteDay = 1;
+    public int nextFieldResponseOperationSequence = 1;
+    public DiseaseFieldResponseCommitSaveData pendingFieldResponse = new();
+    public int nextVaccinationOperationSequence = 1;
+    public VaccinationCommitSaveData pendingVaccination = new();
     public List<CharacterPopulationHealthSaveData> characters = new();
     public List<DiseaseExposureSaveData> pendingExposures = new();
     public List<EpidemicStateSaveData> epidemics = new();
@@ -344,6 +402,12 @@ public sealed class PopulationHealthAggregateState
     private readonly Dictionary<string, EpidemicStateSaveData> epidemics = new(StringComparer.Ordinal);
 
     public int CurrentAbsoluteDay { get; private set; } = 1;
+    public int NextFieldResponseOperationSequence { get; private set; } = 1;
+    public DiseaseFieldResponseCommitSaveData PendingFieldResponse { get; private set; } =
+        new();
+    public int NextVaccinationOperationSequence { get; private set; } = 1;
+    public VaccinationCommitSaveData PendingVaccination { get; private set; } =
+        new();
 
     public void RecordExposure(
         string diseaseId,
@@ -621,6 +685,10 @@ public sealed class PopulationHealthAggregateState
     public PopulationHealthWorldSaveData Capture() => new()
     {
         currentAbsoluteDay = CurrentAbsoluteDay,
+        nextFieldResponseOperationSequence = NextFieldResponseOperationSequence,
+        pendingFieldResponse = CloneFieldResponseCommit(PendingFieldResponse),
+        nextVaccinationOperationSequence = NextVaccinationOperationSequence,
+        pendingVaccination = CloneVaccinationCommit(PendingVaccination),
         characters = characters.Values
             .OrderBy(value => value.characterId, StringComparer.Ordinal)
             .Select(CloneCharacter)
@@ -643,7 +711,32 @@ public sealed class PopulationHealthAggregateState
         if (data == null || data.version != PopulationHealthWorldSaveData.CurrentVersion
             || data.currentAbsoluteDay < 1)
             throw new InvalidOperationException("Population-health payload is missing or invalid.");
-        PopulationHealthAggregateState state = new() { CurrentAbsoluteDay = data.currentAbsoluteDay };
+        if (data.nextFieldResponseOperationSequence <= 0)
+            throw new InvalidOperationException(
+                "Population-health field-response sequence is invalid.");
+        if (data.nextVaccinationOperationSequence <= 0)
+            throw new InvalidOperationException(
+                "Population-health vaccination sequence is invalid.");
+        ValidateFieldResponseCommit(
+            data.pendingFieldResponse,
+            data.nextFieldResponseOperationSequence,
+            definitions);
+        ValidateVaccinationCommit(
+            data.pendingVaccination,
+            data.nextVaccinationOperationSequence,
+            definitions);
+        PopulationHealthAggregateState state = new()
+        {
+            CurrentAbsoluteDay = data.currentAbsoluteDay,
+            NextFieldResponseOperationSequence =
+                data.nextFieldResponseOperationSequence,
+            PendingFieldResponse = CloneFieldResponseCommit(
+                data.pendingFieldResponse),
+            NextVaccinationOperationSequence =
+                data.nextVaccinationOperationSequence,
+            PendingVaccination = CloneVaccinationCommit(
+                data.pendingVaccination)
+        };
         foreach (CharacterPopulationHealthSaveData source in data.characters
                      ?? new List<CharacterPopulationHealthSaveData>())
         {
@@ -651,6 +744,43 @@ public sealed class PopulationHealthAggregateState
             if (!id.IsValid || !state.characters.TryAdd(id, CloneCharacter(source)))
                 throw new InvalidOperationException("Population-health character records are invalid or duplicated.");
             ValidateCharacter(source, definitions);
+        }
+        DiseaseFieldResponseCommitPhase pendingPhase =
+            (DiseaseFieldResponseCommitPhase)state.PendingFieldResponse.phase;
+        if (pendingPhase != DiseaseFieldResponseCommitPhase.None)
+        {
+            CharacterId pendingCharacter = new(
+                state.PendingFieldResponse.characterId);
+            if (!state.characters.TryGetValue(
+                    pendingCharacter,
+                    out CharacterPopulationHealthSaveData pendingRecord))
+            {
+                throw new InvalidOperationException(
+                    "Population-health field-response character is missing.");
+            }
+            if (pendingPhase == DiseaseFieldResponseCommitPhase.IntentRecorded)
+            {
+                ActiveDiseaseSaveData active = pendingRecord.activeDiseases
+                    .FirstOrDefault(value => string.Equals(
+                        value.diseaseId,
+                        state.PendingFieldResponse.diseaseId,
+                        StringComparison.Ordinal));
+                if (active == null
+                    || state.CurrentAbsoluteDay < active.symptomDay
+                    || state.CurrentAbsoluteDay >= active.recoveryDay)
+                {
+                    throw new InvalidOperationException(
+                        "Population-health field-response intent has no active target.");
+                }
+            }
+        }
+        if ((VaccinationCommitPhase)state.PendingVaccination.phase
+                != VaccinationCommitPhase.None
+            && !state.characters.ContainsKey(
+                new CharacterId(state.PendingVaccination.characterId)))
+        {
+            throw new InvalidOperationException(
+                "Population-health vaccination character is missing.");
         }
         foreach (DiseaseExposureSaveData source in data.pendingExposures
                      ?? new List<DiseaseExposureSaveData>())
@@ -946,6 +1076,283 @@ public sealed class PopulationHealthAggregateState
         lastNewCaseDay = value.lastNewCaseDay,
         recentDiagnosisDays = new List<int>(value.recentDiagnosisDays ?? new())
     };
+
+    private static DiseaseFieldResponseCommitSaveData CloneFieldResponseCommit(
+        DiseaseFieldResponseCommitSaveData source)
+    {
+        source ??= new DiseaseFieldResponseCommitSaveData();
+        return new DiseaseFieldResponseCommitSaveData
+        {
+            phase = source.phase,
+            operationSequence = source.operationSequence,
+            operationId = source.operationId ?? string.Empty,
+            reasonCode = source.reasonCode ?? string.Empty,
+            characterId = source.characterId ?? string.Empty,
+            diseaseId = source.diseaseId ?? string.Empty,
+            responseId = source.responseId ?? string.Empty,
+            facilityInstanceId = source.facilityInstanceId ?? string.Empty,
+            outputGridX = source.outputGridX,
+            outputGridY = source.outputGridY,
+            itemId = source.itemId ?? string.Empty,
+            quantity = source.quantity,
+            severityReduction = source.severityReduction,
+            sourceStackIds = new List<string>(
+                source.sourceStackIds ?? new List<string>()),
+            inputMassGrams = source.inputMassGrams,
+            commitId = source.commitId ?? string.Empty
+        };
+    }
+
+    private static VaccinationCommitSaveData CloneVaccinationCommit(
+        VaccinationCommitSaveData source)
+    {
+        source ??= new VaccinationCommitSaveData();
+        return new VaccinationCommitSaveData
+        {
+            phase = source.phase,
+            operationSequence = source.operationSequence,
+            operationId = source.operationId ?? string.Empty,
+            reasonCode = source.reasonCode ?? string.Empty,
+            characterId = source.characterId ?? string.Empty,
+            diseaseId = source.diseaseId ?? string.Empty,
+            facilityInstanceId = source.facilityInstanceId ?? string.Empty,
+            outputGridX = source.outputGridX,
+            outputGridY = source.outputGridY,
+            itemId = source.itemId ?? string.Empty,
+            quantity = source.quantity,
+            sourceStackIds = new List<string>(
+                source.sourceStackIds ?? new List<string>()),
+            inputMassGrams = source.inputMassGrams,
+            commitId = source.commitId ?? string.Empty
+        };
+    }
+
+    private static void ValidateFieldResponseCommit(
+        DiseaseFieldResponseCommitSaveData pending,
+        int nextSequence,
+        IDiseaseDefinitionCatalog definitions)
+    {
+        pending ??= new DiseaseFieldResponseCommitSaveData();
+        DiseaseFieldResponseCommitPhase phase =
+            (DiseaseFieldResponseCommitPhase)pending.phase;
+        if (phase == DiseaseFieldResponseCommitPhase.None)
+        {
+            if (pending.operationSequence != 0
+                || !string.IsNullOrEmpty(pending.operationId)
+                || !string.IsNullOrEmpty(pending.reasonCode)
+                || !string.IsNullOrEmpty(pending.characterId)
+                || !string.IsNullOrEmpty(pending.diseaseId)
+                || !string.IsNullOrEmpty(pending.responseId)
+                || !string.IsNullOrEmpty(pending.facilityInstanceId)
+                || pending.outputGridX != 0
+                || pending.outputGridY != 0
+                || !string.IsNullOrEmpty(pending.itemId)
+                || pending.quantity != 0
+                || pending.severityReduction != 0f
+                || (pending.sourceStackIds?.Count ?? 0) != 0
+                || pending.inputMassGrams != 0L
+                || !string.IsNullOrEmpty(pending.commitId))
+            {
+                throw new InvalidOperationException(
+                    "Population-health empty field-response provenance is invalid.");
+            }
+            return;
+        }
+
+        if (phase is not (DiseaseFieldResponseCommitPhase.IntentRecorded
+                or DiseaseFieldResponseCommitPhase.OutcomePublished)
+            || pending.operationSequence != nextSequence
+            || pending.operationSequence <= 0
+            || !IsCanonicalRequired(pending.operationId)
+            || !IsCanonicalRequired(pending.reasonCode)
+            || !new CharacterId(pending.characterId).IsValid
+            || !IsCanonicalRequired(pending.responseId)
+            || !IsCanonicalRequired(pending.facilityInstanceId)
+            || !IsCanonicalRequired(pending.itemId)
+            || pending.quantity <= 0
+            || float.IsNaN(pending.severityReduction)
+            || float.IsInfinity(pending.severityReduction)
+            || pending.severityReduction <= 0f)
+        {
+            throw new InvalidOperationException(
+                "Population-health field-response intent is invalid.");
+        }
+        DiseaseDefinition disease = definitions.Require(pending.diseaseId);
+        if (!disease.FieldResponseIds.Contains(
+                pending.responseId,
+                StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Population-health field-response is not authored for its disease.");
+        }
+
+        string expectedOperation =
+            $"disease-field-response:{pending.characterId}:"
+            + $"{pending.diseaseId}:{pending.responseId}:"
+            + $"{pending.operationSequence:D8}";
+        if (!string.Equals(
+                pending.operationId,
+                expectedOperation,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                pending.reasonCode,
+                "disease-field-response-consumed",
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Population-health field-response identity is invalid.");
+        }
+
+        IReadOnlyList<string> sources = pending.sourceStackIds
+            ?? new List<string>();
+        if (phase == DiseaseFieldResponseCommitPhase.IntentRecorded)
+        {
+            if (sources.Count != 0
+                || pending.inputMassGrams != 0L
+                || !string.IsNullOrEmpty(pending.commitId))
+            {
+                throw new InvalidOperationException(
+                    "Population-health field-response intent contains terminal provenance.");
+            }
+            return;
+        }
+
+        if (sources.Count == 0
+            || sources.Any(value => !IsCanonicalRequired(value))
+            || sources.Distinct(StringComparer.Ordinal).Count() != sources.Count
+            || !sources.SequenceEqual(
+                sources.OrderBy(value => value, StringComparer.Ordinal),
+                StringComparer.Ordinal)
+            || pending.inputMassGrams <= 0L)
+        {
+            throw new InvalidOperationException(
+                "Population-health field-response receipt provenance is invalid.");
+        }
+        const int sinkDispositionKindCode = 3;
+        string expectedCommit =
+            $"physical-batch-disposition:{sinkDispositionKindCode}:"
+            + $"{pending.operationId}:{pending.quantity}:"
+            + pending.inputMassGrams;
+        if (!string.Equals(
+                pending.commitId,
+                expectedCommit,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Population-health field-response commit identity is invalid.");
+        }
+    }
+
+    private static void ValidateVaccinationCommit(
+        VaccinationCommitSaveData pending,
+        int nextSequence,
+        IDiseaseDefinitionCatalog definitions)
+    {
+        pending ??= new VaccinationCommitSaveData();
+        VaccinationCommitPhase phase = (VaccinationCommitPhase)pending.phase;
+        if (phase == VaccinationCommitPhase.None)
+        {
+            if (pending.operationSequence != 0
+                || !string.IsNullOrEmpty(pending.operationId)
+                || !string.IsNullOrEmpty(pending.reasonCode)
+                || !string.IsNullOrEmpty(pending.characterId)
+                || !string.IsNullOrEmpty(pending.diseaseId)
+                || !string.IsNullOrEmpty(pending.facilityInstanceId)
+                || pending.outputGridX != 0
+                || pending.outputGridY != 0
+                || !string.IsNullOrEmpty(pending.itemId)
+                || pending.quantity != 0
+                || (pending.sourceStackIds?.Count ?? 0) != 0
+                || pending.inputMassGrams != 0L
+                || !string.IsNullOrEmpty(pending.commitId))
+            {
+                throw new InvalidOperationException(
+                    "Population-health empty vaccination provenance is invalid.");
+            }
+            return;
+        }
+
+        if (phase is not (VaccinationCommitPhase.IntentRecorded
+                or VaccinationCommitPhase.OutcomePublished)
+            || pending.operationSequence != nextSequence
+            || pending.operationSequence <= 0
+            || !IsCanonicalRequired(pending.operationId)
+            || !IsCanonicalRequired(pending.reasonCode)
+            || !new CharacterId(pending.characterId).IsValid
+            || !IsCanonicalRequired(pending.diseaseId)
+            || !IsCanonicalRequired(pending.facilityInstanceId)
+            || !IsCanonicalRequired(pending.itemId)
+            || pending.quantity != 1)
+        {
+            throw new InvalidOperationException(
+                "Population-health vaccination intent is invalid.");
+        }
+
+        DiseaseDefinition disease = definitions.Require(pending.diseaseId);
+        if (!disease.VaccineAllowed)
+        {
+            throw new InvalidOperationException(
+                "Population-health vaccination disease disallows vaccines.");
+        }
+        string expectedOperation =
+            $"vaccination:{pending.characterId}:{pending.diseaseId}:"
+            + $"{pending.operationSequence:D8}";
+        if (!string.Equals(
+                pending.operationId,
+                expectedOperation,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                pending.reasonCode,
+                "vaccination-dose-administered",
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Population-health vaccination identity is invalid.");
+        }
+
+        IReadOnlyList<string> sources = pending.sourceStackIds
+            ?? new List<string>();
+        if (phase == VaccinationCommitPhase.IntentRecorded)
+        {
+            if (sources.Count != 0
+                || pending.inputMassGrams != 0L
+                || !string.IsNullOrEmpty(pending.commitId))
+            {
+                throw new InvalidOperationException(
+                    "Population-health vaccination intent contains terminal provenance.");
+            }
+            return;
+        }
+
+        if (sources.Count == 0
+            || sources.Any(value => !IsCanonicalRequired(value))
+            || sources.Distinct(StringComparer.Ordinal).Count() != sources.Count
+            || !sources.SequenceEqual(
+                sources.OrderBy(value => value, StringComparer.Ordinal),
+                StringComparer.Ordinal)
+            || pending.inputMassGrams <= 0L)
+        {
+            throw new InvalidOperationException(
+                "Population-health vaccination receipt provenance is invalid.");
+        }
+        const int sinkDispositionKindCode = 3;
+        string expectedCommit =
+            $"physical-batch-disposition:{sinkDispositionKindCode}:"
+            + $"{pending.operationId}:{pending.quantity}:"
+            + pending.inputMassGrams;
+        if (!string.Equals(
+                pending.commitId,
+                expectedCommit,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Population-health vaccination commit identity is invalid.");
+        }
+    }
+
+    private static bool IsCanonicalRequired(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     private static string ExposureKey(CharacterId id, string diseaseId) =>
         id.Value + "\n" + (diseaseId?.Trim() ?? string.Empty);

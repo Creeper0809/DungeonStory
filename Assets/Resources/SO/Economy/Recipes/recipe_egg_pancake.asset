@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9061
+  id: 9062
   recipeId: recipe:egg-pancake
   displayName: "\uB2EC\uAC40\uC804"
   description: "\uB2EC\uAC40\uC804 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.2
   wastewaterPerCycle: 0.15
+  wastewaterComposition: 2
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -62,6 +63,8 @@ MonoBehaviour:
   - itemId: resource:milk
     amount: 1
   outputs:
-  - itemId: food:egg-pancake
+  - outputLineId: output:recipe:egg-pancake/000/main/food:egg-pancake
+    role: 0
+    itemId: food:egg-pancake
     amount: 2
     probability: 1

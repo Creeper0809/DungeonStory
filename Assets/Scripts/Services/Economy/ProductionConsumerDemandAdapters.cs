@@ -11,6 +11,7 @@ public sealed class ProductionRecipeConsumerDemandProvider :
     private readonly IBuildingWorldQuery buildings;
     private readonly IProductionItemGateway items;
     private readonly IProductionOutputPlanningService outputPlanning;
+    private readonly IProductionPreparedOutputExecutionPort preparedOutputExecution;
     private readonly IProductionOutputBufferGateway outputBuffer;
     private readonly IProductionAssemblyBridge bridge;
 
@@ -20,6 +21,7 @@ public sealed class ProductionRecipeConsumerDemandProvider :
         IBuildingWorldQuery buildings,
         IProductionItemGateway items,
         IProductionOutputPlanningService outputPlanning,
+        IProductionPreparedOutputExecutionPort preparedOutputExecution,
         IProductionOutputBufferGateway outputBuffer,
         IProductionAssemblyBridge bridge)
     {
@@ -31,6 +33,8 @@ public sealed class ProductionRecipeConsumerDemandProvider :
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.outputPlanning = outputPlanning
             ?? throw new ArgumentNullException(nameof(outputPlanning));
+        this.preparedOutputExecution = preparedOutputExecution
+            ?? throw new ArgumentNullException(nameof(preparedOutputExecution));
         this.outputBuffer = outputBuffer
             ?? throw new ArgumentNullException(nameof(outputBuffer));
         this.bridge = bridge ?? throw new ArgumentNullException(nameof(bridge));
@@ -133,6 +137,30 @@ public sealed class ProductionRecipeConsumerDemandProvider :
             {
                 return $"other-material-missing:{input.Key}";
             }
+        }
+
+        if (ProductionPreparedOutputMigrationScope.Contains(recipe.RecipeId))
+        {
+            if (ProductionPreparedOutputMigrationScope
+                .HasLegacyOutputAuthority(bill))
+            {
+                return "prepared-output-legacy-authority-conflict";
+            }
+            ProductionPreparedOutputCapacityResult capacity =
+                preparedOutputExecution.AssessCurrentCapacity(
+                    bill,
+                    recipe,
+                    bridge.CaptureFacility(facility));
+            if (!capacity.IsValid)
+            {
+                return "prepared-output-capacity-invalid-result";
+            }
+            return capacity.CanBeginCycle
+                ? string.Empty
+                : capacity.Failure.IsFailure
+                    ? "prepared-output-capacity-blocked:"
+                        + capacity.Failure.Code
+                    : "prepared-output-capacity-invalid-result";
         }
 
         Dictionary<string, int> otherReservations = stateStore.Bills

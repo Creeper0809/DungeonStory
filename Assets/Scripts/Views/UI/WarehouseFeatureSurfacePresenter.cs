@@ -245,9 +245,7 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
 
         return new WarehouseFeatureSurfaceModel
         {
-            WarehouseSummary = summary.HasCapacityLimit
-                ? $"창고 {summary.WarehouseCount}개 / 총 재고 {summary.TotalStock}/{summary.TotalCapacity}"
-                : $"창고 {summary.WarehouseCount}개 / 총 재고 {summary.TotalStock}",
+            WarehouseSummary = FormatWarehouseSummary(summary),
             StockSummary = FormatStockAmounts(summary.GetStock, useShortNames: false),
             PhysicalStockSummary = BuildPhysicalStockStateText(summary.TotalStock),
             CurrentMoney = money,
@@ -444,14 +442,36 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
     private WarehouseFeatureWarehouseRow CreateWarehouseRow(IWarehouseFacility warehouse)
     {
         WarehouseInventory inventory = warehouse.Inventory;
+        string capacity = inventory.HasMassCapacityAuthority
+            ? $"중량 {WarehouseMassUiFormatter.FormatCapacity(inventory)} / "
+                + $"남음 {WarehouseMassUiFormatter.FormatKilograms(inventory.RemainingMassGrams)}"
+            : $"총 {inventory.TotalStock}/"
+                + (inventory.HasCapacityLimit
+                    ? inventory.MaxCapacity.ToString()
+                    : "무제한");
         return new WarehouseFeatureWarehouseRow
         {
             RuntimeId = GetUnityObjectId(warehouse),
             Name = GetWarehouseName(warehouse),
             Detail =
-                $"총 {inventory.TotalStock}/{(inventory.HasCapacityLimit ? inventory.MaxCapacity.ToString() : "무제한")} / " +
+                capacity + $" / 물품 {inventory.TotalStock}개 / " +
                 FormatStockAmounts(inventory.GetStock, useShortNames: true)
         };
+    }
+
+    private static string FormatWarehouseSummary(WarehouseManagementSummary summary)
+    {
+        string text = $"창고 {summary.WarehouseCount}개 / 물리 재고 {summary.TotalStock}개";
+        if (summary.HasMassCapacityAuthority)
+        {
+            text += $" / 중량 {WarehouseMassUiFormatter.FormatKilograms(summary.TotalStoredMassGrams)}"
+                + $"/{WarehouseMassUiFormatter.FormatKilograms(summary.TotalMaxMassGrams)}";
+        }
+        if (summary.HasCapacityLimit)
+        {
+            text += $" / 개수형 {summary.LegacyCountWarehouseCount}개 용량 {summary.TotalCapacity}";
+        }
+        return text;
     }
 
     private static WarehouseFeatureRestockRow CreateRestockRow(BuildableObject building)

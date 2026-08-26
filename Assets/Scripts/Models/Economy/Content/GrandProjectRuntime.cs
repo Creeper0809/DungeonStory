@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
@@ -55,9 +56,18 @@ public interface IGrandProjectOperationsPort
         Vector2Int destinationPosition,
         string destinationId,
         out int requested);
-    bool ConsumeDelivered(
+    bool CommitDeliveredMaterialsPending(
         string destinationId,
         IReadOnlyDictionary<string, int> costs,
+        string operationId,
+        string reasonCode,
+        out GrandProjectPhysicalInputReceipt receipt,
+        out string failureReason);
+    bool TryGetPendingMaterials(
+        string operationId,
+        out GrandProjectPhysicalInputReceipt receipt);
+    bool AcknowledgeMaterials(
+        string commitId,
         out string failureReason);
     int ReleaseDestination(
         string destinationId,
@@ -83,6 +93,9 @@ public sealed class GrandProjectRuntime :
     public const string ExpeditionSupplyBaseId = "grand-project:expedition-supply-base";
 
     private const float EvaluationInterval = 1f;
+    public const string PhysicalOperationPrefix = "grand-project-materials:";
+    public const string PhysicalReasonCode =
+        "grand-project.infrastructure-embedded";
 
     private static readonly GrandProjectDefinition[] BuiltInDefinitions =
     {
@@ -209,6 +222,10 @@ public sealed class GrandProjectRuntime :
 
     public void Tick()
     {
+        if (HasPendingPhysicalCommit())
+        {
+            ResumePendingPhysicalCommit(out _);
+        }
         if (gameClock.IsPaused
             || gameClock.Time < nextEvaluationTime
             || string.IsNullOrWhiteSpace(state.activeProjectId))
@@ -320,6 +337,11 @@ public sealed class GrandProjectRuntime :
 
     public bool CancelActive(out string message)
     {
+        if (HasPendingPhysicalCommit())
+        {
+            message = "대형 사업 자재 커밋이 진행 중이라 취소할 수 없습니다.";
+            return false;
+        }
         if (string.IsNullOrWhiteSpace(state.activeProjectId))
         {
             message = "진행 중인 대형 사업이 없습니다.";
@@ -382,6 +404,10 @@ public sealed class GrandProjectRuntime :
         out bool completed)
     {
         completed = false;
+        if (HasPendingPhysicalCommit())
+        {
+            return ResumePendingPhysicalCommit(out completed);
+        }
         if (!TryGetWork(facilityId, out GrandProjectWorkSnapshot work)
             || !work.Available
             || amount <= 0f)
@@ -407,29 +433,28 @@ public sealed class GrandProjectRuntime :
                 group => group.Key,
                 group => group.Sum(requirement => requirement.Amount),
                 StringComparer.Ordinal);
-        if (!operations.ConsumeDelivered(
+        string operationId = BuildPhysicalOperationId(definition.ProjectId);
+        string beforeFingerprint = CreateStateFingerprint(state);
+        if (!operations.CommitDeliveredMaterialsPending(
                 state.destinationId,
                 costs,
-                out string failureReason))
+                operationId,
+                PhysicalReasonCode,
+                out GrandProjectPhysicalInputReceipt physicalReceipt,
+                out string failureReason)
+            || !physicalReceipt.IsCommitted)
         {
             state.completedWork = Mathf.Max(0f, definition.RequiredWork - 0.01f);
             SetStatus($"납품 자재 확인 실패: {failureReason}");
             Touch();
             return false;
         }
-
-        if (!state.completedProjectIds.Contains(definition.ProjectId))
-        {
-            state.completedProjectIds.Add(definition.ProjectId);
-        }
-
-        state.activeProjectId = string.Empty;
-        state.destinationId = string.Empty;
-        state.completedWork = 0f;
-        state.lastStatus = $"{definition.DisplayName} 사업이 완공되었습니다.";
-        completed = true;
+        state.pendingPhysicalCommit = CreatePhysicalOwner(
+            definition.ProjectId,
+            beforeFingerprint,
+            physicalReceipt);
         Touch();
-        return true;
+        return ResumePendingPhysicalCommit(out completed);
     }
 
     public bool IsCompleted(string projectId)
@@ -477,7 +502,9 @@ public sealed class GrandProjectRuntime :
                     .Where(id => !string.IsNullOrWhiteSpace(id))
                     .Distinct(StringComparer.Ordinal)
                     .OrderBy(id => id, StringComparer.Ordinal)
-                    .ToList()
+                    .ToList(),
+                pendingPhysicalCommit = state.pendingPhysicalCommit?.Clone()
+                    ?? new GrandProjectPhysicalCommitSaveData()
             }
         };
     }
@@ -497,7 +524,9 @@ public sealed class GrandProjectRuntime :
             destinationId = source.destinationId,
             completedWork = source.completedWork,
             lastStatus = source.lastStatus,
-            completedProjectIds = new List<string>(source.completedProjectIds)
+            completedProjectIds = new List<string>(source.completedProjectIds),
+            pendingPhysicalCommit = source.pendingPhysicalCommit?.Clone()
+                ?? new GrandProjectPhysicalCommitSaveData()
         };
         return new GrandProjectRestoreCandidate(
             new GrandProjectAggregateState
@@ -523,6 +552,7 @@ public sealed class GrandProjectRuntime :
 
     private void NormalizeState(GrandProjectRuntimeState target)
     {
+        target.pendingPhysicalCommit ??= new GrandProjectPhysicalCommitSaveData();
         GrandProjectDefinition active = FindDefinition(target.activeProjectId);
         if (active == null)
         {
@@ -674,4 +704,125 @@ public sealed class GrandProjectRuntime :
     {
         return new ItemAmountDefinition(itemId, amount);
     }
+
+    public static string BuildPhysicalOperationId(string projectId) =>
+        PhysicalOperationPrefix + (projectId ?? string.Empty);
+
+    public static string CreateStateFingerprint(GrandProjectRuntimeState value)
+    {
+        if (value == null)
+            return string.Empty;
+        return string.Join("|", new[]
+        {
+            value.activeProjectId ?? string.Empty,
+            value.destinationId ?? string.Empty,
+            value.completedWork.ToString("R", CultureInfo.InvariantCulture),
+            string.Join(",", (value.completedProjectIds ?? new List<string>())
+                .OrderBy(id => id, StringComparer.Ordinal))
+        });
+    }
+
+    private bool HasPendingPhysicalCommit() =>
+        state.pendingPhysicalCommit != null
+        && state.pendingPhysicalCommit.phase != GrandProjectPhysicalCommitPhase.None;
+
+    private static GrandProjectPhysicalCommitSaveData CreatePhysicalOwner(
+        string projectId,
+        string beforeFingerprint,
+        GrandProjectPhysicalInputReceipt receipt) => new()
+    {
+        phase = GrandProjectPhysicalCommitPhase.InputCommitted,
+        projectId = projectId,
+        operationId = receipt.OperationId,
+        reasonCode = receipt.ReasonCode,
+        requestFingerprint = receipt.RequestFingerprint,
+        commitId = receipt.CommitId,
+        inputQuantity = receipt.InputQuantity,
+        inputMassGrams = receipt.InputMassGrams,
+        sourceStackIds = receipt.SourceStackIds
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToList(),
+        stateBeforeFingerprint = beforeFingerprint,
+        stateAfterFingerprint = string.Empty
+    };
+
+    private bool ResumePendingPhysicalCommit(out bool completed)
+    {
+        completed = false;
+        GrandProjectPhysicalCommitSaveData owner = state.pendingPhysicalCommit;
+        if (owner == null || owner.phase == GrandProjectPhysicalCommitPhase.None)
+            return false;
+        if (!operations.TryGetPendingMaterials(
+                owner.operationId,
+                out GrandProjectPhysicalInputReceipt receipt)
+            || !Matches(owner, receipt))
+            throw new InvalidOperationException(
+                "Grand-project physical owner has no exact pending receipt: "
+                + owner.operationId);
+
+        GrandProjectDefinition definition = FindDefinition(owner.projectId)
+            ?? throw new InvalidOperationException(
+                "Grand-project physical owner references an unknown project: "
+                + owner.projectId);
+        if (owner.phase == GrandProjectPhysicalCommitPhase.InputCommitted)
+        {
+            if (!string.Equals(
+                    owner.stateBeforeFingerprint,
+                    CreateStateFingerprint(state),
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    state.activeProjectId,
+                    owner.projectId,
+                    StringComparison.Ordinal)
+                || state.completedWork + 0.001f < definition.RequiredWork)
+                throw new InvalidOperationException(
+                    "Grand-project physical input owner does not match its before-state envelope.");
+
+            if (!state.completedProjectIds.Contains(owner.projectId))
+                state.completedProjectIds.Add(owner.projectId);
+            state.completedProjectIds = state.completedProjectIds
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToList();
+            state.activeProjectId = string.Empty;
+            state.destinationId = string.Empty;
+            state.completedWork = 0f;
+            state.lastStatus = $"{definition.DisplayName} 사업이 완공되었습니다.";
+            owner.phase = GrandProjectPhysicalCommitPhase.OutcomePublished;
+            owner.stateAfterFingerprint = CreateStateFingerprint(state);
+            completed = true;
+            Touch();
+        }
+        else
+        {
+            if (!string.Equals(
+                    owner.stateAfterFingerprint,
+                    CreateStateFingerprint(state),
+                    StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Grand-project physical input owner does not match its after-state envelope.");
+            completed = true;
+        }
+
+        if (!operations.AcknowledgeMaterials(
+                owner.commitId,
+                out _))
+            return true;
+        state.pendingPhysicalCommit = new GrandProjectPhysicalCommitSaveData();
+        Touch();
+        return true;
+    }
+
+    private static bool Matches(
+        GrandProjectPhysicalCommitSaveData owner,
+        GrandProjectPhysicalInputReceipt receipt) =>
+        receipt.IsCommitted
+        && string.Equals(owner.operationId, receipt.OperationId, StringComparison.Ordinal)
+        && string.Equals(owner.reasonCode, receipt.ReasonCode, StringComparison.Ordinal)
+        && string.Equals(owner.requestFingerprint, receipt.RequestFingerprint, StringComparison.Ordinal)
+        && string.Equals(owner.commitId, receipt.CommitId, StringComparison.Ordinal)
+        && owner.inputQuantity == receipt.InputQuantity
+        && owner.inputMassGrams == receipt.InputMassGrams
+        && owner.sourceStackIds.SequenceEqual(
+            receipt.SourceStackIds.OrderBy(id => id, StringComparer.Ordinal),
+            StringComparer.Ordinal);
 }

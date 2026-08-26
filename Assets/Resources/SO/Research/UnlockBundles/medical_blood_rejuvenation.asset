@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7268
   researchId: research:medical:blood-rejuvenation
-  role: 5
+  role: 3
   designIntent: "\uC7A5\uAE30 \uC7AC\uC0DD\uACFC \uD608\uC220, \uACE0\uAE09 \uC57D\uD559\uC744
     \uD68C\uCD98 \uC218\uD608\uC5D0 \uC801\uC6A9\uD55C\uB2E4."
   rewardGroups:
@@ -57,6 +57,4 @@ MonoBehaviour:
   - kind: 4
     displayOrder: 60
     heading: "\uC758\uB8CC \uC2DC\uC220"
-  singletonReason: "\uAC8C\uC784 \uADDC\uCE59\uC744 \uBC14\uAFB8\uB294 \uCD5C\uC885
-    \uAE30\uC220\uC774\uBBC0\uB85C \uD575\uC2EC \uBCF4\uC0C1 \uD558\uB098\uB9CC\uC73C\uB85C\uB3C4
-    \uC644\uACB0\uB41C\uB2E4."
+  singletonReason: 

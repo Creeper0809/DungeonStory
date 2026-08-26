@@ -16,6 +16,7 @@ public sealed class SurgeryRestoreCoordinator :
     private readonly SurgeryAggregateStateStore stateStore;
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly IGridSystemProvider gridProvider;
+    private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
     private readonly SurgeryRestoreProjection projection;
     private List<SurgeryOrder> previousOrders = new();
     private SurgeryRestorePublication activePublication;
@@ -28,7 +29,8 @@ public sealed class SurgeryRestoreCoordinator :
         SurgeryResourceServices resources,
         SurgeryAggregateStateStore stateStore,
         DungeonRuntimeAggregateRootStore rootStore,
-        IGridSystemProvider gridProvider)
+        IGridSystemProvider gridProvider,
+        IPhysicalItemRestoreCandidateQuery physicalCandidates)
     {
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
@@ -38,12 +40,36 @@ public sealed class SurgeryRestoreCoordinator :
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.gridProvider = gridProvider
             ?? throw new ArgumentNullException(nameof(gridProvider));
+        this.physicalCandidates = physicalCandidates
+            ?? throw new ArgumentNullException(nameof(physicalCandidates));
         projection = new SurgeryRestoreProjection(this.world, this.stateStore);
     }
 
     public string ParticipantId => RestoreParticipantId;
 
     public SurgeryRestoreCandidate PrepareRestore(
+        DungeonSurgerySaveData saveData)
+    {
+        SurgeryAggregateState state = PrepareLocalState(saveData);
+        ValidatePreservationPhysicalJoin(state, physicalCandidates);
+        DungeonGameRestoreReport report = new();
+        ValidateWorldReferences(state, report);
+        if (!report.Success)
+        {
+            throw new InvalidOperationException(
+                "Surgery world references are invalid: "
+                + string.Join(" | ", report.Errors));
+        }
+
+        return new SurgeryRestoreCandidate(state);
+    }
+
+    public void ValidatePayload(DungeonSurgerySaveData saveData)
+    {
+        _ = PrepareLocalState(saveData);
+    }
+
+    private SurgeryAggregateState PrepareLocalState(
         DungeonSurgerySaveData saveData)
     {
         DungeonGameRestoreReport report = new();
@@ -60,15 +86,38 @@ public sealed class SurgeryRestoreCoordinator :
         }
 
         SurgeryAggregateState state = SurgerySaveValidation.CreateState(saveData);
-        ValidateWorldReferences(state, report);
-        if (!report.Success)
-        {
-            throw new InvalidOperationException(
-                "Surgery world references are invalid: "
-                + string.Join(" | ", report.Errors));
-        }
+        return state;
+    }
 
-        return new SurgeryRestoreCandidate(state);
+    public static void ValidatePreservationPhysicalJoin(
+        SurgeryAggregateState state,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        const string prefix = "surgical-organ-preservation:";
+        const string reason = "organ-preservation-canister-consumed";
+        if (state == null || query == null || !query.IsCandidateAvailable)
+            throw new InvalidOperationException("Surgery restore requires the incoming physical candidate.");
+        Dictionary<string, SurgicalPartInstance> owners = state.Parts
+            .Where(part => part != null && !string.IsNullOrEmpty(part.preservationOperationId))
+            .ToDictionary(part => part.preservationOperationId, StringComparer.Ordinal);
+        foreach (KeyValuePair<string, SurgicalPartInstance> pair in owners)
+        {
+            if (!query.TryGetPendingBatchDisposition(pair.Key, out PhysicalItemRestoreCandidateDispositionSnapshot receipt)
+                || receipt.Kind != PhysicalItemDispositionKind.Sink
+                || !string.Equals(receipt.ReasonCode, reason, StringComparison.Ordinal)
+                || !string.Equals(receipt.CommitId, pair.Value.preservationCommitId, StringComparison.Ordinal)
+                || receipt.Quantity != 1
+                || receipt.InputMassGrams != pair.Value.preservationInputMassGrams
+                || receipt.SourceStackIds.Count != 1
+                || !string.Equals(receipt.SourceStackIds[0], pair.Value.preservationSourceStackId, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Organ preservation '{pair.Key}' has no exact incoming physical Sink receipt.");
+        }
+        foreach (PhysicalItemRestoreCandidateDispositionSnapshot receipt in query.PendingBatchDispositions)
+        {
+            if (receipt?.OperationId == null || !receipt.OperationId.StartsWith(prefix, StringComparison.Ordinal)) continue;
+            if (!owners.ContainsKey(receipt.OperationId))
+                throw new InvalidOperationException($"Incoming organ preservation Sink '{receipt.OperationId}' has no surgical part owner.");
+        }
     }
 
     public void PublishRestore(SurgeryRestoreCandidate candidate)
@@ -88,6 +137,19 @@ public sealed class SurgeryRestoreCoordinator :
                 "A surgery restore candidate was staged more than once.");
         }
 
+        ReconcilePartInstallationDispositions(candidate.State);
+
+        // doctorId is live execution ownership, not authored scheduling intent.
+        // Restore cannot recreate the matching AI action/coroutine atomically,
+        // so retaining it produces a timing-dependent half-owned order. Keep
+        // preferredDoctorId and deterministically release only this transient
+        // reservation before publishing the current-format aggregate.
+        foreach (SurgeryOrder order in candidate.State.Orders
+                     .Where(value => value != null && value.IsActive))
+        {
+            order.doctorId = string.Empty;
+        }
+
         FacilityBufferDestinationClaim[] destinationClaims =
             BuildActiveMaterialDestinationClaims(candidate.State);
         if (!resources.DestinationClaimCommands.TryReplaceOwnedClaims(
@@ -103,6 +165,26 @@ public sealed class SurgeryRestoreCoordinator :
 
         stateStore.Replace(candidate.State);
         restoreCandidatePrepared = true;
+    }
+
+    private void ReconcilePartInstallationDispositions(
+        SurgeryAggregateState candidate)
+    {
+        foreach (SurgicalPartInstance part in candidate.Parts
+                     .Where(value => value != null
+                         && !string.IsNullOrEmpty(
+                             value.installationCommitId)))
+        {
+            if (!SurgicalPartInstallationOutbox.TryFinalizePending(
+                    part,
+                    resources.BatchDispositions,
+                    out string failureReason))
+            {
+                throw new InvalidOperationException(
+                    $"Surgical part installation '{part.partInstanceId}' "
+                    + $"could not reconcile its physical receipt: {failureReason}");
+            }
+        }
     }
 
     private FacilityBufferDestinationClaim[]
@@ -246,9 +328,8 @@ public sealed class SurgeryRestoreCoordinator :
         // Participant completion runs in reverse order, before restored
         // characters are published and AI-eligible. The whole-save hook is the
         // first boundary where a persisted clinical order can lawfully wake a
-        // worker. Without it, the serialized doctor/order link survives but no
-        // transient AIWork owner is recreated, so the operation can remain
-        // stranded until an unrelated scheduler wake.
+        // worker. The transient doctor reservation is cleared at publication;
+        // preferredDoctorId remains the authored scheduling hint.
         if (stateStore.ActiveOrders.Count > 0)
         {
             resources.Workforce.RequestOneWorkerToReplanFor(
@@ -504,7 +585,8 @@ public sealed class SurgeryRestoreCoordinator :
         foreach (SurgicalPartInstance part in candidate.Parts)
         {
             if (!string.IsNullOrEmpty(part.worldStackId)
-                && !stacks.ContainsKey(part.worldStackId))
+                && !stacks.ContainsKey(part.worldStackId)
+                && string.IsNullOrEmpty(part.installationCommitId))
             {
                 report.AddError(
                     $"Surgical part '{part.partInstanceId}' references missing stack '{part.worldStackId}'.");

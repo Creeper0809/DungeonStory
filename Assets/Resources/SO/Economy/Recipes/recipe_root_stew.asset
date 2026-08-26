@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9058
+  id: 9059
   recipeId: recipe:root-stew
   displayName: "\uC7BF\uBD88\uBFCC\uB9AC \uC2A4\uD29C"
   description: "\uC7BF\uBD88\uBFCC\uB9AC \uC2A4\uD29C \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.25
   wastewaterPerCycle: 0.1
+  wastewaterComposition: 2
   allowsManualWaterFallback: 1
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:ember-root
     amount: 2
   outputs:
-  - itemId: food:root-stew
+  - outputLineId: output:recipe:root-stew/000/main/food:root-stew
+    role: 0
+    itemId: food:root-stew
     amount: 2
     probability: 1

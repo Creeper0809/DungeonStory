@@ -277,6 +277,9 @@ public sealed class WildlifeRuntime :
 
     public void DiscardRestoreCandidate() => restoreCoordinator.Discard();
 
+    void IWildlifeRestorePort.ReconcilePendingFoodRaids() =>
+        behaviorRuntime.ReconcilePendingFoodRaids();
+
     public DungeonWildlifeSaveData Capture()
     {
         return new DungeonWildlifeSaveData

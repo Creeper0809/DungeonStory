@@ -51,7 +51,8 @@ MonoBehaviour:
   optimalTemperatureC: {x: 12, y: 24}
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.2
-  wastewaterPerCycle: 0.2
+  wastewaterPerCycle: 4.2
+  wastewaterComposition: 3
   allowsManualWaterFallback: 1
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:saltstone
     amount: 1
   outputs:
-  - itemId: material:curd
+  - outputLineId: output:recipe:curd/000/main/material:curd
+    role: 0
+    itemId: material:curd
     amount: 2
     probability: 1

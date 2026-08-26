@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7095
   researchId: research:husbandry:breeding
-  role: 4
+  role: 0
   designIntent: "\uC131\uBCC4, \uC131\uC7A5 \uB2E8\uACC4\uC640 \uC784\uC2E0\uC744
     \uACE0\uB824\uD574 \uAC1C\uCCB4 \uC218\uB97C \uAD00\uB9AC\uD55C\uB2E4."
   rewardGroups:
@@ -57,5 +57,5 @@ MonoBehaviour:
   - kind: 4
     displayOrder: 60
     heading: "\uC758\uB8CC \uC2DC\uC220"
-  singletonReason: "\uB3C5\uB9BD\uB41C \uC791\uC5C5 \uADDC\uCE59\uACFC \uC785\uB825\xB7\uCD9C\uB825\uC744
-    \uAC00\uC9C4 \uC2DC\uC2A4\uD15C \uC2DC\uC124\uC744 \uC5F0\uB2E4."
+  singletonReason: "\uC5EC\uB7EC \uD6C4\uC18D \uC5F0\uAD6C\uC640 \uAE30\uC874 \uC81C\uC791
+    \uACC4\uD1B5\uC744 \uC5EC\uB294 \uAE30\uBC18 \uC5F0\uAD6C\uB2E4."

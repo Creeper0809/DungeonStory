@@ -6,7 +6,7 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
 
-public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRetailStockStateOwner, IWorkableFacility
+public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRetailStockStateOwner, IRetailRestockOperationOwner, IWorkableFacility
 {
     private const float WaitingCheckoutOperateUrgency = 160f;
     private const float WaitingCheckoutOperateUrgencyPerCustomer = 40f;
@@ -23,6 +23,9 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
     private IMealConsumptionRuntime mealConsumptionRuntime;
     private IServiceSessionRuntime serviceSessionRuntime;
     private IShopServiceSessionCompletionPort serviceSessionCompletionPort;
+    private IRetailStockPhysicalRuntime retailStockPhysicalRuntime;
+    private readonly HashSet<string> activeRestockOperations =
+        new(StringComparer.Ordinal);
     private ShopInventoryRuntime Inventory =>
         inventoryRuntime ??= new ShopInventoryRuntime(this);
     private ShopCrimeRuntime Crime =>
@@ -34,7 +37,14 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             this,
             () => transform.position);
 
-    public int CurrentStock => Inventory.CurrentCount;
+    public int CurrentStock
+    {
+        get
+        {
+            SynchronizeAuthoredStock();
+            return Inventory.CurrentCount;
+        }
+    }
     public bool HasAvailableStock => CurrentStock > 0;
 
     public bool HasMealAvailableFor(
@@ -68,12 +78,14 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
     public int MissingStock => Mathf.Max(0, MaxInternalStock - CurrentStock);
     public bool NeedsRestock => MissingStock > 0;
     public bool RequiresStaffedCheckout => RequiresServingWorker();
+    public int ActiveRestockOperationCount => activeRestockOperations.Count;
     public bool UsesSelfService => !RequiresStaffedCheckout;
     public float CurrentPriceMultiplier => GetPriceMultiplier();
     public IReadOnlyList<RetailProductSnapshot> ProductSnapshots
     {
         get
         {
+            SynchronizeAuthoredStock();
             return Inventory.CreateProductSnapshots(GetPriceMultiplier());
         }
     }
@@ -96,11 +108,13 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         IRandomStreamProvider randomStreamProvider,
         IRoomEnvironmentExperienceService roomEnvironmentExperienceService,
         IMealConsumptionRuntime mealConsumptionRuntime,
-        IServiceSessionRuntime serviceSessionRuntime)
+        IServiceSessionRuntime serviceSessionRuntime,
+        IRetailStockPhysicalRuntime retailStockPhysicalRuntime,
+        IStockQuery stockQuery)
     {
         this.moneyAccount = moneyAccount
             ?? throw new ArgumentNullException(nameof(moneyAccount));
-        Inventory.Configure(stockCatalog);
+        Inventory.Configure(stockCatalog, stockQuery);
         this.floatingNumberFeedbackService = floatingNumberFeedbackService
             ?? throw new ArgumentNullException(nameof(floatingNumberFeedbackService));
         this.workforceReplanService = workforceReplanService
@@ -108,6 +122,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
         this.mealConsumptionRuntime = mealConsumptionRuntime;
         this.serviceSessionRuntime = serviceSessionRuntime;
+        this.retailStockPhysicalRuntime = retailStockPhysicalRuntime;
         serviceSessionCompletionPort = serviceSessionRuntime != null
             ? new ShopServiceSessionCompletionRuntimeAdapter(
                 serviceSessionRuntime)
@@ -118,6 +133,10 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         Crime.Configure(crimeRiskEvaluator, random);
 
         TryInitializeStock(requireCatalog: false);
+        // Persistent identity injection is a base-class concern and VContainer
+        // does not guarantee base/derived [Inject] method ordering. Exact
+        // authored stock is therefore activated lazily at the first stock
+        // query, after placement/restore has established BuildingInstanceId.
     }
 
     public IEnumerator Interact(IBuildingVisitorPort actor) =>
@@ -238,15 +257,44 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
 
     public int GetStockCount()
     {
-        return Inventory.CurrentCount;
+        return CurrentStock;
     }
 
-    public int RestockFrom(
-        IEnumerable<IWarehouseFacility> warehouses,
-        int maxAmount,
-        out string resultMessage)
+    public bool TryRequestRestock(out string resultMessage)
     {
-        return Inventory.RestockFrom(warehouses, maxAmount, out resultMessage);
+        if (!NeedsRestock)
+        {
+            resultMessage = "재고가 이미 충분합니다";
+            return false;
+        }
+        if (workforceReplanService == null)
+        {
+            resultMessage = "보충 작업 배정 서비스를 찾지 못했습니다";
+            return false;
+        }
+
+        workforceReplanService.RequestIdleWorkersToReplan(clearFailures: true);
+        resultMessage = "물리 재고 보충 작업을 요청했습니다";
+        return true;
+    }
+
+    public bool TryBeginRestockOperation(string operationId)
+    {
+        string canonical = operationId?.Trim() ?? string.Empty;
+        if (canonical.Length == 0
+            || !string.Equals(canonical, operationId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+        return activeRestockOperations.Add(canonical);
+    }
+
+    public void EndRestockOperation(string operationId)
+    {
+        if (!string.IsNullOrWhiteSpace(operationId))
+        {
+            activeRestockOperations.Remove(operationId);
+        }
     }
 
     public bool TryFindRestockSource(
@@ -283,32 +331,6 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             out failureReason);
     }
 
-    public int ReceiveRestock(
-        WarehouseRestockItem saleItem,
-        int amount,
-        int requestedAmount,
-        out string resultMessage)
-    {
-        return Inventory.ReceiveRestock(
-            saleItem,
-            amount,
-            requestedAmount,
-            out resultMessage);
-    }
-
-    public int ReceiveRestock(
-        SaleItem saleItem,
-        int amount,
-        int requestedAmount,
-        out string resultMessage)
-    {
-        return Inventory.ReceiveRestock(
-            saleItem,
-            amount,
-            requestedAmount,
-            out resultMessage);
-    }
-
     public bool HasRestockSupply(
         IEnumerable<IWarehouseFacility> warehouses,
         out string failureReason)
@@ -328,23 +350,127 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
 #if UNITY_EDITOR
     public void DebugClearStock()
     {
+        foreach (RetailStockLotSnapshot lot in Inventory.CreateSnapshot().lots)
+        {
+            if (lot == null || string.IsNullOrEmpty(lot.itemInstanceId))
+            {
+                continue;
+            }
+            string failureReason = "retail-terminal-physical-runtime-unavailable";
+            if (retailStockPhysicalRuntime == null
+                || !retailStockPhysicalRuntime.TryCommitExternalSink(
+                    lot,
+                    out failureReason))
+            {
+                throw new InvalidOperationException(
+                    $"Could not clear unique retail lot '{lot?.sourceOperationId}': {failureReason}");
+            }
+        }
         Inventory.Clear();
     }
 #endif
 
     public ShopStockStateSnapshot CreateStockSnapshot()
     {
-        return Inventory.CreateSnapshot();
+        // Save capture is an authority boundary. It must not depend on whether
+        // UI or AI happened to query CurrentStock first after placement.
+        SynchronizeAuthoredStock();
+        ShopStockStateSnapshot snapshot = Inventory.CreateSnapshot();
+        snapshot.activeRestockOperationIds = activeRestockOperations
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToList();
+        return snapshot;
     }
 
     public void ApplyStockSnapshot(ShopStockStateSnapshot snapshot)
     {
+        string[] restoredOperations = (snapshot?.activeRestockOperationIds
+                ?? new List<string>())
+            .ToArray();
+        if (restoredOperations.Any(id =>
+                string.IsNullOrWhiteSpace(id)
+                || !string.Equals(id, id.Trim(), StringComparison.Ordinal))
+            || restoredOperations.Distinct(StringComparer.Ordinal).Count()
+                != restoredOperations.Length)
+        {
+            throw new InvalidOperationException(
+                "Shop stock snapshot contains invalid active restock operations.");
+        }
         Inventory.ApplySnapshot(snapshot);
+        activeRestockOperations.Clear();
+        foreach (string operationId in restoredOperations)
+        {
+            activeRestockOperations.Add(operationId);
+        }
+    }
+
+    public bool TryReceiveExactRetailLots(
+        IReadOnlyList<RetailStockLotSnapshot> incoming,
+        int requestedAmount,
+        out int received,
+        out string resultMessage)
+    {
+        return Inventory.TryReceiveExactRetailLots(
+            incoming,
+            requestedAmount,
+            out received,
+            out resultMessage);
+    }
+
+    internal bool TryTakeExactRetailLot(
+        int saleItemId,
+        out RetailStockLotSnapshot taken,
+        out string failureReason)
+    {
+        return Inventory.TryTakeExactLot(
+            saleItemId,
+            out taken,
+            out failureReason);
+    }
+
+    internal bool TryRestoreTakenExactRetailLot(
+        RetailStockLotSnapshot taken,
+        out string failureReason)
+    {
+        return Inventory.TryRestoreTakenExactLot(taken, out failureReason);
+    }
+
+    internal bool TryCommitExactRetailExternalSink(
+        RetailStockLotSnapshot lot,
+        out string failureReason)
+    {
+        if (lot == null)
+        {
+            failureReason = "retail-terminal-lot-missing";
+            return false;
+        }
+        if (retailStockPhysicalRuntime == null)
+        {
+            if (string.IsNullOrEmpty(lot.itemInstanceId))
+            {
+                failureReason = string.Empty;
+                return true;
+            }
+            failureReason = "retail-terminal-physical-runtime-unavailable";
+            return false;
+        }
+        return retailStockPhysicalRuntime.TryCommitExternalSink(
+            lot,
+            out failureReason);
     }
 
     private bool TryInitializeStock(bool requireCatalog)
     {
         return Inventory.TryInitialize(requireCatalog);
+    }
+
+    private void SynchronizeAuthoredStock()
+    {
+        if (inventoryRuntime == null)
+        {
+            return;
+        }
+        Inventory.SynchronizeAuthoredStock(retailStockPhysicalRuntime);
     }
 
     private void EnsureStockInitialized()

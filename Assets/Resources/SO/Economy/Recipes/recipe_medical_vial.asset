@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75000297946ffe4481d69575fdbfd0a, type: 3}
+  m_Name: recipe_medical_vial
+  m_EditorClassIdentifier: DungeonStory.Economy::ProductionRecipeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9046
+  recipeId: recipe:medical-vial
+  displayName: "\uC7AC\uC0AC\uC6A9 \uC758\uB8CC \uBC14\uC774\uC54C"
+  description: "\uC7AC\uC0AC\uC6A9 \uC758\uB8CC \uBC14\uC774\uC54C \uC0DD\uC0B0 \uC8FC\uBB38"
+  facilityTag: forge
+  workstationTag: workstation:forge
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
+  flowRole: 0
+  processClass: 4
+  processClassAuthored: 1
+  workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: 
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 0
+    minimumRiskRank: 0
+  requiredResearchId: research:pharmacology:anesthesia
+  requiredWork: 160
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  wastewaterComposition: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
+  inputs:
+  - itemId: material:iron-ingot
+    amount: 1
+  outputs:
+  - outputLineId: output:recipe:medical-vial/000/main/container:medical-vial
+    role: 0
+    itemId: container:medical-vial
+    amount: 30
+    probability: 1

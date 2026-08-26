@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: resource:dark-resin
     amount: 1
   outputs:
-  - itemId: material:laminated-lumber
+  - outputLineId: output:recipe:material:laminated-lumber/000/main/material:laminated-lumber
+    role: 0
+    itemId: material:laminated-lumber
     amount: 2
     probability: 1

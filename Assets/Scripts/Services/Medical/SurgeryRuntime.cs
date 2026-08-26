@@ -691,6 +691,13 @@ public sealed class SurgeryRuntime :
         }
 
         order.processFluidConsumed = true;
+        if (order.materialsConsumed
+            && !surgeryLogistics.TryFinalizeConsumedMaterials(
+                order,
+                out failure))
+        {
+            return false;
+        }
         if (!order.materialsConsumed
             && !surgeryLogistics.TryConsumeMaterials(order, out failure))
         {

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8068
+  id: 8069
   itemId: food:lavish-meat
   displayName: "\uD54F\uBE5B \uD638\uD654\uC2DD"
   description: "\uACE0\uAE30\uC640 \uC720\uC81C\uD488, \uACFC\uC77C\uC744 \uC4F4
@@ -32,34 +32,34 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 25
   features:
-  - rid: 7737211905666712391
-  - rid: 7737211905666712392
-  - rid: 7737211905666712394
-  - rid: 7737212042857939727
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712391
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:lavish
-    - rid: 7737211905666712392
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 21
         sharedIntermediate: 0
-    - rid: 7737211905666712394
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5994266
+    - rid: 1003
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 2
-        qualityBand: 1
+        qualityBand: 4
         servingRole: 0
-        nutrition: 60
-        mood: 14
+        nutrition: 65
+        mood: 12
         freshnessSeconds: 480
         preserved: 0
-    - rid: 7737212042857939727
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.59636

@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:cloth
     amount: 3
   outputs:
-  - itemId: apparel:formal-coat
+  - outputLineId: output:recipe:v22:apparel:formal-coat/000/main/apparel:formal-coat
+    role: 0
+    itemId: apparel:formal-coat
     amount: 1
     probability: 1

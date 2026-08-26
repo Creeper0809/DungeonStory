@@ -1,0 +1,25 @@
+[PASS] SCOPE_READY gameplay LifetimeScope resolved
+[PASS] ITEM_RUNTIME_READY world item runtime resolved
+[PASS] WORK_ORDER_RUNTIME_READY work order runtime resolved
+[PASS] EQUIPMENT_RUNTIME_READY common combat equipment runtime resolved
+[PASS] EQUIPMENT_MAINTENANCE_READY equipment maintenance runtime resolved
+[PASS] ECONOMY_CATALOG_READY resource economy catalog resolved
+[PASS] PREPARATION_RUNTIME_READY offense preparation service resolved
+[PASS] DESTINATION_CLAIM_RUNTIME_READY haul destination claim authority resolved
+[PASS] WAREHOUSE_MASS_ADMISSION_RUNTIME_READY warehouse gram admission authority resolved
+[PASS] DEBUG_MODE_READY debug mode service resolved
+[PASS] GRID_READY grid resolved
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-5385522:character:staff:1:02:active=True,Roma:-5385454:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-5385426;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-5385494;id=character:staff:1:02;active=False || scan:name=Roma;go=-5385426;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-5385494;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-5385426;id=character:staff:1:01;active=True || retained:name=Arin;go=-5385494;id=character:staff:1:02;active=True
+[PASS] RUN_READY owner=Leon
+[PASS] HAULER_READY Arin
+[PASS] HAUL_FIXTURE_AI_OWNERSHIP_ISOLATED actors=3; character:staff:1:02:paused=True:move=False:haul=False,owner:paused=True:move=False:haul=False,character:staff:1:01:paused=True:move=False:haul=False
+[PASS] L02_PLAYMODE_MASS_AUTHORITY_READY id=building:f45416c57957403c8b5b5db7a1e94801; max=12500; legacy=16
+[PASS] L02_PLAYMODE_EXACT_INGRESS_SERVICE_READY resolved
+[PASS] L02_PLAYMODE_17X700G_INGRESS_EXACT stored=True; spawned=17; committed=17x11900g; mass=11900/12500; remaining=600; failure=None
+[PASS] L02_PLAYMODE_CURRENT_FORMAT_RESTORE_EXACT ids=1->1; quantity=17; mass=11900; remaining=600
+[PASS] L02_PLAYMODE_OVERFILL_LOOSE_STACK_READY spawned=True; amount=1; position=(19, 0); stack=stack:9778b1239b74468ea9bab08b27e5a66c
+[PASS] L02_PLAYMODE_ISOLATED_PRODUCTION_PLANNER_READY world=True; grid=True; catalog=True; mass=True; settings=True; ids=True; repository=True; reservations=True; claims=True; admission=True; path=True
+[PASS] L02_PLAYMODE_OVERFILL_REJECTED_BEFORE_PICKUP preview=False:priority stack stack:9778b1239b74468ea9bab08b27e5a66c: no reachable destination; reserve=False:priority stack stack:9778b1239b74468ea9bab08b27e5a66c: no reachable destination; stack=Loosex1; reservedQuantity=0; carry=0->0; inbound=0; stored=11900
+capturedErrors=0; <none>
+capturedWarnings=0; <none>
+RESULT=PASS; failures=0; <none>

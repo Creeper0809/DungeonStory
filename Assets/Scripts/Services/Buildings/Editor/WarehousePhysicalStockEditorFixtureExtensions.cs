@@ -52,11 +52,17 @@ public static class WarehousePhysicalStockEditorFixtureExtensions
         return created;
     }
 
-    private sealed class FixturePhysicalStock : IStockQuery
+    private sealed class FixturePhysicalStock :
+        IStockQuery,
+        IWarehousePhysicalMassQueryPort
     {
         public static readonly BuildingInstanceId WarehouseId =
             (BuildingInstanceId)"building:editor-physical-stock-fixture";
         private readonly Dictionary<StockCategory, int> quantities = new();
+        private int revision;
+
+        public int PhysicalItemStackVersion => revision;
+        public long PhysicalMassAuthorityRevision => 0L;
 
         public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
             Array.Empty<WorldItemStackSnapshot>();
@@ -77,9 +83,19 @@ public static class WarehousePhysicalStockEditorFixtureExtensions
             return total >= int.MaxValue ? int.MaxValue : (int)total;
         }
 
+        public long GetWarehouseStoredMassGrams(
+            BuildingInstanceId warehouseId) =>
+            GetWarehouseTotal(warehouseId);
+
+        public long GetWarehouseStoredMassRevision(
+            BuildingInstanceId warehouseId) => revision;
+
+        public long GetDefinitionUnitMassGrams(string itemDefinitionId) => 1L;
+
         public void Add(StockCategory category, int amount)
         {
             quantities[category] = GetWarehouseQuantity(WarehouseId, category) + amount;
+            revision++;
         }
 
         public int Remove(StockCategory category, int amount)
@@ -87,6 +103,10 @@ public static class WarehousePhysicalStockEditorFixtureExtensions
             int current = GetWarehouseQuantity(WarehouseId, category);
             int removed = Math.Min(current, amount);
             quantities[category] = current - removed;
+            if (removed > 0)
+            {
+                revision++;
+            }
             return removed;
         }
     }

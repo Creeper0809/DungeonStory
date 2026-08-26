@@ -16,6 +16,7 @@
     "DungeonStory.Survival",
     "DungeonStory.Meta",
     "DungeonStory.Invasion",
+    "DungeonStory.Items",
     "DungeonStory.Operation",
     "VContainer"
   ],

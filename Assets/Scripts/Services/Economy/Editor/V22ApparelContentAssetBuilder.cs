@@ -164,7 +164,6 @@ public static class V22ApparelContentAssetBuilder
         GameContentCatalogAssetBuilder.ReindexItemDefinitions();
         GameContentCatalogAssetBuilder.ReindexV22ApparelDefinitions();
         V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
-        V23MarketValueCalibrator.Apply();
         AssetDatabase.SaveAssets();
     }
 
@@ -248,16 +247,9 @@ public static class V22ApparelContentAssetBuilder
                 && string.Equals(value.ItemId, spec.ItemId, StringComparison.Ordinal));
         if (existing != null)
         {
-            existing.ConfigureCore(
-                existing.ItemId,
-                existing.DisplayName,
-                existing.Description,
-                existing.StockCategory,
-                existing.UnitPrice,
-                existing.UnitWeight,
-                100,
-                existing.Sprite);
-            EditorUtility.SetDirty(existing);
+            // Shared physical items remain under their original content builder.
+            // V22 only consumes the stable item ID and must not rewrite stack,
+            // market, mass, description, or feature authority.
             return;
         }
 
@@ -271,7 +263,7 @@ public static class V22ApparelContentAssetBuilder
             ResourceItemKind.Intermediate,
             ResourceIngredientTag.Fiber,
             10,
-            0.2f * spec.Weight,
+            QuantizeAuthoredUnitMass(0.2f * spec.Weight),
             100,
             spec.Research);
         EditorUtility.SetDirty(item);
@@ -313,18 +305,9 @@ public static class V22ApparelContentAssetBuilder
                     && string.Equals(value.ItemId, spec.ItemId, StringComparison.Ordinal));
             if (existing != null)
             {
-                existing.Configure(
-                    existing.ItemId,
-                    existing.DisplayName,
-                    existing.Description,
-                    existing.StockCategory,
-                    existing.Kind,
-                    existing.IngredientTags,
-                    existing.UnitPrice,
-                    existing.UnitWeight,
-                    1,
-                    existing.RequiredResearchId);
-                EditorUtility.SetDirty(existing);
+                // Existing equipment/apparel items may be authored by another
+                // domain (for example the hauling harness). V22 owns the
+                // ApparelDefinition projection, not that physical item asset.
                 continue;
             }
             ResourceItemDefinitionSO item = GetOrCreate<ResourceItemDefinitionSO>(
@@ -473,26 +456,33 @@ public static class V22ApparelContentAssetBuilder
         int unitPrice,
         string researchId)
     {
-        ResourceItemDefinitionSO item = AssetDatabase.FindAssets(
+        ResourceItemDefinitionSO existing = AssetDatabase.FindAssets(
                 "t:ResourceItemDefinitionSO", new[] { "Assets/Resources/SO/Economy" })
             .Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>)
             .FirstOrDefault(value => value != null
-                && string.Equals(value.ItemId, itemId, StringComparison.Ordinal))
+                && string.Equals(value.ItemId, itemId, StringComparison.Ordinal));
+        ResourceItemDefinitionSO item = existing
             ?? GetOrCreate<ResourceItemDefinitionSO>(
                 $"{ItemRoot}/{Sanitize(itemId)}.asset");
-        item.Configure(
+        Action<ResourceItemDefinitionSO> configure = candidate => candidate.Configure(
             itemId,
             displayName,
             "V22 의복 제작과 수선 작업에서 예약·운반·소비하는 물리 물품.",
             StockCategory.General,
             kind,
             ResourceIngredientTag.Fiber,
-            unitPrice,
-            .05f,
+            existing != null ? existing.UnitPrice : unitPrice,
+            existing != null ? existing.UnitWeight : .05f,
             maxStack,
             researchId);
-        EditorUtility.SetDirty(item);
+        if (existing != null)
+            ApplyIfChanged(item, configure);
+        else
+        {
+            configure(item);
+            EditorUtility.SetDirty(item);
+        }
     }
 
     private static void BuildRecipe(
@@ -507,8 +497,13 @@ public static class V22ApparelContentAssetBuilder
         string outputId,
         int outputAmount)
     {
-        ProductionRecipeSO recipe = GetOrCreate<ProductionRecipeSO>(
-            $"{RecipeRoot}/{Sanitize(recipeId)}.asset");
+        string assetPath = $"{RecipeRoot}/{Sanitize(recipeId)}.asset";
+        ProductionRecipeSO existing =
+            AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>(assetPath);
+        float preservedRequiredWork = existing != null
+            ? existing.RequiredWork
+            : 0f;
+        ProductionRecipeSO recipe = GetOrCreate<ProductionRecipeSO>(assetPath);
         recipe.id = numericId;
         recipe.Configure(
             recipeId,
@@ -519,7 +514,14 @@ public static class V22ApparelContentAssetBuilder
             researchId,
             work,
             new[] { new ItemAmountDefinition(inputId, inputAmount) },
-            new[] { new ProductionOutputDefinition(outputId, outputAmount) });
+            new[]
+            {
+                new ProductionOutputDefinition(
+                    "output:main",
+                    ProductionOutputRole.Main,
+                    outputId,
+                    outputAmount)
+            });
         recipe.ConfigureWorkshop(
             workstationTag,
             Array.Empty<string>(),
@@ -528,9 +530,11 @@ public static class V22ApparelContentAssetBuilder
         recipe.ConfigureProcessClass(
             ProductionProcessClass.SpinningWeavingWoodworking);
         recipe.ConfigureBalanceWork(
-            V23BalanceWorkCalculator.CalculateRecipeBaseWork(
-                recipe,
-                ProductionProcessClass.SpinningWeavingWoodworking));
+            existing != null
+                ? preservedRequiredWork
+                : V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                    recipe,
+                    ProductionProcessClass.SpinningWeavingWoodworking));
         EditorUtility.SetDirty(recipe);
     }
 
@@ -548,6 +552,23 @@ public static class V22ApparelContentAssetBuilder
         _ => "resource:shade-fiber"
     };
 
+    private static float QuantizeAuthoredUnitMass(float kilograms)
+    {
+        if (!float.IsFinite(kilograms) || kilograms <= 0f)
+        {
+            throw new InvalidOperationException(
+                $"Cannot author non-positive or non-finite item mass '{kilograms:R}'.");
+        }
+
+        long grams = checked((long)Math.Round(
+            (double)kilograms * 1000d,
+            0,
+            MidpointRounding.AwayFromZero));
+        float canonical = grams / 1000f;
+        PhysicalMassGrams.FromCanonicalKilograms(canonical);
+        return canonical;
+    }
+
     private static void BuildFacilities()
     {
         Sprite fallback = AssetDatabase.FindAssets(
@@ -558,8 +579,24 @@ public static class V22ApparelContentAssetBuilder
             ?.sprite;
         foreach (FacilitySpec spec in Facilities())
         {
-            BuildingSO asset = GetOrCreate<BuildingSO>(
-                $"{FacilityRoot}/V22_{spec.Id}_{Sanitize(spec.Name)}.asset");
+            string path = $"{FacilityRoot}/V22_{spec.Id}_{Sanitize(spec.Name)}.asset";
+            BuildingSO existing = AssetDatabase.LoadAssetAtPath<BuildingSO>(path);
+            BuildingSO asset = existing ?? GetOrCreate<BuildingSO>(path);
+            Action<BuildingSO> configure = candidate => ConfigureFacility(candidate, spec, fallback);
+            if (existing != null)
+                ApplyIfChanged(asset, configure);
+            else
+            {
+                configure(asset);
+                EditorUtility.SetDirty(asset);
+            }
+        }
+    }
+
+    private static void ConfigureFacility(BuildingSO asset, FacilitySpec spec, Sprite fallback)
+    {
+            BuildingWorkAmountAbility approvedWorkAmount =
+                asset.GetAbility<BuildingWorkAmountAbility>();
             asset.id = spec.Id;
             asset.objectName = spec.Name;
             asset.sprite = fallback;
@@ -601,7 +638,7 @@ public static class V22ApparelContentAssetBuilder
                     new ItemAmountDefinition("material:iron-ingot", 2)
                 }
             });
-            abilities.Add(workAmount);
+            abilities.Add(approvedWorkAmount ?? workAmount);
             abilities.Add(new BuildingFacilityPartAbility { code = $"V22A{spec.Id - 9300:D2}" });
             abilities.Add(new BuildingSemanticTagsAbility
             {
@@ -612,10 +649,12 @@ public static class V22ApparelContentAssetBuilder
                 workstationTag = spec.Workstation,
                 stockSensorInstallationItemId = "component:stock-sensor-panel"
             });
-            abilities.Add(new BuildingProductionBufferAbility { defaultBatchCapacity = 12 });
+            abilities.Add(new BuildingProductionBufferAbility
+            {
+                defaultBatchCapacity = 12,
+                physicalOutputBufferCycleCapacity = 4
+            });
             asset.ReplaceAbilities(abilities);
-            EditorUtility.SetDirty(asset);
-        }
     }
 
     private static void WireExistingResearchUnlocks()
@@ -799,18 +838,8 @@ public static class V22ApparelContentAssetBuilder
                 && string.Equals(value.ItemId, itemId, StringComparison.Ordinal));
         if (existing != null)
         {
-            existing.ConfigureCore(
-                existing.ItemId,
-                existing.DisplayName,
-                existing.Description,
-                existing.StockCategory,
-                existing.UnitPrice,
-                existing.UnitWeight,
-                maxStack,
-                existing.Sprite);
-            if (seed)
-                existing.ConfigureMarketSaleRate(0f);
-            EditorUtility.SetDirty(existing);
+            // Do not let the textile projection become a second writer for a
+            // shared crop/resource item.
             return;
         }
         ResourceItemDefinitionSO item = GetOrCreate<ResourceItemDefinitionSO>(
@@ -982,6 +1011,38 @@ public static class V22ApparelContentAssetBuilder
         AssetDatabase.CreateAsset(asset, path);
         return asset;
     }
+
+    private static void ApplyIfChanged<T>(T asset, Action<T> configure)
+        where T : ScriptableObject
+    {
+        string before = EditorJsonUtility.ToJson(asset, false);
+        T candidate = UnityEngine.Object.Instantiate(asset);
+        try
+        {
+            candidate.name = asset.name;
+            configure(candidate);
+            string after = EditorJsonUtility.ToJson(candidate, false);
+            if (string.Equals(
+                    CanonicalizeSemanticJson(before),
+                    CanonicalizeSemanticJson(after),
+                    StringComparison.Ordinal))
+                return;
+
+            configure(asset);
+            EditorUtility.SetDirty(asset);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(candidate);
+        }
+    }
+
+    private static string CanonicalizeSemanticJson(string json) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            json ?? string.Empty,
+            "\\\"rid\\\"\\s*:\\s*-?[0-9]+",
+            "\\\"rid\\\":0",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     private static void EnsureFolder(string path)
     {

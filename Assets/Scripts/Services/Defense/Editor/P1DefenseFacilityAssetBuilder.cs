@@ -6,6 +6,7 @@ using UnityEngine;
 
 public static class P1DefenseFacilityAssetBuilder
 {
+    internal const long OperationalStorageMassCapacityGrams = 25_000L;
     private const string BuildingFolder = "Assets/Resources/SO/Building/P1";
     private const string EffectFolder = "Assets/Resources/SO/Defense/Effects/P1";
     private const string CanonicalTreasuryLauncherPath =
@@ -184,6 +185,7 @@ public static class P1DefenseFacilityAssetBuilder
                     ? StockCategory.Ammunition
                     : StockCategory.General;
                 storage.capacity = spec.id == 1802 ? 24 : 12;
+                storage.maxStoredMassGrams = OperationalStorageMassCapacityGrams;
                 storage.allCategories = spec.id == 1802;
             }
 

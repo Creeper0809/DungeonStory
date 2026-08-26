@@ -91,6 +91,20 @@ public sealed class CircusShowOrder
     public bool cleanupRequired;
     public bool treatmentRequired;
     public bool betrayalCheckCompleted;
+    public int nextSupplyOperationSequence = 1;
+    public CircusShowSupplyCommitPhase pendingSupplyPhase;
+    public int pendingSupplyOperationSequence;
+    public string pendingSupplyOperationId = string.Empty;
+    public string pendingSupplyReasonCode = string.Empty;
+    public string pendingSupplyCommitId = string.Empty;
+    public List<string> pendingSupplySourceStackIds = new List<string>();
+    public int pendingSupplyQuantity;
+    public long pendingSupplyMassGrams;
+    public string pendingSupplyCartStackId = string.Empty;
+    public float pendingSupplyCartDurabilityBefore;
+    public float pendingSupplyCartDurabilityAfter;
+    public bool preparationSuppliesCommitted;
+    public string preparationSupplyCommitId = string.Empty;
 
     public bool IsTerminal =>
         state is CircusShowState.Completed or CircusShowState.Cancelled;
@@ -107,6 +121,8 @@ public sealed class CircusShowOrder
             wildlifePositions ?? new List<Vector2Int>());
         clone.audiencePositions = new List<Vector2Int>(
             audiencePositions ?? new List<Vector2Int>());
+        clone.pendingSupplySourceStackIds = new List<string>(
+            pendingSupplySourceStackIds ?? new List<string>());
         return clone;
     }
 }
@@ -115,12 +131,26 @@ public sealed class CircusShowOrder
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CircusSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 4;
     public int version = CurrentVersion;
     public int nextOrderSequence;
     public List<CircusShowOrder> orders = new List<CircusShowOrder>();
     public List<CapturedWildlifeState> capturedWildlife =
         new List<CapturedWildlifeState>();
+}
+
+public enum CircusShowSupplyCommitPhase
+{
+    None = 0,
+    ItemCommitted = 1,
+    OutcomesPublished = 2
+}
+
+public enum CapturedWildlifeFeedCommitPhase
+{
+    None = 0,
+    ItemCommitted = 1,
+    CarePublished = 2
 }
 
 [Serializable]
@@ -147,10 +177,30 @@ public sealed class CapturedWildlifeState
     [Range(0f, 100f)] public float feedSicknessSeverity;
     [Range(0f, 1f)] public float lastFeedDiseaseChance;
     public string lastCareStatus = string.Empty;
+    public int nextFeedOperationSequence;
+    public int pendingFeedOperationSequence;
+    public CapturedWildlifeFeedCommitPhase pendingFeedPhase;
+    public string pendingFeedOperationId = string.Empty;
+    public string pendingFeedReasonCode = string.Empty;
+    public string pendingFeedCommitId = string.Empty;
+    public List<string> pendingFeedSourceStackIds = new List<string>();
+    public int pendingFeedQuantity;
+    public long pendingFeedMassGrams;
+    public string pendingFeedItemId = string.Empty;
+    [Range(0f, 1f)] public float pendingFeedNutrition;
+    [Range(0f, 1f)] public float pendingFeedDiseaseChance;
+    public bool pendingFeedDiseaseTriggered;
+    [Range(0f, 1f)] public float pendingFeedHungerTarget;
+    [Min(0)] public int pendingFeedHealthTarget;
+    [Range(0f, 100f)] public float pendingFeedSicknessTarget;
 
     public CapturedWildlifeState Clone()
     {
-        return (CapturedWildlifeState)MemberwiseClone();
+        CapturedWildlifeState clone =
+            (CapturedWildlifeState)MemberwiseClone();
+        clone.pendingFeedSourceStackIds = new List<string>(
+            pendingFeedSourceStackIds ?? new List<string>());
+        return clone;
     }
 }
 

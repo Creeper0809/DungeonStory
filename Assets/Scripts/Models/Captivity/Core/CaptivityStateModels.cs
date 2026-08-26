@@ -115,6 +115,10 @@ public sealed class CaptiveState
     public string assignedLaborToolInstanceId = string.Empty;
     [Min(0f)] public float assignedLaborToolDurability;
     [Min(0f)] public float assignedLaborToolMaximumDurability;
+    public string laborToolAssignmentOperationId = string.Empty;
+    public string laborToolAssignmentCommitId = string.Empty;
+    public string laborToolAssignmentSourceStackId = string.Empty;
+    public bool laborToolAssignmentCompleted;
     [Min(0f)] public float nextLaborToolWearAt;
     public string currentInteractionId = string.Empty;
     public string interactionMaterialDestinationId = string.Empty;
@@ -155,11 +159,19 @@ public sealed class CaptiveState
     public CaptiveState Clone() => (CaptiveState)MemberwiseClone();
 }
 
+public static class CaptivityLaborToolAssignmentIdentity
+{
+    public static string FormatOperationId(
+        string captiveId,
+        string itemInstanceId) =>
+        $"captive-labor-tool-assign:{captiveId ?? string.Empty}:{itemInstanceId ?? string.Empty}";
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CaptivitySaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public int captureSequence;
     public int policySequence;

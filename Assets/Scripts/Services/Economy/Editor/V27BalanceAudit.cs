@@ -154,8 +154,8 @@ public static class V27BalanceAudit
                 historicalBeforeValues);
 
         List<string> integrityFailures = new List<string>();
-        if (recipes.Length != 354)
-            integrityFailures.Add($"Expected 354 recipes, found {recipes.Length}.");
+        if (recipes.Length != 355)
+            integrityFailures.Add($"Expected 355 recipes, found {recipes.Length}.");
         if (before.UnresolvedItemIds.Count > 0)
             integrityFailures.Add("V23 unresolved items: " + string.Join(",", before.UnresolvedItemIds));
         if (before.NonConvergentRecipeIds.Count > 0)
@@ -230,7 +230,8 @@ public static class V27BalanceAudit
             capture,
             anomalies,
             sourceDigests,
-            historicalBeforeValues);
+            historicalBeforeValues,
+            allowApprovalRefresh);
         CaptureCombatEncounterValues(
             source.GetAll<OffenseEncounterSO>(),
             capture,
@@ -2681,7 +2682,8 @@ public static class V27BalanceAudit
         BalanceCaptureFactory capture,
         ICollection<BalanceAnomalyNode> anomalies,
         IDictionary<string, string> sourceDigests,
-        IReadOnlyDictionary<string, string> historicalBeforeValues)
+        IReadOnlyDictionary<string, string> historicalBeforeValues,
+        bool allowApprovalRefresh)
     {
         Dictionary<string, V27ConstructionRedistributionResult> results = new(
             StringComparer.Ordinal);
@@ -2818,7 +2820,18 @@ public static class V27BalanceAudit
                     "construction-authored-wu:redistributed",
                     authoredCurrent,
                     historicalBeforeValues);
-                if (authoredCurrent != patchBefore && authoredCurrent != selectedWu)
+                string authoredCurrentToken = Token(authoredCurrent);
+                string patchBeforeToken = Token(patchBefore);
+                bool previouslyApprovedCurrent = allowApprovalRefresh
+                    && V27BalanceAssetApplication.IsPreviouslyApprovedCurrentAuthority(
+                        stableId,
+                        "construction-authored-wu:redistributed",
+                        patchBeforeToken,
+                        authoredCurrentToken,
+                        sourceDigest);
+                if (authoredCurrent != patchBefore
+                    && authoredCurrent != selectedWu
+                    && !previouslyApprovedCurrent)
                 {
                     throw new InvalidOperationException(
                         $"Building authored construction WU drifted outside its V27 patch: "
@@ -2851,7 +2864,16 @@ public static class V27BalanceAudit
                     int currentAmount = currentAmounts[itemId];
                     int beforeAmount = beforeAmounts[itemId];
                     int afterAmount = afterAmounts[itemId];
-                    if (currentAmount != beforeAmount && currentAmount != afterAmount)
+                    bool previouslyApprovedAmount = allowApprovalRefresh
+                        && V27BalanceAssetApplication.IsPreviouslyApprovedCurrentAuthority(
+                            stableId,
+                            ConstructionMaterialMetric(itemId),
+                            beforeAmount.ToString(CultureInfo.InvariantCulture),
+                            currentAmount.ToString(CultureInfo.InvariantCulture),
+                            sourceDigest);
+                    if (currentAmount != beforeAmount
+                        && currentAmount != afterAmount
+                        && !previouslyApprovedAmount)
                     {
                         throw new InvalidOperationException(
                             $"Building construction BOM drifted outside its V27 patch: "

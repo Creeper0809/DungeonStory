@@ -167,6 +167,23 @@ public sealed class DungeonFactionState
     public int unpaidContractCount;
     public int reinforcementDeaths;
     public int equipmentLosses;
+    public string restitutionTransferOperationId = string.Empty;
+    public string restitutionTransferCommitId = string.Empty;
+    public List<string> restitutionTransferSourceStackIds = new List<string>();
+    public int restitutionTransferQuantity;
+    public long restitutionTransferMassGrams;
+    public int restitutionTransferredPhysicalValue;
+    public int restitutionCampaignGrievanceTarget;
+    public bool restitutionTransferCompleted;
+    public int goodwillTransferSequence;
+    public string goodwillTransferOperationId = string.Empty;
+    public string goodwillTransferCommitId = string.Empty;
+    public List<string> goodwillTransferSourceStackIds = new List<string>();
+    public int goodwillTransferQuantity;
+    public long goodwillTransferMassGrams;
+    public int goodwillTransferredPhysicalValue;
+    public int goodwillCampaignRapportTarget;
+    public bool goodwillTransferCompleted;
 
     public FactionHexCoord HomeCoord => new(homeQ, homeR);
     public bool NegotiationBlocked(int day) =>
@@ -203,11 +220,12 @@ public sealed class FactionRouteState
 [Serializable]
 public sealed class DungeonFactionSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public int currentDay = 1;
     public int routeSequence;
+    public int goodwillOperationSequence;
     public List<DungeonFactionState> factions =
         new List<DungeonFactionState>();
     public List<FactionRouteState> routes =

@@ -8,9 +8,11 @@ public sealed class EquipmentMaintenanceItemServices
         ICombatEquipmentCatalog equipmentCatalog,
         IResourceEconomyContentCatalog resourceCatalog,
         IWorldItemStackRuntime items,
+        IPhysicalItemBatchDispositionService batchDispositions,
         ICombatEquipmentPickupRuntime equipmentPickup,
         IFacilityBufferDestinationClaimQuery destinationClaims,
-        IFacilityBufferDestinationClaimCommand destinationClaimCommands)
+        IFacilityBufferDestinationLifecycleCommand destinationLifecycle,
+        IFacilityBufferMassCapacityAuthorityQuery destinationCapacities)
     {
         Equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
         EquipmentCatalog = equipmentCatalog
@@ -18,21 +20,27 @@ public sealed class EquipmentMaintenanceItemServices
         ResourceCatalog = resourceCatalog
             ?? throw new ArgumentNullException(nameof(resourceCatalog));
         Items = items ?? throw new ArgumentNullException(nameof(items));
+        BatchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
         EquipmentPickup = equipmentPickup
             ?? throw new ArgumentNullException(nameof(equipmentPickup));
         DestinationClaims = destinationClaims
             ?? throw new ArgumentNullException(nameof(destinationClaims));
-        DestinationClaimCommands = destinationClaimCommands
-            ?? throw new ArgumentNullException(nameof(destinationClaimCommands));
+        DestinationLifecycle = destinationLifecycle
+            ?? throw new ArgumentNullException(nameof(destinationLifecycle));
+        DestinationCapacities = destinationCapacities
+            ?? throw new ArgumentNullException(nameof(destinationCapacities));
     }
 
     public ICombatEquipmentRuntime Equipment { get; }
     public ICombatEquipmentCatalog EquipmentCatalog { get; }
     public IResourceEconomyContentCatalog ResourceCatalog { get; }
     public IWorldItemStackRuntime Items { get; }
+    public IPhysicalItemBatchDispositionService BatchDispositions { get; }
     public ICombatEquipmentPickupRuntime EquipmentPickup { get; }
     public IFacilityBufferDestinationClaimQuery DestinationClaims { get; }
-    public IFacilityBufferDestinationClaimCommand DestinationClaimCommands { get; }
+    public IFacilityBufferDestinationLifecycleCommand DestinationLifecycle { get; }
+    public IFacilityBufferMassCapacityAuthorityQuery DestinationCapacities { get; }
 }
 
 public sealed class EquipmentMaintenanceWorldServices

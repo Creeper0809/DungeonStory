@@ -17,6 +17,13 @@ public static class V23CraftingDebugScenarios
     [MenuItem("DungeonStory/Debug/Economy/Run V23 Crafting Contracts")]
     public static void RunFromMenu() => RunAll();
 
+    [MenuItem("DungeonStory/Debug/Economy/Verify V23 Runtime Consumer Contracts")]
+    public static void RunRuntimeConsumerContractsFromMenu()
+    {
+        ValidateTypedOperationalConsumers();
+        Debug.Log("V23 typed runtime consumer contracts passed: links=61.");
+    }
+
     public static void RunAll()
     {
         ValidateWorkerPolicyNormalization();
@@ -34,7 +41,7 @@ public static class V23CraftingDebugScenarios
         V23BalanceAudit.Generate();
         Debug.Log(
             "V23 crafting contracts passed: deterministic quality=100000, "
-            + "typed runtime consumers=24, material quality=none.");
+            + "typed runtime consumers=53, material quality=none.");
     }
 
     private static void ValidateWorkerPolicyNormalization()
@@ -140,16 +147,157 @@ public static class V23CraftingDebugScenarios
     {
         IReadOnlyList<PhysicalItemRuntimeConsumerCatalog.Link> links =
             PhysicalItemRuntimeConsumerCatalog.All;
-        Require(links.Count == 24,
-            $"Expected 24 formerly omitted typed consumers, found {links.Count}.");
-        Require(links.Select(value => value.ItemId)
+        Require(links.Count == 61,
+            $"Expected 61 typed runtime consumer links, found {links.Count}.");
+        Require(links.Select(value => value.ItemId + "\n" + value.OwnerId)
                 .Distinct(StringComparer.Ordinal).Count() == links.Count,
-            "Typed operational consumer item IDs must be unique.");
+            "Typed operational consumer item/owner pairs must be unique.");
         Require(links.All(value =>
                 !string.IsNullOrWhiteSpace(value.ItemId)
                 && value.OwnerId.StartsWith("runtime:", StringComparison.Ordinal)
                 && !value.OwnerId.StartsWith("sink:", StringComparison.Ordinal)),
             "Operational consumers must identify real runtime owners, not fake sinks.");
+        string[] expectedEquipmentModuleConsumers =
+        {
+            "component:material-test-coupon\nruntime:equipment-module-testing",
+            DurableToolItemRules.InspectionGauge
+                + "\nruntime:equipment-module-inspection",
+            DurableToolItemRules.RuneIdentificationLens
+                + "\nruntime:rune-module-identification"
+        };
+        string[] actualEquipmentModuleConsumers = links
+            .Where(value => string.Equals(
+                    value.ItemId,
+                    "component:material-test-coupon",
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    value.ItemId,
+                    DurableToolItemRules.InspectionGauge,
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    value.ItemId,
+                    DurableToolItemRules.RuneIdentificationLens,
+                    StringComparison.Ordinal))
+            .Select(value => value.ItemId + "\n" + value.OwnerId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        Require(actualEquipmentModuleConsumers.SequenceEqual(
+                expectedEquipmentModuleConsumers,
+                StringComparer.Ordinal),
+            "Equipment-module appraisal runtime consumer links are incomplete or stale.");
+        string[] expectedDiseaseResponseItems =
+        {
+            "component:reclaimed-water-filter",
+            "drug:dreamleaf-analgesic",
+            "medical:isolation-care-kit",
+            "medicine:antidote",
+            "medicine:blood-pack",
+            "resource:clean-water",
+            "supply:fungicide",
+            "supply:pest-lure"
+        };
+        string[] actualDiseaseResponseItems = links
+            .Where(value => string.Equals(
+                value.OwnerId,
+                "runtime:disease-field-response",
+                StringComparison.Ordinal))
+            .Select(value => value.ItemId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        Require(actualDiseaseResponseItems.SequenceEqual(
+                expectedDiseaseResponseItems,
+                StringComparer.Ordinal),
+            "Disease field-response physical item links are incomplete or stale.");
+        string[] expectedVaccinationItems =
+        {
+            "medicine:vaccine:blood-wasting",
+            "medicine:vaccine:cave-flu",
+            "medicine:vaccine:gut-rot",
+            "medicine:vaccine:mana-pox",
+            "medicine:vaccine:red-fever",
+            "medicine:vaccine:slime-blight",
+            "medicine:vaccine:spore-lung"
+        };
+        string[] actualVaccinationItems = links
+            .Where(value => string.Equals(
+                value.OwnerId,
+                "runtime:physical-vaccination",
+                StringComparison.Ordinal))
+            .Select(value => value.ItemId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        Require(actualVaccinationItems.SequenceEqual(
+                expectedVaccinationItems,
+                StringComparer.Ordinal),
+            "Physical vaccination item links are incomplete or stale.");
+        string[] expectedCharacterMedicalItems =
+        {
+            "captivity:extracted-blood",
+            "medical:regenerative-medium",
+            "medical:sterile-bandage",
+            "medicine:advanced",
+            "medicine:antiseptic",
+            "medicine:herbal-poultice",
+            "medicine:mycelial-culture-pack",
+            "medicine:standard"
+        };
+        string[] actualCharacterMedicalItems = links
+            .Where(value => string.Equals(
+                value.OwnerId,
+                "runtime:character-medical-treatment",
+                StringComparison.Ordinal))
+            .Select(value => value.ItemId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        Require(actualCharacterMedicalItems.SequenceEqual(
+                expectedCharacterMedicalItems,
+                StringComparer.Ordinal),
+            "Character-medical physical item links are incomplete or stale.");
+        string[] expectedOffenseSupplyItems =
+        {
+            "food:preserved-ration",
+            "medicine:blood-seal-kit",
+            "medicine:field-emergency-kit",
+            "medicine:mana-core-restraint",
+            "medicine:mycelial-culture-pack",
+            "medicine:rune-slime-patch",
+            "medicine:standard",
+            "medicine:temporary-power-bypass",
+            "medicine:wing-splint-kit",
+            "resource:mana-crystal",
+            "tool:field-repair-kit"
+        };
+        string[] actualOffenseSupplyItems = links
+            .Where(value => string.Equals(
+                value.OwnerId,
+                "runtime:offense-supply-package",
+                StringComparison.Ordinal))
+            .Select(value => value.ItemId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        Require(actualOffenseSupplyItems.SequenceEqual(
+                expectedOffenseSupplyItems,
+                StringComparer.Ordinal),
+            "Offense supply-package physical item links are incomplete or stale.");
+        string[] expectedUrgentMitigationItems =
+        {
+            "material:low-fuel",
+            "material:lumber",
+            "medicine:standard",
+            "resource:mana-crystal"
+        };
+        string[] actualUrgentMitigationItems = links
+            .Where(value => string.Equals(
+                value.OwnerId,
+                "runtime:offense-urgent-mitigation",
+                StringComparison.Ordinal))
+            .Select(value => value.ItemId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        Require(actualUrgentMitigationItems.SequenceEqual(
+                expectedUrgentMitigationItems,
+                StringComparer.Ordinal),
+            "Offense urgent-mitigation physical item links are incomplete or stale.");
     }
 
     private static void ValidateEquipmentWorkMigration()

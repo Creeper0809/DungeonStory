@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -73,10 +74,12 @@ public static class IndustrialInfrastructureDebugScenarios
         VerifyResearchContent();
         VerifyIndustrialBuildings();
         VerifySanitationAndProcessFluids();
+        VerifyFluidNetworkBatchAtomicity();
         VerifyWorkRegistration();
         VerifyUtilityLayerCoexistence();
         VerifyConveyorStateEvaluation();
         VerifyAutomationPowerDemand();
+        VerifyFuelOutboxTransaction();
         VerifySaveRoundTrip();
         VerifyItemDefinitions();
         VerifyIndustryTab();
@@ -87,10 +90,12 @@ public static class IndustrialInfrastructureDebugScenarios
     public static string RunCurrentBalanceContracts()
     {
         VerifySanitationAndProcessFluids();
+        VerifyFluidNetworkBatchAtomicity();
         VerifyWorkRegistration();
         VerifyUtilityLayerCoexistence();
         VerifyConveyorStateEvaluation();
         VerifyAutomationPowerDemand();
+        VerifyFuelOutboxTransaction();
         VerifySaveRoundTrip();
         VerifyItemDefinitions();
         VerifyIndustryTab();
@@ -100,6 +105,13 @@ public static class IndustrialInfrastructureDebugScenarios
             + "save=1; itemDefinitions=1; industryTab=1";
         Debug.Log(report);
         return report;
+    }
+
+    public static string RunFuelOutboxTransactionFocused()
+    {
+        VerifyFuelOutboxTransaction();
+        return "fuel-debit=1; outcome=1; ack-recovery=1; second-debit=0; "
+            + "capacity-revision=stable; terminal-close=1";
     }
 
     [MenuItem(
@@ -289,6 +301,11 @@ public static class IndustrialInfrastructureDebugScenarios
         }
     }
 
+    private static void VerifyFluidNetworkBatchAtomicity()
+    {
+        FluidNetworkBatchDebugContract.Verify();
+    }
+
     private static void VerifyWorkRegistration()
     {
         Require(WorkTypeCatalog.TryGet(
@@ -400,14 +417,143 @@ public static class IndustrialInfrastructureDebugScenarios
             "Automatic demand did not use its configured value.");
     }
 
+    private static void VerifyFuelOutboxTransaction()
+    {
+        const string NodeId = "building:qa:power-fuel-outbox";
+        const string FuelItemId = "resource:coal";
+        const float SecondsPerFuel = 120f;
+        string destinationId = "power:" + NodeId;
+        GameObject host = new("Power Fuel Outbox Fixture");
+        BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
+        WorldItemStackRuntime items = null;
+        try
+        {
+            data.id = 99867;
+            data.objectName = "전력 연료 outbox 시험 발전기";
+            BuildingAbilityCollection abilities = new();
+            abilities.Add(new BuildingUtilityConnectionAbility
+            {
+                channels = UtilityChannel.Power
+            });
+            abilities.Add(new BuildingPowerProducerAbility
+            {
+                productionPerSecond = 10f,
+                requiresFuel = true,
+                fuelItemId = FuelItemId,
+                secondsPerFuel = SecondsPerFuel
+            });
+            data.ReplaceAbilities(abilities);
+
+            BuildableObject building = host.AddComponent<BuildableObject>();
+            building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            typeof(BuildableObject).GetProperty(nameof(BuildableObject.BuildingData))
+                ?.SetValue(building, data);
+            typeof(BuildableObject).GetProperty(nameof(BuildableObject.centerPos))
+                ?.SetValue(building, new Vector2Int(7, 3));
+            building.RestorePersistentIdentity(new BuildingInstanceId(NodeId));
+            IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+            items = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                catalog,
+                out WorldItemRepository repository,
+                out _,
+                out ItemQuantityReservationService reservations,
+                out _,
+                out _,
+                out IPhysicalItemBatchDispositionService batch);
+            string sourceStackId = WorldItemRepositoryEditorAccess.AddStack(
+                repository,
+                FuelItemId,
+                quantity: 2,
+                state: WorldItemStackState.FacilityBuffer,
+                destinationId: destinationId,
+                position: building.centerPos);
+            IPhysicalFacilityItemSinkGateway physical =
+                new PhysicalFacilityItemSinkGateway(
+                    new PhysicalStockQuery(
+                        repository,
+                        catalog,
+                        items.MassQuery),
+                    batch);
+            FailFirstFuelAcknowledgement fault = new(physical);
+            string report = IndustrialPowerFuelOutboxContractProbe.Run(
+                building,
+                items,
+                fault,
+                FuelItemId,
+                SecondsPerFuel);
+            Require(report.Contains("second-debit=0", StringComparison.Ordinal)
+                    && report.Contains(
+                        "capacity-revision=stable",
+                        StringComparison.Ordinal)
+                    && report.Contains(
+                        "terminal-close=1",
+                        StringComparison.Ordinal)
+                    && repository.GetEditorTestQuantity(sourceStackId) == 1
+                    && repository.GetEditorPendingBatchDispositionCount() == 0
+                    && fault.SuccessfulAcknowledgements == 1,
+                "power fuel contract probe did not close exact physical custody");
+        }
+        finally
+        {
+            items?.Dispose();
+            UnityEngine.Object.DestroyImmediate(host);
+            UnityEngine.Object.DestroyImmediate(data);
+        }
+    }
+
     private static void VerifySaveRoundTrip()
     {
         Require(
-            DungeonPowerInfrastructureSaveData.CurrentVersion == 2
-            && DungeonFluidInfrastructureSaveData.CurrentVersion == 4
+            DungeonPowerInfrastructureSaveData.CurrentVersion == 3
+            && DungeonFluidInfrastructureSaveData.CurrentVersion == 6
             && DungeonConveyorInfrastructureSaveData.CurrentVersion == 3
             && DungeonAutomationSaveData.CurrentVersion == 2,
             "Industrial save DTO versions changed without fixture approval.");
+
+        DungeonPowerInfrastructureSaveData powerState = new()
+        {
+            nodes =
+            {
+                new PowerNodeSaveData
+                {
+                    buildingInstanceId = "building:power:fuelled",
+                    fuelSeconds = 120f,
+                    nextFuelOperationSequence = 4,
+                    pendingFuel = new PowerFuelCommitSaveData
+                    {
+                        phase = (int)PowerFuelCommitPhase.OutcomePublished,
+                        operationSequence = 4,
+                        operationId =
+                            "power-fuel:building:power:fuelled:00000004",
+                        reasonCode =
+                            "power-generator-fuel-combustion",
+                        nodeId = "building:power:fuelled",
+                        destinationId = "power:building:power:fuelled",
+                        itemId = "resource:coal",
+                        quantity = 1,
+                        fuelSecondsBefore = 0f,
+                        fuelSecondsAfter = 120f,
+                        sourceStackIds = new List<string>
+                        {
+                            "stack:power:fuelled:coal"
+                        },
+                        inputMassGrams = 2_000L,
+                        commitId =
+                            $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Sink}:power-fuel:building:power:fuelled:00000004:1:2000"
+                    }
+                }
+            }
+        };
+        DungeonPowerInfrastructureSaveData restoredPowerState =
+            JsonUtility.FromJson<DungeonPowerInfrastructureSaveData>(
+                JsonUtility.ToJson(powerState));
+        Require(
+            restoredPowerState.nodes.Count == 1
+            && restoredPowerState.nodes[0].pendingFuel.inputMassGrams
+                == 2_000L
+            && restoredPowerState.nodes[0].pendingFuel.sourceStackIds
+                .SequenceEqual(new[] { "stack:power:fuelled:coal" }),
+            "Power fuel outbox did not round-trip exact provenance.");
 
         DungeonConveyorInfrastructureSaveData source =
             new DungeonConveyorInfrastructureSaveData
@@ -510,6 +656,35 @@ public static class IndustrialInfrastructureDebugScenarios
                     {
                         buildingInstanceId = "building:bottling",
                         manualWaterReserve = 0.65f,
+                        nextImmediateManualWaterOperationSequence = 3,
+                        nextContainerFeedOperationSequence = 4,
+                        pendingContainerFeed =
+                            new ContainerWaterFeedCommitSaveData
+                            {
+                                phase = (int)ContainerWaterFeedCommitPhase
+                                    .OutcomePublished,
+                                operationSequence = 4,
+                                operationId =
+                                    "container-water-feed:building:bottling:00000004",
+                                reasonCode =
+                                    FluidPhysicalOperationIdentity
+                                        .ContainerFeedReasonCode,
+                                requestFingerprint = "sha256:test-feed",
+                                physicalCommitId =
+                                    "physical-batch-disposition:1:container-water-feed:building:bottling:00000004:1:500",
+                                nodeId = "building:bottling",
+                                networkId = "fluid:network:bottling",
+                                destinationId =
+                                    "plumbing:water-transfer:building:bottling",
+                                itemId = "resource:clean-water",
+                                quantity = 1,
+                                waterAmount = 1f,
+                                inputMassGrams = 500L,
+                                sourceStackIds = new List<string>
+                                {
+                                    "stack:water:bottling"
+                                }
+                            },
                         transferMode =
                             WaterContainerTransferMode.FeedNetwork,
                         transferWork = 2.5f
@@ -527,7 +702,18 @@ public static class IndustrialInfrastructureDebugScenarios
                     2.5f)
                 && Mathf.Approximately(
                     restoredFluid.nodes[0].manualWaterReserve,
-                    0.65f),
+                    0.65f)
+                && restoredFluid.nodes[0]
+                    .nextImmediateManualWaterOperationSequence == 3
+                && restoredFluid.nodes[0]
+                    .nextContainerFeedOperationSequence == 4
+                && restoredFluid.nodes[0].pendingContainerFeed.phase
+                    == (int)ContainerWaterFeedCommitPhase.OutcomePublished
+                && restoredFluid.nodes[0].pendingContainerFeed
+                    .requestFingerprint == "sha256:test-feed"
+                && restoredFluid.nodes[0].pendingContainerFeed
+                    .sourceStackIds.SequenceEqual(
+                        new[] { "stack:water:bottling" }),
             "Water transfer mode and progress did not round-trip.");
     }
 
@@ -611,6 +797,56 @@ public static class IndustrialInfrastructureDebugScenarios
             .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
             .Where(building => building != null)
             .ToArray();
+    }
+
+    private sealed class FailFirstFuelAcknowledgement :
+        IPhysicalFacilityItemSinkGateway
+    {
+        private readonly IPhysicalFacilityItemSinkGateway inner;
+        private bool failed;
+
+        internal FailFirstFuelAcknowledgement(
+            IPhysicalFacilityItemSinkGateway inner)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        internal int SuccessfulAcknowledgements { get; private set; }
+
+        public bool TryCommitSinkPending(
+            string destinationId,
+            string itemId,
+            int quantity,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemBatchDispositionReceipt receipt,
+            out string failureReason) => inner.TryCommitSinkPending(
+            destinationId,
+            itemId,
+            quantity,
+            operationId,
+            reasonCode,
+            out receipt,
+            out failureReason);
+
+        public bool TryGetPending(
+            string operationId,
+            out PhysicalItemBatchDispositionReceipt receipt) =>
+            inner.TryGetPending(operationId, out receipt);
+
+        public bool Acknowledge(string commitId, out string failureReason)
+        {
+            if (!failed)
+            {
+                failed = true;
+                failureReason = "qa-injected-power-fuel-ack-failure";
+                return false;
+            }
+            bool acknowledged = inner.Acknowledge(commitId, out failureReason);
+            if (acknowledged)
+                SuccessfulAcknowledgements++;
+            return acknowledged;
+        }
     }
 
     private static void Require(bool condition, string message)

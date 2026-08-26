@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:wool
     amount: 3
   outputs:
-  - itemId: yarn:common-wool
+  - outputLineId: output:recipe:v22:spin:common-wool/000/main/yarn:common-wool
+    role: 0
+    itemId: yarn:common-wool
     amount: 2
     probability: 1

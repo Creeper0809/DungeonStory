@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7267
   researchId: research:medical:organ-regeneration
-  role: 5
+  role: 3
   designIntent: "\uC7AC\uC0DD \uBC30\uC591\uACFC \uC218\uC220, \uC774\uC885 \uC774\uC2DD\uC73C\uB85C
     \uC190\uC0C1 \uC7A5\uAE30\uB97C \uAD50\uCCB4\uD55C\uB2E4."
   rewardGroups:
@@ -57,6 +57,4 @@ MonoBehaviour:
   - kind: 4
     displayOrder: 60
     heading: "\uC758\uB8CC \uC2DC\uC220"
-  singletonReason: "\uAC8C\uC784 \uADDC\uCE59\uC744 \uBC14\uAFB8\uB294 \uCD5C\uC885
-    \uAE30\uC220\uC774\uBBC0\uB85C \uD575\uC2EC \uBCF4\uC0C1 \uD558\uB098\uB9CC\uC73C\uB85C\uB3C4
-    \uC644\uACB0\uB41C\uB2E4."
+  singletonReason: 

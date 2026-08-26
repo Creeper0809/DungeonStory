@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: component:engineering-drawing
     amount: 1
   outputs:
-  - itemId: tool:precision-gauge
+  - outputLineId: output:recipe:tool:precision-gauge/000/main/tool:precision-gauge
+    role: 0
+    itemId: tool:precision-gauge
     amount: 1
     probability: 1

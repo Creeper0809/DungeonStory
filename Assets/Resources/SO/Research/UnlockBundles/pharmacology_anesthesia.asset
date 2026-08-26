@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7134
   researchId: research:pharmacology:anesthesia
-  role: 1
+  role: 0
   designIntent: "\uBABD\uC5FD\uC73C\uB85C \uD1B5\uC99D\uACFC \uC758\uC2DD\uC744 \uC548\uC804\uD558\uAC8C
     \uC870\uC808\uD55C\uB2E4."
   rewardGroups:
@@ -57,4 +57,5 @@ MonoBehaviour:
   - kind: 4
     displayOrder: 60
     heading: "\uC758\uB8CC \uC2DC\uC220"
-  singletonReason: 
+  singletonReason: "\uC5EC\uB7EC \uD6C4\uC18D \uC5F0\uAD6C\uC640 \uAE30\uC874 \uC81C\uC791
+    \uACC4\uD1B5\uC744 \uC5EC\uB294 \uAE30\uBC18 \uC5F0\uAD6C\uB2E4."

@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:cloth
     amount: 1
   outputs:
-  - itemId: tool:field-repair-kit
+  - outputLineId: output:recipe:tool:field-repair-kit/000/main/tool:field-repair-kit
+    role: 0
+    itemId: tool:field-repair-kit
     amount: 1
     probability: 1

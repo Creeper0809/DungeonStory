@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9077
+  id: 9078
   recipeId: recipe:resin-balm
   displayName: "\uC218\uC561 \uC5F0\uACE0"
   description: "\uC218\uC561 \uC5F0\uACE0 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:moonflower
     amount: 1
   outputs:
-  - itemId: craft:resin-balm
+  - outputLineId: output:recipe:resin-balm/000/main/craft:resin-balm
+    role: 0
+    itemId: craft:resin-balm
     amount: 1
     probability: 1

@@ -39,21 +39,6 @@ public sealed class WasteProcessingInventoryPortAdapter :
             out requested,
             out failure);
 
-    public bool TryConsumeStackQuantity(
-        ItemStackId stackId,
-        int quantity,
-        out WasteProcessingStackSnapshot consumed,
-        out DomainFailure failure)
-    {
-        bool succeeded = transfers.TryConsumeStackQuantity(
-            stackId,
-            quantity,
-            out WorldItemStackSnapshot source,
-            out failure);
-        consumed = source == null ? null : ToWasteSnapshot(source);
-        return succeeded;
-    }
-
     private static WasteProcessingStackSnapshot ToWasteSnapshot(
         WorldItemStackSnapshot source) => new()
     {

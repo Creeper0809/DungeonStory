@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: material:washed-vegetable
     amount: 1
   outputs:
-  - itemId: food:vegetable-pie
+  - outputLineId: output:recipe:vegetable-pie/000/main/food:vegetable-pie
+    role: 0
+    itemId: food:vegetable-pie
     amount: 2
     probability: 1

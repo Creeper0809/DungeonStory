@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9082
+  id: 9083
   recipeId: recipe:rune-cold-suit
   displayName: "\uB8EC \uBC29\uD55C\uBCF5"
   description: "\uB8EC \uBC29\uD55C\uBCF5 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:rune-dust
     amount: 1
   outputs:
-  - itemId: equipment:rune-cold-suit
+  - outputLineId: output:recipe:rune-cold-suit/000/main/equipment:rune-cold-suit
+    role: 0
+    itemId: equipment:rune-cold-suit
     amount: 1
     probability: 1

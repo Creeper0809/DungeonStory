@@ -95,8 +95,11 @@ public sealed class ResourceStockPolicyAggregateState
 {
     public Dictionary<string, ResourceStockPolicyData> ByItemId { get; } =
         new(StringComparer.Ordinal);
+    public Dictionary<string, ResourceStockPolicyPendingSale> PendingSalesByItemId
+        { get; } = new(StringComparer.Ordinal);
     public IReadOnlyList<ResourceStockPolicyData> PolicyView { get; set; } =
         Array.Empty<ResourceStockPolicyData>();
+    public int NextSaleSequence { get; set; } = 1;
     public int Version { get; set; }
     public float NextEvaluationTime { get; set; }
 }
@@ -119,11 +122,68 @@ public sealed class ResourceStockPolicyRestoreCandidate
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonResourceStockPolicySaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
+    public int nextSaleSequence = 1;
     public List<ResourceStockPolicyData> policies =
         new List<ResourceStockPolicyData>();
+    public List<ResourceStockPolicyPendingSale> pendingSales =
+        new List<ResourceStockPolicyPendingSale>();
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum ResourceStockPolicySaleCommitPhase
+{
+    PhysicalCommitted = 1,
+    IncomePublished = 2
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class ResourceStockPolicySaleTransferReceipt
+{
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string commitId = string.Empty;
+    public List<string> sourceStackIds = new List<string>();
+    public int quantity;
+    public long inputMassGrams;
+
+    public ResourceStockPolicySaleTransferReceipt Clone()
+    {
+        ResourceStockPolicySaleTransferReceipt clone =
+            (ResourceStockPolicySaleTransferReceipt)MemberwiseClone();
+        clone.sourceStackIds = new List<string>(
+            sourceStackIds ?? new List<string>());
+        return clone;
+    }
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class ResourceStockPolicyPendingSale
+{
+    public int sequence;
+    public string itemId = string.Empty;
+    public string destinationId = string.Empty;
+    public int quantity;
+    public int proceeds;
+    public ResourceStockPolicySaleCommitPhase phase;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string commitId = string.Empty;
+    public List<string> sourceStackIds = new List<string>();
+    public long inputMassGrams;
+
+    public ResourceStockPolicyPendingSale Clone()
+    {
+        ResourceStockPolicyPendingSale clone =
+            (ResourceStockPolicyPendingSale)MemberwiseClone();
+        clone.sourceStackIds = new List<string>(
+            sourceStackIds ?? new List<string>());
+        return clone;
+    }
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -135,6 +195,35 @@ public enum RegionalSupplyContractStatus
     Completed = 3,
     Failed = 4,
     Declined = 5
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum RegionalSupplyDeliveryCommitPhase
+{
+    None = 0,
+    PhysicalCommitted = 1,
+    RewardPublished = 2
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class RegionalSupplyDeliveryTransferReceipt
+{
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string commitId = string.Empty;
+    public List<string> sourceStackIds = new List<string>();
+    public int quantity;
+    public long inputMassGrams;
+
+    public RegionalSupplyDeliveryTransferReceipt Clone()
+    {
+        RegionalSupplyDeliveryTransferReceipt clone =
+            (RegionalSupplyDeliveryTransferReceipt)MemberwiseClone();
+        clone.sourceStackIds = new List<string>(
+            sourceStackIds ?? new List<string>());
+        return clone;
+    }
 }
 
 [Serializable]
@@ -163,6 +252,12 @@ public sealed class RegionalSupplyContractState
     public RegionalSupplyContractStatus status;
     public string destinationId = string.Empty;
     public string lastStatus = string.Empty;
+    public RegionalSupplyDeliveryCommitPhase deliveryCommitPhase;
+    public string deliveryOperationId = string.Empty;
+    public string deliveryCommitId = string.Empty;
+    public List<string> deliverySourceStackIds = new List<string>();
+    public int deliveryQuantity;
+    public long deliveryMassGrams;
     public List<RegionalSupplyContractRequirement> requirements =
         new List<RegionalSupplyContractRequirement>();
 
@@ -173,6 +268,8 @@ public sealed class RegionalSupplyContractState
         clone.requirements = (requirements
             ?? new List<RegionalSupplyContractRequirement>())
             .ConvertAll(requirement => requirement?.Clone());
+        clone.deliverySourceStackIds = new List<string>(
+            deliverySourceStackIds ?? new List<string>());
         return clone;
     }
 }
@@ -181,7 +278,7 @@ public sealed class RegionalSupplyContractState
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonRegionalSupplyContractSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
     public int currentDay = 1;
@@ -279,6 +376,83 @@ public sealed class GrandProjectDefinition
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum GrandProjectPhysicalCommitPhase
+{
+    None = 0,
+    InputCommitted = 1,
+    OutcomePublished = 2
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class GrandProjectPhysicalCommitSaveData
+{
+    public GrandProjectPhysicalCommitPhase phase;
+    public string projectId = string.Empty;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string requestFingerprint = string.Empty;
+    public string commitId = string.Empty;
+    public int inputQuantity;
+    public long inputMassGrams;
+    public List<string> sourceStackIds = new List<string>();
+    public string stateBeforeFingerprint = string.Empty;
+    public string stateAfterFingerprint = string.Empty;
+
+    public GrandProjectPhysicalCommitSaveData Clone() => new()
+    {
+        phase = phase,
+        projectId = projectId,
+        operationId = operationId,
+        reasonCode = reasonCode,
+        requestFingerprint = requestFingerprint,
+        commitId = commitId,
+        inputQuantity = inputQuantity,
+        inputMassGrams = inputMassGrams,
+        sourceStackIds = new List<string>(sourceStackIds ?? new List<string>()),
+        stateBeforeFingerprint = stateBeforeFingerprint,
+        stateAfterFingerprint = stateAfterFingerprint
+    };
+}
+
+public readonly struct GrandProjectPhysicalInputReceipt
+{
+    public GrandProjectPhysicalInputReceipt(
+        string operationId,
+        string reasonCode,
+        string requestFingerprint,
+        string commitId,
+        int inputQuantity,
+        long inputMassGrams,
+        IReadOnlyList<string> sourceStackIds)
+    {
+        OperationId = operationId ?? string.Empty;
+        ReasonCode = reasonCode ?? string.Empty;
+        RequestFingerprint = requestFingerprint ?? string.Empty;
+        CommitId = commitId ?? string.Empty;
+        InputQuantity = inputQuantity;
+        InputMassGrams = inputMassGrams;
+        SourceStackIds = sourceStackIds ?? Array.Empty<string>();
+    }
+
+    public string OperationId { get; }
+    public string ReasonCode { get; }
+    public string RequestFingerprint { get; }
+    public string CommitId { get; }
+    public int InputQuantity { get; }
+    public long InputMassGrams { get; }
+    public IReadOnlyList<string> SourceStackIds { get; }
+    public bool IsCommitted => !string.IsNullOrEmpty(OperationId)
+        && !string.IsNullOrEmpty(ReasonCode)
+        && !string.IsNullOrEmpty(RequestFingerprint)
+        && !string.IsNullOrEmpty(CommitId)
+        && InputQuantity > 0
+        && InputMassGrams > 0L
+        && (SourceStackIds?.Count ?? 0) > 0;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class GrandProjectRuntimeState
 {
     public string activeProjectId = string.Empty;
@@ -286,13 +460,14 @@ public sealed class GrandProjectRuntimeState
     public float completedWork;
     public string lastStatus = string.Empty;
     public List<string> completedProjectIds = new List<string>();
+    public GrandProjectPhysicalCommitSaveData pendingPhysicalCommit = new();
 }
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonGrandProjectSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
     public GrandProjectRuntimeState state = new GrandProjectRuntimeState();

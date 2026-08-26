@@ -6,9 +6,13 @@ public sealed class ItemHaulingSettingsSO : ScriptableObject
 {
     public const string ResourcePath = "SO/Items/ItemHaulingSettings";
 
-    [SerializeField, Range(1f, 2.5f)] private float maxCarryMultiplier = 1.5f;
+    [SerializeField, Range(
+        CharacterCarryTuning.MinimumMaxCarryMultiplier,
+        CharacterCarryTuning.MaximumMaxCarryMultiplier)]
+    private float maxCarryMultiplier = CharacterCarryTuning.DefaultMaxCarryMultiplier;
 
-    public float MaxCarryMultiplier => Mathf.Clamp(maxCarryMultiplier, 1f, 2.5f);
+    public float MaxCarryMultiplier =>
+        CharacterCarryTuning.ClampMaxCarryMultiplier(maxCarryMultiplier);
 }
 
 public interface IItemHaulingSettingsProvider
@@ -57,7 +61,8 @@ public sealed class ResourceItemHaulingSettingsProvider : IItemHaulingSettingsPr
                 value = settings.MaxCarryMultiplier;
             }
 
-            return Mathf.Clamp(Mathf.Round(value / 0.05f) * 0.05f, 1f, 2.5f);
+            return CharacterCarryTuning.ClampMaxCarryMultiplier(
+                Mathf.Round(value / 0.05f) * 0.05f);
         }
     }
 

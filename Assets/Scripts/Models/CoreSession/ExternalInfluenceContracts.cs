@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public enum ExpeditionIntelPaymentMethod
 {
@@ -21,6 +22,13 @@ public enum EcologyRaidPhase
     Scheduled = 1,
     InProgress = 2,
     Resolved = 3
+}
+
+public enum ExternalInfluenceTrailCharmCommitPhase
+{
+    None = 0,
+    ItemCommitted = 1,
+    IntelPublished = 2
 }
 
 public readonly struct CoreGridCell : IEquatable<CoreGridCell>
@@ -73,7 +81,7 @@ public readonly struct EcologyRaidSnapshot
 [Serializable]
 public sealed class DungeonExternalInfluenceSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public int version = CurrentVersion;
     public float renown;
@@ -96,6 +104,95 @@ public sealed class DungeonExternalInfluenceSaveData
     public int lastRumorMitigationDay = -1;
     public List<string> intelUnlockedSiteIds = new();
     public List<string> dreadAffectedIntruderIds = new();
+    public ExternalInfluenceTrailCharmCommitPhase trailCharmCommitPhase;
+    public string pendingTrailCharmSiteId = string.Empty;
+    public string pendingTrailCharmOperationId = string.Empty;
+    public string pendingTrailCharmReasonCode = string.Empty;
+    public string pendingTrailCharmCommitId = string.Empty;
+    public List<string> pendingTrailCharmSourceStackIds = new();
+    public int pendingTrailCharmQuantity;
+    public long pendingTrailCharmMassGrams;
+    public string pendingTrailCharmItemId = string.Empty;
+}
+
+public static class ExternalInfluenceTrailCharmSaveContract
+{
+    public const string TrailCharmItemId = "resource:trail-charm";
+    public const string ReasonCode =
+        "external-influence-trail-charm-consumed";
+    private const int PhysicalSinkKindValue = 3;
+
+    public static string FormatOperationId(string siteId) =>
+        $"external-influence-trail-charm:{siteId}";
+
+    public static bool IsStructurallyValid(
+        DungeonExternalInfluenceSaveData state)
+    {
+        if (state == null
+            || state.trailCharmCommitPhase is not (
+                ExternalInfluenceTrailCharmCommitPhase.ItemCommitted
+                or ExternalInfluenceTrailCharmCommitPhase.IntelPublished)
+            || !IsCanonicalRequired(state.pendingTrailCharmSiteId)
+            || !string.Equals(
+                state.pendingTrailCharmOperationId,
+                FormatOperationId(state.pendingTrailCharmSiteId),
+                StringComparison.Ordinal)
+            || !string.Equals(
+                state.pendingTrailCharmReasonCode,
+                ReasonCode,
+                StringComparison.Ordinal)
+            || !IsCanonicalRequired(state.pendingTrailCharmCommitId)
+            || state.pendingTrailCharmSourceStackIds == null
+            || state.pendingTrailCharmSourceStackIds.Count != 1
+            || state.pendingTrailCharmSourceStackIds.Any(
+                value => !IsCanonicalRequired(value))
+            || state.pendingTrailCharmSourceStackIds
+                .Distinct(StringComparer.Ordinal).Count()
+                != state.pendingTrailCharmSourceStackIds.Count
+            || !state.pendingTrailCharmSourceStackIds.SequenceEqual(
+                state.pendingTrailCharmSourceStackIds.OrderBy(
+                    value => value,
+                    StringComparer.Ordinal),
+                StringComparer.Ordinal)
+            || state.pendingTrailCharmQuantity != 1
+            || state.pendingTrailCharmMassGrams <= 0L
+            || !string.Equals(
+                state.pendingTrailCharmItemId,
+                TrailCharmItemId,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string expectedCommit =
+            $"physical-batch-disposition:{PhysicalSinkKindValue}:"
+            + $"{state.pendingTrailCharmOperationId}:"
+            + $"{state.pendingTrailCharmQuantity}:"
+            + state.pendingTrailCharmMassGrams;
+        return string.Equals(
+            state.pendingTrailCharmCommitId,
+            expectedCommit,
+            StringComparison.Ordinal);
+    }
+
+    public static bool HasEmptyProvenance(
+        DungeonExternalInfluenceSaveData state) =>
+        state != null
+        && state.trailCharmCommitPhase
+            == ExternalInfluenceTrailCharmCommitPhase.None
+        && string.IsNullOrEmpty(state.pendingTrailCharmSiteId)
+        && string.IsNullOrEmpty(state.pendingTrailCharmOperationId)
+        && string.IsNullOrEmpty(state.pendingTrailCharmReasonCode)
+        && string.IsNullOrEmpty(state.pendingTrailCharmCommitId)
+        && state.pendingTrailCharmSourceStackIds != null
+        && state.pendingTrailCharmSourceStackIds.Count == 0
+        && state.pendingTrailCharmQuantity == 0
+        && state.pendingTrailCharmMassGrams == 0L
+        && string.IsNullOrEmpty(state.pendingTrailCharmItemId);
+
+    private static bool IsCanonicalRequired(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 }
 
 public interface IExternalCombatInfluenceQuery

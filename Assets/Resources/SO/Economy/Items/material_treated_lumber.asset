@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8053
+  id: 8054
   itemId: material:treated-lumber
   displayName: "\uCC98\uB9AC \uBAA9\uC7AC"
   description: "\uC218\uC561\uC73C\uB85C \uBC29\uC2B5\xB7\uAC15\uD654\uD55C \uBAA9\uC7AC."
@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 11
   features:
-  - rid: 7737211905666712278
-  - rid: 7737211905666712279
-  - rid: 7737212042857939023
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712278
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:forestry:treated
-    - rid: 7737211905666712279
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 1
         ingredientTags: 256
         sharedIntermediate: 1
-    - rid: 7737212042857939023
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.57803035

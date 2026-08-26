@@ -296,8 +296,17 @@ public class CharacterFeedbackBubble : MonoBehaviour
 
     private void OnLogAdded(CharacterLogEntry entry)
     {
-        if (gameClock.Time < nextLogFeedbackTime
-            || !RequireAiSchedulingService().ShouldShowCharacterFeedback(actor))
+        // Character work can emit a final activity while the scene scope is
+        // already tearing down but before Unity disables this component.  The
+        // presentation subscriber must fail closed in that interval instead of
+        // dereferencing disposed runtime services.
+        if (!isActiveAndEnabled
+            || !runtimeInjected
+            || gameClock == null
+            || aiSchedulingService == null
+            || actor == null
+            || gameClock.Time < nextLogFeedbackTime
+            || !aiSchedulingService.ShouldShowCharacterFeedback(actor))
         {
             return;
         }

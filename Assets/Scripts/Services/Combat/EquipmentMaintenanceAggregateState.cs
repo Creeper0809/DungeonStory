@@ -9,6 +9,8 @@ internal sealed class EquipmentMaintenanceAggregateState
         new(StringComparer.Ordinal);
     internal Dictionary<string, CombatEquipmentRepairOrder> Orders { get; } =
         new(StringComparer.Ordinal);
+    internal Dictionary<string, CombatEquipmentRepairTerminalEffectSaveData>
+        TerminalEffects { get; } = new(StringComparer.Ordinal);
     internal int PolicySequence { get; set; }
     internal int OrderSequence { get; set; }
 
@@ -30,6 +32,12 @@ internal sealed class EquipmentMaintenanceAggregateState
         foreach (KeyValuePair<string, CombatEquipmentRepairOrder> pair in Orders)
         {
             clone.Orders.Add(pair.Key, pair.Value.Clone());
+        }
+        foreach (KeyValuePair<string,
+                     CombatEquipmentRepairTerminalEffectSaveData> pair in
+                 TerminalEffects)
+        {
+            clone.TerminalEffects.Add(pair.Key, pair.Value.Clone());
         }
 
         return clone;

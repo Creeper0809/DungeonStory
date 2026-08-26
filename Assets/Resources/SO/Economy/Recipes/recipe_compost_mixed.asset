@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: resource:grass-straw
     amount: 1
   outputs:
-  - itemId: material:compost
+  - outputLineId: output:recipe:compost-mixed/000/main/material:compost
+    role: 0
+    itemId: material:compost
     amount: 1
     probability: 1

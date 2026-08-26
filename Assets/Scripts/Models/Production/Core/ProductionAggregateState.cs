@@ -19,7 +19,28 @@ public sealed class ProductionBillRecord
     public int minimumReserve { get; internal set; }
     public bool suspended { get; internal set; }
     public bool materialsConsumed { get; internal set; }
+    public int cycleSequence { get; internal set; } = 1;
+    public string wipInputCommitId { get; internal set; } = string.Empty;
+    public int wipInputQuantity { get; internal set; }
+    public long wipInputMassGrams { get; internal set; }
+    public bool outputOutcomeResolved { get; internal set; }
+    internal readonly List<ProductionResolvedOutputSaveData> mutableResolvedOutputs =
+        new();
+    public IReadOnlyList<ProductionResolvedOutputSaveData> resolvedOutputs =>
+        mutableResolvedOutputs;
+    public ProductionPreparedOutputBatchSaveData preparedOutput { get; internal set; } =
+        ProductionPreparedOutputBatchSaveData.Unresolved();
     public bool processFluidConsumed { get; internal set; }
+    public long processCleanWaterMassGrams { get; internal set; }
+    public long processWastewaterMassGrams { get; internal set; }
+    internal readonly List<ProductionWastewaterComponentSaveData>
+        mutableProcessWastewaterComponents = new();
+    public IReadOnlyList<ProductionWastewaterComponentSaveData>
+        processWastewaterComponents => mutableProcessWastewaterComponents;
+    internal readonly List<ProductionManualWaterTransferSaveData>
+        mutableProcessManualWaterTransfers = new();
+    public IReadOnlyList<ProductionManualWaterTransferSaveData>
+        processManualWaterTransfers => mutableProcessManualWaterTransfers;
     public float completedWork { get; internal set; }
     public ProductionBatchStage batchStage { get; internal set; }
     public float remainingProcessingHours { get; internal set; }
@@ -85,6 +106,7 @@ public sealed class ProductionBillRecord
             targetStock = targetStock,
             batchStage = batchStage,
             batchIntegrity = 100f,
+            cycleSequence = 1,
             materialDestinationId = materialDestinationId?.Trim() ?? string.Empty
         };
     }
@@ -108,7 +130,238 @@ public sealed class ProductionBillRecord
 
     public void SetOrderMode(ProductionOrderMode value) => mode = value;
     public void SetMaterialsConsumed(bool value) => materialsConsumed = value;
+    public void AdvanceCycleSequence() => cycleSequence = checked(cycleSequence + 1);
+    public void SetWipInput(ProductionWipInputReceipt receipt)
+    {
+        if (!receipt.IsCommitted)
+        {
+            throw new ArgumentException(
+                "Production WIP input receipt must be committed.",
+                nameof(receipt));
+        }
+        wipInputCommitId = receipt.CommitId;
+        wipInputQuantity = receipt.Quantity;
+        wipInputMassGrams = receipt.InputMassGrams;
+    }
+    public void ClearWipInput()
+    {
+        wipInputCommitId = string.Empty;
+        wipInputQuantity = 0;
+        wipInputMassGrams = 0L;
+    }
+    public void SetResolvedOutputs(
+        IEnumerable<ProductionResolvedOutputSaveData> outputs)
+    {
+        mutableResolvedOutputs.Clear();
+        mutableResolvedOutputs.AddRange((outputs
+                ?? Array.Empty<ProductionResolvedOutputSaveData>())
+            .Where(output => output != null)
+            .Select(output => output.Clone()));
+        outputOutcomeResolved = true;
+    }
+    public void ClearResolvedOutputs()
+    {
+        mutableResolvedOutputs.Clear();
+        outputOutcomeResolved = false;
+    }
+
+    public void ResolvePreparedOutput(
+        ProductionPreparedOutputBatchSaveData resolvedBatch)
+    {
+        RequirePreparedPhase(ProductionPreparedOutputPhase.Unresolved);
+        if (outputOutcomeResolved || mutableResolvedOutputs.Count != 0
+            || resolvedBatch == null
+            || resolvedBatch.phase !=
+                ProductionPreparedOutputPhase.ResolvedWaitingForOutputSpace)
+        {
+            throw new InvalidOperationException(
+                "Prepared production output cannot coexist with legacy resolved output authority.");
+        }
+        ProductionPreparedOutputContract.ValidateForBill(
+            resolvedBatch,
+            billId,
+            recipeId,
+            cycleSequence,
+            outputDestinationId);
+        preparedOutput = resolvedBatch.Clone();
+    }
+
+    public void MarkPreparedOutputPublicationPrepared(
+        string admissionFingerprint)
+    {
+        RequirePreparedPhase(
+            ProductionPreparedOutputPhase.ResolvedWaitingForOutputSpace);
+        ProductionPreparedOutputBatchSaveData candidate = preparedOutput.Clone();
+        candidate.phase = ProductionPreparedOutputPhase.PublicationPrepared;
+        candidate.admissionFingerprint = admissionFingerprint ?? string.Empty;
+        ValidateAndPublishPrepared(candidate);
+    }
+
+    public void ReturnPreparedOutputToWaitingForSpace()
+    {
+        RequirePreparedPhase(ProductionPreparedOutputPhase.PublicationPrepared);
+        ProductionPreparedOutputBatchSaveData candidate = preparedOutput.Clone();
+        candidate.phase =
+            ProductionPreparedOutputPhase.ResolvedWaitingForOutputSpace;
+        candidate.admissionFingerprint = string.Empty;
+        candidate.physicalCandidates.Clear();
+        ValidateAndPublishPrepared(candidate);
+    }
+
+    public void ReleaseUnpublishedPreparedOutput()
+    {
+        RequirePreparedPhase(
+            ProductionPreparedOutputPhase.ResolvedWaitingForOutputSpace);
+        preparedOutput = ProductionPreparedOutputBatchSaveData.Unresolved();
+    }
+
+    public void MarkPreparedOutputPhysicalBatchCommitted(
+        IEnumerable<ProductionPreparedOutputPhysicalCandidateSaveData> candidates)
+    {
+        RequirePreparedPhase(ProductionPreparedOutputPhase.PublicationPrepared);
+        ProductionPreparedOutputBatchSaveData candidate = preparedOutput.Clone();
+        candidate.phase =
+            ProductionPreparedOutputPhase.PhysicalBatchCommittedPublicationPending;
+        candidate.physicalCandidates = (candidates
+                ?? throw new ArgumentNullException(nameof(candidates)))
+            .Select(value => value?.Clone())
+            .OrderBy(value => value?.stackId, StringComparer.Ordinal)
+            .ToList();
+        ValidateAndPublishPrepared(candidate);
+    }
+
+    public void MarkPreparedOutputCompleted()
+    {
+        RequirePreparedPhase(
+            ProductionPreparedOutputPhase.PhysicalBatchCommittedPublicationPending);
+        ProductionPreparedOutputBatchSaveData candidate = preparedOutput.Clone();
+        candidate.phase = ProductionPreparedOutputPhase.Completed;
+        ValidateAndPublishPrepared(candidate);
+    }
+
+    public void ClearCompletedPreparedOutput()
+    {
+        RequirePreparedPhase(ProductionPreparedOutputPhase.Completed);
+        preparedOutput = ProductionPreparedOutputBatchSaveData.Unresolved();
+    }
+
+    private void ValidateAndPublishPrepared(
+        ProductionPreparedOutputBatchSaveData candidate)
+    {
+        ProductionPreparedOutputContract.ValidateForBill(
+            candidate,
+            billId,
+            recipeId,
+            cycleSequence,
+            outputDestinationId);
+        preparedOutput = candidate.Clone();
+    }
+
+    private void RequirePreparedPhase(ProductionPreparedOutputPhase expected)
+    {
+        if (preparedOutput == null || preparedOutput.phase != expected)
+        {
+            throw new InvalidOperationException(
+                $"Prepared production output phase must be {expected}.");
+        }
+    }
+    public void BeginResolvedOutputUnit(
+        string itemId,
+        string commitId)
+    {
+        ProductionResolvedOutputSaveData output = mutableResolvedOutputs.Single(
+            candidate => string.Equals(
+                candidate.itemId,
+                itemId,
+                StringComparison.Ordinal));
+        if (output.committedAmount >= output.amount
+            || !string.IsNullOrEmpty(output.pendingCommitId)
+            || string.IsNullOrEmpty(commitId)
+            || !string.Equals(commitId, commitId.Trim(), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Resolved output '{itemId}' cannot begin commit '{commitId}'.");
+        }
+        output.pendingCommitId = commitId;
+        output.pendingCommitApplied = false;
+    }
+
+    public void MarkResolvedOutputUnitCommitted(
+        string itemId,
+        string commitId,
+        long committedMassGrams)
+    {
+        ProductionResolvedOutputSaveData output = mutableResolvedOutputs.Single(
+            candidate => string.Equals(
+                candidate.itemId,
+                itemId,
+                StringComparison.Ordinal));
+        if (output.committedAmount >= output.amount
+            || output.pendingCommitApplied
+            || committedMassGrams <= 0L
+            || !string.Equals(
+                output.pendingCommitId,
+                commitId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Resolved output '{itemId}' is already fully committed.");
+        }
+        output.committedAmount++;
+        output.committedMassGrams = checked(
+            output.committedMassGrams + committedMassGrams);
+        output.pendingCommitApplied = true;
+    }
+
+    public void ClearResolvedOutputPendingCommit(
+        string itemId,
+        string commitId)
+    {
+        ProductionResolvedOutputSaveData output = mutableResolvedOutputs.Single(
+            candidate => string.Equals(
+                candidate.itemId,
+                itemId,
+                StringComparison.Ordinal));
+        if (!output.pendingCommitApplied
+            || !string.Equals(
+                output.pendingCommitId,
+                commitId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Resolved output '{itemId}' cannot acknowledge commit '{commitId}'.");
+        }
+        output.pendingCommitId = string.Empty;
+        output.pendingCommitApplied = false;
+    }
     public void SetProcessFluidConsumed(bool value) => processFluidConsumed = value;
+    public void SetProcessFluid(ProductionProcessFluidReceipt receipt)
+    {
+        processCleanWaterMassGrams = receipt.CleanWaterMassGrams;
+        processWastewaterMassGrams = receipt.WastewaterMassGrams;
+        mutableProcessWastewaterComponents.Clear();
+        mutableProcessWastewaterComponents.AddRange(
+            receipt.WastewaterComponents.Select(
+                ProductionWastewaterComponentSaveData.FromRuntime));
+        mutableProcessManualWaterTransfers.Clear();
+        mutableProcessManualWaterTransfers.AddRange(
+            receipt.ManualWaterTransfers.Select(value => value.Clone()));
+    }
+    public ProductionProcessFluidReceipt CaptureProcessFluidReceipt() => new(
+        processCleanWaterMassGrams,
+        processWastewaterMassGrams,
+        mutableProcessManualWaterTransfers,
+        mutableProcessWastewaterComponents
+            .Select(value => value.ToRuntime())
+            .ToArray());
+    public void ClearProcessFluid()
+    {
+        processFluidConsumed = false;
+        processCleanWaterMassGrams = 0L;
+        processWastewaterMassGrams = 0L;
+        mutableProcessWastewaterComponents.Clear();
+        mutableProcessManualWaterTransfers.Clear();
+    }
     public void SetCompletedWork(float value) => completedWork = value;
     public void SetBatchStage(ProductionBatchStage value) => batchStage = value;
     public void SetRemainingProcessingHours(float value) =>
@@ -199,10 +452,21 @@ public sealed class ProductionBillRecord
 internal sealed class ProductionAggregateState
 {
     internal List<ProductionBillRecord> Bills { get; } = new();
+    internal List<ProductionWipTerminalReceiptSaveData> WipTerminalReceipts { get; } =
+        new();
     internal HashSet<string> InstalledStockSensorFacilityIds { get; } =
         new(StringComparer.Ordinal);
     internal HashSet<string> AcknowledgedStockSensorFacilityIds { get; } =
         new(StringComparer.Ordinal);
+    internal Dictionary<string, ProductionStockSensorPhysicalCommitSaveData>
+        PendingStockSensorInstallsByFacilityId { get; } =
+            new(StringComparer.Ordinal);
+    internal Dictionary<string, ProductionInstalledStockSensorSaveData>
+        InstalledStockSensorsByFacilityId { get; } =
+            new(StringComparer.Ordinal);
+    internal Dictionary<string, ProductionStockSensorRemovalSaveData>
+        PendingStockSensorRemovalsByFacilityId { get; } =
+            new(StringComparer.Ordinal);
     internal int NextBillSequence { get; set; } = 1;
     internal int BillVersion { get; set; }
     internal int StockSensorVersion { get; set; }
@@ -222,6 +486,8 @@ public sealed class ProductionAggregateStateSession
         rootStore.GetOrCreate(() => new ProductionAggregateState());
 
     public IReadOnlyList<ProductionBillRecord> Bills => Current.Bills;
+    public IReadOnlyList<ProductionWipTerminalReceiptSaveData> WipTerminalReceipts =>
+        Current.WipTerminalReceipts;
     public int NextBillSequence
     {
         get => Current.NextBillSequence;
@@ -233,10 +499,63 @@ public sealed class ProductionAggregateStateSession
         Current.InstalledStockSensorFacilityIds;
     public IReadOnlyCollection<string> AcknowledgedStockSensorFacilityIds =>
         Current.AcknowledgedStockSensorFacilityIds;
+    public IReadOnlyCollection<ProductionStockSensorPhysicalCommitSaveData>
+        PendingStockSensorInstalls =>
+            Current.PendingStockSensorInstallsByFacilityId.Values;
+    public IReadOnlyCollection<ProductionInstalledStockSensorSaveData>
+        InstalledStockSensors =>
+            Current.InstalledStockSensorsByFacilityId.Values;
+    public IReadOnlyCollection<ProductionStockSensorRemovalSaveData>
+        PendingStockSensorRemovals =>
+            Current.PendingStockSensorRemovalsByFacilityId.Values;
 
     public void AddBill(ProductionBillRecord bill) =>
         Current.Bills.Add(bill ?? throw new ArgumentNullException(nameof(bill)));
     public bool RemoveBill(ProductionBillRecord bill) => Current.Bills.Remove(bill);
+    public bool AddWipTerminalReceipt(ProductionWipTerminalReceiptSaveData receipt)
+    {
+        if (receipt == null || string.IsNullOrEmpty(receipt.commitId))
+        {
+            throw new ArgumentException(
+                "Production WIP terminal receipt must have a commit ID.",
+                nameof(receipt));
+        }
+        ProductionWipTerminalReceiptSaveData existing = Current.WipTerminalReceipts
+            .FirstOrDefault(candidate => string.Equals(
+                candidate.commitId,
+                receipt.commitId,
+                StringComparison.Ordinal));
+        if (existing != null)
+        {
+            return string.Equals(existing.billId, receipt.billId, StringComparison.Ordinal)
+                && string.Equals(existing.recipeId, receipt.recipeId, StringComparison.Ordinal)
+                && string.Equals(
+                    existing.buildingInstanceId,
+                    receipt.buildingInstanceId,
+                    StringComparison.Ordinal)
+                && existing.cycleSequence == receipt.cycleSequence
+                && string.Equals(
+                    existing.inputCommitId,
+                    receipt.inputCommitId,
+                    StringComparison.Ordinal)
+                && existing.inputQuantity == receipt.inputQuantity
+                && existing.inputMassGrams == receipt.inputMassGrams
+                && existing.processCleanWaterMassGrams
+                    == receipt.processCleanWaterMassGrams
+                && existing.processWastewaterMassGrams
+                    == receipt.processWastewaterMassGrams
+                && WastewaterComponentsEqual(
+                    existing.wastewaterComponents,
+                    receipt.wastewaterComponents)
+                && existing.committedOutputMassGrams
+                    == receipt.committedOutputMassGrams
+                && existing.declaredLossMassGrams == receipt.declaredLossMassGrams
+                && existing.reason == receipt.reason
+                && existing.lossKind == receipt.lossKind;
+        }
+        Current.WipTerminalReceipts.Add(receipt.Clone());
+        return true;
+    }
     public void MoveBill(
         ProductionBillRecord bill,
         ProductionBillRecord anchor,
@@ -272,6 +591,58 @@ public sealed class ProductionAggregateStateSession
         Current.AcknowledgedStockSensorFacilityIds.Add(id);
     public bool RemoveAcknowledgedSensor(string id) =>
         Current.AcknowledgedStockSensorFacilityIds.Remove(id);
+    public bool TryGetPendingStockSensorInstall(
+        string facilityId,
+        out ProductionStockSensorPhysicalCommitSaveData owner) =>
+        Current.PendingStockSensorInstallsByFacilityId.TryGetValue(
+            facilityId,
+            out owner);
+    public void SetPendingStockSensorInstall(
+        ProductionStockSensorPhysicalCommitSaveData owner)
+    {
+        if (owner == null || string.IsNullOrEmpty(owner.facilityId))
+            throw new ArgumentException(
+                "Pending stock-sensor owner must have a facility ID.",
+                nameof(owner));
+        Current.PendingStockSensorInstallsByFacilityId[owner.facilityId] = owner;
+    }
+    public bool RemovePendingStockSensorInstall(string facilityId) =>
+        Current.PendingStockSensorInstallsByFacilityId.Remove(facilityId);
+    public bool TryGetInstalledStockSensor(
+        string facilityId,
+        out ProductionInstalledStockSensorSaveData installed) =>
+        Current.InstalledStockSensorsByFacilityId.TryGetValue(
+            facilityId,
+            out installed);
+    public void SetInstalledStockSensor(
+        ProductionInstalledStockSensorSaveData installed)
+    {
+        if (installed == null || string.IsNullOrEmpty(installed.facilityId))
+            throw new ArgumentException(
+                "Installed stock-sensor record must have a facility ID.",
+                nameof(installed));
+        Current.InstalledStockSensorsByFacilityId[installed.facilityId] =
+            installed;
+    }
+    public bool RemoveInstalledStockSensor(string facilityId) =>
+        Current.InstalledStockSensorsByFacilityId.Remove(facilityId);
+    public bool TryGetPendingStockSensorRemoval(
+        string facilityId,
+        out ProductionStockSensorRemovalSaveData owner) =>
+        Current.PendingStockSensorRemovalsByFacilityId.TryGetValue(
+            facilityId,
+            out owner);
+    public void SetPendingStockSensorRemoval(
+        ProductionStockSensorRemovalSaveData owner)
+    {
+        if (owner == null || string.IsNullOrEmpty(owner.facilityId))
+            throw new ArgumentException(
+                "Pending stock-sensor removal must have a facility ID.",
+                nameof(owner));
+        Current.PendingStockSensorRemovalsByFacilityId[owner.facilityId] = owner;
+    }
+    public bool RemovePendingStockSensorRemoval(string facilityId) =>
+        Current.PendingStockSensorRemovalsByFacilityId.Remove(facilityId);
 
     public void Restore(ProductionBillRestoreCandidate candidate)
     {
@@ -297,6 +668,29 @@ public sealed class ProductionAggregateStateSession
             snapshot.installedStockSensorFacilityIds);
         restored.AcknowledgedStockSensorFacilityIds.UnionWith(
             snapshot.acknowledgedStockSensorFacilityIds);
+        foreach (ProductionStockSensorPhysicalCommitSaveData owner in
+                 snapshot.pendingStockSensorInstalls)
+        {
+            restored.PendingStockSensorInstallsByFacilityId.Add(
+                owner.facilityId,
+                owner.Clone());
+        }
+        foreach (ProductionInstalledStockSensorSaveData installed in
+                 snapshot.installedStockSensors)
+        {
+            restored.InstalledStockSensorsByFacilityId.Add(
+                installed.facilityId,
+                installed.Clone());
+        }
+        foreach (ProductionStockSensorRemovalSaveData owner in
+                 snapshot.pendingStockSensorRemovals)
+        {
+            restored.PendingStockSensorRemovalsByFacilityId.Add(
+                owner.facilityId,
+                owner.Clone());
+        }
+        restored.WipTerminalReceipts.AddRange(
+            snapshot.wipTerminalReceipts.Select(receipt => receipt.Clone()));
         foreach (ProductionBillSaveData saved in snapshot.bills)
         {
             ProductionBillRecord record = new()
@@ -310,7 +704,17 @@ public sealed class ProductionAggregateStateSession
                 minimumReserve = saved.minimumReserve,
                 suspended = saved.suspended,
                 materialsConsumed = saved.materialsConsumed,
+                cycleSequence = saved.cycleSequence,
+                wipInputCommitId = saved.wipInputCommitId,
+                wipInputQuantity = saved.wipInputQuantity,
+                wipInputMassGrams = saved.wipInputMassGrams,
+                outputOutcomeResolved = saved.outputOutcomeResolved,
+                preparedOutput = saved.preparedOutput?.Clone()
+                    ?? throw new InvalidOperationException(
+                        $"Production bill '{saved.billId}' has no prepared-output payload."),
                 processFluidConsumed = saved.processFluidConsumed,
+                processCleanWaterMassGrams = saved.processCleanWaterMassGrams,
+                processWastewaterMassGrams = saved.processWastewaterMassGrams,
                 completedWork = saved.completedWork,
                 batchStage = saved.batchStage,
                 remainingProcessingHours = saved.remainingProcessingHours,
@@ -345,6 +749,16 @@ public sealed class ProductionAggregateStateSession
                     reservation.itemId,
                     reservation.amount);
             }
+            record.mutableResolvedOutputs.AddRange(
+                saved.resolvedOutputs.Select(output => output.Clone()));
+            record.mutableProcessWastewaterComponents.AddRange(
+                (saved.processWastewaterComponents
+                    ?? new List<ProductionWastewaterComponentSaveData>())
+                .Select(value => value.Clone()));
+            record.mutableProcessManualWaterTransfers.AddRange(
+                (saved.processManualWaterTransfers
+                    ?? new List<ProductionManualWaterTransferSaveData>())
+                .Select(value => value.Clone()));
             record.mutableRoutePolicies.AddRange(
                 saved.routePolicies.Select(route => route.Clone()));
             foreach (ProductionSelectedSupplySaveData supply in saved.selectedSupplies)
@@ -361,5 +775,23 @@ public sealed class ProductionAggregateStateSession
             restored.Bills.Add(record);
         }
         return restored;
+    }
+
+    private static bool WastewaterComponentsEqual(
+        IReadOnlyList<ProductionWastewaterComponentSaveData> left,
+        IReadOnlyList<ProductionWastewaterComponentSaveData> right)
+    {
+        left ??= Array.Empty<ProductionWastewaterComponentSaveData>();
+        right ??= Array.Empty<ProductionWastewaterComponentSaveData>();
+        return left.Count == right.Count
+            && left.Zip(right, (a, b) => a != null && b != null
+                && a.composition == b.composition
+                && a.sourceKind == b.sourceKind
+                && string.Equals(
+                    a.sourceStableId,
+                    b.sourceStableId,
+                    StringComparison.Ordinal)
+                && a.authoredUnits.Equals(b.authoredUnits)
+                && a.massGrams == b.massGrams).All(value => value);
     }
 }

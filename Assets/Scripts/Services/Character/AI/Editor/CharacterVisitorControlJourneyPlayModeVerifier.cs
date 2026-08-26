@@ -64,7 +64,7 @@ public static class CharacterVisitorControlJourneyPlayModeVerifier
 public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
 {
     private const float OverallTimeout = 240f;
-    private const string Revision = "visitor-control-journey-v3";
+    private const string Revision = "visitor-control-journey-v5-exact-retail-restore";
     private readonly List<string> evidence = new List<string>();
     private readonly List<string> failures = new List<string>();
     public bool ExitPlayModeOnCompletion { get; set; }
@@ -150,6 +150,8 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
             scope.Container.Resolve<ICharacterSkillGenerationDiagnostics>();
         IFactionRuntime factions = scope.Container.Resolve<IFactionRuntime>();
         IGridSystemProvider grids = scope.Container.Resolve<IGridSystemProvider>();
+        IDungeonGameSaveService gameSaves =
+            scope.Container.Resolve<IDungeonGameSaveService>();
         AiDirectorRuntime director = FindFirstObjectByType<AiDirectorRuntime>(
             FindObjectsInactive.Include);
         grids.TryGetGrid(out Grid grid);
@@ -361,6 +363,17 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
         Require(shopping != null, "spawned visitor has no AbilityShopping");
         if (shopping == null) yield break;
 
+        ShopStockStateSnapshot stockBeforeShopping = shop.CreateStockSnapshot();
+        int retailQuantityBefore = stockBeforeShopping.lots.Sum(value =>
+            value != null ? Mathf.Max(0, value.quantity) : 0);
+        long retailMassBefore = stockBeforeShopping.lots.Sum(value =>
+            value != null
+                ? checked(value.unitMassGrams * value.quantity)
+                : 0L);
+        int moneyBeforeShopping = shopping.HoldingMoney;
+        int purchaseCommitsBefore = shopping.CommittedPurchaseCountForDiagnostics;
+        long purchaseMassBefore = shopping.CommittedPurchaseMassGramsForDiagnostics;
+
         yield return VerifyCriticalManualMove(visitor, scheduling, grid);
 
         AIAction shoppingDefinition = brain.availableActions?.FirstOrDefault(
@@ -409,11 +422,54 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
             && (shopping.LastVisitOutcome == ShoppingVisitOutcome.None
                 || shopping.LastVisitOutcome == ShoppingVisitOutcome.InProgress))
             yield return null;
-        Require(shopping.LastVisitOutcome == ShoppingVisitOutcome.Completed
-                || shopping.LastVisitOutcome == ShoppingVisitOutcome.Abandoned,
-            "visitor did not reach checkout/service or abandon terminal: "
+        Require(shopping.LastVisitOutcome == ShoppingVisitOutcome.Completed,
+            "visitor did not commit a production checkout terminal: "
                 + shopping.LastVisitOutcome);
         evidence.Add("visitor-service-terminal=" + shopping.LastVisitOutcome);
+
+        ShopStockStateSnapshot stockAfterShopping = shop.CreateStockSnapshot();
+        int retailQuantityAfter = stockAfterShopping.lots.Sum(value =>
+            value != null ? Mathf.Max(0, value.quantity) : 0);
+        long retailMassAfter = stockAfterShopping.lots.Sum(value =>
+            value != null
+                ? checked(value.unitMassGrams * value.quantity)
+                : 0L);
+        int committedCount = shopping.CommittedPurchaseCountForDiagnostics
+            - purchaseCommitsBefore;
+        long committedMass = shopping.CommittedPurchaseMassGramsForDiagnostics
+            - purchaseMassBefore;
+        RetailStockLotSnapshot lastReceipt =
+            shopping.LastCommittedPurchaseLotForDiagnostics;
+        bool exactRetailCommitted = committedCount > 0
+            && lastReceipt != null
+            && lastReceipt.quantity == 1
+            && lastReceipt.unitMassGrams > 0L
+            && !string.IsNullOrWhiteSpace(lastReceipt.itemDefinitionId)
+            && !string.IsNullOrWhiteSpace(lastReceipt.sourceOperationId)
+            && retailQuantityBefore - retailQuantityAfter == committedCount
+            && retailMassBefore - retailMassAfter == committedMass
+            && committedMass > 0L
+            && shopping.HoldingMoney < moneyBeforeShopping;
+        Require(exactRetailCommitted,
+            "production Shopping did not conserve an exact retail lot: "
+            + $"outcome={shopping.LastVisitOutcome}; commits={committedCount}; "
+            + $"quantity={retailQuantityBefore}->{retailQuantityAfter}; "
+            + $"mass={retailMassBefore}->{retailMassAfter}; "
+            + $"receiptMass={committedMass}; money={moneyBeforeShopping}->{shopping.HoldingMoney}; "
+            + $"receipt={lastReceipt?.sourceOperationId ?? "<null>"}");
+        if (exactRetailCommitted)
+        {
+            evidence.Add("visitor-shopping-exact-retail-sink="
+                + $"commits:{committedCount};quantity:{retailQuantityBefore}->{retailQuantityAfter};"
+                + $"mass:{retailMassBefore}->{retailMassAfter};"
+                + $"receipt:{lastReceipt.sourceOperationId}");
+        }
+
+        VerifyTamperedRetailRestoreFailsAtomically(
+            gameSaves,
+            shop,
+            visitor,
+            shopping);
 
         yield return VerifyMacro(visitor, director, CharacterMacroGoalType.Complain,
             shop, "macro:complain", () => visitor.LogComponent.ActivityEntries.Any(
@@ -646,6 +702,115 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
 
     private static string PersistentId(CharacterActor actor) =>
         actor?.Identity?.PersistentId ?? string.Empty;
+
+    private void VerifyTamperedRetailRestoreFailsAtomically(
+        IDungeonGameSaveService gameSaves,
+        Shop shop,
+        CharacterActor visitor,
+        AbilityShopping shopping)
+    {
+        Require(gameSaves != null, "production game-save service missing");
+        Require(shop != null && visitor != null && shopping != null,
+            "retail restore fixture ownership missing");
+        if (gameSaves == null || shop == null || visitor == null || shopping == null)
+            return;
+
+        string shopId = shop.PersistentInstanceId.IsValid
+            ? shop.PersistentInstanceId.Value
+            : string.Empty;
+        Require(shopId.Length > 0, "retail restore fixture shop has no persistent id");
+        if (shopId.Length == 0) return;
+
+        string stockBefore = JsonUtility.ToJson(shop.CreateStockSnapshot());
+        string visitorIdBefore = PersistentId(visitor);
+        int moneyBefore = shopping.HoldingMoney;
+        int commitsBefore = shopping.CommittedPurchaseCountForDiagnostics;
+        long massBefore = shopping.CommittedPurchaseMassGramsForDiagnostics;
+
+        DungeonGameSaveData canonical = gameSaves.Capture();
+        DungeonGameSaveData tampered = gameSaves.FromJson(
+            gameSaves.ToJson(canonical));
+        ModularFacilityWorldSaveData world =
+            DungeonSaveSectionPayload.ReadOrNew<ModularFacilityWorldSaveData>(
+                tampered,
+                ModularFacilityWorldSaveSection.Id);
+        ModularFacilityBuildingSaveData savedShop = world.buildings?
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.persistentInstanceId,
+                    shopId,
+                    StringComparison.Ordinal));
+        BuildingStateModuleSaveData stockModule = savedShop?.stateModules?
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.moduleId,
+                    BuildingStateModuleIds.ShopStock,
+                    StringComparison.Ordinal));
+        ShopStockStateSnapshot stock = stockModule == null
+            ? null
+            : JsonUtility.FromJson<ShopStockStateSnapshot>(
+                stockModule.payload ?? string.Empty);
+        int activatedSource = stock?.activatedAuthoredSaleItemIds?.FirstOrDefault()
+            ?? int.MinValue;
+        bool fixtureReady = savedShop != null
+            && stockModule != null
+            && stock != null
+            && (stock.activatedAuthoredSaleItemIds?.Count ?? 0) > 0;
+        Require(fixtureReady,
+            "retail restore tamper fixture could not locate an activated authored source");
+        if (!fixtureReady) return;
+
+        stock.activatedAuthoredSaleItemIds.Add(activatedSource);
+        stockModule.payload = JsonUtility.ToJson(stock);
+        DungeonSaveSectionPayload.Write(
+            tampered,
+            ModularFacilityWorldSaveSection.Id,
+            1,
+            DungeonSaveRestorePhase.World,
+            world);
+        tampered.manifest = DungeonSaveManifest.Capture(tampered.sections);
+
+        bool accepted = gameSaves.TryRestore(
+            tampered,
+            out DungeonGameRestoreReport report);
+        string errors = string.Join(" | ", report?.Errors
+            ?? Array.Empty<string>());
+        bool rejectedByRetailAuthority = !accepted
+            && report != null
+            && !report.Success
+            && errors.IndexOf(
+                "duplicate authored-source activation authority",
+                StringComparison.OrdinalIgnoreCase) >= 0;
+        Require(rejectedByRetailAuthority,
+            "tampered retail whole restore was not rejected by exact-source authority: "
+                + errors);
+
+        string stockAfter = JsonUtility.ToJson(shop.CreateStockSnapshot());
+        bool unchanged = ReferenceEquals(shop,
+                FindObjectsByType<Shop>(FindObjectsInactive.Include,
+                        FindObjectsSortMode.None)
+                    .SingleOrDefault(value => value != null
+                        && value.PersistentInstanceId.IsValid
+                        && string.Equals(
+                            value.PersistentInstanceId.Value,
+                            shopId,
+                            StringComparison.Ordinal)))
+            && string.Equals(stockBefore, stockAfter, StringComparison.Ordinal)
+            && string.Equals(visitorIdBefore, PersistentId(visitor),
+                StringComparison.Ordinal)
+            && moneyBefore == shopping.HoldingMoney
+            && commitsBefore == shopping.CommittedPurchaseCountForDiagnostics
+            && massBefore == shopping.CommittedPurchaseMassGramsForDiagnostics;
+        Require(unchanged,
+            "rejected retail restore changed live shop or visitor ownership");
+        if (rejectedByRetailAuthority && unchanged)
+        {
+            evidence.Add("visitor-shopping-retail-save-tamper-rejected-atomically="
+                + $"shop:{shopId};activation:{activatedSource};"
+                + $"quantity:{shop.CreateStockSnapshot().lots.Sum(value => value.quantity)};"
+                + $"money:{moneyBefore};commits:{commitsBefore};mass:{massBefore}");
+        }
+    }
 
     private static string DescribeExitTrace(
         CharacterActor actor,

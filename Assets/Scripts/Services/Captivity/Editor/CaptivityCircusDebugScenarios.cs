@@ -33,11 +33,22 @@ public static class CaptivityCircusDebugScenarios
         Run("captive_thresholds_and_clone", VerifyCaptiveThresholds, lines, errors);
         Run("captivity_save_validation", VerifyCaptivitySaveValidation, lines, errors);
         Run("durable_captivity_tools", VerifyDurableCaptivityTools, lines, errors);
+        Run(
+            "captive_labor_tool_assignment_pending_outbox",
+            VerifyLaborToolAssignmentPendingOutbox,
+            lines,
+            errors);
         Run("interaction_registry_and_materials", VerifyInteractions, lines, errors);
         Run("circus_registry_and_programs", VerifyCircusPrograms, lines, errors);
         Run("circus_persistent_identity", VerifyCircusPersistentIdentity, lines, errors);
         Run("circus_and_wildlife_save_clone", VerifyCircusSaveModels, lines, errors);
         Run("circus_save_validation", VerifyCircusSaveValidation, lines, errors);
+        Run("circus_supply_restore_join", CircusSupplyRestoreJoinFixture.Run, lines, errors);
+        Run(
+            "captured_wildlife_feed_pending_outbox",
+            CapturedWildlifeFeedOutboxDebugScenarios.Run,
+            lines,
+            errors);
         Run("captivity_facility_assets", VerifyFacilityAssets, lines, errors);
         Run("constructor_facades", VerifyConstructorFacades, lines, errors);
         Run(
@@ -314,6 +325,11 @@ public static class CaptivityCircusDebugScenarios
             Require(asset.MaxStack == 1, $"{itemId} is not a unique physical item");
         }
 
+        const string captiveId = "character:captive:durable-tool";
+        const string instanceId = "item-instance:test-prisoner-work-kit";
+        string operationId = CaptivityLaborToolAssignmentIdentity.FormatOperationId(
+            captiveId,
+            instanceId);
         CaptivitySaveData labor = new CaptivitySaveData
         {
             policies = new List<CaptivePolicyData>
@@ -328,7 +344,7 @@ public static class CaptivityCircusDebugScenarios
             {
                 new CaptiveState
                 {
-                    captiveId = "character:captive:durable-tool",
+                    captiveId = captiveId,
                     displayName = "도구 포로",
                     speciesTag = "human",
                     status = CaptivityStatus.Labor,
@@ -340,9 +356,15 @@ public static class CaptivityCircusDebugScenarios
                     assignedLaborToolItemId =
                         CaptivityItemDefinitions.PrisonerWorkKitItemId,
                     assignedLaborToolInstanceId =
-                        "item-instance:test-prisoner-work-kit",
+                        instanceId,
                     assignedLaborToolDurability = 80f,
                     assignedLaborToolMaximumDurability = 100f,
+                    laborToolAssignmentOperationId = operationId,
+                    laborToolAssignmentCommitId =
+                        $"physical-batch-disposition:1:{operationId}:1:1000",
+                    laborToolAssignmentSourceStackId =
+                        "stack:test-prisoner-work-kit",
+                    laborToolAssignmentCompleted = true,
                     nextLaborToolWearAt = 60f
                 }
             }
@@ -362,6 +384,133 @@ public static class CaptivityCircusDebugScenarios
             "labor remained valid with a broken assigned work kit");
         return "captivity tools are unique durable instances and labor save state requires a usable assigned kit";
     }
+
+    private static string VerifyLaborToolAssignmentPendingOutbox()
+    {
+        IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        var repository = new WorldItemRepository(
+            new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        var batch = new PhysicalItemBatchDispositionService(
+            repository,
+            new PhysicalItemMassQuery(catalog),
+            EditorNullItemMarkerPresenter.Instance);
+        const string captiveId = "character:captive:outbox";
+        const string instanceId = "item-instance:captive-work-kit:outbox";
+        ItemInstanceComponentSaveData durability =
+            DurableToolItemRules.CreateDurability(
+                CaptivityItemDefinitions.PrisonerWorkKitItemId,
+                80f);
+        string sourceStackId = repository.AddEditorTestStack(
+            CaptivityItemDefinitions.PrisonerWorkKitItemId,
+            1,
+            WorldItemStackState.FacilityBuffer,
+            destinationId: "captive-labor-tool:" + captiveId,
+            components: new[] { durability },
+            itemInstanceId: instanceId);
+        string operationId = CaptivityLaborToolAssignmentIdentity.FormatOperationId(
+            captiveId,
+            instanceId);
+        Require(batch.TryCommitPending(
+                new[] { new PhysicalItemTransformInput(sourceStackId, 1) },
+                PhysicalItemDispositionKind.Transfer,
+                operationId,
+                CaptivityLaborToolAssignmentOutbox.TransferReason,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out string commitFailure),
+            "labor-tool fixture could not stage pending transfer: "
+                + commitFailure);
+
+        var pending = new CaptiveState
+        {
+            captiveId = captiveId,
+            displayName = "outbox captive",
+            speciesTag = "human",
+            status = CaptivityStatus.Confined,
+            policyId = CaptivityPolicyIds.Standard,
+            housingBuildingId = "building:test-cell",
+            compliance = 60f,
+            health = 80f,
+            pendingLaborPermissions = CaptiveLaborPermission.Clean,
+            laborToolDestinationId = "captive-labor-tool:" + captiveId,
+            assignedLaborToolItemId =
+                CaptivityItemDefinitions.PrisonerWorkKitItemId,
+            assignedLaborToolInstanceId = instanceId,
+            assignedLaborToolDurability = 80f,
+            assignedLaborToolMaximumDurability = 100f,
+            laborToolAssignmentOperationId = operationId,
+            laborToolAssignmentCommitId = receipt.CommitId,
+            laborToolAssignmentSourceStackId = sourceStackId,
+            laborToolAssignmentCompleted = false
+        };
+        CaptivitySaveData pendingSave = CreateLaborToolOutboxSave(pending);
+        DungeonGameRestoreReport pendingReport = new DungeonGameRestoreReport();
+        CaptivitySaveValidation.Validate(pendingSave, pendingReport);
+        Require(pendingReport.Success,
+            "V3 rejected canonical pending labor-tool outbox: "
+                + string.Join(" | ", pendingReport.Errors));
+        Require(repository.GetEditorTestQuantity(sourceStackId) == 0
+            && repository.GetEditorPendingBatchDispositionCount() == 1,
+            "pending labor-tool transfer did not retain exact custody");
+
+        CaptiveState mismatched = pending.Clone();
+        mismatched.laborToolAssignmentCommitId += "1";
+        Require(!CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
+                mismatched,
+                batch,
+                out _)
+            && !mismatched.laborToolAssignmentCompleted
+            && repository.GetEditorPendingBatchDispositionCount() == 1,
+            "mismatched labor-tool receipt mutated domain or physical custody");
+
+        CaptivitySaveData malformedSave = CreateLaborToolOutboxSave(pending);
+        malformedSave.captives[0].laborToolAssignmentCommitId += ":tampered";
+        DungeonGameRestoreReport malformedReport = new DungeonGameRestoreReport();
+        CaptivitySaveValidation.Validate(malformedSave, malformedReport);
+        Require(!malformedReport.Success,
+            "V3 accepted malformed labor-tool assignment provenance");
+
+        CaptiveState restored = pending.Clone();
+        Require(CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
+                restored,
+                batch,
+                out string finalizeFailure),
+            "restored labor-tool outbox did not finalize: " + finalizeFailure);
+        Require(restored.laborToolAssignmentCompleted
+            && repository.GetEditorPendingBatchDispositionCount() == 0,
+            "labor-tool finalization did not terminalize and acknowledge exactly once");
+        restored.laborPermissions = restored.pendingLaborPermissions;
+        restored.pendingLaborPermissions = CaptiveLaborPermission.None;
+        restored.laborToolDestinationId = string.Empty;
+        restored.status = CaptivityStatus.Labor;
+        CaptivitySaveData terminalSave = CreateLaborToolOutboxSave(restored);
+        DungeonGameRestoreReport terminalReport = new DungeonGameRestoreReport();
+        CaptivitySaveValidation.Validate(terminalSave, terminalReport);
+        Require(terminalReport.Success,
+            "V3 rejected terminal labor-tool assignment: "
+                + string.Join(" | ", terminalReport.Errors));
+        Require(CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
+                restored,
+                batch,
+                out string replayFailure)
+            && repository.GetEditorPendingBatchDispositionCount() == 0,
+            "terminal labor-tool replay was not idempotent: " + replayFailure);
+        return "Captivity V3 preserves and reconciles exact labor-tool pending Transfer custody";
+    }
+
+    private static CaptivitySaveData CreateLaborToolOutboxSave(
+        CaptiveState captive) => new CaptivitySaveData
+    {
+        policies = new List<CaptivePolicyData>
+        {
+            new CaptivePolicyData
+            {
+                policyId = CaptivityPolicyIds.Standard,
+                displayName = "표준 수용"
+            }
+        },
+        captives = new List<CaptiveState> { captive.Clone() }
+    };
 
     private static string VerifyCircusPrograms()
     {

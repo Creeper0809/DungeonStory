@@ -68,22 +68,35 @@ internal sealed class ShopCrimeRuntime
             return false;
         }
 
-        stolenStock.stock--;
-        owner.NotifyStockChanged();
+        if (!owner.TryTakeExactRetailLot(
+                stolenStock.id,
+                out RetailStockLotSnapshot stolenLot,
+                out _))
+        {
+            return false;
+        }
+        if (!owner.TryCommitExactRetailExternalSink(
+                stolenLot,
+                out _))
+        {
+            if (!owner.TryRestoreTakenExactRetailLot(
+                    stolenLot,
+                    out string restoreFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Shoplifting lot '{stolenLot.sourceOperationId}' could not be restored: {restoreFailure}");
+            }
+            return false;
+        }
         StockCategory category = owner.GetStockCategoryForSaleItem(stolenStock.id);
         owner.PublishStockConsumed(actor, category);
-        if (!owner.TryGetSaleItem(stolenStock.id, out SaleItem saleItem)
-            || saleItem == null
-            || !saleItem.ItemDefinitionId.IsValid)
+        if (stolenLot == null
+            || stolenLot.quantity != 1
+            || string.IsNullOrWhiteSpace(stolenLot.itemDefinitionId))
         {
             throw new InvalidOperationException(
-                $"Stolen sale item '{stolenStock.id}' has no authored physical item definition.");
+                $"Stolen sale item '{stolenStock.id}' produced no exact physical lot receipt.");
         }
-
-        AddCustomerCarriedStock(
-            actor,
-            saleItem.ItemDefinitionId.Value,
-            $"theft:{stolenStock.id}:{owner.CurrentGameFrame}");
 
         int lossValue = Mathf.Max(0, stolenStock.cost);
         string detail = BuildCrimeDetail(actor, stolenStock, lossValue, chance);
@@ -119,22 +132,6 @@ internal sealed class ShopCrimeRuntime
     {
         return cart?.Where(stock => stock != null)
             .Sum(stock => Mathf.Max(0, stock.cost)) ?? 0;
-    }
-
-    private static void AddCustomerCarriedStock(
-        IBuildingVisitorPort actor,
-        string itemDefinitionId,
-        string sourceId)
-    {
-        if (actor == null)
-        {
-            return;
-        }
-
-        actor.AddCarriedItem(
-            sourceId,
-            itemDefinitionId,
-            1);
     }
 
     private void EnsureConfigured()

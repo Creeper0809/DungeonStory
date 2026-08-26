@@ -180,7 +180,8 @@ public enum CombatEquipmentWorldState
     Loose,
     ExpeditionPacked,
     MaintenanceBuffer,
-    Lost
+    Lost,
+    RetailStock
 }
 
 public enum CombatEquipmentLoadoutSlot

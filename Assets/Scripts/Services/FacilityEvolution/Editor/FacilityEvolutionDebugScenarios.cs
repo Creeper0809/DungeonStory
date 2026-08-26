@@ -33,6 +33,13 @@ public static class FacilityEvolutionDebugScenarios
         RunScenario("Runtime events build evolution records", VerifyRuntimeEventsBuildEvolutionRecords, errors);
         RunScenario("Evolution replaces facility and preserves lineage records", VerifyEvolutionReplacesFacilityAndPreservesLineageRecords, errors);
         RunScenario("Failed evolution keeps original facility", VerifyFailedEvolutionKeepsOriginalFacility, errors);
+        RunScenario("Failed replacement retries one pending material batch without a second debit", VerifyFailedReplacementReplaysPendingMaterialBatch, errors);
+        RunScenario("Pending material V4 tamper restores atomically", VerifyPendingMaterialV4TamperRestoresAtomically, errors);
+        RunScenario("Domain-applied material acknowledgement resumes without replacement replay", VerifyDomainAppliedAcknowledgementResume, errors);
+        RunScenario("Relocation package Transfer restore and acknowledgement are exact", FacilityRelocationPackageOutboxFixture.Run, errors);
+        RunScenario("Recalibration material Transfer restore and acknowledgement are exact", FacilityRecalibrationMaterialOutboxFixture.Run, errors);
+        RunScenario("Modification material batch Transfer restore and acknowledgement are exact", FacilityModificationMaterialOutboxFixture.Run, errors);
+        RunScenario("Pending material projection resumes the exact persisted result", VerifyPendingMaterialProjectionResumesExactResult, errors);
         RunScenario("Injected validator blocks candidate and evolution", VerifyInjectedValidatorBlocksCandidateAndEvolution, errors);
         RunScenario("Evolution UI renders context and executes approved candidate", VerifyEvolutionPanelRenderingAndAction, errors);
 
@@ -61,7 +68,7 @@ public static class FacilityEvolutionDebugScenarios
         }
         catch (Exception ex)
         {
-            errors.Add($"- {name}: {ex.GetType().Name} {ex.Message}");
+            errors.Add($"- {name}: {ex}");
         }
     }
 
@@ -284,12 +291,31 @@ public static class FacilityEvolutionDebugScenarios
             new WarehouseFacilityEvolutionResourceProvider(
                 new StaticWarehouseInventoryQuery(first, second));
         string materialId = StockCategoryPersistenceId.ToId(StockCategory.General);
+        FacilityEvolutionMaterialRequirement[] firstDebit =
+        {
+            new FacilityEvolutionMaterialRequirement { materialId = materialId, amount = 4 }
+        };
+        FacilityEvolutionMaterialRequirement[] rejectedDebit =
+        {
+            new FacilityEvolutionMaterialRequirement { materialId = materialId, amount = 2 }
+        };
 
         bool hadCombinedStock = provider.HasMaterial(materialId, 5);
-        bool consumed = provider.ConsumeMaterial(materialId, 4);
+        bool consumed = provider.TryCommitMaterialsPending(
+                firstDebit,
+                "facility-evolution-test:aggregate:1",
+                "facility-evolution-test-material",
+                out FacilityEvolutionMaterialCommitReceipt firstCommit,
+                out _)
+            && provider.AcknowledgeMaterialCommit(firstCommit.CommitId, out _);
         int afterConsume = first.GetStock(StockCategory.General)
             + second.GetStock(StockCategory.General);
-        bool rejectedWithoutPartialWithdrawal = !provider.ConsumeMaterial(materialId, 2);
+        bool rejectedWithoutPartialWithdrawal = !provider.TryCommitMaterialsPending(
+            rejectedDebit,
+            "facility-evolution-test:aggregate:2",
+            "facility-evolution-test-material",
+            out _,
+            out _);
         int afterRejectedConsume = first.GetStock(StockCategory.General)
             + second.GetStock(StockCategory.General);
 
@@ -633,6 +659,330 @@ public static class FacilityEvolutionDebugScenarios
             && occupant.id == world.SourceData.id;
     }
 
+    private static bool VerifyFailedReplacementReplaysPendingMaterialBatch()
+    {
+        using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
+        FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(
+            world.SourceData,
+            world.CombatResultData,
+            consumeRecordToken: false);
+        StaticFacilityEvolutionRecipeProvider recipes =
+            new StaticFacilityEvolutionRecipeProvider(recipe);
+        MemoryFacilityEvolutionResourceProvider resources =
+            new MemoryFacilityEvolutionResourceProvider();
+        resources.SetMaterial("high_grade_meat", 3);
+        FailOnceBuildingReplacer replacer = new FailOnceBuildingReplacer(
+            world.CreateReplacer());
+        FacilityEvolutionEngine engine = world.CreateEngine(
+            recipes,
+            resources,
+            buildingReplacer: replacer);
+
+        bool first = engine.TryEvolve(
+            world.SourceFacility,
+            recipe,
+            out FacilityEvolutionResult firstResult);
+        BuildableObject firstOccupant = world.Grid
+            .GetGridCell(world.SourcePosition)
+            .GetOccupant(GridLayer.Building) as BuildableObject;
+        bool materialWasDebited = resources.HasMaterial("high_grade_meat", 1)
+            && !resources.HasMaterial("high_grade_meat", 2);
+        FacilityEvolutionStateComponent sourceState =
+            world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
+        bool sourceAliveAfterFirst = !world.SourceFacility.isDestroy
+            && ReferenceEquals(firstOccupant, world.SourceFacility);
+        bool pendingAfterFirst = sourceState != null
+            && sourceState.HasPendingMaterialCommit;
+        string pendingPayload = sourceState?.CaptureState();
+        bool currentFormatRoundTrip = sourceState != null
+            && sourceState.TryRestoreState(
+                sourceState.CurrentVersion,
+                pendingPayload,
+                out _)
+            && sourceState.HasPendingMaterialCommit;
+
+        bool second = engine.TryEvolve(
+            world.SourceFacility,
+            recipe,
+            out FacilityEvolutionResult secondResult);
+        BuildableObject secondOccupant = world.Grid
+            .GetGridCell(world.SourcePosition)
+            .GetOccupant(GridLayer.Building) as BuildableObject;
+
+        bool passed = !first
+            && !firstResult.Success
+            && sourceAliveAfterFirst
+            && materialWasDebited
+            && pendingAfterFirst
+            && currentFormatRoundTrip
+            && second
+            && secondResult.Success
+            && secondResult.ResultBuilding != null
+            && secondOccupant == secondResult.ResultBuilding
+            && resources.HasMaterial("high_grade_meat", 1)
+            && !resources.HasMaterial("high_grade_meat", 2)
+            && !secondResult.ResultBuilding
+                .GetComponent<FacilityEvolutionStateComponent>()
+                .HasPendingMaterialCommit
+            && replacer.TryReplaceCalls == 2;
+        if (!passed)
+        {
+            Debug.LogError(
+                $"Pending material retry detail: first={first}/{firstResult.Message}, "
+                + $"second={second}/{secondResult.Message}, "
+                + $"pendingAfterFirst={pendingAfterFirst}, roundTrip={currentFormatRoundTrip}, "
+                + $"sourceAliveAfterFirst={sourceAliveAfterFirst}, "
+                + $"debited={materialWasDebited}, replaceCalls={replacer.TryReplaceCalls}, "
+                + $"secondOccupant={secondOccupant}.");
+        }
+        return passed;
+    }
+
+    private static bool VerifyPendingMaterialV4TamperRestoresAtomically()
+    {
+        using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
+        FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(
+            world.SourceData,
+            world.CombatResultData,
+            consumeRecordToken: false);
+        MemoryFacilityEvolutionResourceProvider resources =
+            new MemoryFacilityEvolutionResourceProvider();
+        resources.SetMaterial("high_grade_meat", 3);
+        FacilityEvolutionEngine engine = world.CreateEngine(
+            new StaticFacilityEvolutionRecipeProvider(recipe),
+            resources,
+            buildingReplacer: new FailOnceBuildingReplacer(world.CreateReplacer()));
+        if (engine.TryEvolve(world.SourceFacility, recipe, out _))
+        {
+            return false;
+        }
+
+        FacilityEvolutionStateComponent state =
+            world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
+        string canonical = state.CaptureState();
+        if (string.IsNullOrWhiteSpace(canonical)
+            || !state.HasPendingMaterialCommit)
+        {
+            return false;
+        }
+
+        void ResetCanonical()
+        {
+            state.ApplySnapshot(
+                JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(canonical));
+        }
+
+        bool RejectStructuralTamper(Action<FacilityEvolutionStateSnapshot> mutate)
+        {
+            ResetCanonical();
+            FacilityEvolutionStateSnapshot tampered =
+                JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(canonical);
+            mutate(tampered);
+            bool rejected = !state.TryRestoreState(
+                state.CurrentVersion,
+                JsonUtility.ToJson(tampered),
+                out _);
+            return rejected
+                && string.Equals(state.CaptureState(), canonical, StringComparison.Ordinal);
+        }
+
+        bool RejectPhysicalJoinTamper(Action<FacilityEvolutionStateSnapshot> mutate)
+        {
+            ResetCanonical();
+            FacilityEvolutionStateSnapshot tampered =
+                JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(canonical);
+            mutate(tampered);
+            state.ApplySnapshot(tampered);
+            FacilityEvolutionPendingMaterialRestoreGuard guard =
+                new FacilityEvolutionPendingMaterialRestoreGuard(
+                    new GridOccupantBuildingQuery(
+                        world.Grid,
+                        world.SourcePosition),
+                    resources,
+                    new EvolutionScenarioWorld.EditorFacilityEvolutionRecipeQuery(
+                        new StaticFacilityEvolutionRecipeProvider(recipe),
+                        new FacilityEvolutionStateComponentFactory()));
+            guard.BeginRestoreCandidate();
+            bool rejected = false;
+            try
+            {
+                guard.PublishRestoreCandidate();
+            }
+            catch (InvalidOperationException)
+            {
+                rejected = true;
+            }
+            finally
+            {
+                guard.DiscardRestoreCandidate();
+            }
+
+            FacilityEvolutionPendingMaterialCommitSnapshot canonicalPending =
+                JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(canonical)
+                    .pendingMaterialCommit;
+            bool physicalReceiptPreserved = resources.TryGetPendingMaterialCommit(
+                canonicalPending.operationId,
+                canonicalPending.reasonCode,
+                out FacilityEvolutionMaterialCommitReceipt receipt,
+                out _)
+                && FacilityEvolutionMaterialCommitAuthority.Matches(
+                    canonicalPending,
+                    receipt);
+            ResetCanonical();
+            return rejected
+                && physicalReceiptPreserved
+                && string.Equals(state.CaptureState(), canonical, StringComparison.Ordinal);
+        }
+
+        bool commitRejected = RejectPhysicalJoinTamper(snapshot =>
+            snapshot.pendingMaterialCommit.commitId += ":tampered");
+        bool quantityRejected = RejectPhysicalJoinTamper(snapshot =>
+            snapshot.pendingMaterialCommit.quantity++);
+        bool gramsRejected = RejectPhysicalJoinTamper(snapshot =>
+            snapshot.pendingMaterialCommit.inputMassGrams++);
+        bool recipeRejected = RejectStructuralTamper(snapshot =>
+            snapshot.pendingMaterialCommit.recipeId += ":tampered");
+        bool sourceRejected = RejectStructuralTamper(snapshot =>
+            snapshot.pendingMaterialCommit.sourceStackIds = new[]
+            {
+                snapshot.pendingMaterialCommit.sourceStackIds[0],
+                snapshot.pendingMaterialCommit.sourceStackIds[0]
+            });
+        bool resultRejected = RejectStructuralTamper(snapshot =>
+        {
+            FacilityEvolutionStateSnapshot resolved =
+                snapshot.pendingMaterialCommit.ReadResolvedResultState();
+            resolved.currentFacilityId += ":tampered";
+            snapshot.pendingMaterialCommit.resolvedResultPayload =
+                JsonUtility.ToJson(resolved);
+        });
+
+        bool passed = commitRejected
+            && quantityRejected
+            && gramsRejected
+            && recipeRejected
+            && sourceRejected
+            && resultRejected;
+        if (!passed)
+        {
+            Debug.LogError(
+                $"Facility V4 tamper detail: commit={commitRejected}, "
+                + $"quantity={quantityRejected}, grams={gramsRejected}, "
+                + $"recipe={recipeRejected}, source={sourceRejected}, "
+                + $"result={resultRejected}.");
+        }
+        return passed;
+    }
+
+    private static bool VerifyDomainAppliedAcknowledgementResume()
+    {
+        using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
+        FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(
+            world.SourceData,
+            world.CombatResultData,
+            consumeRecordToken: false);
+        MemoryFacilityEvolutionResourceProvider inner =
+            new MemoryFacilityEvolutionResourceProvider();
+        inner.SetMaterial("high_grade_meat", 3);
+        FailOnceAcknowledgementResourceProvider resources =
+            new FailOnceAcknowledgementResourceProvider(inner);
+        RecordingBuildingReplacer replacer = new RecordingBuildingReplacer(
+            world.CreateReplacer());
+        FacilityEvolutionEngine engine = world.CreateEngine(
+            new StaticFacilityEvolutionRecipeProvider(recipe),
+            resources,
+            buildingReplacer: replacer);
+
+        bool first = engine.TryEvolve(world.SourceFacility, recipe, out _);
+        BuildableObject published = world.Grid
+            .GetGridCell(world.SourcePosition)
+            .GetOccupant(GridLayer.Building) as BuildableObject;
+        FacilityEvolutionStateComponent publishedState =
+            published?.GetComponent<FacilityEvolutionStateComponent>();
+        bool domainApplied = !first
+            && published != null
+            && publishedState != null
+            && publishedState.PendingMaterialCommit?.phase
+                == FacilityEvolutionMaterialCommitPhase.DomainApplied;
+
+        bool second = engine.TryResumePending(
+            published,
+            out FacilityEvolutionResult resumed,
+            out _);
+        BuildableObject afterResume = world.Grid
+            .GetGridCell(world.SourcePosition)
+            .GetOccupant(GridLayer.Building) as BuildableObject;
+
+        return domainApplied
+            && second
+            && resumed.Success
+            && ReferenceEquals(afterResume, published)
+            && replacer.TryReplaceCalls == 1
+            && resources.AcknowledgeCalls == 2
+            && !publishedState.HasPendingMaterialCommit
+            && inner.HasMaterial("high_grade_meat", 1)
+            && !inner.HasMaterial("high_grade_meat", 2);
+    }
+
+    private static bool VerifyPendingMaterialProjectionResumesExactResult()
+    {
+        using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
+        FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(
+            world.SourceData,
+            world.CombatResultData,
+            consumeRecordToken: false);
+        StaticFacilityEvolutionRecipeProvider recipes =
+            new StaticFacilityEvolutionRecipeProvider(recipe);
+        MemoryFacilityEvolutionResourceProvider resources =
+            new MemoryFacilityEvolutionResourceProvider();
+        resources.SetMaterial("high_grade_meat", 3);
+        FailOnceBuildingReplacer replacer = new FailOnceBuildingReplacer(
+            world.CreateReplacer());
+        FacilityEvolutionRuntime runtime = world.CreateRuntime(
+            recipes,
+            resources,
+            replacer);
+
+        bool first = runtime.TryEvolve(world.SourceFacility, recipe, out _);
+        FacilityEvolutionStateComponent sourceState =
+            world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
+        string pendingPayload = sourceState.CaptureState();
+        bool restored = !first
+            && sourceState.TryRestoreState(
+                sourceState.CurrentVersion,
+                pendingPayload,
+                out _)
+            && sourceState.HasPendingMaterialCommit;
+
+        FacilityEvolutionPendingMaterialProjection projection =
+            new FacilityEvolutionPendingMaterialProjection(
+                new GridOccupantBuildingQuery(world.Grid, world.SourcePosition),
+                new FacilityCandidateCacheStore(
+                    CharacterAiEditorTestDependencies.WorldRegistry,
+                    frameWorkBudget: null),
+                new FacilityFeatureSceneRuntimeReferences(runtime, null, null));
+        projection.Initialize();
+
+        BuildableObject resultBuilding = world.Grid
+            .GetGridCell(world.SourcePosition)
+            .GetOccupant(GridLayer.Building) as BuildableObject;
+        FacilityEvolutionStateComponent resultState =
+            resultBuilding?.GetComponent<FacilityEvolutionStateComponent>();
+        return restored
+            && resultBuilding != null
+            && resultBuilding.BuildingData == world.CombatResultData
+            && resultState != null
+            && !resultState.HasPendingMaterialCommit
+            && resultState.EvolutionHistory.Count == 1
+            && string.Equals(
+                resultState.EvolutionHistory[0].evolutionId,
+                recipe.EffectiveId,
+                StringComparison.Ordinal)
+            && replacer.TryReplaceCalls == 2
+            && resources.HasMaterial("high_grade_meat", 1)
+            && !resources.HasMaterial("high_grade_meat", 2);
+    }
+
     private static bool VerifyInjectedValidatorBlocksCandidateAndEvolution()
     {
         using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
@@ -936,15 +1286,67 @@ public static class FacilityEvolutionDebugScenarios
             return warehouses;
         }
 
-        public int Consume(StockCategory category, int amount)
+        public bool TryGetPending(
+            string operationId,
+            string reasonCode,
+            out FacilityEvolutionMaterialCommitReceipt receipt,
+            out string failureReason)
         {
-            int remaining = amount;
-            foreach (IWarehouseFacility warehouse in warehouses)
+            receipt = default;
+            failureReason = string.Empty;
+            return false;
+        }
+
+        public bool TryCommitPending(
+            IReadOnlyList<FacilityEvolutionMaterialDebit> debits,
+            string operationId,
+            string reasonCode,
+            out FacilityEvolutionMaterialCommitReceipt receipt,
+            out string failureReason)
+        {
+            receipt = default;
+            failureReason = string.Empty;
+            Dictionary<StockCategory, int> totals = (debits
+                    ?? Array.Empty<FacilityEvolutionMaterialDebit>())
+                .Where(debit => debit.Amount > 0)
+                .GroupBy(debit => debit.Category)
+                .ToDictionary(group => group.Key, group => group.Sum(debit => debit.Amount));
+            if (totals.Any(entry => warehouses.Sum(warehouse =>
+                    warehouse.Inventory.GetStock(entry.Key)) < entry.Value))
             {
-                remaining -= warehouse.Inventory.ConsumePhysicalStockForTest(category, remaining);
-                if (remaining == 0) break;
+                failureReason = "facility-evolution-test-material-unavailable";
+                return false;
             }
-            return amount - remaining;
+            foreach (KeyValuePair<StockCategory, int> entry in totals
+                         .OrderBy(entry => (int)entry.Key))
+            {
+                int remaining = entry.Value;
+                foreach (IWarehouseFacility warehouse in warehouses)
+                {
+                    remaining -= warehouse.Inventory.ConsumePhysicalStockForTest(
+                        entry.Key,
+                        remaining);
+                    if (remaining == 0)
+                    {
+                        break;
+                    }
+                }
+            }
+            int total = totals.Values.Sum();
+            receipt = new FacilityEvolutionMaterialCommitReceipt(
+                operationId,
+                reasonCode,
+                $"physical-batch-disposition:1:{operationId}:{total}:{total}",
+                new[] { "facility-evolution-test-stack" },
+                total,
+                total);
+            return true;
+        }
+
+        public bool Acknowledge(string commitId, out string failureReason)
+        {
+            failureReason = string.Empty;
+            return !string.IsNullOrWhiteSpace(commitId);
         }
     }
 
@@ -983,6 +1385,145 @@ public static class FacilityEvolutionDebugScenarios
             FacilityEvolutionValidationResult result = new FacilityEvolutionValidationResult();
             result.Reject(reason);
             return result;
+        }
+    }
+
+    private sealed class FailOnceBuildingReplacer : IFacilityEvolutionBuildingReplacer
+    {
+        private readonly IFacilityEvolutionBuildingReplacer inner;
+
+        internal FailOnceBuildingReplacer(IFacilityEvolutionBuildingReplacer inner)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        public int TryReplaceCalls { get; private set; }
+
+        public bool CanReplace(
+            BuildableObject source,
+            BuildingSO resultBuilding,
+            out string reason) => inner.CanReplace(source, resultBuilding, out reason);
+
+        public bool TryReplace(
+            BuildableObject source,
+            BuildingSO resultBuilding,
+            out BuildableObject result,
+            out string reason)
+        {
+            TryReplaceCalls++;
+            if (TryReplaceCalls == 1)
+            {
+                result = null;
+                reason = "injected replacement failure";
+                return false;
+            }
+            return inner.TryReplace(source, resultBuilding, out result, out reason);
+        }
+    }
+
+    private sealed class RecordingBuildingReplacer : IFacilityEvolutionBuildingReplacer
+    {
+        private readonly IFacilityEvolutionBuildingReplacer inner;
+
+        internal RecordingBuildingReplacer(IFacilityEvolutionBuildingReplacer inner)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        public int TryReplaceCalls { get; private set; }
+
+        public bool CanReplace(
+            BuildableObject source,
+            BuildingSO resultBuilding,
+            out string reason) => inner.CanReplace(source, resultBuilding, out reason);
+
+        public bool TryReplace(
+            BuildableObject source,
+            BuildingSO resultBuilding,
+            out BuildableObject result,
+            out string reason)
+        {
+            TryReplaceCalls++;
+            return inner.TryReplace(source, resultBuilding, out result, out reason);
+        }
+    }
+
+    private sealed class FailOnceAcknowledgementResourceProvider :
+        IFacilityEvolutionResourceProvider
+    {
+        private readonly IFacilityEvolutionResourceProvider inner;
+
+        internal FailOnceAcknowledgementResourceProvider(
+            IFacilityEvolutionResourceProvider inner)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        public int AcknowledgeCalls { get; private set; }
+
+        public bool HasMaterial(string materialId, int amount) =>
+            inner.HasMaterial(materialId, amount);
+
+        public bool TryGetPendingMaterialCommit(
+            string operationId,
+            string reasonCode,
+            out FacilityEvolutionMaterialCommitReceipt receipt,
+            out string failureReason) => inner.TryGetPendingMaterialCommit(
+            operationId,
+            reasonCode,
+            out receipt,
+            out failureReason);
+
+        public bool TryCommitMaterialsPending(
+            IReadOnlyList<FacilityEvolutionMaterialRequirement> requirements,
+            string operationId,
+            string reasonCode,
+            out FacilityEvolutionMaterialCommitReceipt receipt,
+            out string failureReason) => inner.TryCommitMaterialsPending(
+            requirements,
+            operationId,
+            reasonCode,
+            out receipt,
+            out failureReason);
+
+        public bool AcknowledgeMaterialCommit(
+            string commitId,
+            out string failureReason)
+        {
+            AcknowledgeCalls++;
+            if (AcknowledgeCalls == 1)
+            {
+                failureReason = "injected acknowledgement failure";
+                return false;
+            }
+            return inner.AcknowledgeMaterialCommit(commitId, out failureReason);
+        }
+    }
+
+    private sealed class GridOccupantBuildingQuery : IBuildingWorldQuery
+    {
+        private readonly Grid grid;
+        private readonly Vector2Int position;
+
+        internal GridOccupantBuildingQuery(Grid grid, Vector2Int position)
+        {
+            this.grid = grid ?? throw new ArgumentNullException(nameof(grid));
+            this.position = position;
+        }
+
+        public int BuildingVersion => 0;
+
+        public IReadOnlyList<BuildableObject> Buildings
+        {
+            get
+            {
+                BuildableObject building = grid
+                    .GetGridCell(position)
+                    ?.GetOccupant(GridLayer.Building) as BuildableObject;
+                return building != null
+                    ? new[] { building }
+                    : Array.Empty<BuildableObject>();
+            }
         }
     }
 
@@ -1068,7 +1609,8 @@ public static class FacilityEvolutionDebugScenarios
             IFacilityEvolutionValidator validator = null,
             IFacilityEvolutionCandidateBuilder candidateBuilder = null,
             IFacilityEvolutionRecordTokenConsumer recordTokenConsumer = null,
-            IFacilityEvolutionMutationResolver mutationResolver = null)
+            IFacilityEvolutionMutationResolver mutationResolver = null,
+            IFacilityEvolutionBuildingReplacer buildingReplacer = null)
         {
             FacilityEvolutionRecordComponentService records =
                 new FacilityEvolutionRecordComponentService(new FacilityEvolutionRecordComponentFactory());
@@ -1095,7 +1637,7 @@ public static class FacilityEvolutionDebugScenarios
             FacilityEvolutionExecutionContext execution =
                 new FacilityEvolutionExecutionContext(
                     resources ?? new EmptyFacilityEvolutionResourceProvider(),
-                    CreateReplacer(),
+                    buildingReplacer ?? CreateReplacer(),
                     candidateCache,
                     () => null,
                     resolvedValidator,
@@ -1108,7 +1650,8 @@ public static class FacilityEvolutionDebugScenarios
 
         public FacilityEvolutionRuntime CreateRuntime(
             IFacilityEvolutionRecipeProvider recipes,
-            IFacilityEvolutionResourceProvider resources = null)
+            IFacilityEvolutionResourceProvider resources = null,
+            IFacilityEvolutionBuildingReplacer buildingReplacer = null)
         {
             GameObject obj = new GameObject("FacilityEvolutionRuntime");
             cleanup.Add(obj);
@@ -1130,7 +1673,7 @@ public static class FacilityEvolutionDebugScenarios
                 records,
                 new RuleBasedFacilityEvolutionProposalProvider(),
                 resources ?? new EmptyFacilityEvolutionResourceProvider(),
-                CreateReplacer(),
+                buildingReplacer ?? CreateReplacer(),
                 rooms,
                 states,
                 candidateCache,
@@ -1147,7 +1690,7 @@ public static class FacilityEvolutionDebugScenarios
             return runtime;
         }
 
-        private sealed class EditorFacilityEvolutionRecipeQuery : IFacilityEvolutionRecipeQuery
+        public sealed class EditorFacilityEvolutionRecipeQuery : IFacilityEvolutionRecipeQuery
         {
             private readonly IFacilityEvolutionRecipeProvider provider;
             private readonly IFacilityEvolutionStateComponentFactory stateComponentFactory;
@@ -1219,7 +1762,7 @@ public static class FacilityEvolutionDebugScenarios
                 false);
         }
 
-        private GridFacilityEvolutionBuildingReplacer CreateReplacer()
+        internal GridFacilityEvolutionBuildingReplacer CreateReplacer()
         {
             return new GridFacilityEvolutionBuildingReplacer(new GridBuildingFactory((created) =>
             {

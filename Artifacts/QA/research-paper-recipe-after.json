@@ -1,0 +1,76 @@
+{
+    "MonoBehaviour": {
+        "m_Enabled": true,
+        "m_EditorHideFlags": 0,
+        "m_Name": "V3R05_종이",
+        "m_EditorClassIdentifier": "Assembly-CSharp::ProductionRecipeSO",
+        "serializationData": {
+            "SerializedFormat": 2,
+            "SerializedBytes": [],
+            "ReferencedUnityObjects": [],
+            "SerializedBytesString": "",
+            "Prefab": {
+                "instanceID": 0
+            },
+            "PrefabModificationsReferencedUnityObjects": [],
+            "PrefabModifications": [],
+            "SerializationNodes": []
+        },
+        "id": 19105,
+        "recipeId": "recipe:material:paper",
+        "displayName": "종이",
+        "description": "구체 재료를 사용해 종이을(를) 생산한다.",
+        "facilityTag": "workstation:v3:prototype",
+        "workstationTag": "workstation:v3:prototype",
+        "requiredSupportTags": [],
+        "batchSupportTag": "",
+        "processKind": 0,
+        "flowRole": 0,
+        "processClass": 6,
+        "processClassAuthored": true,
+        "workTypeId": "work:craft",
+        "proficiency": {
+            "primaryProficiencyId": "proficiency:crafting",
+            "secondaryProficiencyId": "",
+            "primaryWeight": 1.0,
+            "combinationMode": 0,
+            "recommendedRank": 2,
+            "minimumRiskRank": 0
+        },
+        "requiredResearchId": "research:equipment:engineering-drawing",
+        "requiredWork": 68.0,
+        "preparationWork": 0.0,
+        "finishingWork": 0.0,
+        "processingGameHours": 0.0,
+        "optimalTemperatureC": {
+            "x": 12.0,
+            "y": 24.0
+        },
+        "warningTemperatureC": {
+            "x": 4.0,
+            "y": 32.0
+        },
+        "cleanWaterPerCycle": 0.0,
+        "wastewaterPerCycle": 0.0,
+        "wastewaterComposition": 0,
+        "allowsManualWaterFallback": false,
+        "spoilageItemId": "waste:mixed-rot",
+        "inputs": [
+            {
+                "itemId": "material:lumber",
+                "amount": 1
+            },
+            {
+                "itemId": "resource:clean-water",
+                "amount": 1
+            }
+        ],
+        "outputs": [
+            {
+                "itemId": "material:paper",
+                "amount": 4,
+                "probability": 1.0
+            }
+        ]
+    }
+}

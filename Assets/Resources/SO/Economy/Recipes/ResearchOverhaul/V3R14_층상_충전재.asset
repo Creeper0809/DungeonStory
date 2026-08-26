@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: resource:wool
     amount: 1
   outputs:
-  - itemId: textile:quilted-liner
+  - outputLineId: output:recipe:textile:quilted-liner/000/main/textile:quilted-liner
+    role: 0
+    itemId: textile:quilted-liner
     amount: 1
     probability: 1

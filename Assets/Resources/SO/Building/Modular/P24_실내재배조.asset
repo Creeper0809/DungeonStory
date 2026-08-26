@@ -60,8 +60,8 @@ MonoBehaviour:
     - rid: 7737211921440178956
     - rid: 7737211921440178957
     - rid: 7737211921440178958
-    - rid: 7737212042831200775
-    - rid: 7737212042831200776
+    - rid: 1002
+    - rid: 1003
   width: 3
   height: 1
   layer: 1
@@ -77,6 +77,34 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 1002
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:hydroponics
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 1003
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
     - rid: 7737211921440178951
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
@@ -137,7 +165,7 @@ MonoBehaviour:
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 6291460
+          supportedWorkTypes: 6324228
           disabledWhenDamaged: 1
     - rid: 7737211921440178957
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
@@ -168,31 +196,3 @@ MonoBehaviour:
           amount: 1
         - itemId: supply:nitrate-fertilizer
           amount: 1
-    - rid: 7737212042831200775
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:hydroponics
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737212042831200776
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 4
-        outputCapacities:
-        - itemId: material:lead-ingot
-          capacity: 24
-        - itemId: material:lead-shot
-          capacity: 96
-        - itemId: material:black-powder
-          capacity: 48
-        - itemId: material:paper
-          capacity: 64
-        - itemId: ammo:paper-cartridge
-          capacity: 120
-        - itemId: component:machine-parts
-          capacity: 16
-        - itemId: component:precision-parts
-          capacity: 16
-        allowOverflowDump: 1
-        overflowOffset: {x: 1, y: 0}

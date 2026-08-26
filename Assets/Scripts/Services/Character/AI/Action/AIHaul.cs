@@ -88,7 +88,7 @@ public sealed class AIHaul : AIActionSet
 
     public override void OnStop(CharacterActor actor, AIAction runningAction, string reason)
     {
-        actor?.GetComponent<AbilityHaul>()?.StopHauling(reason);
+        actor?.GetComponent<AbilityHaul>()?.StopHaulingForReplan(reason);
     }
 
     private static bool TryGetEnabledPriority(CharacterActor actor, out WorkPriorityLevel priority)

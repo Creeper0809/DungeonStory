@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9074
+  id: 9075
   recipeId: recipe:bedding-animal
   displayName: "\uD138 \uAE54\uC9DA"
   description: "\uD138 \uAE54\uC9DA \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:hide
     amount: 1
   outputs:
-  - itemId: husbandry:bedding
+  - outputLineId: output:recipe:bedding-animal/000/main/husbandry:bedding
+    role: 0
+    itemId: husbandry:bedding
     amount: 2
     probability: 1

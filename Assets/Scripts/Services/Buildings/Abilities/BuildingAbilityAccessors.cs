@@ -150,6 +150,16 @@ public static class BuildingAbilityAccessors
         return 0;
     }
 
+    public static long GetStorageMassCapacityGrams(this BuildingSO building)
+    {
+        BuildingStorageAbility ability = building != null
+            ? building.GetAbility<BuildingStorageAbility>()
+            : null;
+        return ability != null
+            ? Math.Max(0L, ability.maxStoredMassGrams)
+            : 0L;
+    }
+
     public static StockCategory GetStorageCategory(this BuildingSO building)
     {
         BuildingStorageAbility ability = building != null
@@ -440,6 +450,11 @@ public static class BuildingAbilityAccessors
     public static int GetStorageCapacity(this BuildableObject building)
     {
         return building?.BuildingData.GetStorageCapacity() ?? 0;
+    }
+
+    public static long GetStorageMassCapacityGrams(this BuildableObject building)
+    {
+        return building?.BuildingData.GetStorageMassCapacityGrams() ?? 0L;
     }
 
     public static int GetInternalStockCapacity(this BuildableObject building)

@@ -7,9 +7,16 @@ using UnityEngine;
 /// Owns the lifecycle of expedition equipment modules. Module state lives in the
 /// physical item repository; this aggregate only applies validated transitions.
 /// </summary>
-public sealed class EquipmentModuleRuntime
+public interface IEquipmentModuleAppraisalRecovery
+{
+    bool TryRecoverPendingAppraisals(out DomainFailure failure);
+}
+
+public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
 {
     private const string MaterialTestCouponItemId = "component:material-test-coupon";
+    private const string AppraisalDispositionReasonCode =
+        "equipment-module-material-test";
     private readonly IItemInstanceRepository itemInstances;
     private readonly ICombatEquipmentCatalog equipmentCatalog;
     private readonly IEquipmentModuleCatalog moduleCatalog;
@@ -120,6 +127,26 @@ public sealed class EquipmentModuleRuntime
         BuildableObject facility,
         out DomainFailure failure)
     {
+        string normalizedModuleId = moduleInstanceId?.Trim() ?? string.Empty;
+        if (!Modules.TryGetValue(
+                normalizedModuleId,
+                out EquipmentModuleInstance module))
+        {
+            failure = new DomainFailure(FailureCode.ModuleNotUnidentified);
+            return false;
+        }
+        if (!TryRecoverPendingAppraisal(
+                module,
+                out bool recoveredOperation,
+                out failure))
+        {
+            return false;
+        }
+        if (recoveredOperation)
+        {
+            return true;
+        }
+
         if (!TryRequireFacility(
                 facility,
                 EquipmentProgressionWorkstationTags.Appraisal,
@@ -136,9 +163,8 @@ public sealed class EquipmentModuleRuntime
                 "facility:equipment:appraisal-bench");
             return false;
         }
-        if (!Modules.TryGetValue(moduleInstanceId?.Trim() ?? string.Empty,
-                out EquipmentModuleInstance module)
-            || module.state != EquipmentModuleProcessState.Unidentified)
+        if (module.state != EquipmentModuleProcessState.Unidentified
+            || module.identified)
         {
             failure = new DomainFailure(FailureCode.ModuleNotUnidentified);
             return false;
@@ -152,6 +178,7 @@ public sealed class EquipmentModuleRuntime
         if (!TryPrepareAppraisalSupplies(
                 facility,
                 destinationId,
+                out WorldItemStackSnapshot coupon,
                 out WorldItemStackSnapshot gauge,
                 out WorldItemStackSnapshot lens,
                 out failure))
@@ -159,48 +186,86 @@ public sealed class EquipmentModuleRuntime
             return false;
         }
 
-        if (!physicalItems.TryConsumeFacilityItemBuffer(
-                destinationId,
-                new Dictionary<string, int>(StringComparer.Ordinal)
-                {
-                    [MaterialTestCouponItemId] = 1
-                },
-                out _))
+        EquipmentModuleInstance beforeIntent = module.Clone();
+        int sequence = module.nextAppraisalOperationSequence;
+        string operationId = FormatAppraisalOperationId(
+            module.instanceId,
+            sequence);
+        float gaugeBefore = DurableToolItemRules.ReadCurrentDurability(
+            gauge.ItemId,
+            gauge.Components);
+        float lensBefore = DurableToolItemRules.ReadCurrentDurability(
+            lens.ItemId,
+            lens.Components);
+        module.pendingAppraisal = new EquipmentModuleAppraisalCommitSaveData
         {
+            phase = (int)EquipmentModuleAppraisalCommitPhase.IntentRecorded,
+            operationSequence = sequence,
+            operationId = operationId,
+            reasonCode = AppraisalDispositionReasonCode,
+            moduleInstanceId = module.instanceId,
+            destinationId = destinationId,
+            couponStackId = coupon.StackId,
+            couponItemId = MaterialTestCouponItemId,
+            quantity = 1,
+            moduleIdentifiedBefore = false,
+            moduleIdentifiedAfter = true,
+            moduleStateBefore = EquipmentModuleProcessState.Unidentified,
+            moduleStateAfter = EquipmentModuleProcessState.IdentifiedDamaged,
+            gaugeStackId = gauge.StackId,
+            gaugeItemId = gauge.ItemId,
+            gaugeDurabilityBefore = gaugeBefore,
+            gaugeDurabilityAfter = Mathf.Max(0f, gaugeBefore - 1f),
+            lensStackId = lens.StackId,
+            lensItemId = lens.ItemId,
+            lensDurabilityBefore = lensBefore,
+            lensDurabilityAfter = Mathf.Max(0f, lensBefore - 2f)
+        };
+        if (!PersistModulePhysicalState(module))
+        {
+            RestoreModuleState(module, beforeIntent);
             failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
             return false;
         }
 
-        EquipmentModuleInstance previous = module.Clone();
-        module.identified = true;
-        module.state = EquipmentModuleProcessState.IdentifiedDamaged;
-        if (!PersistModulePhysicalState(module))
+        if (!physicalItems.TryCommitPendingBatchPhysicalDisposition(
+                new[] { new PhysicalItemTransformInput(coupon.StackId, 1) },
+                PhysicalItemDispositionKind.Sink,
+                operationId,
+                AppraisalDispositionReasonCode,
+                out _,
+                out _))
         {
-            RestoreModuleState(module, previous);
+            if (!TryClearPendingAppraisal(
+                    module,
+                    advanceSequence: false))
+            {
+                throw new InvalidOperationException(
+                    $"Could not clear uncommitted appraisal intent '{operationId}'.");
+            }
             failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
             return false;
         }
-        WearAppraisalTool(gauge, 1f);
-        WearAppraisalTool(lens, 2f);
-        failure = DomainFailure.None;
-        return true;
+
+        return TryRecoverPendingAppraisal(
+                module,
+                out bool completed,
+                out failure)
+            && completed;
     }
 
     private bool TryPrepareAppraisalSupplies(
         BuildableObject facility,
         string destinationId,
+        out WorldItemStackSnapshot coupon,
         out WorldItemStackSnapshot gauge,
         out WorldItemStackSnapshot lens,
         out DomainFailure failure)
     {
+        coupon = FindAvailableCoupon(destinationId);
         gauge = FindUsableTool(destinationId, DurableToolItemRules.InspectionGauge);
         lens = FindUsableTool(destinationId, DurableToolItemRules.RuneIdentificationLens);
-        bool hasCoupon = physicalItems.GetAllStacks().Any(stack =>
-            stack != null
-            && stack.State == WorldItemStackState.FacilityBuffer
-            && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
-            && string.Equals(stack.ItemId, MaterialTestCouponItemId, StringComparison.Ordinal)
-            && stack.Quantity > 0);
+        bool hasCoupon = coupon != null;
         if (gauge != null && lens != null && hasCoupon)
         {
             failure = DomainFailure.None;
@@ -224,6 +289,26 @@ public sealed class EquipmentModuleRuntime
             lens != null);
         failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
         return false;
+    }
+
+    private WorldItemStackSnapshot FindAvailableCoupon(string destinationId)
+    {
+        return physicalItems.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && stack.ReservedQuantity == 0
+                && string.IsNullOrEmpty(stack.ReservedByPersistentId)
+                && string.Equals(
+                    stack.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.ItemId,
+                    MaterialTestCouponItemId,
+                    StringComparison.Ordinal)
+                && stack.AvailableQuantity > 0)
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     private void RequestMissingAppraisalSupply(
@@ -263,19 +348,344 @@ public sealed class EquipmentModuleRuntime
             .FirstOrDefault();
     }
 
-    private void WearAppraisalTool(WorldItemStackSnapshot tool, float wear)
+    internal static string FormatAppraisalOperationId(
+        string moduleInstanceId,
+        int sequence) =>
+        $"equipment-module-appraisal:{moduleInstanceId}:{sequence:D8}";
+
+    public bool TryRecoverPendingAppraisals(out DomainFailure failure)
     {
+        foreach (EquipmentModuleInstance module in Modules.Values
+                     .Where(value => value != null)
+                     .OrderBy(value => value.instanceId, StringComparer.Ordinal))
+        {
+            if (!TryRecoverPendingAppraisal(module, out _, out failure))
+            {
+                return false;
+            }
+        }
+
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    private bool TryRecoverPendingAppraisal(
+        EquipmentModuleInstance module,
+        out bool recoveredOperation,
+        out DomainFailure failure)
+    {
+        recoveredOperation = false;
+        failure = DomainFailure.None;
+        EquipmentModuleAppraisalCommitSaveData pending =
+            module?.pendingAppraisal
+            ?? new EquipmentModuleAppraisalCommitSaveData();
+        EquipmentModuleAppraisalCommitPhase phase =
+            (EquipmentModuleAppraisalCommitPhase)pending.phase;
+        if (phase == EquipmentModuleAppraisalCommitPhase.None)
+        {
+            return true;
+        }
+
+        if (!AppraisalContractMatches(module, pending))
+        {
+            throw new InvalidOperationException(
+                $"Equipment module appraisal '{pending.operationId}' conflicts with module '{module?.instanceId}'.");
+        }
+
+        bool hasReceipt = physicalItems.TryGetPendingBatchPhysicalDisposition(
+            pending.operationId,
+            out PhysicalItemBatchDispositionReceipt receipt);
+        if (!hasReceipt)
+        {
+            bool terminalOutcome =
+                phase == EquipmentModuleAppraisalCommitPhase.OutcomePublished;
+            if (terminalOutcome && !AppraisalOutcomesMatchAfter(module, pending))
+            {
+                throw new InvalidOperationException(
+                    $"Acknowledged appraisal '{pending.operationId}' has incomplete outcomes.");
+            }
+            if (!terminalOutcome && !AppraisalOutcomesMatchBefore(module, pending))
+            {
+                throw new InvalidOperationException(
+                    $"Uncommitted appraisal '{pending.operationId}' mutated an outcome.");
+            }
+            if (!TryClearPendingAppraisal(
+                    module,
+                    advanceSequence: terminalOutcome))
+            {
+                failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
+                return false;
+            }
+            recoveredOperation = terminalOutcome;
+            return true;
+        }
+
+        if (!ReceiptMatches(pending, receipt))
+        {
+            throw new InvalidOperationException(
+                $"Equipment module appraisal '{pending.operationId}' has a mismatched physical receipt.");
+        }
+
+        if (phase == EquipmentModuleAppraisalCommitPhase.IntentRecorded)
+        {
+            if (!TryPublishAppraisalOutcomes(module, pending, out failure))
+            {
+                return false;
+            }
+
+            pending.phase =
+                (int)EquipmentModuleAppraisalCommitPhase.OutcomePublished;
+            pending.sourceStackIds = receipt.SourceStackIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList();
+            pending.inputMassGrams = receipt.InputMassGrams;
+            pending.commitId = receipt.CommitId;
+            if (!PersistModulePhysicalState(module))
+            {
+                failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
+                return false;
+            }
+        }
+        else if (!AppraisalOutcomesMatchAfter(module, pending))
+        {
+            throw new InvalidOperationException(
+                $"Published appraisal '{pending.operationId}' has drifted outcomes.");
+        }
+
+        if (!physicalItems.AcknowledgeBatchPhysicalDisposition(
+                receipt.CommitId,
+                out _))
+        {
+            failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
+            return false;
+        }
+
+        if (!TryClearPendingAppraisal(module, advanceSequence: true))
+        {
+            failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
+            return false;
+        }
+        recoveredOperation = true;
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    private bool TryPublishAppraisalOutcomes(
+        EquipmentModuleInstance module,
+        EquipmentModuleAppraisalCommitSaveData pending,
+        out DomainFailure failure)
+    {
+        if (!TryPublishModuleAppraisalOutcome(module, pending)
+            || !TryPublishToolWear(
+                pending.gaugeStackId,
+                pending.gaugeItemId,
+                pending.gaugeDurabilityBefore,
+                pending.gaugeDurabilityAfter)
+            || !TryPublishToolWear(
+                pending.lensStackId,
+                pending.lensItemId,
+                pending.lensDurabilityBefore,
+                pending.lensDurabilityAfter))
+        {
+            failure = new DomainFailure(FailureCode.EquipmentModuleMissing);
+            return false;
+        }
+
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    private bool TryPublishModuleAppraisalOutcome(
+        EquipmentModuleInstance module,
+        EquipmentModuleAppraisalCommitSaveData pending)
+    {
+        if (ModuleStateMatches(
+                module,
+                pending.moduleIdentifiedAfter,
+                pending.moduleStateAfter))
+        {
+            return true;
+        }
+        if (!ModuleStateMatches(
+                module,
+                pending.moduleIdentifiedBefore,
+                pending.moduleStateBefore))
+        {
+            throw new InvalidOperationException(
+                $"Appraisal module outcome for '{module.instanceId}' is outside its before/after envelope.");
+        }
+
+        module.identified = pending.moduleIdentifiedAfter;
+        module.state = pending.moduleStateAfter;
+        return PersistModulePhysicalState(module);
+    }
+
+    private bool TryPublishToolWear(
+        string stackId,
+        string itemId,
+        float before,
+        float after)
+    {
+        WorldItemStackSnapshot tool = physicalItems.GetAllStacks()
+            .FirstOrDefault(value => value != null
+                && string.Equals(value.StackId, stackId, StringComparison.Ordinal));
+        if (tool == null
+            || !string.Equals(tool.ItemId, itemId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
         float current = DurableToolItemRules.ReadCurrentDurability(
             tool.ItemId,
             tool.Components);
-        if (!physicalItems.TrySetInstanceComponent(
-                tool.StackId,
-                DurableToolItemRules.CreateDurability(tool.ItemId, current - wear)))
+        if (Approximately(current, after))
+        {
+            return true;
+        }
+        if (!Approximately(current, before))
         {
             throw new InvalidOperationException(
-                $"Validated appraisal tool '{tool.StackId}' disappeared during appraisal.");
+                $"Appraisal tool '{stackId}' durability is outside its before/after envelope.");
         }
+        return physicalItems.TrySetInstanceComponent(
+            stackId,
+            DurableToolItemRules.CreateDurability(itemId, after));
     }
+
+    private bool AppraisalOutcomesMatchBefore(
+        EquipmentModuleInstance module,
+        EquipmentModuleAppraisalCommitSaveData pending) =>
+        ModuleStateMatches(
+            module,
+            pending.moduleIdentifiedBefore,
+            pending.moduleStateBefore)
+        && ToolDurabilityMatches(
+            pending.gaugeStackId,
+            pending.gaugeItemId,
+            pending.gaugeDurabilityBefore)
+        && ToolDurabilityMatches(
+            pending.lensStackId,
+            pending.lensItemId,
+            pending.lensDurabilityBefore);
+
+    private bool AppraisalOutcomesMatchAfter(
+        EquipmentModuleInstance module,
+        EquipmentModuleAppraisalCommitSaveData pending) =>
+        ModuleStateMatches(
+            module,
+            pending.moduleIdentifiedAfter,
+            pending.moduleStateAfter)
+        && ToolDurabilityMatches(
+            pending.gaugeStackId,
+            pending.gaugeItemId,
+            pending.gaugeDurabilityAfter)
+        && ToolDurabilityMatches(
+            pending.lensStackId,
+            pending.lensItemId,
+            pending.lensDurabilityAfter);
+
+    private bool ToolDurabilityMatches(
+        string stackId,
+        string itemId,
+        float expected)
+    {
+        WorldItemStackSnapshot stack = physicalItems.GetAllStacks()
+            .FirstOrDefault(value => value != null
+                && string.Equals(value.StackId, stackId, StringComparison.Ordinal)
+                && string.Equals(value.ItemId, itemId, StringComparison.Ordinal));
+        return stack != null
+            && Approximately(
+                DurableToolItemRules.ReadCurrentDurability(
+                    stack.ItemId,
+                    stack.Components),
+                expected);
+    }
+
+    private static bool ModuleStateMatches(
+        EquipmentModuleInstance module,
+        bool identified,
+        EquipmentModuleProcessState state) =>
+        module != null && module.identified == identified && module.state == state;
+
+    private static bool AppraisalContractMatches(
+        EquipmentModuleInstance module,
+        EquipmentModuleAppraisalCommitSaveData pending) =>
+        module != null
+        && pending.operationSequence == module.nextAppraisalOperationSequence
+        && pending.operationSequence > 0
+        && string.Equals(
+            pending.operationId,
+            FormatAppraisalOperationId(
+                module.instanceId,
+                pending.operationSequence),
+            StringComparison.Ordinal)
+        && string.Equals(
+            pending.reasonCode,
+            AppraisalDispositionReasonCode,
+            StringComparison.Ordinal)
+        && string.Equals(
+            pending.moduleInstanceId,
+            module.instanceId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            pending.couponItemId,
+            MaterialTestCouponItemId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            pending.gaugeItemId,
+            DurableToolItemRules.InspectionGauge,
+            StringComparison.Ordinal)
+        && string.Equals(
+            pending.lensItemId,
+            DurableToolItemRules.RuneIdentificationLens,
+            StringComparison.Ordinal)
+        && pending.quantity == 1;
+
+    private static bool ReceiptMatches(
+        EquipmentModuleAppraisalCommitSaveData pending,
+        PhysicalItemBatchDispositionReceipt receipt) =>
+        receipt.IsCommitted
+        && receipt.Kind == PhysicalItemDispositionKind.Sink
+        && string.Equals(
+            receipt.OperationId,
+            pending.operationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.ReasonCode,
+            pending.reasonCode,
+            StringComparison.Ordinal)
+        && receipt.Quantity == pending.quantity
+        && receipt.SourceStackIds.Count == 1
+        && string.Equals(
+            receipt.SourceStackIds[0],
+            pending.couponStackId,
+            StringComparison.Ordinal);
+
+    private bool TryClearPendingAppraisal(
+        EquipmentModuleInstance module,
+        bool advanceSequence)
+    {
+        int sequenceBefore = module.nextAppraisalOperationSequence;
+        EquipmentModuleAppraisalCommitSaveData pendingBefore =
+            module.pendingAppraisal?.Clone()
+            ?? new EquipmentModuleAppraisalCommitSaveData();
+        if (advanceSequence)
+        {
+            module.nextAppraisalOperationSequence = checked(sequenceBefore + 1);
+        }
+        module.pendingAppraisal = new EquipmentModuleAppraisalCommitSaveData();
+        if (PersistModulePhysicalState(module))
+        {
+            return true;
+        }
+
+        module.nextAppraisalOperationSequence = sequenceBefore;
+        module.pendingAppraisal = pendingBefore;
+        return false;
+    }
+
+    private static bool Approximately(float left, float right) =>
+        Mathf.Abs(left - right) <= 0.0001f;
 
     public bool TryRestore(
         string moduleInstanceId,
@@ -444,6 +854,15 @@ public sealed class EquipmentModuleRuntime
         {
             failure = new DomainFailure(FailureCode.ModuleNeedsRuneTuning);
             return false;
+        }
+        if (!EquipmentModuleItemStateCodec.TryValidateAppraisalState(
+                module,
+                out string appraisalStateError)
+            || (EquipmentModuleAppraisalCommitPhase)module.pendingAppraisal.phase
+                != EquipmentModuleAppraisalCommitPhase.None)
+        {
+            throw new InvalidOperationException(
+                $"Equipment module '{module.instanceId}' cannot be installed while its appraisal authority is invalid or pending: {appraisalStateError}");
         }
         if (!string.IsNullOrWhiteSpace(module.attachedEquipmentInstanceId))
         {
@@ -732,6 +1151,32 @@ public sealed class EquipmentModuleRuntime
         target.sourceStackId = source.sourceStackId;
         target.attachedEquipmentInstanceId =
             source.attachedEquipmentInstanceId;
+        target.nextAppraisalOperationSequence =
+            source.nextAppraisalOperationSequence;
+        target.pendingAppraisal = source.pendingAppraisal?.Clone()
+            ?? new EquipmentModuleAppraisalCommitSaveData();
     }
 
+}
+
+public sealed class EquipmentModuleAppraisalRestoreRecovery :
+    IDungeonSaveRestoreCompletedHook
+{
+    private readonly IEquipmentModuleAppraisalRecovery recovery;
+
+    public EquipmentModuleAppraisalRestoreRecovery(
+        IEquipmentModuleAppraisalRecovery recovery)
+    {
+        this.recovery = recovery
+            ?? throw new ArgumentNullException(nameof(recovery));
+    }
+
+    public void OnRestoreCompleted()
+    {
+        if (!recovery.TryRecoverPendingAppraisals(out DomainFailure failure))
+        {
+            throw new InvalidOperationException(
+                "Equipment-module appraisal recovery failed: " + failure);
+        }
+    }
 }

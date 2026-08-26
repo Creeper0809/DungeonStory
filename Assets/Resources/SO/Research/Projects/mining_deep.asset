@@ -46,6 +46,8 @@ MonoBehaviour:
     requiredCount: 1
   - capability: 3
     requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   effects: []
   references:

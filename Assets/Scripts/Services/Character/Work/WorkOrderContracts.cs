@@ -16,6 +16,37 @@ public enum WorkOrderStatus
     WaitingForOutputSpace = 8
 }
 
+public enum WorkOrderMaterialTransferPhase
+{
+    None = 0,
+    InputCommitted = 1,
+    CustodyPublished = 2,
+    Acknowledged = 3,
+    RestitutionPending = 4
+}
+
+[Serializable]
+public sealed class WorkOrderMaterialSourceSaveData
+{
+    public string itemId = string.Empty;
+    public string stackId = string.Empty;
+    public int quantity;
+}
+
+[Serializable]
+public sealed class WorkOrderMaterialTransferSaveData
+{
+    public WorkOrderMaterialTransferPhase phase;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string requestFingerprint = string.Empty;
+    public string commitId = string.Empty;
+    public int inputQuantity;
+    public long inputMassGrams;
+    public List<WorkOrderMaterialSourceSaveData> sources = new();
+    public string restitutionOperationId = string.Empty;
+}
+
 [Serializable]
 public sealed class WorkOrderItemMaterialSaveData
 {
@@ -47,12 +78,13 @@ public sealed class WorkOrderSaveData
     public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
     public List<WorkOrderItemMaterialSaveData> itemMaterials =
         new List<WorkOrderItemMaterialSaveData>();
+    public WorkOrderMaterialTransferSaveData materialTransfer = new();
 }
 
 [Serializable]
 public sealed class DungeonWorkOrderSaveData
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
     public int nextOrderSequence = 1;
@@ -78,6 +110,8 @@ public sealed class WorkOrderProgressState
     public WorkOrderStatus Status { get; set; }
     public IReadOnlyDictionary<string, int> ItemMaterialRequirements { get; set; }
     public IReadOnlyDictionary<string, int> DeliveredItemMaterials { get; set; }
+    public WorkOrderMaterialTransferPhase MaterialTransferPhase { get; set; }
+    public long MaterialInputMassGrams { get; set; }
     public float ProgressRatio => RequiredWork <= 0f ? 1f : Mathf.Clamp01(CompletedWork / RequiredWork);
 }
 
@@ -169,6 +203,7 @@ internal sealed class WorkOrderRecord
         new Dictionary<string, int>(StringComparer.Ordinal);
     public readonly Dictionary<string, int> spawnedRecoveryOutputs =
         new Dictionary<string, int>(StringComparer.Ordinal);
+    public WorkOrderMaterialTransferState materialTransfer = new();
 
     public WorkOrderRecord DeepClone()
     {
@@ -195,7 +230,9 @@ internal sealed class WorkOrderRecord
             qualityPipelineId = qualityPipelineId ?? string.Empty,
             qualityAttemptIndex = Math.Max(0, qualityAttemptIndex),
             facilityRemovedForRetry = facilityRemovedForRetry,
-            status = status
+            status = status,
+            materialTransfer = materialTransfer?.DeepClone()
+                ?? new WorkOrderMaterialTransferState()
         };
         clone.contributions.AddRange(contributions.Select(value => value?.Clone())
             .Where(value => value != null));
@@ -214,5 +251,55 @@ internal sealed class WorkOrderRecord
         {
             destination.Add(pair.Key, pair.Value);
         }
+    }
+}
+
+internal sealed class WorkOrderMaterialSourceState
+{
+    internal string ItemId = string.Empty;
+    internal string StackId = string.Empty;
+    internal int Quantity;
+
+    internal WorkOrderMaterialSourceState DeepClone() => new()
+    {
+        ItemId = ItemId,
+        StackId = StackId,
+        Quantity = Quantity
+    };
+}
+
+internal sealed class WorkOrderMaterialTransferState
+{
+    internal WorkOrderMaterialTransferPhase Phase;
+    internal string OperationId = string.Empty;
+    internal string ReasonCode = string.Empty;
+    internal string RequestFingerprint = string.Empty;
+    internal string CommitId = string.Empty;
+    internal int InputQuantity;
+    internal long InputMassGrams;
+    internal readonly List<WorkOrderMaterialSourceState> Sources = new();
+    internal string RestitutionOperationId = string.Empty;
+
+    internal bool HasCustody => Phase is
+        WorkOrderMaterialTransferPhase.InputCommitted
+        or WorkOrderMaterialTransferPhase.CustodyPublished
+        or WorkOrderMaterialTransferPhase.Acknowledged
+        or WorkOrderMaterialTransferPhase.RestitutionPending;
+
+    internal WorkOrderMaterialTransferState DeepClone()
+    {
+        WorkOrderMaterialTransferState clone = new()
+        {
+            Phase = Phase,
+            OperationId = OperationId,
+            ReasonCode = ReasonCode,
+            RequestFingerprint = RequestFingerprint,
+            CommitId = CommitId,
+            InputQuantity = InputQuantity,
+            InputMassGrams = InputMassGrams,
+            RestitutionOperationId = RestitutionOperationId
+        };
+        clone.Sources.AddRange(Sources.Select(value => value.DeepClone()));
+        return clone;
     }
 }

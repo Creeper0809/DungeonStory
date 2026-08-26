@@ -1,4 +1,4 @@
-RESULT=PASS; rows=84389; critical=0; collapsed=327; approved=327; scc=313; minimumMarginMilliEwu=-14364087; integrityFailures=0
+RESULT=PASS; rows=85105; critical=0; collapsed=328; approved=328; scc=297; minimumMarginMilliEwu=-14364087; integrityFailures=0
 
 APPROVED recipe:advanced-medicine metric=direct-wu reason=labor-density-drift
 
@@ -277,6 +277,8 @@ APPROVED recipe:material:spring-steel metric=direct-wu reason=labor-density-drif
 APPROVED recipe:material:sterile-composite metric=direct-wu reason=labor-density-drift
 
 APPROVED recipe:meat-pie metric=direct-wu reason=labor-density-drift
+
+APPROVED recipe:medical-vial metric=direct-wu reason=labor-density-drift
 
 APPROVED recipe:medical:cross-lineage-medium metric=direct-wu reason=labor-density-drift
 

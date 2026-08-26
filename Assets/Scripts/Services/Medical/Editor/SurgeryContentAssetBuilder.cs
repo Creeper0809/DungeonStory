@@ -18,6 +18,7 @@ public static class SurgeryContentAssetBuilder
     private const string BloodItemId = "resource:blood";
     private const string LumberItemId = "material:lumber";
     private const string ManaCrystalItemId = "resource:mana-crystal";
+    internal const long OrganStorageMassCapacityGrams = 12_500L;
 
     private sealed class FacilitySpec
     {
@@ -63,6 +64,19 @@ public static class SurgeryContentAssetBuilder
     [MenuItem("DungeonStory/Content/Rebuild Surgery And Transplant Content")]
     public static void RebuildAll()
     {
+        EnsureAssets();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+
+        ResearchProjectAssetBuilder.Rebuild();
+        ValidateBuiltContent();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        Debug.Log("Surgery content rebuilt: 13 facilities, 12 anatomy profiles, 7 condition lexicons, 47 procedures including 5 age treatments, 12 medical research projects.");
+    }
+
+    public static void EnsureAssets()
+    {
         EnsureFolder(BuildingRoot);
         EnsureFolder(SpriteRoot);
         EnsureFolder(AnatomyRoot);
@@ -76,14 +90,6 @@ public static class SurgeryContentAssetBuilder
         BuildProcedures();
         BuildProstheticRecipes();
         V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-
-        ResearchProjectAssetBuilder.Rebuild();
-        ValidateBuiltContent();
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-        Debug.Log("Surgery content rebuilt: 13 facilities, 12 anatomy profiles, 7 condition lexicons, 47 procedures including 5 age treatments, 12 medical research projects.");
     }
 
     private static void BuildConditionLexicons()
@@ -211,6 +217,9 @@ public static class SurgeryContentAssetBuilder
         string fileName = recipeId.Replace(':', '_').Replace('-', '_');
         string path = $"{RecipeRoot}/{fileName}.asset";
         ProductionRecipeSO recipe = AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>(path);
+        float? approvedRequiredWork = recipe != null
+            ? recipe.RequiredWork
+            : null;
         if (recipe == null)
         {
             recipe = ScriptableObject.CreateInstance<ProductionRecipeSO>();
@@ -225,13 +234,21 @@ public static class SurgeryContentAssetBuilder
             "m06",
             BuiltInWorkTypeIds.Craft.Value,
             "research:medical:prosthetics",
-            requiredWork,
+            approvedRequiredWork ?? requiredWork,
             inputs,
-            new[] { new ProductionOutputDefinition(outputItemId, 1) });
+            new[]
+            {
+                new ProductionOutputDefinition(
+                    "output:main",
+                    ProductionOutputRole.Main,
+                    outputItemId,
+                    1)
+            });
         recipe.ConfigureFlowRole(ProductionFlowRole.Transform);
         recipe.ConfigureProcessClass(ProductionProcessClass.Precision);
         recipe.ConfigureBalanceWork(
-            V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+            approvedRequiredWork
+            ?? V23BalanceWorkCalculator.CalculateRecipeBaseWork(
                 recipe,
                 ProductionProcessClass.Precision));
         EditorUtility.SetDirty(recipe);
@@ -247,6 +264,7 @@ public static class SurgeryContentAssetBuilder
 
             string assetPath = $"{BuildingRoot}/{spec.Code}_{spec.Name.Replace(" ", string.Empty)}.asset";
             BuildingSO building = AssetDatabase.LoadAssetAtPath<BuildingSO>(assetPath);
+            bool existed = building != null;
             if (building == null)
             {
                 building = ScriptableObject.CreateInstance<BuildingSO>();
@@ -254,30 +272,53 @@ public static class SurgeryContentAssetBuilder
             }
 
             Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
-            building.id = spec.Id;
-            building.objectName = spec.Name;
-            building.sprite = sprite;
-            building.icon = sprite;
-            building.width = Mathf.Max(1, spec.Width);
-            building.height = 1;
-            building.layer = GridLayer.Building;
-            building.category = BuildingCategory.Crafting;
-            building.horizontalDraggable = false;
-            building.verticalDraggable = false;
-            building.runtimeArchetype = BuildingRuntimeArchetypeKind.Facility;
-            building.tiles = null;
-            building.movementAnchorOffset = Vector2.zero;
-            building.movementTravelTime = 1.2f;
-            building.unlocked = false;
-            building.ReplaceAbilities(CreateFacilityAbilities(spec));
-            building.AbilityModules.EnsureStableIds();
-            building.ValidateAbilitiesOrThrow();
+            void ConfigureBuilding(BuildingSO target)
+            {
+                target.id = spec.Id;
+                target.objectName = spec.Name;
+                target.sprite = sprite;
+                target.icon = sprite;
+                target.width = Mathf.Max(1, spec.Width);
+                target.height = 1;
+                target.layer = GridLayer.Building;
+                target.category = BuildingCategory.Crafting;
+                target.horizontalDraggable = false;
+                target.verticalDraggable = false;
+                target.runtimeArchetype = BuildingRuntimeArchetypeKind.Facility;
+                target.tiles = null;
+                target.movementAnchorOffset = Vector2.zero;
+                target.movementTravelTime = 1.2f;
+                if (!existed)
+                {
+                    target.unlocked = false;
+                }
+
+                target.ReplaceAbilities(CreateFacilityAbilities(
+                    spec,
+                    target.AbilityModules));
+                IndustrialInfrastructureAssetBuilder
+                    .ApplyProcessFluidConsumerOverlay(target);
+                ServiceRoomContentAssetBuilder
+                    .ApplyDirectMedicalHubOverlay(target);
+                target.AbilityModules.EnsureStableIds();
+                target.ValidateAbilitiesOrThrow();
+            }
+
+            if (existed && !WouldChange(building, ConfigureBuilding))
+                continue;
+            ConfigureBuilding(building);
             EditorUtility.SetDirty(building);
         }
     }
 
-    private static BuildingAbilityCollection CreateFacilityAbilities(FacilitySpec spec)
+    private static BuildingAbilityCollection CreateFacilityAbilities(
+        FacilitySpec spec,
+        BuildingAbilityCollection existingAbilities)
     {
+        BuildingWorkAmountAbility approvedWorkAmount = existingAbilities?
+            .Items
+            .OfType<BuildingWorkAmountAbility>()
+            .SingleOrDefault();
         BuildingAbilityCollection abilities = new BuildingAbilityCollection();
         abilities.Add(new BuildingFacilityPartAbility { code = spec.Code });
         abilities.Add(new BuildingSemanticTagsAbility
@@ -321,7 +362,7 @@ public static class SurgeryContentAssetBuilder
                 ResolveConstructionMaterialId(spec.Code),
                 Mathf.Max(2, spec.Cost / 25))
         });
-        abilities.Add(workAmount);
+        abilities.Add(approvedWorkAmount ?? workAmount);
         abilities.Add(new BuildingEvolutionAbility
         {
             settings = new FacilityEvolutionContributionData
@@ -347,6 +388,7 @@ public static class SurgeryContentAssetBuilder
             {
                 category = StockCategory.Biological,
                 capacity = 8,
+                maxStoredMassGrams = OrganStorageMassCapacityGrams,
                 allCategories = false
             });
         }
@@ -363,7 +405,45 @@ public static class SurgeryContentAssetBuilder
         }
 
         abilities.Add(spec.SurgicalAbility);
+
+        if (existingAbilities != null)
+        {
+            foreach (BuildingAbility existing in existingAbilities.Items)
+            {
+                if (existing == null
+                    || IsMedicalFacilityBuilderOwned(existing, spec))
+                {
+                    continue;
+                }
+
+                abilities.Add(existing);
+            }
+        }
+
         return abilities;
+    }
+
+    private static bool IsMedicalFacilityBuilderOwned(
+        BuildingAbility ability,
+        FacilitySpec spec)
+    {
+        if (ability is BuildingFacilityPartAbility
+            or BuildingSemanticTagsAbility
+            or BuildingEconomyAbility
+            or BuildingFacilityAbility
+            or BuildingRoomRequirementAbility
+            or BuildingInternalStockAbility
+            or BuildingWorkAmountAbility
+            or BuildingEvolutionAbility
+            or BuildingMedicalAbility
+            or BuildingStorageAbility
+            or BuildingFuelConsumerAbility)
+        {
+            return true;
+        }
+
+        return spec?.SurgicalAbility != null
+            && ability.GetType() == spec.SurgicalAbility.GetType();
     }
 
     private static string ResolveConstructionMaterialId(string code)
@@ -556,6 +636,7 @@ public static class SurgeryContentAssetBuilder
 
     private static void BuildAnatomyAsset(AnatomyProfileDefinition definition)
     {
+        EnsureNumericFunctionalCapacityCoverage(definition);
         string fileName = Sanitize(definition.ProfileId);
         string path = $"{AnatomyRoot}/{fileName}.asset";
         AnatomyProfileSO asset = AssetDatabase.LoadAssetAtPath<AnatomyProfileSO>(path);
@@ -571,8 +652,77 @@ public static class SurgeryContentAssetBuilder
             definition.AnatomyFamily,
             definition.SpeciesIds,
             definition.Nodes);
+        asset.ConfigureNotApplicableCapacities(
+            Array.Empty<AnatomyFunctionalCapacityNotApplicable>());
         EditorUtility.SetDirty(asset);
     }
+
+    private static void EnsureNumericFunctionalCapacityCoverage(
+        AnatomyProfileDefinition definition)
+    {
+        foreach (CharacterFunctionalCapacityId capacityId in Enum
+                     .GetValues(typeof(CharacterFunctionalCapacityId))
+                     .Cast<CharacterFunctionalCapacityId>())
+        {
+            AnatomyFunction function = CapacityFunction(capacityId);
+            if (definition.Nodes.Any(node =>
+                    (node.ExpandedFunctions & function) != 0))
+            {
+                continue;
+            }
+
+            AnatomyFunction preferred = capacityId switch
+            {
+                CharacterFunctionalCapacityId.PhysicalPower =>
+                    AnatomyFunction.PhysicalMobility
+                    | AnatomyFunction.PrecisionManipulation
+                    | AnatomyFunction.PowerCirculation,
+                CharacterFunctionalCapacityId.ImmuneDefense =>
+                    AnatomyFunction.PurificationProcessing
+                    | AnatomyFunction.VitalityResponse
+                    | AnatomyFunction.PowerCirculation,
+                CharacterFunctionalCapacityId.IntakeProcessing =>
+                    AnatomyFunction.IntakeProcessing
+                    | AnatomyFunction.PowerCirculation,
+                CharacterFunctionalCapacityId.PurificationProcessing =>
+                    AnatomyFunction.PurificationProcessing
+                    | AnatomyFunction.IntakeProcessing
+                    | AnatomyFunction.PowerCirculation,
+                _ => AnatomyFunction.PowerCirculation
+            };
+            AnatomyNodeDefinition producer = definition.Nodes
+                .Where(node => (node.ExpandedFunctions & preferred) != 0)
+                .OrderByDescending(node => node.CapacityWeight)
+                .FirstOrDefault();
+            if (producer == null)
+            {
+                throw new InvalidOperationException(
+                    $"Anatomy profile '{definition.ProfileId}' cannot author "
+                    + $"numeric capacity '{capacityId}'.");
+            }
+            producer.AddFunctions(function);
+        }
+    }
+
+    private static AnatomyFunction CapacityFunction(
+        CharacterFunctionalCapacityId capacityId) => capacityId switch
+    {
+        CharacterFunctionalCapacityId.MentalMaintenance => AnatomyFunction.MentalMaintenance,
+        CharacterFunctionalCapacityId.VisualDiscernment => AnatomyFunction.VisualDiscernment,
+        CharacterFunctionalCapacityId.AuditorySensing => AnatomyFunction.AuditorySensing,
+        CharacterFunctionalCapacityId.RespiratoryExchange => AnatomyFunction.RespiratoryExchange,
+        CharacterFunctionalCapacityId.PowerCirculation => AnatomyFunction.PowerCirculation,
+        CharacterFunctionalCapacityId.IntakeProcessing => AnatomyFunction.IntakeProcessing,
+        CharacterFunctionalCapacityId.PurificationProcessing => AnatomyFunction.PurificationProcessing,
+        CharacterFunctionalCapacityId.VitalityResponse => AnatomyFunction.VitalityResponse,
+        CharacterFunctionalCapacityId.PhysicalPower => AnatomyFunction.PhysicalPower,
+        CharacterFunctionalCapacityId.PrecisionManipulation => AnatomyFunction.PrecisionManipulation,
+        CharacterFunctionalCapacityId.PhysicalMobility => AnatomyFunction.PhysicalMobility,
+        CharacterFunctionalCapacityId.Communication => AnatomyFunction.Communication,
+        CharacterFunctionalCapacityId.ArcaneConduction => AnatomyFunction.ArcaneConduction,
+        CharacterFunctionalCapacityId.ImmuneDefense => AnatomyFunction.ImmuneDefense,
+        _ => throw new ArgumentOutOfRangeException(nameof(capacityId), capacityId, null)
+    };
 
     private static void BuildProcedures()
     {
@@ -598,13 +748,14 @@ public static class SurgeryContentAssetBuilder
         string path = $"{ProcedureRoot}/{Sanitize(spec.Id)}.asset";
         SurgicalProcedureSO asset =
             AssetDatabase.LoadAssetAtPath<SurgicalProcedureSO>(path);
+        bool existed = asset != null;
         if (asset == null)
         {
             asset = ScriptableObject.CreateInstance<SurgicalProcedureSO>();
             AssetDatabase.CreateAsset(asset, path);
         }
 
-        asset.Configure(
+        void ConfigureProcedure(SurgicalProcedureSO target) => target.Configure(
             spec.Id,
             spec.Name,
             spec.Description,
@@ -628,6 +779,9 @@ public static class SurgeryContentAssetBuilder
             spec.AnatomyFamilies,
             requirement: null,
             speciesIds: spec.SpeciesIds);
+        if (existed && !WouldChange(asset, ConfigureProcedure))
+            return;
+        ConfigureProcedure(asset);
         EditorUtility.SetDirty(asset);
     }
 
@@ -1200,6 +1354,36 @@ public static class SurgeryContentAssetBuilder
             current = next;
         }
     }
+
+    private static bool WouldChange<T>(T asset, Action<T> configure)
+        where T : ScriptableObject
+    {
+        string rawBefore = EditorJsonUtility.ToJson(asset, false);
+        string before = CanonicalizeSemanticJson(rawBefore);
+        T candidate = ScriptableObject.CreateInstance<T>();
+        try
+        {
+            EditorJsonUtility.FromJsonOverwrite(rawBefore, candidate);
+            candidate.name = asset.name;
+            configure(candidate);
+            return !string.Equals(
+                before,
+                CanonicalizeSemanticJson(
+                    EditorJsonUtility.ToJson(candidate, false)),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(candidate);
+        }
+    }
+
+    private static string CanonicalizeSemanticJson(string json) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            json ?? string.Empty,
+            "\\\"rid\\\"\\s*:\\s*-?[0-9]+",
+            "\\\"rid\\\":0",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     private static string Sanitize(string value)
     {

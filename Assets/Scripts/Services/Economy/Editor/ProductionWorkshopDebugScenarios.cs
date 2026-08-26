@@ -38,6 +38,40 @@ public static class ProductionWorkshopDebugScenarios
             "Assets/Resources/SO/Research/Projects");
         List<string> failures = new List<string>();
 
+        foreach (ProductionRecipeSO recipe in recipes.Where(value => value != null))
+        {
+            if (recipe.WastewaterPerCycle > 0f
+                && recipe.WastewaterComposition
+                    == ProcessWastewaterComposition.None)
+            {
+                failures.Add(
+                    $"{recipe.RecipeId}: non-zero wastewater has no composition authority.");
+            }
+        }
+        foreach (BuildingSO building in buildings.Where(value => value != null))
+        {
+            BuildingProcessFluidAbility facilityFluid =
+                building.GetAbility<BuildingProcessFluidAbility>();
+            if (facilityFluid != null
+                && facilityFluid.wastewaterPerCycle > 0f
+                && facilityFluid.wastewaterComposition
+                    == ProcessWastewaterComposition.None)
+            {
+                failures.Add(
+                    $"{building.name}: process-fluid wastewater composition is missing.");
+            }
+            BuildingProductionSupportAbility supportFluid =
+                building.GetProductionSupportAbility();
+            if (supportFluid != null
+                && supportFluid.wastewaterPerCycle > 0f
+                && supportFluid.wastewaterComposition
+                    == ProcessWastewaterComposition.None)
+            {
+                failures.Add(
+                    $"{building.name}: support wastewater composition is missing.");
+            }
+        }
+
         foreach (IGrouping<string, ProductionRecipeSO> duplicate in recipes
                      .Where(recipe => recipe != null)
                      .GroupBy(recipe => recipe.RecipeId, StringComparer.Ordinal)
@@ -216,7 +250,8 @@ public static class ProductionWorkshopDebugScenarios
             JsonUtility.FromJson<DungeonProductionBillSaveData>(
                 JsonUtility.ToJson(envelope));
         ProductionBillSaveData restoredBill = restored?.bills?.FirstOrDefault();
-        if (DungeonProductionBillSaveData.CurrentVersion != 7
+        if (restored == null
+            || restored.version != DungeonProductionBillSaveData.CurrentVersion
             || restoredBill == null
             || restoredBill.batchStage != ProductionBatchStage.Processing
             || !Mathf.Approximately(
@@ -235,7 +270,7 @@ public static class ProductionWorkshopDebugScenarios
             || restoredBill.logistics.parameters.Single()
                 != "validation-prefetch")
         {
-            failures.Add("Production bill V7 save round-trip failed.");
+            failures.Add("Production bill current-format save round-trip failed.");
         }
 
         ValidateDeterministicRoomLinks(failures);

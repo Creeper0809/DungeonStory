@@ -167,9 +167,19 @@ public sealed class WarehouseTabContentPresenter : IUITabContentPresenter
         WarehouseManagementSummary summary = summaryService.CaptureWarehouses();
         StringBuilder builder = new StringBuilder();
         builder.AppendLine($"창고 시설: {summary.WarehouseCount}");
-        builder.AppendLine(summary.HasCapacityLimit
-            ? $"총 재고: {summary.TotalStock} / {summary.TotalCapacity}"
-            : $"총 재고: {summary.TotalStock}");
+        builder.AppendLine($"물리 재고: {summary.TotalStock}개");
+        if (summary.HasMassCapacityAuthority)
+        {
+            builder.AppendLine(
+                $"중량 창고: {summary.MassWarehouseCount}개 / "
+                + $"{WarehouseMassUiFormatter.FormatKilograms(summary.TotalStoredMassGrams)}"
+                + $" / {WarehouseMassUiFormatter.FormatKilograms(summary.TotalMaxMassGrams)}");
+        }
+        if (summary.HasCapacityLimit)
+        {
+            builder.AppendLine(
+                $"개수형 창고: {summary.LegacyCountWarehouseCount}개 / 용량 {summary.TotalCapacity}");
+        }
         foreach (StockCategoryDefinition definition in stockCategoryCatalog.All)
         {
             builder.AppendLine($"{definition.DisplayName}: {summary.GetStock(definition.Category)}");

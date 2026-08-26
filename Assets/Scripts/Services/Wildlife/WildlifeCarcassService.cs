@@ -80,6 +80,7 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
     private const float DefaultFreshnessSeconds = 360f;
 
     private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly IPhysicalItemTransformService physicalTransforms;
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
     private readonly IGameEventBus gameEventBus;
     private Dictionary<string, WildlifeCarcassFreshnessSaveData> freshnessByStackId =
@@ -90,11 +91,14 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
 
     public WildlifeCarcassService(
         IWorldItemStackRuntime itemStackRuntime,
+        IPhysicalItemTransformService physicalTransforms,
         IWildlifeSpeciesCatalogProvider speciesCatalog,
         IGameEventBus gameEventBus)
     {
         this.itemStackRuntime = itemStackRuntime
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
+        this.physicalTransforms = physicalTransforms
+            ?? throw new ArgumentNullException(nameof(physicalTransforms));
         this.speciesCatalog = speciesCatalog
             ?? throw new ArgumentNullException(nameof(speciesCatalog));
         this.gameEventBus = gameEventBus
@@ -247,17 +251,13 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
 
         Vector2Int position = target.GridPosition;
         string itemId = target.Species.CarcassItemId;
-        // Wildlife content and physical item content are authored separately.
-        // A missing carcass definition must not throw from the autonomous
-        // combat/death path and abort unrelated character AI updates. Content
-        // audits report the missing definition; runtime death remains
-        // fail-soft and simply produces no physical carcass.
+        // Wildlife species and the physical carcass definition are an exact
+        // mass-authority join. Silently despawning the body when content is
+        // missing destroys both matter and the downstream butcher obligation.
         if (!itemStackRuntime.CatalogProvider.TryGetDefinition(itemId, out _))
         {
-            Debug.LogWarning(
-                $"Wildlife carcass '{itemId}' is not present in the physical item catalog; "
-                + $"species '{target.SpeciesId}' will despawn without a carcass.");
-            return;
+            throw new InvalidOperationException(
+                $"Wildlife species '{target.SpeciesId}' has no physical carcass definition '{itemId}'.");
         }
 
         if (!itemStackRuntime.SpawnItemAt(
@@ -320,20 +320,29 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             WorldItemStackSnapshot stack = stacks.FirstOrDefault(candidate =>
                 candidate != null
                 && string.Equals(candidate.StackId, stackId, StringComparison.Ordinal));
-            freshnessByStackId.Remove(stackId);
             if (stack == null)
             {
+                freshnessByStackId.Remove(stackId);
                 continue;
             }
 
-            itemStackRuntime.DeleteStack(stackId);
-            itemStackRuntime.SpawnItemAt(
-                WildlifeItemDefinitions.RotItemId,
-                1,
-                stack.Position,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out _);
+            if (physicalTransforms.TryTransformWholeStack(
+                    stackId,
+                    new[]
+                    {
+                        new PhysicalItemTransformOutput(
+                            WildlifeItemDefinitions.RotItemId,
+                            1,
+                            stack.Position)
+                    },
+                    $"wildlife-carcass-decay:{stackId}",
+                    "wildlife-carcass-decay-loss",
+                    out _,
+                    out _,
+                    out _))
+            {
+                freshnessByStackId.Remove(stackId);
+            }
         }
 
         InvalidateButcherCache();
@@ -375,33 +384,35 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             return false;
         }
 
-        if (!itemStackRuntime.DeleteStack(carcass.StackId))
+        Vector2Int outputPosition = building != null ? building.centerPos : carcass.Position;
+        PhysicalItemTransformOutput[] outputs = (species.ButcherYields
+                ?? Array.Empty<WildlifeButcherYield>())
+            .Where(yieldItem => yieldItem != null && yieldItem.amount > 0)
+            .Select(yieldItem => new PhysicalItemTransformOutput(
+                yieldItem.itemId,
+                yieldItem.amount,
+                outputPosition))
+            .ToArray();
+        if (outputs.Length == 0)
         {
-            message = "사체 스택을 소비하지 못했습니다.";
+            message = "도축 산출물 권위가 없습니다.";
             return false;
         }
-
+        if (!physicalTransforms.TryTransformWholeStack(
+                carcass.StackId,
+                outputs,
+                $"wildlife-carcass-butcher:{carcass.StackId}",
+                "wildlife-carcass-butcher-loss",
+                out PhysicalItemTransformReceipt receipt,
+                out _,
+                out string transformFailure))
+        {
+            message = transformFailure;
+            return false;
+        }
+        produced = receipt.OutputQuantity;
         freshnessByStackId.Remove(carcass.StackId);
         InvalidateButcherCache();
-        Vector2Int outputPosition = building != null ? building.centerPos : carcass.Position;
-        foreach (WildlifeButcherYield yieldItem in species.ButcherYields)
-        {
-            if (yieldItem == null || yieldItem.amount <= 0)
-            {
-                continue;
-            }
-
-            if (itemStackRuntime.SpawnItemAt(
-                    yieldItem.itemId,
-                    yieldItem.amount,
-                    outputPosition,
-                    WorldItemStackState.Loose,
-                    string.Empty,
-                    out int spawned))
-            {
-                produced += spawned;
-            }
-        }
 
         butcher?.RecordActivity(
             building,
@@ -453,36 +464,33 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             return false;
         }
 
-        if (!itemStackRuntime.DeleteStack(carcass.StackId))
+        Vector2Int outputPosition = building != null ? building.centerPos : carcass.Position;
+        if (!physicalTransforms.TryTransformWholeStack(
+                carcass.StackId,
+                new[]
+                {
+                    new PhysicalItemTransformOutput(
+                        DarkSurvivalItemDefinitions.HumanoidMeatItemId,
+                        4,
+                        outputPosition),
+                    new PhysicalItemTransformOutput(
+                        DarkSurvivalItemDefinitions.BoneItemId,
+                        2,
+                        outputPosition)
+                },
+                $"humanoid-corpse-butcher:{carcass.StackId}",
+                "humanoid-corpse-butcher-loss",
+                out PhysicalItemTransformReceipt receipt,
+                out _,
+                out string transformFailure))
         {
-            message = "사체를 소비하지 못했습니다.";
+            message = transformFailure;
             return false;
         }
 
+        produced = receipt.OutputQuantity;
         freshnessByStackId.Remove(carcass.StackId);
         InvalidateButcherCache();
-        Vector2Int outputPosition = building != null ? building.centerPos : carcass.Position;
-        if (itemStackRuntime.SpawnItemAt(
-                DarkSurvivalItemDefinitions.HumanoidMeatItemId,
-                4,
-                outputPosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out int meat))
-        {
-            produced += meat;
-        }
-
-        if (itemStackRuntime.SpawnItemAt(
-                DarkSurvivalItemDefinitions.BoneItemId,
-                2,
-                outputPosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out int bone))
-        {
-            produced += bone;
-        }
 
         ApplyHumanoidButcheryConsequences(butcher, carcass, outputPosition, produced);
         message = produced > 0 ? "비상 도축 완료" : "도축 산출물 없음";

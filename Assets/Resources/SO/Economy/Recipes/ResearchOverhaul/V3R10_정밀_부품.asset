@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:iron-ingot
     amount: 1
   outputs:
-  - itemId: component:precision-parts
+  - outputLineId: output:recipe:component:precision-parts/000/main/component:precision-parts
+    role: 0
+    itemId: component:precision-parts
     amount: 1
     probability: 1

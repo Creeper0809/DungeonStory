@@ -10,6 +10,8 @@ internal sealed class ShopInventoryRuntime
     private readonly ShopInventoryOwnerAdapter ownerAdapter;
     private readonly DungeonStory.Buildings.ShopInventoryRuntime core;
     private IShopStockCatalog catalog;
+    private ShopStockCatalogAdapter catalogAdapter;
+    private IStockQuery physicalStockQuery;
 
     public ShopInventoryRuntime(Shop owner)
     {
@@ -24,10 +26,96 @@ internal sealed class ShopInventoryRuntime
     public int MaxInternalStock => core.MaxInternalStock;
     public int MissingStock => core.MissingStock;
 
-    public void Configure(IShopStockCatalog stockCatalog)
+    public void Configure(
+        IShopStockCatalog stockCatalog,
+        IStockQuery stockQuery)
     {
         catalog = stockCatalog ?? throw new ArgumentNullException(nameof(stockCatalog));
-        core.Configure(new ShopStockCatalogAdapter(stockCatalog));
+        physicalStockQuery = stockQuery ?? throw new ArgumentNullException(nameof(stockQuery));
+        catalogAdapter = new ShopStockCatalogAdapter(stockCatalog);
+        core.Configure(catalogAdapter);
+    }
+
+    public void SynchronizeAuthoredStock(
+        IRetailStockPhysicalRuntime physicalRuntime)
+    {
+        EnsureInitialized();
+        string ownerId = owner.RequirePersistentInstanceId().Value;
+        HashSet<string> existingOperations = new HashSet<string>(
+            core.CreateSnapshot().lots
+                .Where(lot => lot != null)
+                .Select(lot => lot.sourceOperationId),
+            StringComparer.Ordinal);
+        foreach (ShopStockSeed pending in core.CapturePendingAcceptedAuthoredStock())
+        {
+            ShopSaleItemDefinition saleItem = pending.Item;
+            int authoredAmount = Math.Max(0, pending.Amount);
+            if (!saleItem.RequiresUniqueInstance)
+            {
+                if (!core.TryActivateAuthoredGenericStock(
+                        pending,
+                        out string genericFailure)
+                    && genericFailure != "retail-authored-generic-capacity-unavailable")
+                {
+                    throw new InvalidOperationException(
+                        $"Shop '{ownerId}' could not activate generic stock '{saleItem.Id}': {genericFailure}");
+                }
+                continue;
+            }
+            if (physicalRuntime == null)
+            {
+                throw new InvalidOperationException(
+                    $"Shop '{ownerId}' requires a physical source runtime for unique sale item '{saleItem.Id}'.");
+            }
+
+            int createdCount = 0;
+            for (int ordinal = 0;
+                 ordinal < authoredAmount && core.MissingStock > 0;
+                 ordinal++)
+            {
+                string sourceOperationId =
+                    $"retail-source:authored:{ownerId}:{saleItem.Id}:{ordinal:D4}";
+                if (existingOperations.Contains(sourceOperationId))
+                {
+                    createdCount++;
+                    continue;
+                }
+                if (!physicalRuntime.TryCreateAuthoredUniqueLot(
+                        saleItem.Id,
+                        saleItem.ItemDefinitionId,
+                        saleItem.UnitMassGrams,
+                        sourceOperationId,
+                        out RetailStockLotSnapshot lot,
+                        out string sourceFailure))
+                {
+                    throw new InvalidOperationException(
+                        $"Shop '{ownerId}' could not create exact unique stock '{sourceOperationId}': {sourceFailure}");
+                }
+                if (!core.TryReceiveExactLot(
+                        lot,
+                        1,
+                        out int received,
+                        out string receiveFailure)
+                    || received != 1)
+                {
+                    if (!physicalRuntime.TryCommitExternalSink(
+                            lot,
+                            out string rollbackFailure))
+                    {
+                        throw new InvalidOperationException(
+                            $"Shop '{ownerId}' failed to rollback unique source '{sourceOperationId}': {rollbackFailure}");
+                    }
+                    throw new InvalidOperationException(
+                        $"Shop '{ownerId}' rejected unique source '{sourceOperationId}': {receiveFailure}");
+                }
+                existingOperations.Add(sourceOperationId);
+                createdCount++;
+            }
+            if (createdCount > 0)
+            {
+                core.MarkAuthoredSaleItemActivated(saleItem.Id);
+            }
+        }
     }
 
     public void Reset() => core.Reset();
@@ -50,12 +138,6 @@ internal sealed class ShopInventoryRuntime
 
         return catalog.TryGetSaleItem(saleItemId, out saleItem);
     }
-
-    public int RestockFrom(
-        IEnumerable<IWarehouseFacility> warehouses,
-        int maxAmount,
-        out string resultMessage) =>
-        core.RestockFrom(AdaptWarehouses(warehouses), maxAmount, out resultMessage);
 
     public bool TryFindRestockSource(
         IEnumerable<IWarehouseFacility> warehouses,
@@ -129,39 +211,16 @@ internal sealed class ShopInventoryRuntime
         return true;
     }
 
-    public int ReceiveRestock(
-        WarehouseRestockItem saleItem,
-        int amount,
+    public bool TryReceiveExactRetailLots(
+        IReadOnlyList<RetailStockLotSnapshot> incoming,
         int requestedAmount,
-        out string resultMessage)
-    {
-        return core.ReceiveRestock(
-            saleItem.Definition,
-            amount,
+        out int received,
+        out string resultMessage) =>
+        core.TryReceiveExactLots(
+            incoming,
             requestedAmount,
+            out received,
             out resultMessage);
-    }
-
-    public int ReceiveRestock(
-        SaleItem saleItem,
-        int amount,
-        int requestedAmount,
-        out string resultMessage)
-    {
-        if (saleItem == null || catalog == null)
-        {
-            resultMessage = "보충할 상품 데이터가 없습니다";
-            return 0;
-        }
-
-        return core.ReceiveRestock(
-            ShopStockCatalogAdapter.Capture(
-                saleItem,
-                catalog.GetStockCategory(saleItem.id)),
-            amount,
-            requestedAmount,
-            out resultMessage);
-    }
 
     public bool HasRestockSupply(
         IReadOnlyList<IWarehouseFacility> warehouses,
@@ -170,6 +229,15 @@ internal sealed class ShopInventoryRuntime
 
     public ShopStockStateSnapshot CreateSnapshot() => core.CreateSnapshot();
     public void ApplySnapshot(ShopStockStateSnapshot snapshot) => core.ApplySnapshot(snapshot);
+    public bool TryTakeExactLot(
+        int saleItemId,
+        out RetailStockLotSnapshot taken,
+        out string failureReason) =>
+        core.TryTakeExactLot(saleItemId, out taken, out failureReason);
+    public bool TryRestoreTakenExactLot(
+        RetailStockLotSnapshot taken,
+        out string failureReason) =>
+        core.TryRestoreTakenExactLot(taken, out failureReason);
     public void Clear() => core.Clear();
     public bool TryInitialize(bool requireCatalog) => core.TryInitialize(requireCatalog);
     public void EnsureInitialized() => core.EnsureInitialized();
@@ -181,12 +249,12 @@ internal sealed class ShopInventoryRuntime
             stock,
             selectedCounts);
 
-    private static IReadOnlyList<IBuildingShopWarehousePort> AdaptWarehouses(
+    private IReadOnlyList<IBuildingShopWarehousePort> AdaptWarehouses(
         IEnumerable<IWarehouseFacility> warehouses)
     {
         return warehouses?.Where(warehouse => warehouse != null)
                    .Select(warehouse => (IBuildingShopWarehousePort)
-                       new ShopWarehouseAdapter(warehouse))
+                       new ShopWarehouseAdapter(warehouse, physicalStockQuery))
                    .ToArray()
                ?? Array.Empty<IBuildingShopWarehousePort>();
     }
@@ -213,7 +281,7 @@ internal sealed class ShopStockCatalogAdapter : IBuildingShopStockCatalogPort
         ShopStockSeed[] stocks = stockInfo.stocks?
             .Where(tuple => tuple?.Item1 != null)
             .Select(tuple => new ShopStockSeed(
-                Capture(tuple.Item1, catalog.GetStockCategory(tuple.Item1.id)),
+                Capture(tuple.Item1),
                 tuple.Item2))
             .ToArray() ?? Array.Empty<ShopStockSeed>();
         definition = new ShopStockDefinition(stockInfo.multifly, stocks);
@@ -223,15 +291,26 @@ internal sealed class ShopStockCatalogAdapter : IBuildingShopStockCatalogPort
     public StockCategory GetStockCategory(int saleItemId) =>
         catalog.GetStockCategory(saleItemId);
 
-    internal static ShopSaleItemDefinition Capture(
-        SaleItem item,
-        StockCategory stockCategory)
+    internal ShopSaleItemDefinition Capture(SaleItem item)
     {
-        if (item == null) return default;
+        if (item == null
+            || !catalog.TryGetPhysicalDescriptor(
+                item.id,
+                out ItemDefinitionId itemDefinitionId,
+                out long unitMassGrams,
+                out bool requiresUniqueInstance))
+        {
+            throw new InvalidOperationException(
+                $"Sale item '{item?.id}' has no canonical physical descriptor.");
+        }
+
         return new ShopSaleItemDefinition(
             item.id,
             item.itemName,
-            stockCategory,
+            itemDefinitionId.Value,
+            unitMassGrams,
+            requiresUniqueInstance,
+            catalog.GetStockCategory(item.id),
             item.cost,
             item.buyevent);
     }
@@ -240,17 +319,26 @@ internal sealed class ShopStockCatalogAdapter : IBuildingShopStockCatalogPort
 internal sealed class ShopWarehouseAdapter : IBuildingShopWarehousePort
 {
     private readonly IWarehouseFacility warehouse;
+    private readonly IStockQuery physicalStockQuery;
 
-    public ShopWarehouseAdapter(IWarehouseFacility warehouse)
+    public ShopWarehouseAdapter(
+        IWarehouseFacility warehouse,
+        IStockQuery physicalStockQuery)
     {
         this.warehouse = warehouse ?? throw new ArgumentNullException(nameof(warehouse));
+        this.physicalStockQuery = physicalStockQuery
+            ?? throw new ArgumentNullException(nameof(physicalStockQuery));
     }
 
     public object RuntimeObject => warehouse;
     private IWarehouseInventoryPort Inventory => warehouse.Inventory;
     public bool HasInventory => warehouse.HasWarehouseInventory && Inventory != null;
-    public int GetStock(StockCategory category) =>
-        HasInventory ? Inventory.GetStock(category) : 0;
+    public int GetStock(string itemDefinitionId) =>
+        HasInventory && !string.IsNullOrWhiteSpace(itemDefinitionId)
+            ? physicalStockQuery.GetWarehouseQuantity(
+                warehouse.PersistentInstanceId,
+                itemDefinitionId)
+            : 0;
 }
 
 internal sealed class ShopInventoryOwnerAdapter : IBuildingShopInventoryOwnerPort
@@ -264,6 +352,8 @@ internal sealed class ShopInventoryOwnerAdapter : IBuildingShopInventoryOwnerPor
 
     public bool IsConfigured => owner.BuildingData != null;
     public int ShopId => owner.id;
+    public string PersistentOwnerId =>
+        owner.RequirePersistentInstanceId().Value;
     public string DisplayName => owner.name;
     public int ConfiguredInternalStockCapacity =>
         owner.BuildingData?.GetInternalStockCapacity() ?? 0;
@@ -285,23 +375,6 @@ internal sealed class ShopInventoryOwnerAdapter : IBuildingShopInventoryOwnerPor
 
     public int GetRoomStorageCapacity(StockCategory category) =>
         owner.GetRoomOperationalProfile().GetStorageCapacity(category);
-
-    public int ConsumeWarehouseStock(
-        IBuildingShopWarehousePort warehouse,
-        StockCategory category,
-        int amount)
-    {
-        IWarehouseFacility source = warehouse?.RuntimeObject as IWarehouseFacility
-            ?? throw new InvalidOperationException(
-                "Shop restocking requires a warehouse adapter.");
-        IBuildingItemStackPort items = owner.WorldItemStackRuntime
-            ?? throw new InvalidOperationException(
-                "Shop restocking requires physical item runtime.");
-        return items.ConsumeWarehouseStock(
-            source as IBuildingWorldEntryPort,
-            category,
-            amount);
-    }
 
     public void PublishRestock(int requested, int received, string message) =>
         owner.PublishRestockEvent(requested, received, message);

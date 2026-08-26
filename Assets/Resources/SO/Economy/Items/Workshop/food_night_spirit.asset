@@ -32,18 +32,18 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 32
   features:
-  - rid: 7737212042831200794
-  - rid: 7737212042831200795
-  - rid: 7737212042831200796
   - rid: 7737212042857939424
+  - rid: 1003
+  - rid: 1004
+  - rid: 1005
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200794
+    - rid: 1003
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:distilling-aging
-    - rid: 7737212042831200795
+    - rid: 1004
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:night-spirit
@@ -56,7 +56,7 @@ MonoBehaviour:
         workSpeedEffect: -0.08
         combatEffect: -0.06
         durationSeconds: 240
-    - rid: 7737212042831200796
+    - rid: 1005
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
@@ -65,4 +65,4 @@ MonoBehaviour:
     - rid: 7737212042857939424
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5899375
+        saleRate: 0.58925

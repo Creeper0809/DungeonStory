@@ -7,7 +7,78 @@ using UnityEngine;
 public interface IFacilityEvolutionResourceProvider
 {
     bool HasMaterial(string materialId, int amount);
-    bool ConsumeMaterial(string materialId, int amount);
+    bool TryGetPendingMaterialCommit(
+        string operationId,
+        string reasonCode,
+        out FacilityEvolutionMaterialCommitReceipt receipt,
+        out string failureReason);
+    bool TryCommitMaterialsPending(
+        IReadOnlyList<FacilityEvolutionMaterialRequirement> requirements,
+        string operationId,
+        string reasonCode,
+        out FacilityEvolutionMaterialCommitReceipt receipt,
+        out string failureReason);
+    bool AcknowledgeMaterialCommit(string commitId, out string failureReason);
+}
+
+public readonly struct FacilityEvolutionMaterialCommitReceipt
+{
+    public FacilityEvolutionMaterialCommitReceipt(
+        string operationId,
+        string reasonCode,
+        string commitId,
+        IReadOnlyList<string> sourceStackIds,
+        int quantity,
+        long inputMassGrams)
+    {
+        OperationId = operationId ?? string.Empty;
+        ReasonCode = reasonCode ?? string.Empty;
+        CommitId = commitId ?? string.Empty;
+        SourceStackIds = (sourceStackIds ?? Array.Empty<string>()).ToArray();
+        Quantity = quantity;
+        InputMassGrams = inputMassGrams;
+    }
+
+    public string OperationId { get; }
+    public string ReasonCode { get; }
+    public string CommitId { get; }
+    public IReadOnlyList<string> SourceStackIds { get; }
+    public int Quantity { get; }
+    public long InputMassGrams { get; }
+    public bool IsCommitted => OperationId.Length > 0
+        && ReasonCode.Length > 0
+        && CommitId.Length > 0
+        && SourceStackIds.Count > 0
+        && Quantity > 0
+        && InputMassGrams > 0L;
+}
+
+public static class FacilityEvolutionMaterialCommitAuthority
+{
+    public static bool Matches(
+        FacilityEvolutionPendingMaterialCommitSnapshot pending,
+        FacilityEvolutionMaterialCommitReceipt receipt)
+    {
+        return pending != null
+            && receipt.IsCommitted
+            && string.Equals(
+                receipt.OperationId,
+                pending.operationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                receipt.ReasonCode,
+                pending.reasonCode,
+                StringComparison.Ordinal)
+            && string.Equals(
+                receipt.CommitId,
+                pending.commitId,
+                StringComparison.Ordinal)
+            && receipt.Quantity == pending.quantity
+            && receipt.InputMassGrams == pending.inputMassGrams
+            && receipt.SourceStackIds.SequenceEqual(
+                pending.sourceStackIds ?? Array.Empty<string>(),
+                StringComparer.Ordinal);
+    }
 }
 
 public interface IFacilityEvolutionProposalProvider
@@ -266,15 +337,54 @@ public sealed class EmptyFacilityEvolutionResourceProvider : IFacilityEvolutionR
         return string.IsNullOrWhiteSpace(materialId) || amount <= 0;
     }
 
-    public bool ConsumeMaterial(string materialId, int amount)
+    public bool TryGetPendingMaterialCommit(
+        string operationId,
+        string reasonCode,
+        out FacilityEvolutionMaterialCommitReceipt receipt,
+        out string failureReason)
     {
-        return HasMaterial(materialId, amount);
+        receipt = default;
+        failureReason = string.Empty;
+        return false;
+    }
+
+    public bool TryCommitMaterialsPending(
+        IReadOnlyList<FacilityEvolutionMaterialRequirement> requirements,
+        string operationId,
+        string reasonCode,
+        out FacilityEvolutionMaterialCommitReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        failureReason = string.Empty;
+        FacilityEvolutionMaterialRequirement[] required = (requirements
+                ?? Array.Empty<FacilityEvolutionMaterialRequirement>())
+            .Where(requirement => !string.IsNullOrWhiteSpace(requirement.materialId))
+            .ToArray();
+        if (required.Length > 0)
+        {
+            failureReason = "facility-evolution-empty-resource-provider";
+            return false;
+        }
+        return true;
+    }
+
+    public bool AcknowledgeMaterialCommit(string commitId, out string failureReason)
+    {
+        failureReason = string.Empty;
+        return string.IsNullOrEmpty(commitId);
     }
 }
 
 public sealed class MemoryFacilityEvolutionResourceProvider : IFacilityEvolutionResourceProvider
 {
     private readonly Dictionary<string, int> materials = new Dictionary<string, int>();
+    private readonly Dictionary<string, string> pendingCommits =
+        new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> pendingReasons =
+        new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly Dictionary<string, FacilityEvolutionMaterialCommitReceipt> pendingReceipts =
+        new Dictionary<string, FacilityEvolutionMaterialCommitReceipt>(StringComparer.Ordinal);
 
     public void SetMaterial(string materialId, int amount)
     {
@@ -294,18 +404,110 @@ public sealed class MemoryFacilityEvolutionResourceProvider : IFacilityEvolution
         return materials.TryGetValue(materialId, out int current) && current >= amount;
     }
 
-    public bool ConsumeMaterial(string materialId, int amount)
+    public bool TryGetPendingMaterialCommit(
+        string operationId,
+        string reasonCode,
+        out FacilityEvolutionMaterialCommitReceipt receipt,
+        out string failureReason)
     {
-        if (!HasMaterial(materialId, amount))
+        receipt = default;
+        failureReason = string.Empty;
+        string operation = operationId ?? string.Empty;
+        if (!pendingCommits.ContainsKey(operation))
         {
             return false;
         }
-
-        if (!string.IsNullOrWhiteSpace(materialId) && amount > 0)
+        if (!pendingReasons.TryGetValue(operation, out string pendingReason)
+            || !string.Equals(pendingReason, reasonCode, StringComparison.Ordinal))
         {
-            materials[materialId] -= amount;
+            failureReason = "facility-evolution-material-operation-conflict:" + operation;
+            return false;
+        }
+        return pendingReceipts.TryGetValue(operation, out receipt)
+            && receipt.IsCommitted;
+    }
+
+    public bool TryCommitMaterialsPending(
+        IReadOnlyList<FacilityEvolutionMaterialRequirement> requirements,
+        string operationId,
+        string reasonCode,
+        out FacilityEvolutionMaterialCommitReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        failureReason = string.Empty;
+        string operation = operationId ?? string.Empty;
+        string reason = reasonCode ?? string.Empty;
+        FacilityEvolutionMaterialRequirement[] required = (requirements
+                ?? Array.Empty<FacilityEvolutionMaterialRequirement>())
+            .Where(requirement => !string.IsNullOrWhiteSpace(requirement.materialId))
+            .OrderBy(requirement => requirement.materialId, StringComparer.Ordinal)
+            .ToArray();
+        string fingerprint = reason + ":" + string.Join(",", required.Select(
+            requirement => requirement.materialId + "=" + Mathf.Max(1, requirement.amount)));
+        if (operation.Length == 0 || reason.Length == 0)
+        {
+            failureReason = "facility-evolution-material-operation-invalid";
+            return false;
+        }
+        if (pendingCommits.TryGetValue(operation, out string pending))
+        {
+            if (!string.Equals(pending, fingerprint, StringComparison.Ordinal))
+            {
+                failureReason = "facility-evolution-material-operation-conflict:" + operation;
+                return false;
+            }
+            return pendingReceipts.TryGetValue(operation, out receipt)
+                && receipt.IsCommitted;
         }
 
+        Dictionary<string, int> totals = required
+            .GroupBy(requirement => requirement.materialId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(requirement => Mathf.Max(1, requirement.amount)),
+                StringComparer.Ordinal);
+        if (totals.Any(entry => !HasMaterial(entry.Key, entry.Value)))
+        {
+            failureReason = "facility-evolution-material-unavailable";
+            return false;
+        }
+        foreach (KeyValuePair<string, int> entry in totals)
+        {
+            materials[entry.Key] -= entry.Value;
+        }
+        pendingCommits.Add(operation, fingerprint);
+        pendingReasons.Add(operation, reason);
+        int totalQuantity = totals.Sum(entry => entry.Value);
+        receipt = new FacilityEvolutionMaterialCommitReceipt(
+            operation,
+            reason,
+            $"physical-batch-disposition:1:{operation}:{totalQuantity}:{totalQuantity}",
+            totals.Keys.Select(key => "memory:" + key).OrderBy(key => key, StringComparer.Ordinal).ToArray(),
+            totalQuantity,
+            totalQuantity);
+        pendingReceipts.Add(operation, receipt);
+        return true;
+    }
+
+    public bool AcknowledgeMaterialCommit(string commitId, out string failureReason)
+    {
+        failureReason = string.Empty;
+        string operation = pendingReceipts
+            .Where(entry => string.Equals(
+                entry.Value.CommitId,
+                commitId,
+                StringComparison.Ordinal))
+            .Select(entry => entry.Key)
+            .SingleOrDefault();
+        if (string.IsNullOrWhiteSpace(operation))
+        {
+            failureReason = "facility-evolution-material-ack-invalid";
+            return false;
+        }
+        pendingCommits.Remove(operation);
+        pendingReasons.Remove(operation);
+        pendingReceipts.Remove(operation);
         return true;
     }
 }

@@ -31,17 +31,17 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 249
   features:
-  - rid: 7737212042857939764
-  - rid: 7737212042857939765
   - rid: 7737212042857939766
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737212042857939764
+    - rid: 1002
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        requiredResearchId: research:industry:stock-sensors
-    - rid: 7737212042857939765
+        requiredResearchId: research:industry:automatic-bills
+    - rid: 1003
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8

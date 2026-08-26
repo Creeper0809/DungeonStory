@@ -27,6 +27,19 @@ public sealed class CaptivityRestoreCandidate
         captive = found?.Clone();
         return captive != null;
     }
+
+    public void ReconcileCaptives(Action<CaptiveState> reconciler)
+    {
+        if (reconciler == null)
+        {
+            throw new ArgumentNullException(nameof(reconciler));
+        }
+
+        foreach (CaptiveState captive in State.Captives)
+        {
+            reconciler(captive);
+        }
+    }
 }
 
 public sealed class CircusRestoreCandidate

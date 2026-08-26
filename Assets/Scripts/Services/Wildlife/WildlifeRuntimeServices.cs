@@ -12,6 +12,7 @@ public sealed class WildlifeWorldServices
         IGridPathSearchBroker pathSearch,
         ICharacterAiWorldRegistry worldRegistry,
         IWorldItemStackRuntime items,
+        IPhysicalItemBatchDispositionService batchDispositions,
         IGameCalendar calendar,
         IGameEventBus events,
         IDiseaseDefinitionCatalog diseases)
@@ -24,6 +25,8 @@ public sealed class WildlifeWorldServices
         PathSearch = pathSearch ?? throw new ArgumentNullException(nameof(pathSearch));
         WorldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
         Items = items ?? throw new ArgumentNullException(nameof(items));
+        BatchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
         Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         Events = events ?? throw new ArgumentNullException(nameof(events));
         Diseases = diseases ?? throw new ArgumentNullException(nameof(diseases));
@@ -37,6 +40,7 @@ public sealed class WildlifeWorldServices
     public IGridPathSearchBroker PathSearch { get; }
     public ICharacterAiWorldRegistry WorldRegistry { get; }
     public IWorldItemStackRuntime Items { get; }
+    public IPhysicalItemBatchDispositionService BatchDispositions { get; }
     public IGameCalendar Calendar { get; }
     public IGameEventBus Events { get; }
     public IDiseaseDefinitionCatalog Diseases { get; }

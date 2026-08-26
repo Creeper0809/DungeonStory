@@ -492,23 +492,73 @@ public static class OffenseStrategicDebugScenarios
                     out OffenseUrgentMitigationWorkSnapshot work)
                 && work.Available,
                 "재료 납품 후 완화 작업이 활성화되지 않았습니다.");
+            items.FailNextWipAcknowledgement = true;
             Require(
-                runtime.ApplyWork(
+                !runtime.ApplyWork(
                     facility,
                     null,
                     definition.mitigationWork,
                     out bool completed)
-                && completed,
-                "필요 작업량을 채운 뒤 완화 주문이 완료되지 않았습니다.");
+                && !completed,
+                "WIP acknowledgement fault가 완화 주문을 조기에 완료했습니다.");
+            OffenseUrgentMitigationOrderStateData pendingOutcome =
+                runtime.Capture().Single();
             Require(
-                items.ConsumedAmount == definition.mitigationItemAmount,
-                "완화 완료 시 납품 재료를 정확히 소비하지 않았습니다.");
+                pendingOutcome.physicalCommitPhase
+                    == (int)OffenseUrgentMitigationCommitPhase.OutcomePublished
+                && !pendingOutcome.physicalReceiptAcknowledged,
+                "완화 결과 outbox가 acknowledgement fault를 보존하지 않았습니다.");
+            Require(
+                world.TryGetUrgentSite(
+                    siteId,
+                    out OffenseUrgentSiteStateData beforeRecovery)
+                && beforeRecovery.mitigation > 0f,
+                "acknowledgement fault 전에 완화 결과가 게시되지 않았습니다.");
+            float publishedMitigation = beforeRecovery.mitigation;
+            runtime = new OffenseUrgentMitigationRuntime(
+                world,
+                catalog,
+                new FixedBuildingWorldQuery(facility),
+                items,
+                clock,
+                workforce: null,
+                facilityCandidates: null);
+            object restoreCandidate = typeof(OffenseUrgentMitigationRuntime)
+                .GetMethod(
+                    "PrepareRestore",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?.Invoke(
+                    runtime,
+                    new object[]
+                    {
+                        new[] { pendingOutcome }
+                    });
+            Require(
+                restoreCandidate != null,
+                "완화 outbox restore candidate를 만들지 못했습니다.");
+            typeof(OffenseUrgentMitigationRuntime)
+                .GetMethod(
+                    "PublishRestore",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?.Invoke(runtime, new[] { restoreCandidate });
+            runtime.Initialize();
+            clock.Advance(1f);
+            runtime.Tick();
+            Require(
+                items.WipTransferredAmount == definition.mitigationItemAmount
+                && items.WipTransferredMassGrams
+                    == (long)definition.mitigationItemAmount * 1_000L
+                && items.WipAcknowledgementCount == 1
+                && runtime.Capture().Count == 0,
+                "완화 완료 시 납품 재료를 exact Transfer-to-WIP로 귀속하지 않았습니다.");
             Require(
                 world.TryGetUrgentSite(
                     siteId,
                     out OffenseUrgentSiteStateData urgent)
-                && urgent.mitigation > 0f,
-                "실제 작업 완료가 긴급 거점 완화에 반영되지 않았습니다.");
+                && Mathf.Abs(urgent.mitigation - publishedMitigation) <= 0.0001f,
+                "완화 outbox 재시도가 결과를 중복 적용했습니다.");
             Require(
                 !RuntimeWorkCapabilityUtility.Supports(
                     facility,
@@ -918,6 +968,7 @@ public static class OffenseStrategicDebugScenarios
                 ?.SetValue(staging, new Vector2Int(9, 4));
             RecordingProductionItemGateway items =
                 new RecordingProductionItemGateway();
+            RecordingOffenseSupplyPhysicalCustodyGateway custody = new();
             FacilityBufferDestinationClaimRegistry destinationClaims = new();
             DungeonOffensePreparationService preparation =
                 new DungeonOffensePreparationService(
@@ -925,7 +976,8 @@ public static class OffenseStrategicDebugScenarios
                     items,
                     new FixedExteriorZoneQuery(staging),
                     destinationClaims,
-                    destinationClaims);
+                    destinationClaims,
+                    custody);
             OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
             loadout.Add(OffenseSupplyType.Rations, 2);
 
@@ -1106,7 +1158,8 @@ public static class OffenseStrategicDebugScenarios
                     items,
                     new FixedExteriorZoneQuery(staging),
                     restoredDestinationClaims,
-                    restoredDestinationClaims);
+                    restoredDestinationClaims,
+                    custody);
             restoredPreparation.RestorePackingState(savedPacking);
             Require(
                 restoredPreparation.GetPackingSnapshot("packing:cancel")
@@ -1163,9 +1216,87 @@ public static class OffenseStrategicDebugScenarios
                 preparation.GetPackingSnapshot("packing:depart");
             Require(
                 consumed.Consumed
-                && items.ConsumedAmount == 2
+                && custody.TransferredQuantity == 2
+                && custody.TransferredMassGrams == 2_000L
+                && custody.AcknowledgedTransferCount == 1
                 && destinationClaims.CaptureClaims().Count == 0,
-                "실제 출발 시 집결지 보급품을 정확히 소비하지 않았습니다.");
+                "실제 출발 시 집결지 보급품을 exact Transfer custody로 넘기지 않았습니다.");
+
+            OffenseSupplyLoadout unownedReturn = new();
+            unownedReturn.Add(OffenseSupplyType.Rations, 3);
+            bool rejectedUnownedReturn = false;
+            try
+            {
+                preparation.ReturnSupplies(
+                    unownedReturn,
+                    "packing:depart");
+            }
+            catch (InvalidOperationException)
+            {
+                rejectedUnownedReturn = true;
+            }
+            Require(
+                rejectedUnownedReturn
+                && custody.ReturnPublicationCount == 0,
+                "원정 custody가 소유하지 않은 보급품 반환을 거절하지 않았습니다.");
+
+            OffenseSupplyLoadout returnedLoadout = new();
+            returnedLoadout.Add(OffenseSupplyType.Rations, 1);
+            preparation.ReturnSupplies(returnedLoadout, "packing:depart");
+            IReadOnlyList<OffenseSupplyPackingStateData> returnedState =
+                preparation.CapturePackingState();
+            OffenseSupplyPackingStateData returnedPackage = returnedState.Single(
+                value => string.Equals(
+                    value.packageId,
+                    "packing:depart",
+                    StringComparison.Ordinal));
+            Require(
+                custody.ReturnedQuantity == 1
+                && custody.ReturnedMassGrams == 1_000L
+                && custody.ReturnPublicationCount == 1
+                && returnedPackage.custodyPhase
+                    == (int)OffenseSupplyCustodyPhase.Returned
+                && returnedPackage.returnQuantity == 1
+                && returnedPackage.returnMassGrams == 1_000L
+                && returnedPackage.consumedOrLostMassGrams == 1_000L
+                && returnedPackage.returnMassGrams
+                    + returnedPackage.consumedOrLostMassGrams
+                    == returnedPackage.custodyMassGrams,
+                "원정 잔여 보급품의 Source 반환 또는 질량 폐쇄가 exact하지 않습니다.");
+            preparation.ReturnSupplies(returnedLoadout, "packing:depart");
+            Require(
+                custody.ReturnPublicationCount == 1,
+                "원정 보급품 반환 재시도가 물리 출력을 중복 생성했습니다.");
+
+            FacilityBufferDestinationClaimRegistry returnRestoreClaims = new();
+            RecordingOffenseSupplyPhysicalCustodyGateway returnRestoreCustody =
+                new();
+            DungeonOffensePreparationService returnRestored =
+                new DungeonOffensePreparationService(
+                    new EmptyWarehouseInventoryQuery(),
+                    items,
+                    new FixedExteriorZoneQuery(staging),
+                    returnRestoreClaims,
+                    returnRestoreClaims,
+                    returnRestoreCustody);
+            returnRestored.RestorePackingState(returnedState);
+            OffenseSupplyPackingStateData roundTrippedReturn =
+                returnRestored.CapturePackingState().Single(value =>
+                    string.Equals(
+                        value.packageId,
+                        "packing:depart",
+                        StringComparison.Ordinal));
+            Require(
+                roundTrippedReturn.custodyPhase
+                    == (int)OffenseSupplyCustodyPhase.Returned
+                && roundTrippedReturn.returnMassGrams == 1_000L
+                && roundTrippedReturn.consumedOrLostMassGrams == 1_000L
+                && returnRestoreClaims.CaptureClaims().Count == 0,
+                "반환 완료 custody의 current-format 저장 복원이 질량 폐쇄를 보존하지 않았습니다.");
+            returnRestored.ReturnSupplies(returnedLoadout, "packing:depart");
+            Require(
+                returnRestoreCustody.ReturnPublicationCount == 0,
+                "반환 완료 custody 복원 후 물리 출력이 다시 생성됐습니다.");
         }
         finally
         {
@@ -1183,6 +1314,7 @@ public static class OffenseStrategicDebugScenarios
                 stagingObject.AddComponent<ExteriorZoneMarker>();
             RecordingProductionItemGateway items =
                 new RecordingProductionItemGateway();
+            RecordingOffenseSupplyPhysicalCustodyGateway custody = new();
             FacilityBufferDestinationClaimRegistry destinationClaims = new();
             DungeonOffensePreparationService preparation =
                 new DungeonOffensePreparationService(
@@ -1190,7 +1322,8 @@ public static class OffenseStrategicDebugScenarios
                     items,
                     new FixedExteriorZoneQuery(staging),
                     destinationClaims,
-                    destinationClaims);
+                    destinationClaims,
+                    custody);
             OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
             loadout.Add(OffenseSupplyType.Tools, 2);
 
@@ -1214,8 +1347,9 @@ public static class OffenseStrategicDebugScenarios
                     out message),
                 message);
             Require(
-                items.ConsumedAmount == 2,
-                "field repair kits were not physically consumed");
+                custody.TransferredQuantity == 2
+                && custody.TransferredMassGrams == 2_000L,
+                "field repair kits were not transferred into expedition custody");
         }
         finally
         {
@@ -1398,7 +1532,8 @@ public static class OffenseStrategicDebugScenarios
                 new RecordingProductionItemGateway(),
                 new FixedExteriorZoneQuery(staging),
                 restoredDestinationClaims,
-                restoredDestinationClaims);
+                restoredDestinationClaims,
+                new RecordingOffenseSupplyPhysicalCustodyGateway());
         OffenseWorldStateSaveCodec restoredSection = new OffenseWorldStateSaveCodec(
             restoredWorld,
             restoredTravel,
@@ -1704,7 +1839,16 @@ public static class OffenseStrategicDebugScenarios
                 requiredWork = source.requiredWork,
                 completedWork = source.completedWork,
                 status = source.status,
-                statusText = source.statusText
+                statusText = source.statusText,
+                physicalCommitPhase = source.physicalCommitPhase,
+                physicalOperationId = source.physicalOperationId,
+                physicalCommitId = source.physicalCommitId,
+                inputQuantity = source.inputQuantity,
+                inputMassGrams = source.inputMassGrams,
+                physicalReceiptAcknowledged =
+                    source.physicalReceiptAcknowledged,
+                mitigationBefore = source.mitigationBefore,
+                mitigationAfter = source.mitigationAfter
             };
         }
     }
@@ -1812,6 +1956,33 @@ public static class OffenseStrategicDebugScenarios
                 stagingX = source.stagingX,
                 stagingY = source.stagingY,
                 consumed = source.consumed,
+                custodyPhase = source.custodyPhase,
+                custodyOperationId = source.custodyOperationId,
+                custodyReasonCode = source.custodyReasonCode,
+                custodyCommitId = source.custodyCommitId,
+                custodySourceStackIds = new List<string>(
+                    source.custodySourceStackIds ?? new List<string>()),
+                custodyQuantity = source.custodyQuantity,
+                custodyMassGrams = source.custodyMassGrams,
+                custodyAcknowledged = source.custodyAcknowledged,
+                returnOperationId = source.returnOperationId,
+                returnReasonCode = source.returnReasonCode,
+                returnX = source.returnX,
+                returnY = source.returnY,
+                returnOutputCommitIds = new List<string>(
+                    source.returnOutputCommitIds ?? new List<string>()),
+                returnQuantity = source.returnQuantity,
+                returnMassGrams = source.returnMassGrams,
+                consumedOrLostMassGrams = source.consumedOrLostMassGrams,
+                returnedCosts = (source.returnedCosts
+                        ?? new List<OffenseSupplyPackingItemStateData>())
+                    .Where(cost => cost != null)
+                    .Select(cost => new OffenseSupplyPackingItemStateData
+                    {
+                        itemId = cost.itemId,
+                        amount = cost.amount
+                    })
+                    .ToList(),
                 costs = (source.costs
                         ?? new List<OffenseSupplyPackingItemStateData>())
                     .Where(cost => cost != null)
@@ -1846,7 +2017,34 @@ public static class OffenseStrategicDebugScenarios
             return Array.Empty<IWarehouseFacility>();
         }
 
-        public int Consume(StockCategory category, int amount) => 0;
+        public bool TryGetPending(
+            string operationId,
+            string reasonCode,
+            out FacilityEvolutionMaterialCommitReceipt receipt,
+            out string failureReason)
+        {
+            receipt = default;
+            failureReason = string.Empty;
+            return false;
+        }
+
+        public bool TryCommitPending(
+            IReadOnlyList<FacilityEvolutionMaterialDebit> debits,
+            string operationId,
+            string reasonCode,
+            out FacilityEvolutionMaterialCommitReceipt receipt,
+            out string failureReason)
+        {
+            receipt = default;
+            failureReason = "offense-empty-warehouse-material-commit";
+            return false;
+        }
+
+        public bool Acknowledge(string commitId, out string failureReason)
+        {
+            failureReason = string.Empty;
+            return false;
+        }
     }
 
     private sealed class FixedExteriorZoneQuery : IExteriorZoneQuery
@@ -1903,16 +2101,175 @@ public static class OffenseStrategicDebugScenarios
         }
     }
 
+    private sealed class RecordingOffenseSupplyPhysicalCustodyGateway :
+        IOffenseSupplyPhysicalCustodyGateway
+    {
+        private readonly Dictionary<string, OffenseSupplyCustodyReceipt> pending =
+            new(StringComparer.Ordinal);
+        private readonly HashSet<string> acknowledged =
+            new(StringComparer.Ordinal);
+        private readonly Dictionary<string, PhysicalItemSourcePublicationReceipt>
+            publishedReturns = new(StringComparer.Ordinal);
+
+        public int TransferredQuantity { get; private set; }
+        public long TransferredMassGrams { get; private set; }
+        public int AcknowledgedTransferCount { get; private set; }
+        public int ReturnedQuantity { get; private set; }
+        public long ReturnedMassGrams { get; private set; }
+        public int ReturnPublicationCount { get; private set; }
+
+        public bool TryCommitTransferPending(
+            string destinationId,
+            IReadOnlyDictionary<string, int> costs,
+            string operationId,
+            string reasonCode,
+            out OffenseSupplyCustodyReceipt receipt,
+            out string failureReason)
+        {
+            if (pending.TryGetValue(operationId, out receipt))
+            {
+                failureReason = string.Empty;
+                return true;
+            }
+
+            KeyValuePair<string, int>[] exactCosts = (costs
+                    ?? new Dictionary<string, int>())
+                .Where(pair => pair.Value > 0)
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .ToArray();
+            int quantity = exactCosts.Sum(pair => pair.Value);
+            if (string.IsNullOrWhiteSpace(destinationId)
+                || string.IsNullOrWhiteSpace(operationId)
+                || string.IsNullOrWhiteSpace(reasonCode)
+                || exactCosts.Length == 0
+                || quantity <= 0)
+            {
+                receipt = default;
+                failureReason = "offense-custody-fixture-invalid-request";
+                return false;
+            }
+
+            long mass = checked((long)quantity * 1_000L);
+            string commitId =
+                $"physical-batch-disposition:1:{operationId}:{quantity}:{mass}";
+            string[] sources = exactCosts
+                .Select(pair => "fixture-stack:" + pair.Key)
+                .ToArray();
+            receipt = new OffenseSupplyCustodyReceipt(
+                operationId,
+                reasonCode,
+                commitId,
+                sources,
+                quantity,
+                mass);
+            pending.Add(operationId, receipt);
+            TransferredQuantity = checked(TransferredQuantity + quantity);
+            TransferredMassGrams = checked(TransferredMassGrams + mass);
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryGetPending(
+            string operationId,
+            out OffenseSupplyCustodyReceipt receipt) =>
+            pending.TryGetValue(operationId ?? string.Empty, out receipt);
+
+        public bool AcknowledgeTransfer(
+            string commitId,
+            out string failureReason)
+        {
+            if (acknowledged.Contains(commitId ?? string.Empty))
+            {
+                failureReason = string.Empty;
+                return true;
+            }
+
+            KeyValuePair<string, OffenseSupplyCustodyReceipt> match =
+                pending.FirstOrDefault(pair => string.Equals(
+                    pair.Value.CommitId,
+                    commitId,
+                    StringComparison.Ordinal));
+            if (string.IsNullOrWhiteSpace(match.Key))
+            {
+                failureReason = "offense-custody-fixture-receipt-not-found";
+                return false;
+            }
+
+            pending.Remove(match.Key);
+            acknowledged.Add(commitId);
+            AcknowledgedTransferCount++;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryEnsureReturnOutputs(
+            IReadOnlyDictionary<string, int> outputs,
+            Vector2Int outputPosition,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemSourcePublicationReceipt receipt,
+            out string failureReason)
+        {
+            if (publishedReturns.TryGetValue(operationId, out receipt))
+            {
+                failureReason = string.Empty;
+                return true;
+            }
+
+            KeyValuePair<string, int>[] exactOutputs = (outputs
+                    ?? new Dictionary<string, int>())
+                .Where(pair => pair.Value > 0)
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .ToArray();
+            int quantity = exactOutputs.Sum(pair => pair.Value);
+            if (string.IsNullOrWhiteSpace(operationId)
+                || string.IsNullOrWhiteSpace(reasonCode)
+                || exactOutputs.Length == 0
+                || quantity <= 0)
+            {
+                receipt = default;
+                failureReason = "offense-return-fixture-invalid-request";
+                return false;
+            }
+
+            long mass = checked((long)quantity * 1_000L);
+            string[] commits = exactOutputs
+                .Select(pair =>
+                    $"physical-source:{operationId}:{pair.Key}:{pair.Value}:{checked((long)pair.Value * 1_000L)}")
+                .ToArray();
+            receipt = new PhysicalItemSourcePublicationReceipt(
+                operationId,
+                reasonCode,
+                commits,
+                quantity,
+                mass);
+            publishedReturns.Add(operationId, receipt);
+            ReturnedQuantity = checked(ReturnedQuantity + quantity);
+            ReturnedMassGrams = checked(ReturnedMassGrams + mass);
+            ReturnPublicationCount++;
+            failureReason = string.Empty;
+            return true;
+        }
+    }
+
     private sealed class RecordingProductionItemGateway :
         IProductionItemGateway
     {
         private string requestedItemId = string.Empty;
         private string requestedDestinationId = string.Empty;
         private int deliveredAmount;
+        private string pendingWipOperationId = string.Empty;
+        private ProductionWipInputReceipt pendingWipReceipt;
+        private readonly HashSet<string> acknowledgedWipCommits =
+            new(StringComparer.Ordinal);
 
         public int RequestedAmount { get; private set; }
         public string RequestedItemId => requestedItemId;
         public int ConsumedAmount { get; private set; }
+        public int WipTransferredAmount { get; private set; }
+        public long WipTransferredMassGrams { get; private set; }
+        public int WipAcknowledgementCount { get; private set; }
+        public bool FailNextWipAcknowledgement { get; set; }
         public int ReleasedAmount { get; private set; }
         public Vector2Int LastDestinationPosition { get; private set; }
         public string LastReleasedDestinationId { get; private set; } =
@@ -1932,6 +2289,18 @@ public static class OffenseStrategicDebugScenarios
                 ? RequestedAmount
                 : 0;
         }
+
+        public long CountPendingMassGrams(string destinationId) =>
+            string.Equals(
+                requestedDestinationId,
+                destinationId,
+                StringComparison.Ordinal)
+                ? (long)RequestedAmount * 1_000L
+                : 0L;
+
+        public long GetDefinitionQuantityMassGrams(
+            string itemId,
+            int quantity) => checked((long)quantity * 1_000L);
 
         public int CountAvailableStock(
             string itemId,
@@ -1957,6 +2326,33 @@ public static class OffenseStrategicDebugScenarios
             return requested > 0;
         }
 
+        public bool RequestDeliveryWithinMassCapacity(
+            string itemId,
+            int amount,
+            Vector2Int destinationPosition,
+            string destinationId,
+            long maxDestinationMassGrams,
+            out int requested,
+            out string failureReason)
+        {
+            long requestedMass = GetDefinitionQuantityMassGrams(itemId, amount);
+            if (CountPendingMassGrams(destinationId) + requestedMass
+                > maxDestinationMassGrams)
+            {
+                requested = 0;
+                failureReason =
+                    "production-input-buffer-mass-capacity-unavailable";
+                return false;
+            }
+            return RequestDelivery(
+                itemId,
+                amount,
+                destinationPosition,
+                destinationId,
+                out requested,
+                out failureReason);
+        }
+
         public bool ConsumeDelivered(
             string destinationId,
             IReadOnlyDictionary<string, int> costs,
@@ -1975,6 +2371,85 @@ public static class OffenseStrategicDebugScenarios
 
             deliveredAmount -= amount;
             ConsumedAmount += amount;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool ConsumeDeliveredToWip(
+            string destinationId,
+            IReadOnlyDictionary<string, int> costs,
+            string operationId,
+            out ProductionWipInputReceipt receipt,
+            out string failureReason)
+        {
+            if (string.Equals(
+                    pendingWipOperationId,
+                    operationId,
+                    StringComparison.Ordinal)
+                && pendingWipReceipt.IsCommitted)
+            {
+                receipt = pendingWipReceipt;
+                failureReason = string.Empty;
+                return true;
+            }
+
+            int amount = costs?.Values.Sum() ?? 0;
+            if (string.IsNullOrWhiteSpace(operationId)
+                || !string.Equals(
+                    requestedDestinationId,
+                    destinationId,
+                    StringComparison.Ordinal)
+                || deliveredAmount < amount
+                || amount <= 0)
+            {
+                receipt = default;
+                failureReason = "production-wip-input-missing";
+                return false;
+            }
+
+            long mass = checked((long)amount * 1_000L);
+            string commitId =
+                $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Transfer}:{operationId}:{amount}:{mass}";
+            receipt = new ProductionWipInputReceipt(commitId, amount, mass);
+            pendingWipOperationId = operationId;
+            pendingWipReceipt = receipt;
+            deliveredAmount -= amount;
+            WipTransferredAmount = checked(WipTransferredAmount + amount);
+            WipTransferredMassGrams = checked(
+                WipTransferredMassGrams + mass);
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool AcknowledgeWipInput(
+            string commitId,
+            out string failureReason)
+        {
+            if (FailNextWipAcknowledgement)
+            {
+                FailNextWipAcknowledgement = false;
+                failureReason = "injected-wip-acknowledgement-failure";
+                return false;
+            }
+            if (acknowledgedWipCommits.Contains(commitId ?? string.Empty))
+            {
+                failureReason = string.Empty;
+                return true;
+            }
+            if (!pendingWipReceipt.IsCommitted
+                || !string.Equals(
+                    pendingWipReceipt.CommitId,
+                    commitId,
+                    StringComparison.Ordinal))
+            {
+                failureReason = "production-wip-receipt-not-found";
+                return false;
+            }
+
+            acknowledgedWipCommits.Add(commitId);
+            pendingWipOperationId = string.Empty;
+            pendingWipReceipt = default;
+            WipAcknowledgementCount++;
             failureReason = string.Empty;
             return true;
         }
@@ -2020,6 +2495,17 @@ public static class OffenseStrategicDebugScenarios
             deliveredAmount = 0;
             RequestedAmount = 0;
             return released;
+        }
+
+        public bool TryReleaseDestinationAtomically(
+            string destinationId,
+            Vector2Int releasePosition,
+            out int released,
+            out string failureReason)
+        {
+            released = ReleaseDestination(destinationId, releasePosition);
+            failureReason = string.Empty;
+            return true;
         }
 
         public int RemoveDestination(string destinationId)

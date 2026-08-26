@@ -279,24 +279,44 @@ public sealed class EquipmentHistoryTransferRuntime
         string sourceStackId = source.sourceStackId;
         EquipmentEvolutionState inheritedHistory = source.evolution?.Clone()
             ?? new EquipmentEvolutionState();
-        if (string.IsNullOrWhiteSpace(sourceStackId)
-            || !physicalItems.DeleteStack(sourceStackId))
+        EquipmentEvolutionState previousTargetHistory = target.evolution?.Clone();
+        if (string.IsNullOrWhiteSpace(sourceStackId))
         {
             failure = new DomainFailure(
                 FailureCode.HistoryTransferEquipmentMissing);
             return false;
         }
-        if (!physicalItems.TryConsumeStackQuantity(
-                order.lineageSealStackId,
-                1,
-                out _))
+
+        target.evolution = inheritedHistory;
+        try
         {
+            physicalState.Persist(target);
+        }
+        catch
+        {
+            target.evolution = previousTargetHistory;
+            throw;
+        }
+
+        bool physicalCommitted = physicalItems.TryCommitBatchPhysicalDisposition(
+            new[]
+            {
+                new PhysicalItemTransformInput(sourceStackId, 1),
+                new PhysicalItemTransformInput(order.lineageSealStackId, 1)
+            },
+            PhysicalItemDispositionKind.Transfer,
+            order.orderId,
+            "equipment.history-transfer-inputs",
+            out _,
+            out _);
+        if (!physicalCommitted)
+        {
+            target.evolution = previousTargetHistory;
+            physicalState.Persist(target);
             failure = new DomainFailure(FailureCode.HistoryTransferSealMissing);
             return false;
         }
 
-        target.evolution = inheritedHistory;
-        physicalState.Persist(target);
         loadouts.RemoveEquipment(source.instanceId);
         EquipmentInstances.Remove(source.instanceId);
         order.completed = true;

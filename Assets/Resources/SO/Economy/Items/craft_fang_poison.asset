@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8084
+  id: 8085
   itemId: craft:fang-poison
   displayName: "\uC1A1\uACF3\uB2C8 \uB3C5\uC561"
   description: "\uAD00\uD1B5 \uBB34\uAE30\uC640 \uC0AC\uB0E5\uC5D0 \uBC14\uB974\uB294
@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 37
   features:
-  - rid: 7737211905666711891
-  - rid: 7737211905666711892
-  - rid: 7737212042831201017
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666711891
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:arcane:alchemy
-    - rid: 7737211905666711892
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 4096
         sharedIntermediate: 0
-    - rid: 7737212042831201017
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.593

@@ -1,18 +1,13 @@
-using UnityEngine;
-
 using UnityEditor;
-[InitializeOnLoadAttribute]
+[InitializeOnLoad]
 public static class PlayRefreshEditor
 {
     static PlayRefreshEditor()
     {
-        EditorApplication.playModeStateChanged += PlayRefresh;
-    }
-    private static void PlayRefresh(PlayModeStateChange state)
-    {
-        if (state == PlayModeStateChange.ExitingEditMode)
-        {
-            AssetDatabase.Refresh();
-        }
+        // Unity already refreshes/imports changed assets before entering
+        // PlayMode. A synchronous AssetDatabase.Refresh from the
+        // ExitingEditMode callback can deadlock the state transition while an
+        // import or domain reload is completing, so no editor callback is
+        // registered here.
     }
 }

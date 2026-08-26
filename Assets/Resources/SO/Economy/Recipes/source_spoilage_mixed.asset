@@ -50,10 +50,13 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs: []
   outputs:
-  - itemId: waste:mixed-rot
+  - outputLineId: output:source:spoilage-mixed/000/main/waste:mixed-rot
+    role: 0
+    itemId: waste:mixed-rot
     amount: 1
     probability: 1

@@ -9,12 +9,19 @@ public sealed class CombatEquipmentSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.equipment";
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 8;
     private readonly ICombatEquipmentRuntime runtime;
+    private readonly IProductionOutputLifecycleRestoreCandidatePublisher
+        lifecycleRestoreCandidates;
 
-    public CombatEquipmentSaveSection(ICombatEquipmentRuntime runtime)
+    public CombatEquipmentSaveSection(
+        ICombatEquipmentRuntime runtime,
+        IProductionOutputLifecycleRestoreCandidatePublisher
+            lifecycleRestoreCandidates)
     {
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.lifecycleRestoreCandidates = lifecycleRestoreCandidates
+            ?? throw new ArgumentNullException(nameof(lifecycleRestoreCandidates));
     }
 
     public override string SectionId => Id;
@@ -41,6 +48,11 @@ public sealed class CombatEquipmentSaveSection :
     protected override void PublishRestoreCandidate(
         CombatEquipmentRestoreCandidate candidate) =>
         runtime.PublishRestoreCandidate(candidate);
+
+    protected override void PublishRestoreCandidateProjection(
+        DungeonCombatEquipmentSaveData payload,
+        CombatEquipmentRestoreCandidate candidate) =>
+        lifecycleRestoreCandidates.SetCombat(payload);
 }
 
 public sealed class EquipmentEvolutionSaveSection :
@@ -50,6 +62,7 @@ public sealed class EquipmentEvolutionSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.equipment-evolution";
+    public const int CurrentVersion = 4;
     private readonly IEquipmentEvolutionPersistence runtime;
 
     public EquipmentEvolutionSaveSection(IEquipmentEvolutionPersistence runtime)
@@ -58,7 +71,7 @@ public sealed class EquipmentEvolutionSaveSection :
     }
 
     public override string SectionId => Id;
-    public override int SectionVersion => 3;
+    public override int SectionVersion => CurrentVersion;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
     public override IReadOnlyList<string> DependsOn => new[]
@@ -217,6 +230,10 @@ public sealed class SurgerySaveSection :
         DungeonSurgerySaveData payload) =>
         restoreCoordinator.PrepareRestore(payload);
 
+    protected override void ValidateParsedPayload(
+        DungeonSurgerySaveData payload) =>
+        restoreCoordinator.ValidatePayload(payload);
+
     protected override void PublishRestoreCandidate(
         SurgeryRestoreCandidate candidate) =>
         restoreCoordinator.PublishRestore(candidate);
@@ -274,6 +291,7 @@ public sealed class EquipmentMaintenanceSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.equipment-maintenance";
+    public const int CurrentVersion = 4;
     private static readonly string[] Dependencies =
     {
         CombatEquipmentSaveSection.Id,
@@ -283,15 +301,21 @@ public sealed class EquipmentMaintenanceSaveSection :
     };
 
     private readonly ICombatEquipmentMaintenanceRuntime runtime;
+    private readonly IProductionOutputLifecycleRestoreCandidatePublisher
+        lifecycleRestoreCandidates;
 
     public EquipmentMaintenanceSaveSection(
-        ICombatEquipmentMaintenanceRuntime runtime)
+        ICombatEquipmentMaintenanceRuntime runtime,
+        IProductionOutputLifecycleRestoreCandidatePublisher
+            lifecycleRestoreCandidates)
     {
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.lifecycleRestoreCandidates = lifecycleRestoreCandidates
+            ?? throw new ArgumentNullException(nameof(lifecycleRestoreCandidates));
     }
 
     public override string SectionId => Id;
-    public override int SectionVersion => 2;
+    public override int SectionVersion => CurrentVersion;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.RuntimeState;
     public override IReadOnlyList<string> DependsOn => Dependencies;
@@ -313,6 +337,11 @@ public sealed class EquipmentMaintenanceSaveSection :
     protected override void PublishRestoreCandidate(
         EquipmentMaintenanceRestoreCandidate candidate) =>
         runtime.PublishRestore(candidate);
+
+    protected override void PublishRestoreCandidateProjection(
+        CombatEquipmentMaintenanceSaveData payload,
+        EquipmentMaintenanceRestoreCandidate candidate) =>
+        lifecycleRestoreCandidates.SetMaintenance(payload);
 }
 
 public sealed class CharacterCombatCommandSaveSection :

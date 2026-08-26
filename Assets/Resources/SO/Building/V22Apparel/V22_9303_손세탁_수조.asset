@@ -54,10 +54,10 @@ MonoBehaviour:
   abilityModules:
     items:
     - rid: 7737211905660420724
-    - rid: 7737211905660420725
-    - rid: 7737211905660420726
-    - rid: 7737211905660420727
-    - rid: 7737211905660420728
+    - rid: 1000
+    - rid: 1001
+    - rid: 1002
+    - rid: 1003
   width: 1
   height: 1
   layer: 1
@@ -73,6 +73,34 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 1000
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: V22A03
+    - rid: 1001
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - v22-apparel
+        - research:textile:fiber
+        - workstation:v22:hand-laundry
+    - rid: 1002
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:v22:hand-laundry
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 1003
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 12
+        physicalOutputBufferCycleCapacity: 4
+        outputCapacities: []
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
     - rid: 7737211905660420724
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -99,30 +127,3 @@ MonoBehaviour:
           amount: 6
         - itemId: material:lumber
           amount: 3
-    - rid: 7737211905660420725
-      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
-      data:
-        abilityId: BuildingFacilityPartAbility
-        code: V22A03
-    - rid: 7737211905660420726
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
-      data:
-        abilityId: BuildingSemanticTagsAbility
-        tags:
-        - v22-apparel
-        - research:textile:fiber
-        - workstation:v22:hand-laundry
-    - rid: 7737211905660420727
-      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionWorkstationAbility
-        workstationTag: workstation:v22:hand-laundry
-        stockSensorInstallationItemId: component:stock-sensor-panel
-    - rid: 7737211905660420728
-      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionBufferAbility
-        defaultBatchCapacity: 12
-        outputCapacities: []
-        allowOverflowDump: 1
-        overflowOffset: {x: 1, y: 0}

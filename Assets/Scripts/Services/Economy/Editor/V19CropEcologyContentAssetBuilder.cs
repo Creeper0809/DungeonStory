@@ -74,26 +74,39 @@ public static class V19CropEcologyContentAssetBuilder
                 $"{GenomeFolder}/Genome_{spec.Suffix}.asset");
             genome.id = ResolveGenomeNumericId(spec.GenomeId);
             genome.Configure(spec.GenomeId, spec.CropId, NeutralLoci());
-            ResourceItemDefinitionSO seed = GetOrCreate<ResourceItemDefinitionSO>(
-                $"{ItemFolder}/seed_lot_{spec.Suffix.Replace('-', '_')}.asset");
-            seed.id = ResolveSeedNumericId(spec.SeedItemId);
-            seed.Configure(
-                spec.SeedItemId,
-                spec.SeedName,
-                $"{crop.DisplayName} 재배에 사용하는 물리 종자 로트.",
-                StockCategory.General,
-                ResourceItemKind.Raw,
-                spec.Group == CropFamilyGroup.Fungus
-                    ? ResourceIngredientTag.Fungus
-                    : ResourceIngredientTag.Plant,
-                3,
-                0.05f,
-                40,
-                crop.RequiredResearchId);
-            seed.ConfigureMarketSaleRate(0f);
+            string seedPath =
+                $"{ItemFolder}/seed_lot_{spec.Suffix.Replace('-', '_')}.asset";
+            ResourceItemDefinitionSO existingSeed =
+                AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>(seedPath);
+            ResourceItemDefinitionSO seed =
+                GetOrCreate<ResourceItemDefinitionSO>(seedPath);
+            Action<ResourceItemDefinitionSO> configureSeed = candidate =>
+            {
+                candidate.id = ResolveSeedNumericId(spec.SeedItemId);
+                candidate.Configure(
+                    spec.SeedItemId,
+                    spec.SeedName,
+                    $"{crop.DisplayName} 재배에 사용하는 물리 종자 로트.",
+                    StockCategory.General,
+                    ResourceItemKind.Raw,
+                    spec.Group == CropFamilyGroup.Fungus
+                        ? ResourceIngredientTag.Fungus
+                        : ResourceIngredientTag.Plant,
+                    existingSeed != null ? existingSeed.UnitPrice : 3,
+                    existingSeed != null ? existingSeed.UnitWeight : 0.05f,
+                    40,
+                    crop.RequiredResearchId);
+                candidate.ConfigureMarketSaleRate(0f);
+            };
+            if (existingSeed != null)
+                ApplyIfChanged(seed, configureSeed);
+            else
+            {
+                configureSeed(seed);
+                EditorUtility.SetDirty(seed);
+            }
             crop.ConfigureEcology(spec.SeedItemId, genome, spec.Group, spec.Disease);
             EditorUtility.SetDirty(genome);
-            EditorUtility.SetDirty(seed);
             EditorUtility.SetDirty(crop);
             seeds.Add(seed);
             genomes.Add(genome);
@@ -148,6 +161,38 @@ public static class V19CropEcologyContentAssetBuilder
         asset = ScriptableObject.CreateInstance<T>();
         AssetDatabase.CreateAsset(asset, path);
         return asset;
+    }
+
+    private static void ApplyIfChanged<T>(T asset, Action<T> configure)
+        where T : ScriptableObject
+    {
+        string before = EditorJsonUtility.ToJson(asset, false);
+        T candidate = UnityEngine.Object.Instantiate(asset);
+        try
+        {
+            candidate.name = asset.name;
+            configure(candidate);
+            string after = EditorJsonUtility.ToJson(candidate, false);
+            string canonicalBefore = System.Text.RegularExpressions.Regex.Replace(
+                before ?? string.Empty,
+                "\\\"rid\\\"\\s*:\\s*-?[0-9]+",
+                "\\\"rid\\\":0",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            string canonicalAfter = System.Text.RegularExpressions.Regex.Replace(
+                after ?? string.Empty,
+                "\\\"rid\\\"\\s*:\\s*-?[0-9]+",
+                "\\\"rid\\\":0",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            if (string.Equals(canonicalBefore, canonicalAfter, StringComparison.Ordinal))
+                return;
+
+            configure(asset);
+            EditorUtility.SetDirty(asset);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(candidate);
+        }
     }
 
     private static void EnsureFolder(string parent, string child)

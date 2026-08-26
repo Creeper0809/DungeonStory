@@ -133,6 +133,7 @@ MonoBehaviour:
         abilityId: BuildingStorageAbility
         category: 0
         capacity: 16
+        maxStoredMassGrams: 12500
         allCategories: 0
     - rid: 7737211921440178382
       type: {class: BuildingPreservationAbility, ns: , asm: DungeonStory.Survival}

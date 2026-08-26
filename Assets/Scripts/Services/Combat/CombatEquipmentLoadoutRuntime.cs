@@ -66,7 +66,8 @@ public sealed class CombatEquipmentLoadoutRuntime
         }
         if (instance.worldState is CombatEquipmentWorldState.Lost
             or CombatEquipmentWorldState.ExpeditionPacked
-            or CombatEquipmentWorldState.MaintenanceBuffer)
+            or CombatEquipmentWorldState.MaintenanceBuffer
+            or CombatEquipmentWorldState.RetailStock)
         {
             failureReason = "equipment.assign.invalid_world_state";
             return false;

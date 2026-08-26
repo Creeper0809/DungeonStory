@@ -16,6 +16,8 @@ public sealed class ProductionAggregateStateStore
     }
 
     public IReadOnlyList<ProductionBillRecord> Bills => session.Bills;
+    internal IReadOnlyList<ProductionWipTerminalReceiptSaveData> WipTerminalReceipts =>
+        session.WipTerminalReceipts;
     internal int NextBillSequence
     {
         get => session.NextBillSequence;
@@ -27,8 +29,17 @@ public sealed class ProductionAggregateStateStore
         session.InstalledStockSensorFacilityIds;
     internal IReadOnlyCollection<string> AcknowledgedStockSensorFacilityIds =>
         session.AcknowledgedStockSensorFacilityIds;
+    internal IReadOnlyCollection<ProductionStockSensorPhysicalCommitSaveData>
+        PendingStockSensorInstalls => session.PendingStockSensorInstalls;
+    internal IReadOnlyCollection<ProductionInstalledStockSensorSaveData>
+        InstalledStockSensors => session.InstalledStockSensors;
+    internal IReadOnlyCollection<ProductionStockSensorRemovalSaveData>
+        PendingStockSensorRemovals => session.PendingStockSensorRemovals;
     internal void AddBill(ProductionBillRecord bill) => session.AddBill(bill);
     internal bool RemoveBill(ProductionBillRecord bill) => session.RemoveBill(bill);
+    internal bool AddWipTerminalReceipt(
+        ProductionWipTerminalReceiptSaveData receipt) =>
+        session.AddWipTerminalReceipt(receipt);
     internal void MoveBill(
         ProductionBillRecord bill,
         ProductionBillRecord anchor,
@@ -41,6 +52,33 @@ public sealed class ProductionAggregateStateStore
     internal bool RemoveInstalledSensor(string id) => session.RemoveInstalledSensor(id);
     internal bool AddAcknowledgedSensor(string id) => session.AddAcknowledgedSensor(id);
     internal bool RemoveAcknowledgedSensor(string id) => session.RemoveAcknowledgedSensor(id);
+    internal bool TryGetPendingStockSensorInstall(
+        string facilityId,
+        out ProductionStockSensorPhysicalCommitSaveData owner) =>
+        session.TryGetPendingStockSensorInstall(facilityId, out owner);
+    internal void SetPendingStockSensorInstall(
+        ProductionStockSensorPhysicalCommitSaveData owner) =>
+        session.SetPendingStockSensorInstall(owner);
+    internal bool RemovePendingStockSensorInstall(string facilityId) =>
+        session.RemovePendingStockSensorInstall(facilityId);
+    internal bool TryGetInstalledStockSensor(
+        string facilityId,
+        out ProductionInstalledStockSensorSaveData installed) =>
+        session.TryGetInstalledStockSensor(facilityId, out installed);
+    internal void SetInstalledStockSensor(
+        ProductionInstalledStockSensorSaveData installed) =>
+        session.SetInstalledStockSensor(installed);
+    internal bool RemoveInstalledStockSensor(string facilityId) =>
+        session.RemoveInstalledStockSensor(facilityId);
+    internal bool TryGetPendingStockSensorRemoval(
+        string facilityId,
+        out ProductionStockSensorRemovalSaveData owner) =>
+        session.TryGetPendingStockSensorRemoval(facilityId, out owner);
+    internal void SetPendingStockSensorRemoval(
+        ProductionStockSensorRemovalSaveData owner) =>
+        session.SetPendingStockSensorRemoval(owner);
+    internal bool RemovePendingStockSensorRemoval(string facilityId) =>
+        session.RemovePendingStockSensorRemoval(facilityId);
     internal void Replace(ProductionBillRestoreCandidate candidate) =>
         session.Restore(candidate);
 }
@@ -53,7 +91,14 @@ internal static class ProductionBillStateCodec
         int nextBillSequence,
         IEnumerable<ProductionBillRecord> bills,
         IEnumerable<string> installedStockSensorFacilityIds,
-        IEnumerable<string> acknowledgedStockSensorFacilityIds)
+        IEnumerable<string> acknowledgedStockSensorFacilityIds,
+        IEnumerable<ProductionStockSensorPhysicalCommitSaveData>
+            pendingStockSensorInstalls,
+        IEnumerable<ProductionInstalledStockSensorSaveData>
+            installedStockSensors,
+        IEnumerable<ProductionStockSensorRemovalSaveData>
+            pendingStockSensorRemovals,
+        IEnumerable<ProductionWipTerminalReceiptSaveData> wipTerminalReceipts)
     {
         return new DungeonProductionBillSaveData
         {
@@ -64,7 +109,27 @@ internal static class ProductionBillStateCodec
             installedStockSensorFacilityIds = CanonicalIds(
                 installedStockSensorFacilityIds),
             acknowledgedStockSensorFacilityIds = CanonicalIds(
-                acknowledgedStockSensorFacilityIds)
+                acknowledgedStockSensorFacilityIds),
+            pendingStockSensorInstalls = (pendingStockSensorInstalls
+                    ?? Array.Empty<ProductionStockSensorPhysicalCommitSaveData>())
+                .OrderBy(owner => owner.facilityId, StringComparer.Ordinal)
+                .Select(owner => owner.Clone())
+                .ToList(),
+            installedStockSensors = (installedStockSensors
+                    ?? Array.Empty<ProductionInstalledStockSensorSaveData>())
+                .OrderBy(owner => owner.facilityId, StringComparer.Ordinal)
+                .Select(owner => owner.Clone())
+                .ToList(),
+            pendingStockSensorRemovals = (pendingStockSensorRemovals
+                    ?? Array.Empty<ProductionStockSensorRemovalSaveData>())
+                .OrderBy(owner => owner.facilityId, StringComparer.Ordinal)
+                .Select(owner => owner.Clone())
+                .ToList(),
+            wipTerminalReceipts = (wipTerminalReceipts
+                    ?? Array.Empty<ProductionWipTerminalReceiptSaveData>())
+                .OrderBy(receipt => receipt.commitId, StringComparer.Ordinal)
+                .Select(receipt => receipt.Clone())
+                .ToList()
         };
     }
 
@@ -94,7 +159,7 @@ internal static class ProductionBillStateCodec
         {
             throw new ArgumentNullException(nameof(catalog));
         }
-        if (snapshot.version is not (6 or DungeonProductionBillSaveData.CurrentVersion))
+        if (snapshot.version != DungeonProductionBillSaveData.CurrentVersion)
         {
             throw new InvalidOperationException(
                 $"Production-bill payload version {snapshot.version} is unsupported.");
@@ -102,7 +167,11 @@ internal static class ProductionBillStateCodec
         if (snapshot.nextBillSequence <= 0
             || snapshot.bills == null
             || snapshot.installedStockSensorFacilityIds == null
-            || snapshot.acknowledgedStockSensorFacilityIds == null)
+            || snapshot.acknowledgedStockSensorFacilityIds == null
+            || snapshot.pendingStockSensorInstalls == null
+            || snapshot.installedStockSensors == null
+            || snapshot.pendingStockSensorRemovals == null
+            || snapshot.wipTerminalReceipts == null)
         {
             throw new InvalidOperationException(
                 "Production-bill payload has missing collections or an invalid next sequence.");
@@ -123,6 +192,20 @@ internal static class ProductionBillStateCodec
             throw new InvalidOperationException(
                 "Acknowledged stock sensors must be a subset of installed sensors.");
         }
+        ValidatePendingStockSensorInstalls(
+            snapshot.pendingStockSensorInstalls,
+            installed);
+        ValidateInstalledStockSensors(
+            snapshot.installedStockSensors,
+            installed);
+        ValidatePendingStockSensorRemovals(
+            snapshot.pendingStockSensorRemovals,
+            snapshot.installedStockSensors,
+            installed);
+        ValidateStockSensorOwnershipCrossLinks(
+            snapshot.pendingStockSensorInstalls,
+            snapshot.installedStockSensors,
+            snapshot.pendingStockSensorRemovals);
 
         HashSet<ProductionBillId> billIds = new();
         int largestSequence = 0;
@@ -135,7 +218,374 @@ internal static class ProductionBillStateCodec
             throw new InvalidOperationException(
                 "Production-bill next sequence collides with a persisted bill ID.");
         }
+        ValidateWipTerminalReceipts(snapshot.wipTerminalReceipts, catalog);
     }
+
+    private static void ValidatePendingStockSensorInstalls(
+        IReadOnlyList<ProductionStockSensorPhysicalCommitSaveData> owners,
+        ISet<string> installed)
+    {
+        string previousFacilityId = string.Empty;
+        foreach (ProductionStockSensorPhysicalCommitSaveData owner in owners)
+        {
+            bool phaseMatchesInstalled = owner != null
+                && (owner.phase == ProductionStockSensorCommitPhase.InputCommitted
+                    && !installed.Contains(owner.facilityId)
+                    || owner.phase == ProductionStockSensorCommitPhase.OutcomePublished
+                    && installed.Contains(owner.facilityId));
+            string expectedOperation = owner == null
+                ? string.Empty
+                : ProductionStockSensorRuntime.BuildPhysicalOperationId(
+                    owner.facilityId);
+            string expectedDestination = owner == null
+                ? string.Empty
+                : ProductionStockSensorRuntime.BuildDestinationId(
+                    owner.facilityId);
+            bool canonicalSources = owner?.sourceStackIds != null
+                && owner.sourceStackIds.Count == 1
+                && owner.sourceStackIds.All(IsCanonical)
+                && owner.sourceStackIds.SequenceEqual(
+                    owner.sourceStackIds.OrderBy(id => id, StringComparer.Ordinal),
+                    StringComparer.Ordinal)
+                && owner.sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                    == owner.sourceStackIds.Count;
+            if (owner == null
+                || !phaseMatchesInstalled
+                || !IsCanonical(owner.facilityId)
+                || !IsCanonical(owner.itemId)
+                || !string.Equals(owner.destinationId, expectedDestination, StringComparison.Ordinal)
+                || !string.Equals(owner.operationId, expectedOperation, StringComparison.Ordinal)
+                || !string.Equals(
+                    owner.reasonCode,
+                    ProductionStockSensorRuntime.PhysicalReasonCode,
+                    StringComparison.Ordinal)
+                || !IsCanonical(owner.requestFingerprint)
+                || owner.inputQuantity != 1
+                || owner.inputMassGrams <= 0L
+                || !string.Equals(
+                    owner.commitId,
+                    $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Sink}:{owner.operationId}:1:{owner.inputMassGrams}",
+                    StringComparison.Ordinal)
+                || !canonicalSources
+                || previousFacilityId.Length > 0
+                    && string.CompareOrdinal(previousFacilityId, owner.facilityId) >= 0)
+                throw new InvalidOperationException(
+                    "Production stock-sensor physical owner is invalid, unordered, or inconsistent with installed state.");
+            previousFacilityId = owner.facilityId;
+        }
+    }
+
+    private static void ValidateInstalledStockSensors(
+        IReadOnlyList<ProductionInstalledStockSensorSaveData> records,
+        ISet<string> installed)
+    {
+        string previousFacilityId = string.Empty;
+        HashSet<string> recordIds = new(StringComparer.Ordinal);
+        foreach (ProductionInstalledStockSensorSaveData record in records)
+        {
+            if (record == null
+                || !IsCanonical(record.facilityId)
+                || !IsCanonical(record.itemId)
+                || !string.Equals(
+                    record.inputOperationId,
+                    ProductionStockSensorRuntime.BuildPhysicalOperationId(
+                        record.facilityId),
+                    StringComparison.Ordinal)
+                || !IsCanonical(record.inputCommitId)
+                || !IsCanonical(record.inputSourceStackId)
+                || !string.Equals(
+                    record.inputCommitId,
+                    $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Sink}:{record.inputOperationId}:1:{record.embeddedMassGrams}",
+                    StringComparison.Ordinal)
+                || record.embeddedMassGrams <= 0L
+                || !recordIds.Add(record.facilityId)
+                || previousFacilityId.Length > 0
+                    && string.CompareOrdinal(
+                        previousFacilityId,
+                        record.facilityId) >= 0)
+            {
+                throw new InvalidOperationException(
+                    "Installed stock-sensor mass record is invalid or unordered.");
+            }
+            previousFacilityId = record.facilityId;
+        }
+        if (recordIds.Count != installed.Count
+            || installed.Any(id => !recordIds.Contains(id)))
+        {
+            throw new InvalidOperationException(
+                "Installed stock-sensor IDs and embedded-mass records must be bijective.");
+        }
+    }
+
+    private static void ValidateStockSensorOwnershipCrossLinks(
+        IReadOnlyList<ProductionStockSensorPhysicalCommitSaveData> installs,
+        IReadOnlyList<ProductionInstalledStockSensorSaveData> installed,
+        IReadOnlyList<ProductionStockSensorRemovalSaveData> removals)
+    {
+        Dictionary<string, ProductionInstalledStockSensorSaveData> records =
+            installed.ToDictionary(value => value.facilityId, StringComparer.Ordinal);
+        HashSet<string> removalIds = removals
+            .Select(value => value.facilityId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (ProductionStockSensorPhysicalCommitSaveData owner in installs)
+        {
+            if (removalIds.Contains(owner.facilityId))
+            {
+                throw new InvalidOperationException(
+                    "A stock sensor cannot be pending installation and removal together.");
+            }
+            if (owner.phase == ProductionStockSensorCommitPhase.OutcomePublished
+                && (!records.TryGetValue(
+                        owner.facilityId,
+                        out ProductionInstalledStockSensorSaveData record)
+                    || !string.Equals(
+                        record.itemId,
+                        owner.itemId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        record.inputOperationId,
+                        owner.operationId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        record.inputCommitId,
+                        owner.commitId,
+                        StringComparison.Ordinal)
+                    || owner.sourceStackIds.Count != 1
+                    || !string.Equals(
+                        record.inputSourceStackId,
+                        owner.sourceStackIds[0],
+                        StringComparison.Ordinal)
+                    || record.embeddedMassGrams != owner.inputMassGrams))
+            {
+                throw new InvalidOperationException(
+                    "Published stock-sensor install has no exact embedded-mass record.");
+            }
+        }
+    }
+
+    private static void ValidatePendingStockSensorRemovals(
+        IReadOnlyList<ProductionStockSensorRemovalSaveData> owners,
+        IReadOnlyList<ProductionInstalledStockSensorSaveData> installedRecords,
+        ISet<string> installed)
+    {
+        Dictionary<string, ProductionInstalledStockSensorSaveData> records =
+            installedRecords.ToDictionary(
+                value => value.facilityId,
+                StringComparer.Ordinal);
+        string previousFacilityId = string.Empty;
+        foreach (ProductionStockSensorRemovalSaveData owner in owners)
+        {
+            bool prepared = owner?.phase ==
+                ProductionStockSensorRemovalPhase.Prepared;
+            bool published = owner?.phase ==
+                ProductionStockSensorRemovalPhase.OutputPublished;
+            bool canonicalCommits = owner?.outputCommitIds != null
+                && (prepared
+                    ? owner.outputCommitIds.Count == 0
+                    : owner.outputCommitIds.Count == 1
+                        && owner.outputCommitIds.All(IsCanonical)
+                        && owner.outputCommitIds.Distinct(
+                            StringComparer.Ordinal).Count() == 1);
+            if (owner == null
+                || !Enum.IsDefined(
+                    typeof(ProductionStockSensorRemovalPhase),
+                    owner.phase)
+                || !IsCanonical(owner.facilityId)
+                || !IsCanonical(owner.itemId)
+                || !installed.Contains(owner.facilityId)
+                || !records.TryGetValue(owner.facilityId, out var installedRecord)
+                || !string.Equals(
+                    owner.itemId,
+                    installedRecord.itemId,
+                    StringComparison.Ordinal)
+                || owner.expectedOutputMassGrams
+                    != installedRecord.embeddedMassGrams
+                || !string.Equals(
+                    owner.installationSourceStackId,
+                    installedRecord.inputSourceStackId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    owner.operationId,
+                    ProductionStockSensorRuntime.BuildRemovalOperationId(
+                        owner.facilityId,
+                        owner.installationSourceStackId),
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    owner.reasonCode,
+                    ProductionStockSensorRuntime.RemovalReasonCode,
+                    StringComparison.Ordinal)
+                || !canonicalCommits
+                || (prepared
+                    ? owner.outputQuantity != 0 || owner.outputMassGrams != 0L
+                    : owner.outputQuantity != 1
+                        || owner.outputMassGrams
+                            != owner.expectedOutputMassGrams
+                        || !string.Equals(
+                            owner.outputCommitIds[0],
+                            ProductionStockSensorRuntime.BuildRemovalOutputCommitId(
+                                owner),
+                            StringComparison.Ordinal))
+                || previousFacilityId.Length > 0
+                    && string.CompareOrdinal(
+                        previousFacilityId,
+                        owner.facilityId) >= 0)
+            {
+                throw new InvalidOperationException(
+                    "Pending stock-sensor removal is invalid or inconsistent with installed mass.");
+            }
+            previousFacilityId = owner.facilityId;
+        }
+    }
+
+    private static void ValidateWipTerminalReceipts(
+        IReadOnlyList<ProductionWipTerminalReceiptSaveData> receipts,
+        IResourceEconomyContentCatalog catalog)
+    {
+        if (receipts.Count > 16384)
+        {
+            throw new InvalidOperationException(
+                "Production WIP terminal receipt count exceeds the current-format limit.");
+        }
+        string previous = string.Empty;
+        foreach (ProductionWipTerminalReceiptSaveData receipt in receipts)
+        {
+            bool hasPhysicalInput = IsCanonical(receipt?.inputCommitId)
+                && receipt.inputQuantity > 0
+                && receipt.inputMassGrams > 0L;
+            bool hasNoPhysicalInput = receipt != null
+                && string.IsNullOrEmpty(receipt.inputCommitId)
+                && receipt.inputQuantity == 0
+                && receipt.inputMassGrams == 0L;
+            if (receipt == null
+                || !IsCanonical(receipt.commitId)
+                || !IsCanonical(receipt.billId)
+                || !IsCanonical(receipt.recipeId)
+                || !IsCanonical(receipt.buildingInstanceId)
+                || receipt.cycleSequence <= 0
+                || !hasPhysicalInput && !hasNoPhysicalInput
+                || !HasValidTerminalMassEquation(receipt)
+                || !HasValidWastewaterComponents(
+                    receipt.wastewaterComponents,
+                    receipt.processWastewaterMassGrams)
+                || receipt.lossKind
+                    != ProductionWipTerminalLossKind.ExplicitIrrecoverableProcessLoss
+                || !Enum.IsDefined(typeof(ProductionWipTerminalReason), receipt.reason)
+                || !catalog.TryGetRecipe(receipt.recipeId, out _)
+                || !string.Equals(
+                    receipt.commitId,
+                    BuildWipTerminalCommitId(
+                        receipt.billId,
+                        receipt.cycleSequence,
+                        receipt.reason),
+                    StringComparison.Ordinal)
+                || previous.Length > 0
+                    && string.CompareOrdinal(previous, receipt.commitId) >= 0)
+            {
+                throw new InvalidOperationException(
+                    "Production WIP terminal receipt is invalid or non-canonical.");
+            }
+            previous = receipt.commitId;
+        }
+    }
+
+    private static bool HasValidTerminalMassEquation(
+        ProductionWipTerminalReceiptSaveData receipt)
+    {
+        if (receipt.processCleanWaterMassGrams < 0L
+            || receipt.processWastewaterMassGrams < 0L
+            || receipt.committedOutputMassGrams < 0L
+            || receipt.declaredLossMassGrams < 0L)
+        {
+            return false;
+        }
+        try
+        {
+            long available = checked(
+                receipt.inputMassGrams
+                + receipt.processCleanWaterMassGrams);
+            long accounted = checked(
+                receipt.committedOutputMassGrams
+                + receipt.processWastewaterMassGrams
+                + receipt.declaredLossMassGrams);
+            return available > 0L && available == accounted;
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
+    }
+
+    private static void ValidateWastewaterComponents(
+        IReadOnlyList<ProductionWastewaterComponentSaveData> components,
+        long expectedMassGrams,
+        string owner)
+    {
+        if (!HasValidWastewaterComponents(components, expectedMassGrams))
+        {
+            throw new InvalidOperationException(
+                $"{owner} has invalid wastewater composition provenance.");
+        }
+    }
+
+    private static bool HasValidWastewaterComponents(
+        IReadOnlyList<ProductionWastewaterComponentSaveData> components,
+        long expectedMassGrams)
+    {
+        if (components == null || expectedMassGrams < 0L)
+        {
+            return false;
+        }
+        if ((expectedMassGrams == 0L) != (components.Count == 0))
+        {
+            return false;
+        }
+
+        long total = 0L;
+        string previousKey = string.Empty;
+        foreach (ProductionWastewaterComponentSaveData component in components)
+        {
+            if (component == null
+                || component.composition == ProcessWastewaterComposition.None
+                || !Enum.IsDefined(
+                    typeof(ProcessWastewaterComposition),
+                    component.composition)
+                || !Enum.IsDefined(
+                    typeof(ProcessWastewaterSourceKind),
+                    component.sourceKind)
+                || !IsCanonical(component.sourceStableId)
+                || !IsFiniteNonNegative(component.authoredUnits)
+                || component.authoredUnits <= 0f
+                || component.massGrams <= 0L
+                || component.massGrams
+                    != ProductionFluidMassRules.ToMassGrams(component.authoredUnits))
+            {
+                return false;
+            }
+            string key = $"{(int)component.composition:D3}:"
+                + $"{(int)component.sourceKind:D3}:{component.sourceStableId}";
+            if (previousKey.Length > 0
+                && string.CompareOrdinal(previousKey, key) >= 0)
+            {
+                return false;
+            }
+            previousKey = key;
+            try
+            {
+                total = checked(total + component.massGrams);
+            }
+            catch (OverflowException)
+            {
+                return false;
+            }
+        }
+        return total == expectedMassGrams;
+    }
+
+    internal static string BuildWipTerminalCommitId(
+        string billId,
+        int cycleSequence,
+        ProductionWipTerminalReason reason) =>
+        $"production-wip-terminal:{billId}:{cycleSequence:D8}:{reason.ToString().ToLowerInvariant()}";
 
     internal static ProductionBillSaveData ToSaveData(ProductionBillRecord record)
     {
@@ -150,7 +600,31 @@ internal static class ProductionBillStateCodec
             minimumReserve = record.minimumReserve,
             suspended = record.suspended,
             materialsConsumed = record.materialsConsumed,
+            cycleSequence = record.cycleSequence,
+            wipInputCommitId = record.wipInputCommitId,
+            wipInputQuantity = record.wipInputQuantity,
+            wipInputMassGrams = record.wipInputMassGrams,
+            outputOutcomeResolved = record.outputOutcomeResolved,
+            resolvedOutputs = record.resolvedOutputs
+                .OrderBy(output => output.itemId, StringComparer.Ordinal)
+                .Select(output => output.Clone())
+                .ToList(),
+            preparedOutput = record.preparedOutput?.Clone()
+                ?? throw new InvalidOperationException(
+                    $"Production bill '{record.billId}' has no prepared-output authority."),
             processFluidConsumed = record.processFluidConsumed,
+            processCleanWaterMassGrams = record.processCleanWaterMassGrams,
+            processWastewaterMassGrams = record.processWastewaterMassGrams,
+            processWastewaterComponents = record.processWastewaterComponents
+                .OrderBy(value => (int)value.composition)
+                .ThenBy(value => (int)value.sourceKind)
+                .ThenBy(value => value.sourceStableId, StringComparer.Ordinal)
+                .Select(value => value.Clone())
+                .ToList(),
+            processManualWaterTransfers = record.processManualWaterTransfers
+                .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                .Select(value => value.Clone())
+                .ToList(),
             completedWork = record.completedWork,
             batchStage = record.batchStage,
             remainingProcessingHours = record.remainingProcessingHours,
@@ -247,6 +721,7 @@ internal static class ProductionBillStateCodec
                 typeof(ProductionDistributionMode),
                 saved.distributionMode)
             || saved.remainingCycles < -1
+            || saved.cycleSequence < 1
             || saved.targetStock < 0
             || saved.minimumReserve < 0
             || saved.minimumReserve > saved.targetStock
@@ -295,10 +770,272 @@ internal static class ProductionBillStateCodec
                 $"Production bill '{billId}' has an invalid emergency worker authority.");
         }
         ValidateWorkerContributions(saved.workerContributions, billId);
+        bool recipeHasPhysicalInputs = recipe.Inputs.Any(input =>
+            input != null && input.Amount > 0);
+        bool hasWipReceipt = IsCanonical(saved.wipInputCommitId)
+            && saved.wipInputQuantity > 0
+            && saved.wipInputMassGrams > 0L;
+        if (saved.materialsConsumed
+                ? recipeHasPhysicalInputs != hasWipReceipt
+                : saved.wipInputCommitId.Length != 0
+                    || saved.wipInputQuantity != 0
+                    || saved.wipInputMassGrams != 0L)
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{billId}' has inconsistent WIP input authority.");
+        }
+        ValidateResolvedOutputs(saved, recipe, billId);
+        ValidatePreparedOutput(saved, recipe, catalog, billId);
+        if (saved.processCleanWaterMassGrams < 0L
+            || saved.processWastewaterMassGrams < 0L
+            || saved.processWastewaterComponents == null
+            || saved.processManualWaterTransfers == null
+            || !saved.processFluidConsumed
+                && (saved.processCleanWaterMassGrams != 0L
+                    || saved.processWastewaterMassGrams != 0L
+                    || saved.processWastewaterComponents.Count != 0
+                    || saved.processManualWaterTransfers.Count != 0)
+            || saved.processFluidConsumed && !saved.materialsConsumed)
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{billId}' has inconsistent process-fluid mass authority.");
+        }
+        ValidateWastewaterComponents(
+            saved.processWastewaterComponents,
+            saved.processWastewaterMassGrams,
+            $"Production bill '{billId}'");
+        string previousManualOperation = string.Empty;
+        foreach (ProductionManualWaterTransferSaveData transfer in
+                 saved.processManualWaterTransfers)
+        {
+            bool hasPhysicalTransfer = transfer != null
+                && transfer.transferredWaterUnits > 0
+                && IsCanonical(transfer.physicalCommitId)
+                && transfer.inputMassGrams > 0L
+                && transfer.sourceStackIds != null
+                && transfer.sourceStackIds.Count > 0;
+            bool hasReserveOnlyTransfer = transfer != null
+                && transfer.transferredWaterUnits == 0
+                && string.IsNullOrEmpty(transfer.physicalCommitId)
+                && transfer.inputMassGrams == 0L
+                && (transfer.sourceStackIds?.Count ?? 0) == 0;
+            if (transfer == null
+                || !IsCanonical(transfer.operationId)
+                || !transfer.operationId.StartsWith(
+                    $"production-process-fluid:{billId.Value}:{saved.cycleSequence:D8}:manual-water:",
+                    StringComparison.Ordinal)
+                || !IsCanonical(transfer.destinationId)
+                || !IsFiniteNonNegative(transfer.requestedWaterUnits)
+                || transfer.transferredWaterUnits < 0
+                || !hasPhysicalTransfer && !hasReserveOnlyTransfer
+                || transfer.sourceStackIds != null
+                    && (transfer.sourceStackIds.Any(value => !IsCanonical(value))
+                        || transfer.sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                            != transfer.sourceStackIds.Count)
+                || previousManualOperation.Length > 0
+                    && string.CompareOrdinal(
+                        previousManualOperation,
+                        transfer.operationId) >= 0)
+            {
+                throw new InvalidOperationException(
+                    $"Production bill '{billId}' has invalid manual-water provenance.");
+            }
+            previousManualOperation = transfer.operationId;
+        }
         ValidateReservations(saved.outputReservations, catalog, billId);
         ValidateRoutes(saved.routePolicies, billId);
         ValidateSupplies(saved.selectedSupplies, catalog, billId);
         ValidateProcessState(saved, recipe, billId);
+    }
+
+    private static void ValidateResolvedOutputs(
+        ProductionBillSaveData saved,
+        ProductionRecipeSO recipe,
+        ProductionBillId billId)
+    {
+        if (saved.resolvedOutputs == null
+            || (!saved.outputOutcomeResolved && saved.resolvedOutputs.Count != 0)
+            || (saved.outputOutcomeResolved && !saved.materialsConsumed))
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{billId}' has inconsistent resolved output state.");
+        }
+        HashSet<string> authored = recipe.Outputs
+            .Where(output => output != null && output.Probability > 0f)
+            .Select(output => output.ItemId)
+            .ToHashSet(StringComparer.Ordinal);
+        string previous = string.Empty;
+        foreach (ProductionResolvedOutputSaveData output in saved.resolvedOutputs)
+        {
+            if (output == null
+                || !IsCanonical(output.itemId)
+                || !authored.Contains(output.itemId)
+                || output.amount <= 0
+                || output.committedAmount < 0
+                || output.committedAmount > output.amount
+                || output.committedMassGrams < 0L
+                || (output.committedAmount == 0) !=
+                    (output.committedMassGrams == 0L)
+                || !IsValidPendingOutputCommit(saved, billId, output)
+                || !IsFiniteNonNegative(output.qualityModifier)
+                || !IsFiniteInRange(output.workerQuality, 0.7f, 1.25f)
+                || (previous.Length > 0
+                    && string.CompareOrdinal(previous, output.itemId) >= 0))
+            {
+                throw new InvalidOperationException(
+                    $"Production bill '{billId}' has an invalid resolved output.");
+            }
+            previous = output.itemId;
+        }
+    }
+
+    private static void ValidatePreparedOutput(
+        ProductionBillSaveData saved,
+        ProductionRecipeSO recipe,
+        IResourceEconomyContentCatalog catalog,
+        ProductionBillId billId)
+    {
+        if (saved.preparedOutput == null)
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{billId}' has no prepared-output payload.");
+        }
+        ProductionPreparedOutputContract.ValidateForBill(
+            saved.preparedOutput,
+            billId,
+            saved.recipeId,
+            saved.cycleSequence,
+            saved.outputDestinationId);
+        if (ProductionPreparedOutputMigrationScope.Contains(saved.recipeId))
+        {
+            ProductionPreparedOutputMigrationScope
+                .ValidateExactProfileOrThrow(recipe);
+            ProductionPreparedOutputMigrationScope.ValidateSavedProfileDigest(
+                saved.preparedOutput,
+                $"Production bill '{billId}'");
+            if (ProductionPreparedOutputMigrationScope
+                .HasLegacyOutputAuthority(saved))
+            {
+                throw new InvalidOperationException(
+                    $"Production bill '{billId}' has legacy output authority in the prepared-output migration scope.");
+            }
+        }
+        if (saved.preparedOutput.phase == ProductionPreparedOutputPhase.Unresolved)
+        {
+            return;
+        }
+        ProductionPreparedOutputSourceRevisionGuard.ValidateResolvedBatch(
+            saved.preparedOutput,
+            recipe,
+            $"Production bill '{billId}'");
+        if (saved.outputOutcomeResolved || saved.resolvedOutputs.Count != 0)
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{billId}' has conflicting legacy and prepared output authority.");
+        }
+
+        ProductionPreparedOutputLineSaveData[] physicalLines =
+            saved.preparedOutput.lines
+                .Where(line => line.role != ProductionOutputRole.DeclaredLoss)
+                .ToArray();
+        if (physicalLines.Any(line => !catalog.TryGetItem(line.itemId, out _)))
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{billId}' prepared output references an unknown item.");
+        }
+        foreach (ProductionPreparedOutputLineSaveData line in physicalLines)
+        {
+            catalog.TryGetItem(
+                line.itemId,
+                out ResourceItemDefinitionSO definition);
+            ProductionPreparedOutputComponentProfileDigest.Validate(
+                definition,
+                line.componentPayload,
+                line.componentFingerprint,
+                $"Production bill '{billId}'");
+        }
+        Dictionary<string, ProductionOutputDefinition> authoredLines;
+        try
+        {
+            authoredLines = recipe.CaptureCanonicalOutputs()
+                .Where(output => output != null && output.Probability > 0f)
+                .ToDictionary(
+                    output => output.OutputLineId,
+                    output => output,
+                    StringComparer.Ordinal);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new InvalidOperationException(
+                $"Production recipe '{recipe.RecipeId}' has duplicate output-line authority.",
+                exception);
+        }
+        if (authoredLines.Values.Any(output => !output.HasCanonicalAuthoredValue))
+        {
+            throw new InvalidOperationException(
+                $"Production recipe '{recipe.RecipeId}' has a noncanonical output line.");
+        }
+        Dictionary<string, ProductionPreparedOutputLineSaveData> preparedLines =
+            saved.preparedOutput.lines.ToDictionary(
+                line => line.outputLineId,
+                line => line,
+                StringComparer.Ordinal);
+        foreach (KeyValuePair<string, ProductionOutputDefinition> pair in
+                 authoredLines)
+        {
+            if (!preparedLines.TryGetValue(
+                    pair.Key,
+                    out ProductionPreparedOutputLineSaveData prepared)
+                || prepared.role != pair.Value.Role
+                || !string.Equals(
+                    prepared.itemId,
+                    pair.Value.ItemId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Production bill '{billId}' is missing or conflicts with authored output line '{pair.Key}'.");
+            }
+        }
+        if (physicalLines.Any(line =>
+                (line.role is ProductionOutputRole.Main
+                    or ProductionOutputRole.Byproduct)
+                && !authoredLines.ContainsKey(line.outputLineId)))
+        {
+            throw new InvalidOperationException(
+                $"Production bill '{billId}' adds a non-authored Main/Byproduct output line.");
+        }
+    }
+
+    private static bool IsValidPendingOutputCommit(
+        ProductionBillSaveData saved,
+        ProductionBillId billId,
+        ProductionResolvedOutputSaveData output)
+    {
+        string pending = output.pendingCommitId ?? string.Empty;
+        if (pending.Length == 0)
+        {
+            return !output.pendingCommitApplied;
+        }
+        if (!IsCanonical(pending)
+            || output.committedAmount >= output.amount && !output.pendingCommitApplied)
+        {
+            return false;
+        }
+        int ordinal = output.pendingCommitApplied
+            ? output.committedAmount - 1
+            : output.committedAmount;
+        if (ordinal < 0 || ordinal >= output.amount)
+        {
+            return false;
+        }
+        return string.Equals(
+            pending,
+            ProductionOutputCommitIdentity.Format(
+                billId,
+                saved.cycleSequence,
+                output.itemId,
+                ordinal),
+            StringComparison.Ordinal);
     }
 
     private static void ValidateWorkerPolicy(

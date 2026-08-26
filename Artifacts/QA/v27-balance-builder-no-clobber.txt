@@ -1,0 +1,6 @@
+RESULT=PASS; builders=5; files=7219; changes=0; sourceDigest=685c87a25400b2c8dc575829da3dc41f586a86c9ed7fc656741fbe7a07dcf0b0; assetDigest=d11f89f92bed673bb28871a749302af11fdbb92af8ec8b5129d8aab0a0e8a765;
+PASS	BUILDER_NO_CLOBBER	builder=resource-economy-and-workshops;files=7219;changes=0
+PASS	BUILDER_NO_CLOBBER	builder=v22-apparel;files=7219;changes=0
+PASS	BUILDER_NO_CLOBBER	builder=v19-crop-ecology;files=7219;changes=0
+PASS	BUILDER_NO_CLOBBER	builder=research-overhaul;files=7219;changes=0
+PASS	BUILDER_NO_CLOBBER	builder=surgery;files=7219;changes=0

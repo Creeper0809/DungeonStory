@@ -40,6 +40,8 @@ public class GridBuildingPlacementService
     private readonly BuildingPlacementValidator placementValidator;
     private readonly IWorkOrderRuntime workOrderRuntime;
     private readonly Action<BuildableObject> onConstructionSiteCreated;
+    private readonly IWarehouseLifecycleOccupancyQuery warehouseLifecycle;
+    private readonly IProductionFacilityMutationFence productionMutationFence;
 
     public GridBuildingPlacementService(Grid grid, BuildingSO hallwayBuilding)
         : this(grid, hallwayBuilding, null)
@@ -64,7 +66,9 @@ public class GridBuildingPlacementService
         IGridBuildingFactory buildingFactory,
         BuildingPlacementValidator placementValidator,
         IWorkOrderRuntime workOrderRuntime,
-        Action<BuildableObject> onConstructionSiteCreated = null)
+        Action<BuildableObject> onConstructionSiteCreated = null,
+        IWarehouseLifecycleOccupancyQuery warehouseLifecycle = null,
+        IProductionFacilityMutationFence productionMutationFence = null)
     {
         this.grid = grid;
         this.hallwayBuilding = hallwayBuilding;
@@ -74,6 +78,8 @@ public class GridBuildingPlacementService
         this.placementValidator = placementValidator ?? new BuildingPlacementValidator();
         this.workOrderRuntime = workOrderRuntime;
         this.onConstructionSiteCreated = onConstructionSiteCreated;
+        this.warehouseLifecycle = warehouseLifecycle;
+        this.productionMutationFence = productionMutationFence;
         if (onConstructionSiteCreated != null
             && workOrderRuntime is WorkOrderRuntime concreteRuntime)
         {
@@ -294,11 +300,113 @@ public class GridBuildingPlacementService
             return false;
         }
 
-        grid.RemoveOccupant(
-            building,
-            buildingData.Placement.Layer,
-            building.buildPoses,
-            buildingData.Placement.IsMovement);
+        if (building is IWarehouseFacility warehouse
+            && warehouse.Inventory?.HasMassCapacityAuthority == true)
+        {
+            if (warehouseLifecycle == null)
+            {
+                errorMessage = "창고 수명주기 점유 권위를 찾을 수 없습니다.";
+                return false;
+            }
+            if (!warehouseLifecycle.TryRequireEmpty(
+                    warehouse,
+                    out _,
+                    out string lifecycleFailure))
+            {
+                errorMessage = "재고·예약·운반 중 화물이 남은 창고는 철거할 수 없습니다. "
+                    + lifecycleFailure;
+                return false;
+            }
+        }
+
+        if (building is IRetailFacility retail
+            && (retail.CurrentStock > 0
+                || retail.HasWaitingCheckout
+                || retail.HasServingWorker
+                || (building as IRetailRestockOperationOwner)?
+                    .ActiveRestockOperationCount > 0))
+        {
+            errorMessage = "재고·고객·직원·보충 중 화물이 남은 상점은 철거할 수 없습니다.";
+            return false;
+        }
+
+        ProductionFacilityEmptyMutationCandidate productionCandidate = null;
+        bool canOwnProduction = buildingData.GetProductionWorkstationAbility() != null
+            || buildingData.GetProductionBufferAbility() != null;
+        if (productionMutationFence == null)
+        {
+            if (canOwnProduction)
+            {
+                errorMessage = "생산 시설 철거 수명주기 권위를 찾을 수 없습니다.";
+                return false;
+            }
+        }
+        else
+        {
+            string operationId = "production-mutation:demolition:"
+                + building.PersistentInstanceId.Value;
+            if (!productionMutationFence.TryPrepareEmpty(
+                    building,
+                    ProductionFacilityMutationKind.Demolition,
+                    operationId,
+                    out productionCandidate,
+                    out string prepareFailure))
+            {
+                errorMessage = "생산 주문·재공품·출력 화물이 남은 시설은 철거할 수 없습니다. "
+                    + prepareFailure;
+                return false;
+            }
+            if (!productionMutationFence.TryCommitAuthorityRevoke(
+                    productionCandidate,
+                    out string revokeFailure))
+            {
+                bool aborted = productionMutationFence.TryAbort(
+                    productionCandidate,
+                    out string abortFailure);
+                errorMessage = "생산 시설 철거 권위를 확정하지 못했습니다. "
+                    + revokeFailure
+                    + (aborted ? string.Empty : " rollback=" + abortFailure);
+                return false;
+            }
+        }
+
+        if (!grid.RemoveOccupant(
+                building,
+                buildingData.Placement.Layer,
+                building.buildPoses,
+                buildingData.Placement.IsMovement))
+        {
+            string rollbackFailure = string.Empty;
+            bool rolledBack = productionCandidate == null
+                || productionMutationFence.TryAbort(
+                    productionCandidate,
+                    out rollbackFailure);
+            errorMessage = "건물 점유를 제거하지 못해 철거를 취소했습니다."
+                + (rolledBack ? string.Empty : " production-rollback=" + rollbackFailure);
+            return false;
+        }
+
+        if (productionCandidate != null
+            && !productionMutationFence.TryComplete(
+                productionCandidate,
+                out string completeFailure))
+        {
+            bool gridRestored = grid.RegisterOccupant(
+                building,
+                buildingData.Placement.Layer,
+                building.buildPoses,
+                buildingData.Placement.IsMovement);
+            bool authorityRestored = productionMutationFence.TryAbort(
+                productionCandidate,
+                out string rollbackFailure);
+            errorMessage = "생산 시설 철거 커밋을 종료하지 못해 철거를 취소했습니다. "
+                + completeFailure
+                + " grid-restored=" + gridRestored
+                + " authority-restored=" + authorityRestored
+                + (authorityRestored ? string.Empty : " rollback=" + rollbackFailure);
+            return false;
+        }
+
         buildingFactory.DeleteVisual(buildingData, building.centerPos);
         building.DestroySelf();
         placementValidator.ApplyDestroySuccess(buildingData);

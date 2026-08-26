@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
 
 public sealed class ExternalInfluenceSaveSection :
@@ -167,6 +168,25 @@ public static class ExternalInfluenceSaveValidation
             payload.dreadAffectedIntruderIds,
             "dread intruder",
             report);
+
+        bool trailCharmValid = payload.trailCharmCommitPhase
+            == ExternalInfluenceTrailCharmCommitPhase.None
+                ? ExternalInfluenceTrailCharmSaveContract.HasEmptyProvenance(payload)
+                : ExternalInfluenceTrailCharmSaveContract.IsStructurallyValid(payload);
+        bool pendingSitePublished = payload.intelUnlockedSiteIds.Contains(
+            payload.pendingTrailCharmSiteId,
+            StringComparer.Ordinal);
+        if (!trailCharmValid
+            || payload.trailCharmCommitPhase
+                    == ExternalInfluenceTrailCharmCommitPhase.ItemCommitted
+                && pendingSitePublished
+            || payload.trailCharmCommitPhase
+                    == ExternalInfluenceTrailCharmCommitPhase.IntelPublished
+                && !pendingSitePublished)
+        {
+            report.AddError(
+                "External-influence trail-charm pending receipt is invalid.");
+        }
     }
 
     private static void ValidateOrderedIds(

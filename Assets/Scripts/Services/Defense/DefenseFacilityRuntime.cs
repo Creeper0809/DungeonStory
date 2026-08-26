@@ -45,12 +45,12 @@ public interface IDefenseFacilityRuntime
 
 public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 {
-    private const string MaintenancePartItemId = "material:iron-ingot";
     private const string MixedDefenseAmmunitionBoxItemId =
         "supply:defense-mixed-ammo-box";
     private const int MixedDefenseAmmunitionUnitsPerBox = 8;
 
     private readonly IWorldItemStackRuntime items;
+    private readonly IDefenseFacilityPhysicalItemGateway physicalItems;
     private readonly IPowerInfrastructureQuery power;
     private readonly IGameClock clock;
     private readonly IGameEventBus events;
@@ -66,8 +66,11 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             () => new DefenseFacilityAggregateState(),
             state => state.DeepClone());
 
+    internal IReadOnlyCollection<DefenseFacilityState> States => Current.States;
+
     public DefenseFacilityRuntime(
         IWorldItemStackRuntime items,
+        IDefenseFacilityPhysicalItemGateway physicalItems,
         IGameClock clock,
         IGameEventBus events,
         IPowerInfrastructureQuery power,
@@ -76,6 +79,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.physicalItems = physicalItems
+            ?? throw new ArgumentNullException(nameof(physicalItems));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.power = power ?? throw new ArgumentNullException(nameof(power));
@@ -356,6 +361,19 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     {
         failure = DomainFailure.None;
         DefenseFacilityState state = GetOrCreate(facility);
+        if (state.pendingMaintenance.phase
+            != DefenseFacilityPhysicalCommitPhase.None)
+        {
+            if (TryRecoverMaintenanceCommit(facility, state, out bool completed)
+                && completed)
+            {
+                return true;
+            }
+            failure = new DomainFailure(
+                FailureCode.DefenseMaintenanceDeliveryPending,
+                "physical-commit-pending");
+            return false;
+        }
         if (state.operationalState != DefenseFacilityOperationalState.Jammed)
         {
             failure = new DomainFailure(FailureCode.DefenseNotJammed);
@@ -363,12 +381,18 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         }
 
         string destinationId = BuildMaintenanceDestinationId(facility);
-        bool consumed = items.TryConsumeFacilityItemBuffer(
+        bool consumed = DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
+            state.pendingMaintenance,
+            DefenseFacilityPhysicalCommitKind.MaintenanceSink,
+            state.facilityPersistentId,
+            state.nextMaintenanceOperationSequence,
             destinationId,
-            new Dictionary<string, int>
-            {
-                [MaintenancePartItemId] = 1
-            },
+            DefenseFacilityPhysicalTransactionOutbox.MaintenanceItemId,
+            1,
+            state.supply,
+            0,
+            physicalItems,
+            out _,
             out _);
         if (!consumed)
         {
@@ -376,7 +400,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             if (!pending)
             {
                 items.TryRequestItemDelivery(
-                    MaintenancePartItemId,
+                    DefenseFacilityPhysicalTransactionOutbox.MaintenanceItemId,
                     1,
                     facility.centerPos,
                     destinationId,
@@ -389,17 +413,22 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 pending
                     ? FailureCode.DefenseMaintenanceDeliveryPending
                     : FailureCode.DefenseMaintenancePartMissing,
-                MaintenancePartItemId,
+                DefenseFacilityPhysicalTransactionOutbox.MaintenanceItemId,
                 "1");
             SetBlockedFailure(state, failure);
             PublishState(state);
             return false;
         }
 
-        state.operationalState = DefenseFacilityOperationalState.Preparing;
-        state.blockedReason = string.Empty;
-        PublishState(state);
-        return true;
+        if (TryRecoverMaintenanceCommit(facility, state, out bool recovered)
+            && recovered)
+        {
+            return true;
+        }
+        failure = new DomainFailure(
+            FailureCode.DefenseMaintenanceDeliveryPending,
+            "physical-acknowledgement-pending");
+        return false;
     }
 
     public bool TryRepair(
@@ -475,6 +504,17 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return true;
         }
 
+        if (state.pendingSupply.phase != DefenseFacilityPhysicalCommitPhase.None
+            && !TryRecoverSupplyCommit(facility, state, out _))
+        {
+            failure = new DomainFailure(
+                FailureCode.DefenseSupplyDeliveryPending,
+                "physical-commit-pending");
+            SetBlockedFailure(state, failure);
+            PublishState(state);
+            return false;
+        }
+
         int required = Mathf.Max(1, data.supplyPerActivation);
         if (state.supply >= required)
         {
@@ -487,50 +527,37 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         int wanted = Mathf.Max(0, capacity - state.supply);
         if (wanted > 0)
         {
-            IReadOnlyDictionary<string, int> itemCost =
-                string.IsNullOrWhiteSpace(data.supplyItemId)
-                    ? null
-                    : new Dictionary<string, int>
-                    {
-                        [data.supplyItemId.Trim()] = wanted
-                    };
-            IReadOnlyDictionary<StockCategory, int> categoryCost =
-                itemCost == null
-                    ? new Dictionary<StockCategory, int>
-                    {
-                        [data.supplyCategory] = wanted
-                    }
-                    : null;
-            bool consumed = itemCost != null
-                ? items.TryConsumeFacilityItemBuffer(
+            string authoredItemId = data.supplyItemId?.Trim() ?? string.Empty;
+            bool consumed = authoredItemId.Length > 0
+                && TryBeginSupplyCommit(
+                    facility,
+                    state,
                     destinationId,
-                    itemCost,
-                    out _)
-                : items.TryConsumeFacilityBuffer(
-                    destinationId,
-                    categoryCost,
-                    out _);
-            if (consumed)
+                    authoredItemId,
+                    wanted,
+                    wanted);
+            if (!consumed
+                && data.supplyCategory == StockCategory.Ammunition
+                && wanted >= MixedDefenseAmmunitionUnitsPerBox)
             {
-                state.supply += wanted;
+                int boxes = wanted / MixedDefenseAmmunitionUnitsPerBox;
+                consumed = boxes > 0 && TryBeginSupplyCommit(
+                    facility,
+                    state,
+                    destinationId,
+                    MixedDefenseAmmunitionBoxItemId,
+                    boxes,
+                    boxes * MixedDefenseAmmunitionUnitsPerBox);
             }
-            else if (data.supplyCategory == StockCategory.Ammunition)
+            if (consumed
+                && !TryRecoverSupplyCommit(facility, state, out _))
             {
-                int boxes = Mathf.CeilToInt(
-                    wanted / (float)MixedDefenseAmmunitionUnitsPerBox);
-                if (items.TryConsumeFacilityItemBuffer(
-                        destinationId,
-                        new Dictionary<string, int>
-                        {
-                            [MixedDefenseAmmunitionBoxItemId] = boxes
-                        },
-                        out _))
-                {
-                    state.supply = Mathf.Min(
-                        capacity,
-                        state.supply
-                            + boxes * MixedDefenseAmmunitionUnitsPerBox);
-                }
+                failure = new DomainFailure(
+                    FailureCode.DefenseSupplyDeliveryPending,
+                    "physical-acknowledgement-pending");
+                SetBlockedFailure(state, failure);
+                PublishState(state);
+                return false;
             }
         }
 
@@ -573,20 +600,6 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return;
         }
 
-        if (data.supplyCategory == StockCategory.Ammunition)
-        {
-            int boxCount = Mathf.CeilToInt(
-                wanted / (float)MixedDefenseAmmunitionUnitsPerBox);
-            items.TryRequestItemDelivery(
-                MixedDefenseAmmunitionBoxItemId,
-                boxCount,
-                facility.centerPos,
-                destinationId,
-                out _,
-                out _);
-            return;
-        }
-
         if (!string.IsNullOrWhiteSpace(data.supplyItemId))
         {
             items.TryRequestItemDelivery(
@@ -597,17 +610,139 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 out _,
                 out _);
         }
-        else
-        {
-            items.TryRequestFacilityDelivery(
-                data.supplyCategory,
-                wanted,
-                facility.centerPos,
-                destinationId,
-                out _,
-                out _);
-        }
+    }
 
+    private bool TryBeginSupplyCommit(
+        DefenseFacility facility,
+        DefenseFacilityState state,
+        string destinationId,
+        string itemId,
+        int inputQuantity,
+        int supplyUnitsGranted) =>
+        DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
+            state.pendingSupply,
+            DefenseFacilityPhysicalCommitKind.SupplyTransfer,
+            state.facilityPersistentId,
+            state.nextSupplyOperationSequence,
+            destinationId,
+            itemId,
+            inputQuantity,
+            state.supply,
+            supplyUnitsGranted,
+            physicalItems,
+            out _,
+            out _);
+
+    private bool TryRecoverMaintenanceCommit(
+        DefenseFacility facility,
+        DefenseFacilityState state,
+        out bool completed)
+    {
+        completed = false;
+        DefenseFacilityPhysicalCommitSaveData pending = state.pendingMaintenance;
+        if (pending.phase == DefenseFacilityPhysicalCommitPhase.None)
+        {
+            return true;
+        }
+        string destinationId = BuildMaintenanceDestinationId(facility);
+        if (!DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
+                pending,
+                DefenseFacilityPhysicalCommitKind.MaintenanceSink,
+                state.facilityPersistentId,
+                state.nextMaintenanceOperationSequence,
+                destinationId,
+                DefenseFacilityPhysicalTransactionOutbox.MaintenanceItemId,
+                1,
+                pending.supplyBefore,
+                0,
+                physicalItems,
+                out _,
+                out _))
+        {
+            return false;
+        }
+        if (pending.phase == DefenseFacilityPhysicalCommitPhase.IntentRecorded)
+        {
+            if (state.supply != pending.supplyBefore)
+            {
+                throw new InvalidOperationException(
+                    $"Defense maintenance commit '{pending.operationId}' conflicts with supply state.");
+            }
+            state.operationalState = DefenseFacilityOperationalState.Preparing;
+            state.blockedReason = string.Empty;
+            pending.phase = DefenseFacilityPhysicalCommitPhase.OutcomePublished;
+            PublishState(state);
+        }
+        if (!DefenseFacilityPhysicalTransactionOutbox.TryAcknowledgeOutcome(
+                pending,
+                physicalItems,
+                out _))
+        {
+            return false;
+        }
+        DefenseFacilityPhysicalTransactionOutbox.Clear(pending);
+        state.nextMaintenanceOperationSequence = checked(
+            state.nextMaintenanceOperationSequence + 1);
+        completed = true;
+        return true;
+    }
+
+    private bool TryRecoverSupplyCommit(
+        DefenseFacility facility,
+        DefenseFacilityState state,
+        out bool completed)
+    {
+        completed = false;
+        DefenseFacilityPhysicalCommitSaveData pending = state.pendingSupply;
+        if (pending.phase == DefenseFacilityPhysicalCommitPhase.None)
+        {
+            return true;
+        }
+        string destinationId = BuildSupplyDestinationId(facility);
+        if (!DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
+                pending,
+                DefenseFacilityPhysicalCommitKind.SupplyTransfer,
+                state.facilityPersistentId,
+                state.nextSupplyOperationSequence,
+                destinationId,
+                pending.itemId,
+                pending.inputQuantity,
+                pending.supplyBefore,
+                pending.supplyUnitsGranted,
+                physicalItems,
+                out _,
+                out _))
+        {
+            return false;
+        }
+        if (pending.phase == DefenseFacilityPhysicalCommitPhase.IntentRecorded)
+        {
+            if (state.supply != pending.supplyBefore)
+            {
+                throw new InvalidOperationException(
+                    $"Defense supply commit '{pending.operationId}' conflicts with facility supply.");
+            }
+            state.supply = pending.supplyAfter;
+            pending.phase = DefenseFacilityPhysicalCommitPhase.OutcomePublished;
+            PublishState(state);
+        }
+        else if (state.supply != pending.supplyAfter)
+        {
+            throw new InvalidOperationException(
+                $"Defense supply commit '{pending.operationId}' lost its published outcome.");
+        }
+        if (!DefenseFacilityPhysicalTransactionOutbox.TryAcknowledgeOutcome(
+                pending,
+                physicalItems,
+                out _))
+        {
+            return false;
+        }
+        DefenseFacilityPhysicalTransactionOutbox.Clear(pending);
+        state.nextSupplyOperationSequence = checked(
+            state.nextSupplyOperationSequence + 1);
+        completed = true;
+        return true;
     }
 
     private bool HasPendingSupply(string destinationId)
@@ -828,7 +963,14 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 .OrderBy(value => value, StringComparer.Ordinal)
                 .ToList(),
             growth = ToGrowthSaveData(source.growth),
-            blockedReason = source.blockedReason ?? string.Empty
+            blockedReason = source.blockedReason ?? string.Empty,
+            nextMaintenanceOperationSequence =
+                source.nextMaintenanceOperationSequence,
+            pendingMaintenance = source.pendingMaintenance?.DeepClone()
+                ?? new DefenseFacilityPhysicalCommitSaveData(),
+            nextSupplyOperationSequence = source.nextSupplyOperationSequence,
+            pendingSupply = source.pendingSupply?.DeepClone()
+                ?? new DefenseFacilityPhysicalCommitSaveData()
         };
     }
 
@@ -859,7 +1001,12 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 identificationLevel = source.growth.identificationLevel,
                 outageResistanceLevel = source.growth.outageResistanceLevel
             },
-            blockedReason = source.blockedReason
+            blockedReason = source.blockedReason,
+            nextMaintenanceOperationSequence =
+                source.nextMaintenanceOperationSequence,
+            pendingMaintenance = source.pendingMaintenance.DeepClone(),
+            nextSupplyOperationSequence = source.nextSupplyOperationSequence,
+            pendingSupply = source.pendingSupply.DeepClone()
         };
     }
 

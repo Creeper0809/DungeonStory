@@ -920,7 +920,7 @@ public static class CombatV14PlayModeVerifier
             DungeonSaveSectionPayload.Write(
                 invalid,
                 EquipmentMaintenanceSaveSection.Id,
-                2,
+                EquipmentMaintenanceSaveSection.CurrentVersion,
                 DungeonSaveRestorePhase.RuntimeState,
                 maintenance);
             invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);

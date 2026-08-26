@@ -79,6 +79,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             bool restrictCategory = !this.StoresAllCategories();
             warehouseInventory = new WarehouseInventory(
                 storageCapacity,
+                this.GetStorageMassCapacityGrams(),
                 this.GetStorageCategory(),
                 restrictCategory);
         }

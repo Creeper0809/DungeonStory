@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public sealed class PowerInfrastructureSaveSection :
@@ -93,15 +94,20 @@ public sealed class FluidInfrastructureSaveSection :
     private static readonly string[] Dependencies =
     {
         ModularFacilityWorldSaveSection.Id,
+        PhysicalItemsSaveSection.Id,
         PowerInfrastructureSaveSection.Id
     };
     private readonly IFluidInfrastructurePersistence persistence;
+    private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
 
     public FluidInfrastructureSaveSection(
-        IFluidInfrastructurePersistence persistence)
+        IFluidInfrastructurePersistence persistence,
+        IPhysicalItemRestoreCandidateQuery physicalCandidates)
     {
         this.persistence = persistence
             ?? throw new ArgumentNullException(nameof(persistence));
+        this.physicalCandidates = physicalCandidates
+            ?? throw new ArgumentNullException(nameof(physicalCandidates));
     }
 
     public string SectionId => Id;
@@ -154,14 +160,158 @@ public sealed class FluidInfrastructureSaveSection :
             sectionVersion,
             SectionVersion,
             "fluid infrastructure");
+        DungeonFluidInfrastructureSaveData payload =
+            JsonUtility.FromJson<DungeonFluidInfrastructureSaveData>(payloadJson);
         FluidNetworkRestoreCandidate candidate =
-            persistence.PrepareRestore(
-                JsonUtility.FromJson<DungeonFluidInfrastructureSaveData>(
-                    payloadJson));
+            persistence.PrepareRestore(payload);
+        ValidatePhysicalRestoreCandidate(payload, physicalCandidates);
         return new DungeonDelegateSaveRestoreStage(
             SectionId,
             _ => persistence.Restore(candidate));
     }
+
+    public static void ValidatePhysicalRestoreCandidate(
+        DungeonFluidInfrastructureSaveData payload,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        if (payload?.nodes == null
+            || query == null
+            || !query.IsCandidateAvailable)
+        {
+            throw new InvalidOperationException(
+                "Fluid restore requires the incoming physical candidate.");
+        }
+
+        Dictionary<string, ManualWaterTransferSaveData> manualOwners =
+            payload.nodes
+                .Where(node => node != null)
+                .SelectMany(node => node.pendingManualWaterTransfers
+                    ?? new List<ManualWaterTransferSaveData>())
+                .Where(owner => owner != null
+                    && owner.transferredWaterUnits > 0)
+                .ToDictionary(owner => owner.operationId, StringComparer.Ordinal);
+        Dictionary<string, ContainerWaterFeedCommitSaveData> feedOwners =
+            payload.nodes
+                .Where(node => node?.pendingContainerFeed != null
+                    && (ContainerWaterFeedCommitPhase)
+                        node.pendingContainerFeed.phase
+                        != ContainerWaterFeedCommitPhase.None)
+                .Select(node => node.pendingContainerFeed)
+                .ToDictionary(owner => owner.operationId, StringComparer.Ordinal);
+
+        foreach (KeyValuePair<string, ManualWaterTransferSaveData> pair in
+                 manualOwners)
+        {
+            if (!query.TryGetPendingBatchDisposition(
+                    pair.Key,
+                    out PhysicalItemRestoreCandidateDispositionSnapshot receipt)
+                || !MatchesManualWater(pair.Value, receipt))
+            {
+                throw new InvalidOperationException(
+                    $"Manual-water owner '{pair.Key}' has no exact incoming physical Transfer receipt.");
+            }
+        }
+        foreach (KeyValuePair<string, ContainerWaterFeedCommitSaveData> pair in
+                 feedOwners)
+        {
+            if (!query.TryGetPendingBatchDisposition(
+                    pair.Key,
+                    out PhysicalItemRestoreCandidateDispositionSnapshot receipt)
+                || !MatchesContainerFeed(pair.Value, receipt))
+            {
+                throw new InvalidOperationException(
+                    $"Container-water feed owner '{pair.Key}' has no exact incoming physical Transfer receipt.");
+            }
+        }
+        foreach (PhysicalItemRestoreCandidateDispositionSnapshot receipt in
+                 query.PendingBatchDispositions)
+        {
+            if (receipt == null)
+            {
+                continue;
+            }
+            if (string.Equals(
+                    receipt.ReasonCode,
+                    FluidPhysicalOperationIdentity.ManualReserveReasonCode,
+                    StringComparison.Ordinal)
+                && (!manualOwners.TryGetValue(
+                        receipt.OperationId,
+                        out ManualWaterTransferSaveData manualOwner)
+                    || !MatchesManualWater(manualOwner, receipt)))
+            {
+                throw new InvalidOperationException(
+                    $"Incoming manual-water Transfer '{receipt.OperationId}' has no exact fluid owner.");
+            }
+            if (string.Equals(
+                    receipt.ReasonCode,
+                    FluidPhysicalOperationIdentity.ContainerFeedReasonCode,
+                    StringComparison.Ordinal)
+                && (!feedOwners.TryGetValue(
+                        receipt.OperationId,
+                        out ContainerWaterFeedCommitSaveData feedOwner)
+                    || !MatchesContainerFeed(feedOwner, receipt)))
+            {
+                throw new InvalidOperationException(
+                    $"Incoming container-water feed Transfer '{receipt.OperationId}' has no exact fluid owner.");
+            }
+        }
+    }
+
+    private static bool MatchesManualWater(
+        ManualWaterTransferSaveData owner,
+        PhysicalItemRestoreCandidateDispositionSnapshot receipt) =>
+        owner != null
+        && receipt != null
+        && receipt.Kind == PhysicalItemDispositionKind.Transfer
+        && string.Equals(
+            receipt.OperationId,
+            owner.operationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.ReasonCode,
+            FluidPhysicalOperationIdentity.ManualReserveReasonCode,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.RequestFingerprint,
+            owner.requestFingerprint,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.CommitId,
+            owner.physicalCommitId,
+            StringComparison.Ordinal)
+        && receipt.Quantity == owner.transferredWaterUnits
+        && receipt.InputMassGrams == owner.inputMassGrams
+        && receipt.SourceStackIds.SequenceEqual(
+            owner.sourceStackIds,
+            StringComparer.Ordinal);
+
+    private static bool MatchesContainerFeed(
+        ContainerWaterFeedCommitSaveData owner,
+        PhysicalItemRestoreCandidateDispositionSnapshot receipt) =>
+        owner != null
+        && receipt != null
+        && receipt.Kind == PhysicalItemDispositionKind.Transfer
+        && string.Equals(
+            receipt.OperationId,
+            owner.operationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.ReasonCode,
+            owner.reasonCode,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.RequestFingerprint,
+            owner.requestFingerprint,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.CommitId,
+            owner.physicalCommitId,
+            StringComparison.Ordinal)
+        && receipt.Quantity == owner.quantity
+        && receipt.InputMassGrams == owner.inputMassGrams
+        && receipt.SourceStackIds.SequenceEqual(
+            owner.sourceStackIds,
+            StringComparer.Ordinal);
 }
 
 public sealed class ConveyorInfrastructureSaveSection :

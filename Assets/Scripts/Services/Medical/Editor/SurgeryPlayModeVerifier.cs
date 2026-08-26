@@ -82,11 +82,21 @@ public static class SurgeryPlayModeVerifier
 public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
 {
     private const string StandardMedicineItemId = "medicine:standard";
+    private const string AnestheticItemId = "medicine:anesthetic";
+    private const string DisinfectantItemId = "medicine:disinfectant";
+    private const string MedicalVialItemId = "container:medical-vial";
+    private const string DreamleafItemId = "resource:dreamleaf";
+    private const string AlcoholItemId = "material:alcohol";
     private const string CleanWaterItemId = "resource:clean-water";
     private const string SutureProcedureId = "procedure:emergency-suture";
+    private const string ForeignBodyProcedureId =
+        "procedure:foreign-body-removal";
     private const string MedicalResearchId = "research:survival:medical";
+    private const string AnesthesiaResearchId =
+        "research:pharmacology:anesthesia";
     private const float NoProgressTimeoutSeconds = 60f;
     private const float OverallTimeoutSeconds = 180f;
+    private const float VerifierHardTimeoutSeconds = 600f;
 
     private readonly List<string> report = new();
     private readonly List<string> failures = new();
@@ -112,9 +122,36 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
     private IAnatomyHealthRuntime anatomy;
     private ICharacterDeprivationRuntime deprivation;
     private string targetNodeId = string.Empty;
+    private float verifierStartedAt;
+    private bool finishing;
+
+    public string CurrentStage { get; private set; } = "created";
+    public float ElapsedRealtimeSeconds =>
+        verifierStartedAt > 0f
+            ? Time.realtimeSinceStartup - verifierStartedAt
+            : 0f;
+
+    private void Update()
+    {
+        if (finishing
+            || verifierStartedAt <= 0f
+            || ElapsedRealtimeSeconds <= VerifierHardTimeoutSeconds)
+        {
+            return;
+        }
+
+        failures.Add(
+            "SURGERY_VERIFIER_HARD_TIMEOUT: stage=" + CurrentStage
+            + $"; elapsed={ElapsedRealtimeSeconds:0.0}s; "
+            + $"limit={VerifierHardTimeoutSeconds:0}s");
+        Finish();
+    }
 
     private IEnumerator Start()
     {
+        DontDestroyOnLoad(gameObject);
+        verifierStartedAt = Time.realtimeSinceStartup;
+        CurrentStage = "bootstrap";
         Directory.CreateDirectory("Artifacts/QA");
         Application.logMessageReceived += OnLogMessageReceived;
         originalTimeScale = Time.timeScale;
@@ -150,6 +187,10 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
         gameSave = Resolve<IDungeonGameSaveService>(scope);
         IRandomStreamProvider randomStreams =
             Resolve<IRandomStreamProvider>(scope);
+        IFluidInfrastructureQuery fluidQuery =
+            Resolve<IFluidInfrastructureQuery>(scope);
+        ISurgeryPolicyRuntime surgeryPolicies =
+            Resolve<ISurgeryPolicyRuntime>(scope);
         randomStreams?.Get("medical:surgery-outcomes").Restore(1UL);
         GridSystemManager gridSystem =
             UnityEngine.Object.FindFirstObjectByType<GridSystemManager>();
@@ -174,7 +215,9 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             yield break;
         }
 
+        CurrentStage = "ensure-playable-run";
         yield return EnsurePlayableRun();
+        CurrentStage = "baseline-surgery-live-ai";
         // Starting a prepared run restores the player's saved speed. Reapply the
         // verification speed after that transition so physical hauling and work
         // are observed without making the test depend on editor focus.
@@ -197,6 +240,18 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             Finish();
             yield break;
         }
+
+        surgeryPolicies?.SetAutomaticEmergencySurgery(
+            new SurgicalSubjectRef
+            {
+                kind = SurgicalSubjectKind.Character,
+                subjectId = patient.Identity?.PersistentId ?? string.Empty,
+                displayName = patient.Identity?.DisplayName ?? string.Empty,
+                speciesId = patient.Identity?.SpeciesTag ?? string.Empty,
+                willing = true,
+                automaticEmergencyDefault = false
+            },
+            false);
 
         gameSnapshot = gameSave.Capture();
         IServiceSessionRuntime serviceSessions =
@@ -366,17 +421,27 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 $"item={medicineId}; amount={spawnedMedicine}; position={supplyPosition}");
             string processWaterDestinationId =
                 $"plumbing:process-water:{facilities.GetFacilityId(table)}:{BuiltInWorkTypeIds.Surgery.Value}";
-            bool waterSpawned = items.SpawnItemAt(
-                CleanWaterItemId,
-                1,
-                table.centerPos,
-                WorldItemStackState.FacilityBuffer,
-                processWaterDestinationId,
-                out int spawnedWater);
+            BuildingProcessFluidAbility processFluidAbility = table.BuildingData
+                ?.GetAbility<BuildingProcessFluidAbility>();
+            bool requiresProcessWater = processFluidAbility != null
+                && processFluidAbility.Supports(BuiltInWorkTypeIds.Surgery)
+                && processFluidAbility.cleanWaterPerCycle > 0f;
+            int spawnedWater = 0;
+            bool waterSpawned = !requiresProcessWater
+                || items.SpawnItemAt(
+                    CleanWaterItemId,
+                    1,
+                    table.centerPos,
+                    WorldItemStackState.FacilityBuffer,
+                    processWaterDestinationId,
+                    out spawnedWater);
             Check(
-                waterSpawned && spawnedWater == 1,
+                waterSpawned
+                    && spawnedWater == (requiresProcessWater ? 1 : 0),
                 "PROCESS_WATER_SPAWNED",
-                $"item={CleanWaterItemId}; amount={spawnedWater}; position={table.centerPos}; destination={processWaterDestinationId}");
+                requiresProcessWater
+                    ? $"item={CleanWaterItemId}; amount={spawnedWater}; position={table.centerPos}; destination={processWaterDestinationId}"
+                    : "facility-authored-process-water=not-required");
 
             Canvas canvas = UnityEngine.Object.FindObjectsByType<Canvas>(
                     FindObjectsInactive.Exclude,
@@ -487,6 +552,9 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                     ? $"destination={materialClaim.DestinationId}; facility={materialClaim.OwnerFacilityId}; drop={materialClaim.DropPosition}"
                     : $"destination={order.materialDestinationId}; drop={table.centerPos}; claim missing or mismatched");
             order.risk.successChance = 1f;
+            bool pipedProcessWaterRouteExists = requiresProcessWater
+                && fluidQuery != null
+                && fluidQuery.TryGetNetwork(table, out _);
 
             float startedAt = Time.realtimeSinceStartup;
             float nextActorStabilizationAt = startedAt;
@@ -499,6 +567,17 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                     && string.Equals(
                         stack.ItemId,
                         CleanWaterItemId,
+                        StringComparison.Ordinal))
+                .Sum(stack => stack.Quantity);
+            int initialProcessWater = items.GetAllStacks()
+                .Where(stack => stack != null
+                    && string.Equals(
+                        stack.ItemId,
+                        CleanWaterItemId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.DestinationId,
+                        processWaterDestinationId,
                         StringComparison.Ordinal))
                 .Sum(stack => stack.Quantity);
             Dictionary<string, int> requiredMaterials = order.materials
@@ -670,10 +749,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                             order.requiredWork - savedRequiredWork) <= 0.001f
                         && order.materialsConsumed
                         && order.processFluidConsumed
-                        && string.Equals(
-                            order.doctorId,
-                            liveDoctorId,
-                            StringComparison.Ordinal)
+                        && string.IsNullOrEmpty(order.doctorId)
                         && string.Equals(
                             order.subject?.subjectId,
                             livePatientId,
@@ -919,6 +995,17 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                         CleanWaterItemId,
                         StringComparison.Ordinal))
                 .Sum(stack => stack.Quantity);
+            int remainingProcessWater = items.GetAllStacks()
+                .Where(stack => stack != null
+                    && string.Equals(
+                        stack.ItemId,
+                        CleanWaterItemId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.DestinationId,
+                        processWaterDestinationId,
+                        StringComparison.Ordinal))
+                .Sum(stack => stack.Quantity);
             Check(!order.IsActive && order.state == SurgeryOrderState.Completed,
                 "SURGERY_COMPLETED_BY_WORK_AI",
                 $"state={order.state}; status={order.statusData?.code}; elapsed={Time.realtimeSinceStartup - startedAt:0.0}s; noProgress={Time.realtimeSinceStartup - lastAuthoritativeProgressAt:0.0}s; overallLimit={OverallTimeoutSeconds:0}s; noProgressLimit={NoProgressTimeoutSeconds:0}s");
@@ -944,10 +1031,18 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 $"requested={order.materialsRequested}; consumed={order.materialsConsumed}; medicine={initialMedicine}->{remainingMedicine}");
             Check(remainingMedicine < initialMedicine, "SURGERY_PHYSICAL_MEDICINE_CONSUMED",
                 $"{initialMedicine}->{remainingMedicine}");
+            bool manualProcessWaterConsumed = initialProcessWater == 1
+                && remainingProcessWater == 0;
             Check(
-                order.processFluidConsumed && remainingWater < initialWater,
-                "SURGERY_PHYSICAL_PROCESS_WATER_CONSUMED",
-                $"consumed={order.processFluidConsumed}; water={initialWater}->{remainingWater}");
+                order.processFluidConsumed
+                    && (!requiresProcessWater
+                        || manualProcessWaterConsumed
+                        || pipedProcessWaterRouteExists),
+                "SURGERY_PROCESS_FLUID_SOURCE_ACCOUNTED",
+                $"consumed={order.processFluidConsumed}; "
+                + $"source={(!requiresProcessWater ? "not-required" : manualProcessWaterConsumed ? "manual-container" : pipedProcessWaterRouteExists ? "piped-network" : "unaccounted")}; "
+                + $"processWater={initialProcessWater}->{remainingProcessWater}; "
+                + $"globalWater={initialWater}->{remainingWater}");
             Check(order.completedWork >= order.requiredWork, "SURGERY_WORK_ACCUMULATED",
                 $"{order.completedWork:0.##}/{order.requiredWork:0.##}");
             HashSet<SurgeryOrderState> reachedStates =
@@ -963,6 +1058,15 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 string.Join(",", reachedStates.OrderBy(state => (int)state)));
             Check(healedHealth > injuredHealth, "SURGERY_PATIENT_RECOVERED",
                 $"{injuredHealth:0.##}->{healedHealth:0.##}");
+            bool fullyHealedForIsolation = anatomy.TryHealNode(
+                patient,
+                targetNodeId,
+                100f,
+                100f);
+            Check(
+                fullyHealedForIsolation,
+                "SURGERY_POST_COMPLETION_TEST_ISOLATION",
+                $"patient={patient.Identity?.PersistentId}; node={targetNodeId}");
             bool completedClaimRevoked = !destinationClaims.CaptureClaims().Any(
                 claim => claim != null
                     && string.Equals(
@@ -1067,7 +1171,702 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                     "SURGERY_CANCEL_CLAIM_REVOKED",
                     $"destination={cancelOrder.materialDestinationId}; revoked={cancelClaimRevoked}");
             }
+
+            CurrentStage = "packaged-anesthetic-surgery";
+            yield return VerifyPackagedAnestheticSurgery(
+                scope,
+                commands,
+                facilities,
+                characters,
+                table,
+                order.subject.Clone(),
+                supplyPosition,
+                processWaterDestinationId);
+        CurrentStage = "finish";
         Finish();
+    }
+
+    private IEnumerator VerifyPackagedAnestheticSurgery(
+        DungeonRuntimeLifetimeScope scope,
+        ISurgeryCommandService commands,
+        ISurgicalFacilityQuery facilities,
+        ICharacterWorldQuery characters,
+        Facility table,
+        SurgicalSubjectRef subject,
+        Vector2Int supplyPosition,
+        string processWaterDestinationId)
+    {
+        CurrentStage = "packaged-anesthetic-surgery-setup";
+        Resolve<IRandomStreamProvider>(scope)
+            ?.Get("medical:surgery-outcomes")
+            .Restore(1UL);
+        int anestheticBefore = CountPhysicalItem(AnestheticItemId);
+        int vialBefore = CountPhysicalItem(MedicalVialItemId);
+        anatomy.TryDamageNode(
+            patient,
+            targetNodeId,
+            2f,
+            0f,
+            "포장 마취약 반환 검증");
+        bool scheduled = commands.TrySchedule(
+            subject,
+            ForeignBodyProcedureId,
+            targetNodeId,
+            string.Empty,
+            doctor.Identity?.PersistentId,
+            facilities.GetFacilityId(table),
+            out SurgeryOrder packagedOrder,
+            out DomainFailure scheduleFailure);
+        Check(
+            scheduled && packagedOrder != null,
+            "SURGERY_PACKAGED_ANESTHETIC_ORDER_CREATED",
+            scheduled
+                ? $"order={packagedOrder.orderId}; destination={packagedOrder.materialDestinationId}"
+                : $"failure={scheduleFailure.Code}:{string.Join(",", scheduleFailure.Parameters.ToArray())}");
+        if (!scheduled || packagedOrder == null)
+        {
+            yield break;
+        }
+
+        int requiredAnesthetic = packagedOrder.materials
+            .Where(requirement => requirement != null
+                && !requirement.optional
+                && string.Equals(
+                    requirement.itemId,
+                    AnestheticItemId,
+                    StringComparison.Ordinal))
+            .Sum(requirement => Mathf.Max(1, requirement.quantity));
+        int requiredDisinfectant = packagedOrder.materials
+            .Where(requirement => requirement != null
+                && !requirement.optional
+                && string.Equals(
+                    requirement.itemId,
+                    DisinfectantItemId,
+                    StringComparison.Ordinal))
+            .Sum(requirement => Mathf.Max(1, requirement.quantity));
+        bool exactAuthoredInputs = requiredAnesthetic == 2
+            && requiredDisinfectant == 2;
+        Check(
+            exactAuthoredInputs,
+            "SURGERY_PACKAGED_ANESTHETIC_AUTHORED_REQUIREMENT",
+            string.Join(",", packagedOrder.materials.Select(requirement =>
+                $"{requirement?.itemId}:{requirement?.quantity}:{requirement?.optional}")));
+
+        bool anestheticSpawned = items.SpawnItemAt(
+            AnestheticItemId,
+            requiredAnesthetic,
+            supplyPosition,
+            WorldItemStackState.Loose,
+            string.Empty,
+            out int spawnedAnesthetic);
+        bool disinfectantSpawned = items.SpawnItemAt(
+            DisinfectantItemId,
+            requiredDisinfectant,
+            supplyPosition,
+            WorldItemStackState.Loose,
+            string.Empty,
+            out int spawnedDisinfectant);
+        bool waterSpawned = items.SpawnItemAt(
+            CleanWaterItemId,
+            1,
+            table.centerPos,
+            WorldItemStackState.FacilityBuffer,
+            processWaterDestinationId,
+            out int spawnedWater);
+        Check(
+            exactAuthoredInputs
+                && anestheticSpawned
+                && spawnedAnesthetic == requiredAnesthetic
+                && disinfectantSpawned
+                && spawnedDisinfectant == requiredDisinfectant
+                && waterSpawned
+                && spawnedWater == 1,
+            "SURGERY_PACKAGED_ANESTHETIC_INPUTS_READY",
+            $"anesthetic={spawnedAnesthetic}/{requiredAnesthetic}; disinfectant={spawnedDisinfectant}/{requiredDisinfectant}; water={spawnedWater}");
+
+        CurrentStage = "packaged-anesthetic-surgery-execution";
+        float deadline = Time.realtimeSinceStartup + OverallTimeoutSeconds;
+        while (packagedOrder.IsActive
+               && Time.realtimeSinceStartup < deadline)
+        {
+            if (packagedOrder.risk != null)
+            {
+                packagedOrder.risk.successChance = 1f;
+            }
+            foreach (CharacterActor actor in characters.Characters
+                         .Where(candidate => candidate != null
+                             && !candidate.IsDead
+                             && candidate.characterType == CharacterType.NPC))
+            {
+                StabilizeVerificationActor(actor);
+            }
+            doctor?.Brain?.PreferWorkActionOnNextDecision(
+                BuiltInWorkTypeIds.Surgery,
+                120f);
+            if (Time.timeScale <= 0f)
+            {
+                Time.timeScale = 8f;
+            }
+            yield return null;
+        }
+
+        Check(
+            !packagedOrder.IsActive
+                && packagedOrder.state == SurgeryOrderState.Completed
+                && packagedOrder.materialsConsumed
+                && packagedOrder.anesthesiaConsumed,
+            "SURGERY_PACKAGED_ANESTHETIC_CONSUMED_LIVE",
+            $"state={packagedOrder.state}; status={packagedOrder.statusData?.code}; "
+            + $"successChance={packagedOrder.risk?.successChance:0.###}; "
+            + $"resultRolled={packagedOrder.resultRolled}; "
+            + $"materials={packagedOrder.materialsConsumed}; anesthesia={packagedOrder.anesthesiaConsumed}");
+
+        int anestheticAfter = CountPhysicalItem(AnestheticItemId);
+        int vialAfter = CountPhysicalItem(MedicalVialItemId);
+        WorldItemStackSnapshot[] committedVials = items.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.ItemId,
+                    MedicalVialItemId,
+                    StringComparison.Ordinal)
+                && stack.State == WorldItemStackState.Loose
+                && stack.Position == table.centerPos
+                && (stack.Components ?? Array.Empty<ItemInstanceComponentSaveData>())
+                    .Any(component => component != null
+                        && string.Equals(
+                            component.componentTypeId,
+                            ItemInstanceComponentIds.ProductionOutputCommit,
+                            StringComparison.Ordinal)))
+            .ToArray();
+        Check(
+            anestheticAfter == anestheticBefore
+                && vialAfter == vialBefore + requiredAnesthetic
+                && committedVials.Length == 1
+                && committedVials[0].Quantity == requiredAnesthetic,
+            "SURGERY_PACKAGED_ANESTHETIC_VIAL_RETURNED_EXACT_ONCE",
+            $"anesthetic={anestheticBefore}+{requiredAnesthetic}->{anestheticAfter}; vial={vialBefore}->{vialAfter}; committedStacks={committedVials.Length}");
+
+        IPhysicalItemBatchDispositionService dispositions =
+            Resolve<IPhysicalItemBatchDispositionService>(scope);
+        bool pendingCleared = dispositions != null
+            && !dispositions.TryGetPending(
+                "surgery-material-sink:" + packagedOrder.orderId,
+                out _);
+        Check(
+            pendingCleared,
+            "SURGERY_PACKAGED_ANESTHETIC_SINK_ACKNOWLEDGED",
+            $"order={packagedOrder.orderId}; pending={!pendingCleared}");
+
+        DungeonGameSaveData packagedSave = gameSave.Capture();
+        bool restored = gameSave.TryRestore(
+            packagedSave,
+            out DungeonGameRestoreReport restoreReport);
+        int vialAfterRestore = CountPhysicalItem(MedicalVialItemId);
+        Check(
+            restored && vialAfterRestore == vialAfter,
+            "SURGERY_PACKAGED_ANESTHETIC_RESTORE_NO_DUPLICATE",
+            restored
+                ? $"vial={vialAfter}->{vialAfterRestore}"
+                : string.Join(" | ", restoreReport?.Errors ?? Array.Empty<string>()));
+        if (restored)
+        {
+            CurrentStage = "returned-vial-warehouse-and-production-reuse";
+            yield return VerifyReturnedVialWarehouseAndProductionReuse(
+                scope,
+                requiredAnesthetic);
+        }
+    }
+
+    private IEnumerator VerifyReturnedVialWarehouseAndProductionReuse(
+        DungeonRuntimeLifetimeScope scope,
+        int returnedVialQuantity)
+    {
+        CurrentStage = "returned-vial-fixture";
+        ICharacterAiWorldRegistry world =
+            Resolve<ICharacterAiWorldRegistry>(scope);
+        ICharacterWorldQuery characters = Resolve<ICharacterWorldQuery>(scope);
+        IProductionBillQuery productionQuery =
+            Resolve<IProductionBillQuery>(scope);
+        IProductionBillOrderCommand productionOrders =
+            Resolve<IProductionBillOrderCommand>(scope);
+        IProductionBillWorkExecution productionWork =
+            Resolve<IProductionBillWorkExecution>(scope);
+        IBlueprintResearchStateService research =
+            Resolve<IBlueprintResearchStateService>(scope);
+        IGridBuildingObjectFactory buildingFactory =
+            Resolve<IGridBuildingObjectFactory>(scope);
+        Grid grid = UnityEngine.Object.FindFirstObjectByType<GridSystemManager>()
+            ?.grid;
+        Check(
+            world != null
+                && characters != null
+                && productionQuery != null
+                && productionOrders != null
+                && productionWork != null
+                && research != null
+                && buildingFactory != null
+                && grid != null,
+            "ANESTHETIC_RECYCLE_RUNTIME_READY",
+            $"world={world != null}; characters={characters != null}; "
+            + $"query={productionQuery != null}; orders={productionOrders != null}; "
+            + $"work={productionWork != null}; research={research != null}; "
+            + $"factory={buildingFactory != null}; grid={grid != null}");
+        if (world == null
+            || characters == null
+            || productionQuery == null
+            || productionOrders == null
+            || productionWork == null
+            || research == null
+            || buildingFactory == null
+            || grid == null)
+        {
+            yield break;
+        }
+
+        IWarehouseFacility warehouse = world.Warehouses
+            .Where(candidate => candidate?.Inventory != null
+                && candidate.Inventory.Accepts(StockCategory.General)
+                && candidate is BuildableObject)
+            .OrderBy(candidate => candidate.PersistentInstanceId.Value,
+                StringComparer.Ordinal)
+            .FirstOrDefault();
+        CharacterActor hauler = characters.Characters
+            .Where(candidate => candidate != null
+                && !candidate.IsDead
+                && candidate.characterType == CharacterType.NPC
+                && candidate.TryGetAbility(out AbilityWork _))
+            .OrderBy(candidate => candidate.Identity?.PersistentId,
+                StringComparer.Ordinal)
+            .FirstOrDefault();
+        Check(
+            warehouse is BuildableObject && hauler != null,
+            "ANESTHETIC_RECYCLE_HAUL_FIXTURE_READY",
+            $"warehouse={warehouse?.PersistentInstanceId.Value ?? "<none>"}; "
+            + $"hauler={hauler?.Identity?.PersistentId ?? "<none>"}");
+        if (warehouse is not BuildableObject warehouseBuilding || hauler == null)
+        {
+            yield break;
+        }
+
+        Dictionary<CharacterActor, bool> otherActorPauseStates = characters
+            .Characters
+            .Where(candidate => candidate != null
+                && candidate != hauler
+                && !candidate.IsDead)
+            .ToDictionary(candidate => candidate, candidate => candidate.IsAiPaused());
+        foreach (CharacterActor candidate in otherActorPauseStates.Keys)
+        {
+            candidate.SetAiPaused(true);
+        }
+
+        WorldItemStackSnapshot[] returnedStacks = items.GetAllStacks()
+            .Where(IsReturnedMedicalVial)
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .ToArray();
+        int returnedBeforeHaul = returnedStacks.Sum(stack => stack.Quantity);
+        string returnedStackDetail = string.Join(
+            ",",
+            returnedStacks.Select(stack =>
+                stack.StackId + ":" + stack.State + ":" + stack.Quantity));
+        Check(
+            returnedBeforeHaul == returnedVialQuantity
+                && returnedStacks.All(stack =>
+                    stack.State == WorldItemStackState.Loose),
+            "ANESTHETIC_RECYCLE_RETURNED_VIAL_LOOSE_SOURCE",
+            $"expected={returnedVialQuantity}; actual={returnedBeforeHaul}; "
+            + "stacks=" + returnedStackDetail);
+        if (returnedBeforeHaul != returnedVialQuantity)
+        {
+            yield break;
+        }
+
+        AbilityWork haulerWork = hauler.GetAbility<AbilityWork>();
+        WorkPriorityLevel originalHaulPriority =
+            haulerWork.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul);
+        bool originalHaulerPause = hauler.IsAiPaused();
+        hauler.SetAiPaused(true);
+        haulerWork.WorkPriorities.SetPriority(
+            BuiltInWorkTypeIds.Haul,
+            WorkPriorityLevel.Priority1);
+        foreach (WorldItemStackSnapshot stack in returnedStacks)
+        {
+            items.PrioritizeHaul(stack.StackId);
+        }
+
+        CurrentStage = "returned-vial-ai-haul";
+        float haulDeadline = Time.realtimeSinceStartup + 45f;
+        int haulAttempts = 0;
+        while (CountReturnedMedicalVials(WorldItemStackState.Stored)
+                   < returnedVialQuantity
+               && Time.realtimeSinceStartup < haulDeadline)
+        {
+            AIHaul action = ScriptableObject.CreateInstance<AIHaul>();
+            try
+            {
+                if (action.CanStart(hauler))
+                {
+                    haulAttempts++;
+                    AbilityHaul ability = AbilityHaul.Ensure(hauler);
+                    action.Execute(hauler);
+                    while (ability != null
+                           && ability.IsHauling
+                           && CountReturnedMedicalVials(
+                               WorldItemStackState.Stored)
+                               < returnedVialQuantity
+                           && Time.realtimeSinceStartup < haulDeadline)
+                    {
+                        Time.timeScale = 8f;
+                        yield return null;
+                    }
+                }
+                else
+                {
+                    yield return null;
+                }
+            }
+            finally
+            {
+                Destroy(action);
+            }
+        }
+
+        int returnedStored = CountReturnedMedicalVials(
+            WorldItemStackState.Stored);
+        int returnedAll = items.GetAllStacks()
+            .Where(IsReturnedMedicalVial)
+            .Sum(stack => stack.Quantity);
+        HashSet<string> liveWarehouseDestinations = world.Warehouses
+            .Where(candidate => candidate?.Inventory != null)
+            .Select(WarehouseStorageIdentity.RequireDestinationId)
+            .ToHashSet(StringComparer.Ordinal);
+        WorldItemStackSnapshot[] storedReturnedStacks = items.GetAllStacks()
+            .Where(IsReturnedMedicalVial)
+            .ToArray();
+        bool storedAtWarehouse = storedReturnedStacks.All(stack =>
+            stack.State == WorldItemStackState.Stored
+                && liveWarehouseDestinations.Contains(stack.DestinationId));
+        string returnedWarehouseDestination = storedReturnedStacks
+            .Select(stack => stack.DestinationId)
+            .Distinct(StringComparer.Ordinal)
+            .SingleOrDefault();
+        IWarehouseFacility returnedWarehouse = world.Warehouses
+            .FirstOrDefault(candidate => candidate?.Inventory != null
+                && string.Equals(
+                    WarehouseStorageIdentity.RequireDestinationId(candidate),
+                    returnedWarehouseDestination,
+                    StringComparison.Ordinal));
+        Check(
+            returnedStored == returnedVialQuantity
+                && returnedAll == returnedVialQuantity
+                && storedAtWarehouse
+                && returnedWarehouse is BuildableObject,
+            "ANESTHETIC_RECYCLE_VIAL_AI_WAREHOUSE_INTAKE",
+            $"stored={returnedStored}; total={returnedAll}; "
+            + $"attempts={haulAttempts}; destination={returnedWarehouseDestination}");
+        if (returnedStored != returnedVialQuantity
+            || !storedAtWarehouse
+            || returnedWarehouse is not BuildableObject returnedWarehouseBuilding)
+        {
+            haulerWork.WorkPriorities.SetPriority(
+                BuiltInWorkTypeIds.Haul,
+                originalHaulPriority);
+            hauler.SetAiPaused(originalHaulerPause);
+            yield break;
+        }
+        warehouse = returnedWarehouse;
+        warehouseBuilding = returnedWarehouseBuilding;
+
+        BuildingSO apothecaryAsset = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            "Assets/Resources/SO/Building/Modular/P18_약제대.asset");
+        BuildableObject apothecary = TryPlaceProductionFacility(
+            scope,
+            buildingFactory,
+            grid,
+            apothecaryAsset,
+            out string placementFailure);
+        Check(
+            apothecary != null
+                && apothecary.MatchesProductionWorkstation(
+                    AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>(
+                        "Assets/Resources/SO/Economy/Recipes/recipe_anesthetic.asset")),
+            "ANESTHETIC_RECYCLE_APOTHECARY_READY",
+            apothecary != null
+                ? $"facility={apothecary.RequirePersistentInstanceId().Value}; "
+                    + $"position={apothecary.centerPos}"
+                : placementFailure);
+        if (apothecary == null)
+        {
+            haulerWork.WorkPriorities.SetPriority(
+                BuiltInWorkTypeIds.Haul,
+                originalHaulPriority);
+            hauler.SetAiPaused(originalHaulerPause);
+            yield break;
+        }
+
+        research.GetState().Projects.RestoreCompleted(
+            new ResearchProjectId(AnesthesiaResearchId));
+        int anestheticBeforeProduction = CountPhysicalItem(AnestheticItemId);
+        int vialBeforeProduction = CountPhysicalItem(MedicalVialItemId);
+        string warehouseDestination =
+            WarehouseStorageIdentity.RequireDestinationId(warehouse);
+        bool dreamleafSeeded = items.SpawnItemAt(
+            DreamleafItemId,
+            2,
+            warehouseBuilding.centerPos,
+            WorldItemStackState.Stored,
+            warehouseDestination,
+            out int dreamleafSpawned);
+        bool alcoholSeeded = items.SpawnItemAt(
+            AlcoholItemId,
+            1,
+            warehouseBuilding.centerPos,
+            WorldItemStackState.Stored,
+            warehouseDestination,
+            out int alcoholSpawned);
+        Check(
+            dreamleafSeeded && dreamleafSpawned == 2
+                && alcoholSeeded && alcoholSpawned == 1,
+            "ANESTHETIC_RECYCLE_INPUT_STOCK_READY",
+            $"dreamleaf={dreamleafSpawned}; alcohol={alcoholSpawned}; "
+            + $"vial={vialBeforeProduction}");
+
+        ProductionBillCommandResult added = productionOrders.AddBill(
+            apothecary,
+            "recipe:anesthetic",
+            ProductionOrderMode.RepeatCount,
+            1);
+        ProductionBillSnapshot bill = added.Succeeded
+            ? productionQuery.GetBills(apothecary)
+                .FirstOrDefault(candidate => candidate.BillId == added.BillId)
+            : null;
+        Check(
+            added.Succeeded
+                && bill != null
+                && !string.IsNullOrWhiteSpace(bill.MaterialDestinationId),
+            "ANESTHETIC_RECYCLE_PRODUCTION_BILL_CREATED",
+            added.Succeeded
+                ? $"bill={added.BillId.Value}; destination={bill?.MaterialDestinationId}"
+                : added.Failure.ToString());
+        if (!added.Succeeded || bill == null)
+        {
+            haulerWork.WorkPriorities.SetPriority(
+                BuiltInWorkTypeIds.Haul,
+                originalHaulPriority);
+            hauler.SetAiPaused(originalHaulerPause);
+            yield break;
+        }
+        string expectedOutputDestinationId = bill.OutputDestinationId;
+
+        CurrentStage = "anesthetic-input-ai-delivery";
+        float materialDeadline = Time.realtimeSinceStartup + 60f;
+        int materialHaulAttempts = 0;
+        while (!productionWork.CheckWorkAvailability(
+                   apothecary,
+                   BuiltInWorkTypeIds.Craft).Available
+               && Time.realtimeSinceStartup < materialDeadline)
+        {
+            foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
+                         .Where(stack => stack != null
+                             && string.Equals(
+                                 stack.DestinationId,
+                                 bill.MaterialDestinationId,
+                                 StringComparison.Ordinal)))
+            {
+                items.PrioritizeHaul(stack.StackId);
+            }
+
+            AIHaul action = ScriptableObject.CreateInstance<AIHaul>();
+            try
+            {
+                if (action.CanStart(hauler))
+                {
+                    materialHaulAttempts++;
+                    AbilityHaul ability = AbilityHaul.Ensure(hauler);
+                    action.Execute(hauler);
+                    while (ability != null
+                           && ability.IsHauling
+                           && Time.realtimeSinceStartup < materialDeadline)
+                    {
+                        Time.timeScale = 8f;
+                        yield return null;
+                    }
+                }
+                else
+                {
+                    yield return null;
+                }
+            }
+            finally
+            {
+                Destroy(action);
+            }
+        }
+
+        ProductionWorkAvailabilityResult availability =
+            productionWork.CheckWorkAvailability(
+                apothecary,
+                BuiltInWorkTypeIds.Craft);
+        string inputStackDetail = DescribePhysicalItems(
+            DreamleafItemId,
+            AlcoholItemId,
+            MedicalVialItemId);
+        Check(
+            availability.Available
+                && availability.Bill?.BillId == bill.BillId,
+            "ANESTHETIC_RECYCLE_INPUTS_AI_DELIVERED",
+            $"available={availability.Available}; "
+            + $"failure={availability.Failure}; attempts={materialHaulAttempts}; "
+            + $"haul={AbilityHaul.Ensure(hauler)?.CurrentUnloadReason}:"
+            + $"{AbilityHaul.Ensure(hauler)?.LastFailureReason}:"
+            + $"{AbilityHaul.Ensure(hauler)?.LastTerminalDiagnostics}; "
+            + $"buffer={DescribeDestinationStacks(bill.MaterialDestinationId)}; "
+            + $"allInputs={inputStackDetail}");
+        if (!availability.Available)
+        {
+            haulerWork.WorkPriorities.SetPriority(
+                BuiltInWorkTypeIds.Haul,
+                originalHaulPriority);
+            hauler.SetAiPaused(originalHaulerPause);
+            yield break;
+        }
+
+        CurrentStage = "anesthetic-production-execution";
+        ProductionWorkBeginResult began = productionWork.BeginWork(
+            hauler,
+            apothecary,
+            BuiltInWorkTypeIds.Craft);
+        ProductionWorkExecutionResult execution = default;
+        int executionSteps = 0;
+        while (began.Succeeded
+               && !execution.CycleCompleted
+               && executionSteps++ < 16)
+        {
+            execution = productionWork.ExecuteWork(
+                hauler,
+                apothecary,
+                began.Bill.BillId,
+                Mathf.Max(1f, began.Bill.RequiredWork));
+            if (!execution.Succeeded)
+            {
+                break;
+            }
+            if (!execution.CycleCompleted)
+            {
+                yield return null;
+            }
+        }
+
+        int anestheticAfterProduction = CountPhysicalItem(AnestheticItemId);
+        int vialAfterProduction = CountPhysicalItem(MedicalVialItemId);
+        ProductionBillSnapshot completedBill = productionQuery
+            .GetBills(apothecary)
+            .FirstOrDefault(candidate => candidate.BillId == bill.BillId);
+        WorldItemStackSnapshot[] outputStacks = items.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.ItemId,
+                    AnestheticItemId,
+                    StringComparison.Ordinal)
+                && stack.State == WorldItemStackState.FacilityOutputBuffer
+                && stack.Position == apothecary.centerPos
+                && string.Equals(
+                    stack.DestinationId,
+                    expectedOutputDestinationId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        string outputStackDetail = string.Join(
+            ",",
+            outputStacks.Select(stack =>
+                stack.StackId + ":" + stack.State + ":" + stack.Quantity));
+        Check(
+            began.Succeeded
+                && execution.Succeeded
+                && execution.CycleCompleted
+                && anestheticAfterProduction == anestheticBeforeProduction + 1
+                && vialAfterProduction == vialBeforeProduction - 1
+                && outputStacks.Sum(stack => stack.Quantity) == 1
+                && !outputStacks.Any(stack =>
+                    stack.State == WorldItemStackState.Stored),
+            "ANESTHETIC_RECYCLE_PRODUCTION_LIVE_EXACT_ONCE",
+            $"begin={began.Succeeded}:{began.Failure}; "
+            + $"execute={execution.Succeeded}:{execution.Outcome}:{execution.Failure}; "
+            + $"anesthetic={anestheticBeforeProduction}->{anestheticAfterProduction}; "
+            + $"vial={vialBeforeProduction}->{vialAfterProduction}; "
+            + $"outputDestination={expectedOutputDestinationId}; "
+            + $"completedBillPresent={completedBill != null}; "
+            + "output=" + outputStackDetail);
+
+        CurrentStage = "anesthetic-production-save-restore";
+        DungeonGameSaveData recycleSave = gameSave.Capture();
+        if (DungeonSaveSectionPayload.TryRead(
+                recycleSave,
+                CharacterConsumablesSaveSection.Id,
+                out DungeonCharacterConsumablesSaveData consumablesPayload))
+        {
+            ICharacterConsumablesWorldPort consumablesWorld =
+                Resolve<ICharacterConsumablesWorldPort>(scope);
+            report.Add(
+                "[INFO] ANESTHETIC_RECYCLE_CONSUMABLE_DELIVERIES "
+                + string.Join(
+                    ",",
+                    (consumablesPayload.pendingMealDeliveries
+                        ?? new List<CharacterMealDeliveryState>())
+                    .Select(delivery =>
+                        delivery.deliveryId + ":" + delivery.characterId
+                        + ":characterLive="
+                        + (consumablesWorld?.CharacterIds.Contains(
+                            delivery.CharacterId) == true)
+                        + ":" + delivery.buildingInstanceId
+                        + ":facilityLive="
+                        + (consumablesWorld?.FacilityIds.Contains(
+                            delivery.BuildingInstanceId) == true))));
+        }
+        bool recycleRestored = gameSave.TryRestore(
+            recycleSave,
+            out DungeonGameRestoreReport recycleRestoreReport);
+        Check(
+            recycleRestored
+                && CountPhysicalItem(AnestheticItemId)
+                    == anestheticAfterProduction
+                && CountPhysicalItem(MedicalVialItemId)
+                    == vialAfterProduction,
+            "ANESTHETIC_RECYCLE_PRODUCTION_RESTORE_NO_DUPLICATE",
+            recycleRestored
+                ? $"anesthetic={CountPhysicalItem(AnestheticItemId)}; "
+                    + $"vial={CountPhysicalItem(MedicalVialItemId)}"
+                : string.Join(
+                    " | ",
+                    recycleRestoreReport?.Errors ?? Array.Empty<string>()));
+
+        haulerWork.WorkPriorities.SetPriority(
+            BuiltInWorkTypeIds.Haul,
+            originalHaulPriority);
+        hauler.SetAiPaused(originalHaulerPause);
+        foreach (KeyValuePair<CharacterActor, bool> pair in otherActorPauseStates)
+        {
+            if (pair.Key != null)
+            {
+                pair.Key.SetAiPaused(pair.Value);
+            }
+        }
+    }
+
+    private string DescribePhysicalItems(params string[] itemIds)
+    {
+        HashSet<string> included = (itemIds ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToHashSet(StringComparer.Ordinal);
+        return string.Join(
+            ",",
+            items.GetAllStacks()
+                .Where(stack => stack != null && included.Contains(stack.ItemId))
+                .OrderBy(stack => stack.ItemId, StringComparer.Ordinal)
+                .ThenBy(stack => stack.State)
+                .ThenBy(stack => stack.StackId, StringComparer.Ordinal)
+                .Select(stack =>
+                    stack.ItemId + ":" + stack.StackId + ":" + stack.State
+                    + ":" + stack.Quantity + ":dest=" + stack.DestinationId
+                    + ":reserved=" + stack.ReservedQuantity));
     }
 
     private IEnumerator EnsurePlayableRun()
@@ -1079,6 +1878,11 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             string fastCommit =
                 StartPartyPreparationPlayModeVerifier.RunFastCommitForDebug();
             report.Add("[INFO] FAST_PARTY_COMMIT " + fastCommit);
+            // Fast commit deliberately pauses the game while replacing the
+            // prepared party. Restore the verifier speed before yielding so a
+            // background MCP-driven PlayMode run cannot strand this coroutine
+            // at timeScale zero.
+            Time.timeScale = 8f;
             for (int i = 0; i < 8; i++)
             {
                 yield return null;
@@ -1091,6 +1895,131 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             ownerManager?.CurrentOwnerActor != null
                 ? $"owner={ownerManager.CurrentOwnerActor.name}"
                 : "owner missing");
+    }
+
+    private static bool IsReturnedMedicalVial(WorldItemStackSnapshot stack)
+    {
+        return stack != null
+            && string.Equals(
+                stack.ItemId,
+                MedicalVialItemId,
+                StringComparison.Ordinal)
+            && (stack.Components ?? Array.Empty<ItemInstanceComponentSaveData>())
+                .Any(component => component != null
+                    && string.Equals(
+                        component.componentTypeId,
+                        ItemInstanceComponentIds.ProductionOutputCommit,
+                        StringComparison.Ordinal));
+    }
+
+    private int CountReturnedMedicalVials(WorldItemStackState state)
+    {
+        return items.GetAllStacks()
+            .Where(stack => IsReturnedMedicalVial(stack)
+                && stack.State == state)
+            .Sum(stack => stack.Quantity);
+    }
+
+    private string DescribeDestinationStacks(string destinationId)
+    {
+        return string.Join(
+            ",",
+            items.GetAllStacks()
+                .Where(stack => stack != null
+                    && string.Equals(
+                        stack.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal))
+                .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+                .Select(stack =>
+                    $"{stack.StackId}:{stack.ItemId}:{stack.State}:"
+                    + $"{stack.Quantity}:reserved={stack.ReservedQuantity}"));
+    }
+
+    private BuildableObject TryPlaceProductionFacility(
+        DungeonRuntimeLifetimeScope scope,
+        IGridBuildingObjectFactory buildingFactory,
+        Grid grid,
+        BuildingSO definition,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (scope?.Container == null
+            || buildingFactory == null
+            || grid == null
+            || definition == null)
+        {
+            failureReason = "production placement authority missing";
+            return null;
+        }
+
+        Vector2Int position = default;
+        bool found = false;
+        for (int y = 0; y < grid.height && !found; y++)
+        {
+            for (int x = 0; x < grid.width; x++)
+            {
+                Vector2Int candidate = new(x, y);
+                bool available = definition.GetGridPosList(candidate)
+                    .All(cellPosition =>
+                    {
+                        GridCell cell = grid.GetGridCell(cellPosition);
+                        return cell != null
+                            && cell.AreaType
+                                != GridCellAreaType.BlockedExterior
+                            && cell.CanOccupy(definition.layer);
+                    });
+                if (!available)
+                {
+                    continue;
+                }
+
+                position = candidate;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            failureReason = $"no free grid position for {definition.objectName}";
+            return null;
+        }
+
+        BuildableObject building = buildingFactory.Create(
+            grid,
+            definition,
+            position);
+        if (building == null)
+        {
+            failureReason = $"factory failed for {definition.objectName}";
+            return null;
+        }
+
+        foreach (MonoBehaviour component in
+                 building.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (component != null)
+            {
+                scope.Container.Inject(component);
+            }
+        }
+        building.SetGrid(grid);
+        building.Initialization(definition, position);
+        bool registered = grid.RegisterOccupant(
+            building,
+            definition.layer,
+            definition.GetGridPosList(position),
+            definition.Placement.IsMovement);
+        if (!registered)
+        {
+            Destroy(building.gameObject);
+            failureReason = $"grid registration failed at {position}";
+            return null;
+        }
+
+        temporaryObjects.Add(building.gameObject);
+        return building;
     }
 
     private static bool TryFindPlacement(
@@ -1492,6 +2421,13 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
 
     private void Finish()
     {
+        if (finishing)
+        {
+            return;
+        }
+
+        finishing = true;
+        CurrentStage = "finishing";
         Cleanup();
         Application.logMessageReceived -= OnLogMessageReceived;
         report.Add($"capturedErrors={capturedErrors.Count}; {Compact(capturedErrors)}");

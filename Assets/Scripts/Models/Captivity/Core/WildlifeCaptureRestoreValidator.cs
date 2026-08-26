@@ -72,6 +72,12 @@ public static class WildlifeCaptureRestoreValidator
                 report.AddError(
                     $"Captured wildlife '{state.wildlifeId}' references unknown feed '{state.lastFeedItemId}'.");
             }
+            if (state.pendingFeedPhase != CapturedWildlifeFeedCommitPhase.None
+                && !world.HasItem(state.pendingFeedItemId))
+            {
+                report.AddError(
+                    $"Captured wildlife '{state.wildlifeId}' references unknown pending feed '{state.pendingFeedItemId}'.");
+            }
             if (!world.IsValidGridPosition(state.capturePosition)
                 || !world.IsValidGridPosition(state.penPosition)
                 || state.escaped

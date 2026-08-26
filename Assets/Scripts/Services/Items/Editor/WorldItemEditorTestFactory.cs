@@ -29,6 +29,7 @@ public static class WorldItemEditorTestFactory
             catalog,
             haulingSettings,
             repository,
+            EmptyFacilityOutputExactRouteOutboxPersistence.Instance,
             reservationPersistence,
             reservationPersistence as IItemReservationMutationGate);
         WorldItemWarehouseService warehouses = new WorldItemWarehouseService(
@@ -48,8 +49,10 @@ public static class WorldItemEditorTestFactory
             repository,
             queries,
             itemMarkerPresenter);
+        IPhysicalItemMassQuery massQuery = new PhysicalItemMassQuery(catalog);
         WorldItemReadServices reads = new WorldItemReadServices(
             catalog,
+            massQuery,
             haulingSettings,
             queries,
             itemMarkerPresenter,
@@ -62,6 +65,11 @@ public static class WorldItemEditorTestFactory
             haulPlanning,
             itemTransferService,
             theft);
+        IPhysicalItemBatchDispositionService batchDispositions =
+            new PhysicalItemBatchDispositionService(
+                repository,
+                massQuery,
+                itemMarkerPresenter);
         return new WorldItemStackRuntime(
             gridProvider,
             characterIds,
@@ -70,7 +78,8 @@ public static class WorldItemEditorTestFactory
             reads,
             mutations,
             persistence,
-            warehouses);
+            warehouses,
+            batchDispositions);
     }
 }
 #endif

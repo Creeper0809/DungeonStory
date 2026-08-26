@@ -6,6 +6,7 @@ using UnityEngine;
 
 public interface IPhysicalSeedLotGateway
 {
+    IReadOnlyList<WorldItemStackSnapshot> GetAllStacks();
     bool CanSpawnSeedLot(
         string seedItemId,
         int amount,
@@ -18,12 +19,27 @@ public interface IPhysicalSeedLotGateway
         string destinationId,
         out int requested,
         out DomainFailure failure);
-    bool TryConsumeSowingInputs(
-        string destinationId,
-        IReadOnlyDictionary<string, int> requirements,
+    bool TryCommitPendingBatchPhysicalDisposition(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason);
+    bool TryGetPendingBatchPhysicalDisposition(
+        string operationId,
+        out PhysicalItemBatchDispositionReceipt receipt);
+    bool AcknowledgeBatchPhysicalDisposition(
+        string commitId,
+        out string failureReason);
+    bool TryEnsureSeedLotOutput(
         string seedItemId,
-        string cropId,
-        out SeedLotState seedLot,
+        SeedLotState seedLot,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        string operationId,
+        out string commitId,
         out string failureReason);
     bool SpawnSeedLot(
         string seedItemId,
@@ -36,12 +52,21 @@ public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
 {
     private readonly IStockQuery stock;
     private readonly IItemTransferService transfers;
+    private readonly IWorldItemStackRuntime physicalItems;
 
-    public PhysicalSeedLotGateway(IStockQuery stock, IItemTransferService transfers)
+    public PhysicalSeedLotGateway(
+        IStockQuery stock,
+        IItemTransferService transfers,
+        IWorldItemStackRuntime physicalItems)
     {
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
         this.transfers = transfers ?? throw new ArgumentNullException(nameof(transfers));
+        this.physicalItems = physicalItems
+            ?? throw new ArgumentNullException(nameof(physicalItems));
     }
+
+    public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
+        stock.GetAllStacks();
 
     public bool CanSpawnSeedLot(
         string seedItemId,
@@ -116,51 +141,6 @@ public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
             out failure);
     }
 
-    public bool TryConsumeSowingInputs(
-        string destinationId,
-        IReadOnlyDictionary<string, int> requirements,
-        string seedItemId,
-        string cropId,
-        out SeedLotState seedLot,
-        out string failureReason)
-    {
-        seedLot = null;
-        failureReason = string.Empty;
-        WorldItemStackSnapshot[] delivered = stock.GetAllStacks()
-            .Where(value => value != null
-                && value.Quantity > 0
-                && value.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(value.DestinationId, destinationId, StringComparison.Ordinal)
-                && string.Equals(value.ItemId, seedItemId, StringComparison.Ordinal))
-            .ToArray();
-        if (delivered.Sum(value => value.Quantity) != 1 || delivered.Length != 1)
-        {
-            failureReason = "crop.seed_lot.delivery_ambiguous";
-            return false;
-        }
-        try
-        {
-            seedLot = SeedLotItemStateCodec.Decode(delivered[0].Components);
-        }
-        catch (Exception exception)
-        {
-            failureReason = "crop.seed_lot.component_invalid:" + exception.Message;
-            return false;
-        }
-        if (!string.Equals(seedLot.cropId, cropId, StringComparison.Ordinal))
-        {
-            seedLot = null;
-            failureReason = "crop.seed_lot.crop_mismatch";
-            return false;
-        }
-        if (!transfers.TryConsumeFacilityItemBuffer(destinationId, requirements, out failureReason))
-        {
-            seedLot = null;
-            return false;
-        }
-        return true;
-    }
-
     public bool SpawnSeedLot(
         string seedItemId,
         int amount,
@@ -176,11 +156,166 @@ public sealed class PhysicalSeedLotGateway : IPhysicalSeedLotGateway
             out int spawned)
         && spawned == amount;
 
+    public bool TryCommitPendingBatchPhysicalDisposition(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason) =>
+        physicalItems.TryCommitPendingBatchPhysicalDisposition(
+            inputs,
+            kind,
+            operationId,
+            reasonCode,
+            out receipt,
+            out failureReason);
+
+    public bool TryGetPendingBatchPhysicalDisposition(
+        string operationId,
+        out PhysicalItemBatchDispositionReceipt receipt) =>
+        physicalItems.TryGetPendingBatchPhysicalDisposition(operationId, out receipt);
+
+    public bool AcknowledgeBatchPhysicalDisposition(
+        string commitId,
+        out string failureReason) =>
+        physicalItems.AcknowledgeBatchPhysicalDisposition(
+            commitId,
+            out failureReason);
+
+    public bool TryEnsureSeedLotOutput(
+        string seedItemId,
+        SeedLotState seedLot,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        string operationId,
+        out string commitId,
+        out string failureReason)
+    {
+        commitId = string.Empty;
+        failureReason = string.Empty;
+        string itemId = seedItemId ?? string.Empty;
+        string destination = destinationId ?? string.Empty;
+        string operation = operationId ?? string.Empty;
+        if (!IsCanonical(itemId)
+            || seedLot == null
+            || !IsCanonical(operation)
+            || state is not (WorldItemStackState.Loose
+                or WorldItemStackState.FacilityOutputBuffer)
+            || state == WorldItemStackState.FacilityOutputBuffer
+                && !IsCanonical(destination)
+            || state == WorldItemStackState.Loose && destination.Length != 0)
+        {
+            failureReason = "crop-seed-output-invalid-request";
+            return false;
+        }
+
+        ItemInstanceComponentSaveData encoded;
+        try
+        {
+            encoded = SeedLotItemStateCodec.Encode(seedLot);
+        }
+        catch (Exception exception)
+        {
+            failureReason = "crop-seed-output-state-invalid:"
+                + exception.GetType().Name;
+            return false;
+        }
+        string pathogen = seedLot.pathogenLoad.ToString(
+            "R",
+            System.Globalization.CultureInfo.InvariantCulture);
+        string expectedCommit =
+            $"physical-source:{operation}:{itemId}:1:{seedLot.cropId}:"
+            + $"{seedLot.cultivarGenomeId}:{seedLot.generation}:{pathogen}";
+        WorldItemStackSnapshot[] existing = stock.GetAllStacks()
+            .Where(stack => stack != null
+                && ProductionOutputCommitComponentCodec.Matches(
+                    stack.Components,
+                    expectedCommit))
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .ToArray();
+        if (existing.Length > 0)
+        {
+            if (existing.Length != 1
+                || existing[0].Quantity != 1
+                || !string.Equals(existing[0].ItemId, itemId, StringComparison.Ordinal)
+                || existing[0].State != state
+                || existing[0].Position != position
+                || !string.Equals(
+                    existing[0].DestinationId,
+                    destination,
+                    StringComparison.Ordinal)
+                || !SeedLotEquals(TryDecode(existing[0].Components), seedLot))
+            {
+                failureReason = "crop-seed-output-existing-conflict";
+                return false;
+            }
+            commitId = expectedCommit;
+            return true;
+        }
+
+        if (!transfers.TrySpawnItemWithComponents(
+                itemId,
+                1,
+                position,
+                state,
+                destination,
+                new[]
+                {
+                    encoded,
+                    ProductionOutputCommitComponentCodec.Create(expectedCommit)
+                },
+                out int spawned)
+            || spawned != 1)
+        {
+            failureReason = "crop-seed-output-space-unavailable";
+            return false;
+        }
+        WorldItemStackSnapshot[] published = stock.GetAllStacks()
+            .Where(stack => stack != null
+                && ProductionOutputCommitComponentCodec.Matches(
+                    stack.Components,
+                    expectedCommit))
+            .ToArray();
+        if (published.Length != 1
+            || published[0].Quantity != 1
+            || !string.Equals(published[0].ItemId, itemId, StringComparison.Ordinal)
+            || published[0].State != state
+            || published[0].Position != position
+            || !string.Equals(
+                published[0].DestinationId,
+                destination,
+                StringComparison.Ordinal)
+            || !SeedLotEquals(TryDecode(published[0].Components), seedLot))
+        {
+            failureReason = "crop-seed-output-postcondition-failed";
+            return false;
+        }
+        commitId = expectedCommit;
+        return true;
+    }
+
     private static SeedLotState TryDecode(IReadOnlyList<ItemInstanceComponentSaveData> components)
     {
         try { return SeedLotItemStateCodec.Decode(components); }
         catch { return null; }
     }
+
+    private static bool SeedLotEquals(SeedLotState left, SeedLotState right) =>
+        left != null
+        && right != null
+        && string.Equals(left.cropId, right.cropId, StringComparison.Ordinal)
+        && string.Equals(
+            left.cultivarGenomeId,
+            right.cultivarGenomeId,
+            StringComparison.Ordinal)
+        && left.generation == right.generation
+        && left.pathogenLoad.Equals(right.pathogenLoad);
+
+    private static bool IsCanonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 }
 
 public sealed class CropEcologyRuntime :
@@ -273,6 +408,12 @@ public sealed class CropEcologyRuntime :
     {
         Writable.ApplyFungicide(plotId, amount);
         version = unchecked(version + 1);
+    }
+    public bool AbandonPlot(string plotId)
+    {
+        bool removed = Writable.AbandonPlot(plotId);
+        if (removed) version = unchecked(version + 1);
+        return removed;
     }
     public CropEcologyWorldSaveData Capture() => Current.Capture();
     public bool TryClaim(out IReadOnlyList<SeedLotState> seedLots)

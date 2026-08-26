@@ -192,7 +192,9 @@ public sealed class ItemReservationService : IItemReservationService
 
     public bool SetForbidden(string stackId, bool forbidden)
     {
-        if (!TryGetRecord(stackId, out WorldItemStackRecord record))
+        if (!TryGetRecord(stackId, out WorldItemStackRecord record)
+            || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                record.components))
         {
             return false;
         }

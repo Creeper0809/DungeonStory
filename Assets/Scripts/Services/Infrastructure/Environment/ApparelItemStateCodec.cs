@@ -341,14 +341,17 @@ public sealed class ApparelMaterialProjector : IApparelMaterialProjector
 {
     private readonly IApparelDefinitionCatalog apparel;
     private readonly ITextileMaterialCatalog materials;
+    private readonly IPhysicalItemMassQuery massQuery;
     private readonly Dictionary<ApparelProjectionKey, ApparelDerivedStats> cache = new();
 
     public ApparelMaterialProjector(
         IApparelDefinitionCatalog apparel,
-        ITextileMaterialCatalog materials)
+        ITextileMaterialCatalog materials,
+        IPhysicalItemMassQuery massQuery)
     {
         this.apparel = apparel ?? throw new ArgumentNullException(nameof(apparel));
         this.materials = materials ?? throw new ArgumentNullException(nameof(materials));
+        this.massQuery = massQuery ?? throw new ArgumentNullException(nameof(massQuery));
     }
 
     public ApparelDerivedStats GetOrCreate(ApparelProjectionKey key)
@@ -407,7 +410,9 @@ public sealed class ApparelMaterialProjector : IApparelMaterialProjector
             material.AirborneResistance * quality * durability * condition * coefficient,
             material.Sterility * quality * condition * coefficient,
             material.Durability * quality * durability * coefficient,
-            definition.BaseWeight * material.WeightMultiplier,
+            massQuery.GetDefinitionUnitMass(
+                    (ItemDefinitionId)definition.PhysicalItemId)
+                .Value / 1000f,
             key.AdjacentSize ? -5f : 0f,
             key.AdjacentSize ? 0.97f : 1f);
         cache.Add(key, created);

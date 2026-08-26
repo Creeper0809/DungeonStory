@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7005
   researchId: research:environment:cold-work
-  role: 1
+  role: 0
   designIntent: "\uB0C9\uC7A5 \uAD6C\uC5ED\uC758 \uC9E7\uC740 \uC6B4\uBC18\uACFC
     \uC7A5\uAE30 \uADFC\uBB34\uB97C \uBD84\uB9AC\uD558\uACE0 \uBCF4\uD638\uC7A5\uBE44
     \uBCF4\uAD00\uD568, \uBCF4\uC628 \uC810\uC561 \uD328\uB4DC\uC640 \uBC29\uD55C
@@ -59,4 +59,5 @@ MonoBehaviour:
   - kind: 4
     displayOrder: 60
     heading: "\uC758\uB8CC \uC2DC\uC220"
-  singletonReason: 
+  singletonReason: "\uC5EC\uB7EC \uD6C4\uC18D \uC5F0\uAD6C\uC640 \uAE30\uC874 \uC81C\uC791
+    \uACC4\uD1B5\uC744 \uC5EC\uB294 \uAE30\uBC18 \uC5F0\uAD6C\uB2E4."

@@ -257,6 +257,7 @@ public class CharacterActor : SerializedMonoBehaviour,
         {
             CharacterCarryInventory.Ensure(this)?.Configure(
                 worldItemStackRuntime.CatalogProvider,
+                worldItemStackRuntime.MassQuery,
                 worldItemStackRuntime.HaulingSettingsProvider,
                 transientStateRegistry);
         }

@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 
 public sealed class EnvironmentalWorkwearProductionOutputHandler :
     IProductionOutputHandler,
-    IDomainFailureProductionOutputHandler
+    IDomainFailureProductionOutputHandler,
+    IIdempotentProductionOutputHandler
 {
     private readonly IEnvironmentalWorkwearCatalog legacyCatalog;
     private readonly IApparelDefinitionCatalog apparelCatalog;
@@ -41,9 +43,17 @@ public sealed class EnvironmentalWorkwearProductionOutputHandler :
         ProductionOutputContext context,
         out DomainFailure failure)
     {
+        return TryProduceIdempotent(context, out failure);
+    }
+
+    public bool TryProduceIdempotent(
+        ProductionOutputContext context,
+        out DomainFailure failure)
+    {
         failure = DomainFailure.None;
         if (context.Facility == null
             || context.Amount <= 0
+            || string.IsNullOrWhiteSpace(context.CommitId)
             || !apparelCatalog.TryGetByItemId(
                 context.ItemId,
                 out ApparelDefinitionSO apparel))
@@ -57,23 +67,88 @@ public sealed class EnvironmentalWorkwearProductionOutputHandler :
 
         string destinationId = ProductionBillRuntime.OutputDestinationPrefix
             + context.Facility.RequirePersistentInstanceId().Value;
+        WorldItemStackSnapshot[] existing = items.GetAllStacks()
+            .Where(stack => stack != null
+                && ProductionOutputCommitComponentCodec.Matches(
+                    stack.Components,
+                    context.CommitId))
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .ToArray();
+        if (existing.Length > 0)
+        {
+            bool exact = existing.Length == context.Amount
+                && existing.All(stack =>
+                    string.Equals(stack.ItemId, context.ItemId, StringComparison.Ordinal)
+                    && stack.Quantity == 1
+                    && stack.State == WorldItemStackState.FacilityOutputBuffer
+                    && stack.Position == context.Facility.centerPos
+                    && string.Equals(
+                        stack.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal));
+            if (!exact)
+            {
+                failure = new DomainFailure(
+                    FailureCode.EnvironmentWorkwearOutputSpawnFailed,
+                    context.ItemId,
+                    "commit-conflict");
+                return false;
+            }
+            for (int index = 0; index < existing.Length; index++)
+            {
+                if (!TryValidateUniquePhysicalOutput(
+                        existing[index].StackId,
+                        context.ItemId)
+                    || !TryAttachV22State(
+                        existing[index].StackId,
+                        apparel,
+                        context,
+                        index))
+                {
+                    failure = new DomainFailure(
+                        FailureCode.EnvironmentWorkwearOutputSpawnFailed,
+                        context.ItemId,
+                        "commit-reconcile-failed");
+                    return false;
+                }
+            }
+            return true;
+        }
+
         List<string> createdStackIds = new();
         for (int index = 0; index < context.Amount; index++)
         {
-            if (items.SpawnUniqueItemAt(
+            bool spawnedExact = items.SpawnItemAtWithComponents(
                     context.ItemId,
+                    1,
                     context.Facility.centerPos,
                     WorldItemStackState.FacilityOutputBuffer,
                     destinationId,
-                    out string stackId)
-                && TryValidateUniquePhysicalOutput(stackId, context.ItemId)
-                && TryAttachV22State(
-                    stackId,
-                    apparel,
-                    context,
-                    index))
+                    new[]
+                    {
+                        ProductionOutputCommitComponentCodec.Create(
+                            context.CommitId)
+                    },
+                    out int spawned)
+                && spawned == 1;
+            string stackId = items.GetAllStacks()
+                .Where(stack => stack != null
+                    && ProductionOutputCommitComponentCodec.Matches(
+                        stack.Components,
+                        context.CommitId)
+                    && !createdStackIds.Contains(stack.StackId))
+                .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+                .Select(stack => stack.StackId)
+                .FirstOrDefault();
+            if (!string.IsNullOrEmpty(stackId))
             {
                 createdStackIds.Add(stackId);
+            }
+            if (spawnedExact
+                && !string.IsNullOrEmpty(stackId)
+                && TryValidateUniquePhysicalOutput(stackId, context.ItemId)
+                && TryAttachV22State(stackId, apparel, context, index))
+            {
                 continue;
             }
 
@@ -90,6 +165,69 @@ public sealed class EnvironmentalWorkwearProductionOutputHandler :
         }
 
         return true;
+    }
+
+    public bool TryAcknowledge(
+        string commitId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
+                     .Where(stack => stack != null
+                         && ProductionOutputCommitComponentCodec.Matches(
+                             stack.Components,
+                             commitId))
+                     .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            if (!items.TryRemoveInstanceComponent(
+                    stack.StackId,
+                    ItemInstanceComponentIds.ProductionOutputCommit))
+            {
+                failure = new DomainFailure(
+                    FailureCode.EnvironmentWorkwearOutputSpawnFailed,
+                    commitId,
+                    "commit-ack-failed");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public bool TryGetCommittedMassGrams(
+        string commitId,
+        out long massGrams,
+        out DomainFailure failure)
+    {
+        massGrams = 0L;
+        failure = DomainFailure.None;
+        try
+        {
+            foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
+                         .Where(stack => stack != null
+                             && ProductionOutputCommitComponentCodec.Matches(
+                                 stack.Components,
+                                 commitId)))
+            {
+                massGrams = checked(
+                    massGrams
+                    + PhysicalMassGrams.FromCanonicalKilograms(stack.UnitWeight)
+                        .Multiply(stack.Quantity).Value);
+            }
+        }
+        catch (Exception)
+        {
+            massGrams = 0L;
+        }
+        if (massGrams > 0L)
+        {
+            return true;
+        }
+        failure = new DomainFailure(
+            FailureCode.EnvironmentWorkwearOutputSpawnFailed,
+            commitId ?? string.Empty,
+            "commit-mass-missing");
+        return false;
     }
 
     private bool TryAttachV22State(

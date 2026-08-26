@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9105
+  id: 9106
   recipeId: recipe:bolt-iron
   displayName: "\uCCA0\uCD09 \uBCFC\uD2B8"
   description: "\uCCA0\uCD09 \uBCFC\uD2B8 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:fang
     amount: 1
   outputs:
-  - itemId: ammo:bolt-iron
+  - outputLineId: output:recipe:bolt-iron/000/main/ammo:bolt-iron
+    role: 0
+    itemId: ammo:bolt-iron
     amount: 10
     probability: 1

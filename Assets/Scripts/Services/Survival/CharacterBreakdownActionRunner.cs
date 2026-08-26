@@ -343,6 +343,8 @@ internal sealed class CharacterBreakdownActionRunner
                     if (world.TryConsumeStack(
                             waterStack.StackId,
                             1,
+                            $"breakdown-drink:{actorId.Value}:{waterStack.StackId}",
+                            "breakdown-emergency-drink",
                             out _))
                     {
                         diagnostics.DesperateDrinkStackConsumptions++;
@@ -522,6 +524,8 @@ internal sealed class CharacterBreakdownActionRunner
             if (world.TryConsumeStack(
                     food.StackId,
                     1,
+                    $"breakdown-eat:{GetPersistentId(actor)}:{food.StackId}",
+                    "breakdown-emergency-food",
                     out WorldItemStackSnapshot consumed))
             {
                 bool humanoid = consumed.ItemId == DarkSurvivalItemDefinitions.HumanoidCorpseItemId
@@ -609,7 +613,12 @@ internal sealed class CharacterBreakdownActionRunner
             WorldItemStackSnapshot corpse = FindHumanoidCorpse(victim);
             if (CanCommit(actor, intentLease)
                 && corpse != null
-                && world.TryConsumeStack(corpse.StackId, 1, out WorldItemStackSnapshot consumed))
+                && world.TryConsumeStack(
+                    corpse.StackId,
+                    1,
+                    $"breakdown-cannibal:{GetPersistentId(actor)}:{corpse.StackId}",
+                    "breakdown-cannibal-corpse",
+                    out WorldItemStackSnapshot consumed))
             {
                 RecoverNeed(
                     actor,

@@ -1,36 +1,39 @@
 # Character Visitor And Control Journey PlayMode Verification
 result=PASS
 scope=official-GameplayScene+CharacterSpawner+production-Brain/BT+production-shopping
-utc=2026-08-15T21:10:38.3526773Z
-verifierRevision=visitor-control-journey-v3
+utc=2026-08-20T16:11:29.0727399Z
+verifierRevision=visitor-control-journey-v5-exact-retail-restore
 phase=complete
-PASS	start-party=committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-1265396:character:staff:1:02:active=True,Roma:-1265328:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-1265300;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-1265368;id=character:staff:1:02;active=False || scan:name=Roma;go=-1265300;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-1265368;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-1265300;id=character:staff:1:01;active=True || retained:name=Arin;go=-1265368;id=character:staff:1:02;active=True
+PASS	start-party=committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-3745072:character:staff:1:01:active=True,Arin:-3745140:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-3745044;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-3745112;id=character:staff:1:02;active=False || scan:name=Roma;go=-3745044;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-3745112;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-3745044;id=character:staff:1:01;active=True || retained:name=Arin;go=-3745112;id=character:staff:1:02;active=True
 PASS	visitor-eligibility=faction:faction:dungeon:beastkin;commands=1
 PASS	shop-prerequisite=existing-authored-shop:판매카운터
-PASS	visitor-spawn-request=production-race-aware;attempts=3480;accepted=True;naturalClaim=False;rejections=PopulationProfilePreparing:3479;preparationBudget=164.658;pendingSkillRequests=4;peakPendingSkillRequests=5;skillDiagnosticTransitions=4;skillDiagnostic=provider-circuit-rule-fallback; reason=cooldown-active; trigger=cooldown; completed=4; cooldownRemaining=29.985; trips=1
+PASS	visitor-spawn-request=production-race-aware;attempts=2448;accepted=True;naturalClaim=False;rejections=PopulationProfilePreparing:2447;preparationBudget=163.461;pendingSkillRequests=4;peakPendingSkillRequests=5;skillDiagnosticTransitions=2;skillDiagnostic=provider-circuit-rule-fallback; reason=cooldown-active; trigger=cooldown; completed=4; cooldownRemaining=29.941; trips=1
 PASS	visitor-entry=SpawningOutside/EnteringDungeon->Active
 PASS	bt:critical=handled-count:0->1
 PASS	bt:locked-action=handled-count:0->1
 PASS	visitor-service-terminal=Completed
+PASS	visitor-shopping-exact-retail-sink=commits:2;quantity:40->38;mass:79300->72300;receipt:retail-source:authored:building:681ebbd88f214b5cbcef329b5ce2e91d:1:0001
+PASS	visitor-shopping-retail-save-tamper-rejected-atomically=shop:building:681ebbd88f214b5cbcef329b5ce2e91d;activation:0;quantity:38;money:46;commits:2;mass:7000
 PASS	macro:complain=BT=MacroGoal/Complain status=Complain. Mood=Complain:1 CommitBreak=CurrentActionStopped: Mood impulse Complain interrupts Shopping: macro:complain
 PASS	macro:avoid-facility=BT=MacroGoal/AvoidFacility status=판매카운터 Mood=AvoidFacility:1 CommitBreak=MacroGoalChanged: Macro goal changed to AvoidFacility.
 PASS	macro:vandalize=BT=MacroGoal/Vandalize status=판매카운터 Mood=Vandalize:1 CommitBreak=MacroGoalChanged: Vandalize macro executed.
 PASS	macro:exit-dungeon=BT=MacroGoal/ExitDungeon status=Exit started. Mood=ExitDungeon:1 CommitBreak=MacroGoalChanged: ExitDungeon macro.
 PASS	visitor-exit-trace=state=Active;active=True;pos=(-21.25,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
-PASS	visitor-exit-trace=state=Active;active=True;pos=(-20.54,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
-PASS	visitor-exit-trace=state=Active;active=True;pos=(-19.63,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
-PASS	visitor-exit-trace=state=Active;active=True;pos=(-19.25,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
-PASS	visitor-exit-trace=state=Active;active=True;pos=(-18.19,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
+PASS	visitor-exit-trace=state=Active;active=True;pos=(-20.66,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
+PASS	visitor-exit-trace=state=Active;active=True;pos=(-19.97,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
+PASS	visitor-exit-trace=state=Active;active=True;pos=(-19.50,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
+PASS	visitor-exit-trace=state=Active;active=True;pos=(-18.50,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
 PASS	visitor-exit-trace=state=Active;active=True;pos=(-17.50,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
-PASS	visitor-exit-trace=state=Active;active=True;pos=(-18.16,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
+PASS	visitor-exit-trace=state=Active;active=True;pos=(-17.98,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
+PASS	visitor-exit-trace=state=Active;active=True;pos=(-18.50,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
 PASS	visitor-exit-trace=state=Active;active=True;pos=(-18.50,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
 PASS	visitor-exit-trace=state=Active;active=True;pos=(-18.50,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
 PASS	visitor-exit-trace=state=Active;active=True;pos=(-18.50,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
 PASS	visitor-exit-trace=state=Active;active=True;pos=(-18.50,3.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
 PASS	visitor-exit-trace=state=Active;active=True;pos=(-18.50,0.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
-PASS	visitor-exit-trace=state=Active;active=True;pos=(-16.97,0.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
-PASS	visitor-exit-trace=state=Active;active=True;pos=(-15.97,0.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
-PASS	visitor-exit-trace=state=Active;active=True;pos=(-15.16,0.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
-PASS	visitor-exit-trace=state=Active;active=True;pos=(-14.50,0.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
+PASS	visitor-exit-trace=state=Active;active=True;pos=(-17.18,0.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
+PASS	visitor-exit-trace=state=Active;active=True;pos=(-16.50,0.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
+PASS	visitor-exit-trace=state=Active;active=True;pos=(-15.46,0.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
+PASS	visitor-exit-trace=state=Active;active=True;pos=(-14.93,0.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=True;action=Replanning;phase=재계획;failure=None;registryReleased=False;populationVisitReleased=False;spawnerStage=
 PASS	visitor-exit-trace=state=Despawned;active=False;pos=(-13.50,0.00);entry=(-14.50,0.00);outside=(-13.50,0.00);moveRoutine=False;action=Inactive;phase=Lifecycle transition;failure=None;registryReleased=True;populationVisitReleased=True;spawnerStage=visitor-exit:pool-released
 PASS	visitor-exit=ExitingDungeon->Despawned/pool-release;id=character:world:1:000004

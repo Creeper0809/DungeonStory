@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9068
+  id: 9069
   recipeId: recipe:lavish-meat
   displayName: "\uD54F\uBE5B \uD638\uD654\uC2DD"
   description: "\uD54F\uBE5B \uD638\uD654\uC2DD \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -54,6 +54,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.3
   wastewaterPerCycle: 0.25
+  wastewaterComposition: 2
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -64,6 +65,8 @@ MonoBehaviour:
   - itemId: resource:night-grape
     amount: 2
   outputs:
-  - itemId: food:lavish-meat
+  - outputLineId: output:recipe:lavish-meat/000/main/food:lavish-meat
+    role: 0
+    itemId: food:lavish-meat
     amount: 2
     probability: 1

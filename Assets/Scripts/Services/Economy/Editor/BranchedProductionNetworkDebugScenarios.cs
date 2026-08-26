@@ -488,10 +488,24 @@ public static class BranchedProductionNetworkDebugScenarios
             }
         }
 
+        HashSet<string> reusablePackageContainers = items
+            .Where(value => value != null
+                && value.TryGetFeature(out PackagedLotItemFeature package)
+                && package.tareDisposition
+                    == PackageTareDisposition.ReusableContainerReturn
+                && !string.IsNullOrWhiteSpace(package.containerItemId))
+            .Select(value =>
+            {
+                value.TryGetFeature(out PackagedLotItemFeature package);
+                return package.containerItemId.Trim();
+            })
+            .ToHashSet(StringComparer.Ordinal);
         Dictionary<string, int> memo = new(StringComparer.Ordinal);
         foreach (ResourceItemDefinitionSO item in items.Where(value => value != null))
         {
-            int minimum = StrategicIntermediates.Contains(item.ItemId)
+            int minimum = reusablePackageContainers.Contains(item.ItemId)
+                ? 1
+                : StrategicIntermediates.Contains(item.ItemId)
                 ? 3
                 : item.Kind == ResourceItemKind.Intermediate ? 2 : 1;
             int count = consumers[item.ItemId].Count(id =>
@@ -655,6 +669,21 @@ public static class BranchedProductionNetworkDebugScenarios
         DungeonProductionBillSaveData save = new()
         {
             installedStockSensorFacilityIds = new List<string> { "facility:test" },
+            installedStockSensors = new List<
+                ProductionInstalledStockSensorSaveData>
+            {
+                new()
+                {
+                    facilityId = "facility:test",
+                    itemId = "component:stock-sensor-panel",
+                    inputOperationId =
+                        ProductionStockSensorRuntime.BuildPhysicalOperationId(
+                            "facility:test"),
+                    inputCommitId = "physical-batch-disposition:3:production-stock-sensor-install:facility:test:1:1000",
+                    inputSourceStackId = "stack:stock-sensor:fixture",
+                    embeddedMassGrams = 1000L
+                }
+            },
             bills = new List<ProductionBillSaveData>
             {
                 new()
@@ -683,7 +712,7 @@ public static class BranchedProductionNetworkDebugScenarios
         DungeonProductionBillSaveData roundTrip =
             JsonUtility.FromJson<DungeonProductionBillSaveData>(
                 JsonUtility.ToJson(save));
-        if (DungeonProductionBillSaveData.CurrentVersion != 7
+        if (roundTrip?.version != DungeonProductionBillSaveData.CurrentVersion
             || roundTrip?.bills?.SingleOrDefault()?.mode
                 != ProductionOrderMode.RepeatForever
             || roundTrip.bills[0].outputReservations.Single().amount != 4
@@ -693,12 +722,14 @@ public static class BranchedProductionNetworkDebugScenarios
             || roundTrip.installedStockSensorFacilityIds.Single()
                 != "facility:test")
         {
-            failures.Add("production V7 save round trip lost network state");
+            failures.Add("production current-version save round trip lost network state");
         }
 
         int consumerOrphans = items.Count(item =>
         {
-            int minimum = StrategicIntermediates.Contains(item.ItemId)
+            int minimum = reusablePackageContainers.Contains(item.ItemId)
+                ? 1
+                : StrategicIntermediates.Contains(item.ItemId)
                 ? 3
                 : item.Kind == ResourceItemKind.Intermediate ? 2 : 1;
             return consumers[item.ItemId].Count(id =>

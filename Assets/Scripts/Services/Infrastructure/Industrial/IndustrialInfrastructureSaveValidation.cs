@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 internal static class IndustrialInfrastructureSaveValidation
 {
@@ -42,12 +43,92 @@ internal static class IndustrialInfrastructureSaveValidation
                 || !IsNonNegativeFinite(node.storedPower)
                 || !IsNonNegativeFinite(node.fuelSeconds)
                 || !IsNonNegativeFinite(node.heat)
-                || !IsRangeFinite(node.fault, 0f, 100f))
+                || !IsRangeFinite(node.fault, 0f, 100f)
+                || node.nextFuelOperationSequence <= 0
+                || !ValidatePowerFuelCommit(node))
             {
                 report.AddError(
                     $"Power node {node.buildingInstanceId} has invalid state.");
             }
         }
+    }
+
+    private static bool ValidatePowerFuelCommit(PowerNodeSaveData node)
+    {
+        PowerFuelCommitSaveData pending = node.pendingFuel;
+        if (pending == null)
+        {
+            return false;
+        }
+        PowerFuelCommitPhase phase = (PowerFuelCommitPhase)pending.phase;
+        if (phase == PowerFuelCommitPhase.None)
+        {
+            return pending.operationSequence == 0
+                && string.IsNullOrEmpty(pending.operationId)
+                && string.IsNullOrEmpty(pending.reasonCode)
+                && string.IsNullOrEmpty(pending.nodeId)
+                && string.IsNullOrEmpty(pending.destinationId)
+                && string.IsNullOrEmpty(pending.itemId)
+                && pending.quantity == 0
+                && MathfApproximately(pending.fuelSecondsBefore, 0f)
+                && MathfApproximately(pending.fuelSecondsAfter, 0f)
+                && string.IsNullOrEmpty(pending.commitId)
+                && (pending.sourceStackIds?.Count ?? 0) == 0
+                && pending.inputMassGrams == 0L;
+        }
+
+        bool common = phase is PowerFuelCommitPhase.IntentRecorded
+                or PowerFuelCommitPhase.OutcomePublished
+            && pending.operationSequence == node.nextFuelOperationSequence
+            && pending.operationSequence > 0
+            && IsCanonicalRequired(pending.operationId)
+            && IsCanonicalRequired(pending.reasonCode)
+            && IsCanonicalRequired(pending.nodeId)
+            && IsCanonicalRequired(pending.destinationId)
+            && IsCanonicalRequired(pending.itemId)
+            && pending.quantity == 1
+            && IsNonNegativeFinite(pending.fuelSecondsBefore)
+            && IsNonNegativeFinite(pending.fuelSecondsAfter)
+            && pending.fuelSecondsAfter > pending.fuelSecondsBefore
+            && pending.sourceStackIds != null
+            && pending.sourceStackIds.All(IsCanonicalRequired)
+            && pending.sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                == pending.sourceStackIds.Count
+            && IsOrdinallySorted(pending.sourceStackIds);
+        if (!common)
+        {
+            return false;
+        }
+
+        if (phase == PowerFuelCommitPhase.IntentRecorded)
+        {
+            return MathfApproximately(node.fuelSeconds, pending.fuelSecondsBefore)
+                && pending.sourceStackIds.Count == 0
+                && pending.inputMassGrams == 0L
+                && string.IsNullOrEmpty(pending.commitId);
+        }
+
+        return node.fuelSeconds >= 0f
+            && node.fuelSeconds <= pending.fuelSecondsAfter + 0.0001f
+            && pending.sourceStackIds.Count > 0
+            && pending.inputMassGrams > 0L
+            && IsCanonicalRequired(pending.commitId);
+    }
+
+    private static bool MathfApproximately(float left, float right) =>
+        Math.Abs(left - right) <= 0.0001f;
+
+    private static bool IsOrdinallySorted(IReadOnlyList<string> values)
+    {
+        for (int index = 1; index < values.Count; index++)
+        {
+            if (string.CompareOrdinal(values[index - 1], values[index]) > 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static void Validate(
@@ -61,6 +142,7 @@ internal static class IndustrialInfrastructureSaveValidation
         }
 
         HashSet<string> ids = NewIds();
+        HashSet<string> manualOperations = NewIds();
         foreach (FluidNodeSaveData node in data.nodes ?? new List<FluidNodeSaveData>())
         {
             if (!ValidateBuildingId(
@@ -80,14 +162,154 @@ internal static class IndustrialInfrastructureSaveValidation
                 || !IsRangeFinite(node.leak, 0f, 100f)
                 || !IsNonNegativeFinite(node.processorWork)
                 || !IsNonNegativeFinite(node.manualWaterReserve)
+                || node.nextImmediateManualWaterOperationSequence < 1
+                || node.nextContainerFeedOperationSequence < 1
                 || !Enum.IsDefined(typeof(WaterContainerTransferMode), node.transferMode)
-                || !IsNonNegativeFinite(node.transferWork))
+                || !IsNonNegativeFinite(node.transferWork)
+                || !ValidateContainerFeed(node))
             {
                 report.AddError(
                     $"Fluid node {node.buildingInstanceId} has invalid state.");
             }
+
+            if (node.pendingContainerFeed != null
+                && (ContainerWaterFeedCommitPhase)
+                    node.pendingContainerFeed.phase
+                    != ContainerWaterFeedCommitPhase.None
+                && !manualOperations.Add(
+                    node.pendingContainerFeed.operationId))
+            {
+                report.AddError(
+                    $"Fluid node {node.buildingInstanceId} reuses a physical operation ID.");
+            }
+
+            int immediateCount = 0;
+            foreach (ManualWaterTransferSaveData pending in
+                     node.pendingManualWaterTransfers
+                     ?? new List<ManualWaterTransferSaveData>())
+            {
+                bool valid = pending != null
+                    && IsCanonicalRequired(pending.operationId)
+                    && IsCanonicalRequired(pending.destinationId)
+                    && (pending.immediateConsumption
+                        ? pending.operationSequence
+                                == node.nextImmediateManualWaterOperationSequence
+                            && string.Equals(
+                                pending.operationId,
+                                FluidPhysicalOperationIdentity
+                                    .FormatImmediateManualWaterOperationId(
+                                        node.buildingInstanceId,
+                                        pending.operationSequence),
+                                StringComparison.Ordinal)
+                        : pending.operationSequence == 0)
+                    && IsNonNegativeFinite(pending.requestedWaterUnits)
+                    && pending.transferredWaterUnits >= 0
+                    && pending.inputMassGrams >= 0L
+                    && manualOperations.Add(pending.operationId)
+                    && (pending.transferredWaterUnits == 0
+                        ? pending.physicalCommitId.Length == 0
+                            && pending.requestFingerprint.Length == 0
+                            && pending.inputMassGrams == 0L
+                            && (pending.sourceStackIds?.Count ?? 0) == 0
+                        : IsCanonicalRequired(pending.physicalCommitId)
+                            && IsCanonicalRequired(pending.requestFingerprint)
+                            && pending.inputMassGrams > 0L
+                            && pending.sourceStackIds != null
+                            && pending.sourceStackIds.Count > 0
+                            && pending.sourceStackIds.All(IsCanonicalRequired)
+                            && pending.sourceStackIds.Distinct(
+                                 StringComparer.Ordinal).Count()
+                                == pending.sourceStackIds.Count
+                            && IsOrdinallySorted(pending.sourceStackIds));
+                if (!valid)
+                {
+                    report.AddError(
+                        $"Fluid node {node.buildingInstanceId} has invalid pending manual-water transfer.");
+                }
+                if (pending?.immediateConsumption == true)
+                {
+                    immediateCount++;
+                }
+            }
+            if (immediateCount > 1)
+            {
+                report.AddError(
+                    $"Fluid node {node.buildingInstanceId} has multiple immediate manual-water owners.");
+            }
         }
     }
+
+    private static bool ValidateContainerFeed(FluidNodeSaveData node)
+    {
+        ContainerWaterFeedCommitSaveData pending = node.pendingContainerFeed;
+        if (pending == null
+            || !Enum.IsDefined(
+                typeof(ContainerWaterFeedCommitPhase),
+                pending.phase))
+        {
+            return false;
+        }
+        ContainerWaterFeedCommitPhase phase =
+            (ContainerWaterFeedCommitPhase)pending.phase;
+        if (phase == ContainerWaterFeedCommitPhase.None)
+        {
+            return pending.operationSequence == 0
+                && pending.quantity == 0
+                && pending.waterAmount == 0f
+                && pending.inputMassGrams == 0L
+                && string.IsNullOrEmpty(pending.operationId)
+                && string.IsNullOrEmpty(pending.reasonCode)
+                && string.IsNullOrEmpty(pending.requestFingerprint)
+                && string.IsNullOrEmpty(pending.physicalCommitId)
+                && string.IsNullOrEmpty(pending.nodeId)
+                && string.IsNullOrEmpty(pending.networkId)
+                && string.IsNullOrEmpty(pending.destinationId)
+                && string.IsNullOrEmpty(pending.itemId)
+                && (pending.sourceStackIds?.Count ?? 0) == 0;
+        }
+
+        return pending.operationSequence
+                == node.nextContainerFeedOperationSequence
+            && string.Equals(
+                pending.operationId,
+                FluidPhysicalOperationIdentity.FormatContainerFeedOperationId(
+                    node.buildingInstanceId,
+                    pending.operationSequence),
+                StringComparison.Ordinal)
+            && string.Equals(
+                pending.reasonCode,
+                FluidPhysicalOperationIdentity.ContainerFeedReasonCode,
+                StringComparison.Ordinal)
+            && string.Equals(
+                pending.nodeId,
+                node.buildingInstanceId,
+                StringComparison.Ordinal)
+            && IsCanonicalRequired(pending.networkId)
+            && string.Equals(
+                pending.destinationId,
+                $"plumbing:water-transfer:{node.buildingInstanceId}",
+                StringComparison.Ordinal)
+            && string.Equals(
+                pending.itemId,
+                "resource:clean-water",
+                StringComparison.Ordinal)
+            && pending.quantity > 0
+            && IsNonNegativeFinite(pending.waterAmount)
+            && pending.waterAmount > 0f
+            && IsCanonicalRequired(pending.requestFingerprint)
+            && IsCanonicalRequired(pending.physicalCommitId)
+            && pending.inputMassGrams > 0L
+            && pending.sourceStackIds != null
+            && pending.sourceStackIds.Count > 0
+            && pending.sourceStackIds.All(IsCanonicalRequired)
+            && pending.sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                == pending.sourceStackIds.Count
+            && IsOrdinallySorted(pending.sourceStackIds);
+    }
+
+    private static bool IsCanonicalRequired(string value) =>
+        !string.IsNullOrEmpty(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     public static void Validate(
         DungeonConveyorInfrastructureSaveData data,

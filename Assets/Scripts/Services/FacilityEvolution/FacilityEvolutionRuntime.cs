@@ -19,11 +19,20 @@ public interface IFacilityEvolutionBuildingReplacer
 public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBuildingReplacer
 {
     private readonly GridBuildingFactory buildingFactory;
+    private readonly IProductionFacilityMutationFence productionMutationFence;
 
     public GridFacilityEvolutionBuildingReplacer(GridBuildingFactory buildingFactory)
+        : this(buildingFactory, null)
+    {
+    }
+
+    public GridFacilityEvolutionBuildingReplacer(
+        GridBuildingFactory buildingFactory,
+        IProductionFacilityMutationFence productionMutationFence)
     {
         this.buildingFactory = buildingFactory
             ?? throw new ArgumentNullException(nameof(buildingFactory));
+        this.productionMutationFence = productionMutationFence;
     }
 
     public bool CanReplace(BuildableObject source, BuildingSO resultBuilding, out string reason)
@@ -43,6 +52,26 @@ public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBu
         if (resultBuilding == null)
         {
             reason = "결과 시설 없음";
+            return false;
+        }
+
+        bool canOwnProduction = source.BuildingData?.GetProductionWorkstationAbility() != null
+            || source.BuildingData?.GetProductionBufferAbility() != null;
+        if (productionMutationFence == null)
+        {
+            if (canOwnProduction)
+            {
+                reason = "생산 시설 진화 수명주기 권위를 찾을 수 없습니다.";
+                return false;
+            }
+        }
+        else if (!productionMutationFence.TryRequireNoAuthority(
+                     source,
+                     ProductionFacilityMutationKind.Evolution,
+                     out string productionFailure))
+        {
+            reason = "생산 주문·재공품·출력 권위가 남은 시설은 진화할 수 없습니다. "
+                + productionFailure;
             return false;
         }
 
@@ -79,17 +108,20 @@ public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBu
         Vector2Int position = source.centerPos;
         BuildingSO sourceBuilding = source.BuildingData;
 
-        grid.RemoveOccupant(
-            source,
-            sourceBuilding.Placement.Layer,
-            source.buildPoses,
-            sourceBuilding.Placement.IsMovement);
-        buildingFactory.DeleteVisual(sourceBuilding, position);
+        if (!grid.RemoveOccupant(
+                source,
+                sourceBuilding.Placement.Layer,
+                source.buildPoses,
+                sourceBuilding.Placement.IsMovement))
+        {
+            reason = "원본 시설 점유를 해제할 수 없습니다";
+            return false;
+        }
 
         result = buildingFactory.Create(grid, resultBuilding, position);
         if (result == null)
         {
-            source.DestroySelf();
+            RestoreSourceOccupancy(grid, source, sourceBuilding);
             reason = "결과 시설 생성 실패";
             return false;
         }
@@ -103,15 +135,37 @@ public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBu
             resultBuilding.Placement.IsMovement);
         if (!registered)
         {
+            buildingFactory.DeleteVisual(resultBuilding, position);
             result.DestroySelf();
-            source.DestroySelf();
+            RestoreSourceOccupancy(grid, source, sourceBuilding);
+            result = null;
             reason = "결과 시설 배치 실패";
             return false;
         }
 
+        buildingFactory.DeleteVisual(sourceBuilding, position);
         source.DestroySelf();
         reason = string.Empty;
         return true;
+    }
+
+    private static void RestoreSourceOccupancy(
+        Grid grid,
+        BuildableObject source,
+        BuildingSO sourceBuilding)
+    {
+        if (grid == null
+            || source == null
+            || sourceBuilding == null
+            || !grid.RegisterOccupant(
+                source,
+                sourceBuilding.Placement.Layer,
+                source.buildPoses,
+                sourceBuilding.Placement.IsMovement))
+        {
+            throw new InvalidOperationException(
+                "Facility evolution replacement failed and the original facility occupancy could not be restored.");
+        }
     }
 }
 
@@ -540,9 +594,26 @@ public sealed class FacilityEvolutionEngine
             result = Fail(recipe, null, default, "대상 시설이 없습니다");
             return false;
         }
+        if (recipe == null)
+        {
+            result = Fail(null, facility, default, "진화 레시피가 없습니다");
+            return false;
+        }
 
         FacilityEvolutionContext context = BuildContext(facility);
+        if (context.State.HasPendingMaterialCommit)
+        {
+            return TryResumePending(
+                facility,
+                recipe,
+                out result,
+                out _);
+        }
+
         FacilityEvolutionProposal proposal = proposalProvider.Propose(context);
+        string materialOperationId = BuildMaterialOperationId(context);
+        string materialReasonCode = "facility-evolution-material-incorporated:"
+            + recipe.EffectiveId;
         FacilityEvolutionValidationResult validation =
             validator.Validate(context, recipe, ResearchState, resourceProvider, buildingReplacer);
 
@@ -568,33 +639,255 @@ public sealed class FacilityEvolutionEngine
             return false;
         }
 
-        if (!ConsumeMaterials(recipe.requiredMaterials, out string materialReason))
+        int historySequence = checked(context.State.EvolutionHistory.Count + 1);
+        FacilityEvolutionStateSnapshot resolvedResultState =
+            FacilityEvolutionStateComponent.BuildResolvedEvolutionSnapshot(
+                stateSnapshot,
+                facility.BuildingData,
+                recipe.resultBuilding,
+                recipe,
+                proposal,
+                sourceFacilityName,
+                context.Profile,
+                mutationResult.Tags,
+                recordSnapshot);
+
+        if (!resourceProvider.TryCommitMaterialsPending(
+                recipe.requiredMaterials,
+                materialOperationId,
+                materialReasonCode,
+                out FacilityEvolutionMaterialCommitReceipt materialReceipt,
+                out string materialReason))
         {
-            result = Fail(recipe, facility, proposal, materialReason);
+            result = Fail(
+                recipe,
+                facility,
+                proposal,
+                string.IsNullOrWhiteSpace(materialReason)
+                    ? "재료 소모 실패"
+                    : materialReason);
             return false;
         }
 
-        if (!buildingReplacer.TryReplace(facility, recipe.resultBuilding, out BuildableObject resultBuilding, out string replaceReason))
+        if (!materialReceipt.IsCommitted)
         {
-            result = Fail(recipe, null, proposal, replaceReason);
+            return TryPublishResolvedEvolutionWithoutMaterials(
+                facility,
+                recipe,
+                proposal,
+                sourceFacilityName,
+                mutationResult.Tags,
+                resolvedResultState,
+                out result);
+        }
+
+        context.State.RecordPendingMaterialCommit(
+            materialReceipt,
+            recipe,
+            FacilityEvolutionUtility.GetFacilityId(facility.BuildingData),
+            historySequence,
+            resolvedResultState,
+            mutationResult.Tags);
+        facilityCandidateCache.MarkDynamicStateDirty();
+        return TryResumePending(
+            facility,
+            recipe,
+            out result,
+            out _);
+    }
+
+    public bool TryResumePending(
+        BuildableObject facility,
+        out FacilityEvolutionResult result,
+        out string failureReason)
+    {
+        result = default;
+        failureReason = string.Empty;
+        if (facility == null || facility.isDestroy)
+        {
+            failureReason = "Facility evolution pending source is unavailable.";
+            return false;
+        }
+
+        FacilityEvolutionStateComponent state = stateComponentFactory.GetOrAdd(facility);
+        FacilityEvolutionPendingMaterialCommitSnapshot pending =
+            state.PendingMaterialCommit;
+        if (pending == null)
+        {
+            failureReason = "Facility evolution has no pending material commit.";
+            return false;
+        }
+
+        FacilityEvolutionRecipeSO recipe = recipeQuery.GetRecipes()
+            .SingleOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.EffectiveId,
+                    pending.recipeId,
+                    StringComparison.Ordinal));
+        if (recipe == null)
+        {
+            failureReason = "Facility evolution pending recipe is not authored: "
+                + pending.recipeId;
+            return false;
+        }
+
+        return TryResumePending(
+            facility,
+            recipe,
+            out result,
+            out failureReason);
+    }
+
+    private bool TryResumePending(
+        BuildableObject facility,
+        FacilityEvolutionRecipeSO recipe,
+        out FacilityEvolutionResult result,
+        out string failureReason)
+    {
+        result = Fail(recipe, facility, default, "진화 재개 실패");
+        failureReason = string.Empty;
+        FacilityEvolutionStateComponent state = stateComponentFactory.GetOrAdd(facility);
+        FacilityEvolutionStateSnapshot stateSnapshot = state.CreateSnapshot();
+        FacilityEvolutionAggregateAdapter.ValidatePendingMaterialCommit(stateSnapshot);
+        FacilityEvolutionPendingMaterialCommitSnapshot pending =
+            stateSnapshot.pendingMaterialCommit;
+        string sourceFacilityName =
+            FacilityShopService.GetBuildingName(facility.BuildingData);
+        if (recipe == null
+            || !string.Equals(
+                recipe.EffectiveId,
+                pending.recipeId,
+                StringComparison.Ordinal)
+            || recipe.resultBuilding == null
+            || !string.Equals(
+                FacilityEvolutionUtility.GetFacilityId(recipe.resultBuilding),
+                pending.resultFacilityDefinitionId,
+                StringComparison.Ordinal))
+        {
+            failureReason =
+                "Facility evolution pending recipe/result authority does not match the request.";
+            result = Fail(recipe, facility, default, failureReason);
+            return false;
+        }
+
+        if (!resourceProvider.TryGetPendingMaterialCommit(
+                pending.operationId,
+                pending.reasonCode,
+                out FacilityEvolutionMaterialCommitReceipt receipt,
+                out string receiptFailure)
+            || !FacilityEvolutionMaterialCommitAuthority.Matches(
+                pending,
+                receipt))
+        {
+            failureReason = !string.IsNullOrWhiteSpace(receiptFailure)
+                ? receiptFailure
+                : "Facility evolution pending physical receipt does not match its aggregate.";
+            result = Fail(recipe, facility, default, failureReason);
+            return false;
+        }
+
+        BuildableObject resultBuilding = facility;
+        FacilityEvolutionStateComponent resultState = state;
+        FacilityEvolutionStateSnapshot resolvedResultState =
+            pending.ReadResolvedResultState();
+        if (pending.phase == FacilityEvolutionMaterialCommitPhase.MaterialCommitted)
+        {
+            if (!string.Equals(
+                    FacilityEvolutionUtility.GetFacilityId(facility.BuildingData),
+                    pending.sourceFacilityDefinitionId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    state.FacilityPersistentId,
+                    pending.sourceFacilityPersistentId,
+                    StringComparison.Ordinal))
+            {
+                failureReason =
+                    "Facility evolution pending source building authority changed before publication.";
+                result = Fail(recipe, facility, default, failureReason);
+                return false;
+            }
+
+            if (!buildingReplacer.TryReplace(
+                    facility,
+                    recipe.resultBuilding,
+                    out resultBuilding,
+                    out string replaceReason))
+            {
+                failureReason = replaceReason;
+                result = Fail(recipe, facility, default, replaceReason);
+                return false;
+            }
+
+            resultBuilding.SetFacilityLevel(recipe.resultStarGrade);
+            resultState = stateComponentFactory.GetOrAdd(resultBuilding);
+            resultState.ApplySnapshot(resolvedResultState);
+            resultState.RecordPendingMaterialCommit(
+                receipt,
+                recipe,
+                pending.sourceFacilityDefinitionId,
+                pending.historySequence,
+                resolvedResultState,
+                pending.resolvedMutationTags,
+                FacilityEvolutionMaterialCommitPhase.DomainApplied);
+            recordComponentService.ReplaceWith(
+                resultBuilding,
+                resultState.GetRecord());
+            facilityCandidateCache.MarkDynamicStateDirty();
+            roomLayoutCache.Clear();
+        }
+
+        if (!resourceProvider.AcknowledgeMaterialCommit(
+                receipt.CommitId,
+                out string acknowledgementReason))
+        {
+            failureReason =
+                "Facility evolution material acknowledgement failed: "
+                + acknowledgementReason;
+            result = Fail(recipe, resultBuilding, default, failureReason);
+            return false;
+        }
+
+        resultState.ClearPendingMaterialCommit(receipt.CommitId);
+        facilityCandidateCache.MarkDynamicStateDirty();
+        FacilityEvolutionProposal persistedProposal = BuildPersistedProposal(pending);
+        result = new FacilityEvolutionResult(
+            true,
+            recipe,
+            resultBuilding,
+            recipe.resultStarGrade,
+            sourceFacilityName,
+            persistedProposal,
+            $"{recipe.DisplayName} 진화 완료",
+            pending.resolvedMutationTags);
+        return true;
+    }
+
+    private bool TryPublishResolvedEvolutionWithoutMaterials(
+        BuildableObject facility,
+        FacilityEvolutionRecipeSO recipe,
+        FacilityEvolutionProposal proposal,
+        string sourceFacilityName,
+        IReadOnlyList<string> mutationTags,
+        FacilityEvolutionStateSnapshot resolvedResultState,
+        out FacilityEvolutionResult result)
+    {
+        if (!buildingReplacer.TryReplace(
+                facility,
+                recipe.resultBuilding,
+                out BuildableObject resultBuilding,
+                out string replaceReason))
+        {
+            result = Fail(recipe, facility, proposal, replaceReason);
             return false;
         }
 
         resultBuilding.SetFacilityLevel(recipe.resultStarGrade);
-        FacilityEvolutionStateComponent nextState = stateComponentFactory.GetOrAdd(resultBuilding);
-        nextState.ApplySnapshot(stateSnapshot);
-        nextState.ApplyEvolution(
-            null,
-            resultBuilding,
-            recipe,
-            proposal,
-            sourceFacilityName,
-            context.Profile,
-            mutationResult.Tags);
-        recordComponentService.ReplaceWith(resultBuilding, recordSnapshot);
+        FacilityEvolutionStateComponent nextState =
+            stateComponentFactory.GetOrAdd(resultBuilding);
+        nextState.ApplySnapshot(resolvedResultState);
+        recordComponentService.ReplaceWith(resultBuilding, nextState.GetRecord());
         facilityCandidateCache.MarkDynamicStateDirty();
         roomLayoutCache.Clear();
-
         result = new FacilityEvolutionResult(
             true,
             recipe,
@@ -603,8 +896,25 @@ public sealed class FacilityEvolutionEngine
             sourceFacilityName,
             proposal,
             $"{recipe.DisplayName} 진화 완료",
-            mutationResult.Tags);
+            mutationTags);
         return true;
+    }
+
+    private static FacilityEvolutionProposal BuildPersistedProposal(
+        FacilityEvolutionPendingMaterialCommitSnapshot pending)
+    {
+        FacilityEvolutionStateSnapshot resolved = pending.ReadResolvedResultState();
+        FacilityEvolutionHistoryEntry history = resolved.evolutionHistory
+            .LastOrDefault();
+        return new FacilityEvolutionProposal(
+            resolved.lastIdentitySummary,
+            new[] { pending.recipeId },
+            null,
+            pending.resolvedMutationTags,
+            history?.summary ?? string.Empty,
+            1f,
+            FacilityEvolutionProposalSources.RuleBased,
+            "Restored exact pending facility evolution result");
     }
 
     private static IReadOnlyDictionary<string, int> BuildProposalOrder(FacilityEvolutionProposal proposal)
@@ -627,25 +937,19 @@ public sealed class FacilityEvolutionEngine
         return result;
     }
 
-    private bool ConsumeMaterials(FacilityEvolutionMaterialRequirement[] requirements, out string reason)
+    private static string BuildMaterialOperationId(FacilityEvolutionContext context)
     {
-        reason = string.Empty;
-        if (requirements == null)
+        if (context?.State == null
+            || string.IsNullOrWhiteSpace(context.State.FacilityPersistentId))
         {
-            return true;
+            throw new InvalidOperationException(
+                "Facility evolution material operation requires a persistent facility identity.");
         }
-
-        foreach (FacilityEvolutionMaterialRequirement requirement in requirements)
-        {
-            int amount = Mathf.Max(1, requirement.amount);
-            if (!resourceProvider.ConsumeMaterial(requirement.materialId, amount))
-            {
-                reason = $"재료 소모 실패 {requirement.materialId} x{amount}";
-                return false;
-            }
-        }
-
-        return true;
+        int nextHistorySequence = checked(context.State.EvolutionHistory.Count + 1);
+        return "facility-evolution-material:"
+            + context.State.FacilityPersistentId
+            + ":sequence:"
+            + nextHistorySequence.ToString("D8");
     }
 
     private static FacilityEvolutionResult Fail(
@@ -789,6 +1093,30 @@ public class FacilityEvolutionRuntime : MonoBehaviour
             return false;
         }
 
+        PublishCompletion(result);
+        return true;
+    }
+
+    public bool TryReconcilePendingMaterialEvolution(
+        BuildableObject facility,
+        out FacilityEvolutionResult result,
+        out string failureReason)
+    {
+        bool success = Engine.TryResumePending(
+            facility,
+            out result,
+            out failureReason);
+        if (!success)
+        {
+            return false;
+        }
+
+        PublishCompletion(result);
+        return true;
+    }
+
+    private void PublishCompletion(FacilityEvolutionResult result)
+    {
         Completed?.Invoke(result);
         (gameEventBus
             ?? throw new InvalidOperationException($"{nameof(FacilityEvolutionRuntime)} requires {nameof(IGameEventBus)} injection."))
@@ -801,8 +1129,6 @@ public class FacilityEvolutionRuntime : MonoBehaviour
                 EventAlertImportance.Medium,
                 "시설 진화");
         }
-
-        return true;
     }
 
     private FacilityEvolutionEngine CreateEngine()

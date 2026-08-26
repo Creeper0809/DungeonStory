@@ -50,10 +50,13 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs: []
   outputs:
-  - itemId: resource:fat
+  - outputLineId: output:source:animal-fat/000/main/resource:fat
+    role: 0
+    itemId: resource:fat
     amount: 2
     probability: 1

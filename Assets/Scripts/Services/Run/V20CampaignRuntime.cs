@@ -90,7 +90,7 @@ public sealed class FactionCampaignWorldSaveData
 [Serializable]
 public sealed class RunMilestoneWorldSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
     public int version = CurrentVersion;
     public RunProgressionPhase phase;
     public int endlessCycle;
@@ -104,6 +104,10 @@ public sealed class RunMilestoneWorldSaveData
     public int productivityCoverageStreakDays;
     public int lastMilestoneEvaluationAbsoluteDay = -1;
     public int lastAccordSignalSupportAbsoluteDay = -1;
+    public string pendingAccordSignalOperationId = string.Empty;
+    public string pendingAccordSignalCommitId = string.Empty;
+    public string pendingAccordSignalSourceStackId = string.Empty;
+    public long pendingAccordSignalMassGrams;
 }
 
 public interface ISocietyEventCatalog
@@ -407,7 +411,7 @@ public interface IRunMilestoneCommand
 {
     IReadOnlyList<string> Evaluate(RunMilestoneEvaluationSnapshot snapshot);
     int AdvanceEndlessCycle();
-    bool TryActivateAccordSignalSupport(int absoluteDay);
+    bool TryActivateAccordSignalSupport(int absoluteDay, string sourceStackId);
 }
 
 public sealed class V20DailyEventContext
@@ -561,11 +565,15 @@ public sealed class V20CampaignRuntime :
 {
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly V20StoryContentCatalog catalog;
-    private int evaluationAbsoluteDay = -1;
+    private readonly IPhysicalItemBatchDispositionService physicalDispositions;
     public V20CampaignRuntime(DungeonRuntimeAggregateRootStore rootStore, V20StoryContentCatalog catalog)
+        : this(rootStore, catalog, null) { }
+    private int evaluationAbsoluteDay = -1;
+    public V20CampaignRuntime(DungeonRuntimeAggregateRootStore rootStore, V20StoryContentCatalog catalog, IPhysicalItemBatchDispositionService physicalDispositions)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        this.physicalDispositions = physicalDispositions;
         EnsureFactionStates();
     }
 
@@ -612,7 +620,7 @@ public sealed class V20CampaignRuntime :
     public bool IsAccordSignalSupportActive(int absoluteDay) =>
         IsAccordSignalSupportDay(absoluteDay)
         && Milestones.Data.lastAccordSignalSupportAbsoluteDay == absoluteDay;
-    public bool TryActivateAccordSignalSupport(int absoluteDay)
+    public bool TryActivateAccordSignalSupport(int absoluteDay, string sourceStackId)
     {
         if (!IsAccordSignalSupportDay(absoluteDay))
         {
@@ -620,12 +628,30 @@ public sealed class V20CampaignRuntime :
         }
 
         RunMilestoneWorldSaveData state = WritableMilestones.Data;
+        string operationId = $"accord-signal-support:{absoluteDay:D8}";
+        if (state.pendingAccordSignalOperationId.Length > 0)
+        {
+            if (physicalDispositions == null) return false;
+            if (!string.Equals(state.pendingAccordSignalOperationId, operationId, StringComparison.Ordinal)) return false;
+            if (physicalDispositions.TryGetPending(operationId, out _)
+                && !physicalDispositions.Acknowledge(state.pendingAccordSignalCommitId, out _)) return false;
+            state.pendingAccordSignalOperationId = state.pendingAccordSignalCommitId = state.pendingAccordSignalSourceStackId = string.Empty;
+            state.pendingAccordSignalMassGrams = 0;
+            return state.lastAccordSignalSupportAbsoluteDay == absoluteDay;
+        }
         if (state.lastAccordSignalSupportAbsoluteDay == absoluteDay)
         {
             return true;
         }
+        if (physicalDispositions == null || string.IsNullOrWhiteSpace(sourceStackId)
+            || !physicalDispositions.TryCommitPending(new[] { new PhysicalItemTransformInput(sourceStackId, 1) }, PhysicalItemDispositionKind.Sink,
+                operationId, "alliance-signal-kit-consumed", out PhysicalItemBatchDispositionReceipt receipt, out _)) return false;
+        state.pendingAccordSignalOperationId = operationId;
+        state.pendingAccordSignalCommitId = receipt.CommitId;
+        state.pendingAccordSignalSourceStackId = sourceStackId;
+        state.pendingAccordSignalMassGrams = receipt.InputMassGrams;
         state.lastAccordSignalSupportAbsoluteDay = absoluteDay;
-        return true;
+        return TryActivateAccordSignalSupport(absoluteDay, sourceStackId);
     }
     public bool HasReward(string milestoneId) =>
         Milestones.Data.grantedRewardIds.Contains(
@@ -1917,7 +1943,9 @@ public sealed class V20CampaignRuntime :
     }
     private RunMilestoneWorldSaveData ValidateMilestones(RunMilestoneWorldSaveData data)
     {
-        if (data == null || data.version != RunMilestoneWorldSaveData.CurrentVersion || data.completedMilestoneIds == null || data.grantedRewardIds == null || data.unlockedLandmarkIds == null || data.activePressureIds == null || data.activeEndlessCrisisIds == null || data.worldFlags == null || data.endlessCycle < 0 || data.selfSufficiencyStreakDays < 0 || data.productivityCoverageStreakDays < 0 || data.lastMilestoneEvaluationAbsoluteDay < -1 || data.lastAccordSignalSupportAbsoluteDay < -1)
+        if (data == null || data.version != RunMilestoneWorldSaveData.CurrentVersion || data.completedMilestoneIds == null || data.grantedRewardIds == null || data.unlockedLandmarkIds == null || data.activePressureIds == null || data.activeEndlessCrisisIds == null || data.worldFlags == null || data.endlessCycle < 0 || data.selfSufficiencyStreakDays < 0 || data.productivityCoverageStreakDays < 0 || data.lastMilestoneEvaluationAbsoluteDay < -1 || data.lastAccordSignalSupportAbsoluteDay < -1
+            || (data.pendingAccordSignalOperationId.Length == 0) != (data.pendingAccordSignalCommitId.Length == 0)
+            || data.pendingAccordSignalOperationId.Length > 0 && (data.pendingAccordSignalSourceStackId.Length == 0 || data.pendingAccordSignalMassGrams <= 0 || data.lastAccordSignalSupportAbsoluteDay < 1))
             throw new InvalidOperationException("Milestone save payload is invalid.");
         foreach (string id in data.completedMilestoneIds) catalog.Require(id);
         if (data.completedMilestoneIds.Distinct(StringComparer.Ordinal).Count() != data.completedMilestoneIds.Count)

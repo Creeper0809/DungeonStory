@@ -105,7 +105,7 @@ public static class CharacterAiCoverageManifestDebugScenarios
 
     private static readonly DomainCoverage[] Domains =
     {
-        Live("combat:defense-autonomy", "DefenseEngagementPlayModeVerifier", "StartRuntimeProbe", "engagement/target/terminal"),
+        Live("combat:defense-autonomy", "DefenseEngagementPlayModeVerifier", "StartFromMenu", "engagement/target/terminal"),
         Live("combat:commands-rescue", "CombatV14PlayModeVerifier", "StartRuntimeProbe", "orders/reservations/rescue/treatment"),
         Live("medical:autonomous-rescue-treatment", "CharacterAiAutonomousMedicalPlayModeVerifier", "RequestRun", "selection/progress/terminal"),
         Live("medical:surgery", "SurgeryPlayModeVerifier", "RequestRunFromMenu", "doctor/patient/medicine/progress/save"),
@@ -117,7 +117,7 @@ public static class CharacterAiCoverageManifestDebugScenarios
         Live("captivity:escape", "CaptivityWildlifeLifecyclePlayModeVerifier", "RequestRun", "AbilityCaptiveEscape movement/success and injected-fault terminals"),
         Live("captivity:recapture", "CaptivityAiPlayModeVerifier", "RequestRun", "recapture reservation/cancellation terminal"),
         Live("visitor:customer-lifecycle", "CharacterVisitorControlJourneyPlayModeVerifier", "RequestRun", "official spawn/entry/service terminal/macro/exit lifecycle"),
-        Live("invasion:defense-engagement", "DefenseEngagementPlayModeVerifier", "StartRuntimeProbe", "invasion engagement/target/terminal"),
+        Live("invasion:defense-engagement", "DefenseEngagementPlayModeVerifier", "StartFromMenu", "invasion engagement/target/terminal"),
         Live("offense:strategic-ui", "OffenseStrategicPlayModeVerifier", "RunFromMenu", "live UI surface only"),
         Live("offense:journey-battle-reward", "OffenseJourneyPlayModeFacade", "RequestRun", "production strategic world-travel/decision/battle/return/reward terminal"),
         Live("offense:enemy-tactics", "OffenseTacticalJourneyPlayModeVerifier", "RequestRun", "Attack/Move/Protect/UseAbility/Retreat intent-to-command terminals")
@@ -914,8 +914,26 @@ public static class CharacterAiCoverageManifestDebugScenarios
         {
             return new[]
             {
+                "[PASS] WAREHOUSE_MASS_ADMISSION_PRODUCTION_INGRESS_COMMITTED ",
+                "[PASS] WAREHOUSE_MASS_UI_PRODUCTION_EXACT_KG ",
+                "[PASS] WAREHOUSE_NONEMPTY_DEMOLITION_REJECTED ",
+                "[PASS] WAREHOUSE_NONEMPTY_RELOCATION_REJECTED ",
+                "[PASS] WAREHOUSE_EMPTY_LIFECYCLE_GATE_OPEN ",
+                "[PASS] WAREHOUSE_RESTORE_INVALID_DESTINATION_ATOMIC ",
+                "[PASS] WAREHOUSE_RESTORE_POSITION_MISMATCH_ATOMIC ",
+                "[PASS] WAREHOUSE_RESTORE_OVER_CAPACITY_PRESERVED ",
+                "[PASS] WAREHOUSE_RESTORE_OVER_CAPACITY_ADMISSION_BLOCKED ",
+                "[PASS] WAREHOUSE_RESTORE_OFFICIAL_FULL_ROUNDTRIP ",
+                "[PASS] WAREHOUSE_RESTORE_OFFICIAL_OVER_CAPACITY_PRESERVED ",
+                "[PASS] WAREHOUSE_RESTORE_EVACUATION_PUBLISHED_AFTER_ROOT_SWAP ",
+                "[PASS] WAREHOUSE_RESTORE_EVACUATION_CLEANUP_EXACT ",
+                "[PASS] WAREHOUSE_EVACUATION_TARGET_READY ",
+                "[PASS] WAREHOUSE_EVACUATION_LIVE_FIXTURE_READY ",
+                "[PASS] WAREHOUSE_EVACUATION_AI_HAUL_COMPLETED ",
+                "[PASS] WAREHOUSE_EVACUATION_GRAM_TOKEN_CONSERVATION_EXACT ",
                 "[PASS] AI_HAUL_CAN_START_WAREHOUSE ",
                 "[PASS] AI_HAUL_DEPOSITED_TO_WAREHOUSE ",
+                "[PASS] COMBAT_EQUIPMENT_STATEFUL_WAREHOUSE_MASS_EXACT ",
                 "[PASS] FACILITY_REQUEST_RESERVED_IN_STORAGE ",
                 "[PASS] AI_HAUL_CAN_START_FACILITY ",
                 "[PASS] AI_HAUL_DEPOSITED_TO_FACILITY_BUFFER ",
@@ -1065,6 +1083,10 @@ public static class CharacterAiCoverageManifestDebugScenarios
             {
                 return new[]
                 {
+                    "PASS\tANIMAL_CARE_FEED_SOURCE_PHYSICAL\t",
+                    "PASS\tANIMAL_CARE_FEED_SINK_EXACT\t",
+                    "PASS\tANIMAL_CARE_FEED_OUTBOX_CLEAN\t",
+                    "PASS\tANIMAL_CARE_FEED_SAVE_EXACT\t",
                     "PASS\tANIMAL_CARE_CANDIDATE_INDEX_READY\t",
                     "PASS\tANIMAL_CARE_BRAIN_AIWORK_STARTED\t",
                     "PASS\tANIMAL_CARE_PROGRESS\t",
@@ -1218,6 +1240,7 @@ public static class CharacterAiCoverageManifestDebugScenarios
             return new[]
             {
                 "authority=InvasionDirectorRuntime.TrySpawnIntruder->IDefenseEngagementRuntime->production combat exchanges->autonomous medical terminal",
+                "PASS\tGAMEPLAY_SCENE_CLEAN_BOOT\t",
                 "PASS\tCOMMAND_INTRUDER_SPAWN\t",
                 "PASS\tINVASION_ENTRY_PHASES\t",
                 "PASS\tENGAGEMENT_STARTED\t",
@@ -1328,7 +1351,7 @@ public static class CharacterAiCoverageManifestDebugScenarios
         if (value == BuiltInWorkTypeIds.Research.Value)
             return E("FirstRunObjectivePlayModeVerifier", "RequestRunFromMenu", "production Brain research completion");
         if (value == BuiltInWorkTypeIds.Guard.Value)
-            return E("DefenseEngagementPlayModeVerifier", "StartRuntimeProbe", "guard engagement");
+            return E("DefenseEngagementPlayModeVerifier", "StartFromMenu", "guard engagement");
         return E(
             "CharacterAiWorkTypeLiveMatrixPlayModeVerifier",
             "RequestRun",

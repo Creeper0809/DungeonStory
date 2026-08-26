@@ -19,6 +19,7 @@ public sealed class FactionRuntimeApplicationAdapter :
     private readonly IOffenseWorldSimulation world;
     private readonly IWorldItemSpawner itemSpawner;
     private readonly IWorldItemStackRuntime itemRuntime;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private readonly IWorldDropZoneQuery dropZones;
     private readonly IRunCharacterCatalog characterCatalog;
     private readonly ICharacterSpawnerProvider spawnerProvider;
@@ -57,6 +58,7 @@ public sealed class FactionRuntimeApplicationAdapter :
             ?? throw new ArgumentNullException(nameof(characterSpawning));
         itemSpawner = itemLogistics.ItemSpawner;
         itemRuntime = itemLogistics.ItemRuntime;
+        batchDispositions = itemLogistics.BatchDispositions;
         dropZones = itemLogistics.DropZones;
         characterCatalog = characterSpawning.CharacterCatalog;
         spawnerProvider = characterSpawning.SpawnerProvider;
@@ -213,6 +215,28 @@ public sealed class FactionRuntimeApplicationAdapter :
             return false;
         }
 
+        if (FactionGoodwillOutbox.HasProvenance(faction))
+        {
+            int transferredValue = faction.goodwillTransferredPhysicalValue;
+            if (!FactionGoodwillOutbox.TryFinalizePending(
+                    faction,
+                    batchDispositions,
+                    campaignQuery,
+                    campaignCommand,
+                    domain.AcceptGoodwill,
+                    out _,
+                    out string replayFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Faction goodwill could not reconcile its physical transfer: {replayFailure}");
+            }
+            FactionGoodwillOutbox.ClearCompleted(faction);
+            ProjectCampaignRelationship(faction);
+            message =
+                $"{DisplayName(factionId)} 호의 물자 {transferredValue} 전달 완료";
+            return true;
+        }
+
         if (faction.NegotiationBlocked(currentDay))
         {
             message =
@@ -222,21 +246,76 @@ public sealed class FactionRuntimeApplicationAdapter :
 
         int offered = Mathf.Max(0, physicalValue);
         if (offered < 50
-            || !TryConsumePhysicalGoods(offered, out int consumedValue))
+            || !TrySelectPhysicalGoods(
+                offered,
+                out PhysicalItemTransformInput[] inputs,
+                out int consumedValue))
         {
             message = "예약되지 않은 실물 물자 가치 50 이상이 필요합니다.";
             return false;
         }
 
-        domain.AcceptGoodwill(faction);
-        int trustGain = Mathf.Clamp(consumedValue / 10, 1, 10);
-        TryAdjustTrust(
+        if (!campaignQuery.TryGetFaction(
+                factionId,
+                out FactionCampaignStateSaveData campaignState)
+            || campaignState == null)
+        {
+            throw new InvalidOperationException(
+                $"Faction goodwill campaign authority '{factionId}' is missing.");
+        }
+        int previousRapport = campaignState.rapport;
+        int rawGain = Mathf.Clamp(consumedValue / 10, 1, 10);
+        int adjustedGain = Math.Max(1, (int)MathF.Round(
+            rawGain * MathF.Pow(0.85f, faction.betrayalScars)));
+        int rapportTarget = Math.Clamp(
+            previousRapport + adjustedGain,
+            -100,
+            100);
+        int sequence = domain.AllocateGoodwillOperationSequence();
+        string operationId = FactionGoodwillOutbox.FormatOperationId(
             factionId,
-            trustGain,
-            $"호의 물자 {consumedValue}",
-            out _);
+            sequence);
+        if (!batchDispositions.TryCommitPending(
+                inputs,
+                PhysicalItemDispositionKind.Transfer,
+                operationId,
+                FactionGoodwillOutbox.TransferReason,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out string dispositionFailure))
+        {
+            throw new InvalidOperationException(
+                $"Faction goods changed during atomic goodwill transfer: {dispositionFailure}");
+        }
+        FactionGoodwillOutbox.RecordPending(
+            faction,
+            sequence,
+            receipt,
+            consumedValue,
+            rapportTarget);
+        if (!FactionGoodwillOutbox.TryFinalizePending(
+                faction,
+                batchDispositions,
+                campaignQuery,
+                campaignCommand,
+                domain.AcceptGoodwill,
+                out bool domainAppliedNow,
+                out string finalizeFailure))
+        {
+            throw new InvalidOperationException(
+                $"Faction goodwill transfer committed but did not finalize: {finalizeFailure}");
+        }
+        if (domainAppliedNow)
+        {
+            events.Publish(new FactionTrustChangedEvent(
+                faction.factionId,
+                previousRapport,
+                rapportTarget,
+                $"호의 물자 {consumedValue}"));
+        }
+        FactionGoodwillOutbox.ClearCompleted(faction);
+        ProjectCampaignRelationship(faction);
         message =
-            $"{DisplayName(factionId)} 호의 물자 {consumedValue} 전달 · 신뢰 +{trustGain}";
+            $"{DisplayName(factionId)} 호의 물자 {consumedValue} 전달 · 신뢰 +{adjustedGain}";
         return true;
     }
 
@@ -394,16 +473,81 @@ public sealed class FactionRuntimeApplicationAdapter :
             return false;
         }
 
+        if (FactionRestitutionOutbox.HasProvenance(faction))
+        {
+            if (!FactionRestitutionOutbox.TryFinalizePending(
+                    faction,
+                    batchDispositions,
+                    campaignQuery,
+                    campaignCommand,
+                    domain.AcceptRestitution,
+                    out string replayFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Faction restitution could not reconcile its physical transfer: {replayFailure}");
+            }
+            ProjectCampaignRelationship(faction);
+            message =
+                $"{DisplayName(factionId)} 실물 배상 "
+                + $"{faction.restitutionTransferredPhysicalValue} 접수 완료";
+            return true;
+        }
+
+        if (faction.betrayalScars <= 0 || faction.restitutionPaid)
+        {
+            message = "미납 배상 의무가 없습니다.";
+            return false;
+        }
+
         int required = domain.GetRestitutionRequired(faction);
         if (physicalValue < required
-            || !TryConsumePhysicalGoods(required, out int consumedValue))
+            || !TrySelectPhysicalGoods(
+                required,
+                out PhysicalItemTransformInput[] inputs,
+                out int consumedValue))
         {
             message = $"물리 배상 가치 {required}가 필요합니다.";
             return false;
         }
 
-        domain.AcceptRestitution(faction);
-        campaignCommand.ApplyFactionChange(factionId, 0, -30, 0);
+        if (!campaignQuery.TryGetFaction(
+                factionId,
+                out FactionCampaignStateSaveData campaignState)
+            || campaignState == null)
+        {
+            throw new InvalidOperationException(
+                $"Faction restitution campaign authority '{factionId}' is missing.");
+        }
+        string operationId = FactionRestitutionOutbox.FormatOperationId(
+            factionId,
+            faction.betrayalScars);
+        if (!batchDispositions.TryCommitPending(
+                inputs,
+                PhysicalItemDispositionKind.Transfer,
+                operationId,
+                FactionRestitutionOutbox.TransferReason,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out string dispositionFailure))
+        {
+            throw new InvalidOperationException(
+                $"Faction goods changed during atomic restitution transfer: {dispositionFailure}");
+        }
+        FactionRestitutionOutbox.RecordPending(
+            faction,
+            receipt,
+            consumedValue,
+            Math.Max(0, campaignState.grievance - 30));
+        if (!FactionRestitutionOutbox.TryFinalizePending(
+                faction,
+                batchDispositions,
+                campaignQuery,
+                campaignCommand,
+                domain.AcceptRestitution,
+                out string finalizeFailure))
+        {
+            throw new InvalidOperationException(
+                $"Faction restitution transfer committed but did not finalize: {finalizeFailure}");
+        }
         ProjectCampaignRelationship(faction);
         message =
             $"{DisplayName(factionId)} 실물 배상 {consumedValue} 접수 완료";
@@ -470,16 +614,18 @@ public sealed class FactionRuntimeApplicationAdapter :
         return true;
     }
 
-    private bool TryConsumePhysicalGoods(
+    private bool TrySelectPhysicalGoods(
         int requiredValue,
-        out int consumedValue)
+        out PhysicalItemTransformInput[] inputs,
+        out int selectedValue)
     {
-        consumedValue = 0;
+        selectedValue = 0;
         List<(WorldItemStackSnapshot stack, int quantity)> selection =
             new List<(WorldItemStackSnapshot, int)>();
         foreach (WorldItemStackSnapshot stack in itemRuntime.GetAllStacks()
                      .Where(value => value != null
                          && value.AvailableQuantity > 0
+                         && value.AvailableQuantity == value.Quantity
                          && !value.HasUniqueMetadata
                          && value.Quantity > 0
                          && value.UnitPrice > 0
@@ -488,42 +634,33 @@ public sealed class FactionRuntimeApplicationAdapter :
                      .OrderByDescending(value => value.UnitPrice)
                      .ThenBy(value => value.StackId, StringComparer.Ordinal))
         {
-            int remaining = requiredValue - consumedValue;
+            int remaining = requiredValue - selectedValue;
             int quantity = Mathf.Clamp(
                 Mathf.CeilToInt(remaining / (float)stack.UnitPrice),
                 0,
-                stack.Quantity);
+                stack.AvailableQuantity);
             if (quantity <= 0)
             {
                 continue;
             }
 
             selection.Add((stack, quantity));
-            consumedValue += quantity * stack.UnitPrice;
-            if (consumedValue >= requiredValue)
+            selectedValue += quantity * stack.UnitPrice;
+            if (selectedValue >= requiredValue)
             {
                 break;
             }
         }
 
-        if (consumedValue < requiredValue)
+        if (selectedValue < requiredValue)
         {
-            consumedValue = 0;
+            selectedValue = 0;
+            inputs = Array.Empty<PhysicalItemTransformInput>();
             return false;
         }
-
-        foreach ((WorldItemStackSnapshot stack, int quantity) in selection)
-        {
-            if (!itemRuntime.TryConsumeStackQuantity(
-                    stack.StackId,
-                    quantity,
-                    out _))
-            {
-                throw new InvalidOperationException(
-                    $"Restitution stack '{stack.StackId}' changed during atomic consumption.");
-            }
-        }
-
+        inputs = selection.Select(value => new PhysicalItemTransformInput(
+            value.stack.StackId,
+            value.quantity)).ToArray();
         return true;
     }
 
@@ -584,6 +721,7 @@ public sealed class FactionRuntimeApplicationAdapter :
         {
             currentDay = currentDay,
             routeSequence = domain.RouteSequence,
+            goodwillOperationSequence = domain.GoodwillOperationSequence,
             factions = Factions.Select(CloneFaction).ToList(),
             routes = routes
                 .Select(CloneRoute)
@@ -604,7 +742,8 @@ public sealed class FactionRuntimeApplicationAdapter :
         FactionAggregateState restored = new()
         {
             CurrentDay = saveData.currentDay,
-            RouteSequence = saveData.routeSequence
+            RouteSequence = saveData.routeSequence,
+            GoodwillOperationSequence = saveData.goodwillOperationSequence
         };
         foreach (DungeonFactionState savedFaction in saveData.factions)
         {
@@ -627,6 +766,40 @@ public sealed class FactionRuntimeApplicationAdapter :
     {
         domain.ReplaceState((candidate
             ?? throw new ArgumentNullException(nameof(candidate))).State);
+        foreach (DungeonFactionState faction in factions
+                     .Where(value =>
+                         FactionRestitutionOutbox.HasProvenance(value)
+                         && !value.restitutionTransferCompleted))
+        {
+            if (!FactionRestitutionOutbox.TryFinalizePending(
+                    faction,
+                    batchDispositions,
+                    campaignQuery,
+                    campaignCommand,
+                    domain.AcceptRestitution,
+                    out string failureReason))
+            {
+                throw new InvalidOperationException(
+                    $"Faction '{faction.factionId}' restitution transfer could not be reconciled: {failureReason}");
+            }
+        }
+        foreach (DungeonFactionState faction in factions
+                     .Where(FactionGoodwillOutbox.HasProvenance))
+        {
+            if (!FactionGoodwillOutbox.TryFinalizePending(
+                    faction,
+                    batchDispositions,
+                    campaignQuery,
+                    campaignCommand,
+                    domain.AcceptGoodwill,
+                    out _,
+                    out string failureReason))
+            {
+                throw new InvalidOperationException(
+                    $"Faction '{faction.factionId}' goodwill transfer could not be reconciled: {failureReason}");
+            }
+            FactionGoodwillOutbox.ClearCompleted(faction);
+        }
         SynchronizeWorldHomesUnlessStaging();
     }
 

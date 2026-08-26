@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9094
+  id: 9095
   recipeId: recipe:vitality-tonic
   displayName: "\uD65C\uB825 \uAC15\uC7A5\uC81C"
   description: "\uD65C\uB825 \uAC15\uC7A5\uC81C \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: material:syrup
     amount: 1
   outputs:
-  - itemId: drug:vitality-tonic
+  - outputLineId: output:recipe:vitality-tonic/000/main/drug:vitality-tonic
+    role: 0
+    itemId: drug:vitality-tonic
     amount: 2
     probability: 1

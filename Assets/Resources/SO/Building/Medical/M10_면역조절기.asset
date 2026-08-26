@@ -53,18 +53,18 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211857806557931
-    - rid: 7737211857806557932
-    - rid: 7737211857806557933
-    - rid: 7737211857806557935
-    - rid: 7737211857806557936
+    - rid: 1000
+    - rid: 1001
+    - rid: 1002
+    - rid: 1003
+    - rid: 1004
+    - rid: 1005
     - rid: 7737211857806557937
-    - rid: 7737211857806557938
-    - rid: 7737211857806557939
-    - rid: 7737211857806557940
-    - rid: 7737211905666711812
-    - rid: 7737212033836254073
-    - rid: 7737212033836254074
+    - rid: 1006
+    - rid: 1007
+    - rid: 1008
+    - rid: 1018
+    - rid: 1019
   width: 1
   height: 1
   layer: 1
@@ -80,12 +80,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211857806557931
+    - rid: 1000
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M10
-    - rid: 7737211857806557932
+    - rid: 1001
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -93,7 +93,7 @@ MonoBehaviour:
         - medical
         - surgery
         - m10
-    - rid: 7737211857806557933
+    - rid: 1002
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -102,16 +102,76 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211857806557935
+    - rid: 1003
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 536936448
+          disabledWhenDamaged: 1
+    - rid: 1004
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211857806557936
+    - rid: 1005
       type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
+    - rid: 1006
+      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEvolutionAbility
+        settings:
+          contributesToRoomProfile: 1
+          tags:
+          - medical
+          - surgery
+          - m10
+          scores: []
+          metrics: []
+    - rid: 1007
+      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
+      data:
+        abilityId: BuildingFuelConsumerAbility
+        fuelPerRefuel: 1
+        workSeconds: 1
+        warmth: 0
+        lightSafety: 2
+    - rid: 1008
+      type: {class: BuildingTransplantSupportAbility, ns: , asm: DungeonStory.Medical}
+      data:
+        abilityId: BuildingTransplantSupportAbility
+        circulationSupport: 0
+        immuneControl: 1
+        isolationRecovery: 0
+        successBonus: 0.08
+        rejectionReduction: 0.35
+        bloodCost: 0
+        immunosuppressantCost: 1
+    - rid: 1018
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 1019
+      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProcessFluidAbility
+        workTypeIds:
+        - work:surgery
+        cleanWaterPerCycle: 0.2
+        wastewaterPerCycle: 0.2
+        wastewaterComposition: 6
+        minimumQuality: 0
+        allowsManualWaterFallback: 1
     - rid: 7737211857806557937
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -136,62 +196,3 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:steel-ingot
           amount: 9
-    - rid: 7737211857806557938
-      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingEvolutionAbility
-        settings:
-          contributesToRoomProfile: 1
-          tags:
-          - medical
-          - surgery
-          - m10
-          scores: []
-          metrics: []
-    - rid: 7737211857806557939
-      type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
-      data:
-        abilityId: BuildingFuelConsumerAbility
-        fuelPerRefuel: 1
-        workSeconds: 1
-        warmth: 0
-        lightSafety: 2
-    - rid: 7737211857806557940
-      type: {class: BuildingTransplantSupportAbility, ns: , asm: DungeonStory.Medical}
-      data:
-        abilityId: BuildingTransplantSupportAbility
-        circulationSupport: 0
-        immuneControl: 1
-        isolationRecovery: 0
-        successBonus: 0.08
-        rejectionReduction: 0.35
-        bloodCost: 0
-        immunosuppressantCost: 1
-    - rid: 7737211905666711812
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 4096
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 536936448
-          disabledWhenDamaged: 1
-    - rid: 7737212033836254073
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 6
-        maxThroughput: 20
-        normallyOpen: 1
-    - rid: 7737212033836254074
-      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProcessFluidAbility
-        workTypeIds:
-        - work:surgery
-        cleanWaterPerCycle: 0.2
-        wastewaterPerCycle: 0.2
-        minimumQuality: 0
-        allowsManualWaterFallback: 1

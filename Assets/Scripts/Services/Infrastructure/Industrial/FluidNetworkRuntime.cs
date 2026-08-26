@@ -8,6 +8,8 @@ using VContainer.Unity;
 internal sealed class FluidNetworkRuntime :
     IFluidInfrastructureQuery,
     IFluidInfrastructureTransaction,
+    IManualWaterTransferTransaction,
+    IFluidInfrastructureBatchTransaction,
     IFluidWastewaterTransaction,
     IFluidInfrastructureCommand,
     IFluidInfrastructurePersistence,
@@ -20,6 +22,7 @@ internal sealed class FluidNetworkRuntime :
     private readonly IIndustrialInfrastructureTopologyRuntime topologyRuntime;
     private readonly IPowerInfrastructureQuery power;
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalItemBatchDispositionService physicalDispositions;
     private readonly IWorldFilthQuery filth;
     private readonly IGameClock clock;
     private readonly IFacilityCapabilityQuery facilities;
@@ -36,6 +39,7 @@ internal sealed class FluidNetworkRuntime :
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
         IPowerInfrastructureQuery power,
         IWorldItemStackRuntime items,
+        IPhysicalItemBatchDispositionService physicalDispositions,
         IWorldFilthQuery filth,
         IGameClock clock,
         IFacilityCapabilityQuery facilities,
@@ -46,6 +50,8 @@ internal sealed class FluidNetworkRuntime :
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
         this.power = power ?? throw new ArgumentNullException(nameof(power));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.physicalDispositions = physicalDispositions
+            ?? throw new ArgumentNullException(nameof(physicalDispositions));
         this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.facilities = facilities
@@ -190,6 +196,144 @@ internal sealed class FluidNetworkRuntime :
         return false;
     }
 
+    public bool TryCommitBatch(
+        IReadOnlyList<FluidNetworkBatchDemand> demands,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (demands == null)
+        {
+            failure = new DomainFailure(FailureCode.IndustrialCommandInvalid);
+            return false;
+        }
+
+        EnsureTopology();
+        var ordered = demands
+            .Select((demand, index) => (Demand: demand, Index: index))
+            .OrderBy(value => (int)value.Demand.MinimumQuality)
+            .ThenBy(value => IndustrialInfrastructureIdentity.GetNodeId(
+                value.Demand.Consumer), StringComparer.Ordinal)
+            .ThenBy(value => value.Index)
+            .ToArray();
+        Dictionary<(string NetworkId, WorldWaterQuality Quality), float>
+            simulatedWater = new();
+        Dictionary<string, float> simulatedWastewater =
+            new(StringComparer.Ordinal);
+        List<(string NetworkId, WorldWaterQuality Quality, float Amount)>
+            waterCommits = new();
+        Dictionary<string, float> wastewaterCommits =
+            new(StringComparer.Ordinal);
+
+        foreach ((FluidNetworkBatchDemand demand, _) in ordered)
+        {
+            if (demand.Consumer == null
+                || !Enum.IsDefined(typeof(WorldWaterQuality), demand.MinimumQuality)
+                || float.IsNaN(demand.CleanWater)
+                || float.IsInfinity(demand.CleanWater)
+                || demand.CleanWater < 0f
+                || float.IsNaN(demand.Wastewater)
+                || float.IsInfinity(demand.Wastewater)
+                || demand.Wastewater < 0f)
+            {
+                failure = new DomainFailure(FailureCode.IndustrialCommandInvalid);
+                return false;
+            }
+
+            if (demand.CleanWater > 0f)
+            {
+                if (!projectionAdapter.TryResolveNetwork(
+                        demand.Consumer,
+                        UtilityChannel.CleanWater,
+                        out string waterNetworkId,
+                        out _))
+                {
+                    failure = new DomainFailure(FailureCode.FluidNetworkUnavailable);
+                    return false;
+                }
+
+                bool allocated = false;
+                foreach (WorldWaterQuality quality in
+                         FluidNodeWaterRules.GetConsumptionOrder(
+                             demand.MinimumQuality))
+                {
+                    var key = (waterNetworkId, quality);
+                    if (!simulatedWater.TryGetValue(key, out float available))
+                    {
+                        available = GetNetworkWater(waterNetworkId, quality);
+                    }
+                    if (available + 0.0001f < demand.CleanWater)
+                    {
+                        continue;
+                    }
+                    simulatedWater[key] = available - demand.CleanWater;
+                    waterCommits.Add((
+                        waterNetworkId,
+                        quality,
+                        demand.CleanWater));
+                    allocated = true;
+                    break;
+                }
+                if (!allocated)
+                {
+                    failure = new DomainFailure(
+                        FailureCode.FluidInsufficientWater,
+                        demand.MinimumQuality.ToString(),
+                        demand.CleanWater.ToString("0.###"));
+                    return false;
+                }
+            }
+
+            if (demand.Wastewater > 0f)
+            {
+                if (!projectionAdapter.TryResolveNetwork(
+                        demand.Consumer,
+                        UtilityChannel.Wastewater,
+                        out string wasteNetworkId,
+                        out _))
+                {
+                    failure = new DomainFailure(
+                        FailureCode.FluidWastewaterUnavailable);
+                    return false;
+                }
+                if (!simulatedWastewater.TryGetValue(
+                        wasteNetworkId,
+                        out float current))
+                {
+                    current = GetNetworkWastewater(wasteNetworkId);
+                }
+                float next = current + demand.Wastewater;
+                if (next > GetWastewaterCapacity(wasteNetworkId) + 0.0001f)
+                {
+                    failure = new DomainFailure(
+                        FailureCode.FluidWastewaterUnavailable,
+                        demand.Wastewater.ToString("0.###"));
+                    return false;
+                }
+                simulatedWastewater[wasteNetworkId] = next;
+                wastewaterCommits[wasteNetworkId] =
+                    wastewaterCommits.TryGetValue(wasteNetworkId, out float total)
+                        ? total + demand.Wastewater
+                        : demand.Wastewater;
+            }
+        }
+
+        foreach ((string networkId, WorldWaterQuality quality, float amount)
+                 in waterCommits)
+        {
+            RemoveNetworkWater(networkId, quality, amount);
+        }
+        foreach (KeyValuePair<string, float> commit in wastewaterCommits
+                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            AddNetworkWastewater(commit.Key, commit.Value);
+        }
+        if (waterCommits.Count > 0 || wastewaterCommits.Count > 0)
+        {
+            stateStore.Touch();
+        }
+        return true;
+    }
+
     public bool TryAdd(
         BuildableObject producer,
         WorldWaterQuality quality,
@@ -233,93 +377,409 @@ internal sealed class FluidNetworkRuntime :
         }
 
         EnsureTopology();
-        if (consumer == null || string.IsNullOrWhiteSpace(destinationId))
+        if (consumer == null
+            || string.IsNullOrWhiteSpace(destinationId)
+            || !string.Equals(
+                destinationId,
+                destinationId.Trim(),
+                StringComparison.Ordinal))
         {
             failure = new DomainFailure(
                 FailureCode.FluidManualWaterUnavailable);
             return false;
         }
 
-        // Manual containers are the fallback for facilities without authored
-        // plumbing. Requiring a clean-water/wastewater topology node here made
-        // that fallback impossible for the very facilities that need it (for
-        // example the early emergency surgery table). Keep the remainder in
-        // the same persistent fluid state store, keyed by the facility's stable
-        // industrial identity when no network node exists.
-        if (!projectionAdapter.TryResolveState(
+        string destination = destinationId;
+        if (!TryResolveManualWaterState(
                 consumer,
+                out string nodeId,
                 out FluidNodeState state))
         {
-            string manualNodeId =
-                IndustrialInfrastructureIdentity.GetNodeId(consumer);
-            if (string.IsNullOrWhiteSpace(manualNodeId))
-            {
-                failure = new DomainFailure(
-                    FailureCode.FluidManualWaterUnavailable);
-                return false;
-            }
-
-            state = stateStore.EnsureState(manualNodeId);
+            failure = new DomainFailure(
+                FailureCode.FluidManualWaterUnavailable);
+            return false;
         }
 
-        int requiredContainers = Mathf.Max(
+        ManualWaterTransferState pending = state.PendingManualWaterTransfers
+            .SingleOrDefault(value => value.ImmediateConsumption);
+        if (pending == null)
+        {
+            int sequence = state.NextImmediateManualWaterOperationSequence;
+            string operation =
+                FluidPhysicalOperationIdentity
+                    .FormatImmediateManualWaterOperationId(nodeId, sequence);
+            if (!TryStageManualWaterTransferCore(
+                    consumer,
+                    destination,
+                    amount,
+                    operation,
+                    sequence,
+                    immediateConsumption: true,
+                    out _,
+                    out failure))
+            {
+                return false;
+            }
+            pending = state.PendingManualWaterTransfers.Single(value =>
+                string.Equals(value.OperationId, operation, StringComparison.Ordinal));
+        }
+        else if (pending.OperationSequence
+                    != state.NextImmediateManualWaterOperationSequence
+                 || !string.Equals(
+                     pending.OperationId,
+                     FluidPhysicalOperationIdentity
+                         .FormatImmediateManualWaterOperationId(
+                             nodeId,
+                             pending.OperationSequence),
+                     StringComparison.Ordinal)
+                 || !string.Equals(
+                     pending.DestinationId,
+                     destination,
+                     StringComparison.Ordinal)
+                 || !Mathf.Approximately(pending.RequestedWaterUnits, amount))
+        {
+            failure = new DomainFailure(
+                FailureCode.IndustrialCommandInvalid,
+                pending.OperationId,
+                "manual-water-immediate-operation-conflict");
+            return false;
+        }
+
+        if (!TryApplyStagedManualWaterTransfer(
+                consumer,
+                pending.OperationId,
+                out _,
+                out failure))
+        {
+            return false;
+        }
+        return AcknowledgeManualWaterTransfer(
+            pending.OperationId,
+            out failure);
+    }
+
+    public bool TryStageManualWaterTransfer(
+        BuildableObject consumer,
+        string destinationId,
+        float amount,
+        string operationId,
+        out ManualWaterTransferReceipt receipt,
+        out DomainFailure failure) =>
+        TryStageManualWaterTransferCore(
+            consumer,
+            destinationId,
+            amount,
+            operationId,
+            operationSequence: 0,
+            immediateConsumption: false,
+            out receipt,
+            out failure);
+
+    private bool TryStageManualWaterTransferCore(
+        BuildableObject consumer,
+        string destinationId,
+        float amount,
+        string operationId,
+        int operationSequence,
+        bool immediateConsumption,
+        out ManualWaterTransferReceipt receipt,
+        out DomainFailure failure)
+    {
+        receipt = default;
+        failure = DomainFailure.None;
+        string destination = destinationId ?? string.Empty;
+        string operation = operationId ?? string.Empty;
+        if (consumer == null
+            || amount < 0f
+            || float.IsNaN(amount)
+            || float.IsInfinity(amount)
+            || destination.Length == 0
+            || operation.Length == 0
+            || (immediateConsumption
+                ? operationSequence <= 0
+                : operationSequence != 0)
+            || !string.Equals(destination, destination.Trim(), StringComparison.Ordinal)
+            || !string.Equals(operation, operation.Trim(), StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(FailureCode.IndustrialCommandInvalid);
+            return false;
+        }
+
+        EnsureTopology();
+        if (!TryResolveManualWaterState(consumer, out FluidNodeState state))
+        {
+            failure = new DomainFailure(FailureCode.FluidManualWaterUnavailable);
+            return false;
+        }
+
+        ManualWaterTransferState operationOwner = stateStore.Nodes.Values
+            .SelectMany(candidate => candidate.PendingManualWaterTransfers)
+            .SingleOrDefault(value => string.Equals(
+                value.OperationId,
+                operation,
+                StringComparison.Ordinal));
+        if (operationOwner != null
+            && !state.PendingManualWaterTransfers.Contains(operationOwner))
+        {
+            failure = new DomainFailure(
+                FailureCode.IndustrialCommandInvalid,
+                operation,
+                "manual-water-operation-owner-conflict");
+            return false;
+        }
+
+        ManualWaterTransferState existing = state.PendingManualWaterTransfers
+            .SingleOrDefault(value => string.Equals(
+                value.OperationId,
+                operation,
+                StringComparison.Ordinal));
+        if (existing != null)
+        {
+            if (!string.Equals(existing.DestinationId, destination, StringComparison.Ordinal)
+                || !Mathf.Approximately(existing.RequestedWaterUnits, amount)
+                || existing.OperationSequence != operationSequence
+                || existing.ImmediateConsumption != immediateConsumption)
+            {
+                failure = new DomainFailure(
+                    FailureCode.IndustrialCommandInvalid,
+                    operation,
+                    "manual-water-operation-conflict");
+                return false;
+            }
+            receipt = new ManualWaterTransferReceipt(existing);
+            return receipt.IsValid;
+        }
+
+        int requiredWaterUnits = Mathf.Max(
             0,
             Mathf.CeilToInt(amount - state.ManualWaterReserve - 0.0001f));
-        if (requiredContainers > 0)
+        var pending = new ManualWaterTransferState
         {
-            IReadOnlyDictionary<StockCategory, int> cost =
-                new Dictionary<StockCategory, int>
+            OperationId = operation,
+            DestinationId = destination,
+            OperationSequence = operationSequence,
+            ImmediateConsumption = immediateConsumption,
+            RequestedWaterUnits = amount,
+            TransferredWaterUnits = requiredWaterUnits
+        };
+        if (requiredWaterUnits > 0)
+        {
+            int remaining = requiredWaterUnits;
+            var inputs = new List<PhysicalItemTransformInput>();
+            foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
+                         .Where(stack => stack != null
+                             && stack.State == WorldItemStackState.FacilityBuffer
+                             && !stack.HasReservations
+                             && string.Equals(
+                                 stack.ItemId,
+                                 BottledCleanWaterItemId,
+                                 StringComparison.Ordinal)
+                             && string.Equals(
+                                 stack.DestinationId,
+                                 destination,
+                                 StringComparison.Ordinal))
+                         .OrderBy(stack => stack.StackId, StringComparer.Ordinal))
+            {
+                int quantity = Mathf.Min(remaining, stack.AvailableQuantity);
+                if (quantity <= 0)
                 {
-                    [StockCategory.Water] = requiredContainers
-                };
-            if (!items.TryConsumeFacilityBuffer(
-                    destinationId.Trim(),
-                    cost,
+                    continue;
+                }
+                inputs.Add(new PhysicalItemTransformInput(stack.StackId, quantity));
+                remaining -= quantity;
+                if (remaining == 0)
+                {
+                    break;
+                }
+            }
+
+            if (remaining > 0
+                || !physicalDispositions.TryCommitPending(
+                    inputs,
+                    PhysicalItemDispositionKind.Transfer,
+                    operation,
+                    FluidPhysicalOperationIdentity.ManualReserveReasonCode,
+                    out PhysicalItemBatchDispositionReceipt physicalReceipt,
                     out _))
             {
-                string normalizedDestination = destinationId.Trim();
-                int routedContainers = items.GetAllStacks()
+                int routed = items.GetAllStacks()
                     .Where(stack => stack != null
-                        && string.Equals(
-                            stack.ItemId,
-                            BottledCleanWaterItemId,
-                            StringComparison.Ordinal)
-                        && string.Equals(
-                            stack.DestinationId,
-                            normalizedDestination,
-                            StringComparison.Ordinal))
+                        && string.Equals(stack.ItemId, BottledCleanWaterItemId, StringComparison.Ordinal)
+                        && string.Equals(stack.DestinationId, destination, StringComparison.Ordinal))
                     .Sum(stack => Mathf.Max(0, stack.Quantity));
-                routedContainers = checked(
-                    routedContainers
-                    + items.GetCommittedHaulDeliveryQuantity(
-                        normalizedDestination,
-                        BottledCleanWaterItemId));
-                int missingContainers = Mathf.Max(
-                    0,
-                    requiredContainers - routedContainers);
-                if (missingContainers > 0)
+                int missing = Mathf.Max(0, requiredWaterUnits - routed);
+                if (missing > 0)
                 {
-                    items.TryRequestFacilityDelivery(
-                        StockCategory.Water,
-                        missingContainers,
+                    items.TryRequestItemDelivery(
+                        BottledCleanWaterItemId,
+                        missing,
                         consumer.centerPos,
-                        normalizedDestination,
+                        destination,
                         out _,
                         out _);
                 }
                 failure = new DomainFailure(
                     FailureCode.FluidManualWaterUnavailable,
-                    normalizedDestination);
+                    destination);
                 return false;
             }
 
-            state.ManualWaterReserve += requiredContainers;
+            pending.PhysicalCommitId = physicalReceipt.CommitId;
+            pending.RequestFingerprint = physicalReceipt.RequestFingerprint;
+            pending.InputMassGrams = physicalReceipt.InputMassGrams;
+            pending.SourceStackIds.AddRange(physicalReceipt.SourceStackIds);
         }
 
-        state.ManualWaterReserve = Mathf.Max(
-            0f,
-            state.ManualWaterReserve - amount);
+        state.PendingManualWaterTransfers.Add(pending);
         stateStore.Touch();
+        receipt = new ManualWaterTransferReceipt(pending);
+        return receipt.IsValid;
+    }
+
+    public bool TryApplyStagedManualWaterTransfer(
+        BuildableObject consumer,
+        string operationId,
+        out ManualWaterTransferReceipt receipt,
+        out DomainFailure failure)
+    {
+        receipt = default;
+        failure = DomainFailure.None;
+        string operation = operationId ?? string.Empty;
+        if (consumer == null
+            || operation.Length == 0
+            || !TryResolveManualWaterState(consumer, out FluidNodeState state))
+        {
+            failure = new DomainFailure(FailureCode.FluidManualWaterUnavailable);
+            return false;
+        }
+        ManualWaterTransferState pending = state.PendingManualWaterTransfers
+            .SingleOrDefault(value => string.Equals(
+                value.OperationId,
+                operation,
+                StringComparison.Ordinal));
+        if (pending == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.FluidManualWaterUnavailable,
+                operation,
+                "manual-water-stage-missing");
+            return false;
+        }
+        if (!pending.FluidStateApplied)
+        {
+            float available = state.ManualWaterReserve
+                + pending.TransferredWaterUnits;
+            if (available + 0.0001f < pending.RequestedWaterUnits)
+            {
+                failure = new DomainFailure(
+                    FailureCode.FluidManualWaterUnavailable,
+                    operation,
+                    "manual-water-stage-underflow");
+                return false;
+            }
+            state.ManualWaterReserve = Mathf.Max(
+                0f,
+                available - pending.RequestedWaterUnits);
+            pending.FluidStateApplied = true;
+            stateStore.Touch();
+        }
+        receipt = new ManualWaterTransferReceipt(pending);
+        return receipt.IsValid;
+    }
+
+    public bool AcknowledgeManualWaterTransfer(
+        string operationId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        string operation = operationId ?? string.Empty;
+        if (operation.Length == 0)
+        {
+            failure = new DomainFailure(FailureCode.FluidManualWaterUnavailable);
+            return false;
+        }
+        KeyValuePair<string, FluidNodeState> owner = stateStore.Nodes
+            .SingleOrDefault(candidate =>
+                candidate.Value.PendingManualWaterTransfers.Any(value =>
+                    string.Equals(
+                        value.OperationId,
+                        operation,
+                        StringComparison.Ordinal)));
+        FluidNodeState state = owner.Value;
+        ManualWaterTransferState pending = state?.PendingManualWaterTransfers
+            .SingleOrDefault(value => string.Equals(value.OperationId, operation, StringComparison.Ordinal));
+        if (pending == null)
+        {
+            return true;
+        }
+        if (!pending.FluidStateApplied)
+        {
+            failure = new DomainFailure(
+                FailureCode.FluidManualWaterUnavailable,
+                operation,
+                "manual-water-stage-not-applied");
+            return false;
+        }
+        if (pending.PhysicalCommitId.Length > 0
+            && !physicalDispositions.Acknowledge(
+                pending.PhysicalCommitId,
+                out string acknowledgeFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.FluidManualWaterUnavailable,
+                operation,
+                acknowledgeFailure);
+            return false;
+        }
+        if (pending.ImmediateConsumption)
+        {
+            if (pending.OperationSequence
+                    != state.NextImmediateManualWaterOperationSequence
+                || !string.Equals(
+                    pending.OperationId,
+                    FluidPhysicalOperationIdentity
+                        .FormatImmediateManualWaterOperationId(
+                            owner.Key,
+                            pending.OperationSequence),
+                    StringComparison.Ordinal))
+            {
+                failure = new DomainFailure(
+                    FailureCode.IndustrialCommandInvalid,
+                    operation,
+                    "manual-water-immediate-sequence-conflict");
+                return false;
+            }
+            state.NextImmediateManualWaterOperationSequence = checked(
+                state.NextImmediateManualWaterOperationSequence + 1);
+        }
+        state.PendingManualWaterTransfers.Remove(pending);
+        stateStore.Touch();
+        return true;
+    }
+
+    private bool TryResolveManualWaterState(
+        BuildableObject consumer,
+        out FluidNodeState state)
+    {
+        return TryResolveManualWaterState(consumer, out _, out state);
+    }
+
+    private bool TryResolveManualWaterState(
+        BuildableObject consumer,
+        out string nodeId,
+        out FluidNodeState state)
+    {
+        nodeId = IndustrialInfrastructureIdentity.GetNodeId(consumer);
+        if (string.IsNullOrWhiteSpace(nodeId))
+        {
+            state = null;
+            return false;
+        }
+        if (projectionAdapter.TryResolveState(consumer, out state))
+        {
+            return true;
+        }
+        state = stateStore.EnsureState(nodeId);
         return true;
     }
 
@@ -561,6 +1021,17 @@ internal sealed class FluidNetworkRuntime :
                     leak = pair.Value.Leak,
                     processorWork = pair.Value.ProcessorWork,
                     manualWaterReserve = pair.Value.ManualWaterReserve,
+                    nextImmediateManualWaterOperationSequence = pair.Value
+                        .NextImmediateManualWaterOperationSequence,
+                    pendingManualWaterTransfers = pair.Value
+                        .PendingManualWaterTransfers
+                        .OrderBy(value => value.OperationId, StringComparer.Ordinal)
+                        .Select(value => ToSaveData(value))
+                        .ToList(),
+                    nextContainerFeedOperationSequence = pair.Value
+                        .NextContainerFeedOperationSequence,
+                    pendingContainerFeed = ToSaveData(
+                        pair.Value.PendingContainerFeed),
                     transferMode = pair.Value.TransferMode,
                     transferWork = pair.Value.TransferWork
                 })
@@ -586,8 +1057,7 @@ internal sealed class FluidNetworkRuntime :
                 continue;
             }
 
-            restored.Nodes[saved.buildingInstanceId.Trim()] =
-                new FluidNodeState
+            FluidNodeState restoredNode = new FluidNodeState
             {
                 CleanWater = Mathf.Max(0f, saved.cleanWater),
                 UnsafeWater = Mathf.Max(0f, saved.unsafeWater),
@@ -599,6 +1069,12 @@ internal sealed class FluidNetworkRuntime :
                 ManualWaterReserve = Mathf.Max(
                     0f,
                     saved.manualWaterReserve),
+                NextImmediateManualWaterOperationSequence =
+                    saved.nextImmediateManualWaterOperationSequence,
+                NextContainerFeedOperationSequence =
+                    saved.nextContainerFeedOperationSequence,
+                PendingContainerFeed = ToRuntimeState(
+                    saved.pendingContainerFeed),
                 TransferMode = Enum.IsDefined(
                     typeof(WaterContainerTransferMode),
                     saved.transferMode)
@@ -606,6 +1082,11 @@ internal sealed class FluidNetworkRuntime :
                         : WaterContainerTransferMode.Disabled,
                 TransferWork = Mathf.Max(0f, saved.transferWork)
             };
+            restoredNode.PendingManualWaterTransfers.AddRange(
+                (saved.pendingManualWaterTransfers
+                    ?? new List<ManualWaterTransferSaveData>())
+                .Select(ToRuntimeState));
+            restored.Nodes[saved.buildingInstanceId.Trim()] = restoredNode;
         }
 
         return new FluidNetworkRestoreCandidate(restored);
@@ -626,6 +1107,92 @@ internal sealed class FluidNetworkRuntime :
         }
     }
 
+    private static ManualWaterTransferSaveData ToSaveData(
+        ManualWaterTransferState state) => new ManualWaterTransferSaveData
+    {
+        operationId = state.OperationId,
+        physicalCommitId = state.PhysicalCommitId,
+        requestFingerprint = state.RequestFingerprint,
+        destinationId = state.DestinationId,
+        operationSequence = state.OperationSequence,
+        immediateConsumption = state.ImmediateConsumption,
+        requestedWaterUnits = state.RequestedWaterUnits,
+        transferredWaterUnits = state.TransferredWaterUnits,
+        inputMassGrams = state.InputMassGrams,
+        fluidStateApplied = state.FluidStateApplied,
+        sourceStackIds = new List<string>(state.SourceStackIds)
+    };
+
+    private static ManualWaterTransferState ToRuntimeState(
+        ManualWaterTransferSaveData saved)
+    {
+        var state = new ManualWaterTransferState
+        {
+            OperationId = saved.operationId,
+            PhysicalCommitId = saved.physicalCommitId,
+            RequestFingerprint = saved.requestFingerprint,
+            DestinationId = saved.destinationId,
+            OperationSequence = saved.operationSequence,
+            ImmediateConsumption = saved.immediateConsumption,
+            RequestedWaterUnits = saved.requestedWaterUnits,
+            TransferredWaterUnits = saved.transferredWaterUnits,
+            InputMassGrams = saved.inputMassGrams,
+            FluidStateApplied = saved.fluidStateApplied
+        };
+        state.SourceStackIds.AddRange(saved.sourceStackIds);
+        return state;
+    }
+
+    private static ContainerWaterFeedCommitSaveData ToSaveData(
+        ContainerWaterFeedState state) =>
+        state == null
+            ? new ContainerWaterFeedCommitSaveData()
+            : new ContainerWaterFeedCommitSaveData
+            {
+                phase = state.Phase,
+                operationSequence = state.OperationSequence,
+                operationId = state.OperationId,
+                reasonCode = state.ReasonCode,
+                requestFingerprint = state.RequestFingerprint,
+                physicalCommitId = state.PhysicalCommitId,
+                nodeId = state.NodeId,
+                networkId = state.NetworkId,
+                destinationId = state.DestinationId,
+                itemId = state.ItemId,
+                quantity = state.Quantity,
+                waterAmount = state.WaterAmount,
+                inputMassGrams = state.InputMassGrams,
+                sourceStackIds = new List<string>(state.SourceStackIds)
+            };
+
+    private static ContainerWaterFeedState ToRuntimeState(
+        ContainerWaterFeedCommitSaveData saved)
+    {
+        if (saved == null)
+        {
+            return new ContainerWaterFeedState();
+        }
+        var state = new ContainerWaterFeedState
+        {
+            Phase = saved.phase,
+            OperationSequence = saved.operationSequence,
+            OperationId = saved.operationId,
+            ReasonCode = saved.reasonCode,
+            RequestFingerprint = saved.requestFingerprint,
+            PhysicalCommitId = saved.physicalCommitId,
+            NodeId = saved.nodeId,
+            NetworkId = saved.networkId,
+            DestinationId = saved.destinationId,
+            ItemId = saved.itemId,
+            Quantity = saved.quantity,
+            WaterAmount = saved.waterAmount,
+            InputMassGrams = saved.inputMassGrams
+        };
+        state.SourceStackIds.AddRange(
+            saved.sourceStackIds ?? new List<string>());
+        return state;
+    }
+
     private void TransferContainerWater(float deltaTime)
     {
         foreach (IndustrialNodeDescriptor node in topologyRuntime.Current.Nodes
@@ -640,6 +1207,16 @@ internal sealed class FluidNetworkRuntime :
             }
 
             FluidNodeState state = stateStore.EnsureState(node.NodeId);
+            float required = Mathf.Max(0.1f, transfer.secondsPerBatch);
+            if ((ContainerWaterFeedCommitPhase)(state.PendingContainerFeed?.Phase ?? 0)
+                != ContainerWaterFeedCommitPhase.None)
+            {
+                bool recovered = TryRecoverContainerFeed(node, state, transfer);
+                state.TransferWork = recovered
+                    ? Mathf.Max(0f, state.TransferWork - required)
+                    : Mathf.Min(state.TransferWork, required);
+                continue;
+            }
             if (state.TransferMode == WaterContainerTransferMode.Disabled)
             {
                 state.TransferWork = 0f;
@@ -655,7 +1232,6 @@ internal sealed class FluidNetworkRuntime :
             }
 
             state.TransferWork += deltaTime * ResolveFlowMultiplier(node);
-            float required = Mathf.Max(0.1f, transfer.secondsPerBatch);
             if (state.TransferWork + 0.0001f < required)
             {
                 state.TransferStatus = InfrastructureStatus.None;
@@ -749,6 +1325,13 @@ internal sealed class FluidNetworkRuntime :
         FluidNodeState state,
         BuildingWaterContainerTransferAbility transfer)
     {
+        ContainerWaterFeedCommitPhase phase =
+            (ContainerWaterFeedCommitPhase)(state.PendingContainerFeed?.Phase ?? 0);
+        if (phase != ContainerWaterFeedCommitPhase.None)
+        {
+            return TryRecoverContainerFeed(node, state, transfer);
+        }
+
         if (!projectionAdapter.TryResolveNetwork(
                 node.Building,
                 UtilityChannel.CleanWater,
@@ -763,20 +1346,74 @@ internal sealed class FluidNetworkRuntime :
         }
 
         string destinationId = CreateWaterTransferDestinationId(node.NodeId);
-        IReadOnlyDictionary<StockCategory, int> cost =
-            new Dictionary<StockCategory, int>
+        int quantity = Mathf.Max(
+            1,
+            Mathf.RoundToInt(transfer.waterPerBatch));
+        int sequence = state.NextContainerFeedOperationSequence;
+        string operationId =
+            FluidPhysicalOperationIdentity.FormatContainerFeedOperationId(
+                node.NodeId,
+                sequence);
+        state.PendingContainerFeed = new ContainerWaterFeedState
+        {
+            Phase = (int)ContainerWaterFeedCommitPhase.IntentRecorded,
+            OperationSequence = sequence,
+            OperationId = operationId,
+            ReasonCode =
+                FluidPhysicalOperationIdentity.ContainerFeedReasonCode,
+            NodeId = node.NodeId,
+            NetworkId = networkId,
+            DestinationId = destinationId,
+            ItemId = BottledCleanWaterItemId,
+            Quantity = quantity,
+            WaterAmount = transfer.waterPerBatch
+        };
+        stateStore.Touch();
+
+        int remaining = quantity;
+        var inputs = new List<PhysicalItemTransformInput>();
+        foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
+                     .Where(stack => stack != null
+                         && stack.State == WorldItemStackState.FacilityBuffer
+                         && !stack.HasReservations
+                         && string.Equals(
+                             stack.ItemId,
+                             BottledCleanWaterItemId,
+                             StringComparison.Ordinal)
+                         && string.Equals(
+                             stack.DestinationId,
+                             destinationId,
+                             StringComparison.Ordinal))
+                     .OrderBy(stack => stack.StackId, StringComparer.Ordinal))
+        {
+            int selected = Mathf.Min(remaining, stack.AvailableQuantity);
+            if (selected <= 0)
             {
-                [StockCategory.Water] =
-                    Mathf.Max(1, Mathf.RoundToInt(transfer.waterPerBatch))
-            };
-        if (!items.TryConsumeFacilityBuffer(
-                destinationId,
-                cost,
+                continue;
+            }
+            inputs.Add(new PhysicalItemTransformInput(stack.StackId, selected));
+            remaining -= selected;
+            if (remaining == 0)
+            {
+                break;
+            }
+        }
+
+        if (remaining > 0
+            || !physicalDispositions.TryCommitPending(
+                inputs,
+                PhysicalItemDispositionKind.Transfer,
+                operationId,
+                FluidPhysicalOperationIdentity.ContainerFeedReasonCode,
+                out PhysicalItemBatchDispositionReceipt receipt,
                 out _))
         {
-            items.TryRequestFacilityDelivery(
-                StockCategory.Water,
-                cost[StockCategory.Water],
+            state.PendingContainerFeed =
+                new ContainerWaterFeedState();
+            stateStore.Touch();
+            items.TryRequestItemDelivery(
+                BottledCleanWaterItemId,
+                quantity,
                 node.Building.centerPos,
                 destinationId,
                 out _,
@@ -787,16 +1424,147 @@ internal sealed class FluidNetworkRuntime :
             return false;
         }
 
-        float accepted = AddNetworkWater(
-            networkId,
-            WorldWaterQuality.Clean,
-            transfer.waterPerBatch);
-        state.TransferStatus = accepted + 0.0001f
-            >= transfer.waterPerBatch
-                ? InfrastructureStatus.None
-                : new InfrastructureStatus(
+        state.PendingContainerFeed.PhysicalCommitId = receipt.CommitId;
+        state.PendingContainerFeed.RequestFingerprint =
+            receipt.RequestFingerprint;
+        state.PendingContainerFeed.InputMassGrams = receipt.InputMassGrams;
+        state.PendingContainerFeed.SourceStackIds.AddRange(
+            receipt.SourceStackIds.OrderBy(
+                value => value,
+                StringComparer.Ordinal));
+        stateStore.Touch();
+        return TryRecoverContainerFeed(node, state, transfer);
+    }
+
+    private bool TryRecoverContainerFeed(
+        IndustrialNodeDescriptor node,
+        FluidNodeState state,
+        BuildingWaterContainerTransferAbility transfer)
+    {
+        ContainerWaterFeedState pending =
+            state.PendingContainerFeed
+            ?? new ContainerWaterFeedState();
+        ContainerWaterFeedCommitPhase phase =
+            (ContainerWaterFeedCommitPhase)pending.Phase;
+        if (phase == ContainerWaterFeedCommitPhase.None)
+        {
+            return true;
+        }
+
+        if (!projectionAdapter.TryResolveNetwork(
+                node.Building,
+                UtilityChannel.CleanWater,
+                out string networkId,
+                out _))
+        {
+            throw new InvalidOperationException(
+                $"Container-water feed '{pending.OperationId}' lost its clean-water network.");
+        }
+        string destinationId = CreateWaterTransferDestinationId(node.NodeId);
+        int expectedQuantity = Mathf.Max(
+            1,
+            Mathf.RoundToInt(transfer.waterPerBatch));
+        bool contractMatches = pending.OperationSequence
+                == state.NextContainerFeedOperationSequence
+            && pending.Quantity == expectedQuantity
+            && string.Equals(pending.NodeId, node.NodeId, StringComparison.Ordinal)
+            && string.Equals(pending.NetworkId, networkId, StringComparison.Ordinal)
+            && string.Equals(
+                pending.DestinationId,
+                destinationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                pending.ItemId,
+                BottledCleanWaterItemId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                pending.ReasonCode,
+                FluidPhysicalOperationIdentity.ContainerFeedReasonCode,
+                StringComparison.Ordinal)
+            && string.Equals(
+                pending.OperationId,
+                FluidPhysicalOperationIdentity.FormatContainerFeedOperationId(
+                    node.NodeId,
+                    pending.OperationSequence),
+                StringComparison.Ordinal)
+            && Mathf.Approximately(
+                pending.WaterAmount,
+                transfer.waterPerBatch);
+        if (!contractMatches)
+        {
+            throw new InvalidOperationException(
+                $"Container-water feed '{pending.OperationId}' conflicts with node '{node.NodeId}'.");
+        }
+        if (!physicalDispositions.TryGetPending(
+                pending.OperationId,
+                out PhysicalItemBatchDispositionReceipt receipt)
+            || !receipt.IsCommitted
+            || receipt.Kind != PhysicalItemDispositionKind.Transfer
+            || receipt.Quantity != pending.Quantity
+            || !string.Equals(
+                receipt.OperationId,
+                pending.OperationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.ReasonCode,
+                pending.ReasonCode,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.RequestFingerprint,
+                pending.RequestFingerprint,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.CommitId,
+                pending.PhysicalCommitId,
+                StringComparison.Ordinal)
+            || receipt.InputMassGrams != pending.InputMassGrams
+            || !receipt.SourceStackIds.SequenceEqual(
+                pending.SourceStackIds,
+                StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Container-water feed '{pending.OperationId}' has no exact pending physical Transfer receipt.");
+        }
+
+        if (phase == ContainerWaterFeedCommitPhase.IntentRecorded)
+        {
+            if (GetNetworkWaterFreeCapacity(networkId) + 0.0001f
+                < pending.WaterAmount)
+            {
+                state.TransferStatus = new InfrastructureStatus(
                     InfrastructureStatusCode.StorageCapacityUnavailable);
-        return accepted + 0.0001f >= transfer.waterPerBatch;
+                return false;
+            }
+            float accepted = AddNetworkWater(
+                networkId,
+                WorldWaterQuality.Clean,
+                pending.WaterAmount);
+            if (accepted + 0.0001f < pending.WaterAmount)
+            {
+                throw new InvalidOperationException(
+                    $"Container-water feed '{pending.OperationId}' could not publish its exact fluid outcome.");
+            }
+            pending.Phase =
+                (int)ContainerWaterFeedCommitPhase.OutcomePublished;
+            stateStore.Touch();
+        }
+
+        if (!physicalDispositions.Acknowledge(
+                pending.PhysicalCommitId,
+                out _))
+        {
+            state.TransferStatus = new InfrastructureStatus(
+                InfrastructureStatusCode.InputDeliveryPending,
+                pending.OperationId);
+            return false;
+        }
+
+        state.NextContainerFeedOperationSequence = checked(
+            state.NextContainerFeedOperationSequence + 1);
+        state.PendingContainerFeed = new ContainerWaterFeedState();
+        state.TransferStatus = InfrastructureStatus.None;
+        stateStore.Touch();
+        return true;
     }
 
     private void RefreshWaterTransferSnapshots()

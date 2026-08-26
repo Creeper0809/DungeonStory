@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9090
+  id: 9091
   recipeId: recipe:advanced-medicine
   displayName: "\uACE0\uAE09 \uC57D\uD488"
   description: "\uACE0\uAE09 \uC57D\uD488 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -62,6 +63,8 @@ MonoBehaviour:
   - itemId: resource:milk
     amount: 1
   outputs:
-  - itemId: medicine:advanced
+  - outputLineId: output:recipe:advanced-medicine/000/main/medicine:advanced
+    role: 0
+    itemId: medicine:advanced
     amount: 1
     probability: 1

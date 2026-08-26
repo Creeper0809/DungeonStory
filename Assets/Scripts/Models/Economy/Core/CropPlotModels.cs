@@ -69,6 +69,23 @@ public sealed class CropPlotSnapshot
     public string BlockedReason { get; set; } = string.Empty;
     public string GoldenHarvestHarvesterId { get; set; } = string.Empty;
     public int GoldenHarvestAttemptSequence { get; set; }
+    public bool TreatmentScheduled { get; set; }
+    public CropTreatmentOrderPhase TreatmentPhase { get; set; }
+    public string TreatmentItemId { get; set; } = string.Empty;
+    public string TreatmentItemName { get; set; } = string.Empty;
+    public CropTreatmentKind TreatmentKind { get; set; }
+    public int TreatmentRequiredQuantity { get; set; }
+    public int TreatmentDeliveredQuantity { get; set; }
+    public float TreatmentRequiredWork { get; set; }
+    public float TreatmentCompletedWork { get; set; }
+    public float TreatmentEffectAmount { get; set; }
+    public int TreatmentCooldownDays { get; set; }
+    public string TreatmentDestinationId { get; set; } = string.Empty;
+    public string TreatmentFailureReason { get; set; } = string.Empty;
+    public int CurrentAbsoluteDay { get; set; }
+    public int PestLureNextAllowedDay { get; set; }
+    public int BotanicalPesticideNextAllowedDay { get; set; }
+    public int FungicideNextAllowedDay { get; set; }
 }
 
 public readonly struct CropPlotVisualState
@@ -98,6 +115,8 @@ public readonly struct CropPlotVisualState
 public sealed class CropPlotSaveData
 {
     public string buildingInstanceId = string.Empty;
+    public int lastKnownGridX;
+    public int lastKnownGridY;
     public string cropId = string.Empty;
     public CropPlotPhase phase;
     public float sowWork;
@@ -106,12 +125,187 @@ public sealed class CropPlotSaveData
     public bool materialsConsumed;
     public string goldenHarvestHarvesterId = string.Empty;
     public int goldenHarvestAttemptSequence;
+    public int nextSowOperationSequence;
+    public CropPhysicalCommitSaveData pendingSow = new();
+    public int nextTreatmentOperationSequence;
+    public int pestLureNextAllowedDay;
+    public int botanicalPesticideNextAllowedDay;
+    public int fungicideNextAllowedDay;
+    public CropTreatmentOrderSaveData treatment = new();
+}
+
+public enum CropTreatmentOrderPhase
+{
+    None = 0,
+    WaitingForDelivery = 1,
+    ReadyForWork = 2,
+    Working = 3,
+    InputCommitted = 4,
+    OutcomePublished = 5,
+    PlotDestroyedLossPending = 6
+}
+
+public enum CropTreatmentTerminalDisposition
+{
+    None = 0,
+    DestroyedWithPlotLoss = 1
+}
+
+[Serializable]
+public sealed class CropTreatmentOrderSaveData
+{
+    public CropTreatmentOrderPhase phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string destinationId = string.Empty;
+    public string itemId = string.Empty;
+    public CropTreatmentKind treatmentKind;
+    public int quantity;
+    public float requiredWork;
+    public float completedWork;
+    public float effectAmount;
+    public int cooldownDays;
+    public int scheduledAbsoluteDay;
+    public string failureReason = string.Empty;
+    public List<string> sourceStackIds = new();
+    public long inputMassGrams;
+    public string commitId = string.Empty;
+    public string requestFingerprint = string.Empty;
+    public int tareOutputQuantity;
+    public long tareOutputMassGrams;
+    public long destroyedTareMassGrams;
+    public List<string> tareOutputCommitIds = new();
+    public string ecologyBeforeFingerprint = string.Empty;
+    public string ecologyAfterFingerprint = string.Empty;
+    public CropTreatmentTerminalDisposition terminalDisposition;
+    public string terminalReasonCode = string.Empty;
+    public int terminalLossQuantity;
+    public long terminalLossMassGrams;
+
+    public CropTreatmentOrderSaveData DeepClone() => new()
+    {
+        phase = phase,
+        operationSequence = operationSequence,
+        operationId = operationId ?? string.Empty,
+        reasonCode = reasonCode ?? string.Empty,
+        destinationId = destinationId ?? string.Empty,
+        itemId = itemId ?? string.Empty,
+        treatmentKind = treatmentKind,
+        quantity = quantity,
+        requiredWork = requiredWork,
+        completedWork = completedWork,
+        effectAmount = effectAmount,
+        cooldownDays = cooldownDays,
+        scheduledAbsoluteDay = scheduledAbsoluteDay,
+        failureReason = failureReason ?? string.Empty,
+        sourceStackIds = new List<string>(sourceStackIds ?? new List<string>()),
+        inputMassGrams = inputMassGrams,
+        commitId = commitId ?? string.Empty,
+        requestFingerprint = requestFingerprint ?? string.Empty,
+        tareOutputQuantity = tareOutputQuantity,
+        tareOutputMassGrams = tareOutputMassGrams,
+        destroyedTareMassGrams = destroyedTareMassGrams,
+        tareOutputCommitIds = new List<string>(
+            tareOutputCommitIds ?? new List<string>()),
+        ecologyBeforeFingerprint = ecologyBeforeFingerprint ?? string.Empty,
+        ecologyAfterFingerprint = ecologyAfterFingerprint ?? string.Empty,
+        terminalDisposition = terminalDisposition,
+        terminalReasonCode = terminalReasonCode ?? string.Empty,
+        terminalLossQuantity = terminalLossQuantity,
+        terminalLossMassGrams = terminalLossMassGrams
+    };
+}
+
+public enum CropPhysicalCommitPhase
+{
+    None = 0,
+    InputCommitted = 1,
+    OutcomePublished = 2,
+    PlotDestroyedLossPending = 3
+}
+
+public enum CropWipTerminalDisposition
+{
+    None = 0,
+    DestroyedWithPlotLoss = 1
+}
+
+[Serializable]
+public sealed class CropPhysicalInputSaveData
+{
+    public string itemId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public int quantity;
+
+    public CropPhysicalInputSaveData DeepClone() => new()
+    {
+        itemId = itemId ?? string.Empty,
+        sourceStackId = sourceStackId ?? string.Empty,
+        quantity = quantity
+    };
+}
+
+/// <summary>
+/// Domain-owned half of a pending physical input disposition. The matching
+/// item receipt remains unacknowledged until the crop outcome is published.
+/// </summary>
+[Serializable]
+public sealed class CropPhysicalCommitSaveData
+{
+    public CropPhysicalCommitPhase phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string destinationId = string.Empty;
+    public string cropId = string.Empty;
+    public string seedItemId = string.Empty;
+    public int inputQuantity;
+    public long inputMassGrams;
+    public string commitId = string.Empty;
+    public string requestFingerprint = string.Empty;
+    public bool hasSeedLot;
+    public SeedLotState seedLot;
+    public string ecologyBeforeFingerprint = string.Empty;
+    public string ecologyAfterFingerprint = string.Empty;
+    public CropWipTerminalDisposition terminalDisposition;
+    public string terminalOperationId = string.Empty;
+    public string terminalReasonCode = string.Empty;
+    public int terminalLossQuantity;
+    public long terminalLossMassGrams;
+    public List<CropPhysicalInputSaveData> inputs = new();
+
+    public CropPhysicalCommitSaveData DeepClone() => new()
+    {
+        phase = phase,
+        operationSequence = operationSequence,
+        operationId = operationId ?? string.Empty,
+        reasonCode = reasonCode ?? string.Empty,
+        destinationId = destinationId ?? string.Empty,
+        cropId = cropId ?? string.Empty,
+        seedItemId = seedItemId ?? string.Empty,
+        inputQuantity = inputQuantity,
+        inputMassGrams = inputMassGrams,
+        commitId = commitId ?? string.Empty,
+        requestFingerprint = requestFingerprint ?? string.Empty,
+        hasSeedLot = hasSeedLot,
+        seedLot = hasSeedLot ? seedLot?.Clone() : null,
+        ecologyBeforeFingerprint = ecologyBeforeFingerprint ?? string.Empty,
+        ecologyAfterFingerprint = ecologyAfterFingerprint ?? string.Empty,
+        terminalDisposition = terminalDisposition,
+        terminalOperationId = terminalOperationId ?? string.Empty,
+        terminalReasonCode = terminalReasonCode ?? string.Empty,
+        terminalLossQuantity = terminalLossQuantity,
+        terminalLossMassGrams = terminalLossMassGrams,
+        inputs = (inputs ?? new List<CropPhysicalInputSaveData>())
+            .ConvertAll(value => value?.DeepClone())
+    };
 }
 
 [Serializable]
 public sealed class DungeonCropPlotSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
     public List<CropPlotSaveData> plots = new List<CropPlotSaveData>();
@@ -125,6 +319,17 @@ public interface ICropPlotRuntime
     bool TrySetCrop(
         BuildableObject plot,
         string cropId,
+        out string message);
+    bool CanScheduleTreatment(
+        BuildableObject plot,
+        string treatmentItemId,
+        out string reason);
+    bool TryScheduleTreatment(
+        BuildableObject plot,
+        string treatmentItemId,
+        out string message);
+    bool TryCancelTreatment(
+        BuildableObject plot,
         out string message);
     bool TryGetWork(
         BuildableObject plot,

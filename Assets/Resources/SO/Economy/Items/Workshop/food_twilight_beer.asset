@@ -27,23 +27,23 @@ MonoBehaviour:
   description: "\uC791\uC5C5\uC2E4\uC758 \uB2E4\uC74C \uACF5\uC815\uC73C\uB85C \uC2E4\uC81C
     \uC6B4\uBC18\uB418\uB294 \uBB3C\uB9AC \uC911\uAC04\uC7AC."
   stockCategory: 0
-  unitWeight: 0.5
+  unitWeight: 0.475
   maxStack: 50
   sprite: {fileID: 0}
   unitPrice: 21
   features:
-  - rid: 7737212042831200807
-  - rid: 7737212042831200808
-  - rid: 7737212042831200809
   - rid: 7737212042857939929
+  - rid: 1003
+  - rid: 1004
+  - rid: 1005
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200807
+    - rid: 1003
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:fermentation
-    - rid: 7737212042831200808
+    - rid: 1004
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:twilight-beer
@@ -56,7 +56,7 @@ MonoBehaviour:
         workSpeedEffect: -0.02
         combatEffect: -0.02
         durationSeconds: 180
-    - rid: 7737212042831200809
+    - rid: 1005
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
@@ -65,4 +65,4 @@ MonoBehaviour:
     - rid: 7737212042857939929
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5973333
+        saleRate: 0.59911114

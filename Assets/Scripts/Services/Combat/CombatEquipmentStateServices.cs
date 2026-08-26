@@ -10,10 +10,50 @@ internal sealed class CombatEquipmentRuntimeState
     internal List<CombatEquipmentCraftOrderSaveData> CraftOrders { get; } = new();
     internal Dictionary<string, CombatEquipmentCraftMaterialPolicySaveData>
         CraftMaterialPolicies { get; } = new(StringComparer.Ordinal);
+    internal Dictionary<string, CombatEquipmentCraftTerminalEffectSaveData>
+        CraftTerminalEffects { get; } = new(StringComparer.Ordinal);
     internal List<EquipmentHistoryTransferOrder> HistoryTransferOrders { get; } =
         new();
     internal HashSet<string> ClaimedLineageSealRegionIds { get; } =
         new(StringComparer.Ordinal);
+
+    internal CombatEquipmentRuntimeState Clone()
+    {
+        CombatEquipmentRuntimeState clone = new()
+        {
+            NextCraftSequence = NextCraftSequence
+        };
+        foreach (KeyValuePair<string, CharacterCombatLoadoutState> pair in
+                 Loadouts)
+            clone.Loadouts.Add(pair.Key, CloneLoadout(pair.Value));
+        clone.CraftOrders.AddRange(CraftOrders.Select(value => value?.Clone()));
+        foreach (KeyValuePair<string,
+                     CombatEquipmentCraftMaterialPolicySaveData> pair in
+                 CraftMaterialPolicies)
+            clone.CraftMaterialPolicies.Add(pair.Key, pair.Value?.Clone());
+        foreach (KeyValuePair<string,
+                     CombatEquipmentCraftTerminalEffectSaveData> pair in
+                 CraftTerminalEffects)
+            clone.CraftTerminalEffects.Add(pair.Key, pair.Value?.Clone());
+        clone.HistoryTransferOrders.AddRange(
+            HistoryTransferOrders.Select(value => value?.Clone()));
+        foreach (string id in ClaimedLineageSealRegionIds)
+            clone.ClaimedLineageSealRegionIds.Add(id);
+        return clone;
+    }
+
+    private static CharacterCombatLoadoutState CloneLoadout(
+        CharacterCombatLoadoutState source) => source == null
+        ? null
+        : new CharacterCombatLoadoutState
+        {
+            characterId = source.characterId ?? string.Empty,
+            activeProfileId = source.activeProfileId
+                ?? CombatLoadoutPresetIds.Peace,
+            profiles = source.profiles?.Select(value => value?.Clone())
+                .Where(value => value != null).ToList()
+                ?? new List<CharacterCombatLoadoutProfile>()
+        };
 }
 
 public sealed class CombatEquipmentRestoreCandidate

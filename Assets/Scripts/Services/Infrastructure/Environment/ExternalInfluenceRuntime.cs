@@ -32,11 +32,13 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
         public CoreSessionRulesDefinition Rules { get; }
     }
 
-    public const string TrailCharmItemId = "resource:trail-charm";
+    public const string TrailCharmItemId =
+        ExternalInfluenceTrailCharmSaveContract.TrailCharmItemId;
 
     private readonly IGameEventBus events;
     private readonly IGameMoneyAccount money;
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private readonly ItemDefinitionId trailCharmItemId;
     private readonly IWildlifeRuntime wildlife;
     private readonly ISurvivalEnvironmentQuery survival;
@@ -57,6 +59,7 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
         IGameEventBus events,
         IGameMoneyAccount money,
         IWorldItemStackRuntime items,
+        IPhysicalItemBatchDispositionService batchDispositions,
         IItemDefinitionCatalog itemDefinitions,
         IWildlifeRuntime wildlife,
         ISurvivalEnvironmentQuery survival,
@@ -66,6 +69,8 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.batchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
         trailCharmItemId = (itemDefinitions
                 ?? throw new ArgumentNullException(nameof(itemDefinitions)))
             .GetRequired((ItemDefinitionId)TrailCharmItemId)
@@ -296,6 +301,18 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             return false;
         }
 
+        if (ExternalInfluenceTrailCharmOutbox.HasPending(state)
+            && !ExternalInfluenceTrailCharmOutbox.TryFinalizePending(
+                aggregateState,
+                batchDispositions,
+                out string pendingFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.ExternalPaymentRejected,
+                pendingFailure);
+            return false;
+        }
+
         if (ExternalInfluenceDomainRules.IsIntelUnlocked(
                 aggregateState,
                 normalized))
@@ -313,7 +330,7 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             ExpeditionIntelPaymentMethod.ScoutingLabor =>
                 TrySpendScouting(out failure),
             ExpeditionIntelPaymentMethod.TrailCharm =>
-                TryConsumeTrailCharm(out failure),
+                TryConsumeTrailCharm(normalized, out failure),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(payment),
                 payment,
@@ -324,9 +341,12 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             return false;
         }
 
-        ExternalInfluenceDomainRules.UnlockIntel(
-            aggregateState,
-            normalized);
+        if (payment != ExpeditionIntelPaymentMethod.TrailCharm)
+        {
+            ExternalInfluenceDomainRules.UnlockIntel(
+                aggregateState,
+                normalized);
+        }
         failure = DomainFailure.None;
         return true;
     }
@@ -422,6 +442,16 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             restored.DreadAffectedIntruders.Add(id);
         }
         stateStore.Replace(restored);
+        if (ExternalInfluenceTrailCharmOutbox.HasPending(restored.Data)
+            && !ExternalInfluenceTrailCharmOutbox.TryFinalizePending(
+                restored,
+                batchDispositions,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "External-influence trail-charm restore reconciliation failed: "
+                + failureReason);
+        }
     }
 
     public void Reset()
@@ -609,23 +639,53 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             out failure);
     }
 
-    private bool TryConsumeTrailCharm(out DomainFailure failure)
+    private bool TryConsumeTrailCharm(
+        string siteId,
+        out DomainFailure failure)
     {
         WorldItemStackSnapshot charm = items.GetAllStacks()
-            .FirstOrDefault(stack => stack != null
+            .Where(stack => stack != null
                 && !stack.Forbidden
                 && string.Equals(
                     stack.ItemId,
                     trailCharmItemId.Value,
                     StringComparison.Ordinal)
-                && stack.Quantity > 0);
+                && stack.Quantity > 0)
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        string operationId =
+            ExternalInfluenceTrailCharmOutbox.FormatOperationId(siteId);
+        string commitFailure = string.Empty;
         if (charm == null
-            || !items.TryConsumeStackQuantity(
-                charm.StackId,
-                1,
-                out _))
+            || !batchDispositions.TryCommitPending(
+                new[] { new PhysicalItemTransformInput(charm.StackId, 1) },
+                PhysicalItemDispositionKind.Sink,
+                operationId,
+                ExternalInfluenceTrailCharmOutbox.ReasonCode,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out commitFailure))
         {
-            failure = new DomainFailure(FailureCode.TrailCharmMissing);
+            failure = charm == null
+                ? new DomainFailure(FailureCode.TrailCharmMissing)
+                : new DomainFailure(
+                    FailureCode.ExternalPaymentRejected,
+                    commitFailure);
+            return false;
+        }
+
+        ExternalInfluenceTrailCharmOutbox.RecordPending(
+            state,
+            siteId,
+            trailCharmItemId.Value,
+            receipt);
+        if (!ExternalInfluenceTrailCharmOutbox.TryFinalizePending(
+                aggregateState,
+                batchDispositions,
+                out string finalizeFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.ExternalPaymentRejected,
+                finalizeFailure);
             return false;
         }
 

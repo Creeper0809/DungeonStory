@@ -557,10 +557,25 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
 
         ItemDefinitionId itemId = new(itemDefinitionId);
         if (!itemId.IsValid
-            || !itemRuntime.CatalogProvider.TryGetDefinition(itemId.Value, out _))
+            || !itemRuntime.CatalogProvider.TryGetDefinition(
+                itemId.Value,
+                out DungeonItemDefinition definition))
         {
             throw new InvalidOperationException(
                 $"Building visitor received unknown physical item '{itemDefinitionId}'.");
+        }
+
+        // Building interactions with external visitors end at the dungeon
+        // economy boundary. A MaxStack-one/stateful item needs a real instance
+        // and component payload; a definition-only transient carry entry would
+        // mint an invalid equipment/apparel identity. Exact-instance retail and
+        // theft handoff is deliberately deferred to the typed disposition slice.
+        if (definition.MaxStack == 1
+            || PhysicalItemIds.TryGetEquipmentDefinitionId(
+                itemId.Value,
+                out _))
+        {
+            return;
         }
 
         inventory.TryAdd(

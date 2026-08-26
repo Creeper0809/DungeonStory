@@ -149,6 +149,7 @@ internal static class WorkOrderSaveValidation
                 orderId,
                 report,
                 itemDefinitionExists);
+            ValidateMaterialTransfer(order, orderId, report);
             ValidateMaterialList(
                 order.recoveryOutputs,
                 $"Work order '{orderId}' recovery outputs",
@@ -327,6 +328,136 @@ internal static class WorkOrderSaveValidation
             }
         }
     }
+
+    private static void ValidateMaterialTransfer(
+        WorkOrderSaveData order,
+        string orderId,
+        DungeonGameRestoreReport report)
+    {
+        WorkOrderMaterialTransferSaveData owner = order.materialTransfer;
+        if (owner == null
+            || !Enum.IsDefined(
+                typeof(WorkOrderMaterialTransferPhase),
+                owner.phase))
+        {
+            report.AddError(
+                $"Work order '{orderId}' has invalid material custody state.");
+            return;
+        }
+
+        bool hasRequirements = (order.itemMaterials?.Count ?? 0) > 0;
+        bool deliveredNone = !hasRequirements
+            || order.itemMaterials.All(value => value != null
+                && value.delivered == 0);
+        bool deliveredAll = hasRequirements
+            && order.itemMaterials.All(value => value != null
+                && value.delivered == value.required);
+        if (owner.phase == WorkOrderMaterialTransferPhase.None)
+        {
+            if (!deliveredNone
+                || !IsEmpty(owner.operationId)
+                || !IsEmpty(owner.reasonCode)
+                || !IsEmpty(owner.requestFingerprint)
+                || !IsEmpty(owner.commitId)
+                || owner.inputQuantity != 0
+                || owner.inputMassGrams != 0L
+                || (owner.sources?.Count ?? 0) != 0
+                || !IsEmpty(owner.restitutionOperationId))
+            {
+                report.AddError(
+                    $"Work order '{orderId}' has non-empty material custody without an owner phase.");
+            }
+            return;
+        }
+
+        if (!hasRequirements
+            || !IsCanonical(owner.operationId)
+            || !string.Equals(
+                owner.operationId,
+                WorkOrderMaterialOutbox.OperationPrefix + orderId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.reasonCode,
+                WorkOrderMaterialOutbox.TransferReasonCode,
+                StringComparison.Ordinal)
+            || !IsCanonical(owner.requestFingerprint)
+            || !IsCanonical(owner.commitId)
+            || owner.inputQuantity <= 0
+            || owner.inputMassGrams <= 0L
+            || owner.sources == null
+            || owner.sources.Count == 0
+            || (owner.phase == WorkOrderMaterialTransferPhase.InputCommitted
+                ? !deliveredNone
+                : !deliveredAll)
+            || (owner.phase == WorkOrderMaterialTransferPhase.RestitutionPending
+                ? !string.Equals(
+                    owner.restitutionOperationId,
+                    WorkOrderMaterialOutbox.RestitutionOperationPrefix + orderId,
+                    StringComparison.Ordinal)
+                : !IsEmpty(owner.restitutionOperationId)))
+        {
+            report.AddError(
+                $"Work order '{orderId}' has inconsistent material custody provenance.");
+            return;
+        }
+
+        HashSet<string> stackIds = new(StringComparer.Ordinal);
+        string previousItem = string.Empty;
+        string previousStack = string.Empty;
+        Dictionary<string, int> byItem = new(StringComparer.Ordinal);
+        long totalQuantity = 0L;
+        foreach (WorkOrderMaterialSourceSaveData source in owner.sources)
+        {
+            bool ordered = previousItem.Length == 0
+                || string.CompareOrdinal(previousItem, source?.itemId) < 0
+                || (string.Equals(
+                        previousItem,
+                        source?.itemId,
+                        StringComparison.Ordinal)
+                    && string.CompareOrdinal(previousStack, source?.stackId) < 0);
+            if (source == null
+                || !IsCanonical(source.itemId)
+                || !IsCanonical(source.stackId)
+                || source.quantity <= 0
+                || !stackIds.Add(source.stackId)
+                || !ordered)
+            {
+                report.AddError(
+                    $"Work order '{orderId}' has invalid or unsorted material sources.");
+                return;
+            }
+            previousItem = source.itemId;
+            previousStack = source.stackId;
+            byItem[source.itemId] = checked(
+                byItem.TryGetValue(source.itemId, out int current)
+                    ? current + source.quantity
+                    : source.quantity);
+            totalQuantity = checked(totalQuantity + source.quantity);
+        }
+
+        Dictionary<string, int> requirements = order.itemMaterials
+            .ToDictionary(
+                value => value.itemId,
+                value => value.required,
+                StringComparer.Ordinal);
+        if (totalQuantity != owner.inputQuantity
+            || byItem.Count != requirements.Count
+            || byItem.Any(pair => !requirements.TryGetValue(
+                    pair.Key,
+                    out int required)
+                || required != pair.Value))
+        {
+            report.AddError(
+                $"Work order '{orderId}' material sources do not match its authored BOM.");
+        }
+    }
+
+    private static bool IsCanonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsEmpty(string value) =>
+        string.IsNullOrEmpty(value);
 
     private static void ValidateWorkerPolicy(
         WorkOrderSaveData order,

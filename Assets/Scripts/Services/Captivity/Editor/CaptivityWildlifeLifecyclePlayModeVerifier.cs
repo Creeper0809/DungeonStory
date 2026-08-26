@@ -171,6 +171,9 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
     private ICaptivityPersistence captivityPersistence;
     private ICircusPersistence circusPersistence;
     private IWildlifeCaptureRuntime capture;
+    private IWorldItemStackRuntime itemRuntime;
+    private IPhysicalItemBatchDispositionService batchDispositions;
+    private IResourceEconomyContentCatalog resourceCatalog;
     private WildlifeRuntime wildlife;
     private IWildlifeSpeciesCatalogProvider wildlifeSpecies;
     private IAnimalHusbandryPersistence husbandryPersistence;
@@ -325,6 +328,11 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         escape = scope.Container.Resolve<ICaptivityEscapeRuntime>();
         circusPersistence = scope.Container.Resolve<ICircusPersistence>();
         capture = scope.Container.Resolve<IWildlifeCaptureRuntime>();
+        itemRuntime = scope.Container.Resolve<IWorldItemStackRuntime>();
+        batchDispositions =
+            scope.Container.Resolve<IPhysicalItemBatchDispositionService>();
+        resourceCatalog =
+            scope.Container.Resolve<IResourceEconomyContentCatalog>();
         wildlife = scope.Container.Resolve<WildlifeRuntime>();
         wildlifeSpecies = scope.Container.Resolve<IWildlifeSpeciesCatalogProvider>();
         husbandryPersistence = scope.Container.Resolve<IAnimalHusbandryPersistence>();
@@ -2181,7 +2189,44 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         Check(animal != null, "ANIMAL_CARE_SOURCE", animal?.WildlifeId ?? "missing");
         if (animal == null || workerWork == null) yield break;
         animal.SetCaptured(true);
+        animal.ChangeHunger(0.9f - animal.Hunger);
+        animal.ChangeThirst(-animal.Thirst);
         string penId = pen.RequirePersistentInstanceId().Value;
+        string feedItemId = ResolveAuthoredFeedItemId(animal);
+        long expectedFeedMass = string.IsNullOrEmpty(feedItemId)
+            ? 0L
+            : itemRuntime.MassQuery
+                .GetDefinitionUnitMass((ItemDefinitionId)feedItemId)
+                .Value;
+        int feedQuantityBefore = CountFacilityItem(penId, feedItemId);
+        bool feedSpawned = !string.IsNullOrEmpty(feedItemId)
+            && itemRuntime.SpawnItemAt(
+                feedItemId,
+                1,
+                pen.centerPos,
+                WorldItemStackState.FacilityBuffer,
+                penId,
+                out int spawnedFeed)
+            && spawnedFeed == 1;
+        WorldItemStackSnapshot feedSource = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(stack.DestinationId, penId, StringComparison.Ordinal)
+                && string.Equals(stack.ItemId, feedItemId, StringComparison.Ordinal))
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        Check(feedSpawned
+              && feedSource != null
+              && expectedFeedMass > 0L,
+            "ANIMAL_CARE_FEED_SOURCE_PHYSICAL",
+            $"item={feedItemId};spawned={feedSpawned};"
+            + $"stack={feedSource?.StackId};mass={expectedFeedMass};"
+            + $"before={feedQuantityBefore};after={CountFacilityItem(penId, feedItemId)}");
+        if (!feedSpawned || feedSource == null || expectedFeedMass <= 0L)
+        {
+            yield break;
+        }
+        float feedHungerBefore = animal.Hunger;
         CircusSaveData circus = Clone(circusPersistence.Capture());
         circus.capturedWildlife.RemoveAll(item =>
             item != null && item.wildlifeId == animal.WildlifeId);
@@ -2198,6 +2243,73 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             lastCareStatus = "qa-penned"
         });
         Check(RestoreCircus(circus), "ANIMAL_CARE_CIRCUS_V18_RESTORE", animal.WildlifeId);
+
+        string feedOperationId = CapturedWildlifeFeedOutbox.FormatOperationId(
+            animal.WildlifeId,
+            1);
+        string expectedFeedCommitId =
+            $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Sink}:"
+            + $"{feedOperationId}:1:{expectedFeedMass}";
+        bool feedCommitted = false;
+        CapturedWildlifeState fedState = null;
+        yield return WaitUntil(() =>
+        {
+            feedCommitted = capture.TryGetCaptured(animal.WildlifeId, out fedState)
+                && fedState != null
+                && fedState.nextFeedOperationSequence == 1
+                && string.Equals(
+                    animal.LastCaptiveFeedCommitId,
+                    expectedFeedCommitId,
+                    StringComparison.Ordinal)
+                && !CapturedWildlifeFeedOutbox.HasPending(fedState);
+            return feedCommitted;
+        }, 5f);
+        int feedQuantityAfter = CountFacilityItem(penId, feedItemId);
+        float expectedHungerAfter = Mathf.Clamp01(feedHungerBefore - 0.72f);
+        bool physicalSinkExact = feedCommitted
+            && feedQuantityAfter == feedQuantityBefore
+            && !batchDispositions.TryGetPending(feedOperationId, out _)
+            && Mathf.Abs(animal.Hunger - expectedHungerAfter) <= 0.03f;
+        Check(physicalSinkExact,
+            "ANIMAL_CARE_FEED_SINK_EXACT",
+            $"item={feedItemId};quantity={feedQuantityBefore + 1}->{feedQuantityAfter};"
+            + $"hunger={feedHungerBefore:0.####}->{animal.Hunger:0.####};"
+            + $"expected={expectedHungerAfter:0.####};commit={animal.LastCaptiveFeedCommitId};"
+            + $"pending={batchDispositions.TryGetPending(feedOperationId, out _)}");
+        bool outboxClean = feedCommitted
+            && fedState.nextFeedOperationSequence == 1
+            && CapturedWildlifeFeedOutbox.HasEmptyProvenance(fedState)
+            && string.Equals(fedState.lastFeedItemId, feedItemId, StringComparison.Ordinal)
+            && Mathf.Approximately(fedState.lastFeedDiseaseChance, 0f);
+        Check(outboxClean,
+            "ANIMAL_CARE_FEED_OUTBOX_CLEAN",
+            $"sequence={fedState?.nextFeedOperationSequence};"
+            + $"phase={fedState?.pendingFeedPhase};item={fedState?.lastFeedItemId};"
+            + $"disease={fedState?.lastFeedDiseaseChance:0.####}");
+        CapturedWildlifeState savedFeedState = circusPersistence.Capture()
+            .capturedWildlife
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.wildlifeId,
+                    animal.WildlifeId,
+                    StringComparison.Ordinal));
+        WildlifeSaveData savedFeedActor = animal.Capture();
+        Check(savedFeedState != null
+              && savedFeedState.nextFeedOperationSequence == 1
+              && CapturedWildlifeFeedOutbox.HasEmptyProvenance(savedFeedState)
+              && string.Equals(
+                  savedFeedActor.lastCaptiveFeedCommitId,
+                  expectedFeedCommitId,
+                  StringComparison.Ordinal),
+            "ANIMAL_CARE_FEED_SAVE_EXACT",
+            $"state={savedFeedState != null};"
+            + $"sequence={savedFeedState?.nextFeedOperationSequence};"
+            + $"phase={savedFeedState?.pendingFeedPhase};"
+            + $"actorCommit={savedFeedActor.lastCaptiveFeedCommitId}");
+        if (!physicalSinkExact || !outboxClean || savedFeedState == null)
+        {
+            yield break;
+        }
 
         DungeonAnimalHusbandrySaveData husbandry = new();
         husbandry.penPolicies.Add(new AnimalPenPolicySaveData
@@ -3763,6 +3875,72 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             .Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
             .FirstOrDefault(data => data != null && predicate(data));
+
+    private string ResolveAuthoredFeedItemId(WildlifeActor animal)
+    {
+        WildlifeDietType diet = wildlifeSpecies.TryGetSpecies(
+                animal.SpeciesId,
+                out WildlifeSpeciesDefinition species)
+            ? species.Diet
+            : WildlifeDietType.Omnivore;
+        string preferred = diet == WildlifeDietType.Herbivore
+            ? "feed:hay"
+            : "feed:dog-food";
+        if (resourceCatalog.TryGetItem(
+                preferred,
+                out ResourceItemDefinitionSO authored)
+            && IsFeedAllowed(diet, authored.IngredientTags))
+        {
+            return authored.ItemId;
+        }
+
+        return resourceCatalog.Items
+            .Where(item => item != null
+                && item.StockCategory == StockCategory.Food
+                && IsFeedAllowed(diet, item.IngredientTags))
+            .OrderBy(item => item.ItemId, StringComparer.Ordinal)
+            .Select(item => item.ItemId)
+            .FirstOrDefault() ?? string.Empty;
+    }
+
+    private static bool IsFeedAllowed(
+        WildlifeDietType diet,
+        ResourceIngredientTag tags)
+    {
+        bool plant = (tags & (ResourceIngredientTag.Plant
+            | ResourceIngredientTag.Fungus)) != 0;
+        bool animal = (tags & (ResourceIngredientTag.Meat
+            | ResourceIngredientTag.Blood
+            | ResourceIngredientTag.Fat
+            | ResourceIngredientTag.Egg
+            | ResourceIngredientTag.Milk)) != 0;
+        bool spoiled = (tags & ResourceIngredientTag.Spoiled) != 0;
+        return diet switch
+        {
+            WildlifeDietType.Herbivore => plant && !animal,
+            WildlifeDietType.Carnivore => animal,
+            WildlifeDietType.Scavenger => animal || spoiled,
+            _ => plant || animal
+        };
+    }
+
+    private int CountFacilityItem(string destinationId, string itemId)
+    {
+        if (string.IsNullOrEmpty(destinationId)
+            || string.IsNullOrEmpty(itemId))
+        {
+            return 0;
+        }
+        return itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(
+                    stack.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal)
+                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal))
+            .Sum(stack => stack.Quantity);
+    }
 
     private WildlifeActor SpawnCaptureAnimal(Vector2Int near)
     {

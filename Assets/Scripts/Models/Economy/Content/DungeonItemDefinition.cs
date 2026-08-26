@@ -16,6 +16,9 @@ public sealed class DungeonItemDefinition
     [SerializeField] private int maxStack = 75;
     [SerializeField] private string equipmentId = string.Empty;
     [SerializeField] private ResourceItemKind resourceKind = ResourceItemKind.Raw;
+    [SerializeField] private int packageTareGrams;
+    [SerializeField] private PackageTareDisposition packageTareDisposition;
+    [SerializeField] private string packageContainerItemId = string.Empty;
 
     public string ItemId => itemId?.Trim() ?? string.Empty;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? ItemId : displayName.Trim();
@@ -27,6 +30,12 @@ public sealed class DungeonItemDefinition
     public int MaxStack => Mathf.Max(1, maxStack);
     public string EquipmentId => equipmentId?.Trim() ?? string.Empty;
     public ResourceItemKind ResourceKind => resourceKind;
+    public bool IsPackagedLot => packageTareGrams > 0;
+    public int PackageTareGrams => packageTareGrams;
+    public PackageTareDisposition PackageTareDisposition =>
+        packageTareDisposition;
+    public string PackageContainerItemId =>
+        packageContainerItemId ?? string.Empty;
 
     public DungeonItemDefinition()
     {
@@ -42,7 +51,11 @@ public sealed class DungeonItemDefinition
         float unitWeight,
         int maxStack,
         string equipmentId = "",
-        ResourceItemKind resourceKind = ResourceItemKind.Raw)
+        ResourceItemKind resourceKind = ResourceItemKind.Raw,
+        int packageTareGrams = 0,
+        PackageTareDisposition packageTareDisposition =
+            PackageTareDisposition.None,
+        string packageContainerItemId = "")
     {
         this.itemId = itemId;
         this.displayName = displayName;
@@ -54,5 +67,8 @@ public sealed class DungeonItemDefinition
         this.maxStack = Mathf.Max(1, maxStack);
         this.equipmentId = equipmentId ?? string.Empty;
         this.resourceKind = resourceKind;
+        this.packageTareGrams = packageTareGrams;
+        this.packageTareDisposition = packageTareDisposition;
+        this.packageContainerItemId = packageContainerItemId ?? string.Empty;
     }
 }

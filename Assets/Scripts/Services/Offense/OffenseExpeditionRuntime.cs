@@ -247,7 +247,9 @@ public class OffenseExpeditionRuntime :
     {
         return equipmentRuntime?.Instances
             .Where(instance => instance != null
-                && instance.worldState != CombatEquipmentWorldState.Lost)
+                && instance.worldState is not (
+                    CombatEquipmentWorldState.Lost
+                    or CombatEquipmentWorldState.RetailStock))
             .GroupBy(instance => instance.definitionId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal)
             ?? new Dictionary<string, int>(StringComparer.Ordinal);

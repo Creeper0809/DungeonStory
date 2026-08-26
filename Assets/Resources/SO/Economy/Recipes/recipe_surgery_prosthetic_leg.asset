@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -62,6 +63,8 @@ MonoBehaviour:
   - itemId: material:leather
     amount: 1
   outputs:
-  - itemId: surgery:prosthetic:leg:left
+  - outputLineId: output:recipe:surgery:prosthetic-leg/000/main/surgery:prosthetic:leg:left
+    role: 0
+    itemId: surgery:prosthetic:leg:left
     amount: 1
     probability: 1

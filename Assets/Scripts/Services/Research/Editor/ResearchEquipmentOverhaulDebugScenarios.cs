@@ -841,7 +841,10 @@ public static class ResearchEquipmentOverhaulDebugScenarios
             UnityEngine.Object.DestroyImmediate(progressionObject);
         }
 
-        CombatEquipmentSaveSection saveSection = new CombatEquipmentSaveSection(restored);
+        CombatEquipmentSaveSection saveSection = new CombatEquipmentSaveSection(
+            restored,
+            ProductionOutputLifecycleRestoreCandidatePublisher
+                .IsolatedSectionFixtureOnly);
         bool legacyRejected = false;
         try
         {

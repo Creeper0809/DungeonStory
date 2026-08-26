@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DungeonStory.Factions
 {
@@ -33,7 +34,9 @@ public static class FactionPayloadValidation
             report.AddError(
                 $"Faction payload version {data.version} is unsupported.");
         }
-        if (data.currentDay < 1 || data.routeSequence < 0)
+        if (data.currentDay < 1
+            || data.routeSequence < 0
+            || data.goodwillOperationSequence < 0)
         {
             report.AddError("Faction payload has an invalid day or route sequence.");
         }
@@ -125,6 +128,137 @@ public static class FactionPayloadValidation
                 report.AddError(
                     $"Faction '{factionId}' has an invalid trust or nonnegative counter.");
             }
+
+            ValidateRestitutionTransfer(faction, report);
+            ValidateGoodwillTransfer(
+                faction,
+                data.goodwillOperationSequence,
+                report);
+        }
+    }
+
+    private static void ValidateGoodwillTransfer(
+        DungeonFactionState faction,
+        int globalSequence,
+        ValidationErrors report)
+    {
+        string operationId = faction.goodwillTransferOperationId
+            ?? string.Empty;
+        string commitId = faction.goodwillTransferCommitId ?? string.Empty;
+        IReadOnlyList<string> sourceStackIds =
+            faction.goodwillTransferSourceStackIds;
+        if (operationId.Length == 0)
+        {
+            if (commitId.Length > 0
+                || sourceStackIds == null
+                || sourceStackIds.Count != 0
+                || faction.goodwillTransferSequence != 0
+                || faction.goodwillTransferQuantity != 0
+                || faction.goodwillTransferMassGrams != 0L
+                || faction.goodwillTransferredPhysicalValue != 0
+                || faction.goodwillCampaignRapportTarget != 0
+                || faction.goodwillTransferCompleted)
+            {
+                report.AddError(
+                    $"Faction '{faction.factionId}' has partial goodwill transfer provenance.");
+            }
+            return;
+        }
+
+        string expectedOperation =
+            $"faction-goodwill:{faction.factionId}:"
+            + $"{faction.goodwillTransferSequence:D8}";
+        bool sourcesCanonical = sourceStackIds != null
+            && sourceStackIds.Count > 0
+            && sourceStackIds.All(IsCanonical)
+            && sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                == sourceStackIds.Count
+            && sourceStackIds.SequenceEqual(
+                sourceStackIds.OrderBy(value => value, StringComparer.Ordinal),
+                StringComparer.Ordinal);
+        string expectedCommit =
+            $"physical-batch-disposition:1:{operationId}:"
+            + $"{faction.goodwillTransferQuantity}:"
+            + faction.goodwillTransferMassGrams;
+        if (faction.goodwillTransferSequence <= 0
+            || faction.goodwillTransferSequence > globalSequence
+            || !string.Equals(
+                operationId,
+                expectedOperation,
+                StringComparison.Ordinal)
+            || !IsCanonical(commitId)
+            || !string.Equals(
+                commitId,
+                expectedCommit,
+                StringComparison.Ordinal)
+            || !sourcesCanonical
+            || faction.goodwillTransferQuantity <= 0
+            || faction.goodwillTransferMassGrams <= 0L
+            || faction.goodwillTransferredPhysicalValue < 50
+            || faction.goodwillCampaignRapportTarget is < -100 or > 100
+            || faction.goodwillTransferCompleted && !faction.discovered)
+        {
+            report.AddError(
+                $"Faction '{faction.factionId}' has invalid goodwill transfer provenance.");
+        }
+    }
+
+    private static void ValidateRestitutionTransfer(
+        DungeonFactionState faction,
+        ValidationErrors report)
+    {
+        string operationId = faction.restitutionTransferOperationId
+            ?? string.Empty;
+        string commitId = faction.restitutionTransferCommitId ?? string.Empty;
+        IReadOnlyList<string> sourceStackIds =
+            faction.restitutionTransferSourceStackIds;
+        bool hasOperation = operationId.Length > 0;
+        if (!hasOperation)
+        {
+            if (commitId.Length > 0
+                || sourceStackIds == null
+                || sourceStackIds.Count != 0
+                || faction.restitutionTransferQuantity != 0
+                || faction.restitutionTransferMassGrams != 0L
+                || faction.restitutionTransferredPhysicalValue != 0
+                || faction.restitutionCampaignGrievanceTarget != 0
+                || faction.restitutionTransferCompleted)
+            {
+                report.AddError(
+                    $"Faction '{faction.factionId}' has partial restitution transfer provenance.");
+            }
+            return;
+        }
+
+        string expectedOperation =
+            $"faction-restitution:{faction.factionId}:scar:{faction.betrayalScars:D8}";
+        bool sourcesCanonical = sourceStackIds != null
+            && sourceStackIds.Count > 0
+            && sourceStackIds.All(IsCanonical)
+            && sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                == sourceStackIds.Count
+            && sourceStackIds.SequenceEqual(
+                sourceStackIds.OrderBy(value => value, StringComparer.Ordinal),
+                StringComparer.Ordinal);
+        string expectedCommit =
+            $"physical-batch-disposition:1:{operationId}:"
+            + $"{faction.restitutionTransferQuantity}:"
+            + faction.restitutionTransferMassGrams;
+        if (faction.betrayalScars <= 0
+            || !string.Equals(operationId, expectedOperation,
+                StringComparison.Ordinal)
+            || !IsCanonical(commitId)
+            || !string.Equals(commitId, expectedCommit,
+                StringComparison.Ordinal)
+            || !sourcesCanonical
+            || faction.restitutionTransferQuantity <= 0
+            || faction.restitutionTransferMassGrams <= 0L
+            || faction.restitutionTransferredPhysicalValue <= 0
+            || faction.restitutionCampaignGrievanceTarget is < 0 or > 100
+            || faction.restitutionTransferCompleted && !faction.restitutionPaid)
+        {
+            report.AddError(
+                $"Faction '{faction.factionId}' has invalid restitution transfer provenance.");
         }
     }
 

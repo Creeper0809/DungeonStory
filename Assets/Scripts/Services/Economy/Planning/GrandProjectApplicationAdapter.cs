@@ -10,6 +10,7 @@ public sealed class GrandProjectApplicationAdapter :
     private const string OfficeTag = "grand-project-office";
 
     private readonly IProductionItemGateway items;
+    private readonly IPhysicalFacilityItemBatchSinkGateway physicalSinks;
     private readonly IBuildingWorldQuery buildings;
     private readonly IWorldDropZoneQuery dropZones;
     private readonly BlueprintResearchRuntime research;
@@ -18,6 +19,7 @@ public sealed class GrandProjectApplicationAdapter :
 
     public GrandProjectApplicationAdapter(
         IProductionItemGateway items,
+        IPhysicalFacilityItemBatchSinkGateway physicalSinks,
         IBuildingWorldQuery buildings,
         IWorldDropZoneQuery dropZones,
         ProgressionSceneRuntimeReferences progressionRuntimes,
@@ -25,6 +27,8 @@ public sealed class GrandProjectApplicationAdapter :
         IFacilityCandidateCache facilityCandidates)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.physicalSinks = physicalSinks
+            ?? throw new ArgumentNullException(nameof(physicalSinks));
         this.buildings = buildings
             ?? throw new ArgumentNullException(nameof(buildings));
         this.dropZones = dropZones
@@ -91,11 +95,42 @@ public sealed class GrandProjectApplicationAdapter :
             out _);
     }
 
-    public bool ConsumeDelivered(
+    public bool CommitDeliveredMaterialsPending(
         string destinationId,
         IReadOnlyDictionary<string, int> costs,
+        string operationId,
+        string reasonCode,
+        out GrandProjectPhysicalInputReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        if (!physicalSinks.TryCommitSinkPending(
+                destinationId,
+                costs,
+                operationId,
+                reasonCode,
+                out PhysicalItemBatchDispositionReceipt physical,
+                out failureReason))
+            return false;
+        receipt = ToGrandProjectReceipt(physical);
+        return receipt.IsCommitted;
+    }
+
+    public bool TryGetPendingMaterials(
+        string operationId,
+        out GrandProjectPhysicalInputReceipt receipt)
+    {
+        receipt = default;
+        if (!physicalSinks.TryGetPending(operationId, out var physical))
+            return false;
+        receipt = ToGrandProjectReceipt(physical);
+        return receipt.IsCommitted;
+    }
+
+    public bool AcknowledgeMaterials(
+        string commitId,
         out string failureReason) =>
-        items.ConsumeDelivered(destinationId, costs, out failureReason);
+        physicalSinks.Acknowledge(commitId, out failureReason);
 
     public int ReleaseDestination(
         string destinationId,
@@ -123,4 +158,14 @@ public sealed class GrandProjectApplicationAdapter :
             && building.SupportsWork(BuiltInWorkTypeIds.GrandProject)
             && building.HasSemanticTag(OfficeTag);
     }
+
+    private static GrandProjectPhysicalInputReceipt ToGrandProjectReceipt(
+        PhysicalItemBatchDispositionReceipt receipt) => new(
+        receipt.OperationId,
+        receipt.ReasonCode,
+        receipt.RequestFingerprint,
+        receipt.CommitId,
+        receipt.Quantity,
+        receipt.InputMassGrams,
+        receipt.SourceStackIds);
 }

@@ -47,6 +47,247 @@ public interface IOffensePreparationService
         DungeonGameRestoreReport report = null);
 }
 
+public readonly struct OffenseSupplyCustodyReceipt
+{
+    public OffenseSupplyCustodyReceipt(
+        string operationId,
+        string reasonCode,
+        string commitId,
+        IReadOnlyList<string> sourceStackIds,
+        int quantity,
+        long massGrams)
+    {
+        OperationId = operationId ?? string.Empty;
+        ReasonCode = reasonCode ?? string.Empty;
+        CommitId = commitId ?? string.Empty;
+        SourceStackIds = (sourceStackIds ?? Array.Empty<string>())
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        Quantity = quantity;
+        MassGrams = massGrams;
+    }
+
+    public string OperationId { get; }
+    public string ReasonCode { get; }
+    public string CommitId { get; }
+    public IReadOnlyList<string> SourceStackIds { get; }
+    public int Quantity { get; }
+    public long MassGrams { get; }
+    public bool IsCommitted => IsCanonical(OperationId)
+        && IsCanonical(ReasonCode)
+        && IsCanonical(CommitId)
+        && SourceStackIds?.Count > 0
+        && SourceStackIds.All(IsCanonical)
+        && SourceStackIds.Distinct(StringComparer.Ordinal).Count()
+            == SourceStackIds.Count
+        && SourceStackIds.SequenceEqual(
+            SourceStackIds.OrderBy(value => value, StringComparer.Ordinal),
+            StringComparer.Ordinal)
+        && Quantity > 0
+        && MassGrams > 0L;
+
+    private static bool IsCanonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+}
+
+public interface IOffenseSupplyPhysicalCustodyGateway
+{
+    bool TryCommitTransferPending(
+        string destinationId,
+        IReadOnlyDictionary<string, int> costs,
+        string operationId,
+        string reasonCode,
+        out OffenseSupplyCustodyReceipt receipt,
+        out string failureReason);
+
+    bool TryGetPending(
+        string operationId,
+        out OffenseSupplyCustodyReceipt receipt);
+
+    bool AcknowledgeTransfer(string commitId, out string failureReason);
+
+    bool TryEnsureReturnOutputs(
+        IReadOnlyDictionary<string, int> outputs,
+        Vector2Int outputPosition,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemSourcePublicationReceipt receipt,
+        out string failureReason);
+}
+
+public sealed class OffenseSupplyPhysicalCustodyGateway :
+    IOffenseSupplyPhysicalCustodyGateway
+{
+    private readonly IStockQuery stock;
+    private readonly IPhysicalItemBatchDispositionService dispositions;
+    private readonly IPhysicalItemSourcePublicationService sources;
+
+    public OffenseSupplyPhysicalCustodyGateway(
+        IStockQuery stock,
+        IPhysicalItemBatchDispositionService dispositions,
+        IPhysicalItemSourcePublicationService sources)
+    {
+        this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
+        this.dispositions = dispositions
+            ?? throw new ArgumentNullException(nameof(dispositions));
+        this.sources = sources ?? throw new ArgumentNullException(nameof(sources));
+    }
+
+    public bool TryCommitTransferPending(
+        string destinationId,
+        IReadOnlyDictionary<string, int> costs,
+        string operationId,
+        string reasonCode,
+        out OffenseSupplyCustodyReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        if (TryGetPending(operationId, out OffenseSupplyCustodyReceipt existing))
+        {
+            int expected = (costs ?? new Dictionary<string, int>())
+                .Where(pair => pair.Value > 0)
+                .Sum(pair => pair.Value);
+            if (existing.Quantity != expected
+                || !string.Equals(
+                    existing.ReasonCode,
+                    reasonCode,
+                    StringComparison.Ordinal))
+            {
+                failureReason =
+                    "offense-supply-custody-operation-conflict:"
+                    + operationId;
+                return false;
+            }
+            receipt = existing;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        List<PhysicalItemTransformInput> inputs = new();
+        foreach (KeyValuePair<string, int> cost in (costs
+                     ?? new Dictionary<string, int>())
+                 .Where(pair => pair.Value > 0)
+                 .OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            int remaining = cost.Value;
+            foreach (WorldItemStackSnapshot stack in stock.GetAllStacks()
+                         .Where(value => value != null
+                             && value.State
+                                 == WorldItemStackState.FacilityBuffer
+                             && value.ReservedQuantity == 0
+                             && string.IsNullOrEmpty(
+                                 value.ReservedByPersistentId)
+                             && string.Equals(
+                                 value.DestinationId,
+                                 destinationId,
+                                 StringComparison.Ordinal)
+                             && string.Equals(
+                                 value.ItemId,
+                                 cost.Key,
+                                 StringComparison.Ordinal))
+                         .OrderBy(
+                             value => value.StackId,
+                             StringComparer.Ordinal))
+            {
+                if (remaining <= 0)
+                {
+                    break;
+                }
+                int take = Math.Min(remaining, stack.AvailableQuantity);
+                if (take <= 0)
+                {
+                    continue;
+                }
+                inputs.Add(new PhysicalItemTransformInput(stack.StackId, take));
+                remaining -= take;
+            }
+            if (remaining > 0)
+            {
+                failureReason = "offense-supply-custody-item-missing:"
+                    + cost.Key;
+                return false;
+            }
+        }
+        if (inputs.Count == 0)
+        {
+            failureReason = "offense-supply-custody-empty-request";
+            return false;
+        }
+        if (!dispositions.TryCommitPending(
+                inputs,
+                PhysicalItemDispositionKind.Transfer,
+                operationId,
+                reasonCode,
+                out PhysicalItemBatchDispositionReceipt physical,
+                out failureReason))
+        {
+            return false;
+        }
+        receipt = FromPhysical(physical);
+        if (!receipt.IsCommitted)
+        {
+            receipt = default;
+            failureReason = "offense-supply-custody-receipt-invalid";
+            return false;
+        }
+        return true;
+    }
+
+    public bool TryGetPending(
+        string operationId,
+        out OffenseSupplyCustodyReceipt receipt)
+    {
+        if (dispositions.TryGetPending(
+                operationId,
+                out PhysicalItemBatchDispositionReceipt physical)
+            && physical.Kind == PhysicalItemDispositionKind.Transfer)
+        {
+            receipt = FromPhysical(physical);
+            return receipt.IsCommitted;
+        }
+        receipt = default;
+        return false;
+    }
+
+    public bool AcknowledgeTransfer(
+        string commitId,
+        out string failureReason) =>
+        dispositions.Acknowledge(commitId, out failureReason);
+
+    public bool TryEnsureReturnOutputs(
+        IReadOnlyDictionary<string, int> outputs,
+        Vector2Int outputPosition,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemSourcePublicationReceipt receipt,
+        out string failureReason) => sources.TryEnsureLooseOutputs(
+        outputs,
+        outputPosition,
+        operationId,
+        reasonCode,
+        out receipt,
+        out failureReason);
+
+    private static OffenseSupplyCustodyReceipt FromPhysical(
+        PhysicalItemBatchDispositionReceipt receipt) => new(
+        receipt.OperationId,
+        receipt.ReasonCode,
+        receipt.CommitId,
+        receipt.SourceStackIds,
+        receipt.Quantity,
+        receipt.InputMassGrams);
+}
+
+public enum OffenseSupplyCustodyPhase
+{
+    Staging = 0,
+    CustodyOwned = 1,
+    ReturnPublishing = 2,
+    Returned = 3,
+    Lost = 4
+}
+
 [Serializable]
 public sealed class OffenseSupplyPackingItemStateData
 {
@@ -62,6 +303,23 @@ public sealed class OffenseSupplyPackingStateData
     public int stagingX;
     public int stagingY;
     public bool consumed;
+    public int custodyPhase;
+    public string custodyOperationId = string.Empty;
+    public string custodyReasonCode = string.Empty;
+    public string custodyCommitId = string.Empty;
+    public List<string> custodySourceStackIds = new();
+    public int custodyQuantity;
+    public long custodyMassGrams;
+    public bool custodyAcknowledged;
+    public string returnOperationId = string.Empty;
+    public string returnReasonCode = string.Empty;
+    public int returnX;
+    public int returnY;
+    public List<string> returnOutputCommitIds = new();
+    public int returnQuantity;
+    public long returnMassGrams;
+    public long consumedOrLostMassGrams;
+    public List<OffenseSupplyPackingItemStateData> returnedCosts = new();
     public List<OffenseSupplyPackingItemStateData> costs = new();
 
     public Vector2Int StagingPosition => new Vector2Int(stagingX, stagingY);
@@ -98,6 +356,10 @@ public sealed class DungeonOffensePreparationService :
         "offense.expedition-supply";
     private const string RestoreParticipantId =
         "219.world.offense-supply-packages";
+    public const string CustodyTransferReasonCode =
+        "offense-expedition-supply-custody-transfer";
+    public const string ReturnSourceReasonCode =
+        "offense-expedition-supply-return";
     internal sealed class PackingRestoreCandidate
     {
         internal PackingRestoreCandidate(
@@ -114,6 +376,7 @@ public sealed class DungeonOffensePreparationService :
     private readonly IExteriorZoneQuery exteriorZones;
     private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
     private readonly IFacilityBufferDestinationClaimCommand destinationClaimCommands;
+    private readonly IOffenseSupplyPhysicalCustodyGateway physicalCustody;
     private Dictionary<string, ExpeditionSupplyPackage> packages =
         new Dictionary<string, ExpeditionSupplyPackage>(StringComparer.Ordinal);
     private PackingRestoreCandidate stagedRestore;
@@ -128,7 +391,8 @@ public sealed class DungeonOffensePreparationService :
         IProductionItemGateway itemGateway,
         IExteriorZoneQuery exteriorZones,
         IFacilityBufferDestinationClaimQuery destinationClaims,
-        IFacilityBufferDestinationClaimCommand destinationClaimCommands)
+        IFacilityBufferDestinationClaimCommand destinationClaimCommands,
+        IOffenseSupplyPhysicalCustodyGateway physicalCustody)
     {
         this.inventoryQuery = inventoryQuery ?? throw new ArgumentNullException(nameof(inventoryQuery));
         this.itemGateway = itemGateway
@@ -139,6 +403,8 @@ public sealed class DungeonOffensePreparationService :
             ?? throw new ArgumentNullException(nameof(destinationClaims));
         this.destinationClaimCommands = destinationClaimCommands
             ?? throw new ArgumentNullException(nameof(destinationClaimCommands));
+        this.physicalCustody = physicalCustody
+            ?? throw new ArgumentNullException(nameof(physicalCustody));
     }
 
     public OffensePreparationSnapshot Evaluate()
@@ -152,7 +418,8 @@ public sealed class DungeonOffensePreparationService :
     {
         if (!packages.TryGetValue(
                 NormalizePackageId(packageId),
-                out ExpeditionSupplyPackage package))
+                out ExpeditionSupplyPackage package)
+            || package.IsTerminal)
         {
             return default;
         }
@@ -177,7 +444,17 @@ public sealed class DungeonOffensePreparationService :
         }
 
         EnsurePackageReservation(package);
-        return package.Consumed || GetPackingSnapshot(normalized).IsReady;
+        if (package.Phase == OffenseSupplyCustodyPhase.CustodyOwned)
+        {
+            return true;
+        }
+        if (physicalCustody.TryGetPending(
+                FormatCustodyOperationId(package.PackageId),
+                out _))
+        {
+            return true;
+        }
+        return GetPackingSnapshot(normalized).IsReady;
     }
 
     public bool TryCommitLoadout(
@@ -274,9 +551,20 @@ public sealed class DungeonOffensePreparationService :
             return true;
         }
 
-        if (package.Consumed)
+        if (package.IsTerminal)
         {
-            message = "원정 보급품을 이미 적재했습니다.";
+            message = "원정 보급품 소유권이 이미 종료되었습니다.";
+            return true;
+        }
+
+        if (package.Phase == OffenseSupplyCustodyPhase.CustodyOwned)
+        {
+            if (!EnsureCustodyAcknowledged(package, out message))
+            {
+                return false;
+            }
+            RevokeDestinationClaimIfPresent(package);
+            message = $"보급 적재 완료: {package.Required}";
             return true;
         }
 
@@ -286,16 +574,23 @@ public sealed class DungeonOffensePreparationService :
             return false;
         }
 
+        string operationId = FormatCustodyOperationId(package.PackageId);
+        bool replayPending = physicalCustody.TryGetPending(
+            operationId,
+            out _);
         OffenseSupplyPackingSnapshot snapshot = GetPackingSnapshot(normalized);
-        if (!snapshot.IsReady)
+        if (!replayPending && !snapshot.IsReady)
         {
             message = $"보급 운반 중: {snapshot.Delivered}/{snapshot.Required}";
             return false;
         }
 
-        if (!itemGateway.ConsumeDelivered(
+        if (!physicalCustody.TryCommitTransferPending(
                 package.DestinationId,
                 package.Costs,
+                operationId,
+                CustodyTransferReasonCode,
+                out OffenseSupplyCustodyReceipt receipt,
                 out string failureReason))
         {
             message = string.IsNullOrWhiteSpace(failureReason)
@@ -304,8 +599,12 @@ public sealed class DungeonOffensePreparationService :
             return false;
         }
 
-        RevokeDestinationClaimOrThrow(CreateDestinationClaim(package));
-        package.Consumed = true;
+        package.RecordCustody(receipt);
+        if (!EnsureCustodyAcknowledged(package, out message))
+        {
+            return false;
+        }
+        RevokeDestinationClaimIfPresent(package);
         message = $"보급 적재 완료: {snapshot.Required}";
         return true;
     }
@@ -323,46 +622,110 @@ public sealed class DungeonOffensePreparationService :
             return;
         }
 
-        if (!package.Consumed)
+        if (package.Phase == OffenseSupplyCustodyPhase.Staging)
         {
             itemGateway.ReleaseDestination(
                 package.DestinationId,
                 package.StagingPosition);
             RevokeDestinationClaimOrThrow(CreateDestinationClaim(package));
+            packages.Remove(normalized);
+            return;
         }
-        packages.Remove(normalized);
+        if (package.Phase == OffenseSupplyCustodyPhase.ReturnPublishing)
+        {
+            throw new InvalidOperationException(
+                $"Expedition supply package '{package.PackageId}' cannot be lost while return publication is pending.");
+        }
+        if (!package.IsTerminal)
+        {
+            if (!EnsureCustodyAcknowledged(package, out string failureReason))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{package.PackageId}' loss acknowledgement failed: {failureReason}");
+            }
+            package.MarkLost();
+        }
     }
 
     public void ReturnSupplies(OffenseSupplyLoadout loadout, string packageId = "")
     {
         if (loadout == null) return;
         string normalized = NormalizePackageId(packageId);
-        if (packages.TryGetValue(normalized, out ExpeditionSupplyPackage package))
+        if (string.IsNullOrWhiteSpace(normalized)
+            || !packages.TryGetValue(
+                normalized,
+                out ExpeditionSupplyPackage package))
         {
-            if (!package.Consumed)
-            {
-                itemGateway.ReleaseDestination(
-                    package.DestinationId,
-                    package.StagingPosition);
-                RevokeDestinationClaimOrThrow(CreateDestinationClaim(package));
-                packages.Remove(normalized);
-                return;
-            }
-            packages.Remove(normalized);
-        }
-        else if (!string.IsNullOrWhiteSpace(normalized))
-        {
-            // An explicit package id is the exact return authority. Unknown or
-            // already-returned packages must not mint the caller-provided loadout.
+            // Only the persisted package is authorized to materialize returns.
+            // A caller-provided loadout without that owner must never mint stock.
             return;
         }
-
-        foreach (KeyValuePair<OffenseSupplyType, int> pair in loadout.Amounts)
+        if (package.Phase == OffenseSupplyCustodyPhase.Staging)
         {
-            Deposit(
-                OffenseSupplyCatalog.GetPhysicalItemId(pair.Key),
-                pair.Value);
+            itemGateway.ReleaseDestination(
+                package.DestinationId,
+                package.StagingPosition);
+            RevokeDestinationClaimIfPresent(package);
+            packages.Remove(normalized);
+            return;
         }
+        if (package.Phase is OffenseSupplyCustodyPhase.Returned
+                or OffenseSupplyCustodyPhase.Lost)
+        {
+            return;
+        }
+        if (!EnsureCustodyAcknowledged(package, out string custodyFailure))
+        {
+            throw new InvalidOperationException(
+                $"Expedition supply package '{package.PackageId}' return acknowledgement failed: {custodyFailure}");
+        }
+
+        Dictionary<string, int> returned = BuildItemCosts(loadout);
+        foreach (KeyValuePair<string, int> pair in returned)
+        {
+            if (!package.Costs.TryGetValue(pair.Key, out int owned)
+                || pair.Value > owned)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{package.PackageId}' attempted to return unowned item '{pair.Key}' x{pair.Value}.");
+            }
+        }
+
+        if (package.Phase == OffenseSupplyCustodyPhase.ReturnPublishing)
+        {
+            if (!DictionaryEqual(package.ReturnedCosts, returned))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{package.PackageId}' return retry changed its physical outputs.");
+            }
+        }
+        else
+        {
+            if (!TryResolveReturnDropPosition(out Vector2Int dropPosition))
+            {
+                throw new InvalidOperationException(
+                    "Failed to resolve the physical expedition supply return position.");
+            }
+            package.BeginReturn(returned, dropPosition);
+        }
+
+        if (package.ReturnedCosts.Count == 0)
+        {
+            package.CompleteEmptyReturn();
+            return;
+        }
+        if (!physicalCustody.TryEnsureReturnOutputs(
+                package.ReturnedCosts,
+                package.ReturnPosition,
+                package.ReturnOperationId,
+                ReturnSourceReasonCode,
+                out PhysicalItemSourcePublicationReceipt receipt,
+                out string returnFailure))
+        {
+            throw new InvalidOperationException(
+                $"Expedition supply package '{package.PackageId}' return publication failed: {returnFailure}");
+        }
+        package.CompleteReturn(receipt);
     }
 
     public void DepositLoot(IReadOnlyDictionary<StockCategory, int> loot)
@@ -385,6 +748,30 @@ public sealed class DungeonOffensePreparationService :
                 stagingX = package.StagingPosition.x,
                 stagingY = package.StagingPosition.y,
                 consumed = package.Consumed,
+                custodyPhase = (int)package.Phase,
+                custodyOperationId = package.CustodyOperationId,
+                custodyReasonCode = package.CustodyReasonCode,
+                custodyCommitId = package.CustodyCommitId,
+                custodySourceStackIds = package.CustodySourceStackIds.ToList(),
+                custodyQuantity = package.CustodyQuantity,
+                custodyMassGrams = package.CustodyMassGrams,
+                custodyAcknowledged = package.CustodyAcknowledged,
+                returnOperationId = package.ReturnOperationId,
+                returnReasonCode = package.ReturnReasonCode,
+                returnX = package.ReturnPosition.x,
+                returnY = package.ReturnPosition.y,
+                returnOutputCommitIds = package.ReturnOutputCommitIds.ToList(),
+                returnQuantity = package.ReturnQuantity,
+                returnMassGrams = package.ReturnMassGrams,
+                consumedOrLostMassGrams = package.ConsumedOrLostMassGrams,
+                returnedCosts = package.ReturnedCosts
+                    .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .Select(pair => new OffenseSupplyPackingItemStateData
+                    {
+                        itemId = pair.Key,
+                        amount = pair.Value
+                    })
+                    .ToList(),
                 costs = package.Costs
                     .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                     .Select(pair => new OffenseSupplyPackingItemStateData
@@ -458,10 +845,8 @@ public sealed class DungeonOffensePreparationService :
                 packageId,
                 destinationId,
                 source.StagingPosition,
-                costs)
-            {
-                Consumed = source.consumed
-            };
+                costs);
+            package.RestoreCustody(source);
             candidate.Add(packageId, package);
         }
 
@@ -761,6 +1146,62 @@ public sealed class DungeonOffensePreparationService :
         }
     }
 
+    private void RevokeDestinationClaimIfPresent(
+        ExpeditionSupplyPackage package)
+    {
+        if (!destinationClaims.TryGetClaim(
+                package.DestinationId,
+                package.StagingPosition,
+                out FacilityBufferDestinationClaim claim))
+        {
+            return;
+        }
+        if (!HasExactDestinationClaim(package))
+        {
+            throw new InvalidOperationException(
+                $"Expedition supply package '{package.PackageId}' return/custody found a foreign staging claim.");
+        }
+        RevokeDestinationClaimOrThrow(claim);
+    }
+
+    private bool EnsureCustodyAcknowledged(
+        ExpeditionSupplyPackage package,
+        out string message)
+    {
+        if (package.CustodyAcknowledged)
+        {
+            message = string.Empty;
+            return true;
+        }
+        if (!physicalCustody.AcknowledgeTransfer(
+                package.CustodyCommitId,
+                out string failureReason))
+        {
+            message = string.IsNullOrWhiteSpace(failureReason)
+                ? "원정 보급품 소유권 영수증을 확인하지 못했습니다."
+                : "원정 보급품 영수증 확인 실패: " + failureReason;
+            return false;
+        }
+        package.MarkCustodyAcknowledged();
+        message = string.Empty;
+        return true;
+    }
+
+    public static string FormatCustodyOperationId(string packageId) =>
+        "offense-supply-custody:" + NormalizePackageId(packageId);
+
+    public static string FormatReturnOperationId(string packageId) =>
+        "offense-supply-return:" + NormalizePackageId(packageId);
+
+    private static bool DictionaryEqual(
+        IReadOnlyDictionary<string, int> left,
+        IReadOnlyDictionary<string, int> right) =>
+        (left?.Count ?? 0) == (right?.Count ?? 0)
+        && (left ?? new Dictionary<string, int>()).All(pair =>
+            right != null
+            && right.TryGetValue(pair.Key, out int value)
+            && value == pair.Value);
+
     private WarehouseInventory[] GetInventories()
     {
         return inventoryQuery.GetWarehouses()
@@ -810,6 +1251,332 @@ public sealed class DungeonOffensePreparationService :
         public Vector2Int StagingPosition { get; }
         public IReadOnlyDictionary<string, int> Costs { get; }
         public int Required { get; }
-        public bool Consumed { get; set; }
+        public OffenseSupplyCustodyPhase Phase { get; private set; }
+        public bool Consumed => Phase != OffenseSupplyCustodyPhase.Staging;
+        public bool IsTerminal => Phase is OffenseSupplyCustodyPhase.Returned
+            or OffenseSupplyCustodyPhase.Lost;
+        public string CustodyOperationId { get; private set; } = string.Empty;
+        public string CustodyReasonCode { get; private set; } = string.Empty;
+        public string CustodyCommitId { get; private set; } = string.Empty;
+        public IReadOnlyList<string> CustodySourceStackIds =>
+            custodySourceStackIds;
+        public int CustodyQuantity { get; private set; }
+        public long CustodyMassGrams { get; private set; }
+        public bool CustodyAcknowledged { get; private set; }
+        public string ReturnOperationId { get; private set; } = string.Empty;
+        public string ReturnReasonCode { get; private set; } = string.Empty;
+        public Vector2Int ReturnPosition { get; private set; }
+        public IReadOnlyDictionary<string, int> ReturnedCosts => returnedCosts;
+        public IReadOnlyList<string> ReturnOutputCommitIds =>
+            returnOutputCommitIds;
+        public int ReturnQuantity { get; private set; }
+        public long ReturnMassGrams { get; private set; }
+        public long ConsumedOrLostMassGrams { get; private set; }
+
+        private List<string> custodySourceStackIds = new();
+        private Dictionary<string, int> returnedCosts =
+            new(StringComparer.Ordinal);
+        private List<string> returnOutputCommitIds = new();
+
+        public void RecordCustody(OffenseSupplyCustodyReceipt receipt)
+        {
+            if (Phase != OffenseSupplyCustodyPhase.Staging
+                || !receipt.IsCommitted
+                || receipt.Quantity != Required
+                || !string.Equals(
+                    receipt.OperationId,
+                    FormatCustodyOperationId(PackageId),
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.ReasonCode,
+                    CustodyTransferReasonCode,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' received a conflicting custody receipt.");
+            }
+            Phase = OffenseSupplyCustodyPhase.CustodyOwned;
+            CustodyOperationId = receipt.OperationId;
+            CustodyReasonCode = receipt.ReasonCode;
+            CustodyCommitId = receipt.CommitId;
+            custodySourceStackIds = receipt.SourceStackIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList();
+            CustodyQuantity = receipt.Quantity;
+            CustodyMassGrams = receipt.MassGrams;
+            CustodyAcknowledged = false;
+        }
+
+        public void MarkCustodyAcknowledged()
+        {
+            if (Phase != OffenseSupplyCustodyPhase.CustodyOwned
+                || string.IsNullOrWhiteSpace(CustodyCommitId))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' has no custody receipt to acknowledge.");
+            }
+            CustodyAcknowledged = true;
+        }
+
+        public void BeginReturn(
+            IReadOnlyDictionary<string, int> outputs,
+            Vector2Int position)
+        {
+            if (Phase != OffenseSupplyCustodyPhase.CustodyOwned)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' cannot begin a return from phase '{Phase}'.");
+            }
+            if (!CustodyAcknowledged)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' cannot return unacknowledged custody.");
+            }
+            returnedCosts = (outputs ?? new Dictionary<string, int>())
+                .Where(pair => pair.Value > 0)
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value,
+                    StringComparer.Ordinal);
+            Phase = OffenseSupplyCustodyPhase.ReturnPublishing;
+            ReturnOperationId = FormatReturnOperationId(PackageId);
+            ReturnReasonCode = ReturnSourceReasonCode;
+            ReturnPosition = position;
+        }
+
+        public void CompleteReturn(PhysicalItemSourcePublicationReceipt receipt)
+        {
+            if (Phase != OffenseSupplyCustodyPhase.ReturnPublishing
+                || !CustodyAcknowledged
+                || !receipt.IsCommitted
+                || !string.Equals(
+                    receipt.OperationId,
+                    ReturnOperationId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.ReasonCode,
+                    ReturnReasonCode,
+                    StringComparison.Ordinal)
+                || receipt.OutputQuantity > CustodyQuantity
+                || receipt.OutputMassGrams > CustodyMassGrams)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' return receipt is invalid.");
+            }
+            returnOutputCommitIds = receipt.OutputCommitIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList();
+            ReturnQuantity = receipt.OutputQuantity;
+            ReturnMassGrams = receipt.OutputMassGrams;
+            ConsumedOrLostMassGrams = checked(
+                CustodyMassGrams - ReturnMassGrams);
+            Phase = OffenseSupplyCustodyPhase.Returned;
+        }
+
+        public void CompleteEmptyReturn()
+        {
+            if (Phase != OffenseSupplyCustodyPhase.ReturnPublishing
+                || returnedCosts.Count != 0)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' empty return is invalid.");
+            }
+            ReturnQuantity = 0;
+            ReturnMassGrams = 0L;
+            ConsumedOrLostMassGrams = CustodyMassGrams;
+            Phase = OffenseSupplyCustodyPhase.Returned;
+        }
+
+        public void MarkLost()
+        {
+            if (Phase != OffenseSupplyCustodyPhase.CustodyOwned)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' cannot be lost from phase '{Phase}'.");
+            }
+            if (!CustodyAcknowledged)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' cannot lose unacknowledged custody.");
+            }
+            returnedCosts.Clear();
+            returnOutputCommitIds.Clear();
+            ReturnQuantity = 0;
+            ReturnMassGrams = 0L;
+            ConsumedOrLostMassGrams = CustodyMassGrams;
+            Phase = OffenseSupplyCustodyPhase.Lost;
+        }
+
+        public void RestoreCustody(OffenseSupplyPackingStateData source)
+        {
+            Phase = (OffenseSupplyCustodyPhase)source.custodyPhase;
+            if (!Enum.IsDefined(typeof(OffenseSupplyCustodyPhase), Phase)
+                || source.consumed != (Phase != OffenseSupplyCustodyPhase.Staging))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' has invalid custody phase.");
+            }
+            if (Phase == OffenseSupplyCustodyPhase.Staging)
+            {
+                if (!HasEmptyCustody(source))
+                {
+                    throw new InvalidOperationException(
+                        $"Staging expedition supply package '{PackageId}' contains custody provenance.");
+                }
+                return;
+            }
+
+            CustodyOperationId = source.custodyOperationId ?? string.Empty;
+            CustodyReasonCode = source.custodyReasonCode ?? string.Empty;
+            CustodyCommitId = source.custodyCommitId ?? string.Empty;
+            custodySourceStackIds = (source.custodySourceStackIds
+                    ?? new List<string>())
+                .ToList();
+            CustodyQuantity = source.custodyQuantity;
+            CustodyMassGrams = source.custodyMassGrams;
+            CustodyAcknowledged = source.custodyAcknowledged;
+            if (!string.Equals(
+                    CustodyOperationId,
+                    FormatCustodyOperationId(PackageId),
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    CustodyReasonCode,
+                    CustodyTransferReasonCode,
+                    StringComparison.Ordinal)
+                || string.IsNullOrWhiteSpace(CustodyCommitId)
+                || !string.Equals(
+                    CustodyCommitId,
+                    $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Transfer}:{CustodyOperationId}:{CustodyQuantity}:{CustodyMassGrams}",
+                    StringComparison.Ordinal)
+                || CustodyQuantity != Required
+                || CustodyMassGrams <= 0L
+                || custodySourceStackIds.Count == 0
+                || custodySourceStackIds.Any(string.IsNullOrWhiteSpace)
+                || custodySourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                    != custodySourceStackIds.Count
+                || !custodySourceStackIds.SequenceEqual(
+                    custodySourceStackIds.OrderBy(
+                        value => value,
+                        StringComparer.Ordinal),
+                    StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' custody provenance is invalid.");
+            }
+
+            ReturnOperationId = source.returnOperationId ?? string.Empty;
+            ReturnReasonCode = source.returnReasonCode ?? string.Empty;
+            ReturnPosition = new Vector2Int(source.returnX, source.returnY);
+            returnOutputCommitIds = (source.returnOutputCommitIds
+                    ?? new List<string>())
+                .ToList();
+            ReturnQuantity = source.returnQuantity;
+            ReturnMassGrams = source.returnMassGrams;
+            ConsumedOrLostMassGrams = source.consumedOrLostMassGrams;
+            returnedCosts = (source.returnedCosts
+                    ?? new List<OffenseSupplyPackingItemStateData>())
+                .Where(value => value != null)
+                .ToDictionary(
+                    value => value.itemId,
+                    value => value.amount,
+                    StringComparer.Ordinal);
+            ValidateReturnState();
+        }
+
+        private void ValidateReturnState()
+        {
+            if (Phase == OffenseSupplyCustodyPhase.CustodyOwned)
+            {
+                if (ReturnOperationId.Length != 0
+                    || ReturnReasonCode.Length != 0
+                    || ReturnPosition != default
+                    || returnedCosts.Count != 0
+                    || returnOutputCommitIds.Count != 0
+                    || ReturnQuantity != 0
+                    || ReturnMassGrams != 0L
+                    || ConsumedOrLostMassGrams != 0L)
+                {
+                    throw new InvalidOperationException(
+                        $"Owned expedition supply package '{PackageId}' contains terminal provenance.");
+                }
+                return;
+            }
+            if (Phase == OffenseSupplyCustodyPhase.Lost)
+            {
+                if (ReturnOperationId.Length != 0
+                    || ReturnReasonCode.Length != 0
+                    || ReturnPosition != default
+                    || returnedCosts.Count != 0
+                    || returnOutputCommitIds.Count != 0
+                    || ReturnQuantity != 0
+                    || ReturnMassGrams != 0L
+                    || ConsumedOrLostMassGrams != CustodyMassGrams)
+                {
+                    throw new InvalidOperationException(
+                        $"Lost expedition supply package '{PackageId}' has invalid mass provenance.");
+                }
+                return;
+            }
+            if (!string.Equals(
+                    ReturnOperationId,
+                    FormatReturnOperationId(PackageId),
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    ReturnReasonCode,
+                    ReturnSourceReasonCode,
+                    StringComparison.Ordinal)
+                || returnedCosts.Any(pair => pair.Value <= 0
+                    || !Costs.TryGetValue(pair.Key, out int owned)
+                    || pair.Value > owned))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition supply package '{PackageId}' return intent is invalid.");
+            }
+            if (Phase == OffenseSupplyCustodyPhase.ReturnPublishing)
+            {
+                if (returnOutputCommitIds.Count != 0
+                    || ReturnQuantity != 0
+                    || ReturnMassGrams != 0L
+                    || ConsumedOrLostMassGrams != 0L)
+                {
+                    throw new InvalidOperationException(
+                        $"Pending expedition supply return '{PackageId}' contains terminal output provenance.");
+                }
+                return;
+            }
+            int expectedQuantity = returnedCosts.Values.Sum();
+            if (ReturnQuantity != expectedQuantity
+                || ReturnMassGrams < 0L
+                || ConsumedOrLostMassGrams < 0L
+                || checked(ReturnMassGrams + ConsumedOrLostMassGrams)
+                    != CustodyMassGrams
+                || (ReturnQuantity == 0
+                    ? returnOutputCommitIds.Count != 0
+                    : returnOutputCommitIds.Count != returnedCosts.Count))
+            {
+                throw new InvalidOperationException(
+                    $"Returned expedition supply package '{PackageId}' has invalid quantity/mass closure.");
+            }
+        }
+
+        private static bool HasEmptyCustody(
+            OffenseSupplyPackingStateData source) =>
+            string.IsNullOrEmpty(source.custodyOperationId)
+            && string.IsNullOrEmpty(source.custodyReasonCode)
+            && string.IsNullOrEmpty(source.custodyCommitId)
+            && (source.custodySourceStackIds?.Count ?? 0) == 0
+            && source.custodyQuantity == 0
+            && source.custodyMassGrams == 0L
+            && !source.custodyAcknowledged
+            && string.IsNullOrEmpty(source.returnOperationId)
+            && string.IsNullOrEmpty(source.returnReasonCode)
+            && source.returnX == 0
+            && source.returnY == 0
+            && (source.returnOutputCommitIds?.Count ?? 0) == 0
+            && source.returnQuantity == 0
+            && source.returnMassGrams == 0L
+            && source.consumedOrLostMassGrams == 0L
+            && (source.returnedCosts?.Count ?? 0) == 0;
     }
 }

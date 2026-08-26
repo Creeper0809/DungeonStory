@@ -11,14 +11,6 @@ public sealed class BuildingItemStackPortAdapter : IBuildingItemStackPort
         this.items = items ?? throw new ArgumentNullException(nameof(items));
     }
 
-    public int ConsumeWarehouseStock(
-        IBuildingWorldEntryPort warehouse,
-        StockCategory category,
-        int amount)
-    {
-        return items.Consume(RequireWarehouse(warehouse), category, amount);
-    }
-
     public bool SpawnStockInWarehouse(
         IBuildingWorldEntryPort warehouse,
         StockCategory category,

@@ -49,13 +49,13 @@ MonoBehaviour:
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7737211905660421037
-    - rid: 7737211905660421038
-    - rid: 7737211905660421039
-    - rid: 7737211905660421040
-    - rid: 7737211905660421041
-    - rid: 7737211905660421042
-    - rid: 7737211905660421043
+    - rid: 7737212199327498506
+    - rid: 7737212199327498507
+    - rid: 7737212199327498508
+    - rid: 7737212199327498509
+    - rid: 7737212199327498510
+    - rid: 7737212199327498511
+    - rid: 7737212199327498512
   facilityRequirements:
   - capability: 0
     requiredCount: 1
@@ -66,31 +66,31 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660421037
+    - rid: 7737212199327498506
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1500
-    - rid: 7737211905660421038
+    - rid: 7737212199327498507
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1501
-    - rid: 7737211905660421039
+    - rid: 7737212199327498508
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1503
-    - rid: 7737211905660421040
+    - rid: 7737212199327498509
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1504
-    - rid: 7737211905660421041
+    - rid: 7737212199327498510
       type: {class: BlueprintBuildingUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         buildingId: 1505
-    - rid: 7737211905660421042
+    - rid: 7737212199327498511
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:apparel:cold-work-suit
-    - rid: 7737211905660421043
+    - rid: 7737212199327498512
       type: {class: BlueprintRecipeUnlock, ns: , asm: DungeonStory.FacilityShop}
       data:
         recipeId: recipe:v22:apparel:slime-warming-pad

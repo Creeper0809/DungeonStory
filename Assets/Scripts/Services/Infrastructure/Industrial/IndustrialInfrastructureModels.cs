@@ -96,14 +96,153 @@ public sealed class PowerNodeSaveData
     public float heat;
     public float fault;
     public bool breakerTripped;
+    public int nextFuelOperationSequence = 1;
+    public PowerFuelCommitSaveData pendingFuel = new PowerFuelCommitSaveData();
+}
+
+public enum PowerFuelCommitPhase
+{
+    None = 0,
+    IntentRecorded = 1,
+    OutcomePublished = 2
+}
+
+[Serializable]
+public sealed class PowerFuelCommitSaveData
+{
+    public int phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string nodeId = string.Empty;
+    public string destinationId = string.Empty;
+    public string itemId = string.Empty;
+    public int quantity;
+    public float fuelSecondsBefore;
+    public float fuelSecondsAfter;
+    public List<string> sourceStackIds = new List<string>();
+    public long inputMassGrams;
+    public string commitId = string.Empty;
+
+    public PowerFuelCommitSaveData Clone() => new PowerFuelCommitSaveData
+    {
+        phase = phase,
+        operationSequence = operationSequence,
+        operationId = operationId ?? string.Empty,
+        reasonCode = reasonCode ?? string.Empty,
+        nodeId = nodeId ?? string.Empty,
+        destinationId = destinationId ?? string.Empty,
+        itemId = itemId ?? string.Empty,
+        quantity = quantity,
+        fuelSecondsBefore = fuelSecondsBefore,
+        fuelSecondsAfter = fuelSecondsAfter,
+        sourceStackIds = new List<string>(sourceStackIds ?? new List<string>()),
+        inputMassGrams = inputMassGrams,
+        commitId = commitId ?? string.Empty
+    };
 }
 
 [Serializable]
 public sealed class DungeonPowerInfrastructureSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public List<PowerNodeSaveData> nodes = new List<PowerNodeSaveData>();
+}
+
+[Serializable]
+public sealed class ManualWaterTransferSaveData
+{
+    public string operationId = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public string requestFingerprint = string.Empty;
+    public string destinationId = string.Empty;
+    public int operationSequence;
+    public bool immediateConsumption;
+    public float requestedWaterUnits;
+    public int transferredWaterUnits;
+    public long inputMassGrams;
+    public bool fluidStateApplied;
+    public List<string> sourceStackIds = new List<string>();
+
+    public ManualWaterTransferSaveData Clone() => new ManualWaterTransferSaveData
+    {
+        operationId = operationId,
+        physicalCommitId = physicalCommitId,
+        requestFingerprint = requestFingerprint,
+        destinationId = destinationId,
+        operationSequence = operationSequence,
+        immediateConsumption = immediateConsumption,
+        requestedWaterUnits = requestedWaterUnits,
+        transferredWaterUnits = transferredWaterUnits,
+        inputMassGrams = inputMassGrams,
+        fluidStateApplied = fluidStateApplied,
+        sourceStackIds = new List<string>(sourceStackIds ?? new List<string>())
+    };
+}
+
+public enum ContainerWaterFeedCommitPhase
+{
+    None = 0,
+    IntentRecorded = 1,
+    OutcomePublished = 2
+}
+
+public static class FluidPhysicalOperationIdentity
+{
+    public const string ManualReserveReasonCode =
+        "manual-water-to-fluid-reserve";
+    public const string ContainerFeedReasonCode =
+        "container-water-to-fluid-network";
+
+    public static string FormatImmediateManualWaterOperationId(
+        string nodeId,
+        int sequence) =>
+        $"manual-water-immediate:{nodeId}:{sequence:D8}";
+
+    public static string FormatContainerFeedOperationId(
+        string nodeId,
+        int sequence) =>
+        $"container-water-feed:{nodeId}:{sequence:D8}";
+}
+
+[Serializable]
+public sealed class ContainerWaterFeedCommitSaveData
+{
+    public int phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string reasonCode = string.Empty;
+    public string requestFingerprint = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public string nodeId = string.Empty;
+    public string networkId = string.Empty;
+    public string destinationId = string.Empty;
+    public string itemId = string.Empty;
+    public int quantity;
+    public float waterAmount;
+    public long inputMassGrams;
+    public List<string> sourceStackIds = new List<string>();
+
+    public ContainerWaterFeedCommitSaveData Clone() =>
+        new ContainerWaterFeedCommitSaveData
+        {
+            phase = phase,
+            operationSequence = operationSequence,
+            operationId = operationId ?? string.Empty,
+            reasonCode = reasonCode ?? string.Empty,
+            requestFingerprint = requestFingerprint ?? string.Empty,
+            physicalCommitId = physicalCommitId ?? string.Empty,
+            nodeId = nodeId ?? string.Empty,
+            networkId = networkId ?? string.Empty,
+            destinationId = destinationId ?? string.Empty,
+            itemId = itemId ?? string.Empty,
+            quantity = quantity,
+            waterAmount = waterAmount,
+            inputMassGrams = inputMassGrams,
+            sourceStackIds = new List<string>(
+                sourceStackIds ?? new List<string>())
+        };
 }
 
 [Serializable]
@@ -118,6 +257,12 @@ public sealed class FluidNodeSaveData
     public float leak;
     public float processorWork;
     public float manualWaterReserve;
+    public int nextImmediateManualWaterOperationSequence = 1;
+    public List<ManualWaterTransferSaveData> pendingManualWaterTransfers =
+        new List<ManualWaterTransferSaveData>();
+    public int nextContainerFeedOperationSequence = 1;
+    public ContainerWaterFeedCommitSaveData pendingContainerFeed =
+        new ContainerWaterFeedCommitSaveData();
     public WaterContainerTransferMode transferMode;
     public float transferWork;
 }
@@ -125,7 +270,7 @@ public sealed class FluidNodeSaveData
 [Serializable]
 public sealed class DungeonFluidInfrastructureSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 6;
     public int version = CurrentVersion;
     public List<FluidNodeSaveData> nodes = new List<FluidNodeSaveData>();
 }
@@ -368,6 +513,94 @@ public interface IFluidInfrastructureTransaction
         out DomainFailure failure);
 }
 
+public readonly struct ManualWaterTransferReceipt
+{
+    internal ManualWaterTransferReceipt(ManualWaterTransferState state)
+    {
+        OperationId = state?.OperationId ?? string.Empty;
+        PhysicalCommitId = state?.PhysicalCommitId ?? string.Empty;
+        RequestFingerprint = state?.RequestFingerprint ?? string.Empty;
+        DestinationId = state?.DestinationId ?? string.Empty;
+        OperationSequence = state?.OperationSequence ?? 0;
+        ImmediateConsumption = state?.ImmediateConsumption == true;
+        RequestedWaterUnits = state?.RequestedWaterUnits ?? 0f;
+        TransferredWaterUnits = state?.TransferredWaterUnits ?? 0;
+        InputMassGrams = state?.InputMassGrams ?? 0L;
+        FluidStateApplied = state?.FluidStateApplied == true;
+        SourceStackIds = (state?.SourceStackIds ?? new List<string>()).ToArray();
+    }
+
+    public string OperationId { get; }
+    public string PhysicalCommitId { get; }
+    public string RequestFingerprint { get; }
+    public string DestinationId { get; }
+    public int OperationSequence { get; }
+    public bool ImmediateConsumption { get; }
+    public float RequestedWaterUnits { get; }
+    public int TransferredWaterUnits { get; }
+    public long InputMassGrams { get; }
+    public bool FluidStateApplied { get; }
+    public IReadOnlyList<string> SourceStackIds { get; }
+    public bool IsValid => OperationId.Length > 0
+        && DestinationId.Length > 0
+        && RequestedWaterUnits >= 0f
+        && TransferredWaterUnits >= 0
+        && InputMassGrams >= 0L
+        && (ImmediateConsumption
+            ? OperationSequence > 0
+            : OperationSequence == 0)
+        && (TransferredWaterUnits == 0
+            || (PhysicalCommitId.Length > 0
+                && InputMassGrams > 0L
+                && SourceStackIds.Count > 0));
+}
+
+public interface IManualWaterTransferTransaction
+{
+    bool TryStageManualWaterTransfer(
+        BuildableObject consumer,
+        string destinationId,
+        float amount,
+        string operationId,
+        out ManualWaterTransferReceipt receipt,
+        out DomainFailure failure);
+    bool TryApplyStagedManualWaterTransfer(
+        BuildableObject consumer,
+        string operationId,
+        out ManualWaterTransferReceipt receipt,
+        out DomainFailure failure);
+    bool AcknowledgeManualWaterTransfer(
+        string operationId,
+        out DomainFailure failure);
+}
+
+public readonly struct FluidNetworkBatchDemand
+{
+    public FluidNetworkBatchDemand(
+        BuildableObject consumer,
+        WorldWaterQuality minimumQuality,
+        float cleanWater,
+        float wastewater)
+    {
+        Consumer = consumer;
+        MinimumQuality = minimumQuality;
+        CleanWater = cleanWater;
+        Wastewater = wastewater;
+    }
+
+    public BuildableObject Consumer { get; }
+    public WorldWaterQuality MinimumQuality { get; }
+    public float CleanWater { get; }
+    public float Wastewater { get; }
+}
+
+public interface IFluidInfrastructureBatchTransaction
+{
+    bool TryCommitBatch(
+        IReadOnlyList<FluidNetworkBatchDemand> demands,
+        out DomainFailure failure);
+}
+
 public interface IFluidWastewaterTransaction
 {
     bool TryAddWastewater(
@@ -459,6 +692,45 @@ public interface IProcessFluidUseRuntime
         float wastewater,
         bool allowsManualWaterFallback,
         out DomainFailure failure);
+    bool TryConsumeBatch(
+        IReadOnlyList<ProcessFluidCycleDemand> demands,
+        out DomainFailure failure);
+    bool TryConsumeBatch(
+        IReadOnlyList<ProcessFluidCycleDemand> demands,
+        string operationId,
+        out IReadOnlyList<ManualWaterTransferReceipt> manualTransfers,
+        out IReadOnlyList<ProcessWastewaterComponent> wastewaterComponents,
+        out DomainFailure failure);
+    bool AcknowledgeManualTransfers(
+        IReadOnlyList<string> operationIds,
+        out DomainFailure failure);
+}
+
+public readonly struct ProcessFluidCycleDemand
+{
+    public ProcessFluidCycleDemand(
+        BuildableObject facility,
+        WorkTypeId workTypeId,
+        float cleanWater,
+        float wastewater,
+        bool allowsManualWaterFallback,
+        IReadOnlyList<ProcessWastewaterComponent> wastewaterComponents = null)
+    {
+        Facility = facility;
+        WorkTypeId = workTypeId;
+        CleanWater = cleanWater;
+        Wastewater = wastewater;
+        AllowsManualWaterFallback = allowsManualWaterFallback;
+        WastewaterComponents = wastewaterComponents
+            ?? Array.Empty<ProcessWastewaterComponent>();
+    }
+
+    public BuildableObject Facility { get; }
+    public WorkTypeId WorkTypeId { get; }
+    public float CleanWater { get; }
+    public float Wastewater { get; }
+    public bool AllowsManualWaterFallback { get; }
+    public IReadOnlyList<ProcessWastewaterComponent> WastewaterComponents { get; }
 }
 
 public interface IConveyorInfrastructureQuery

@@ -574,10 +574,11 @@ public static class ResearchProjectAssetBuilder
             "research:textile:tanning" => new[] { "P12" },
             "research:agriculture:compost" => new[] { "P13" },
             "research:pharmacology:distillation" => new[] { "P14" },
-            "research:cuisine:crops" => new[] { "P15" },
+            "research:cuisine:crops" => new[] { "P15", "WS08" },
             "research:survival:preservation" =>
                 new[] { "P16", "WS14", "WS18" },
             "research:husbandry:feed" => new[] { "P17", "WS17" },
+            "research:industry:assisted-processing" => new[] { "WS10" },
             "research:pharmacology:antiseptic" =>
                 new[] { "P18", "WS25" },
             "research:arcane:alchemy" => new[] { "P19", "WS26" },

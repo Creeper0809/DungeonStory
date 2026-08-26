@@ -8,6 +8,7 @@ internal interface IWildlifeRestorePort
     WildlifePopulationState Population { get; }
     void ReplacePopulation(WildlifePopulationState replacement);
     void RebuildPopulationRuntimes();
+    void ReconcilePendingFoodRaids();
 }
 
 internal sealed class WildlifeRestoreCoordinator
@@ -184,6 +185,7 @@ internal sealed class WildlifeRestoreCoordinator
         port.ReplacePopulation(published.Population);
         publication.PopulationPublished = true;
         port.RebuildPopulationRuntimes();
+        port.ReconcilePendingFoodRaids();
         foreach (WildlifeActor actor in published.Population.Actors)
         {
             actor.PublishDetachedRestore();

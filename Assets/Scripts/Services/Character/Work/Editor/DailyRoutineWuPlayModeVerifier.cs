@@ -1854,31 +1854,63 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             GridLayer.FloorOverlay,
             GridLayer.Utility
         };
-        (Vector2Int access, Vector2Int placement) facility = candidates
-            .Where(value => value.access == value.placement)
-            .FirstOrDefault(value => requiredFacilityLayers.All(layer =>
-                grid.GetGridCell(value.placement)?.CanOccupy(layer) == true));
-        if (facility == default)
-        {
-            facility = candidates.FirstOrDefault(value =>
-                requiredFacilityLayers.All(layer =>
-                    grid.GetGridCell(value.placement)?.CanOccupy(layer) == true));
-        }
-        if (facility == default)
+        List<(Vector2Int access, Vector2Int placement)> facilityCandidates =
+            candidates
+                .Where(value => requiredFacilityLayers.All(layer =>
+                    grid.GetGridCell(value.placement)?.CanOccupy(layer) == true))
+                .OrderByDescending(value => value.access == value.placement)
+                .ThenBy(value => Mathf.Abs(value.access.x - origin.x)
+                    + Mathf.Abs(value.access.y - origin.y))
+                .ThenBy(value => value.placement.y)
+                .ThenBy(value => value.placement.x)
+                .ToList();
+        List<(Vector2Int access, Vector2Int placement)> constructionCandidates =
+            candidates
+                .Where(value => value.access != value.placement
+                    && grid.GetGridCell(value.placement)?
+                        .CanOccupy(GridLayer.Construction) == true)
+                .ToList();
+        var compactPairs = facilityCandidates
+            .SelectMany(facility => constructionCandidates
+                .Where(construction =>
+                    construction.placement != facility.placement)
+                .Select(construction => new
+                {
+                    Facility = facility,
+                    Construction = construction,
+                    OperationalDistance =
+                        Mathf.Abs(facility.access.x - construction.access.x)
+                        + Mathf.Abs(facility.access.y - construction.access.y),
+                    FacilityOriginDistance =
+                        Mathf.Abs(facility.access.x - origin.x)
+                        + Mathf.Abs(facility.access.y - origin.y),
+                    ConstructionOriginDistance =
+                        Mathf.Abs(construction.access.x - origin.x)
+                        + Mathf.Abs(construction.access.y - origin.y)
+                }))
+            // The daily WU verifier is a neutral compact-layout fixture. Pair
+            // service and work access first; choosing both independently from
+            // the seed-dependent actor origin previously injected 7~18-cell
+            // geometry variance into the labor measurement.
+            .OrderBy(value => value.OperationalDistance)
+            .ThenBy(value => Math.Max(
+                value.FacilityOriginDistance,
+                value.ConstructionOriginDistance))
+            .ThenBy(value => value.FacilityOriginDistance
+                + value.ConstructionOriginDistance)
+            .ThenBy(value => value.Facility.placement.y)
+            .ThenBy(value => value.Facility.placement.x)
+            .ThenBy(value => value.Construction.placement.y)
+            .ThenBy(value => value.Construction.placement.x)
+            .ToArray();
+        if (compactPairs.Length == 0)
         {
             return false;
         }
-
-        (Vector2Int access, Vector2Int placement) construction = candidates
-            .FirstOrDefault(value =>
-                value.access != value.placement
-                && value.placement != facility.placement
-                && grid.GetGridCell(value.placement)?
-                    .CanOccupy(GridLayer.Construction) == true);
-        if (construction == default)
-        {
-            return false;
-        }
+        (Vector2Int access, Vector2Int placement) facility =
+            compactPairs[0].Facility;
+        (Vector2Int access, Vector2Int placement) construction =
+            compactPairs[0].Construction;
         Vector2Int[] distinctAccess = (reachable ?? Array.Empty<Vector2Int>())
             .Where(value => value.y == floor)
             .OrderBy(value => Mathf.Abs(value.x - facility.access.x))
@@ -2921,8 +2953,12 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             // the action until accounting, worker leases and resume intent are
             // finalized. It is not an inactive Work action and must not be
             // classified as a no-progress stall.
-            if (branch == CharacterAiBranch.Work
-                && work?.IsRoutineNeedInterruptionFinalizing == true)
+            // The branch can already expose the incoming RoutineUtility
+            // decision while AbilityWork is still publishing the outgoing
+            // work receipt/lease handoff.  The typed finalization flag, not
+            // the presentation branch sampled in this frame, is the custody
+            // authority for this bounded transition.
+            if (work?.IsRoutineNeedInterruptionFinalizing == true)
             {
                 ResetNoProgressWindows();
                 return;

@@ -1,0 +1,39 @@
+V27 PRODUCTION REACHABILITY AUDITONLY
+auditStatus=PASS
+gameplayReachabilityGreen=true
+recipes=355
+resourceItems=363
+orphanItemResearchReferences=0
+researchProjects=180
+orphanRecipeResearchReferences=0
+productionSupports=28
+unreachableProductionSupports=0
+supportTaggedRecipes=40
+supportConsumerLinks=50
+hearthConsumers=15
+ovenConsumers=2
+sourceFiles=1283
+deterministicSecondCapture=required-by-menu-entrypoint
+scriptableObjectMutationCount=0
+sourceDigest=c7afd8ca6f66fa4f6e12151ba76b60a78c8e49ed36c78cf8868f654545c8f217
+csvSha256=3116475645ac02b1b83997517287960cf8bc37e9f198feded22382f37a520524
+
+ORPHAN RECIPE RESEARCH REFERENCES
+
+UNREACHABLE PRODUCTION SUPPORTS
+
+SUPPORT CONSUMER COUNTS
+support:aging-barrel=2
+support:cheese-rack=1
+support:cheese-vat=2
+support:cold-prep=3
+support:fermenter=5
+support:fine-sieve=1
+support:fractional-still=1
+support:hearth=15
+support:mash-tun=1
+support:oven=2
+support:pickling-vat=2
+support:prep-sink=9
+support:smoke-hood=3
+support:spice-rack=3

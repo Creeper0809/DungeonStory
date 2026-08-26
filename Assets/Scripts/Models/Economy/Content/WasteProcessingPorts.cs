@@ -38,11 +38,6 @@ public interface IWasteProcessingInventoryPort
         out int requested,
         out DomainFailure failure);
 
-    bool TryConsumeStackQuantity(
-        ItemStackId stackId,
-        int quantity,
-        out WasteProcessingStackSnapshot consumed,
-        out DomainFailure failure);
 }
 
 /// <summary>

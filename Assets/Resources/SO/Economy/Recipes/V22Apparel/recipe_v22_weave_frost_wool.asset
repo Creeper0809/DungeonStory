@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: yarn:frost-wool
     amount: 3
   outputs:
-  - itemId: material:frost-wool
+  - outputLineId: output:recipe:v22:weave:frost-wool/000/main/material:frost-wool
+    role: 0
+    itemId: material:frost-wool
     amount: 2
     probability: 1

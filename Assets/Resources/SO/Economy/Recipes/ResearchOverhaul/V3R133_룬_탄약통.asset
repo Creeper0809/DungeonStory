@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -61,6 +62,8 @@ MonoBehaviour:
   - itemId: material:cartridge-paper
     amount: 1
   outputs:
-  - itemId: ammo:rune-cartridge
+  - outputLineId: output:recipe:ammo:rune-cartridge/000/main/ammo:rune-cartridge
+    role: 0
+    itemId: ammo:rune-cartridge
     amount: 6
     probability: 1

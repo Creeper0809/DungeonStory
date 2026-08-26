@@ -72,6 +72,16 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
         ValidateAnatomy(errors);
         ValidateFactions(errors);
         ValidateFactionSaveBoundary(errors);
+        try
+        {
+            FactionRestitutionOutboxDebugScenarios.RunAll();
+        }
+        catch (Exception exception)
+        {
+            errors.Add(
+                "Faction restitution outbox contract failed: "
+                + exception.Message);
+        }
         ValidateHumanBranches(errors);
         ValidateDefense(errors);
         ValidateResearch(errors);
@@ -572,6 +582,36 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
                 errors.Add($"Defense building {building.id} has no growth state.");
             if (defense.conditionLossPerActivation < 0f)
                 errors.Add($"Defense building {building.id} has invalid wear.");
+        }
+
+        BuildingStorageAbility supplyStorage = defenses
+            .FirstOrDefault(value => value.id == 1802)?
+            .GetAbility<BuildingStorageAbility>();
+        if (supplyStorage == null
+            || supplyStorage.category != StockCategory.Ammunition
+            || supplyStorage.capacity != 24
+            || supplyStorage.maxStoredMassGrams
+                != P1DefenseFacilityAssetBuilder.OperationalStorageMassCapacityGrams
+            || !supplyStorage.allCategories)
+        {
+            errors.Add(
+                "Defense supply depot 1802 is not exact "
+                + "Ammunition/count 24/25,000g universal storage.");
+        }
+
+        BuildingStorageAbility maintenanceStorage = defenses
+            .FirstOrDefault(value => value.id == 1803)?
+            .GetAbility<BuildingStorageAbility>();
+        if (maintenanceStorage == null
+            || maintenanceStorage.category != StockCategory.General
+            || maintenanceStorage.capacity != 12
+            || maintenanceStorage.maxStoredMassGrams
+                != P1DefenseFacilityAssetBuilder.OperationalStorageMassCapacityGrams
+            || maintenanceStorage.allCategories)
+        {
+            errors.Add(
+                "Defense maintenance bench 1803 is not exact "
+                + "General/count 12/25,000g restricted storage.");
         }
 
         int distinctSpritePaths = defenses

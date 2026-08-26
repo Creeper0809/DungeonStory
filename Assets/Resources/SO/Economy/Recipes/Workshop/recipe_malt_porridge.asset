@@ -50,14 +50,17 @@ MonoBehaviour:
   processingGameHours: 0
   optimalTemperatureC: {x: 12, y: 24}
   warningTemperatureC: {x: 4, y: 32}
-  cleanWaterPerCycle: 0
+  cleanWaterPerCycle: 1.5
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:malt
     amount: 1
   outputs:
-  - itemId: food:malt-porridge
+  - outputLineId: output:recipe:malt-porridge/000/main/food:malt-porridge
+    role: 0
+    itemId: food:malt-porridge
     amount: 2
     probability: 1

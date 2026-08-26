@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212033836254016
-    - rid: 7737212033836254017
-    - rid: 7737212033836254018
-    - rid: 7737212033836254019
-    - rid: 7737212033836254020
+    - rid: 7737212199244661611
+    - rid: 7737212199244661612
+    - rid: 7737212199244661613
+    - rid: 7737212199244661614
+    - rid: 7737212199244661615
   width: 1
   height: 1
   layer: 11
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212033836254016
+    - rid: 7737212199244661611
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: U02
-    - rid: 7737212033836254017
+    - rid: 7737212199244661612
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,7 +87,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737212033836254018
+    - rid: 7737212199244661613
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -113,14 +113,14 @@ MonoBehaviour:
           amount: 5
         - itemId: material:iron-ingot
           amount: 3
-    - rid: 7737212033836254019
+    - rid: 7737212199244661614
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 2
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7737212033836254020
+    - rid: 7737212199244661615
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

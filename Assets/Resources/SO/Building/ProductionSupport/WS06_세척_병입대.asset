@@ -53,11 +53,11 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212042831200498
-    - rid: 7737212042831200499
-    - rid: 7737212042831200500
-    - rid: 7737212042831200501
-    - rid: 7737212042831200502
+    - rid: 1004
+    - rid: 1005
+    - rid: 7737212195140797169
+    - rid: 1006
+    - rid: 1007
   width: 1
   height: 1
   layer: 1
@@ -73,12 +73,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200498
+    - rid: 1004
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS06
-    - rid: 7737212042831200499
+    - rid: 1005
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -87,7 +87,36 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737212042831200500
+    - rid: 1006
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - production-support
+        - support:bottling
+    - rid: 1007
+      type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionSupportAbility
+        supportId: production-support:ws06
+        featureTags:
+        - support:bottling
+        compatibleWorkstationTags:
+        - workstation:brewery
+        kind: 0
+        batchCapacity: 1
+        requiresPower: 1
+        cleanWaterPerCycle: 0.25
+        wastewaterPerCycle: 0.25
+        wastewaterComposition: 1
+        allowsManualWaterFallback: 0
+        requiresFuel: 0
+        fuelItemId: resource:log
+        fuelPerCycle: 1
+        workSpeedMultiplier: 1
+        outputMultiplier: 1
+        qualityModifier: 0
+    - rid: 7737212195140797169
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -111,31 +140,3 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: component:machine-parts
           amount: 3
-    - rid: 7737212042831200501
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
-      data:
-        abilityId: BuildingSemanticTagsAbility
-        tags:
-        - production-support
-        - support:bottling
-    - rid: 7737212042831200502
-      type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProductionSupportAbility
-        supportId: production-support:ws06
-        featureTags:
-        - support:bottling
-        compatibleWorkstationTags:
-        - workstation:brewery
-        kind: 0
-        batchCapacity: 1
-        requiresPower: 1
-        cleanWaterPerCycle: 0.25
-        wastewaterPerCycle: 0.25
-        allowsManualWaterFallback: 0
-        requiresFuel: 0
-        fuelItemId: resource:log
-        fuelPerCycle: 1
-        workSpeedMultiplier: 1
-        outputMultiplier: 1
-        qualityModifier: 0

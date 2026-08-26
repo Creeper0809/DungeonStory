@@ -15,6 +15,8 @@ internal sealed class ElectricalNodeState
     public bool BreakerTripped;
     public bool Powered;
     public float SuppliedFraction;
+    public int NextFuelOperationSequence = 1;
+    public PowerFuelCommitSaveData PendingFuel = new PowerFuelCommitSaveData();
 }
 
 internal sealed class ElectricalNetworkSummaryState
@@ -47,12 +49,24 @@ internal sealed class ElectricalNetworkRuntime :
 {
     private const float TickInterval = 0.25f;
     private const float FuelRequestInterval = 10f;
+    private const int FuelBufferBatchCapacity = 4;
+    private const string FuelBufferOwnerDomain = "infrastructure.electrical";
+    // Authored semantic revision for the fuel-buffer capacity contract. This is
+    // deliberately independent from the transient industrial topology epoch so
+    // live projection and save restore publish the same profile identity.
+    internal const long FuelBufferCapacitySchemaRevision = 1L;
+    internal const string FuelDispositionReasonCode =
+        "power-generator-fuel-combustion";
 
     private readonly IIndustrialInfrastructureTopologyRuntime topologyRuntime;
     private readonly IGameClock clock;
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalFacilityItemSinkGateway physicalFuel;
     private readonly AutomationPowerDemandRegistry automationPowerDemand;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IFacilityBufferDestinationLifecycleCommand bufferLifecycle;
+    private readonly IFacilityBufferDestinationClaimQuery bufferClaims;
+    private readonly IFacilityBufferDestinationReleaseService bufferRelease;
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly Dictionary<string, float> nextFuelRequestAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
@@ -62,8 +76,6 @@ internal sealed class ElectricalNetworkRuntime :
                 StringComparer.Ordinal);
     private readonly List<ElectricalConsumerEntry> consumerScratch =
         new List<ElectricalConsumerEntry>(64);
-    private readonly Dictionary<string, int> fuelRequirementScratch =
-        new Dictionary<string, int>(StringComparer.Ordinal);
     private IReadOnlyList<PowerNetworkSnapshot> networks =
         Array.Empty<PowerNetworkSnapshot>();
     private float accumulated;
@@ -82,18 +94,30 @@ internal sealed class ElectricalNetworkRuntime :
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
         IGameClock clock,
         IWorldItemStackRuntime items,
+        IPhysicalFacilityItemSinkGateway physicalFuel,
         AutomationPowerDemandRegistry automationPowerDemand,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IFacilityBufferDestinationLifecycleCommand bufferLifecycle,
+        IFacilityBufferDestinationClaimQuery bufferClaims,
+        IFacilityBufferDestinationReleaseService bufferRelease,
         IMilestoneGameplayModifierQuery milestoneModifiers = null)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.physicalFuel = physicalFuel
+            ?? throw new ArgumentNullException(nameof(physicalFuel));
         this.automationPowerDemand = automationPowerDemand
             ?? throw new ArgumentNullException(nameof(automationPowerDemand));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.bufferLifecycle = bufferLifecycle
+            ?? throw new ArgumentNullException(nameof(bufferLifecycle));
+        this.bufferClaims = bufferClaims
+            ?? throw new ArgumentNullException(nameof(bufferClaims));
+        this.bufferRelease = bufferRelease
+            ?? throw new ArgumentNullException(nameof(bufferRelease));
         this.milestoneModifiers = milestoneModifiers
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
         projectedRestoreRevision =
@@ -220,7 +244,11 @@ internal sealed class ElectricalNetworkRuntime :
                     fuelSeconds = pair.Value.FuelSeconds,
                     heat = pair.Value.Heat,
                     fault = pair.Value.Fault,
-                    breakerTripped = pair.Value.BreakerTripped
+                    breakerTripped = pair.Value.BreakerTripped,
+                    nextFuelOperationSequence =
+                        pair.Value.NextFuelOperationSequence,
+                    pendingFuel = pair.Value.PendingFuel?.Clone()
+                        ?? new PowerFuelCommitSaveData()
                 })
                 .ToList()
         };
@@ -257,7 +285,10 @@ internal sealed class ElectricalNetworkRuntime :
                 FuelSeconds = Mathf.Max(0f, saved.fuelSeconds),
                 Heat = Mathf.Max(0f, saved.heat),
                 Fault = Mathf.Clamp(saved.fault, 0f, 100f),
-                BreakerTripped = saved.breakerTripped
+                BreakerTripped = saved.breakerTripped,
+                NextFuelOperationSequence = saved.nextFuelOperationSequence,
+                PendingFuel = saved.pendingFuel?.Clone()
+                    ?? new PowerFuelCommitSaveData()
             };
         }
 
@@ -272,7 +303,15 @@ internal sealed class ElectricalNetworkRuntime :
         }
 
         aggregateRootStore.Replace(candidate.State);
-        if (!aggregateRootStore.IsRestoreStaging)
+        if (aggregateRootStore.IsRestoreStaging)
+        {
+            // The detached facility candidate is already indexed before save
+            // stages commit. Publish the power owner into the claim/profile
+            // restore candidates so carried fuel can rebind at participant 225.
+            topologyRuntime.MarkDirty();
+            PublishFuelBufferAuthorities(topologyRuntime.Current);
+        }
+        else
         {
             ResetProjectionAfterRestore();
             EnsureTopology();
@@ -292,15 +331,15 @@ internal sealed class ElectricalNetworkRuntime :
             return;
         }
 
-        topologyVersion = topology.SourceVersion;
-        automationPowerVersion = automationPowerDemand.Version;
         if (!topologyChanged)
         {
             EvaluateNetworks(0f);
+            automationPowerVersion = automationPowerDemand.Version;
             return;
         }
 
         networkSummaries.Clear();
+        PublishFuelBufferAuthorities(topology);
         foreach (IndustrialNodeDescriptor node in topology.Nodes.Values
                      .Where(node => (node.Channels & UtilityChannel.Power) != 0))
         {
@@ -318,7 +357,99 @@ internal sealed class ElectricalNetworkRuntime :
         }
 
         EvaluateNetworks(0f);
+        topologyVersion = topology.SourceVersion;
+        automationPowerVersion = automationPowerDemand.Version;
         Touch();
+    }
+
+    private void PublishFuelBufferAuthorities(IndustrialTopologySnapshot topology)
+    {
+        IEnumerable<IndustrialNodeDescriptor> topologyNodes = topology == null
+            ? Enumerable.Empty<IndustrialNodeDescriptor>()
+            : topology.Nodes.Values;
+        IndustrialNodeDescriptor[] fueledNodes = topologyNodes
+            .Where(node => node?.Building != null)
+            .Where(node => node.Building.BuildingData
+                .GetAbility<BuildingPowerProducerAbility>() is
+                { requiresFuel: true } producer
+                && !string.IsNullOrWhiteSpace(producer.fuelItemId))
+            .OrderBy(node => node.NodeId, StringComparer.Ordinal)
+            .ToArray();
+        List<FacilityBufferDestinationClaim> claims = new(fueledNodes.Length);
+        List<FacilityBufferCapacityProfile> profiles = new(fueledNodes.Length);
+        foreach (IndustrialNodeDescriptor node in fueledNodes)
+        {
+            BuildingPowerProducerAbility producer = node.Building.BuildingData
+                .GetAbility<BuildingPowerProducerAbility>();
+            string fuelItemId = producer.fuelItemId;
+            if (!string.Equals(fuelItemId, fuelItemId.Trim(), StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Power node '{node.NodeId}' has a non-canonical fuel item id.");
+            }
+            string destinationId = ReservedTargetDestinationIdentity.PowerFuelPrefix
+                + node.NodeId;
+            string facilityId = node.Building.PersistentInstanceId.Value;
+            long unitMassGrams = items.MassQuery.GetDefinitionUnitMass(
+                (ItemDefinitionId)fuelItemId).Value;
+            long maxMassGrams = checked(
+                unitMassGrams * FuelBufferBatchCapacity);
+            claims.Add(new FacilityBufferDestinationClaim(
+                destinationId,
+                node.Building.centerPos,
+                FuelBufferOwnerDomain,
+                destinationId,
+                facilityId,
+                FacilityBufferDestinationAnchorKind.LiveBuilding));
+            profiles.Add(new FacilityBufferCapacityProfile(
+                destinationId,
+                node.Building.centerPos,
+                FuelBufferOwnerDomain,
+                destinationId,
+                facilityId,
+                new PhysicalMassGrams(maxMassGrams),
+                FuelBufferCapacitySchemaRevision));
+        }
+
+        if (!aggregateRootStore.IsRestoreStaging)
+        {
+            HashSet<string> desiredDestinations = claims
+                .Select(value => value.DestinationId)
+                .ToHashSet(StringComparer.Ordinal);
+            FacilityBufferDestinationClaim[] retiredClaims = bufferClaims
+                .CaptureClaims()
+                .Where(value => string.Equals(
+                    value.OwnerDomain,
+                    FuelBufferOwnerDomain,
+                    StringComparison.Ordinal))
+                .Where(value => !desiredDestinations.Contains(value.DestinationId))
+                .OrderBy(value => value.DestinationId, StringComparer.Ordinal)
+                .ToArray();
+            foreach (FacilityBufferDestinationClaim retired in retiredClaims)
+            {
+                if (!bufferRelease.TryReleaseAtOwnerPosition(
+                        retired.DestinationId,
+                        retired.DropPosition,
+                        "power-fuel-owner-retired",
+                        out _,
+                        out string releaseFailure))
+                {
+                    throw new InvalidOperationException(
+                        $"Power fuel buffer terminal release failed for "
+                        + $"'{retired.DestinationId}': {releaseFailure}");
+                }
+            }
+        }
+
+        if (!bufferLifecycle.TryReplaceOwnedAuthorities(
+                FuelBufferOwnerDomain,
+                claims,
+                profiles,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                $"Power fuel buffer authority publication failed: {failureReason}");
+        }
     }
 
     private void EvaluateNetworks(float deltaTime)
@@ -544,27 +675,35 @@ internal sealed class ElectricalNetworkRuntime :
         }
 
         ElectricalNodeState state = EnsureState(node);
+        bool recoveryCompleted = TryRecoverFuelCommit(
+            node,
+            producer,
+            state,
+            out bool fuelUsable);
+        if (!recoveryCompleted && !fuelUsable)
+        {
+            return false;
+        }
         state.FuelSeconds = Mathf.Max(0f, state.FuelSeconds - deltaTime);
         if (state.FuelSeconds > 0f)
         {
             return true;
         }
+        if (!recoveryCompleted)
+        {
+            return false;
+        }
 
         string fuelItemId = producer.fuelItemId?.Trim() ?? string.Empty;
         string destinationId = "power:" + node.NodeId;
-        fuelRequirementScratch.Clear();
-        if (!string.IsNullOrWhiteSpace(fuelItemId))
-        {
-            fuelRequirementScratch[fuelItemId] = 1;
-        }
-
         if (!string.IsNullOrWhiteSpace(fuelItemId)
-            && items.TryConsumeFacilityItemBuffer(
-                destinationId,
-                fuelRequirementScratch,
-                out _))
+            && TryBeginFuelCommit(
+                node,
+                producer,
+                state,
+                fuelItemId,
+                destinationId))
         {
-            state.FuelSeconds = Mathf.Max(1f, producer.secondsPerFuel);
             return true;
         }
 
@@ -583,6 +722,167 @@ internal sealed class ElectricalNetworkRuntime :
         }
 
         return false;
+    }
+
+    internal static string FormatFuelOperationId(
+        string nodeId,
+        int sequence) => $"power-fuel:{nodeId}:{sequence:D8}";
+
+    private bool TryBeginFuelCommit(
+        IndustrialNodeDescriptor node,
+        BuildingPowerProducerAbility producer,
+        ElectricalNodeState state,
+        string fuelItemId,
+        string destinationId)
+    {
+        int sequence = state.NextFuelOperationSequence;
+        string operationId = FormatFuelOperationId(node.NodeId, sequence);
+        state.PendingFuel = new PowerFuelCommitSaveData
+        {
+            phase = (int)PowerFuelCommitPhase.IntentRecorded,
+            operationSequence = sequence,
+            operationId = operationId,
+            reasonCode = FuelDispositionReasonCode,
+            nodeId = node.NodeId,
+            destinationId = destinationId,
+            itemId = fuelItemId,
+            quantity = 1,
+            fuelSecondsBefore = 0f,
+            fuelSecondsAfter = Mathf.Max(1f, producer.secondsPerFuel)
+        };
+        Touch();
+
+        if (!physicalFuel.TryCommitSinkPending(
+                destinationId,
+                fuelItemId,
+                1,
+                operationId,
+                FuelDispositionReasonCode,
+                out _,
+                out _))
+        {
+            ClearFuelCommit(state, advanceSequence: false);
+            Touch();
+            return false;
+        }
+
+        TryRecoverFuelCommit(node, producer, state, out bool fuelUsable);
+        return fuelUsable;
+    }
+
+    private bool TryRecoverFuelCommit(
+        IndustrialNodeDescriptor node,
+        BuildingPowerProducerAbility producer,
+        ElectricalNodeState state,
+        out bool fuelUsable)
+    {
+        fuelUsable = state.FuelSeconds > 0f;
+        PowerFuelCommitSaveData pending = state.PendingFuel
+            ?? new PowerFuelCommitSaveData();
+        PowerFuelCommitPhase phase = (PowerFuelCommitPhase)pending.phase;
+        if (phase == PowerFuelCommitPhase.None)
+        {
+            return true;
+        }
+
+        string authoredItemId = producer.fuelItemId?.Trim() ?? string.Empty;
+        string destinationId = "power:" + node.NodeId;
+        float expectedAfter = Mathf.Max(1f, producer.secondsPerFuel);
+        bool contractMatches = pending.operationSequence
+                == state.NextFuelOperationSequence
+            && pending.quantity == 1
+            && string.Equals(pending.nodeId, node.NodeId, StringComparison.Ordinal)
+            && string.Equals(
+                pending.destinationId,
+                destinationId,
+                StringComparison.Ordinal)
+            && string.Equals(pending.itemId, authoredItemId, StringComparison.Ordinal)
+            && string.Equals(
+                pending.reasonCode,
+                FuelDispositionReasonCode,
+                StringComparison.Ordinal)
+            && string.Equals(
+                pending.operationId,
+                FormatFuelOperationId(node.NodeId, pending.operationSequence),
+                StringComparison.Ordinal)
+            && Mathf.Approximately(pending.fuelSecondsBefore, 0f)
+            && Mathf.Approximately(pending.fuelSecondsAfter, expectedAfter);
+        if (!contractMatches)
+        {
+            throw new InvalidOperationException(
+                $"Power fuel commit '{pending.operationId}' conflicts with node '{node.NodeId}'.");
+        }
+
+        bool hasReceipt = physicalFuel.TryGetPending(
+            pending.operationId,
+            out PhysicalItemBatchDispositionReceipt receipt);
+        if (hasReceipt
+            && (!receipt.IsCommitted
+                || receipt.Kind != PhysicalItemDispositionKind.Sink
+                || receipt.Quantity != 1
+                || !string.Equals(
+                    receipt.OperationId,
+                    pending.operationId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.ReasonCode,
+                    pending.reasonCode,
+                    StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                $"Power fuel commit '{pending.operationId}' has a mismatched physical receipt.");
+        }
+
+        if (phase == PowerFuelCommitPhase.IntentRecorded)
+        {
+            if (!hasReceipt)
+            {
+                ClearFuelCommit(state, advanceSequence: false);
+                Touch();
+                return true;
+            }
+
+            state.FuelSeconds = pending.fuelSecondsAfter;
+            pending.phase = (int)PowerFuelCommitPhase.OutcomePublished;
+            pending.sourceStackIds = receipt.SourceStackIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList();
+            pending.inputMassGrams = receipt.InputMassGrams;
+            pending.commitId = receipt.CommitId;
+            Touch();
+            fuelUsable = true;
+        }
+        else
+        {
+            if (!hasReceipt)
+            {
+                throw new InvalidOperationException(
+                    $"Power fuel commit '{pending.operationId}' lost its published physical receipt.");
+            }
+            fuelUsable = state.FuelSeconds > 0f;
+        }
+
+        if (hasReceipt
+            && !physicalFuel.Acknowledge(receipt.CommitId, out _))
+        {
+            return false;
+        }
+
+        ClearFuelCommit(state, advanceSequence: true);
+        Touch();
+        return true;
+    }
+
+    private static void ClearFuelCommit(
+        ElectricalNodeState state,
+        bool advanceSequence)
+    {
+        if (advanceSequence)
+        {
+            state.NextFuelOperationSequence = checked(
+                state.NextFuelOperationSequence + 1);
+        }
+        state.PendingFuel = new PowerFuelCommitSaveData();
     }
 
     private float ResolveDischargeRate(
@@ -830,7 +1130,6 @@ internal sealed class ElectricalNetworkRuntime :
         nextFuelRequestAt.Clear();
         networkSummaries.Clear();
         consumerScratch.Clear();
-        fuelRequirementScratch.Clear();
         networks = Array.Empty<PowerNetworkSnapshot>();
     }
 }

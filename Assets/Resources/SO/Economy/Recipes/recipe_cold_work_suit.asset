@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9081
+  id: 9082
   recipeId: recipe:cold-work-suit
   displayName: "\uBC29\uD55C \uC791\uC5C5\uBCF5"
   description: "\uBC29\uD55C \uC791\uC5C5\uBCF5 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: material:leather
     amount: 2
   outputs:
-  - itemId: equipment:cold-work-suit
+  - outputLineId: output:recipe:cold-work-suit/000/main/equipment:cold-work-suit
+    role: 0
+    itemId: equipment:cold-work-suit
     amount: 1
     probability: 1

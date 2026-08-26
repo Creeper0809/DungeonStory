@@ -1,0 +1,22 @@
+RESULT=PASS; authorities=21; positiveCount=21; positiveGram=21
+ROW	code=D10;path=Assets/Resources/SO/Building/Modular/D10_식재료선반.asset;category=Food;count=16;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=H06;path=Assets/Resources/SO/Building/Modular/H06_청소도구함.asset;category=General;count=8;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=L01;path=Assets/Resources/SO/Building/Modular/L01_대형보관선반.asset;category=General;count=60;grams=25000;allCategories=True;writer=ModularFacilityAssetBuilder
+ROW	code=L02;path=Assets/Resources/SO/Building/Modular/L02_상자더미.asset;category=General;count=16;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=L03;path=Assets/Resources/SO/Building/Modular/L03_통더미.asset;category=Food;count=14;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=L04;path=Assets/Resources/SO/Building/Modular/L04_자루더미.asset;category=Food;count=12;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=L05;path=Assets/Resources/SO/Building/Modular/L05_식재료저장함.asset;category=Food;count=20;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=L06;path=Assets/Resources/SO/Building/Modular/L06_무기로커.asset;category=Weapon;count=20;grams=25000;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=L07;path=Assets/Resources/SO/Building/Modular/L07_마력보관함.asset;category=Mana;count=20;grams=15000;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=M01;path=Assets/Resources/SO/Building/Modular/M01_마력수정선반.asset;category=Mana;count=18;grams=13500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=M02;path=Assets/Resources/SO/Building/Modular/M02_마력저장조.asset;category=Mana;count=36;grams=27000;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=Q03;path=Assets/Resources/SO/Building/Modular/Q03_연구용책장.asset;category=General;count=10;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=Q04;path=Assets/Resources/SO/Building/Modular/Q04_시약선반.asset;category=Mana;count=12;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=Q05;path=Assets/Resources/SO/Building/Modular/Q05_표본보관장.asset;category=General;count=8;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=R06;path=Assets/Resources/SO/Building/Modular/R06_옷장.asset;category=General;count=8;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=R09;path=Assets/Resources/SO/Building/Modular/R09_개인보관함.asset;category=General;count=6;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=S04;path=Assets/Resources/SO/Building/Modular/S04_잡화상자.asset;category=General;count=12;grams=12500;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=S07;path=Assets/Resources/SO/Building/Modular/S07_무기보관함.asset;category=Weapon;count=16;grams=25000;allCategories=False;writer=ModularFacilityAssetBuilder
+ROW	code=M08;path=Assets/Resources/SO/Building/Medical/M08_장기보관함.asset;category=Biological;count=8;grams=12500;allCategories=False;writer=SurgeryContentAssetBuilder
+ROW	code=DF03;path=Assets/Resources/SO/Building/P1/DefenseSupplyDepot.asset;category=Ammunition;count=24;grams=25000;allCategories=True;writer=P1DefenseFacilityAssetBuilder
+ROW	code=DF04;path=Assets/Resources/SO/Building/P1/DefenseMaintenanceBench.asset;category=General;count=12;grams=25000;allCategories=False;writer=P1DefenseFacilityAssetBuilder

@@ -41,6 +41,10 @@ public static class WorkAmountDebugScenarios
             VerifyPurchasedFacilityKitDelivery,
             errors);
         RunScenario("construction cancellation refunds materials", VerifyConstructionCancellationRefund, errors);
+        RunScenario(
+            "construction restitution output restore preflight",
+            VerifyRestitutionOutputRestorePreflight,
+            errors);
         RunScenario("orphan construction auto-recovers materials", VerifyOrphanConstructionRecovery, errors);
         RunScenario(
             "work-order preflight preserves live state",
@@ -85,6 +89,23 @@ public static class WorkAmountDebugScenarios
         }
 
         errors.Add(name);
+    }
+
+    private static bool TryValidatePhysicalCandidate(
+        DungeonWorkOrderSaveData payload,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        try
+        {
+            WorkOrdersSaveSection.ValidatePhysicalRestoreCandidate(
+                payload,
+                query);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     private static bool VerifySaveV18CarriesWorkOrders()
@@ -227,7 +248,8 @@ public static class WorkAmountDebugScenarios
             new SingleBuildingLookup(building),
             new ScenarioObjectResolver(),
             CreateExecutionServices(workforceReplan),
-            CreateStateStore());
+            CreateStateStore(),
+            new FakePhysicalItemSourcePublicationService(itemRuntime));
         bool placed = false;
         bool removed = false;
         try
@@ -277,11 +299,47 @@ public static class WorkAmountDebugScenarios
                 order.MaterialDestinationId,
                 "material:lumber",
                 2);
-            bool ready = runtime.RefreshMaterialsReady(site)
+            itemRuntime.FailNextAcknowledgement = true;
+            bool firstAcknowledgementFailed = !runtime.RefreshMaterialsReady(site);
+            DungeonWorkOrderSaveData pendingSave = runtime.Capture();
+            runtime.ValidateRestorePayload(pendingSave);
+            WorkOrderMaterialTransferSaveData pendingOwner =
+                pendingSave.orders.Single().materialTransfer;
+            PhysicalItemRestoreCandidateDispositionSnapshot pendingReceipt = new(
+                PhysicalItemDispositionKind.Transfer,
+                pendingOwner.operationId,
+                pendingOwner.reasonCode,
+                pendingOwner.requestFingerprint,
+                pendingOwner.sources.Select(value => value.stackId)
+                    .OrderBy(value => value, StringComparer.Ordinal)
+                    .ToArray(),
+                pendingOwner.inputQuantity,
+                pendingOwner.inputMassGrams,
+                pendingOwner.commitId);
+            bool restoreJoinPassed = TryValidatePhysicalCandidate(
+                    pendingSave,
+                    new CandidateQuery(pendingReceipt))
+                && !TryValidatePhysicalCandidate(
+                    pendingSave,
+                    CandidateQuery.Empty)
+                && !TryValidatePhysicalCandidate(
+                    new DungeonWorkOrderSaveData(),
+                    new CandidateQuery(pendingReceipt));
+            bool ready = firstAcknowledgementFailed
+                && pendingOwner.phase ==
+                    WorkOrderMaterialTransferPhase.CustodyPublished
+                && itemRuntime.PhysicalCommitCount == 1
+                && itemRuntime.PhysicalAcknowledgementCount == 0
+                && restoreJoinPassed
+                && runtime.RefreshMaterialsReady(site)
                 && runtime.TryGetOrderFor(site, BuiltInWorkTypeIds.Construct, out order)
                 && order.Status == WorkOrderStatus.Ready
                 && order.DeliveredItemMaterials.TryGetValue("material:lumber", out int delivered)
-                && delivered == 2;
+                && delivered == 2
+                && itemRuntime.PhysicalCommitCount == 1
+                && itemRuntime.PhysicalAcknowledgementCount == 1
+                && runtime.Capture().orders.Single().materialTransfer.phase ==
+                    WorkOrderMaterialTransferPhase.Acknowledged;
             if (!ready)
             {
                 return false;
@@ -343,13 +401,16 @@ public static class WorkAmountDebugScenarios
             (BuildingInstanceId)"building:test:work-amount-cancellation");
         CharacterAiEditorTestDependencies.Inject(site);
         FakeWorldItemStackRuntime itemRuntime = new FakeWorldItemStackRuntime();
+        FakePhysicalItemSourcePublicationService materialSources =
+            new FakePhysicalItemSourcePublicationService(itemRuntime);
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
             itemRuntime,
             new SingleBuildingLookup(building),
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
-            CreateStateStore());
+            CreateStateStore(),
+            materialSources);
         try
         {
             site.Initialization(building, new Vector2Int(5, 0));
@@ -363,8 +424,39 @@ public static class WorkAmountDebugScenarios
                 return false;
             }
 
+            if (!runtime.TryGetOrderFor(
+                    site,
+                    BuiltInWorkTypeIds.Construct,
+                    out WorkOrderProgressState order))
+            {
+                return false;
+            }
+            itemRuntime.AddFacilityItemBuffer(
+                order.MaterialDestinationId,
+                "material:lumber",
+                2);
+            if (!runtime.RefreshMaterialsReady(site))
+            {
+                return false;
+            }
+
+            string restitutionOperation =
+                WorkOrderMaterialDebugContract.RestitutionOperationId(orderId);
             return runtime.CancelOrder(orderId, refundDeliveredMaterials: true)
                 && itemRuntime.ReleasedQuantity == 2
+                && itemRuntime.PhysicalCommitCount == 1
+                && itemRuntime.PhysicalAcknowledgementCount == 1
+                && itemRuntime.GetAllStacks().Where(stack =>
+                        stack != null
+                        && string.Equals(
+                            stack.ItemId,
+                            "material:lumber",
+                            StringComparison.Ordinal)
+                        && ProductionOutputCommitComponentCodec.Matches(
+                            stack.Components,
+                            "physical-source:" + restitutionOperation
+                            + ":material:lumber:2:2000"))
+                    .Sum(stack => stack.Quantity) == 2
                 && !runtime.TryGetOrderFor(
                     site,
                     BuiltInWorkTypeIds.Construct,
@@ -404,7 +496,8 @@ public static class WorkAmountDebugScenarios
             new SingleBuildingLookup(building),
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
-            CreateStateStore());
+            CreateStateStore(),
+            new FakePhysicalItemSourcePublicationService(itemRuntime));
         try
         {
             site.Initialization(building, new Vector2Int(4, 0));
@@ -483,7 +576,8 @@ public static class WorkAmountDebugScenarios
             new SingleBuildingLookup(building),
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
-            CreateStateStore());
+            CreateStateStore(),
+            new FakePhysicalItemSourcePublicationService(itemRuntime));
         try
         {
             site.Initialization(building, new Vector2Int(6, 0));
@@ -534,7 +628,8 @@ public static class WorkAmountDebugScenarios
             new SingleBuildingLookup(building),
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
-            CreateStateStore());
+            CreateStateStore(),
+            new FakePhysicalItemSourcePublicationService(items));
         try
         {
             site.Initialization(building, new Vector2Int(2, 0));
@@ -551,7 +646,10 @@ public static class WorkAmountDebugScenarios
             DungeonWorkOrderSaveData invalid = runtime.Capture();
             invalid.nextOrderSequence = 0;
             invalid.orders.Add(invalid.orders[0]);
-            WorkOrdersSaveSection section = new WorkOrdersSaveSection(runtime);
+            WorkOrdersSaveSection section = new WorkOrdersSaveSection(
+                runtime,
+                EmptyPhysicalItemRestoreCandidateQuery.Instance,
+                EmptyPhysicalItemRestoreCandidateOutputQuery.Instance);
             DungeonGameRestoreReport report = new DungeonGameRestoreReport();
             bool rejected = false;
             try
@@ -614,13 +712,17 @@ public static class WorkAmountDebugScenarios
             new SingleBuildingLookup(building),
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
-            new WorkOrderAggregateStateStore(rootStore, candidateIndex));
+            new WorkOrderAggregateStateStore(rootStore, candidateIndex),
+            new FakePhysicalItemSourcePublicationService(items));
         CandidateFacilitySection facilitySection =
             new CandidateFacilitySection(candidateIndex, new Grid(12, 4));
         PassiveSaveSection physicalItems = new PassiveSaveSection(
             PhysicalItemsSaveSection.Id,
             DungeonSaveRestorePhase.Items);
-        WorkOrdersSaveSection workOrders = new WorkOrdersSaveSection(runtime);
+        WorkOrdersSaveSection workOrders = new WorkOrdersSaveSection(
+            runtime,
+            EmptyPhysicalItemRestoreCandidateQuery.Instance,
+            EmptyPhysicalItemRestoreCandidateOutputQuery.Instance);
         WorkOrderRestoreLifecycleProbe successProbe =
             new WorkOrderRestoreLifecycleProbe(
                 failAfterPublish: false,
@@ -822,19 +924,24 @@ public static class WorkAmountDebugScenarios
         RestoreWorldCandidateIndex candidateIndex =
             new RestoreWorldCandidateIndex();
         Grid liveGrid = new Grid(12, 4);
+        FakeWorldItemStackRuntime items = new FakeWorldItemStackRuntime();
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
-            new FakeWorldItemStackRuntime(),
+            items,
             new SingleBuildingLookup(building),
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
-            new WorkOrderAggregateStateStore(rootStore, candidateIndex));
+            new WorkOrderAggregateStateStore(rootStore, candidateIndex),
+            new FakePhysicalItemSourcePublicationService(items));
         CandidateFacilitySection facilitySection =
             new CandidateFacilitySection(candidateIndex, new Grid(12, 4));
         PassiveSaveSection physicalItems = new PassiveSaveSection(
             PhysicalItemsSaveSection.Id,
             DungeonSaveRestorePhase.Items);
-        WorkOrdersSaveSection workOrders = new WorkOrdersSaveSection(runtime);
+        WorkOrdersSaveSection workOrders = new WorkOrdersSaveSection(
+            runtime,
+            EmptyPhysicalItemRestoreCandidateQuery.Instance,
+            EmptyPhysicalItemRestoreCandidateOutputQuery.Instance);
         WorkOrderRestoreLifecycleProbe lateProbe =
             new WorkOrderRestoreLifecycleProbe(
                 failAfterPublish: true,
@@ -1497,8 +1604,264 @@ public static class WorkAmountDebugScenarios
         }
     }
 
+    private sealed class EmptyPhysicalItemRestoreCandidateQuery :
+        IPhysicalItemRestoreCandidateQuery
+    {
+        internal static readonly EmptyPhysicalItemRestoreCandidateQuery Instance =
+            new EmptyPhysicalItemRestoreCandidateQuery();
+
+        public bool IsCandidateAvailable => true;
+        public IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
+            PendingBatchDispositions =>
+                Array.Empty<PhysicalItemRestoreCandidateDispositionSnapshot>();
+
+        public bool TryGetPendingBatchDisposition(
+            string operationId,
+            out PhysicalItemRestoreCandidateDispositionSnapshot disposition)
+        {
+            disposition = null;
+            return false;
+        }
+    }
+
+    private static bool VerifyRestitutionOutputRestorePreflight()
+    {
+        const string orderId = "work:000321";
+        string restitutionOperation =
+            WorkOrderMaterialDebugContract.RestitutionOperationId(orderId);
+        DungeonWorkOrderSaveData payload = new()
+        {
+            orders = new List<WorkOrderSaveData>
+            {
+                new()
+                {
+                    workOrderId = orderId,
+                    gridX = 4,
+                    gridY = 7,
+                    itemMaterials = new List<WorkOrderItemMaterialSaveData>
+                    {
+                        new()
+                        {
+                            itemId = "material:lumber",
+                            required = 2,
+                            delivered = 2
+                        },
+                        new()
+                        {
+                            itemId = "material:steel-ingot",
+                            required = 1,
+                            delivered = 1
+                        }
+                    },
+                    materialTransfer = new WorkOrderMaterialTransferSaveData
+                    {
+                        phase = WorkOrderMaterialTransferPhase.RestitutionPending,
+                        inputQuantity = 3,
+                        inputMassGrams = 3000L,
+                        restitutionOperationId = restitutionOperation
+                    }
+                }
+            }
+        };
+        PhysicalItemRestoreCandidateOutputSnapshot lumber = new(
+            "physical-source:" + restitutionOperation
+                + ":material:lumber:2:2000",
+            "stack:restitution:lumber",
+            "material:lumber",
+            2,
+            2000L,
+            WorldItemStackState.Loose,
+            new Vector2Int(4, 7),
+            string.Empty);
+        WorkOrdersSaveSection.ValidateRestitutionOutputCandidate(
+            payload,
+            new OutputCandidateQuery(lumber));
+        PhysicalItemRestoreCandidateOutputSnapshot steel = new(
+            "physical-source:" + restitutionOperation
+                + ":material:steel-ingot:1:1000",
+            "stack:restitution:steel",
+            "material:steel-ingot",
+            1,
+            1000L,
+            WorldItemStackState.Loose,
+            new Vector2Int(4, 7),
+            string.Empty);
+        WorkOrdersSaveSection.ValidateRestitutionOutputCandidate(
+            payload,
+            new OutputCandidateQuery(lumber, steel));
+
+        bool tamperRejected = false;
+        try
+        {
+            WorkOrdersSaveSection.ValidateRestitutionOutputCandidate(
+                payload,
+                new OutputCandidateQuery(
+                    lumber,
+                    new PhysicalItemRestoreCandidateOutputSnapshot(
+                        steel.CommitId,
+                        steel.StackId,
+                        steel.ItemId,
+                        steel.Quantity,
+                        999L,
+                        steel.State,
+                        steel.Position,
+                        steel.DestinationId)));
+        }
+        catch (InvalidOperationException)
+        {
+            tamperRejected = true;
+        }
+        return tamperRejected;
+    }
+
+    private sealed class CandidateQuery : IPhysicalItemRestoreCandidateQuery
+    {
+        internal static readonly CandidateQuery Empty = new CandidateQuery();
+        private readonly IReadOnlyList<
+            PhysicalItemRestoreCandidateDispositionSnapshot> values;
+
+        internal CandidateQuery(
+            params PhysicalItemRestoreCandidateDispositionSnapshot[] values)
+        {
+            this.values = values
+                ?? Array.Empty<PhysicalItemRestoreCandidateDispositionSnapshot>();
+        }
+
+        public bool IsCandidateAvailable => true;
+        public IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
+            PendingBatchDispositions => values;
+
+        public bool TryGetPendingBatchDisposition(
+            string operationId,
+            out PhysicalItemRestoreCandidateDispositionSnapshot disposition)
+        {
+            disposition = values.FirstOrDefault(value => string.Equals(
+                value.OperationId,
+                operationId,
+                StringComparison.Ordinal));
+            return disposition != null;
+        }
+    }
+
+    private sealed class OutputCandidateQuery :
+        IPhysicalItemRestoreCandidateOutputQuery
+    {
+        private readonly IReadOnlyList<
+            PhysicalItemRestoreCandidateOutputSnapshot> values;
+
+        internal OutputCandidateQuery(
+            params PhysicalItemRestoreCandidateOutputSnapshot[] values)
+        {
+            this.values = (values
+                    ?? Array.Empty<
+                        PhysicalItemRestoreCandidateOutputSnapshot>())
+                .OrderBy(value => value.CommitId, StringComparer.Ordinal)
+                .ThenBy(value => value.StackId, StringComparer.Ordinal)
+                .ToArray();
+        }
+
+        public bool IsCandidateAvailable => true;
+        public IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot>
+            CommittedOutputs => values;
+
+        public bool TryGetCommittedOutput(
+            string commitId,
+            out IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot> outputs)
+        {
+            outputs = values.Where(value => string.Equals(
+                    value.CommitId,
+                    commitId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            return outputs.Count > 0;
+        }
+    }
+
+    private sealed class FakePhysicalItemSourcePublicationService :
+        IPhysicalItemSourcePublicationService
+    {
+        private readonly FakeWorldItemStackRuntime items;
+
+        internal FakePhysicalItemSourcePublicationService(
+            FakeWorldItemStackRuntime items)
+        {
+            this.items = items ?? throw new ArgumentNullException(nameof(items));
+        }
+
+        public bool TryEnsureLooseOutputs(
+            IReadOnlyDictionary<string, int> outputs,
+            Vector2Int outputPosition,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemSourcePublicationReceipt receipt,
+            out string failureReason)
+        {
+            List<string> commits = new();
+            int quantity = 0;
+            foreach (KeyValuePair<string, int> output in outputs
+                         .OrderBy(value => value.Key, StringComparer.Ordinal))
+            {
+                string commit = $"physical-source:{operationId}:{output.Key}:"
+                    + $"{output.Value}:{output.Value * 1000L}";
+                if (!items.EnsureCommittedLooseOutput(
+                        output.Key,
+                        output.Value,
+                        outputPosition,
+                        commit))
+                {
+                    receipt = default;
+                    failureReason = "fake physical source publication failed";
+                    return false;
+                }
+                commits.Add(commit);
+                quantity += output.Value;
+            }
+            receipt = new PhysicalItemSourcePublicationReceipt(
+                operationId,
+                reasonCode,
+                commits,
+                quantity,
+                quantity * 1000L);
+            failureReason = string.Empty;
+            return receipt.IsCommitted;
+        }
+    }
+
     private sealed class FakeWorldItemStackRuntime : IWorldItemStackRuntime
     {
+        private readonly IDungeonItemCatalogProvider catalogProvider =
+            EditorItemCatalogFactory.Create();
+
+        public bool SpawnItemAtWithComponents(
+            string itemId,
+            int amount,
+            Vector2Int position,
+            WorldItemStackState state,
+            string destinationId,
+            IReadOnlyList<ItemInstanceComponentSaveData> components,
+            out int spawned)
+        {
+            spawned = Mathf.Max(0, amount);
+            if (spawned <= 0)
+            {
+                return false;
+            }
+            stacks.Add(new WorldItemStackSnapshot
+            {
+                StackId = $"fake-component-output:{stacks.Count + 1}",
+                ItemId = itemId ?? string.Empty,
+                Quantity = spawned,
+                State = state,
+                Position = position,
+                DestinationId = destinationId ?? string.Empty,
+                Components = (components ?? Array.Empty<ItemInstanceComponentSaveData>())
+                    .Select(value => value?.Clone())
+                    .Where(value => value != null)
+                    .ToArray()
+            });
+            return true;
+        }
+        public bool TryRemoveInstanceComponent(string stackId, string componentTypeId) => false;
         private readonly Dictionary<string, Dictionary<StockCategory, int>> buffers =
             new Dictionary<string, Dictionary<StockCategory, int>>(StringComparer.Ordinal);
         private readonly Dictionary<string, Dictionary<string, int>> itemBuffers =
@@ -1506,6 +1869,8 @@ public static class WorkAmountDebugScenarios
                 StringComparer.Ordinal);
         private readonly List<WorldItemStackSnapshot> stacks =
             new List<WorldItemStackSnapshot>();
+        private readonly Dictionary<string, PhysicalItemBatchDispositionReceipt>
+            pendingDispositions = new(StringComparer.Ordinal);
 
         public readonly Dictionary<StockCategory, int> Requested = new Dictionary<StockCategory, int>();
         public readonly Dictionary<string, int> RequestedItems =
@@ -1513,8 +1878,12 @@ public static class WorkAmountDebugScenarios
         public readonly HashSet<string> PrioritizedStackIds =
             new HashSet<string>(StringComparer.Ordinal);
         public int ReleasedQuantity { get; private set; }
+        public int PhysicalCommitCount { get; private set; }
+        public int PhysicalAcknowledgementCount { get; private set; }
+        public bool FailNextAcknowledgement { get; set; }
 
-        public IDungeonItemCatalogProvider CatalogProvider => null;
+        public IDungeonItemCatalogProvider CatalogProvider => catalogProvider;
+        public IPhysicalItemMassQuery MassQuery => null;
         public IItemHaulingSettingsProvider HaulingSettingsProvider => null;
         public bool StoredItemMarkersVisible => false;
         public int ItemStackVersion => 0;
@@ -1522,6 +1891,7 @@ public static class WorkAmountDebugScenarios
         public int GetCommittedHaulDeliveryQuantity(
             string destinationId,
             string itemId) => 0;
+        public long GetCommittedHaulDeliveryMassGrams(string destinationId) => 0L;
         public bool TryCommitHaulPickup(
             string ownerOperationId,
             CharacterCarryInventory inventory,
@@ -1537,7 +1907,140 @@ public static class WorkAmountDebugScenarios
             intent = null;
             return false;
         }
+
+        public IReadOnlyList<HaulDeliveryIntentSaveData>
+            CaptureHaulDeliveryIntentsByDestination(string destinationId) =>
+            Array.Empty<HaulDeliveryIntentSaveData>();
         public bool ReleaseHaulDeliveryIntent(string ownerOperationId) => false;
+
+        public bool TryCommitBatchPhysicalDisposition(
+            IReadOnlyList<PhysicalItemTransformInput> inputs,
+            PhysicalItemDispositionKind kind,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemBatchDispositionReceipt receipt,
+            out string failureReason)
+        {
+            if (!TryCommitPendingBatchPhysicalDisposition(
+                    inputs,
+                    kind,
+                    operationId,
+                    reasonCode,
+                    out receipt,
+                    out failureReason))
+            {
+                return false;
+            }
+            return AcknowledgeBatchPhysicalDisposition(
+                receipt.CommitId,
+                out failureReason);
+        }
+
+        public bool AcknowledgeBatchPhysicalDisposition(
+            string commitId,
+            out string failureReason)
+        {
+            if (FailNextAcknowledgement)
+            {
+                FailNextAcknowledgement = false;
+                failureReason = "injected work-order acknowledgement failure";
+                return false;
+            }
+            KeyValuePair<string, PhysicalItemBatchDispositionReceipt> pending =
+                pendingDispositions.FirstOrDefault(pair => string.Equals(
+                    pair.Value.CommitId,
+                    commitId,
+                    StringComparison.Ordinal));
+            if (string.IsNullOrEmpty(pending.Key))
+            {
+                failureReason = string.Empty;
+                return true;
+            }
+            pendingDispositions.Remove(pending.Key);
+            PhysicalAcknowledgementCount++;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryCommitPendingBatchPhysicalDisposition(
+            IReadOnlyList<PhysicalItemTransformInput> inputs,
+            PhysicalItemDispositionKind kind,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemBatchDispositionReceipt receipt,
+            out string failureReason)
+        {
+            string operation = operationId ?? string.Empty;
+            if (pendingDispositions.TryGetValue(operation, out receipt))
+            {
+                failureReason = string.Empty;
+                return true;
+            }
+            PhysicalItemTransformInput[] requested = (inputs
+                    ?? Array.Empty<PhysicalItemTransformInput>())
+                .OrderBy(value => value.StackId, StringComparer.Ordinal)
+                .ToArray();
+            if (kind != PhysicalItemDispositionKind.Transfer
+                || requested.Length == 0
+                || requested.Any(input => input.Quantity <= 0))
+            {
+                receipt = default;
+                failureReason = "fake physical disposition request invalid";
+                return false;
+            }
+            List<(WorldItemStackSnapshot Stack, int Quantity)> mutations = new();
+            foreach (PhysicalItemTransformInput input in requested)
+            {
+                WorldItemStackSnapshot stack = stacks.FirstOrDefault(value =>
+                    value != null
+                    && string.Equals(
+                        value.StackId,
+                        input.StackId,
+                        StringComparison.Ordinal));
+                if (stack == null
+                    || stack.ReservedQuantity != 0
+                    || stack.Quantity < input.Quantity)
+                {
+                    receipt = default;
+                    failureReason = "fake physical disposition source missing";
+                    return false;
+                }
+                mutations.Add((stack, input.Quantity));
+            }
+            int total = requested.Sum(value => value.Quantity);
+            string fingerprint = "work-order-fixture:"
+                + string.Join(",", requested.Select(value =>
+                    $"{value.StackId}:{value.Quantity}"));
+            receipt = WorkOrderMaterialDebugContract.CreateReceipt(
+                kind,
+                operation,
+                reasonCode,
+                fingerprint,
+                requested.Select(value => value.StackId).ToArray(),
+                total,
+                total * 1000L);
+            pendingDispositions.Add(operation, receipt);
+            foreach ((WorldItemStackSnapshot stack, int quantity) in mutations)
+            {
+                stack.Quantity -= quantity;
+                if (stack.Quantity == 0)
+                {
+                    stacks.Remove(stack);
+                }
+            }
+            PhysicalCommitCount++;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryGetPendingBatchPhysicalDisposition(
+            string operationId,
+            out PhysicalItemBatchDispositionReceipt receipt)
+        {
+            return pendingDispositions.TryGetValue(
+                operationId ?? string.Empty,
+                out receipt);
+        }
 
         public DungeonPhysicalItemSaveData Capture() => new DungeonPhysicalItemSaveData();
         public void Restore(DungeonPhysicalItemSaveData snapshot) { }
@@ -2059,6 +2562,51 @@ public static class WorkAmountDebugScenarios
                 out int current)
                 ? current + amount
                 : amount;
+            stacks.Add(new WorldItemStackSnapshot
+            {
+                StackId = $"fake-facility-buffer:{stacks.Count + 1}",
+                ItemId = normalizedItemId,
+                StockCategory = StockCategory.General,
+                Quantity = Mathf.Max(0, amount),
+                ReservedQuantity = 0,
+                State = WorldItemStackState.FacilityBuffer,
+                Position = Vector2Int.zero,
+                DestinationId = normalizedDestination
+            });
+        }
+
+        internal bool EnsureCommittedLooseOutput(
+            string itemId,
+            int quantity,
+            Vector2Int position,
+            string commitId)
+        {
+            WorldItemStackSnapshot existing = stacks.FirstOrDefault(stack =>
+                ProductionOutputCommitComponentCodec.Matches(
+                    stack.Components,
+                    commitId));
+            if (existing != null)
+            {
+                return string.Equals(
+                        existing.ItemId,
+                        itemId,
+                        StringComparison.Ordinal)
+                    && existing.Quantity == quantity
+                    && existing.Position == position
+                    && existing.State == WorldItemStackState.Loose;
+            }
+            return SpawnItemAtWithComponents(
+                    itemId,
+                    quantity,
+                    position,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    new[]
+                    {
+                        ProductionOutputCommitComponentCodec.Create(commitId)
+                    },
+                    out int spawned)
+                && spawned == quantity;
         }
     }
 

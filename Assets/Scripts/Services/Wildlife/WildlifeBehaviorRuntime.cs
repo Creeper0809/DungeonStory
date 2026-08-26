@@ -17,6 +17,7 @@ internal sealed class WildlifeBehaviorRuntime
     private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly WildlifeFoodRaidDispositionOutbox foodRaidOutbox;
     private readonly IWildlifeCarcassService carcassService;
     private readonly IRandomStream randomStream;
     private readonly List<WildlifeActor> wildlife;
@@ -48,6 +49,8 @@ internal sealed class WildlifeBehaviorRuntime
         pathSearchBroker = requiredWorld.PathSearch;
         worldRegistry = requiredWorld.WorldRegistry;
         itemStackRuntime = requiredWorld.Items;
+        foodRaidOutbox = new WildlifeFoodRaidDispositionOutbox(
+            requiredWorld.BatchDispositions);
         carcassService = (combat ?? throw new ArgumentNullException(nameof(combat))).Carcasses;
         randomStream = (execution ?? throw new ArgumentNullException(nameof(execution)))
             .RandomStreams.Get("wildlife.runtime");
@@ -162,7 +165,8 @@ internal sealed class WildlifeBehaviorRuntime
     {
         WildlifeFoodRaidOrderSaveData order = foodRaidOrders.FirstOrDefault(
             candidate => candidate != null
-                && candidate.state == WildlifeFoodRaidOrderState.Approaching
+                && candidate.state is WildlifeFoodRaidOrderState.Approaching
+                    or WildlifeFoodRaidOrderState.WaitingForDispositionFinalization
                 && string.Equals(
                     candidate.wildlifeId,
                     actor?.WildlifeId,
@@ -172,8 +176,30 @@ internal sealed class WildlifeBehaviorRuntime
             return false;
         }
 
+        if (order.commitPhase != WildlifeFoodRaidCommitPhase.None)
+        {
+            if (!foodRaidOutbox.TryResume(order, out string resumeFailure))
+            {
+                order.outcomeReason = resumeFailure;
+                return false;
+            }
+            actor.MarkLeaving();
+            return true;
+        }
+
         if (actor == null || !actor.IsAlive)
         {
+            if (order.commitPhase != WildlifeFoodRaidCommitPhase.None)
+            {
+                if (!foodRaidOutbox.TryResume(order, out string pendingFailure))
+                {
+                    throw new InvalidOperationException(
+                        $"Wildlife food raid '{order.raidId}/{order.wildlifeId}' "
+                        + $"could not finalize after actor loss: {pendingFailure}");
+                }
+                order.state = WildlifeFoodRaidOrderState.Stolen;
+                return true;
+            }
             order.state = WildlifeFoodRaidOrderState.Cancelled;
             order.outcomeReason =
                 "습격 개체가 처치되어 도난이 취소되었습니다.";
@@ -206,26 +232,21 @@ internal sealed class WildlifeBehaviorRuntime
             $"노출 식량 {target.DisplayName}을 노리는 중");
         if (actor.GridPosition == target.Position)
         {
-            if (itemStackRuntime.TryConsumeStackQuantity(
-                    target.StackId,
-                    1,
-                    out WorldItemStackSnapshot consumed))
+            if (foodRaidOutbox.TryCommit(
+                    order,
+                    target,
+                    out string dispositionFailure))
             {
-                order.stolenQuantity = consumed?.Quantity ?? 0;
-                order.state = WildlifeFoodRaidOrderState.Stolen;
-                order.outcomeReason =
-                    order.stolenQuantity > 0
-                        ? "늑대가 식량에 도달해 1개를 훔쳤습니다."
-                        : "식량이 먼저 사라져 아무것도 훔치지 못했습니다.";
+                actor.MarkLeaving();
             }
             else
             {
-                order.state = WildlifeFoodRaidOrderState.Failed;
-                order.outcomeReason =
-                    "식량이 먼저 사라져 아무것도 훔치지 못했습니다.";
+                if (order.commitPhase == WildlifeFoodRaidCommitPhase.None)
+                {
+                    order.state = WildlifeFoodRaidOrderState.Failed;
+                }
+                order.outcomeReason = dispositionFailure;
             }
-
-            actor.MarkLeaving();
             return true;
         }
 
@@ -313,6 +334,18 @@ internal sealed class WildlifeBehaviorRuntime
                     wildlifeId,
                     StringComparison.Ordinal))
             {
+                continue;
+            }
+
+            if (order.commitPhase != WildlifeFoodRaidCommitPhase.None)
+            {
+                if (!foodRaidOutbox.TryResume(order, out string pendingFailure))
+                {
+                    throw new InvalidOperationException(
+                        $"Wildlife food raid '{order.raidId}/{order.wildlifeId}' "
+                        + $"could not finalize before actor removal: {pendingFailure}");
+                }
+                order.state = WildlifeFoodRaidOrderState.Stolen;
                 continue;
             }
 
@@ -755,8 +788,35 @@ internal sealed class WildlifeBehaviorRuntime
             targetStackId = source.targetStackId,
             state = source.state,
             stolenQuantity = source.stolenQuantity,
-            outcomeReason = source.outcomeReason
+            outcomeReason = source.outcomeReason,
+            commitPhase = source.commitPhase,
+            dispositionOperationId = source.dispositionOperationId,
+            dispositionReasonCode = source.dispositionReasonCode,
+            dispositionCommitId = source.dispositionCommitId,
+            dispositionSourceStackIds = (source.dispositionSourceStackIds
+                    ?? new List<string>())
+                .ToList(),
+            dispositionQuantity = source.dispositionQuantity,
+            dispositionInputMassGrams = source.dispositionInputMassGrams,
+            dispositionItemId = source.dispositionItemId
         };
+    }
+
+    public void ReconcilePendingFoodRaids()
+    {
+        foreach (WildlifeFoodRaidOrderSaveData order in foodRaidOrders
+                     .Where(value => value != null
+                         && value.commitPhase != WildlifeFoodRaidCommitPhase.None)
+                     .OrderBy(value => value.raidId, StringComparer.Ordinal)
+                     .ThenBy(value => value.wildlifeId, StringComparer.Ordinal))
+        {
+            if (!foodRaidOutbox.TryResume(order, out string failure))
+            {
+                throw new InvalidOperationException(
+                    $"Wildlife food raid '{order.raidId}/{order.wildlifeId}' "
+                    + $"could not reconcile its physical receipt: {failure}");
+            }
+        }
     }
 
     private static WildlifeFoodRaidOrderSnapshot ToFoodRaidSnapshot(

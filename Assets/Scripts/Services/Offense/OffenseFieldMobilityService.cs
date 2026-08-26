@@ -77,7 +77,8 @@ public sealed class OffenseFieldMobilityService : IOffenseFieldMobilityService
                     stabilization?.locomotionFloor ?? 0f,
                     stabilization?.sustainFloor ?? 0f,
                     inventory?.GetMaxAllowedWeight() ?? 0f,
-                    inventory?.GetBaseCarryLimit() ?? 20f,
+                    inventory?.GetBaseCarryLimit()
+                        ?? CharacterCarryTuning.NominalBaseCapacityKilograms,
                     inventory?.GetCurrentWeight() ?? 0f,
                     actor.MaxHealth);
             if (OffenseFieldMobilityRules.IsImmobile(snapshot))

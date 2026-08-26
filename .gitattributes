@@ -24,6 +24,8 @@
 
 # V27 balance ledger artifacts use format-specific deterministic line endings.
 Artifacts/QA/v27-balance-before-after.csv text eol=crlf
+Artifacts/QA/v27-facility-buffer-owner-manifest.csv text eol=crlf
+Artifacts/QA/v27-facility-buffer-owner-manifest.txt text eol=lf
 Artifacts/QA/v27-balance-economy-256-seed.txt text eol=crlf
 Artifacts/QA/v27-balance-vertical-slice-full-loop-playmode.txt text eol=crlf
 Artifacts/QA/combat-balance-final.txt text eol=crlf

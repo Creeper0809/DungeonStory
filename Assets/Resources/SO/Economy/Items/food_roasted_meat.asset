@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8063
+  id: 8064
   itemId: food:roasted-meat
   displayName: "\uACE0\uAE30\uAD6C\uC774"
   description: "\uAC04\uB2E8\uD788 \uAD6C\uC6B4 \uC721\uC2DD \uB2E8\uC21C\uC2DD."
@@ -31,34 +31,34 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 6
   features:
-  - rid: 7737211905666712086
-  - rid: 7737211905666712087
-  - rid: 7737211905666712089
-  - rid: 7737212042857939954
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712086
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:livestock
-    - rid: 7737211905666712087
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 16
         sharedIntermediate: 0
-    - rid: 7737211905666712089
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.59922224
+    - rid: 1003
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 0
         qualityBand: 1
         servingRole: 0
         nutrition: 42
-        mood: 4
+        mood: 3
         freshnessSeconds: 300
         preserved: 0
-    - rid: 7737212042857939954
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.59922224

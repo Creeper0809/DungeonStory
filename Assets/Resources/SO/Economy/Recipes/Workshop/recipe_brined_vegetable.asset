@@ -51,7 +51,8 @@ MonoBehaviour:
   optimalTemperatureC: {x: 12, y: 24}
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.2
-  wastewaterPerCycle: 0.2
+  wastewaterPerCycle: 1
+  wastewaterComposition: 4
   allowsManualWaterFallback: 1
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:saltstone
     amount: 1
   outputs:
-  - itemId: material:brined-vegetable
+  - outputLineId: output:recipe:brined-vegetable/000/main/material:brined-vegetable
+    role: 0
+    itemId: material:brined-vegetable
     amount: 2
     probability: 1

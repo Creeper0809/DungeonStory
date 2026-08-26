@@ -53,13 +53,13 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212042831200752
-    - rid: 7737212042831200753
-    - rid: 7737212042831200754
-    - rid: 7737212042831200755
-    - rid: 7737212042831200756
-    - rid: 7737212042831200757
-    - rid: 7737212042831200758
+    - rid: 1006
+    - rid: 1007
+    - rid: 7737212195140797339
+    - rid: 1008
+    - rid: 1009
+    - rid: 1010
+    - rid: 1011
   width: 1
   height: 1
   layer: 1
@@ -75,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200752
+    - rid: 1006
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS08
-    - rid: 7737212042831200753
+    - rid: 1007
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -89,38 +89,14 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7737212042831200754
-      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingWorkAmountAbility
-        constructionProjectScale: 0
-        constructionWorkRequired: 76
-        repairWorkRequired: 10
-        cleanWorkRequired: 6.25
-        researchWorkRequired: 6
-        operateWorkRequired: 10
-        defaultWorkerPolicy:
-          mode: 0
-          matchMode: 0
-          sortMode: 4
-          specificCharacterIds: []
-          excludedCharacterIds: []
-          minimumSkillId: 
-          minimumSkillExperience: 0
-          minimumCareerRank: 0
-          requiredTraitIds: []
-          excludedTraitIds: []
-        constructionMaterials:
-        - itemId: material:lumber
-          amount: 3
-    - rid: 7737212042831200755
+    - rid: 1008
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:hearth
-    - rid: 7737212042831200756
+    - rid: 1009
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility
@@ -135,6 +111,7 @@ MonoBehaviour:
         requiresPower: 0
         cleanWaterPerCycle: 0
         wastewaterPerCycle: 0
+        wastewaterComposition: 0
         allowsManualWaterFallback: 0
         requiresFuel: 1
         fuelItemId: resource:log
@@ -142,7 +119,7 @@ MonoBehaviour:
         workSpeedMultiplier: 1
         outputMultiplier: 1
         qualityModifier: 0
-    - rid: 7737212042831200757
+    - rid: 1010
       type: {class: BuildingFacilitySupplyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilitySupplyAbility
@@ -167,7 +144,7 @@ MonoBehaviour:
           - material:charcoal
           - feed:silage
           - craft:candle
-    - rid: 7737212042831200758
+    - rid: 1011
       type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingFuelConsumerAbility
@@ -175,3 +152,27 @@ MonoBehaviour:
         workSeconds: 0.8
         warmth: 8
         lightSafety: 4
+    - rid: 7737212195140797339
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionProjectScale: 0
+        constructionWorkRequired: 76
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        defaultWorkerPolicy:
+          mode: 0
+          matchMode: 0
+          sortMode: 4
+          specificCharacterIds: []
+          excludedCharacterIds: []
+          minimumSkillId: 
+          minimumSkillExperience: 0
+          minimumCareerRank: 0
+          requiredTraitIds: []
+          excludedTraitIds: []
+        constructionMaterials:
+        - itemId: material:lumber
+          amount: 3

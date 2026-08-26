@@ -14,9 +14,12 @@ public static class ResourceStockPolicySaveValidation
         {
             throw new ArgumentNullException(nameof(report));
         }
-        if (data == null || data.policies == null)
+        if (data == null
+            || data.policies == null
+            || data.pendingSales == null)
         {
-            report.AddError("Stock-policy payload or policy list is null.");
+            report.AddError(
+                "Stock-policy payload, policy list or sale outbox is null.");
             return;
         }
         if (catalog?.Items == null)
@@ -28,6 +31,10 @@ public static class ResourceStockPolicySaveValidation
         {
             report.AddError(
                 $"Stock-policy payload version {data.version} is unsupported.");
+        }
+        if (data.nextSaleSequence <= 0)
+        {
+            report.AddError("Stock-policy next sale sequence is invalid.");
         }
 
         ResourceItemDefinitionSO[] expectedItems = catalog.Items
@@ -85,6 +92,63 @@ public static class ResourceStockPolicySaveValidation
             {
                 report.AddError(
                     $"Stock-policy '{policy.itemId}' has a non-canonical status.");
+            }
+        }
+
+        ResourceStockPolicyPendingSale[] pendingSales = data.pendingSales
+            .Where(pending => pending != null)
+            .ToArray();
+        if (pendingSales.Length != data.pendingSales.Count)
+        {
+            report.AddError("Stock-policy sale outbox contains a null entry.");
+        }
+        if (!pendingSales.SequenceEqual(
+                pendingSales.OrderBy(
+                    pending => pending.itemId,
+                    StringComparer.Ordinal)))
+        {
+            report.AddError(
+                "Stock-policy sale outbox is not in canonical item order.");
+        }
+        if (pendingSales.Select(pending => pending.itemId)
+                .Distinct(StringComparer.Ordinal).Count()
+            != pendingSales.Length)
+        {
+            report.AddError(
+                "Stock-policy sale outbox has duplicate item owners.");
+        }
+        if (pendingSales.Select(pending => pending.operationId)
+                .Distinct(StringComparer.Ordinal).Count()
+            != pendingSales.Length)
+        {
+            report.AddError(
+                "Stock-policy sale outbox has duplicate operations.");
+        }
+        if (pendingSales.Select(pending => pending.sequence)
+                .Distinct().Count()
+            != pendingSales.Length)
+        {
+            report.AddError(
+                "Stock-policy sale outbox has duplicate sequences.");
+        }
+
+        foreach (ResourceStockPolicyPendingSale pending in pendingSales)
+        {
+            if (!ResourceStockPolicySaleOutbox.HasCanonicalPending(pending))
+            {
+                report.AddError(
+                    $"Stock-policy pending sale '{pending?.operationId}' is non-canonical.");
+                continue;
+            }
+            if (!catalog.TryGetItem(pending.itemId, out _))
+            {
+                report.AddError(
+                    $"Stock-policy pending sale item '{pending.itemId}' is unknown.");
+            }
+            if (pending.sequence >= data.nextSaleSequence)
+            {
+                report.AddError(
+                    $"Stock-policy pending sale '{pending.operationId}' has not advanced the sequence authority.");
             }
         }
     }

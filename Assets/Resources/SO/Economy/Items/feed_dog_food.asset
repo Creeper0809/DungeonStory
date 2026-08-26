@@ -21,41 +21,41 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8071
+  id: 8072
   itemId: feed:dog-food
   displayName: "\uAC1C\uBC25"
   description: "\uACE1\uBB3C\uACFC \uB3D9\uBB3C\uC131 \uBD80\uC0B0\uBB3C\uC744 \uC11E\uC740
     \uC721\uC2DD\xB7\uC7A1\uC2DD \uC0AC\uB8CC."
   stockCategory: 0
-  unitWeight: 0.55
+  unitWeight: 0.525
   maxStack: 75
   sprite: {fileID: 0}
   unitPrice: 6
   features:
-  - rid: 7737211905666712046
-  - rid: 7737211905666712047
-  - rid: 7737211905666712048
-  - rid: 7737212042857939683
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712046
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:husbandry:feed
-    - rid: 7737211905666712047
+    - rid: 1001
       type: {class: FacilitySupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         fuelValue: 0
         nutritionValue: 14
         feedEligible: 1
-    - rid: 7737211905666712048
+    - rid: 1002
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 17
         sharedIntermediate: 0
-    - rid: 7737212042857939683
+    - rid: 1003
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5883333

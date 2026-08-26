@@ -9,12 +9,15 @@ public sealed class RegionalSupplyContractLogisticsDependencies
     public RegionalSupplyContractLogisticsDependencies(
         IResourceEconomyContentCatalog catalog,
         IWorldItemStackRuntime itemRuntime,
+        IPhysicalFacilityItemBatchTransferGateway transferGateway,
         IWorldDropZoneQuery dropZones,
         ICharacterWorldQuery characterWorld)
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         ItemRuntime = itemRuntime
             ?? throw new ArgumentNullException(nameof(itemRuntime));
+        TransferGateway = transferGateway
+            ?? throw new ArgumentNullException(nameof(transferGateway));
         DropZones = dropZones ?? throw new ArgumentNullException(nameof(dropZones));
         CharacterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
@@ -22,6 +25,7 @@ public sealed class RegionalSupplyContractLogisticsDependencies
 
     public IResourceEconomyContentCatalog Catalog { get; }
     public IWorldItemStackRuntime ItemRuntime { get; }
+    public IPhysicalFacilityItemBatchTransferGateway TransferGateway { get; }
     public IWorldDropZoneQuery DropZones { get; }
     public ICharacterWorldQuery CharacterWorld { get; }
 }
@@ -58,6 +62,7 @@ public sealed class RegionalSupplyContractApplicationAdapter :
 {
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly IWorldItemStackRuntime itemRuntime;
+    private readonly IPhysicalFacilityItemBatchTransferGateway transferGateway;
     private readonly IWorldDropZoneQuery dropZones;
     private readonly ICharacterWorldQuery characterWorld;
     private readonly IGameSessionStateProvider gameDataProvider;
@@ -76,6 +81,7 @@ public sealed class RegionalSupplyContractApplicationAdapter :
         session = session ?? throw new ArgumentNullException(nameof(session));
         catalog = logistics.Catalog;
         itemRuntime = logistics.ItemRuntime;
+        transferGateway = logistics.TransferGateway;
         dropZones = logistics.DropZones;
         characterWorld = logistics.CharacterWorld;
         gameDataProvider = session.GameDataProvider;
@@ -162,16 +168,48 @@ public sealed class RegionalSupplyContractApplicationAdapter :
             out _);
     }
 
-    public bool ConsumeDelivered(
+    public bool TryCommitDeliveryTransferPending(
         string destinationId,
         IReadOnlyDictionary<string, int> costs,
+        string operationId,
+        string reasonCode,
+        out RegionalSupplyDeliveryTransferReceipt receipt,
         out string failureReason)
     {
-        return itemRuntime.TryConsumeFacilityItemBuffer(
-            destinationId,
-            costs,
-            out failureReason);
+        receipt = null;
+        if (!transferGateway.TryCommitTransferPending(
+                destinationId,
+                costs,
+                operationId,
+                reasonCode,
+                out PhysicalItemBatchDispositionReceipt physicalReceipt,
+                out failureReason))
+        {
+            return false;
+        }
+        receipt = ToContractReceipt(physicalReceipt);
+        return true;
     }
+
+    public bool TryGetPendingDeliveryTransfer(
+        string operationId,
+        out RegionalSupplyDeliveryTransferReceipt receipt)
+    {
+        receipt = null;
+        if (!transferGateway.TryGetPending(
+                operationId,
+                out PhysicalItemBatchDispositionReceipt physicalReceipt))
+        {
+            return false;
+        }
+        receipt = ToContractReceipt(physicalReceipt);
+        return true;
+    }
+
+    public bool AcknowledgeDeliveryTransfer(
+        string commitId,
+        out string failureReason) =>
+        transferGateway.Acknowledge(commitId, out failureReason);
 
     public int ReleaseDestination(
         string destinationId,
@@ -200,19 +238,47 @@ public sealed class RegionalSupplyContractApplicationAdapter :
     public void RequestHauler() =>
         workforce.RequestOneHaulerToReplan(forceInterrupt: false);
 
-    public void AddContractIncome(int amount)
+    public bool TryAddContractIncome(
+        int amount,
+        string operationId,
+        out string failureReason)
     {
-        if (amount <= 0)
+        failureReason = string.Empty;
+        if (amount <= 0
+            || string.IsNullOrWhiteSpace(operationId)
+            || !string.Equals(
+                operationId,
+                operationId.Trim(),
+                StringComparison.Ordinal))
         {
-            return;
+            failureReason = "regional-supply-income-invalid";
+            return false;
         }
 
+        int balanceBefore = money.Balance;
+        int expectedBalance;
+        try
+        {
+            expectedBalance = checked(balanceBefore + amount);
+        }
+        catch (OverflowException)
+        {
+            failureReason = "regional-supply-income-overflow";
+            return false;
+        }
         money.Add(
             amount,
             new EconomyTransactionContext(
                 EconomyTransactionKind.ContractIncome,
                 "regional-supply",
+                operationId,
                 description: "지역 공급 계약"));
+        if (money.Balance != expectedBalance)
+        {
+            failureReason = "regional-supply-income-not-published";
+            return false;
+        }
+        return true;
     }
 
     public bool TryGetCurrentDay(out int day)
@@ -249,6 +315,19 @@ public sealed class RegionalSupplyContractApplicationAdapter :
             item.UnitPrice,
             item.RequiredResearchId);
     }
+
+    private static RegionalSupplyDeliveryTransferReceipt ToContractReceipt(
+        PhysicalItemBatchDispositionReceipt receipt) => new()
+    {
+        operationId = receipt.OperationId,
+        reasonCode = receipt.ReasonCode,
+        commitId = receipt.CommitId,
+        sourceStackIds = receipt.SourceStackIds
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList(),
+        quantity = receipt.Quantity,
+        inputMassGrams = receipt.InputMassGrams
+    };
 
     private static bool IsResident(CharacterActor actor)
     {

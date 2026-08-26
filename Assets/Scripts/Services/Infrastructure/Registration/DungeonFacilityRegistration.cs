@@ -66,6 +66,10 @@ public static class DungeonFacilityRegistration
             .As<IFacilityRelocationWorldService>();
         builder.Register<FacilityInstanceEvolutionRuntime>(Lifetime.Singleton)
             .As<IFacilityEvolutionRuntime>();
+        builder.Register<FacilityEvolutionPendingMaterialRestoreGuard>(Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.RegisterEntryPoint<FacilityEvolutionPendingMaterialProjection>(
+            Lifetime.Singleton);
         builder.RegisterEntryPoint<FacilityEvolutionActivationProjection>(
             Lifetime.Singleton);
         builder.Register<FacilityEvolutionModifierQuery>(Lifetime.Singleton)

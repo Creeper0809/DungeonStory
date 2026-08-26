@@ -21,6 +21,7 @@ public static class UnifiedItemDefinitionAssetBuilder
         ResearchProjectAssetBuilder.Rebuild();
 
         int generated = RebuildEquipmentItemsOnly();
+        generated += RebuildWildlifeCarcassItemsCore();
 
         ItemDefinitionSO[] all = Resources.LoadAll<ItemDefinitionSO>(
             ItemDefinitionSO.UnifiedResourcePath);
@@ -98,6 +99,77 @@ public static class UnifiedItemDefinitionAssetBuilder
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         return generated;
+    }
+
+    [MenuItem("Tools/DungeonStory/Items/Rebuild Wildlife Carcass Definitions")]
+    public static void RebuildWildlifeCarcassItems()
+    {
+        RebuildWildlifeCarcassItemsCore();
+    }
+
+    private static int RebuildWildlifeCarcassItemsCore()
+    {
+        EnsureFolder("Assets/Resources/SO/Items", "Definitions");
+
+        WildlifeSpeciesSO[] species = Resources
+            .LoadAll<WildlifeSpeciesSO>("SO")
+            .Where(value => value != null)
+            .OrderBy(value => value.SpeciesId, StringComparer.Ordinal)
+            .ToArray();
+        if (species.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "No authored wildlife species exist for carcass item generation.");
+        }
+
+        int changed = 0;
+        foreach (WildlifeSpeciesSO definition in species)
+        {
+            string itemId = WildlifeItemDefinitions.GetCarcassItemId(
+                definition.SpeciesId);
+            GenericItemDefinitionSO asset = GetOrCreate(itemId);
+            string before = EditorJsonUtility.ToJson(asset);
+            asset.ConfigureCore(
+                itemId,
+                definition.DisplayName + " 사체",
+                "도축 시설로 옮기면 식량과 부산물을 얻습니다.",
+                StockCategory.Food,
+                price: 4,
+                weight: definition.CarcassWeight,
+                stackLimit: 1);
+            asset.SetFeature(new ProductionItemFeature
+            {
+                kind = ResourceItemKind.Intermediate,
+                ingredientTags = ResourceIngredientTag.None,
+                sharedIntermediate = false
+            });
+            asset.SetFeature(new FoodItemFeature
+            {
+                quality = MealQualityTier.Simple,
+                qualityBand = MealQualityBand.Simple,
+                servingRole = MealServingRole.FullMeal,
+                nutrition = 10f,
+                mood = 0f,
+                freshnessSeconds = 600f,
+                preserved = false
+            });
+            string after = EditorJsonUtility.ToJson(asset);
+            if (!string.Equals(before, after, StringComparison.Ordinal))
+            {
+                EditorUtility.SetDirty(asset);
+                changed++;
+            }
+        }
+
+        GameContentCatalogAssetBuilder.ReindexItemDefinitions();
+        if (changed > 0)
+        {
+            AssetDatabase.SaveAssets();
+        }
+        AssetDatabase.Refresh();
+        Debug.Log(
+            $"Wildlife carcass definitions rebuilt: species={species.Length}; changed={changed}.");
+        return changed;
     }
 
     public static string ValidateAll()

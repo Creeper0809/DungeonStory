@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 
 public interface IHaulDeliveryIntentQuery
@@ -24,6 +27,7 @@ public interface IHaulDeliveryIntentCommand
         string destinationId,
         Vector2Int deliveryPosition,
         Vector2Int dropPosition,
+        IReadOnlyList<WarehouseHaulAdmissionSaveData> warehouseAdmissions,
         out string failureReason);
     bool TryCommitPickup(
         string operationId,
@@ -99,6 +103,7 @@ public sealed class HaulDeliveryIntentRuntime :
         string destinationId,
         Vector2Int deliveryPosition,
         Vector2Int dropPosition,
+        IReadOnlyList<WarehouseHaulAdmissionSaveData> warehouseAdmissions,
         out string failureReason)
     {
         failureReason = string.Empty;
@@ -134,6 +139,11 @@ public sealed class HaulDeliveryIntentRuntime :
             deliveryGridY = deliveryPosition.y,
             dropGridX = dropPosition.x,
             dropGridY = dropPosition.y,
+            warehouseAdmissions = (warehouseAdmissions
+                    ?? Array.Empty<WarehouseHaulAdmissionSaveData>())
+                .Where(value => value != null)
+                .Select(CloneAdmission)
+                .ToList(),
             commitments = new List<HaulDeliveryItemCommitmentSaveData>()
         });
         return true;
@@ -259,7 +269,10 @@ public sealed class HaulDeliveryIntentRuntime :
                     throw new InvalidOperationException(failureReason);
                 }
             }
-            result.Add(Clone(intent));
+            HaulDeliveryIntentSaveData committedProjection = Clone(intent);
+            ExactWarehouseHaulAdmissionJoin.RetainCommittedAdmissions(
+                committedProjection);
+            result.Add(committedProjection);
         }
         return result;
     }
@@ -321,7 +334,149 @@ public sealed class HaulDeliveryIntentRuntime :
     }
 
     public bool Remove(string operationId) =>
-        byOperation.Remove(operationId?.Trim() ?? string.Empty);
+        RemoveCore(operationId, string.Empty);
+
+    private bool RemoveCore(
+        string operationId,
+        string authorityReleasePlanFingerprint)
+    {
+        string operation = operationId?.Trim() ?? string.Empty;
+        if (repository.TryGetActiveCapacityRoutingAuthorityRelease(
+                operation,
+                out ProductionCapacityRoutingActorAuthorityReleaseSaveData
+                    activeRelease)
+            && !string.Equals(
+                activeRelease.planFingerprint,
+                authorityReleasePlanFingerprint,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        return byOperation.Remove(operation);
+    }
+
+    internal ExactAuthorityReleaseStatus TryRemoveExact(
+        string operationId,
+        string expectedIntentFingerprint,
+        string authorityReleasePlanFingerprint,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string operation = operationId ?? string.Empty;
+        if (!repository.TryGetActiveCapacityRoutingAuthorityRelease(
+                operation,
+                out ProductionCapacityRoutingActorAuthorityReleaseSaveData plan)
+            || !string.Equals(
+                plan.planFingerprint,
+                authorityReleasePlanFingerprint,
+                StringComparison.Ordinal))
+        {
+            failureReason =
+                "capacity-routing-exact-intent-release-plan-conflict";
+            return ExactAuthorityReleaseStatus.Conflict;
+        }
+        ProductionCapacityRoutingOperationAuthorityRowSaveData row =
+            plan.operations.FirstOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.operationId,
+                    operation,
+                    StringComparison.Ordinal));
+        if (row == null
+            || !string.Equals(
+                row.haulIntentFingerprint,
+                expectedIntentFingerprint,
+                StringComparison.Ordinal))
+        {
+            failureReason =
+                "capacity-routing-exact-intent-release-plan-conflict";
+            return ExactAuthorityReleaseStatus.Conflict;
+        }
+        if (!byOperation.TryGetValue(
+                operation,
+                out HaulDeliveryIntentSaveData intent))
+        {
+            return ExactAuthorityReleaseStatus.Replay;
+        }
+        if (!string.Equals(
+                CreateCapacityRoutingAuthorityFingerprint(intent),
+                expectedIntentFingerprint,
+                StringComparison.Ordinal))
+        {
+            failureReason =
+                "capacity-routing-exact-intent-release-live-conflict";
+            return ExactAuthorityReleaseStatus.Conflict;
+        }
+        if (!RemoveCore(operation, authorityReleasePlanFingerprint))
+        {
+            failureReason =
+                "capacity-routing-exact-intent-release-failed";
+            return ExactAuthorityReleaseStatus.Conflict;
+        }
+        return ExactAuthorityReleaseStatus.Applied;
+    }
+
+    internal static string CreateCapacityRoutingAuthorityFingerprint(
+        HaulDeliveryIntentSaveData intent)
+    {
+        if (intent == null)
+            throw new ArgumentNullException(nameof(intent));
+        StringBuilder canonical = new StringBuilder(512)
+            .Append("capacity-routing-haul-intent@1|");
+        AppendToken(canonical, intent.operationId);
+        AppendToken(canonical, intent.ownerCharacterId);
+        canonical.Append(((int)intent.destinationKind)
+                .ToString(CultureInfo.InvariantCulture))
+            .Append('|');
+        AppendToken(canonical, intent.destinationId);
+        canonical.Append(intent.deliveryGridX).Append(':')
+            .Append(intent.deliveryGridY).Append(':')
+            .Append(intent.dropGridX).Append(':')
+            .Append(intent.dropGridY).Append('|');
+        foreach (WarehouseHaulAdmissionSaveData admission in
+                 (intent.warehouseAdmissions
+                     ?? new List<WarehouseHaulAdmissionSaveData>())
+                 .OrderBy(value => value?.tokenId, StringComparer.Ordinal))
+        {
+            AppendToken(canonical, admission?.tokenId);
+            AppendToken(canonical, admission?.ownerAdmissionOperationId);
+            AppendToken(canonical, admission?.warehouseId);
+            AppendToken(canonical, admission?.sourceWarehouseId);
+            AppendToken(canonical, admission?.sourceStackId);
+            AppendToken(canonical, admission?.itemId);
+            AppendToken(canonical, admission?.itemInstanceId);
+            AppendToken(canonical, admission?.lotFingerprint);
+            canonical.Append(admission?.quantity ?? -1).Append(':')
+                .Append(admission?.reservedMassGrams ?? -1L).Append(':')
+                .Append(admission?.catalogRevision ?? -1L).Append(':')
+                .Append(admission?.sourceRevision ?? -1L).Append(';');
+        }
+        canonical.Append('|');
+        foreach (HaulDeliveryItemCommitmentSaveData commitment in
+                 (intent.commitments
+                     ?? new List<HaulDeliveryItemCommitmentSaveData>())
+                 .OrderBy(value => value?.carriedStackId, StringComparer.Ordinal))
+        {
+            AppendToken(canonical, commitment?.carriedStackId);
+            AppendToken(canonical, commitment?.sourceStackId);
+            AppendToken(canonical, commitment?.itemId);
+            AppendToken(canonical, commitment?.expectedStackSignature);
+            canonical.Append(commitment?.quantity ?? -1).Append(';');
+        }
+        using SHA256 sha = SHA256.Create();
+        byte[] digest = sha.ComputeHash(
+            Encoding.UTF8.GetBytes(canonical.ToString()));
+        StringBuilder result = new StringBuilder(digest.Length * 2);
+        foreach (byte value in digest)
+            result.Append(value.ToString("x2", CultureInfo.InvariantCulture));
+        return result.ToString();
+    }
+
+    private static void AppendToken(StringBuilder target, string value)
+    {
+        string token = value ?? string.Empty;
+        target.Append(token.Length.ToString(CultureInfo.InvariantCulture))
+            .Append(':').Append(token).Append(';');
+    }
 
     public IReadOnlyList<HaulDeliveryIntentSaveData> CaptureRuntimeState() =>
         byOperation.Values
@@ -359,12 +514,30 @@ public sealed class HaulDeliveryIntentRuntime :
                 intent.operationId,
                 intent.ownerCharacterId,
                 out _)
-            || !Enum.IsDefined(
-                typeof(WorldItemHaulDestinationKind),
-                intent.destinationKind)
-            || intent.commitments == null)
+             || !Enum.IsDefined(
+                 typeof(WorldItemHaulDestinationKind),
+                 intent.destinationKind)
+             || intent.warehouseAdmissions == null
+             || intent.commitments == null)
         {
             return "haul-delivery-intent-invalid";
+        }
+        HashSet<string> admissionOperations = new(StringComparer.Ordinal);
+        foreach (WarehouseHaulAdmissionSaveData admission in intent.warehouseAdmissions)
+        {
+            if (admission == null
+                || string.IsNullOrWhiteSpace(admission.tokenId)
+                || string.IsNullOrWhiteSpace(admission.ownerAdmissionOperationId)
+                || !admissionOperations.Add(admission.ownerAdmissionOperationId.Trim())
+                || string.IsNullOrWhiteSpace(admission.warehouseId)
+                || string.IsNullOrWhiteSpace(admission.sourceStackId)
+                || string.IsNullOrWhiteSpace(admission.itemId)
+                || string.IsNullOrWhiteSpace(admission.lotFingerprint)
+                || admission.quantity <= 0
+                || admission.reservedMassGrams <= 0L)
+            {
+                return "haul-delivery-warehouse-admission-invalid:" + intent.operationId;
+            }
         }
         HashSet<string> stacks = new(StringComparer.Ordinal);
         foreach (HaulDeliveryItemCommitmentSaveData commitment in intent.commitments)
@@ -425,6 +598,11 @@ public sealed class HaulDeliveryIntentRuntime :
             deliveryGridY = source?.deliveryGridY ?? 0,
             dropGridX = source?.dropGridX ?? 0,
             dropGridY = source?.dropGridY ?? 0,
+            warehouseAdmissions = (source?.warehouseAdmissions
+                    ?? new List<WarehouseHaulAdmissionSaveData>())
+                .Where(value => value != null)
+                .Select(CloneAdmission)
+                .ToList(),
             commitments = (source?.commitments
                     ?? new List<HaulDeliveryItemCommitmentSaveData>())
                 .Where(value => value != null)
@@ -438,5 +616,24 @@ public sealed class HaulDeliveryIntentRuntime :
                     quantity = value.quantity
                 })
                 .ToList()
+        };
+
+    private static WarehouseHaulAdmissionSaveData CloneAdmission(
+        WarehouseHaulAdmissionSaveData source) =>
+        new()
+        {
+            tokenId = source?.tokenId?.Trim() ?? string.Empty,
+            ownerAdmissionOperationId =
+                source?.ownerAdmissionOperationId?.Trim() ?? string.Empty,
+            warehouseId = source?.warehouseId?.Trim() ?? string.Empty,
+            sourceWarehouseId = source?.sourceWarehouseId?.Trim() ?? string.Empty,
+            sourceStackId = source?.sourceStackId?.Trim() ?? string.Empty,
+            itemId = source?.itemId?.Trim() ?? string.Empty,
+            itemInstanceId = source?.itemInstanceId?.Trim() ?? string.Empty,
+            lotFingerprint = source?.lotFingerprint?.Trim() ?? string.Empty,
+            quantity = source?.quantity ?? 0,
+            reservedMassGrams = source?.reservedMassGrams ?? 0L,
+            catalogRevision = source?.catalogRevision ?? 0L,
+            sourceRevision = source?.sourceRevision ?? 0L
         };
 }

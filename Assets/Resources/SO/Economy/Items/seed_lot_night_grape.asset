@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 3
   features:
-  - rid: 7737211785112453352
-  - rid: 7737211785112453353
-  - rid: 7737212042831201098
+  - rid: 7737212197473092123
+  - rid: 7737212197473092124
+  - rid: 7737212197473092125
   references:
     version: 2
     RefIds:
-    - rid: 7737211785112453352
+    - rid: 7737212197473092123
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 0
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211785112453353
+    - rid: 7737212197473092124
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:agriculture:irrigation
-    - rid: 7737212042831201098
+    - rid: 7737212197473092125
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0

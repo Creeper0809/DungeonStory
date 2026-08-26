@@ -118,6 +118,27 @@ public sealed class OffenseAggregateAuthoredReferenceValidator
             Require(string.Equals(site.definitionId, order.definitionId,
                     StringComparison.Ordinal),
                 $"Mitigation order '{order.orderId}' definition does not match site '{order.siteId}'.");
+            OffenseUrgentSiteDefinitionSO definition = content.UrgentSites
+                .Single(value => value != null
+                    && string.Equals(
+                        value.urgentSiteId,
+                        order.definitionId,
+                        StringComparison.Ordinal));
+            OffenseUrgentMitigationCommitPhase phase =
+                (OffenseUrgentMitigationCommitPhase)order.physicalCommitPhase;
+            if (phase != OffenseUrgentMitigationCommitPhase.None)
+            {
+                Require(order.inputQuantity == definition.mitigationItemAmount,
+                    $"Mitigation order '{order.orderId}' physical quantity does not match authored cost.");
+                Require(phase == OffenseUrgentMitigationCommitPhase.MaterialsCommitted
+                        ? Mathf.Abs(site.mitigation - order.mitigationBefore)
+                                <= 0.0001f
+                            || Mathf.Abs(site.mitigation - order.mitigationAfter)
+                                <= 0.0001f
+                        : Mathf.Abs(site.mitigation - order.mitigationAfter)
+                            <= 0.0001f,
+                    $"Mitigation order '{order.orderId}' outcome does not join the urgent-site state.");
+            }
         }
 
         Dictionary<string, OffenseDecisionCardSO> decisionCards =
@@ -141,7 +162,8 @@ public sealed class OffenseAggregateAuthoredReferenceValidator
         }
 
         foreach (OffenseSupplyPackingItemStateData item in
-                 payload.world.supplyPackages.SelectMany(value => value.costs))
+                 payload.world.supplyPackages.SelectMany(value =>
+                     value.costs.Concat(value.returnedCosts)))
         {
             ItemDefinitionId id = new(item.itemId);
             Require(id.IsValid && itemDefinitions.TryGet(id, out _),
@@ -582,13 +604,7 @@ public static class OffenseAggregateSaveValidation
         }
         foreach (OffenseSupplyPackingStateData package in data.supplyPackages)
         {
-            RequireId(package.destinationId,
-                $"supply package '{package.packageId}' destination ID");
-            RequireUnique(package.costs, value => value.itemId,
-                $"supply package '{package.packageId}' item");
-            Require(package.costs.Count > 0
-                    && package.costs.All(value => value.amount > 0),
-                $"Supply package '{package.packageId}' must contain positive item costs.");
+            ValidateSupplyPackage(package);
         }
 
         foreach (OffenseBattleDirectorStateData battle in data.battles)
@@ -643,6 +659,7 @@ public static class OffenseAggregateSaveValidation
                     && order.completedWork >= 0f
                     && order.completedWork <= order.requiredWork,
                 $"Mitigation order '{order.orderId}' has invalid work progress.");
+            ValidateMitigationPhysicalState(order);
         }
 
         foreach (FieldStabilizationState stabilization in
@@ -694,6 +711,210 @@ public static class OffenseAggregateSaveValidation
             RequireUniqueNonEmpty(convoy.protectedCasualtyIds,
                 $"rescue convoy '{convoy.rescueExpeditionId}' protected casualty");
         }
+    }
+
+    private static void ValidateMitigationPhysicalState(
+        OffenseUrgentMitigationOrderStateData order)
+    {
+        string label = $"mitigation order '{order.orderId}'";
+        OffenseUrgentMitigationCommitPhase phase =
+            (OffenseUrgentMitigationCommitPhase)order.physicalCommitPhase;
+        Require(Enum.IsDefined(typeof(OffenseUrgentMitigationCommitPhase), phase),
+            $"{label} has an unknown physical commit phase.");
+        if (phase == OffenseUrgentMitigationCommitPhase.None)
+        {
+            Require(string.IsNullOrEmpty(order.physicalOperationId)
+                    && string.IsNullOrEmpty(order.physicalCommitId)
+                    && order.inputQuantity == 0
+                    && order.inputMassGrams == 0L
+                    && !order.physicalReceiptAcknowledged
+                    && order.mitigationBefore == 0f
+                    && order.mitigationAfter == 0f,
+                $"{label} has orphan physical provenance.");
+            return;
+        }
+
+        string operation =
+            OffenseUrgentMitigationRuntime.FormatPhysicalOperationId(
+                order.orderId);
+        string commit =
+            $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Transfer}:{operation}:{order.inputQuantity}:{order.inputMassGrams}";
+        Require(string.Equals(
+                    order.physicalOperationId,
+                    operation,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    order.physicalCommitId,
+                    commit,
+                    StringComparison.Ordinal)
+                && order.inputQuantity > 0
+                && order.inputMassGrams > 0L
+                && order.completedWork + 0.001f >= order.requiredWork
+                && InRange(order.mitigationBefore, 0f, 0.6f)
+                && InRange(order.mitigationAfter, 0f, 0.6f)
+                && order.mitigationAfter > order.mitigationBefore
+                && (phase != OffenseUrgentMitigationCommitPhase.MaterialsCommitted
+                    || !order.physicalReceiptAcknowledged),
+            $"{label} physical commit provenance is invalid.");
+    }
+
+    private static void ValidateSupplyPackage(
+        OffenseSupplyPackingStateData package)
+    {
+        string label = $"supply package '{package.packageId}'";
+        RequireId(package.destinationId, label + " destination ID");
+        RequireUnique(package.costs, value => value.itemId, label + " item");
+        Require(package.costs.Count > 0
+                && package.costs.All(value => value.amount > 0),
+            $"{label} must contain positive item costs.");
+        long requiredLong = package.costs.Sum(value => (long)value.amount);
+        Require(requiredLong is > 0 and <= int.MaxValue,
+            $"{label} item quantity is outside the supported range.");
+        int required = (int)requiredLong;
+        OffenseSupplyCustodyPhase phase =
+            (OffenseSupplyCustodyPhase)package.custodyPhase;
+        Require(Enum.IsDefined(typeof(OffenseSupplyCustodyPhase), phase)
+                && package.consumed
+                    == (phase != OffenseSupplyCustodyPhase.Staging),
+            $"{label} has an invalid custody phase.");
+
+        bool emptyCustody = string.IsNullOrEmpty(package.custodyOperationId)
+            && string.IsNullOrEmpty(package.custodyReasonCode)
+            && string.IsNullOrEmpty(package.custodyCommitId)
+            && package.custodySourceStackIds.Count == 0
+            && package.custodyQuantity == 0
+            && package.custodyMassGrams == 0L
+            && !package.custodyAcknowledged;
+        bool emptyReturn = string.IsNullOrEmpty(package.returnOperationId)
+            && string.IsNullOrEmpty(package.returnReasonCode)
+            && package.returnX == 0
+            && package.returnY == 0
+            && package.returnOutputCommitIds.Count == 0
+            && package.returnQuantity == 0
+            && package.returnMassGrams == 0L
+            && package.consumedOrLostMassGrams == 0L
+            && package.returnedCosts.Count == 0;
+        if (phase == OffenseSupplyCustodyPhase.Staging)
+        {
+            Require(emptyCustody && emptyReturn,
+                $"{label} staging state contains custody provenance.");
+            return;
+        }
+
+        string custodyOperation =
+            DungeonOffensePreparationService.FormatCustodyOperationId(
+                package.packageId);
+        Require(string.Equals(
+                    package.custodyOperationId,
+                    custodyOperation,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    package.custodyReasonCode,
+                    "offense-expedition-supply-custody-transfer",
+                    StringComparison.Ordinal)
+                && package.custodyQuantity == required
+                && package.custodyMassGrams > 0L,
+            $"{label} has invalid custody identity or mass.");
+        string expectedCommit =
+            $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Transfer}:{custodyOperation}:{required}:{package.custodyMassGrams}";
+        Require(string.Equals(
+                package.custodyCommitId,
+                expectedCommit,
+                StringComparison.Ordinal),
+            $"{label} custody commit is not exact.");
+        RequireUniqueNonEmpty(
+            package.custodySourceStackIds,
+            label + " custody source stack");
+        Require(package.custodySourceStackIds.SequenceEqual(
+                package.custodySourceStackIds.OrderBy(
+                    value => value,
+                    StringComparer.Ordinal),
+                StringComparer.Ordinal),
+            $"{label} custody source stack IDs are not ordinal sorted.");
+
+        if (phase == OffenseSupplyCustodyPhase.CustodyOwned)
+        {
+            Require(emptyReturn,
+                $"{label} owned state contains return provenance.");
+            return;
+        }
+        Require(package.custodyAcknowledged,
+            $"{label} terminal or returning custody is not acknowledged.");
+        if (phase == OffenseSupplyCustodyPhase.Lost)
+        {
+            Require(string.IsNullOrEmpty(package.returnOperationId)
+                    && string.IsNullOrEmpty(package.returnReasonCode)
+                    && package.returnX == 0
+                    && package.returnY == 0
+                    && package.returnedCosts.Count == 0
+                    && package.returnOutputCommitIds.Count == 0
+                    && package.returnQuantity == 0
+                    && package.returnMassGrams == 0L
+                    && package.consumedOrLostMassGrams
+                        == package.custodyMassGrams,
+                $"{label} lost state does not close its physical mass.");
+            return;
+        }
+
+        Require(string.Equals(
+                    package.returnOperationId,
+                    DungeonOffensePreparationService.FormatReturnOperationId(
+                        package.packageId),
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    package.returnReasonCode,
+                    "offense-expedition-supply-return",
+                    StringComparison.Ordinal),
+            $"{label} return identity is invalid.");
+        RequireUnique(
+            package.returnedCosts,
+            value => value.itemId,
+            label + " returned item");
+        Dictionary<string, int> owned = package.costs.ToDictionary(
+            value => value.itemId,
+            value => value.amount,
+            StringComparer.Ordinal);
+        Require(package.returnedCosts.All(value => value.amount > 0
+                && owned.TryGetValue(value.itemId, out int count)
+                && value.amount <= count),
+            $"{label} attempts to return unowned physical stock.");
+        if (phase == OffenseSupplyCustodyPhase.ReturnPublishing)
+        {
+            Require(package.returnOutputCommitIds.Count == 0
+                    && package.returnQuantity == 0
+                    && package.returnMassGrams == 0L
+                    && package.consumedOrLostMassGrams == 0L,
+                $"{label} pending return contains terminal output provenance.");
+            return;
+        }
+
+        long returnQuantity =
+            package.returnedCosts.Sum(value => (long)value.amount);
+        Require(returnQuantity <= int.MaxValue
+                && package.returnQuantity == (int)returnQuantity
+                && package.returnMassGrams >= 0L
+                && package.consumedOrLostMassGrams >= 0L
+                && checked(package.returnMassGrams
+                    + package.consumedOrLostMassGrams)
+                    == package.custodyMassGrams,
+            $"{label} returned state does not close its physical mass.");
+        if (returnQuantity > 0)
+        {
+            RequireUniqueNonEmpty(
+                package.returnOutputCommitIds,
+                label + " return output commit");
+        }
+        Require(package.returnOutputCommitIds.SequenceEqual(
+                package.returnOutputCommitIds.OrderBy(
+                    value => value,
+                    StringComparer.Ordinal),
+                StringComparer.Ordinal)
+                && (returnQuantity == 0
+                    ? package.returnOutputCommitIds.Count == 0
+                        && package.returnMassGrams == 0L
+                    : package.returnOutputCommitIds.Count
+                        == package.returnedCosts.Count),
+            $"{label} return output provenance is not canonical.");
     }
 
     private static void ValidateRegions(DungeonOffenseRegionSaveData data)

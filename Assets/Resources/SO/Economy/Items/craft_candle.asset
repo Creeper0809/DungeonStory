@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8074
+  id: 8075
   itemId: craft:candle
   displayName: "\uC591\uCD08"
   description: "\uC870\uBA85\uACFC \uC758\uC2DD\uC5D0 \uC4F0\uB294 \uC5F0\uB8CC\uC131
@@ -32,30 +32,30 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 16
   features:
-  - rid: 7737211905666712410
-  - rid: 7737211905666712411
-  - rid: 7737211905666712412
-  - rid: 7737212042831201093
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712410
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:authority:ritual
-    - rid: 7737211905666712411
+    - rid: 1001
       type: {class: FacilitySupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         fuelValue: 2
         nutritionValue: 0
         feedEligible: 0
-    - rid: 7737211905666712412
+    - rid: 1002
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 8256
         sharedIntermediate: 0
-    - rid: 7737212042831201093
+    - rid: 1003
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.57939583

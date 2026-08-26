@@ -19,6 +19,7 @@ public sealed class ProductionBillSnapshotProjector :
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly IProductionAssemblyBridge items;
     private readonly IProductionOutputPlanningService outputPlanning;
+    private readonly IProductionPreparedOutputExecutionPort preparedOutputExecution;
     private readonly IProductionAssemblyBridge inputLogistics;
     private readonly IProductionStockSensorRuntime stockSensors;
     private readonly IProductionDistributionQuery distribution;
@@ -28,6 +29,7 @@ public sealed class ProductionBillSnapshotProjector :
         IResourceEconomyContentCatalog catalog,
         IProductionAssemblyBridge bridge,
         IProductionOutputPlanningService outputPlanning,
+        IProductionPreparedOutputExecutionPort preparedOutputExecution,
         IProductionStockSensorRuntime stockSensors,
         IProductionDistributionQuery distribution,
         IRecipeBalanceWorkCalculator balanceWorkCalculator = null)
@@ -36,6 +38,8 @@ public sealed class ProductionBillSnapshotProjector :
         items = bridge ?? throw new ArgumentNullException(nameof(bridge));
         this.outputPlanning = outputPlanning
             ?? throw new ArgumentNullException(nameof(outputPlanning));
+        this.preparedOutputExecution = preparedOutputExecution
+            ?? throw new ArgumentNullException(nameof(preparedOutputExecution));
         inputLogistics = bridge;
         this.stockSensors = stockSensors
             ?? throw new ArgumentNullException(nameof(stockSensors));
@@ -50,6 +54,39 @@ public sealed class ProductionBillSnapshotProjector :
         IReadOnlyList<ProductionBillRecord> allBills)
     {
         ProductionRecipeSO recipe = ResolveRecipe(record);
+        bool usesPreparedOutput =
+            ProductionPreparedOutputMigrationScope.Contains(recipe?.RecipeId);
+        bool preparedCapacityAvailable = true;
+        DomainFailure preparedCapacityFailure = DomainFailure.None;
+        if (usesPreparedOutput)
+        {
+            if (ProductionPreparedOutputMigrationScope
+                .HasLegacyOutputAuthority(record))
+            {
+                preparedCapacityAvailable = false;
+                preparedCapacityFailure = ProductionPreparedOutputMigrationScope
+                    .CreateLegacyAuthorityConflict(record);
+            }
+            else
+            {
+                ProductionPreparedOutputCapacityResult capacity =
+                    preparedOutputExecution.AssessCurrentCapacity(
+                        record,
+                        recipe,
+                        facility);
+                preparedCapacityAvailable = capacity.IsValid
+                    && capacity.CanBeginCycle;
+                preparedCapacityFailure = capacity.IsValid
+                    && capacity.Failure.IsFailure
+                        ? capacity.Failure
+                        : preparedCapacityAvailable
+                            ? DomainFailure.None
+                            : new DomainFailure(
+                                FailureCode.ProductionBillUnavailable,
+                                record.billId.Value,
+                                "prepared-output-capacity-invalid-result");
+            }
+        }
         ProductionBillStatus status;
         DomainFailure blockedFailure = record.blockedFailure;
         if (record.suspended)
@@ -75,7 +112,13 @@ public sealed class ProductionBillSnapshotProjector :
         {
             status = ProductionBillStatus.WaitingForEligibleWorker;
         }
+        else if (usesPreparedOutput && !preparedCapacityAvailable)
+        {
+            status = ProductionBillStatus.WaitingForOutputSpace;
+            blockedFailure = preparedCapacityFailure;
+        }
         else if (recipe != null
+            && !usesPreparedOutput
             && !HasOutputCapacity(
                 record,
                 recipe,
@@ -124,13 +167,17 @@ public sealed class ProductionBillSnapshotProjector :
         string primaryOutput = recipe?.Outputs
             .FirstOrDefault(output => output != null)?.ItemId
             ?? string.Empty;
-        int bufferedOutput = !string.IsNullOrWhiteSpace(primaryOutput)
+        int bufferedOutput = !usesPreparedOutput
+            && !string.IsNullOrWhiteSpace(primaryOutput)
                 ? items.CountBufferedOutput(
                     primaryOutput,
                     record.outputDestinationId)
                 : 0;
-        int reservedOutput = record.outputReservations.Values.Sum();
-        int outputCapacity = string.IsNullOrWhiteSpace(primaryOutput)
+        int reservedOutput = usesPreparedOutput
+            ? 0
+            : record.outputReservations.Values.Sum();
+        int outputCapacity = usesPreparedOutput
+            || string.IsNullOrWhiteSpace(primaryOutput)
             ? 0
             : outputPlanning.ResolveCapacity(
                 facility,

@@ -27,29 +27,29 @@ MonoBehaviour:
   description: "\uC791\uC5C5\uC2E4\uC758 \uB2E4\uC74C \uACF5\uC815\uC73C\uB85C \uC2E4\uC81C
     \uC6B4\uBC18\uB418\uB294 \uBB3C\uB9AC \uC911\uAC04\uC7AC."
   stockCategory: 0
-  unitWeight: 0.7
+  unitWeight: 0.23
   maxStack: 50
   sprite: {fileID: 0}
   unitPrice: 9
   features:
-  - rid: 7737212042831200607
-  - rid: 7737212042831200608
-  - rid: 7737212042831200609
   - rid: 7737212042831201244
+  - rid: 1003
+  - rid: 1004
+  - rid: 1005
   references:
     version: 2
     RefIds:
-    - rid: 7737212042831200607
+    - rid: 1003
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:husbandry:feed
-    - rid: 7737212042831200608
+    - rid: 1004
       type: {class: FacilitySupplyItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         fuelValue: 4
         nutritionValue: 14
         feedEligible: 1
-    - rid: 7737212042831200609
+    - rid: 1005
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
@@ -58,4 +58,4 @@ MonoBehaviour:
     - rid: 7737212042831201244
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.593
+        saleRate: 0.59062964

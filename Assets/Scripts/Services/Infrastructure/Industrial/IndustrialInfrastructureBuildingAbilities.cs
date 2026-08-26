@@ -155,6 +155,9 @@ public sealed class BuildingProcessFluidAbility : BuildingAbility
     [Min(0f), InspectorName("주기당 폐수")]
     public float wastewaterPerCycle = 0.25f;
 
+    [InspectorName("폐수 조성")]
+    public ProcessWastewaterComposition wastewaterComposition;
+
     [InspectorName("최소 수질")]
     public WorldWaterQuality minimumQuality = WorldWaterQuality.Clean;
 

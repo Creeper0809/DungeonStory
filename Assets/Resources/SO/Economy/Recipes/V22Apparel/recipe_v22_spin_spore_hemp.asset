@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: fiber:spore-hemp
     amount: 3
   outputs:
-  - itemId: yarn:spore-hemp
+  - outputLineId: output:recipe:v22:spin:spore-hemp/000/main/yarn:spore-hemp
+    role: 0
+    itemId: yarn:spore-hemp
     amount: 2
     probability: 1

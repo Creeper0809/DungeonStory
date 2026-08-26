@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.1
   wastewaterPerCycle: 0.1
+  wastewaterComposition: 2
   allowsManualWaterFallback: 1
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:saltstone
     amount: 1
   outputs:
-  - itemId: material:ration-mixture
+  - outputLineId: output:recipe:ration-mixture/000/main/material:ration-mixture
+    role: 0
+    itemId: material:ration-mixture
     amount: 2
     probability: 1

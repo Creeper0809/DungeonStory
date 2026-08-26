@@ -1,0 +1,82 @@
+{
+    "MonoBehaviour": {
+        "m_Enabled": true,
+        "m_EditorHideFlags": 0,
+        "m_Name": "apparel_apron",
+        "m_EditorClassIdentifier": "DungeonStory.Economy::ResourceItemDefinitionSO",
+        "serializationData": {
+            "SerializedFormat": 2,
+            "SerializedBytes": [],
+            "ReferencedUnityObjects": [],
+            "SerializedBytesString": "",
+            "Prefab": {
+                "instanceID": 0
+            },
+            "PrefabModificationsReferencedUnityObjects": [],
+            "PrefabModifications": [],
+            "SerializationNodes": []
+        },
+        "id": 0,
+        "itemId": "apparel:apron",
+        "displayName": "앞치마",
+        "description": "앞치마 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+        "stockCategory": 1,
+        "unitWeight": 0.41999998688697817,
+        "maxStack": 1,
+        "sprite": {
+            "instanceID": 0
+        },
+        "unitPrice": 19,
+        "features": [
+            {
+                "rid": 7737212042857939712
+            },
+            {
+                "rid": 1000
+            },
+            {
+                "rid": 1001
+            }
+        ],
+        "references": {
+            "version": 2,
+            "RefIds": [
+                {
+                    "rid": 1000,
+                    "type": {
+                        "class": "ProductionItemFeature",
+                        "ns": "",
+                        "asm": "DungeonStory.Economy"
+                    },
+                    "data": {
+                        "kind": 8,
+                        "ingredientTags": 128,
+                        "sharedIntermediate": false
+                    }
+                },
+                {
+                    "rid": 1001,
+                    "type": {
+                        "class": "ResearchGateItemFeature",
+                        "ns": "",
+                        "asm": "DungeonStory.Economy"
+                    },
+                    "data": {
+                        "requiredResearchId": "research:textile:tailoring"
+                    }
+                },
+                {
+                    "rid": 7737212042857939712,
+                    "type": {
+                        "class": "MarketItemFeature",
+                        "ns": "",
+                        "asm": "DungeonStory.Economy"
+                    },
+                    "data": {
+                        "saleRate": 0.5788596272468567
+                    }
+                }
+            ]
+        }
+    }
+}

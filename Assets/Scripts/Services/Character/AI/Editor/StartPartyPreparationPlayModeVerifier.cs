@@ -70,7 +70,12 @@ public static class StartPartyPreparationPlayModeVerifier
             || commitService == null
             || ownerData == null)
         {
-            return "Runtime dependencies are missing.";
+            return "Runtime dependencies are missing: "
+                + $"scope={scope != null}; container={scope?.Container != null}; "
+                + $"managerProvider={managerProvider != null}; manager={manager != null}; "
+                + $"preparation={preparation != null}; commit={commitService != null}; "
+                + $"diagnostics={diagnosticsQuery != null}; ownerCandidate={ownerData != null}; "
+                + $"ownerCandidateCount={manager?.OwnerCandidates?.Count ?? 0}.";
         }
 
         if (!preparation.Begin(ownerData, out string message))

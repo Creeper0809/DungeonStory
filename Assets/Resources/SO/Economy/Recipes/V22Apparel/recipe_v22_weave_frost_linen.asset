@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: yarn:frost-linen
     amount: 3
   outputs:
-  - itemId: material:frost-linen
+  - outputLineId: output:recipe:v22:weave:frost-linen/000/main/material:frost-linen
+    role: 0
+    itemId: material:frost-linen
     amount: 2
     probability: 1

@@ -37,6 +37,36 @@ public readonly struct WasteFeedResult
 
 }
 
+public readonly struct WasteDirectFeedCandidate
+{
+    public WasteDirectFeedCandidate(
+        ItemStackId stackId,
+        string itemId,
+        WasteOriginKind origin,
+        float contamination,
+        float nutrition,
+        float diseaseChance)
+    {
+        StackId = stackId;
+        ItemId = itemId ?? string.Empty;
+        Origin = origin;
+        Contamination = Mathf.Clamp(contamination, 0f, 100f);
+        Nutrition = Mathf.Clamp01(nutrition);
+        DiseaseChance = Mathf.Clamp01(diseaseChance);
+    }
+
+    public ItemStackId StackId { get; }
+    public string ItemId { get; }
+    public WasteOriginKind Origin { get; }
+    public float Contamination { get; }
+    public float Nutrition { get; }
+    public float DiseaseChance { get; }
+    public bool IsValid => StackId.IsValid
+        && !string.IsNullOrWhiteSpace(ItemId)
+        && Origin != WasteOriginKind.Unknown
+        && Nutrition > 0f;
+}
+
 public enum WasteFeedOutcomeCode
 {
     None = 0,
@@ -115,9 +145,15 @@ public interface IWasteFeedCommand
         WildlifeDietType diet,
         Vector2Int destinationPosition,
         string destinationId);
-    WasteFeedResult ConsumeDirectFeed(
+}
+
+public interface IWasteFeedCandidateQuery
+{
+    bool TryGetDirectFeedCandidate(
         WildlifeDietType diet,
-        string destinationId);
+        string destinationId,
+        out WasteDirectFeedCandidate candidate,
+        out DomainFailure failure);
 }
 
 public sealed class WasteProcessingRestoreCandidate

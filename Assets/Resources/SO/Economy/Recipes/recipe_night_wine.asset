@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9098
+  id: 9099
   recipeId: recipe:night-wine
   displayName: "\uBC24\uD3EC\uB3C4\uC8FC \uC219\uC131"
   description: "\uBC24\uD3EC\uB3C4\uC8FC \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -51,12 +51,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:plant-rot
   inputs:
   - itemId: material:young-wine
     amount: 2
   outputs:
-  - itemId: drug:night-wine
+  - outputLineId: output:recipe:night-wine/000/main/drug:night-wine
+    role: 0
+    itemId: drug:night-wine
     amount: 2
     probability: 1

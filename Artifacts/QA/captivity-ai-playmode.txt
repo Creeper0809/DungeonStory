@@ -1,6 +1,6 @@
 # Captivity AI live PlayMode
 RESULT=PASS; failures=0
-INFO	BASELINE_PROMOTION	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-856704:character:staff:1:02:active=True,Roma:-856636:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-856608;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-856676;id=character:staff:1:02;active=False || scan:name=Roma;go=-856608;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-856676;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-856608;id=character:staff:1:01;active=True || retained:name=Arin;go=-856676;id=character:staff:1:02;active=True
+INFO	BASELINE_PROMOTION	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-4035312:character:staff:1:01:active=True,Arin:-4035380:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-4035284;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-4035352;id=character:staff:1:02;active=False || scan:name=Roma;go=-4035284;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-4035352;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-4035284;id=character:staff:1:01;active=True || retained:name=Arin;go=-4035352;id=character:staff:1:02;active=True
 PASS	STARTED_PARTY_BASELINE	promoted=True; actors=3; owners=1
 INFO	FIXTURE_STAGE	created-authored-housing:bounds=50,0..56,2;areaSnapshots=21;displaced=0
 PASS	FIXTURE_ACTOR_PLACEMENT	warden=(51, 1); captive=(55, 1); room=9
@@ -10,11 +10,11 @@ PASS	CELL_DOOR_STAFF_ALLOWED	group=Owner; reason=
 PASS	CAPTURE_RESTRAINT	
 PASS	CAPTURE_COMMAND	
 PASS	CAPTURE_TERMINAL	status=Confined; lastResult=감방 수용 완료; wardenPos=(54, 1); captivePos=(54, 1); housingPos=(54, 1); escorting=False
-PASS	WARDEN_INPUT_SOURCE	stack=stack:beeb59caef0e439287e70e32cd1ceaa1; pos=(54, 1)
+PASS	WARDEN_INPUT_SOURCE	stack=stack:72a42751883c4ad895ec8201304ad489; pos=(54, 1)
 PASS	WARDEN_START	
-PASS	WARDEN_INPUT_DELIVERY	frames=70; attempts=2; decision=운반; reason=; action=; phase=; brainFailure=; haulStage=배송 입고; haulFailure=; haulPlan=운반 계획 없음; carry=
+PASS	WARDEN_INPUT_DELIVERY	frames=51; attempts=1; decision=행동 후보를 나누어 평가하는 중; reason=; action=; phase=; brainFailure=; haulStage=배송 입고; haulFailure=; haulPlan=운반 계획 없음; carry=
 PASS	WARDEN_AI_ASSIGNMENT	brain=True; priority=Priority1
-PASS	WARDEN_AI_START	attempts=1; decision=일하기; action=AIWork; phase=이동; failure=; assigned=work:warden; actorGrid=(53, 1); actorWorld=(-52.51, 3.00, 0.00); target=(53, 1); targetCells=(52, 1),(53, 1); plan=MovePath; steps=1
+PASS	WARDEN_AI_START	attempts=1; decision=경로 탐색 예산 대기; action=AIWork; phase=이동; failure=; assigned=work:warden; actorGrid=(53, 1); actorWorld=(-52.50, 3.00, 0.00); target=(53, 1); targetCells=(52, 1),(53, 1); plan=MovePath; steps=1
 PASS	WARDEN_PROGRESS	work=0; required=0; materialsConsumed=False; isWorking=True; activeRoutine=True; assigned=work:warden@(53, 1); actorGrid=(53, 1); actorWorld=(-52.35, 3.15, 0.00); phase=차분한 대화가 경계를 조금 누그러뜨렸습니다.; detail=; decisionPending=False; movement=False; moveFailure=None
 PASS	WARDEN_TERMINAL	status=Confined; work=0; required=0; materialsConsumed=False; isWorking=True; activeRoutine=True; assigned=work:warden@(53, 1); actorGrid=(53, 1); actorWorld=(-52.35, 3.15, 0.00); phase=차분한 대화가 경계를 조금 누그러뜨렸습니다.; detail=; decisionPending=False; movement=False; moveFailure=None
 PASS	ESCAPE_FAILURE_TERMINAL	status=Confined; attempts=1

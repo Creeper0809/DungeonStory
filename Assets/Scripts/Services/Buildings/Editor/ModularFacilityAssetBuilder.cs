@@ -1155,6 +1155,7 @@ public static class ModularFacilityAssetBuilder
         {
             category = GetStorageCategory(spec.Code),
             capacity = capacity,
+            maxStoredMassGrams = GetStorageMassCapacityGrams(spec.Code),
             allCategories = spec.Code == "L01"
         };
     }
@@ -1723,6 +1724,32 @@ public static class ModularFacilityAssetBuilder
         };
     }
 
+    internal static long GetStorageMassCapacityGrams(string code)
+    {
+        return code switch
+        {
+            "D10" => 12_500L,
+            "H06" => 12_500L,
+            "L01" => 25_000L,
+            "L02" => 12_500L,
+            "L03" => 12_500L,
+            "L04" => 12_500L,
+            "L05" => 12_500L,
+            "L06" => 25_000L,
+            "L07" => 15_000L,
+            "M01" => 13_500L,
+            "M02" => 27_000L,
+            "Q03" => 12_500L,
+            "Q04" => 12_500L,
+            "Q05" => 12_500L,
+            "R06" => 12_500L,
+            "R09" => 12_500L,
+            "S04" => 12_500L,
+            "S07" => 25_000L,
+            _ => 0L
+        };
+    }
+
     private static StockCategory GetStorageCategory(string code)
     {
         return code switch
@@ -2032,8 +2059,8 @@ public static class ModularFacilityAssetBuilder
             Core("P20", "몽직기", 2, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.Mana, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Rune, Traits("Production", "Textile", FacilityEvolutionTerms.Mana), phase: 3),
             Core("P21", "대장간", 3, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", FacilityEvolutionTerms.Combat), phase: 1),
             Core("P22", "심부 채석장", 3, GridLayer.Building, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Quarry | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Mining"), phase: 2),
-            Core("P23", "야외 경작지", 3, GridLayer.FloorOverlay, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Sow | FacilityWorkType.Harvest | FacilityWorkType.Repair, VisualForm.Mat, Traits("Production", "Agriculture"), phase: 1),
-            Core("P24", "실내 재배조", 3, GridLayer.Building, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Sow | FacilityWorkType.Harvest | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Agriculture"), phase: 2),
+            Core("P23", "야외 경작지", 3, GridLayer.FloorOverlay, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Sow | FacilityWorkType.Harvest | FacilityWorkType.Treat | FacilityWorkType.Repair, VisualForm.Mat, Traits("Production", "Agriculture"), phase: 1),
+            Core("P24", "실내 재배조", 3, GridLayer.Building, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Sow | FacilityWorkType.Harvest | FacilityWorkType.Treat | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Agriculture"), phase: 2),
             Core("P25", "폐기 소각로", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Clean | FacilityWorkType.Repair, VisualForm.Hearth, Traits("Production", "Waste", FacilityEvolutionTerms.Hygiene), phase: 1)
         };
     }

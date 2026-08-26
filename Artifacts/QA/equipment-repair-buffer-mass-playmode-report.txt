@@ -1,0 +1,39 @@
+[PASS] SCOPE_READY gameplay LifetimeScope resolved
+[PASS] ITEM_RUNTIME_READY world item runtime resolved
+[PASS] WORK_ORDER_RUNTIME_READY work order runtime resolved
+[PASS] EQUIPMENT_RUNTIME_READY common combat equipment runtime resolved
+[PASS] EQUIPMENT_MAINTENANCE_READY equipment maintenance runtime resolved
+[PASS] ECONOMY_CATALOG_READY resource economy catalog resolved
+[PASS] PREPARATION_RUNTIME_READY offense preparation service resolved
+[PASS] DESTINATION_CLAIM_RUNTIME_READY haul destination claim authority resolved
+[PASS] WAREHOUSE_MASS_ADMISSION_RUNTIME_READY warehouse gram admission authority resolved
+[PASS] DEBUG_MODE_READY debug mode service resolved
+[PASS] GRID_READY grid resolved
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-6775204:character:staff:1:02:active=True,Roma:-6775136:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-6775108;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-6775176;id=character:staff:1:02;active=False || scan:name=Roma;go=-6775108;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-6775176;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-6775108;id=character:staff:1:01;active=True || retained:name=Arin;go=-6775176;id=character:staff:1:02;active=True
+[PASS] RUN_READY owner=Leon
+[PASS] HAULER_READY Arin
+[PASS] HAUL_FIXTURE_AI_OWNERSHIP_ISOLATED actors=3; character:staff:1:02:paused=True:move=False:haul=False,character:staff:1:01:paused=True:move=False:haul=False,owner:paused=True:move=False:haul=False
+[PASS] REACHABLE_TEST_CELLS count=48; actor=(20, 0)
+[PASS] TEMP_WAREHOUSE_GRID_CELL_READY found=True; remaining=46; warehouse=(13, 0)
+[PASS] TEMP_WAREHOUSE_READY QA_Physical_Logistics_Warehouse
+[PASS] TEMP_CRAFT_BENCH_READY QA_Physical_Logistics_Bench
+[PASS] MATERIAL_REPAIR_STOCK_SEEDED item=material:blacksteel-ingot; amount=8; destination=warehouse:building:4b39605eee914b79a2fcf2acdc1f548e
+[PASS] MATERIAL_REPAIR_FACILITY_READY pos=(13, 0)
+[PASS] MATERIAL_REPAIR_STOCK_SEEDED item=material:blacksteel-ingot; amount=8; destination=warehouse:building:4b39605eee914b79a2fcf2acdc1f548e
+[PASS] MATERIAL_REPAIR_ARMOR_DAMAGED instance=item-instance:f8d5e75d83aa42119067a20911fac17d; material=material:blacksteel
+[PASS] MATERIAL_REPAIR_ORDER_CREATED 장비 수리 운반을 요청했습니다.
+[PASS] MATERIAL_REPAIR_REQUIRES_ORIGINAL_MATERIAL item=material:blacksteel-ingot; amount=3
+[PASS] MATERIAL_REPAIR_DESTINATION_CLAIM_EXACT destination=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d; facility=building:61572d594e0f4ff08c25dbbcd78a1a93; drop=(13, 0)
+[PASS] MATERIAL_REPAIR_POSITIVE_GRAM_PROFILE_EXACT mass=6500; revision=1; owner=equipment-repair:000001
+[PASS] MATERIAL_REPAIR_EQUIPMENT_DESTINATION_READY stack=stack:bba4ce1f245f4228838fef550624cf1e; stack:8af83142edba4002892cbe226f0f2070:material:blacksteel-ingotx13:Stored:dest=warehouse:building:4b39605eee914b79a2fcf2acdc1f548e:src=:pos=(13, 0) | stack:bba4ce1f245f4228838fef550624cf1e:equipment-item:shield:woodx1:Loose:dest=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d:src=:pos=(13, 0) | stack:8e1a134b2dd04699928b0f923ec9da65:material:blacksteel-ingotx3:Stored:dest=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d:src=warehouse:building:4b39605eee914b79a2fcf2acdc1f548e:pos=(13, 0)
+[PASS] MATERIAL_REPAIR_HAUL_PLAN_PREFLIGHT destination=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d; pickups=2; delivery=(13, 0)
+[PASS] AI_REPEATED_HAUL_COMPLETED elapsed=5.8s; actor=Arin; pos=(13, 0); phase=/; haul=운반 계획 없음; unload=배송 완료; haulFailure=; path=(14, 0)->(13, 0):Walk:none; preview=no haulable stack; runtimeAvailable=False; canStart=False:; brainFailure=; carry=0/19.1/28.66kg; stacks=stack:8af83142edba4002892cbe226f0f2070:material:blacksteel-ingotx13:Stored:dest=warehouse:building:4b39605eee914b79a2fcf2acdc1f548e:src=:pos=(13, 0) | stack:bba4ce1f245f4228838fef550624cf1e:equipment-item:shield:woodx1:FacilityBuffer:dest=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d:src=:pos=(13, 0) | stack:8e1a134b2dd04699928b0f923ec9da65:material:blacksteel-ingotx3:FacilityBuffer:dest=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d:src=:pos=(13, 0)
+[PASS] MATERIAL_REPAIR_INPUTS_DELIVERED stack:8af83142edba4002892cbe226f0f2070:material:blacksteel-ingotx13:Stored:dest=warehouse:building:4b39605eee914b79a2fcf2acdc1f548e:src=:pos=(13, 0) | stack:bba4ce1f245f4228838fef550624cf1e:equipment-item:shield:woodx1:FacilityBuffer:dest=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d:src=:pos=(13, 0) | stack:8e1a134b2dd04699928b0f923ec9da65:material:blacksteel-ingotx3:FacilityBuffer:dest=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d:src=:pos=(13, 0)
+[PASS] MATERIAL_REPAIR_NO_DUPLICATE_REQUEST required=3; delivered=3; destinationTotal=3; stack:8af83142edba4002892cbe226f0f2070:material:blacksteel-ingotx13:Stored:dest=warehouse:building:4b39605eee914b79a2fcf2acdc1f548e:src=:pos=(13, 0) | stack:bba4ce1f245f4228838fef550624cf1e:equipment-item:shield:woodx1:FacilityBuffer:dest=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d:src=:pos=(13, 0) | stack:8e1a134b2dd04699928b0f923ec9da65:material:blacksteel-ingotx3:FacilityBuffer:dest=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d:src=:pos=(13, 0)
+[PASS] MATERIAL_REPAIR_PRESERVES_INSTANCE_AND_MATERIAL 나무 방패 수리 완료
+[PASS] MATERIAL_REPAIR_DESTINATION_CLAIM_REVOKED_AFTER_COMPLETE destination=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d; completed=True
+[PASS] MATERIAL_REPAIR_CAPACITY_PROFILE_ZERO_AFTER_COMPLETE destination=equipment-repair:item-instance:f8d5e75d83aa42119067a20911fac17d; completed=True
+[PASS] MATERIAL_SALVAGE_RETURNS_ORIGINAL_MATERIAL item=material:blacksteel-ingot; amount=1; reason=
+capturedErrors=0; <none>
+capturedWarnings=0; <none>
+RESULT=PASS; failures=0; <none>

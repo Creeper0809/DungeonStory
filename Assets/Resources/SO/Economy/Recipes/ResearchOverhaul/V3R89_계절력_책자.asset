@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: material:charcoal
     amount: 1
   outputs:
-  - itemId: book:seasonal-almanac
+  - outputLineId: output:recipe:book:seasonal-almanac/000/main/book:seasonal-almanac
+    role: 0
+    itemId: book:seasonal-almanac
     amount: 2
     probability: 1

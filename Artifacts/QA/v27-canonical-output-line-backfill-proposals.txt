@@ -1,0 +1,9 @@
+RESULT=IN_PROGRESS; phase=canonical-output-line-backfill; assetMutations=0
+recipes=355; physicalOutputLines=357; canonicalPreserved=4; missingProposed=353
+main=351; byproduct=6; returnedPackaging=0; recoverableWaste=0; declaredLossPhysicalLines=0
+probabilisticLines=6; probabilityValidation=PASS; duplicateValidation=PASS; canonicalValidation=PASS
+proposalMode=AuditOnly; appliesScriptableObjects=false; sort=recipeId+authoredOutputOrdinal; csv=rfc4180-crlf
+deterministicRecapture=PASS; byteIdentical=true
+sourceDigest=3826a4a26a80ed42bd82933f68bb54d77ca6874745c75b92c2e971e540ee5155
+inspectedAssetDigest=a9073e57c1c7de886a16cb480fa4a480f61142d84ea53572919dc4763270e0ad
+nextGate=REVIEW_THEN_APPLY_APPROVED_OUTPUT_LINES

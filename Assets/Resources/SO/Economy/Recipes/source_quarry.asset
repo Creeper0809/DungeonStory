@@ -50,22 +50,33 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs: []
   outputs:
-  - itemId: resource:stone
+  - outputLineId: output:source:quarry/000/main/resource:stone
+    role: 0
+    itemId: resource:stone
     amount: 4
     probability: 1
-  - itemId: resource:coal
+  - outputLineId: output:source:quarry/001/byproduct/resource:coal
+    role: 1
+    itemId: resource:coal
     amount: 1
     probability: 0.2
-  - itemId: resource:iron-ore
+  - outputLineId: output:source:quarry/002/byproduct/resource:iron-ore
+    role: 1
+    itemId: resource:iron-ore
     amount: 1
     probability: 0.16
-  - itemId: resource:gold-ore
+  - outputLineId: output:source:quarry/003/byproduct/resource:gold-ore
+    role: 1
+    itemId: resource:gold-ore
     amount: 1
     probability: 0.03
-  - itemId: resource:mana-crystal
+  - outputLineId: output:source:quarry/004/byproduct/resource:mana-crystal
+    role: 1
+    itemId: resource:mana-crystal
     amount: 1
     probability: 0.01

@@ -65,6 +65,8 @@ internal sealed class CharacterConsumablesAggregateState
     internal readonly Dictionary<CharacterId, float> MealFollowupCooldownUntil = new();
     internal readonly Dictionary<ConsumableOperationId, CharacterMealPlan>
         ActiveMealPlans = new();
+    internal readonly Dictionary<ConsumableOperationId, CharacterSubstanceUsePlan>
+        ActiveSubstanceUsePlans = new();
     internal long NextOperationSequence = 1;
     internal long NextDeliverySequence = 1;
     internal float NextDeliveryPruneAt;
@@ -115,12 +117,106 @@ internal sealed class CharacterConsumablesAggregateState
                 pair.Key,
                 CharacterConsumablesStateRules.Clone(pair.Value));
         }
+        foreach (KeyValuePair<ConsumableOperationId, CharacterSubstanceUsePlan> pair in
+                 ActiveSubstanceUsePlans)
+        {
+            clone.ActiveSubstanceUsePlans.Add(
+                pair.Key,
+                CharacterConsumablesStateRules.Clone(pair.Value));
+        }
         return clone;
     }
 }
 
 internal static class CharacterConsumablesStateRules
 {
+    internal static CharacterSubstanceUsePlan Clone(
+        CharacterSubstanceUsePlan source) => new()
+    {
+        operationId = source?.operationId ?? string.Empty,
+        characterId = source?.characterId ?? string.Empty,
+        itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
+        sourceStackId = source?.sourceStackId ?? string.Empty,
+        phase = source?.phase ?? CharacterSubstanceUsePlanPhase.ItemCommitted,
+        automaticOperation = source?.automaticOperation ?? false,
+        physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
+        physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
+        physicalCommitId = source?.physicalCommitId ?? string.Empty,
+        physicalCommitSourceStackIds = source?.physicalCommitSourceStackIds?.ToList()
+            ?? new List<string>(),
+        physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
+        physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
+        resolvedTolerance = source?.resolvedTolerance ?? 0f,
+        resolvedAddiction = source?.resolvedAddiction ?? 0f,
+        resolvedWithdrawal = source?.resolvedWithdrawal ?? 0f,
+        resolvedActiveSeconds = source?.resolvedActiveSeconds ?? 0f,
+        resolvedSecondsSinceLastDose = source?.resolvedSecondsSinceLastDose ?? 0f,
+        resolvedScheduledCooldownSeconds =
+            source?.resolvedScheduledCooldownSeconds ?? 0f,
+        effectToleranceRatio = source?.effectToleranceRatio ?? 0f,
+        resolvedAddicted = source?.resolvedAddicted ?? false,
+        resolvedOverdosed = source?.resolvedOverdosed ?? false,
+        becameAddicted = source?.becameAddicted ?? false
+    };
+
+    internal static CharacterSubstanceUsePlanSaveData ToSaveData(
+        CharacterSubstanceUsePlan source) => new()
+    {
+        operationId = source?.operationId ?? string.Empty,
+        characterId = source?.characterId ?? string.Empty,
+        itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
+        sourceStackId = source?.sourceStackId ?? string.Empty,
+        phase = source?.phase ?? CharacterSubstanceUsePlanPhase.ItemCommitted,
+        automaticOperation = source?.automaticOperation ?? false,
+        physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
+        physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
+        physicalCommitId = source?.physicalCommitId ?? string.Empty,
+        physicalCommitSourceStackIds = source?.physicalCommitSourceStackIds?.ToList()
+            ?? new List<string>(),
+        physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
+        physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
+        resolvedTolerance = source?.resolvedTolerance ?? 0f,
+        resolvedAddiction = source?.resolvedAddiction ?? 0f,
+        resolvedWithdrawal = source?.resolvedWithdrawal ?? 0f,
+        resolvedActiveSeconds = source?.resolvedActiveSeconds ?? 0f,
+        resolvedSecondsSinceLastDose = source?.resolvedSecondsSinceLastDose ?? 0f,
+        resolvedScheduledCooldownSeconds =
+            source?.resolvedScheduledCooldownSeconds ?? 0f,
+        effectToleranceRatio = source?.effectToleranceRatio ?? 0f,
+        resolvedAddicted = source?.resolvedAddicted ?? false,
+        resolvedOverdosed = source?.resolvedOverdosed ?? false,
+        becameAddicted = source?.becameAddicted ?? false
+    };
+
+    internal static CharacterSubstanceUsePlan FromSaveData(
+        CharacterSubstanceUsePlanSaveData source) => new()
+    {
+        operationId = source?.operationId ?? string.Empty,
+        characterId = source?.characterId ?? string.Empty,
+        itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
+        sourceStackId = source?.sourceStackId ?? string.Empty,
+        phase = source?.phase ?? CharacterSubstanceUsePlanPhase.ItemCommitted,
+        automaticOperation = source?.automaticOperation ?? false,
+        physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
+        physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
+        physicalCommitId = source?.physicalCommitId ?? string.Empty,
+        physicalCommitSourceStackIds = source?.physicalCommitSourceStackIds?.ToList()
+            ?? new List<string>(),
+        physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
+        physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
+        resolvedTolerance = source?.resolvedTolerance ?? 0f,
+        resolvedAddiction = source?.resolvedAddiction ?? 0f,
+        resolvedWithdrawal = source?.resolvedWithdrawal ?? 0f,
+        resolvedActiveSeconds = source?.resolvedActiveSeconds ?? 0f,
+        resolvedSecondsSinceLastDose = source?.resolvedSecondsSinceLastDose ?? 0f,
+        resolvedScheduledCooldownSeconds =
+            source?.resolvedScheduledCooldownSeconds ?? 0f,
+        effectToleranceRatio = source?.effectToleranceRatio ?? 0f,
+        resolvedAddicted = source?.resolvedAddicted ?? false,
+        resolvedOverdosed = source?.resolvedOverdosed ?? false,
+        becameAddicted = source?.becameAddicted ?? false
+    };
+
     internal static CharacterMealPlan Clone(CharacterMealPlan source) => new()
     {
         planId = source?.planId ?? string.Empty,
@@ -137,7 +233,16 @@ internal static class CharacterConsumablesStateRules
         physicalConsumptionCommitted = source?.physicalConsumptionCommitted ?? false,
         automaticOperation = source?.automaticOperation ?? false,
         beginContamination = source?.beginContamination ?? 0f,
-        facilitySlotReserved = source?.facilitySlotReserved ?? false
+        facilitySlotReserved = source?.facilitySlotReserved ?? false,
+        physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
+        physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
+        physicalCommitId = source?.physicalCommitId ?? string.Empty,
+        physicalCommitSourceStackIds = source?.physicalCommitSourceStackIds?.ToList()
+            ?? new List<string>(),
+        physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
+        physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
+        committedPolicyViolation = source?.committedPolicyViolation ?? false,
+        committedContaminated = source?.committedContaminated ?? false
     };
 
     internal static CharacterMealPlanSaveData ToSaveData(
@@ -153,7 +258,16 @@ internal static class CharacterConsumablesStateRules
         leaseExpiresAt = source?.leaseExpiresAt ?? 0d,
         expectedCompletionEta = source?.expectedCompletionEta ?? 0f,
         automaticOperation = source?.automaticOperation ?? false,
-        beginContamination = source?.beginContamination ?? 0f
+        beginContamination = source?.beginContamination ?? 0f,
+        physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
+        physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
+        physicalCommitId = source?.physicalCommitId ?? string.Empty,
+        physicalCommitSourceStackIds = source?.physicalCommitSourceStackIds?.ToList()
+            ?? new List<string>(),
+        physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
+        physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
+        committedPolicyViolation = source?.committedPolicyViolation ?? false,
+        committedContaminated = source?.committedContaminated ?? false
     };
 
     internal static CharacterMealPlan FromSaveData(
@@ -171,7 +285,18 @@ internal static class CharacterConsumablesStateRules
         expectedCompletionEta = source?.expectedCompletionEta ?? 0f,
         automaticOperation = source?.automaticOperation ?? false,
         beginContamination = source?.beginContamination ?? 0f,
-        facilitySlotReserved = false
+        facilitySlotReserved = false,
+        physicalConsumptionCommitted = source?.phase is
+            CharacterMealPlanPhase.ItemCommitted or CharacterMealPlanPhase.EffectsPublished,
+        physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
+        physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
+        physicalCommitId = source?.physicalCommitId ?? string.Empty,
+        physicalCommitSourceStackIds = source?.physicalCommitSourceStackIds?.ToList()
+            ?? new List<string>(),
+        physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
+        physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
+        committedPolicyViolation = source?.committedPolicyViolation ?? false,
+        committedContaminated = source?.committedContaminated ?? false
     };
 
     internal static CharacterDietPolicyState Clone(CharacterDietPolicyState source) =>
@@ -275,6 +400,10 @@ internal static class CharacterConsumablesStateRules
                 .Select(ToSaveData)
                 .OrderBy(value => value.planId, StringComparer.Ordinal)
                 .ToList(),
+            activeSubstanceUsePlans = state.ActiveSubstanceUsePlans.Values
+                .Select(ToSaveData)
+                .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                .ToList(),
             mealFollowupCooldowns = state.MealFollowupCooldownUntil
                 .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
                 .Select(pair => new CharacterMealFollowupCooldownSaveData
@@ -323,7 +452,8 @@ internal static class CharacterConsumablesStateRules
             || payload.completedOperations == null
             || payload.mealFollowupCooldowns == null
             || payload.mealQualityPolicies == null
-            || payload.activeMealPlans == null)
+            || payload.activeMealPlans == null
+            || payload.activeSubstanceUsePlans == null)
         {
             report.AddError("Character consumables payload contains a null collection.");
             return;
@@ -339,7 +469,9 @@ internal static class CharacterConsumablesStateRules
         HashSet<CharacterSubstanceKey> stateKeys = new();
         HashSet<ConsumableDeliveryId> deliveryIds = new();
         HashSet<MealDeliveryRoute> deliveryRoutes = new();
-        HashSet<ConsumableOperationId> operationIds = new();
+        HashSet<ConsumableOperationId> completedOperationIds = new();
+        HashSet<ConsumableOperationId> activePlanIds = new();
+        HashSet<ConsumableOperationId> activeSubstancePlanIds = new();
         HashSet<CharacterId> cooldownIds = new();
 
         string previous = null;
@@ -427,29 +559,68 @@ internal static class CharacterConsumablesStateRules
         foreach (CharacterMealDeliveryState delivery in payload.pendingMealDeliveries)
         {
             MealDeliveryRoute route = delivery == null ? default : Route(delivery);
-            if (delivery == null
-                || !delivery.DeliveryId.IsValid
-                || !IsExactValue(delivery.deliveryId, delivery.DeliveryId.Value)
-                || !IsExactCharacterId(delivery.characterId, delivery.CharacterId)
-                || !delivery.BuildingInstanceId.IsValid
-                || !IsExactValue(
+            bool deliveryIdValid = delivery?.DeliveryId.IsValid == true;
+            bool deliveryIdExact = delivery != null
+                && IsExactValue(delivery.deliveryId, delivery.DeliveryId.Value);
+            bool characterIdExact = delivery != null
+                && IsExactCharacterId(delivery.characterId, delivery.CharacterId);
+            bool buildingIdValid = delivery?.BuildingInstanceId.IsValid == true;
+            bool buildingIdExact = delivery != null
+                && IsExactValue(
                     delivery.buildingInstanceId,
-                    delivery.BuildingInstanceId.Value)
-                || !delivery.ItemDefinitionId.IsValid
-                || !IsExactValue(
+                    delivery.BuildingInstanceId.Value);
+            bool itemIdValid = delivery?.ItemDefinitionId.IsValid == true;
+            bool itemIdExact = delivery != null
+                && IsExactValue(
                     delivery.itemDefinitionId,
-                    delivery.ItemDefinitionId.Value)
-                || requireWorldReferences
-                    && (!characters.Contains(delivery.CharacterId)
-                        || !facilities.Contains(delivery.BuildingInstanceId))
-                || !inventory.TryGetMeal(delivery.ItemDefinitionId, out _)
-                || !deliveryIds.Add(delivery.DeliveryId) || !deliveryRoutes.Add(route)
-                || !IsFiniteNonNegative(delivery.requestedAt)
-                || !IsFiniteNonNegative(delivery.retryAfter)
-                || delivery.retryAfter < delivery.requestedAt
-                || !IsAfter(previous, delivery.deliveryId))
+                    delivery.ItemDefinitionId.Value);
+            bool characterKnown = delivery != null
+                && (!requireWorldReferences
+                    || characters.Contains(delivery.CharacterId));
+            bool facilityKnown = delivery != null
+                && (!requireWorldReferences
+                    || facilities.Contains(delivery.BuildingInstanceId));
+            bool mealKnown = delivery != null
+                && inventory.TryGetMeal(delivery.ItemDefinitionId, out _);
+            bool uniqueId = delivery != null
+                && deliveryIds.Add(delivery.DeliveryId);
+            bool uniqueRoute = delivery != null && deliveryRoutes.Add(route);
+            bool requestedAtValid = delivery != null
+                && IsFiniteNonNegative(delivery.requestedAt);
+            bool retryAfterValid = delivery != null
+                && IsFiniteNonNegative(delivery.retryAfter)
+                && delivery.retryAfter >= delivery.requestedAt;
+            bool ordered = delivery != null
+                && IsAfter(previous, delivery.deliveryId);
+            if (delivery == null
+                || !deliveryIdValid
+                || !deliveryIdExact
+                || !characterIdExact
+                || !buildingIdValid
+                || !buildingIdExact
+                || !itemIdValid
+                || !itemIdExact
+                || !characterKnown
+                || !facilityKnown
+                || !mealKnown
+                || !uniqueId
+                || !uniqueRoute
+                || !requestedAtValid
+                || !retryAfterValid
+                || !ordered)
             {
-                report.AddError("Character consumables deliveries contain an invalid, unknown, duplicate, or unordered delivery ID/reference.");
+                report.AddError(
+                    "Character consumables deliveries contain an invalid, unknown, duplicate, or unordered delivery ID/reference: "
+                    + $"id={delivery?.deliveryId ?? "<null>"}; "
+                    + $"character={delivery?.characterId ?? "<null>"}; "
+                    + $"building={delivery?.buildingInstanceId ?? "<null>"}; "
+                    + $"item={delivery?.itemDefinitionId ?? "<null>"}; "
+                    + $"idValid={deliveryIdValid}/{deliveryIdExact}; "
+                    + $"characterExactKnown={characterIdExact}/{characterKnown}; "
+                    + $"buildingValidExactKnown={buildingIdValid}/{buildingIdExact}/{facilityKnown}; "
+                    + $"itemValidExactMeal={itemIdValid}/{itemIdExact}/{mealKnown}; "
+                    + $"unique={uniqueId}/{uniqueRoute}; "
+                    + $"time={requestedAtValid}/{retryAfterValid}; ordered={ordered}." );
                 break;
             }
             previous = delivery.deliveryId;
@@ -473,7 +644,7 @@ internal static class CharacterConsumablesStateRules
                 || !IsExactValue(operation.itemStackId, operation.ItemStackId.Value)
                 || requireWorldReferences
                     && !characters.Contains(operation.CharacterId)
-                || !validItem || !operationIds.Add(operation.OperationId)
+                || !validItem || !completedOperationIds.Add(operation.OperationId)
                 || !IsFiniteNonNegative(operation.completedAt)
                 || !IsAfter(previous, operation.operationId))
             {
@@ -488,6 +659,11 @@ internal static class CharacterConsumablesStateRules
         {
             bool validMeal = plan != null
                 && inventory.TryGetMeal(plan.ItemDefinitionId, out _);
+            bool phaseAllowsCompletedOperation = plan != null
+                && plan.phase == CharacterMealPlanPhase.EffectsPublished;
+            bool completedOperationMatchesPhase = plan != null
+                && completedOperationIds.Contains(plan.OperationId)
+                == phaseAllowsCompletedOperation;
             if (plan == null
                 || !plan.OperationId.IsValid
                 || !IsExactValue(plan.planId, plan.OperationId.Value)
@@ -497,7 +673,12 @@ internal static class CharacterConsumablesStateRules
                 || !IsExactValue(
                     plan.facilityInstanceId,
                     plan.FacilityId.Value)
-                || requireWorldReferences && !facilities.Contains(plan.FacilityId)
+                || requireWorldReferences
+                    && !string.Equals(
+                        plan.facilityInstanceId,
+                        CharacterConsumablesRuntime.FieldMealFacilityId,
+                        StringComparison.Ordinal)
+                    && !facilities.Contains(plan.FacilityId)
                 || !plan.SourceStackId.IsValid
                 || !IsExactValue(plan.sourceStackId, plan.SourceStackId.Value)
                 || !plan.ItemDefinitionId.IsValid
@@ -505,8 +686,12 @@ internal static class CharacterConsumablesStateRules
                     plan.itemDefinitionId,
                     plan.ItemDefinitionId.Value)
                 || !validMeal
-                || plan.phase != CharacterMealPlanPhase.Eating
-                || !operationIds.Add(plan.OperationId)
+                || plan.phase is not (CharacterMealPlanPhase.Eating
+                    or CharacterMealPlanPhase.ItemCommitted
+                    or CharacterMealPlanPhase.EffectsPublished)
+                || !activePlanIds.Add(plan.OperationId)
+                || !completedOperationMatchesPhase
+                || !ValidPhysicalCommit(plan, inventory, requireWorldReferences)
                 || !IsFiniteNonNegative(plan.createdAt)
                 || !IsFiniteNonNegative(plan.leaseExpiresAt)
                 || plan.leaseExpiresAt < plan.createdAt
@@ -520,6 +705,57 @@ internal static class CharacterConsumablesStateRules
                 break;
             }
             previous = plan.planId;
+        }
+
+        previous = null;
+        foreach (CharacterSubstanceUsePlanSaveData plan in
+                 payload.activeSubstanceUsePlans)
+        {
+            bool validSubstance = plan != null
+                && inventory.TryResolveSubstance(plan.ItemDefinitionId, out _);
+            bool effectsPublished = plan != null
+                && plan.phase == CharacterSubstanceUsePlanPhase.EffectsPublished;
+            bool completedMatches = plan != null
+                && completedOperationIds.Contains(plan.OperationId) == effectsPublished;
+            bool finiteTargets = plan != null
+                && IsFiniteRange(plan.resolvedTolerance, 0f, 100f)
+                && IsFiniteRange(plan.resolvedAddiction, 0f, 100f)
+                && IsFiniteRange(plan.resolvedWithdrawal, 0f, 100f)
+                && IsFiniteNonNegative(plan.resolvedActiveSeconds)
+                && IsFiniteNonNegative(plan.resolvedSecondsSinceLastDose)
+                && IsFiniteNonNegative(plan.resolvedScheduledCooldownSeconds)
+                && IsFiniteRange(plan.effectToleranceRatio, 0f, 1f);
+            if (plan == null
+                || !plan.OperationId.IsValid
+                || !IsExactValue(plan.operationId, plan.OperationId.Value)
+                || !IsExactCharacterId(plan.characterId, plan.CharacterId)
+                || requireWorldReferences && !characters.Contains(plan.CharacterId)
+                || !plan.ItemDefinitionId.IsValid
+                || !IsExactValue(
+                    plan.itemDefinitionId,
+                    plan.ItemDefinitionId.Value)
+                || !plan.SourceStackId.IsValid
+                || !IsExactValue(plan.sourceStackId, plan.SourceStackId.Value)
+                || !validSubstance
+                || plan.phase is not (CharacterSubstanceUsePlanPhase.ItemCommitted
+                    or CharacterSubstanceUsePlanPhase.EffectsPublished)
+                || !activeSubstancePlanIds.Add(plan.OperationId)
+                || activePlanIds.Contains(plan.OperationId)
+                || !completedMatches
+                || !finiteTargets
+                || plan.becameAddicted
+                    && !plan.resolvedAddicted
+                || !ValidSubstancePhysicalCommit(
+                    plan,
+                    inventory,
+                    requireWorldReferences)
+                || !IsAfter(previous, plan.operationId))
+            {
+                report.AddError(
+                    "Character consumables active substance plans contain an invalid, duplicate, unordered, or unknown pending disposition.");
+                break;
+            }
+            previous = plan.operationId;
         }
 
         previous = null;
@@ -586,6 +822,12 @@ internal static class CharacterConsumablesStateRules
             CharacterMealPlan plan = FromSaveData(source);
             state.ActiveMealPlans.Add(source.OperationId, plan);
         }
+        foreach (CharacterSubstanceUsePlanSaveData source in
+                 payload.activeSubstanceUsePlans)
+        {
+            CharacterSubstanceUsePlan plan = FromSaveData(source);
+            state.ActiveSubstanceUsePlans.Add(source.OperationId, plan);
+        }
         foreach (CharacterMealFollowupCooldownSaveData source in
                  payload.mealFollowupCooldowns)
         {
@@ -616,6 +858,155 @@ internal static class CharacterConsumablesStateRules
     private static bool IsExactValue(string raw, string typedValue) =>
         string.Equals(typedValue, raw ?? string.Empty, StringComparison.Ordinal);
 
+    private static bool IsFiniteRange(float value, float minimum, float maximum) =>
+        !float.IsNaN(value)
+        && !float.IsInfinity(value)
+        && value >= minimum
+        && value <= maximum;
+
+    private static bool ValidSubstancePhysicalCommit(
+        CharacterSubstanceUsePlanSaveData plan,
+        ICharacterConsumablesInventoryPort inventory,
+        bool requirePhysicalJoin)
+    {
+        IReadOnlyList<string> sourceIds = plan.physicalCommitSourceStackIds != null
+            ? plan.physicalCommitSourceStackIds
+            : Array.Empty<string>();
+        bool canonicalSources = sourceIds.Count > 0;
+        string previous = null;
+        for (int index = 0; index < sourceIds.Count; index++)
+        {
+            if (!IsAfter(previous, sourceIds[index]))
+            {
+                canonicalSources = false;
+                break;
+            }
+            previous = sourceIds[index];
+        }
+        bool structurallyValid = string.Equals(
+                plan.physicalCommitOperationId,
+                plan.operationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                plan.physicalCommitReasonCode,
+                CharacterConsumablesRuntime.SubstancePhysicalSinkReason,
+                StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(plan.physicalCommitId)
+            && plan.physicalCommitId.StartsWith(
+                "physical-batch-disposition:",
+                StringComparison.Ordinal)
+            && canonicalSources
+            && plan.physicalCommitQuantity == 1
+            && plan.physicalCommitInputMassGrams > 0L;
+        if (!structurallyValid || !requirePhysicalJoin)
+            return structurallyValid;
+
+        if (!inventory.TryGetPendingSubstanceConsumption(
+                plan.OperationId,
+                out CharacterSubstancePhysicalCommitSnapshot pending))
+        {
+            return plan.phase == CharacterSubstanceUsePlanPhase.EffectsPublished;
+        }
+        return string.Equals(
+                plan.physicalCommitOperationId,
+                pending.OperationId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                plan.physicalCommitReasonCode,
+                pending.ReasonCode,
+                StringComparison.Ordinal)
+            && string.Equals(
+                plan.physicalCommitId,
+                pending.CommitId,
+                StringComparison.Ordinal)
+            && plan.physicalCommitQuantity == pending.Quantity
+            && plan.physicalCommitInputMassGrams == pending.InputMassGrams
+            && sourceIds.SequenceEqual(pending.SourceStackIds ?? Array.Empty<string>());
+    }
+
+    private static bool ValidPhysicalCommit(
+        CharacterMealPlanSaveData plan,
+        ICharacterConsumablesInventoryPort inventory,
+        bool requirePhysicalJoin)
+    {
+        bool committed = plan.phase is CharacterMealPlanPhase.ItemCommitted
+            or CharacterMealPlanPhase.EffectsPublished;
+        IReadOnlyList<string> sourceIds = plan.physicalCommitSourceStackIds != null
+            ? plan.physicalCommitSourceStackIds
+            : Array.Empty<string>();
+        if (!committed)
+        {
+            return string.IsNullOrEmpty(plan.physicalCommitOperationId)
+                && string.IsNullOrEmpty(plan.physicalCommitReasonCode)
+                && string.IsNullOrEmpty(plan.physicalCommitId)
+                && sourceIds.Count == 0
+                && plan.physicalCommitQuantity == 0
+                && plan.physicalCommitInputMassGrams == 0L
+                && !plan.committedPolicyViolation
+                && !plan.committedContaminated;
+        }
+
+        bool canonicalSources = sourceIds.Count > 0;
+        string previous = null;
+        for (int index = 0; index < sourceIds.Count; index++)
+        {
+            string sourceId = sourceIds[index];
+            if (!IsAfter(previous, sourceId))
+            {
+                canonicalSources = false;
+                break;
+            }
+            previous = sourceId;
+        }
+        bool structurallyValid = string.Equals(
+                plan.physicalCommitOperationId,
+                plan.planId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                plan.physicalCommitReasonCode,
+                CharacterConsumablesRuntime.MealPhysicalSinkReason,
+                StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(plan.physicalCommitId)
+            && plan.physicalCommitId.StartsWith(
+                "physical-batch-disposition:",
+                StringComparison.Ordinal)
+            && canonicalSources
+            && plan.physicalCommitQuantity == 1
+            && plan.physicalCommitInputMassGrams > 0L;
+        if (!structurallyValid || !requirePhysicalJoin)
+            return structurallyValid;
+
+        if (!inventory.TryGetPendingMealConsumption(
+                plan.OperationId,
+                out CharacterMealPhysicalCommitSnapshot pending))
+        {
+            // Effects may have been published and the idempotent physical ack
+            // may already have completed immediately before the save boundary.
+            return plan.phase == CharacterMealPlanPhase.EffectsPublished;
+        }
+        return PhysicalCommitEquals(plan, pending);
+    }
+
+    private static bool PhysicalCommitEquals(
+        CharacterMealPlanSaveData plan,
+        CharacterMealPhysicalCommitSnapshot pending) =>
+        string.Equals(
+            plan.physicalCommitOperationId,
+            pending.OperationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            plan.physicalCommitReasonCode,
+            pending.ReasonCode,
+            StringComparison.Ordinal)
+        && string.Equals(
+            plan.physicalCommitId,
+            pending.CommitId,
+            StringComparison.Ordinal)
+        && plan.physicalCommitQuantity == pending.Quantity
+        && plan.physicalCommitInputMassGrams == pending.InputMassGrams
+        && (plan.physicalCommitSourceStackIds ?? new List<string>())
+            .SequenceEqual(pending.SourceStackIds ?? Array.Empty<string>());
+
     private static void ValidateSequenceWatermarks(
         DungeonCharacterConsumablesSaveData payload,
         DungeonGameRestoreReport report)
@@ -633,6 +1024,14 @@ internal static class CharacterConsumablesStateRules
                 value => value?.planId,
                 CharacterConsumableIdContract.ClassifyOperation,
                 "active meal operation",
+                report));
+        highestOperation = Math.Max(
+            highestOperation,
+            ValidateGeneratedIds(
+                payload.activeSubstanceUsePlans,
+                value => value?.operationId,
+                CharacterConsumableIdContract.ClassifyOperation,
+                "active substance operation",
                 report));
         long highestDelivery = ValidateGeneratedIds(
             payload.pendingMealDeliveries,

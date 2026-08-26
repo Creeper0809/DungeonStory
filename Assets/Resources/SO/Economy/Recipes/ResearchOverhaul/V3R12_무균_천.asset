@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -61,6 +62,8 @@ MonoBehaviour:
   - itemId: resource:clean-water
     amount: 1
   outputs:
-  - itemId: textile:sterile-cloth
+  - outputLineId: output:recipe:textile:sterile-cloth/000/main/textile:sterile-cloth
+    role: 0
+    itemId: textile:sterile-cloth
     amount: 2
     probability: 1

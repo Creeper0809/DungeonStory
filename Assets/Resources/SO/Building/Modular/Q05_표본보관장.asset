@@ -58,7 +58,7 @@ MonoBehaviour:
     - rid: 7737211921440178484
     - rid: 7737211921440178485
     - rid: 7737211921440178486
-    - rid: 7737211992021139771
+    - rid: 7737212199327498426
   width: 1
   height: 1
   layer: 1
@@ -135,8 +135,9 @@ MonoBehaviour:
         abilityId: BuildingStorageAbility
         category: 1
         capacity: 8
+        maxStoredMassGrams: 12500
         allCategories: 0
-    - rid: 7737211992021139771
+    - rid: 7737212199327498426
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

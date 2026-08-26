@@ -555,7 +555,7 @@ public sealed class CharacterWorldSaveService :
                 }
                 else
                 {
-                    retiringCarry?.RemoveAllItems();
+                    retiringCarry?.DiscardAllItemsForRestoredWorldReplacement();
                     actor.GetAbility<AbilityMove>()?.CancelActiveMovement();
                 }
             }

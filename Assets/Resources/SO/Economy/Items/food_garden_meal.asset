@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8060
+  id: 8061
   itemId: food:garden-meal
   displayName: "\uC815\uC6D0 \uC694\uB9AC"
   description: "\uACE1\uBB3C\uACFC \uBFCC\uB9AC, \uBC84\uC12F\uC744 \uC11E\uC740
@@ -32,34 +32,34 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 12
   features:
-  - rid: 7737211905666712359
-  - rid: 7737211905666712360
-  - rid: 7737211905666712362
-  - rid: 7737212042831201010
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712359
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:vegan
-    - rid: 7737211905666712360
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 3
         sharedIntermediate: 0
-    - rid: 7737211905666712362
-      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        quality: 1
-        qualityBand: 1
-        servingRole: 0
-        nutrition: 46
-        mood: 6
-        freshnessSeconds: 420
-        preserved: 0
-    - rid: 7737212042831201010
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.5973888
+    - rid: 1003
+      type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        quality: 1
+        qualityBand: 2
+        servingRole: 0
+        nutrition: 50
+        mood: 4
+        freshnessSeconds: 420
+        preserved: 0

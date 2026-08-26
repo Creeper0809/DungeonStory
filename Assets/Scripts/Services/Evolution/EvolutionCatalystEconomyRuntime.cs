@@ -65,13 +65,17 @@ public sealed class EvolutionCatalystEconomyRuntime :
     IEvolutionCatalystEconomyRuntime
 {
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalItemTransformService physicalTransforms;
     private readonly IGameMoneyAccount money;
 
     public EvolutionCatalystEconomyRuntime(
         IWorldItemStackRuntime items,
+        IPhysicalItemTransformService physicalTransforms,
         IGameMoneyAccount money)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.physicalTransforms = physicalTransforms
+            ?? throw new ArgumentNullException(nameof(physicalTransforms));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
     }
 
@@ -91,27 +95,32 @@ public sealed class EvolutionCatalystEconomyRuntime :
             return false;
         }
 
-        if (!items.TryConsumeStackQuantity(source.StackId, 1, out _))
-        {
-            failureReason = "촉매를 분해할 수 없습니다.";
-            return false;
-        }
-
-        if (items.SpawnItemAt(
-                EvolutionCatalystItemId.BuildResidue(
-                    catalyst.progressionLevel),
+        string operationId =
+            $"evolution-catalyst-dismantle:{source.StackId}:{source.Quantity:D8}";
+        if (physicalTransforms.TryTransformQuantity(
+                source.StackId,
                 1,
-                outputPosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out int spawned)
-            && spawned == 1)
+                new[]
+                {
+                    new PhysicalItemTransformOutput(
+                        EvolutionCatalystItemId.BuildResidue(
+                            catalyst.progressionLevel),
+                        1,
+                        outputPosition)
+                },
+                operationId,
+                "evolution-catalyst-dismantle",
+                out PhysicalItemTransformReceipt receipt,
+                out _,
+                out failureReason)
+            && receipt.IsCommitted)
         {
             return true;
         }
 
-        RestoreItem(source.ItemId, outputPosition);
-        failureReason = "촉매 잔재를 놓을 수 없습니다.";
+        failureReason = string.IsNullOrWhiteSpace(failureReason)
+            ? "촉매 분해의 물리 질량 변환을 커밋할 수 없습니다."
+            : failureReason;
         return false;
     }
 
@@ -202,38 +211,50 @@ public sealed class EvolutionCatalystEconomyRuntime :
             return false;
         }
 
-        if (!items.TryConsumeStackQuantity(source.StackId, 1, out _))
-        {
-            failureReason = "교환할 촉매를 회수할 수 없습니다.";
-            return false;
-        }
-
-        if (!items.SpawnItemAt(
-                outputId,
-                1,
-                outputPosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out int spawned)
-            || spawned != 1)
-        {
-            RestoreItem(source.ItemId, outputPosition);
-            failureReason = "교환한 촉매를 놓을 수 없습니다.";
-            return false;
-        }
-
+        EconomyTransactionContext exchangeContext = new(
+            EconomyTransactionKind.CatalystExchange,
+            "evolution-catalyst-exchange",
+            sourceCatalystStackId,
+            "촉매 계열 교환");
         if (!money.TrySpend(
                 price,
-                new EconomyTransactionContext(
-                    EconomyTransactionKind.ShopPurchase,
-                    "evolution-catalyst-exchange",
-                    sourceCatalystStackId,
-                    "촉매 계열 교환"),
+                exchangeContext,
                 out failureReason))
         {
-            RestoreItem(source.ItemId, outputPosition);
             return false;
         }
+
+        string operationId = $"evolution-catalyst-exchange:{source.StackId}:{outputId}";
+        if (!physicalTransforms.TryTransformQuantity(
+                source.StackId,
+                1,
+                new[]
+                {
+                    new PhysicalItemTransformOutput(
+                        outputId,
+                        1,
+                        outputPosition)
+                },
+                operationId,
+                "evolution-catalyst-exchange",
+                out PhysicalItemTransformReceipt receipt,
+                out _,
+                out failureReason)
+            || !receipt.IsCommitted)
+        {
+            money.Add(
+                price,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.CatalystExchangeRefund,
+                    "evolution-catalyst-exchange",
+                    sourceCatalystStackId,
+                    "촉매 계열 교환 실패 환급"));
+            failureReason = string.IsNullOrWhiteSpace(failureReason)
+                ? "교환한 촉매의 물리 변환을 커밋할 수 없습니다."
+                : failureReason;
+            return false;
+        }
+
         goldSpent = price;
         return true;
     }
@@ -266,43 +287,30 @@ public sealed class EvolutionCatalystEconomyRuntime :
         }
 
         int remaining = inputAmount;
+        List<PhysicalItemTransformInput> inputs = new();
         foreach (WorldItemStackSnapshot source in sources)
         {
             int consume = Mathf.Min(remaining, source.Quantity);
-            if (!items.TryConsumeStackQuantity(source.StackId, consume, out _))
-            {
-                failureReason = "촉매 재료를 소비할 수 없습니다.";
-                return false;
-            }
-
+            inputs.Add(new PhysicalItemTransformInput(source.StackId, consume));
             remaining -= consume;
             if (remaining <= 0)
             {
                 break;
             }
         }
-
-        if (items.SpawnItemAt(
-                outputItemId,
-                1,
-                outputPosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out int spawned)
-            && spawned == 1)
-        {
-            return true;
-        }
-
-        items.SpawnItemAt(
-            inputItemId,
-            inputAmount,
-            outputPosition,
-            WorldItemStackState.Loose,
-            string.Empty,
-            out _);
-        failureReason = "정제 결과물을 놓을 수 없습니다.";
-        return false;
+        string operationId = $"evolution-catalyst-transform:{outputItemId}:{outputPosition.x}:{outputPosition.y}";
+        return physicalTransforms.TryTransformQuantities(
+            inputs,
+            new[]
+            {
+                new PhysicalItemTransformOutput(outputItemId, 1, outputPosition)
+            },
+            operationId,
+            "evolution-catalyst-transform",
+            out PhysicalItemTransformReceipt receipt,
+            out _,
+            out failureReason)
+            && receipt.IsCommitted;
     }
 
     private WorldItemStackSnapshot FindStack(string stackId)
@@ -315,14 +323,4 @@ public sealed class EvolutionCatalystEconomyRuntime :
                 StringComparison.Ordinal));
     }
 
-    private void RestoreItem(string itemId, Vector2Int position)
-    {
-        items.SpawnItemAt(
-            itemId,
-            1,
-            position,
-            WorldItemStackState.Loose,
-            string.Empty,
-            out _);
-    }
 }

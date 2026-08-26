@@ -807,6 +807,7 @@ public sealed class V20ContentResolutionService : IContentResolutionService
     private readonly IWorldDropZoneQuery dropZones;
     private readonly IGameMoneyAccount money;
     private readonly IFacilityCapabilityQuery facilities;
+    private readonly IPhysicalItemBatchDispositionService physicalDispositions;
 
     public V20ContentResolutionService(
         V20CampaignRuntime live,
@@ -827,10 +828,12 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         IItemTransferService transfers,
         IWorldDropZoneQuery dropZones,
         IGameMoneyAccount money,
-        IFacilityCapabilityQuery facilities)
+        IFacilityCapabilityQuery facilities,
+        IPhysicalItemBatchDispositionService physicalDispositions)
     {
         this.live = live ?? throw new ArgumentNullException(nameof(live));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        this.physicalDispositions = physicalDispositions ?? throw new ArgumentNullException(nameof(physicalDispositions));
         this.narrativeCatalog = narrativeCatalog
             ?? throw new ArgumentNullException(nameof(narrativeCatalog));
         this.requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
@@ -1056,7 +1059,8 @@ public sealed class V20ContentResolutionService : IContentResolutionService
     {
         V20CampaignRuntime candidate = new(
             new DungeonRuntimeAggregateRootStore(),
-            catalog);
+            catalog,
+            physicalDispositions);
         candidate.PublishSeasonal(candidate.PrepareSeasonal(live.CaptureSeasonal()));
         candidate.PublishSociety(candidate.PrepareSociety(live.CaptureSociety()));
         candidate.PublishFactions(candidate.PrepareFactions(live.CaptureFactions()));

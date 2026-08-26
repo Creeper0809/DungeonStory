@@ -47,6 +47,49 @@ public interface IProductionDistributionQuery
         ProductionBillId billId);
 }
 
+// Compatibility probe retained for the assembly-local delivery-coordinator
+// regression. Runtime distribution no longer calls this helper; all production
+// routing goes through IProductionPreparedOutputExactRouteLifecycle.
+internal static class ProductionPreparedOutputDeliveryDispatch
+{
+    internal static bool RequiresCompletedAuthority(
+        ProductionPreparedOutputRouteRequestSnapshot route) =>
+        route.Phase == ProductionPreparedOutputRoutePhase
+            .ItemsAcknowledgedAwaitingCheckpointGc
+        && (route.CurrentDeliveryTargetKind ==
+                ProductionPreparedOutputDeliveryTargetKind
+                    .WarehouseSelectionPending
+            || string.IsNullOrEmpty(route.CurrentTargetAuthorityFingerprint));
+
+    internal static bool TryApply(
+        IProductionPreparedOutputDeliveryCoordinator coordinator,
+        ProductionPreparedOutputRouteRequestSnapshot route)
+    {
+        if (coordinator == null)
+            throw new ArgumentNullException(nameof(coordinator));
+        if (string.IsNullOrEmpty(route.RouteOperationId))
+        {
+            throw new InvalidOperationException(
+                "Prepared-output delivery route identity is missing.");
+        }
+
+        return (string.IsNullOrEmpty(route.CurrentTargetDestinationId)
+                ? coordinator.TryApplyCompatibleWarehouse(
+                    route.RouteOperationId,
+                    route.ItemId,
+                    route.CurrentTargetPositionX,
+                    route.CurrentTargetPositionY)
+                : coordinator.TryApplyExactTarget(
+                    route.RouteOperationId,
+                    ProductionPreparedOutputDeliveryRerouteReason
+                        .InitialTargetAuthorityConfirmed,
+                    route.CurrentTargetDestinationId,
+                    route.CurrentTargetPositionX,
+                    route.CurrentTargetPositionY))
+            .Succeeded;
+    }
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ProductionDistributionRuntime :
     IProductionDistributionQuery,
@@ -58,7 +101,8 @@ public sealed class ProductionDistributionRuntime :
     private readonly IProductionDependencyCatalog dependencies;
     private readonly IReadOnlyList<IProductionConsumerDemandProvider> providers;
     private readonly IProductionAssemblyBridge bridge;
-
+    private readonly IProductionPreparedOutputRoutingAuthority preparedRouting;
+    private readonly IProductionPreparedOutputExactRouteLifecycle routeLifecycle;
     private readonly IGameClock clock;
 
     public ProductionDistributionRuntime(
@@ -67,6 +111,8 @@ public sealed class ProductionDistributionRuntime :
         IProductionDependencyCatalog dependencies,
         IReadOnlyList<IProductionConsumerDemandProvider> providers,
         IProductionAssemblyBridge bridge,
+        IProductionPreparedOutputRoutingAuthority preparedRouting,
+        IProductionPreparedOutputExactRouteLifecycle routeLifecycle,
         IGameClock clock)
     {
         this.stateStore = stateStore
@@ -77,6 +123,10 @@ public sealed class ProductionDistributionRuntime :
         this.providers = providers
             ?? throw new ArgumentNullException(nameof(providers));
         this.bridge = bridge ?? throw new ArgumentNullException(nameof(bridge));
+        this.preparedRouting = preparedRouting
+            ?? throw new ArgumentNullException(nameof(preparedRouting));
+        this.routeLifecycle = routeLifecycle
+            ?? throw new ArgumentNullException(nameof(routeLifecycle));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
 
@@ -101,6 +151,24 @@ public sealed class ProductionDistributionRuntime :
             changed |= EnsurePolicies(bill, recipe);
             HashSet<string> selectedConsumerIds = new(StringComparer.Ordinal);
             ProductionFacilityHandle facility = ResolveFacility(bill.buildingInstanceId);
+            if (ProductionPreparedOutputMigrationScope.Contains(bill.recipeId))
+            {
+                if (routedCount < MaximumRoutesPerTick
+                    && TryProgressPreparedOutputRoute(
+                        bill,
+                        facility,
+                        selectedConsumerIds))
+                {
+                    routedCount++;
+                    changed = true;
+                }
+                changed |= UpdateWaitingTimes(
+                    bill,
+                    recipe,
+                    selectedConsumerIds,
+                    clock.DeltaTime);
+                continue;
+            }
             if (facility != null)
             {
                 foreach (IGrouping<string, ProductionOutputDefinition> output in
@@ -293,6 +361,171 @@ public sealed class ProductionDistributionRuntime :
         }
 
         return false;
+    }
+
+    private bool TryProgressPreparedOutputRoute(
+        ProductionBillRecord bill,
+        ProductionFacilityHandle facility,
+        ISet<string> selectedConsumerIds)
+    {
+        ProductionPreparedOutputRoutingLineSnapshot[] lines = preparedRouting
+            .CaptureBill(bill.billId)
+            .OrderBy(value => value.CycleSequence)
+            .ThenBy(value => value.BatchCommitId, StringComparer.Ordinal)
+            .ThenBy(value => value.OutputLineId, StringComparer.Ordinal)
+            .ToArray();
+        if (lines.Length == 0)
+        {
+            return false;
+        }
+
+        HashSet<string> lineCommitIds = lines
+            .Select(value => value.LineCommitId)
+            .ToHashSet(StringComparer.Ordinal);
+        ProductionPreparedOutputRouteRequestSnapshot[] operations = preparedRouting
+            .CaptureRouteOperations()
+            .Where(value => lineCommitIds.Contains(value.LineCommitId))
+            .OrderBy(value => value.RouteOperationId, StringComparer.Ordinal)
+            .ToArray();
+        ProductionPreparedOutputRouteRequestSnapshot pendingAuthority = operations
+            .Where(value => value.Phase == ProductionPreparedOutputRoutePhase
+                    .ItemsAcknowledgedAwaitingCheckpointGc
+                && (value.CurrentDeliveryTargetKind ==
+                        ProductionPreparedOutputDeliveryTargetKind
+                            .WarehouseSelectionPending
+                    || string.IsNullOrEmpty(
+                        value.CurrentTargetAuthorityFingerprint)))
+            .FirstOrDefault();
+        if (!string.IsNullOrEmpty(pendingAuthority.RouteOperationId))
+        {
+            return routeLifecycle.TryProgress(pendingAuthority).Completed;
+        }
+        ProductionPreparedOutputRouteRequestSnapshot pending = operations
+            .Where(value => value.Phase != ProductionPreparedOutputRoutePhase
+                .ItemsAcknowledgedAwaitingCheckpointGc)
+            .FirstOrDefault();
+        if (!string.IsNullOrEmpty(pending.RouteOperationId))
+        {
+            return routeLifecycle.TryProgress(pending).Completed;
+        }
+
+        foreach (ProductionPreparedOutputRoutingLineSnapshot line in lines
+                     .Where(value => value.RemainingQuantity > 0
+                         && value.RemainingMassGrams > 0L))
+        {
+            if (!TrySelectPreparedRouteTarget(
+                    bill,
+                    facility,
+                    line,
+                    out string targetDestinationId,
+                    out Vector2Int targetPosition,
+                    out int requestedQuantity,
+                    out string selectedConsumerId))
+            {
+                continue;
+            }
+
+            int exactQuantity = routeLifecycle.ResolveExactQuantity(
+                line,
+                requestedQuantity);
+            if (exactQuantity <= 0
+                && targetDestinationId.Length > 0
+                && HasCompatibleWarehouse(line.ItemId))
+            {
+                targetDestinationId = string.Empty;
+                targetPosition = facility?.Position ?? default;
+                exactQuantity = routeLifecycle.ResolveExactQuantity(
+                    line,
+                    line.RemainingQuantity);
+                selectedConsumerId = string.Empty;
+            }
+            if (exactQuantity <= 0)
+            {
+                continue;
+            }
+
+            ProductionPreparedOutputRouteRequestSnapshot operation =
+                preparedRouting.PrepareRoute(
+                    line.BatchCommitId,
+                    line.LineCommitId,
+                    targetDestinationId,
+                    targetPosition.x,
+                    targetPosition.y,
+                    exactQuantity);
+            bool routed = routeLifecycle.TryProgress(operation).Completed;
+            if (routed && !string.IsNullOrEmpty(selectedConsumerId))
+            {
+                selectedConsumerIds.Add(selectedConsumerId);
+            }
+            return routed;
+        }
+
+        return false;
+    }
+
+    private bool TrySelectPreparedRouteTarget(
+        ProductionBillRecord bill,
+        ProductionFacilityHandle facility,
+        ProductionPreparedOutputRoutingLineSnapshot line,
+        out string targetDestinationId,
+        out Vector2Int targetPosition,
+        out int requestedQuantity,
+        out string selectedConsumerId)
+    {
+        targetDestinationId = string.Empty;
+        targetPosition = facility?.Position ?? default;
+        requestedQuantity = 0;
+        selectedConsumerId = string.Empty;
+
+        List<RouteEvaluation> evaluations = BuildEvaluations(
+            bill,
+            line.ItemId);
+        ProductionConsumerRoutePolicy selected =
+            ProductionDistributionPlanner.SelectNext(
+                bill.distributionMode,
+                evaluations.Select(value => value.State));
+        if (selected != null)
+        {
+            RouteEvaluation evaluation = evaluations.First(value =>
+                string.Equals(
+                    value.State.policy.consumerId,
+                    selected.consumerId,
+                    StringComparison.Ordinal));
+            ProductionConsumerDemandTarget target = SelectTarget(evaluation);
+            int shortage = Mathf.Max(
+                0,
+                evaluation.State.currentDemand
+                    - evaluation.State.reservedQuantity);
+            int targetCapacity = target == null
+                ? 0
+                : evaluation.State.stage
+                    == ProductionDistributionStage.ActiveDemand
+                    ? Mathf.Max(
+                        0,
+                        target.ReservationLimit - target.ReservedQuantity)
+                    : shortage;
+            int amount = Mathf.Min(
+                line.RemainingQuantity,
+                Mathf.Min(shortage, targetCapacity));
+            if (target != null
+                && amount > 0
+                && !string.IsNullOrEmpty(target.DestinationId))
+            {
+                targetDestinationId = target.DestinationId;
+                targetPosition = target.DestinationPosition;
+                requestedQuantity = amount;
+                selectedConsumerId = selected.consumerId;
+                return true;
+            }
+        }
+
+        if (!HasCompatibleWarehouse(line.ItemId))
+        {
+            return false;
+        }
+
+        requestedQuantity = line.RemainingQuantity;
+        return requestedQuantity > 0;
     }
 
     private List<RouteEvaluation> BuildEvaluations(
@@ -575,7 +808,7 @@ public sealed class ProductionDistributionRuntime :
     private bool HasCompatibleWarehouse(string itemId)
     {
         return catalog.TryGetItem(itemId, out ResourceItemDefinitionSO item)
-            && bridge.HasCompatibleWarehouse(item.StockCategory);
+            && bridge.HasCompatibleWarehouse(itemId, item.StockCategory);
     }
 
     private sealed class RouteEvaluation

@@ -228,6 +228,22 @@ public class FacilitySynthesisRuntime : MonoBehaviour
             return false;
         }
 
+        IProductionFacilityMutationFence productionFence =
+            ResolveProductionFacilityMutationFence();
+        foreach (BuildableObject material in materials
+                     .OrderBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal))
+        {
+            if (!productionFence.TryRequireNoAuthority(
+                    material,
+                    ProductionFacilityMutationKind.Synthesis,
+                    out string productionFailure))
+            {
+                errorMessage = "생산 주문·재공품·출력 권위가 남은 시설은 합성할 수 없습니다. "
+                    + productionFailure;
+                return false;
+            }
+        }
+
         errorMessage = string.Empty;
         return true;
     }
@@ -322,5 +338,19 @@ public class FacilitySynthesisRuntime : MonoBehaviour
     {
         return recipeQuery
             ?? throw new InvalidOperationException($"{nameof(FacilitySynthesisRuntime)} requires {nameof(IFacilitySynthesisRecipeQuery)} injection.");
+    }
+
+    private IProductionFacilityMutationFence ResolveProductionFacilityMutationFence()
+    {
+        if (ResolveObjectResolver().TryResolve(
+                typeof(IProductionFacilityMutationFence),
+                out object resolved)
+            && resolved is IProductionFacilityMutationFence fence)
+        {
+            return fence;
+        }
+        throw new InvalidOperationException(
+            $"{nameof(FacilitySynthesisRuntime)} requires "
+            + $"{nameof(IProductionFacilityMutationFence)}.");
     }
 }

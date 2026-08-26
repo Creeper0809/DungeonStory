@@ -48,7 +48,7 @@ MonoBehaviour:
   effects: []
   allowMythicInspiration: 1
   verbs:
-  - rid: 7737211905660420938
+  - rid: 7737212199327498410
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 1.12
@@ -66,7 +66,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211905660420938
+    - rid: 7737212199327498410
       type: {class: MeleeStrikeVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 0.9

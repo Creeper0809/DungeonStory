@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9060
+  id: 9061
   recipeId: recipe:garden-meal
   displayName: "\uC815\uC6D0 \uC694\uB9AC"
   description: "\uC815\uC6D0 \uC694\uB9AC \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.25
   wastewaterPerCycle: 0.2
+  wastewaterComposition: 2
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -62,6 +63,8 @@ MonoBehaviour:
   - itemId: resource:cave-mushroom
     amount: 1
   outputs:
-  - itemId: food:garden-meal
+  - outputLineId: output:recipe:garden-meal/000/main/food:garden-meal
+    role: 0
+    itemId: food:garden-meal
     amount: 2
     probability: 1

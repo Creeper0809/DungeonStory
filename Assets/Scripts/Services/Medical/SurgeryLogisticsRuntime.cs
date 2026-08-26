@@ -20,6 +20,10 @@ internal sealed class SurgeryLogisticsRuntime
     private readonly IWildlifeWorldQuery wildlife;
     private readonly ICaptivityRuntime captivity;
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
+    private readonly IPhysicalItemMassQuery physicalMass;
+    private readonly IPackagedLotTareDispositionService tareDispositions;
+    private readonly IFacilityBufferDestinationClaimQuery destinationClaims;
     private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly ISurgicalPatientTransportRuntime patientTransport;
     private readonly ICharacterMedicalCommand medicalCommands;
@@ -44,6 +48,10 @@ internal sealed class SurgeryLogisticsRuntime
         SurgeryResourceServices requiredResources = resources
             ?? throw new ArgumentNullException(nameof(resources));
         items = requiredResources.Items;
+        batchDispositions = requiredResources.BatchDispositions;
+        physicalMass = requiredResources.PhysicalMass;
+        tareDispositions = requiredResources.TareDispositions;
+        destinationClaims = requiredResources.DestinationClaims;
         workforce = requiredResources.Workforce;
         clock = (execution ?? throw new ArgumentNullException(nameof(execution))).Clock;
     }
@@ -416,8 +424,8 @@ internal sealed class SurgeryLogisticsRuntime
                 group => group.Sum(item => Mathf.Max(1, item.quantity)),
                 StringComparer.Ordinal);
         if (costs.Count > 0
-            && !items.TryConsumeFacilityItemBuffer(
-                order.materialDestinationId,
+            && !TryCommitMaterialSinkWithTare(
+                order,
                 costs,
                 out _))
         {
@@ -436,6 +444,155 @@ internal sealed class SurgeryLogisticsRuntime
                 StringComparison.Ordinal));
         return true;
     }
+
+    public bool TryFinalizeConsumedMaterials(
+        SurgeryOrder order,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (order == null || !order.materialsConsumed)
+        {
+            return true;
+        }
+
+        string operationId = BuildMaterialSinkOperationId(order);
+        if (!batchDispositions.TryGetPending(
+                operationId,
+                out PhysicalItemBatchDispositionReceipt pending))
+        {
+            return true;
+        }
+        if (!batchDispositions.Acknowledge(
+                pending.CommitId,
+                out string acknowledgementFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryMaterialUnavailable,
+                acknowledgementFailure);
+            return false;
+        }
+        return true;
+    }
+
+    private bool TryCommitMaterialSinkWithTare(
+        SurgeryOrder order,
+        IReadOnlyDictionary<string, int> costs,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string operationId = BuildMaterialSinkOperationId(order);
+        PhysicalItemBatchDispositionReceipt receipt;
+        if (!batchDispositions.TryGetPending(operationId, out receipt))
+        {
+            if (!TrySelectExactMaterialInputs(
+                    order.materialDestinationId,
+                    costs,
+                    out PhysicalItemTransformInput[] inputs,
+                    out failureReason)
+                || !batchDispositions.TryCommitPending(
+                    inputs,
+                    PhysicalItemDispositionKind.Sink,
+                    operationId,
+                    "surgery-materials-consumed",
+                    out receipt,
+                    out failureReason))
+            {
+                return false;
+            }
+        }
+
+        long expectedMass = 0L;
+        int expectedQuantity = 0;
+        foreach (KeyValuePair<string, int> cost in costs)
+        {
+            expectedQuantity = checked(expectedQuantity + cost.Value);
+            PhysicalItemMassSubject subject = PhysicalItemMassSubjectAdapter.Create(
+                physicalMass,
+                (ItemDefinitionId)cost.Key,
+                string.Empty,
+                Array.Empty<ItemInstanceComponentSaveData>());
+            expectedMass = checked(expectedMass
+                + physicalMass.GetQuantityMass(
+                    (ItemDefinitionId)cost.Key,
+                    subject,
+                    cost.Value).Value);
+        }
+        if (!receipt.IsCommitted
+            || receipt.Kind != PhysicalItemDispositionKind.Sink
+            || receipt.Quantity != expectedQuantity
+            || receipt.InputMassGrams != expectedMass)
+        {
+            failureReason = "surgery-material-disposition-receipt-mismatch";
+            return false;
+        }
+        if (!SurgeryMaterialDestinationAuthority.TryGetOwnedClaim(
+                destinationClaims,
+                order,
+                out FacilityBufferDestinationClaim claim))
+        {
+            failureReason = "surgery-material-destination-claim-missing";
+            return false;
+        }
+        if (!tareDispositions.EnsureTerminalSinkOutputs(
+                costs,
+                claim.DropPosition,
+                receipt.CommitId,
+                out _,
+                out failureReason))
+        {
+            return false;
+        }
+        return true;
+    }
+
+    private bool TrySelectExactMaterialInputs(
+        string destinationId,
+        IReadOnlyDictionary<string, int> costs,
+        out PhysicalItemTransformInput[] inputs,
+        out string failureReason)
+    {
+        List<PhysicalItemTransformInput> selected = new();
+        foreach (KeyValuePair<string, int> cost in costs
+                     .OrderBy(value => value.Key, StringComparer.Ordinal))
+        {
+            int remaining = cost.Value;
+            foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
+                         .Where(candidate => candidate != null
+                             && candidate.State == WorldItemStackState.FacilityBuffer
+                             && candidate.ReservedQuantity == 0
+                             && string.Equals(
+                                 candidate.DestinationId,
+                                 destinationId,
+                                 StringComparison.Ordinal)
+                             && string.Equals(
+                                 candidate.ItemId,
+                                 cost.Key,
+                                 StringComparison.Ordinal))
+                         .OrderBy(candidate => candidate.StackId, StringComparer.Ordinal))
+            {
+                if (remaining <= 0)
+                    break;
+                int take = Mathf.Min(remaining, stack.AvailableQuantity);
+                if (take <= 0)
+                    continue;
+                selected.Add(new PhysicalItemTransformInput(stack.StackId, take));
+                remaining -= take;
+            }
+            if (remaining > 0)
+            {
+                inputs = Array.Empty<PhysicalItemTransformInput>();
+                failureReason = $"facility item missing: {cost.Key}";
+                return false;
+            }
+        }
+
+        inputs = selected.ToArray();
+        failureReason = string.Empty;
+        return inputs.Length > 0;
+    }
+
+    private static string BuildMaterialSinkOperationId(SurgeryOrder order) =>
+        $"surgery-material-sink:{order?.orderId ?? string.Empty}";
 
     private int CountRoutedItem(SurgeryOrder order, string itemId)
     {

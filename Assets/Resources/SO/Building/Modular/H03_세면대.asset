@@ -63,9 +63,9 @@ MonoBehaviour:
     - rid: 7737211921440178478
     - rid: 7737211921440178479
     - rid: 7737211921440178480
-    - rid: 7737212033836253937
-    - rid: 7737212033836253938
-    - rid: 7737212042831200728
+    - rid: 7737212199244661572
+    - rid: 7737212199244661573
+    - rid: 7737212199327498343
   width: 1
   height: 1
   layer: 1
@@ -177,14 +177,14 @@ MonoBehaviour:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 10
         smokeRiskReduction: 4
-    - rid: 7737212033836253937
+    - rid: 7737212199244661572
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7737212033836253938
+    - rid: 7737212199244661573
       type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterFixtureAbility
@@ -194,7 +194,7 @@ MonoBehaviour:
         allowsManualWaterFallback: 1
         allowsDryFallback: 0
         manualWasteItemId: industrial:sludge
-    - rid: 7737212042831200728
+    - rid: 7737212199327498343
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

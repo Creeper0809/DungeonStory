@@ -23,7 +23,10 @@ internal sealed class ElectricalNetworkAggregateState
                 Fault = source.Fault,
                 BreakerTripped = source.BreakerTripped,
                 Powered = source.Powered,
-                SuppliedFraction = source.SuppliedFraction
+                SuppliedFraction = source.SuppliedFraction,
+                NextFuelOperationSequence = source.NextFuelOperationSequence,
+                PendingFuel = source.PendingFuel?.Clone()
+                    ?? new PowerFuelCommitSaveData()
             });
         }
 
@@ -54,7 +57,7 @@ internal sealed class FluidNetworkAggregateState
         foreach (KeyValuePair<string, FluidNodeState> pair in Nodes)
         {
             FluidNodeState source = pair.Value;
-            clone.Nodes.Add(pair.Key, new FluidNodeState
+            FluidNodeState clonedNode = new FluidNodeState
             {
                 CleanWater = source.CleanWater,
                 UnsafeWater = source.UnsafeWater,
@@ -64,10 +67,19 @@ internal sealed class FluidNetworkAggregateState
                 Leak = source.Leak,
                 ProcessorWork = source.ProcessorWork,
                 ManualWaterReserve = source.ManualWaterReserve,
+                NextImmediateManualWaterOperationSequence =
+                    source.NextImmediateManualWaterOperationSequence,
+                NextContainerFeedOperationSequence =
+                    source.NextContainerFeedOperationSequence,
+                PendingContainerFeed = source.PendingContainerFeed?.DeepClone()
+                    ?? new ContainerWaterFeedState(),
                 TransferMode = source.TransferMode,
                 TransferWork = source.TransferWork,
                 TransferStatus = source.TransferStatus
-            });
+            };
+            clonedNode.PendingManualWaterTransfers.AddRange(
+                source.PendingManualWaterTransfers.ConvertAll(value => value.DeepClone()));
+            clone.Nodes.Add(pair.Key, clonedNode);
         }
 
         return clone;

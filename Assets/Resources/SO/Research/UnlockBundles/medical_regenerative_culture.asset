@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7266
   researchId: research:medical:regenerative-culture
-  role: 5
+  role: 3
   designIntent: "\uC0DD\uBB3C\uD559\uC801 \uC5F0\uB839 \uACC4\uCE21, \uC7A5\uAE30
     \uBCF4\uC874\uACFC \uADE0\uC0AC \uC774\uC2DD\uC73C\uB85C \uC7AC\uC0DD \uC870\uC9C1\uC744
     \uBC30\uC591\uD55C\uB2E4."
@@ -58,6 +58,4 @@ MonoBehaviour:
   - kind: 4
     displayOrder: 60
     heading: "\uC758\uB8CC \uC2DC\uC220"
-  singletonReason: "\uAC8C\uC784 \uADDC\uCE59\uC744 \uBC14\uAFB8\uB294 \uCD5C\uC885
-    \uAE30\uC220\uC774\uBBC0\uB85C \uD575\uC2EC \uBCF4\uC0C1 \uD558\uB098\uB9CC\uC73C\uB85C\uB3C4
-    \uC644\uACB0\uB41C\uB2E4."
+  singletonReason: 

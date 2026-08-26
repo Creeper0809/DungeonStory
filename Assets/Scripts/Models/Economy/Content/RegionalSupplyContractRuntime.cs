@@ -86,16 +86,28 @@ public interface IRegionalSupplyContractCommandPort
         Vector2Int dropoff,
         string destinationId,
         out int requested);
-    bool ConsumeDelivered(
+    bool TryCommitDeliveryTransferPending(
         string destinationId,
         IReadOnlyDictionary<string, int> costs,
+        string operationId,
+        string reasonCode,
+        out RegionalSupplyDeliveryTransferReceipt receipt,
+        out string failureReason);
+    bool TryGetPendingDeliveryTransfer(
+        string operationId,
+        out RegionalSupplyDeliveryTransferReceipt receipt);
+    bool AcknowledgeDeliveryTransfer(
+        string commitId,
         out string failureReason);
     int ReleaseDestination(
         string destinationId,
         Vector2Int releasePosition);
     void PrioritizeDestination(string destinationId);
     void RequestHauler();
-    void AddContractIncome(int amount);
+    bool TryAddContractIncome(
+        int amount,
+        string operationId,
+        out string failureReason);
 }
 
 public interface IRegionalSupplyContractSessionPort
@@ -206,8 +218,16 @@ public sealed class RegionalSupplyContractRuntime :
         bool changed = false;
         foreach (RegionalSupplyContractState contract in contracts)
         {
-            if (contract == null
-                || contract.status is not (
+            if (contract == null)
+            {
+                continue;
+            }
+            if (RegionalSupplyContractDeliveryOutbox.HasPending(contract))
+            {
+                changed |= ProcessDelivery(contract);
+                continue;
+            }
+            if (contract.status is not (
                     RegionalSupplyContractStatus.Accepted
                     or RegionalSupplyContractStatus.Delivering))
             {
@@ -344,8 +364,16 @@ public sealed class RegionalSupplyContractRuntime :
         currentDay = Mathf.Max(1, day);
         foreach (RegionalSupplyContractState contract in contracts)
         {
-            if (contract != null
-                && contract.status is RegionalSupplyContractStatus.Accepted
+            if (contract == null)
+            {
+                continue;
+            }
+            if (RegionalSupplyContractDeliveryOutbox.HasPending(contract))
+            {
+                ProcessDelivery(contract);
+                continue;
+            }
+            if (contract.status is RegionalSupplyContractStatus.Accepted
                     or RegionalSupplyContractStatus.Delivering
                 && currentDay > contract.deadlineDay)
             {
@@ -470,6 +498,18 @@ public sealed class RegionalSupplyContractRuntime :
 
     private bool ProcessDelivery(RegionalSupplyContractState contract)
     {
+        if (RegionalSupplyContractDeliveryOutbox.HasPending(contract))
+        {
+            if (!RegionalSupplyContractDeliveryOutbox.TryFinalizePending(
+                    contract,
+                    commands,
+                    out string pendingFailure))
+            {
+                contract.lastStatus = pendingFailure;
+            }
+            return true;
+        }
+
         if (!world.TryGetDeliveryDropoff(out Vector2Int dropoff))
         {
             contract.lastStatus = "계약 집결점이 없습니다.";
@@ -523,18 +563,31 @@ public sealed class RegionalSupplyContractRuntime :
                 group => group.Key,
                 group => group.Sum(requirement => requirement.amount),
                 StringComparer.Ordinal);
-        if (!commands.ConsumeDelivered(
+        string operationId =
+            RegionalSupplyContractDeliveryOutbox.FormatOperationId(
+                contract.contractId);
+        if (!commands.TryCommitDeliveryTransferPending(
                 contract.destinationId,
                 costs,
+                operationId,
+                RegionalSupplyContractDeliveryOutbox.TransferReason,
+                out RegionalSupplyDeliveryTransferReceipt receipt,
                 out string failureReason))
         {
             contract.lastStatus = failureReason;
             return false;
         }
 
-        commands.AddContractIncome(contract.rewardGold);
-        contract.status = RegionalSupplyContractStatus.Completed;
-        contract.lastStatus = $"납품 완료 · {contract.rewardGold} 골드 획득";
+        RegionalSupplyContractDeliveryOutbox.RecordPending(
+            contract,
+            receipt);
+        if (!RegionalSupplyContractDeliveryOutbox.TryFinalizePending(
+                contract,
+                commands,
+                out string finalizeFailure))
+        {
+            contract.lastStatus = finalizeFailure;
+        }
         return true;
     }
 
@@ -631,6 +684,7 @@ public sealed class RegionalSupplyContractRuntime :
     {
         RegionalSupplyContractState[] removable = target.Contracts
             .Where(contract => contract != null
+                && !RegionalSupplyContractDeliveryOutbox.HasPending(contract)
                 && contract.status is RegionalSupplyContractStatus.Completed
                     or RegionalSupplyContractStatus.Failed
                     or RegionalSupplyContractStatus.Declined)

@@ -49,6 +49,16 @@ internal static class CharacterAiCoverageSourceInventory
                         "Assets/Scripts/Services/Items/FacilityBufferDestinationClaimRegistry.cs",
                         "Assets/Scripts/Services/Items/WorldItemHaulDestinationAuthority.cs",
                         "Assets/Scripts/Services/Items/WorldItemHaulPlanningService.cs",
+                        "Assets/Scripts/Services/Items/PhysicalStockQuery.cs",
+                        "Assets/Scripts/Services/Items/PhysicalItemMassQuery.cs",
+                        "Assets/Scripts/Services/Items/CombatEquipmentPhysicalMassProjector.cs",
+                        "Assets/Scripts/Services/Items/WarehouseMassAdmissionService.cs",
+                        "Assets/Scripts/Services/Items/WarehouseLifecycleOccupancyQuery.cs",
+                        "Assets/Scripts/Services/Items/WorldItemWarehouseService.cs",
+                        "Assets/Scripts/Models/Buildings/Core/WarehouseInventory.cs",
+                        "Assets/Scripts/Services/Grid/Building/GridBuildingRuntime.cs",
+                        "Assets/Scripts/Controllers/Grid/DungeonStory/Building/DungeonStoryGridBuildingController.cs",
+                        "Assets/Scripts/Services/FacilityEvolution/FacilityRelocationWorldService.cs",
                         "Assets/Scripts/Services/Items/ItemTransferService.cs",
                         "Assets/Scripts/Services/Items/AbilityHaul.cs"
                     }
@@ -91,7 +101,23 @@ internal static class CharacterAiCoverageSourceInventory
                         "Assets/Scripts/Services/Economy/ProductionItemGateway.cs",
                         "Assets/Scripts/Services/Offense/OffensePreparationService.cs",
                         "Assets/Scripts/Services/Combat/EquipmentMaintenanceRuntimeServices.cs",
-                        "Assets/Scripts/Services/Combat/EquipmentMaintenanceRuntime.cs"
+                        "Assets/Scripts/Services/Combat/EquipmentMaintenanceRuntime.cs",
+                        "Assets/Scripts/Services/Items/PhysicalStockQuery.cs",
+                        "Assets/Scripts/Services/Items/WarehouseMassAdmissionService.cs",
+                        "Assets/Scripts/Services/Items/WorldItemWarehouseService.cs",
+                        "Assets/Scripts/Services/Items/WorldItemPersistenceService.cs",
+                        "Assets/Scripts/Services/Items/WarehousePhysicalRestoreValidation.cs",
+                        "Assets/Scripts/Services/Items/WorldItemRepository.cs",
+                        "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+                        "Assets/Scripts/Services/Items/PhysicalItemsSaveSection.cs",
+                        "Assets/Scripts/Services/Foundation/Save/DungeonSaveSections.cs",
+                        "Assets/Scripts/Models/Buildings/Core/WarehouseInventory.cs",
+                        "Assets/Scripts/Models/Buildings/Core/BuildingManagementSummaryQuery.cs",
+                        "Assets/Scripts/Services/Buildings/WarehouseMassUiFormatter.cs",
+                        "Assets/Scripts/Services/Buildings/BuildingSummaryFormatter.cs",
+                        "Assets/Scripts/Services/Infrastructure/BuildingManagementWorldQueryAdapter.cs",
+                        "Assets/Scripts/Views/UI/WarehouseFeatureSurfacePresenter.cs",
+                        "Assets/Scripts/Views/UI/UITabContentTextProvider.cs"
                     }
                 },
                 {
@@ -115,6 +141,10 @@ internal static class CharacterAiCoverageSourceInventory
                     new[]
                     {
                         "Assets/Scripts/Services/Captivity/WildlifeCaptureRuntime.cs",
+                        "Assets/Scripts/Services/Captivity/CapturedWildlifeFeedOutbox.cs",
+                        "Assets/Scripts/Models/Captivity/Core/CircusModels.cs",
+                        "Assets/Scripts/Models/Captivity/Core/CircusSaveValidation.cs",
+                        "Assets/Scripts/Services/Items/PhysicalItemBatchDispositionService.cs",
                         "Assets/Scripts/Services/Captivity/CaptivityAbilityUnityAdapters.cs",
                         "Assets/Scripts/Services/Infrastructure/Core/Captivity/AbilityWildlifeCaptureTransportAdapter.cs",
                         "Assets/Scripts/Services/Wildlife/WildlifeActor.cs",

@@ -5,7 +5,10 @@ using UnityEngine;
 
 internal sealed class EditorWarehouseStockRuntime : IWorldItemStackRuntime
 {
+    public bool SpawnItemAtWithComponents(string itemId, int amount, Vector2Int position, WorldItemStackState state, string destinationId, IReadOnlyList<ItemInstanceComponentSaveData> components, out int spawned) { spawned = 0; return false; }
+    public bool TryRemoveInstanceComponent(string stackId, string componentTypeId) => false;
     public IDungeonItemCatalogProvider CatalogProvider => null;
+    public IPhysicalItemMassQuery MassQuery => null;
     public IItemHaulingSettingsProvider HaulingSettingsProvider => null;
     public bool StoredItemMarkersVisible => false;
     public int ItemStackVersion => 0;
@@ -13,6 +16,7 @@ internal sealed class EditorWarehouseStockRuntime : IWorldItemStackRuntime
     public int GetCommittedHaulDeliveryQuantity(
         string destinationId,
         string itemId) => 0;
+    public long GetCommittedHaulDeliveryMassGrams(string destinationId) => 0L;
     public bool TryCommitHaulPickup(
         string ownerOperationId,
         CharacterCarryInventory inventory,
@@ -29,6 +33,52 @@ internal sealed class EditorWarehouseStockRuntime : IWorldItemStackRuntime
         return false;
     }
     public bool ReleaseHaulDeliveryIntent(string ownerOperationId) => false;
+
+    public bool TryCommitBatchPhysicalDisposition(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        failureReason = "not supported by warehouse fixture";
+        return false;
+    }
+
+    public IReadOnlyList<HaulDeliveryIntentSaveData>
+        CaptureHaulDeliveryIntentsByDestination(string destinationId) =>
+        Array.Empty<HaulDeliveryIntentSaveData>();
+
+    public bool AcknowledgeBatchPhysicalDisposition(
+        string commitId,
+        out string failureReason)
+    {
+        failureReason = "not supported by warehouse fixture";
+        return false;
+    }
+
+    public bool TryCommitPendingBatchPhysicalDisposition(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        failureReason = "not supported by warehouse fixture";
+        return false;
+    }
+
+    public bool TryGetPendingBatchPhysicalDisposition(
+        string operationId,
+        out PhysicalItemBatchDispositionReceipt receipt)
+    {
+        receipt = default;
+        return false;
+    }
 
     public DungeonPhysicalItemSaveData Capture() => new DungeonPhysicalItemSaveData();
     public void Restore(DungeonPhysicalItemSaveData snapshot) { }

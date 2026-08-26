@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8069
+  id: 8070
   itemId: food:preserved-ration
   displayName: "\uBCF4\uC874 \uBC30\uAE09\uC2DD"
   description: "\uC804\uBD84\uACFC \uC18C\uAE08\uC73C\uB85C \uC218\uBA85\uC744 \uB298\uB9B0
@@ -32,34 +32,34 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 14
   features:
-  - rid: 7737211905666712267
-  - rid: 7737211905666712268
-  - rid: 7737211905666712270
-  - rid: 7737212042857939540
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712267
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:cuisine:lavish
-    - rid: 7737211905666712268
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 2
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211905666712270
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.56502384
+    - rid: 1003
       type: {class: FoodItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         quality: 3
         qualityBand: 1
-        servingRole: 0
-        nutrition: 36
-        mood: 1
+        servingRole: 3
+        nutrition: 40
+        mood: 0
         freshnessSeconds: 1800
         preserved: 1
-    - rid: 7737212042857939540
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.56502384

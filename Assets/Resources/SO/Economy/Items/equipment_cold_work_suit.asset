@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8079
+  id: 8080
   itemId: equipment:cold-work-suit
   displayName: "\uBC29\uD55C \uC791\uC5C5\uBCF5"
   description: "8\xB0C \uB0C9\uC7A5\uC2E4 \uC0C1\uC2DC \uADFC\uBB34\uC6A9 \uC791\uC5C5\uBCF5."
@@ -31,23 +31,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 25
   features:
-  - rid: 7737211905666712201
-  - rid: 7737211905666712202
-  - rid: 7737212042857939170
+  - rid: 1002
+  - rid: 1003
+  - rid: 1004
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712201
-      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        requiredResearchId: research:environment:cold-work
-    - rid: 7737211905666712202
+        saleRate: 0.58805335
+    - rid: 1003
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 128
         sharedIntermediate: 0
-    - rid: 7737212042857939170
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+    - rid: 1004
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.58805335
+        requiredResearchId: research:environment:cold-work

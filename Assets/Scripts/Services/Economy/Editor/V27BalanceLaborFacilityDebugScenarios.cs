@@ -47,7 +47,7 @@ public static class V27BalanceLaborFacilityDebugScenarios
         }
 
         IReadOnlyList<CanonicalBalanceMetricRecord> records = audit.Ledger.Records;
-        RequireMetric(records, "authored-required-wu", 350, requireApplied);
+        RequireMetric(records, "authored-required-wu", 351, requireApplied);
         RequireMetric(records, "authored-sow-wu", 12, requireApplied);
         RequireMetric(records, "authored-harvest-wu", 12, requireApplied);
         RequireMetric(records, ConstructionMetric, 356, requireApplied, false);

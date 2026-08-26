@@ -481,6 +481,8 @@ public static class FacilitySynthesisDebugScenarios
 
         private sealed class ScenarioObjectResolver : IObjectResolver
         {
+            private readonly IProductionFacilityMutationFence productionFence =
+                new EmptyProductionFacilityMutationFence();
             public object ApplicationOrigin => null;
             public DiagnosticsCollector Diagnostics { get; set; }
 
@@ -491,6 +493,11 @@ public static class FacilitySynthesisDebugScenarios
 
             public bool TryResolve(Type type, out object resolved, object key = null)
             {
+                if (type == typeof(IProductionFacilityMutationFence))
+                {
+                    resolved = productionFence;
+                    return true;
+                }
                 resolved = null;
                 return false;
             }
@@ -521,6 +528,55 @@ public static class FacilitySynthesisDebugScenarios
 
             public void Dispose()
             {
+            }
+        }
+
+        private sealed class EmptyProductionFacilityMutationFence :
+            IProductionFacilityMutationFence
+        {
+            public bool TryPrepareEmpty(
+                BuildableObject facility,
+                ProductionFacilityMutationKind kind,
+                string operationId,
+                out ProductionFacilityEmptyMutationCandidate candidate,
+                out string failureReason)
+            {
+                candidate = null;
+                failureReason = "synthesis-fixture-does-not-run-demolition";
+                return false;
+            }
+
+            public bool TryCommitAuthorityRevoke(
+                ProductionFacilityEmptyMutationCandidate candidate,
+                out string failureReason)
+            {
+                failureReason = "synthesis-fixture-does-not-run-demolition";
+                return false;
+            }
+
+            public bool TryAbort(
+                ProductionFacilityEmptyMutationCandidate candidate,
+                out string failureReason)
+            {
+                failureReason = "synthesis-fixture-does-not-run-demolition";
+                return false;
+            }
+
+            public bool TryComplete(
+                ProductionFacilityEmptyMutationCandidate candidate,
+                out string failureReason)
+            {
+                failureReason = "synthesis-fixture-does-not-run-demolition";
+                return false;
+            }
+
+            public bool TryRequireNoAuthority(
+                BuildableObject facility,
+                ProductionFacilityMutationKind kind,
+                out string failureReason)
+            {
+                failureReason = string.Empty;
+                return true;
             }
         }
     }

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9107
+  id: 9108
   recipeId: recipe:bolt-rune
   displayName: "\uB8EC\uCD09 \uBCFC\uD2B8"
   description: "\uB8EC\uCD09 \uBCFC\uD2B8 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:mana-crystal
     amount: 1
   outputs:
-  - itemId: ammo:bolt-rune
+  - outputLineId: output:recipe:bolt-rune/000/main/ammo:bolt-rune
+    role: 0
+    itemId: ammo:bolt-rune
     amount: 8
     probability: 1

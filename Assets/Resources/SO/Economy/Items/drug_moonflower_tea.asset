@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8091
+  id: 8092
   itemId: drug:moonflower-tea
   displayName: "\uC6D4\uD654\uCC28"
   description: "\uC758\uC874\uC131 \uC5C6\uC774 \uC9D1\uC911\uACFC \uAE30\uBD84\uC744
@@ -32,24 +32,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 9
   features:
-  - rid: 7737211905666712171
-  - rid: 7737211905666712172
-  - rid: 7737211905666712174
-  - rid: 7737212042831200973
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712171
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:herbalism
-    - rid: 7737211905666712172
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 4
         ingredientTags: 1025
         sharedIntermediate: 0
-    - rid: 7737211905666712174
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5881111
+    - rid: 1003
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         substanceId: substance:moonflower-tea
@@ -62,7 +66,3 @@ MonoBehaviour:
         workSpeedEffect: 0.04
         combatEffect: 0
         durationSeconds: 180
-    - rid: 7737212042831200973
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
-      data:
-        saleRate: 0.5881111

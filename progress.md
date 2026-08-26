@@ -1,5 +1,25 @@
 # DungeonStory Progress
 
+## 2026-08-21 exact retail live restock and item-identity cutover
+
+- [x] Broke the runtime VContainer cycle `ItemTransferService -> RetailStockPhysicalRuntime -> CombatEquipmentRuntime -> physical gateway` by introducing a retail-only equipment authority over the aggregate repository/loadout store. Editor fixtures retain an explicit adapter to the full combat runtime.
+- [x] Removed authored-stock activation from `Shop.ConstructShop`; VContainer does not guarantee base/derived method-injection order, so exact authored lots now activate only after persistent identity exists. Save capture and public stock-count queries are explicit synchronization boundaries, preventing query-order-dependent empty or partial snapshots.
+- [x] Fresh production-live WorkType evidence reached and passed `work:restock`: real Brain -> AIWork flow acquired path/reservation ownership and conserved stock through approved-progress cancellation and target invalidation. The aggregate matrix later failed in an unrelated Repair fixture because a destroyed `StructuralImpactFx` was reused.
+- [x] Replaced category-only restock source selection with exact physical `itemDefinitionId` queries through `IStockQuery`; a same-category decoy item can no longer make a warehouse eligible for the wrong sale item.
+- [x] Unity compilation is clean. Fresh focused `PhysicalItemDebugScenarios`, `CustomerAiDebugScenarios`, and `FacilityDebugScenarios` all pass after the cutover, including unique equipment commit/rollback, exact external Sink, source activation/save ownership, and the category-decoy negative case.
+- [x] Added production-live Shopping evidence: the official visitor journey completed two exact purchases through Brain/BT, reducing shop stock `40->38` and retail mass `79,300g->72,300g` with exact physical Sink receipts.
+- [x] Added transaction-level full-restore tamper evidence. Duplicating authored-source activation in the current-format `world.facilities` shop module is rejected by aggregate preflight, and the live shop lot snapshot, visitor identity, money, purchase count, and committed mass remain byte/identity exact.
+- [x] Fresh `visitor-control-journey-v5-exact-retail-restore` report is `result=PASS`; Unity returned to EditMode with Console Warning/Error `0/0`.
+- [ ] Run the final full PhysicalItem and mid-action SaveLoad regressions after the remaining legacy count/untyped mutation inventory is closed.
+
+## 2026-08-21 exact retail production-live verification
+
+- Removed the final count-mutating retail restock APIs and migrated their Editor callers to exact physical lots or real restock requests. Production search now finds zero `RestockFrom`, `ReceiveRestock`, or `ConsumeWarehouseStock` call sites.
+- Added current-format retail source-activation and active-restock-operation authority, exact reservation joins during aggregate save preflight, and demolition/relocation guards while stock, customers, staff, or restock ownership remains live.
+- Fresh focused Editor contracts pass for Facility, ModularFacility, PhysicalItem exact retail transfer, Customer exact checkout/theft and activation round-trip, and Dungeon save-section validation. Unity compilation and the pre-PlayMode Console gate were clean.
+- The first production-live WorkType matrix attempt did not reach any work row: it wrote a fresh `FAIL global:runtime-scope-missing` after waiting 45 realtime seconds for `DungeonRuntimeLifetimeScope.Container` in the official GameplayScene. Console remained 0/0. This is recorded as an orchestration/bootstrap failure, not retail evidence; the runtime scope boundary is under diagnosis before rerun.
+- Investigation initially queried the stale path `Services/Character/AI/Editor/CharacterAiWorkTypeLiveMatrixPlayModeVerifier.cs`; the verifier is actually under `Services/Character/Work/Editor`. The corrected source confirms it opens the official scene, enters PlayMode, and waits for an active published scope before starting party setup.
+
 ## 2026-08-18 six-adult recovery priority dispatch
 
 - [x] Re-ran the six-adult outage verifier with a two-game-day physical meal-buffer bound; the exact meal remained in transit and the test stayed red, proving this was not only a one-day fixture deadline.
@@ -5109,3 +5129,1793 @@
 - Final audit passes at 84,389 rows, 0 Critical, 327 collapsed/approved roots, 313 SCCs, minimum margin -14,364,087 mEWU, and 0 integrity failures. Whole-game connectivity has zero producer/consumer orphans and zero unapplied approvals.
 - Ran the complete whole-game generator twice. All 11 key CSV/JSON/Markdown/evidence artifacts matched SHA-256 exactly. Unity returned to idle EditMode and final Console Warning/Error is 0/0.
 - Remaining work is publication only: stage task-owned files, commit, push, open the follow-up PR, require hosted checks/review evidence, merge to main, and verify remote main.
+# 2026-08-20 Phase 27 Gate S1 canonical warehouse kg UI
+
+- `WarehouseMassUiFormatter`를 추가해 positive gram authority를 invariant `0.###kg`로 표시한다.
+- building summary, warehouse management snapshot, feature card, Warehouse tab에서 물리 재고 개수와 질량 용량을 더 이상 같은 capacity 숫자로 합산하지 않는다.
+- focused evidence는 `V27_WAREHOUSE_MASS_UI_EXACT_KG=PASS`, `V27_WAREHOUSE_MASS_SUMMARY_DIMENSIONS_SEPARATED=PASS`다.
+- production-live evidence는 `[PASS] WAREHOUSE_MASS_UI_PRODUCTION_EXACT_KG`이며 실제 런타임 문자열은 `12kg/25kg`, legacy `/60`은 없다.
+- fresh `Artifacts/QA/physical-item-logistics-playmode-report.txt`는 `2026-08-20T09:54:35Z`, `RESULT=PASS; failures=0`, Unity Console Warning/Error `0/0`이다.
+- 이 단계는 표시·요약 권위만 닫았다. 공식 전체 저장 왕복, 초과 적재 대피 publication, lifecycle, unique lot, 전체 ingress cutover는 남아 있다.
+
+# 2026-08-20 Phase 27 Gate S1 official restore publication
+
+- `WarehousePhysicalRestoreAssessment`의 over-capacity ID를 detached `WorldItemRepositoryState`에 넣어 실패한 stage/participant rollback이 live 요청을 남기지 않게 했다.
+- `IWarehouseOverCapacityEvacuationQuery`는 aggregate root swap 뒤에만 pending 창고를 노출하고 원본 전체 저장 복원 뒤에는 빈 집합으로 돌아온다.
+- 운반 목적지 선택과 carried deposit이 창고 category를 우회하지 못하게 했고, mass-authoritative 창고 선택은 `RemainingMassGrams`와 질량 이용률을 사용한다.
+- production-live `RestoreAll`에서 39,300g/25,000g 보존, remaining 0, evacuation pending exact 1, baseline restore cleanup 0을 증명했다.
+- fresh `Artifacts/QA/physical-item-logistics-playmode-report.txt` UTC `2026-08-20T10:17:52Z`는 `RESULT=PASS; failures=0`, Console Warning/Error `0/0`이다.
+- 아직 pending 요청을 destination admission token과 결합해 실제로 다른 창고까지 운반 완료하는 lifecycle은 구현하지 않았다.
+
+# 2026-08-20 Phase 27 Gate S1 over-capacity AI evacuation
+
+- 복원된 과적 창고의 pending ID를 실제 outbound Stored route로 전환하고, 목적지별 gram admission token을 계획에 결합했다.
+- `HasAvailablePlan`의 명시적 `warehouse:*` 목적지 오분류를 수정해 빠른 AI 후보 판정과 정식 계획 생성기가 같은 destination authority를 사용한다.
+- production AIHaul이 `captivity:restraints` 6개, 정확히 15,000g을 source에서 target으로 운반했다. source는 39,300g→24,300g, target은 해당 lot +15,000g, 양쪽 reserved grams=0, pending=0이다.
+- fresh `Artifacts/QA/physical-item-logistics-playmode-report.txt` UTC `2026-08-20T11:27:57Z`는 `RESULT=PASS; failures=0`이다.
+- 이로써 actual evacuation haul sub-slice는 닫혔다. warehouse demolition/relocation lifecycle, unique/stateful admission, conveyor/all-ingress, WIP/disposition은 계속 pending이다.
+
+# 2026-08-20 Phase 27 Gate S1 warehouse lifecycle
+
+- `WarehouseLifecycleOccupancyQuery`를 추가해 physical destination/source reference, StoredMassGrams, ReservedInboundMassGrams, active haul intent를 save DTO 없이 결합했다.
+- 실제 `DungeonStoryGridBuildingController.TryDestroyBuilding`과 `FacilityRelocationWorldService.CanRelocate`가 positive gram warehouse의 empty-only 계약을 공통 query로 강제한다.
+- live 12,000g 창고의 철거·이전은 stable `warehouse-lifecycle-not-empty` 상세와 함께 무변경 거절됐고, 0g/0 token/0 stack/0 intent 대상은 gate를 통과했다.
+- fresh `Artifacts/QA/physical-item-logistics-playmode-report.txt` UTC `2026-08-20T11:39:39Z`는 lifecycle marker와 evacuation 15,000g을 포함해 `RESULT=PASS; failures=0`이다.
+- unique/stateful lot, conveyor/all ingress, WIP/disposition은 계속 pending이다.
+
+# 2026-08-20 Phase 27 Gate S2 combat-equipment dynamic mass foundation
+
+- `CombatEquipmentPhysicalItemMassProjector`와 runtime component→immutable subject adapter를 추가했다.
+- 장비 질량은 physical base item + attached `item:equipment-module` 수량 + 실제 loaded ammunition item 수량으로 계산하며 durability/quality/worldState/powerCharge는 배제한다.
+- `WarehouseMassAdmissionRequest`, `PhysicalStockQuery`, haul admission 생성과 restore rebind가 같은 stateful subject를 사용하도록 연결했다.
+- Unity current-source compile은 EditMode idle, Console Warning/Error `0/0`이다. exact focused gram admission과 full Physical PlayMode는 아직 pending이다.
+- fresh focused contract는 base+module+loaded-ammo exact, non-mass state invariant, reserved/stored/receipt gram exact를 모두 PASS했다.
+- fresh full `Artifacts/QA/physical-item-logistics-playmode-report.txt` UTC `2026-08-20T11:56:35Z`는 `RESULT=PASS; failures=0`, Console Warning/Error `0/0`이다. existing crafted equipment AI haul과 과적 대피/lifecycle도 함께 통과했다.
+
+# 2026-08-20 Phase 27 Gate S2 combat-equipment dynamic mass closure
+
+- component payload를 query마다 재파싱하지 않고 adapter 경계에서 exact identity/module/ammunition을 검증한 뒤 immutable prepared gram subject로 동결했다.
+- prepared stateful mass query의 10,000-operation p95 `≤2ms`와 steady-state allocation `0B`가 fresh focused contract에서 PASS했다.
+- warehouse reserve, Stored mass index, commit receipt, haul plan, current-format restore rebind가 같은 item/instance/lot fingerprint와 prepared gram을 사용한다.
+- 최종 fresh full report는 `Artifacts/QA/physical-item-logistics-playmode-report.txt` UTC `2026-08-20T12:22:56.1216752Z`, `RESULT=PASS; failures=0`; crafted dagger는 projected/base `700g`, UI projection `0.7kg`, reserved inbound `0g`이다.
+- Physical coverage row는 latest `WorldItemWarehouseService.cs` UTC `12:20:05.704Z`보다 새 artifact로 `LiveExecuted`다. 전체 manifest는 다른 stale evidence 때문에 `uncovered=80`이며 별도 최종 스윕이 필요하다.
+- Unity는 EditMode로 복귀했고 Console Warning/Error `0/0`이다. 다음 미완료 범위는 apparel·멜빵 once·carcass·packaged lot, conveyor/all ingress, WIP/disposition이다.
+
+# 2026-08-20 Phase 27 Gate S2 apparel·멜빵 단일 질량 권위
+
+- Apparel component는 exact schema·item-instance를 검증한 immutable prepared subject로 변환하고, 물리 정의 gram을 world/carry/warehouse/equipped 공용 질량으로 사용한다.
+- `ApparelMaterialProjector`의 legacy baseWeight×material multiplier runtime 계산을 제거했다. material·quality·내구·오염·수분·fit은 V27 non-mass state이며 물리 정의가 1,150g인 멜빵은 어떤 재질 projection에서도 1.15kg이다.
+- `EquippedApparelPhysicalMassQuery`는 apparel aggregate와 exact Carried physical instance를 revision 기반으로 결합한다. `CharacterCarryInventory`는 equipped apparel gram을 한 번 더하고 cargo는 component-aware subject로 계산한다.
+- focused evidence는 apparel exact/invariant/material projection 3개와 `V27_HAULING_HARNESS_1150G_COUNTED_ONCE`, `V27_EQUIPPED_APPAREL_AND_CARGO_BURDEN_EXACT`를 PASS했다.
+- full PhysicalItemLogistics는 unique 장비를 component 없는 generic carry로 만들던 UI fixture와 외부 retail 경계를 드러냈다. UI fixture는 generic lumber로 교정했고, external unique retail은 exact-instance handoff가 생기기 전 invalid carry를 만들지 않는 terminal external 경계로 제한했다. typed Sink/Transfer receipt는 후속 disposition slice에서 닫는다.
+- 최종 full artifact UTC `2026-08-20T12:49:29.8397855Z`는 `RESULT=PASS; failures=0`; 실제 AI 운반·장비 수리·원정·창고 저장/대피/복원도 함께 PASS했고 Unity는 EditMode, Console Warning/Error `0/0`이다.
+
+# 2026-08-20 Phase 27 Gate S2 wildlife carcass mass authority
+
+- runtime catalog에는 18개 authored wildlife species가 있지만 physical carcass definition은 7개뿐이었고, 그중 2개는 Editor fixture-only legacy species였다. 13개 live species는 죽어도 기존 fail-soft 경로에서 사체가 소멸했다.
+- `WildlifeCarcassPhysicalItemMassProjector`가 모든 live species의 `CarcassWeight`와 exact physical item gram을 startup에 검증한다. freshness·living state는 추가 질량 writer가 아니다.
+- `UnifiedItemDefinitionAssetBuilder.RebuildWildlifeCarcassItems`가 18개 live species definition을 stable ID·CarcassWeight로 결정론적으로 생성/동기화했다. live missing은 13→0이며 legacy-only carcass 2개는 live 분모와 분리했다.
+- `SpawnCarcass`의 missing-definition warning/return을 제거해 물질과 도축 obligation을 조용히 삭제하지 못하게 했다.
+- focused `V27_WILDLIFE_CARCASS_SPECIES_ITEM_MASS_EXACT`, `V27_WILDLIFE_CARCASS_PREPARED_SUBJECT_EXACT`, full PhysicalItemLogistics PASS, fresh Wildlife hunt의 `HUNT_CARCASS_EXACTLY_ONCE`가 모두 green이다.
+- 신규 item definition 13개로 기존 413-item Phase 0 inventory와 V27 ledger는 stale이다. 부패·도축은 아직 DeleteStack→Spawn 순서라 atomic Transform/WIP slice 전 완료가 아니다.
+
+# 2026-08-20 Phase 27 Gate S2 wildlife carcass atomic transform
+
+- `PhysicalItemTransformService`를 추가해 canonical operation/reason, source reservation, output definition/instance authority, 입력·출력 gram을 source 제거 전에 모두 검증한다.
+- 출력 질량이 입력보다 크면 mutation 없이 거절하고, 예상 밖 output commit 실패는 새 stack과 기존 merge 수량을 rollback한다. 성공 영수증은 input/output/loss gram과 output quantity를 기록한다.
+- carcass decay, wildlife butcher, emergency humanoid butcher의 DeleteStack→Spawn 순서를 새 transform으로 교체했다. positive yield가 없는 species는 사체를 보존하고 fail-loud한다.
+- focused atomic/mass/failure-preservation markers PASS. fresh Wildlife hunt UTC `2026-08-20T13:21:29.7885162Z`, full PhysicalItemLogistics UTC `2026-08-20T13:23:33Z`, 둘 다 aggregate PASS 및 Console Warning/Error 0/0이다.
+- authority inventory도 새 source에서 재캡처했다: canonical authored ledger 413, serialized/catalog sites 1,060, writer files 18, unknown writers 0, deterministic byte identity PASS.
+
+# 2026-08-20 Phase 27 Gate S2 conveyor warehouse gram ingress
+
+- `ConveyorItemGateway.TryCompleteToWarehouse`의 count-only `Inventory.CanStore(category, quantity)` 선택과 직접 `TryCompleteTransit(...Stored...)` 우회를 제거했다.
+- `IItemTransferService.TryCompleteTransitToWarehouse`가 current transit stack의 exact item/instance/components fingerprint, full quantity, warehouse-local capacity revision과 catalog revision으로 gram admission token을 만든다.
+- full quantity 미만의 partial token은 즉시 transaction rollback release하고 물리 스택은 전량 `InTransit`/기존 payload owner로 유지한다. 물리 Stored 전환 뒤 admission commit 실패도 위치·state·destination/source metadata를 복원한다.
+- focused `V27_CONVEYOR_WAREHOUSE_MASS_ADMISSION_EXACT`와 `V27_CONVEYOR_PARTIAL_MASS_REJECT_PRESERVES_TRANSIT` PASS: 2×1,200g은 receipt 2,400g으로 저장, 21×1,200g=25,200g은 25,000g 창고에 부분 입고 0·reserved gram 0·transit quantity 21 보존이다.
+- fresh full `Artifacts/QA/physical-item-logistics-playmode-report.txt`는 `RESULT=PASS; failures=0`, captured Warning/Error `0/0`이다.
+- live Industrial verifier의 기존 merged-network node lookup과 overflow 관찰 false-negative를 교정했다. 최종 fresh report는 기존 씬 conveyor port 2개를 포함한 28/28 payload cyclic network의 Deadlocked 상태, exact Loose overflow release, screenshot을 거쳐 `result=PASS`했다. 이 행은 conveyor 전반 회귀 증거이고 warehouse gram commit 자체는 focused production gateway 계약이 직접 증명한다.
+- 개정 계획서 SHA-256은 `4C13E9103385E1108E88BE5495743069D09CE9AC037AA32A5756999E3E94841F`다.
+
+# 2026-08-20 Phase 27 Gate S2e retail exact-lot start
+
+- 계획서와 라이브 상점 경계를 다시 대조했다. 현재 창고 보충은 `StockCategory` count를 `RemainStock` count로 바꾸고, save도 saleItemId/amount만 기록하여 item/instance/components/gram 권위를 잃는다.
+- unique 구매 시 transient generic carry를 만들지 않도록 막은 임시 terminal 경계는 invalid instance 생성을 방지하지만 exact physical Sink receipt가 없어 Gate 완료 증거가 아니다.
+- `task_plan.md`에 exact retail lot authority, warehouse transfer, external Sink, current-format restore, actual AI evidence를 한 수직 슬라이스로 추가하고 현재 단계로 표시했다.
+- Tooling note: the first assembly-boundary probe used guessed asmdef paths under `Models/*` and PowerShell reported three missing paths plus one missing `Models/Foundation` search root. No files were changed by that failed read; the next probe uses `rg --files -g '*.asmdef'` to resolve the actual assembly locations.
+- Tooling note: an initial multi-file checklist patch used an obsolete English checklist line and was rejected by `apply_patch`; no partial file edits occurred. The Korean canonical checklist was then patched directly.
+- Gate S2e implementation is now in code: `ShopStockStateSnapshot` schema 2 persists exact lots (definition, optional instance/component envelope, gram mass, quantity, source operation). `ShopInventoryRuntime` owns these lots, rebuilds `RemainStock` only as a presentation projection, rejects old/mismatched snapshots, rejects authored definition drift, and refuses to fabricate a unique initial item.
+- `IShopStockCatalog` now resolves each sale item's canonical physical definition, gram mass, and unique-instance requirement. The production catalog and three Editor catalog fixtures were updated; scoped diff-check reported no whitespace errors.
+- Normal checkout and shoplifting no longer mutate `RemainStock.stock` directly. Both call the aggregate's deterministic `TryTakeExactLot`; checkout publishes the cloned exact lot on `BuildingRetailPurchaseCommitResult` as the terminal external Sink receipt. The old definition-only transient carry fabrication path was removed.
+- Unity refreshed and compiled both the schema/lot checkpoint and checkout checkpoint successfully. EditMode Console is Warning/Error `0/0`.
+- Verification correction: the initial MCP command only compiled its dynamic command assembly; `Assembly-CSharp.dll` remained older than the edited source, so the apparent project compile and customer regression were stale false positives. A clean `CompilationPipeline.RequestScriptCompilation` exposed two real errors (unassigned checkout failure local; drop method cast to the narrower recovery interface). Both were corrected before rerunning any evidence.
+- Tooling note: the first clean-compile command used an ambiguously resolved `CompilationPipeline` symbol and failed to compile. Retrying with fully-qualified `UnityEditor.Compilation.CompilationPipeline` successfully started the clean project build.
+- The first real clean project compile updated `Assembly-CSharp.dll` and exposed six Editor errors: one save fixture still read the removed count-only `snapshot.items`, and three catalog fixtures used an unsupported `ItemDefinitionId ==` operator (reported twice by Tundra). The save fixture now mutates an exact lot quantity and the fixtures use value equality.
+- Fresh customer scenarios then exposed an intentional authority break: the weapon shop's authored count seed tried to fabricate unique `equipment-item:shield:wood` instances. Unique authored seeds now materialize zero stock and require a real exact physical restock; they are not silently converted back to virtual count stock.
+- Corrected the restock transaction ordering: a shop commit success now precedes lease/operation completion, while a shop rejection first restores the exact carried lot and then uses the normal cancellation path to drop it physically at the actor's current cell. Removed the unused legacy helper that respawned category stock into the source warehouse.
+- Current evidence remains intentionally unclaimed: `ShopInventoryRuntime.cs` UTC `14:25:12Z` is newer than `Assembly-CSharp.dll` UTC `14:20:36Z` and the Editor assembly UTC `14:21:55Z`. A clean project compile and fresh customer/restock scenarios are the next gate.
+- Tooling note: the first focused customer-scenario search guessed `Services/Buildings/Editor/CustomerAiDebugScenarios.cs`; the actual file is `Services/Character/AI/Editor/CustomerAiDebugScenarios.cs`. The failed read changed no files and the path was resolved with `rg --files` before continuing.
+- Clean compilation advanced runtime/editor assemblies to `14:29:25Z/14:29:28Z`, newer than the then-current retail sources. The resulting fresh customer run failed four rows because unique weapon-shop stock was intentionally absent and one concurrency fixture used a fake sale ID; these failures are now treated as direct migration work rather than waived.
+- Added append-only `CombatEquipmentWorldState.RetailStock`, exact bind/terminal-consume commands, and `RetailStockPhysicalRuntime`. Authored unique shop seeds now create a canonical equipment instance, bind its source operation to the exact retail lot, encode its component fingerprint, and enter the shop aggregate. Purchase/shoplifting commits the external Sink before money/effects and restores the exact lot if that Sink rejects.
+- Reworked the concurrent-buyer fixture to reduce a real generic exact lot to one unit and assert its gram/source-operation receipt. No fake sale ID or mutable read-model stock assertion remains.
+- Error log: the first compile of `RetailStockPhysicalRuntime` used guessed value-envelope member names (`longValue/doubleValue/boolValue`). The authoritative DTO fields are `integerValue/decimalValue/booleanValue`; six CS0117/CS1061 diagnostics were corrected directly, with no fallback or schema widening.
+# 2026-08-20 — exact retail unique-lot continuation
+
+- Added a dedicated carried-equipment-to-retail transition guarded by exact instance, physical source stack, and retail operation IDs.
+- Reordered retail transfer commit so carried cargo is removed before lease consumption, with exact carry restoration on lease failure.
+- Added unique equipment bind/rollback to the warehouse-to-shop transfer receipt path.
+- Unity clean compile attempt exposed `CS0165` for two short-circuited `out` locals; initialized both explicitly before retrying compilation.
+- The first authored-unique retail regression run failed because the weapon-shop fixture contains multiple unique lots while the test used `SingleOrDefault`; changed the assertion to consume the first exact lot and require aggregate stock to decrease by exactly one.
+- A path probe guessed `Services/Economy/WarehouseFeatureCommandService.cs`; the authoritative file is `Assets/Scripts/Views/UI/WarehouseFeatureCommandService.cs`.
+- Replaced the production UI's count-only instant shop restock with a physical AI restock request; the command now wakes workers and leaves warehouse/shop counts unchanged until exact carried lots commit.
+- The first unique warehouse-to-retail fixture compile exposed Editor-assembly access to internal repository records, an out-parameter captured by LINQ, and three definite-assignment errors. Reworked the fixture to assert through public world snapshots and initialized typed locals before retrying.
+- Full physical-item contracts exposed five stale Editor fixtures that created carry inventories after DI and never configured the now-required physical mass query. Bound each affected fixture through the public `Configure` boundary before retrying.
+# 2026-08-21 exact retail legacy cutover compile correction
+
+- Removed production `RestockFrom`, `ReceiveRestock`, and `ConsumeWarehouseStock` count-mutation surfaces after migrating their remaining Editor callers to exact lots or physical restock requests.
+- First Unity compile found `Shop.DebugClearStock` CS0165 because a short-circuited null physical-runtime check could leave the inline `out failureReason` unassigned. Declared the typed fallback reason before the condition; no gameplay authority change was needed.
+- The next compile found two CS0165 errors in the Editor exact-lot fixture because the custom `Require(...)` helper cannot prove inline descriptor `out` values are assigned. Initialized the descriptor locals before the assertion and retained the same fail-loud test contract.
+- The first combined focused run passed Facility contracts, then ModularFacility stopped before the retail row because its stale `EmptyStockQuery` fixture did not implement the now-required mass query port. Extended that empty read fixture with zero stored mass/revision and a positive unreachable unit-mass sentinel; production code was not relaxed.
+- The rerun exposed that authored unique materialization iterated every catalog seed even when room specialization rejected that sale item. Generic seed materialization already filtered through `IsSaleItemAllowed`, but the unique bridge did not. Added a core acceptance query and now materializes unique instances only for exact sale items accepted by the live shop specialization.
+- Modular rerun then reached the shared Editor warehouse seeding extension, whose count-only fake was likewise incompatible with a mass-authoritative warehouse. Kept it Editor-only and added a deterministic 1g-per-fixture-unit mass projection plus revision tracking so tests cannot bypass the required query interface.
+- After the authored activation schema landed, the concurrent-customer fixture restored one exact lot with an empty activation set, correctly causing the still-pending authored source to materialize and invalidating the intended one-unit setup. The fixture now preserves the shop's activation authority while replacing only its lots; production behavior remains fail-safe against free-source replay.
+
+# 2026-08-21 exact retail live evidence and atomic transform continuation
+
+- Actual production Brain/BT Shopping now commits exact retail lots to the external Sink. The fresh visitor journey v5 artifact proves two commits, quantity `40→38`, committed mass `7,000g`, and no generic carry fabrication.
+- The same verifier performs a full current-format save, duplicates the shop authored-source activation authority, recomputes the world section manifest, and requires aggregate restore rejection plus exact live shop/visitor/money/diagnostic rollback. The fresh artifact is `result=PASS` and Unity Console Warning/Error is `0/0`.
+- `PhysicalItemTransformService` now supports exact partial and deterministic multi-stack inputs. It preflights every input/output and gram total before mutation, restores original stack IDs/positions/quantities after an injected post-commit exception, and refuses to silently filter an invalid output.
+- Catalyst dismantle, refine/advance, merchant exchange, and exterior cargo damage now use the physical transform boundary instead of consume-then-spawn. Merchant gold is spent through a typed catalyst transaction and explicitly refunded when the physical transform rejects.
+- Fresh focused evidence: `PhysicalStockQueryV18DebugScenarios.RunAll`, `InstanceEvolutionDebugScenarios.RunAll(true)`, and `ExteriorActivityDebugScenarios.RunAll(true)` all compile and pass through Unity MCP.
+# 2026-08-21 typed disposition, batch transfer, and production WIP
+
+- Direct production `TryConsumeStackQuantity` callers were reduced to zero; only the typed Items disposition boundary and its low-level implementation retain the raw method.
+- Waste direct feed now validates nutrition/disease outcome before mutation and commits an exact Sink receipt.
+- Equipment lineage transfer now commits source equipment plus lineage seal as one physical batch Transfer; the existing full physical contracts pass.
+- Added exact physical relocation and atomic multi-stack batch disposition services, then migrated species incident relocation, faction goods, apparel inputs, and facility evolution inputs.
+- Production input consumption now selects deterministic exact FacilityBuffer slices and persists a V8 WIP receipt with commit ID, quantity, grams, and unique cycle sequence.
+- Probabilistic output outcomes are resolved once and persisted. A focused output-space failure, save, restore under a different random seed, and retry produced the exact stored result without reroll.
+- Fresh focused PASS: PhysicalItemDebugScenarios, PhysicalStockQueryV18DebugScenarios, ProductionEconomyDebugScenarios, InstanceEvolution, ExteriorActivity, EnvironmentalField, FacilityEvolution, Wildlife, SampleSceneRation, and CaptivityCircus.
+- Fixed all new interface implementers/fakes for the batch disposition API and the missing apparel material input declaration; Unity performed a clean script compile with no remaining compiler error.
+- Fresh production-live `PhysicalItemLogisticsPlayModeVerifier.RequestRunFromMenu()` completed at UTC 2026-08-20 17:13:29 with `RESULT=PASS; failures=0`, `capturedErrors=0`, and `capturedWarnings=0`. It covered warehouse/facility/construction haul, craft/repair/equipment mass, expedition conservation, carry UI, invalid restore rollback, over-capacity admission blocking, actual evacuation haul, and exact gram token conservation.
+- Global receipt persistence design audit found valid recurring operation-ID reuse in character consumables, sample ration, and survival stock withdrawal. A permanent deduplication dictionary would suppress later legitimate consumption, so the implementation contract is now pending receipt replay plus explicit durable-domain acknowledgement and unique action/epoch IDs.
+- Added current-format Physical V10 pending batch-disposition receipts for production WIP inputs. The physical aggregate saves exact operation/request fingerprint/source stack IDs/quantity/grams/commit ID, replays an exact retry without consuming again, rejects a mismatched retry, and removes the receipt only after the production aggregate records its WIP commit ID.
+- Focused save/restore evidence passes: exact retry before and after restore, conflict rejection, acknowledgement replay, and tampered commit identity rejection. Production economy contracts remain PASS; Unity compile and Console Warning/Error are 0/0.
+
+# 2026-08-21 production output exact-once continuation
+
+- Production save authority advanced to current-format V9 with deterministic per-cycle/per-item/per-unit pending output commit IDs and an applied flag. Output progress is never advanced before the physical or custom authority confirms the exact commit.
+- Standard FacilityBuffer output is atomically spawned with a temporary production-output commit component. Exact retry reuses the same output, conflicting provenance fails loudly, and acknowledgement removes only the matching temporary marker.
+- Environmental workwear and surgical-part custom output handlers now implement the same idempotent commit contract. Surgical parts retain their source production commit provenance in current-format Surgery V8.
+- A focused fault injected an exception after the physical commit but before aggregate advancement. Save/restore under a fresh runtime replayed the committed output and produced only the missing unit; final quantity remained exact with no duplication or loss.
+- Fresh PASS: `ProductionEconomyDebugScenarios.RunAll()`, `EnvironmentalFieldDebugScenarios.RunAll()`, and `SurgeryDebugScenarios.RunAll(true)`. Static diff-check has no whitespace errors and Unity Console Warning/Error is `0/0`.
+
+# 2026-08-21 production WIP terminal conservation continuation
+
+- Production current-format authority advanced to V10 with canonical, bounded terminal WIP receipts retained after a bill is removed.
+- Cancelling output-free consumed WIP no longer fails indefinitely or recreates free raw inputs. It records one exact `ExplicitSink` receipt containing the original input commit ID, quantity, 3,000g fixture mass, bill/recipe/facility/cycle identity, and equal declared loss.
+- A missing or destroyed facility uses the same exact terminalization path. Unconsumed destination stock is conservatively released instead of being removed from the physical world.
+- Current-format receipt save/restore is byte-exact and a one-gram declared-loss tamper is rejected without live-state mutation. The focused suite also destroys a real fixture facility after WIP consumption and verifies the bill is removed only after its exact receipt exists.
+- `ProductionEconomyDebugScenarios.RunAll()` is PASS and static diff-check has no whitespace errors. Partial-output terminal reconciliation and aggregate process-fluid/byproduct receipts remain pending.
+- Production cycle fluid admission now sums the facility ability and recipe-authored clean-water/wastewater before validation and uses one facility consumption call. This closes the prior split-call partial debit window and applies manual fallback only when every contributing clean-water demand permits it.
+- A forced clean Unity build exposed and corrected an asmdef ownership error by replacing the Economy-owned mass-loss enum in Production core with a Production-owned terminal-loss enum. Fresh `Assembly-CSharp`/Editor DLLs then passed Production Economy, Production Workshop, and Industrial Infrastructure contracts with Console Warning/Error `0/0`.
+- Resolved production output lines now persist exact committed grams alongside committed quantity. Standard FacilityBuffer output reads canonical stack grams from its commit-tagged physical lots; stateful apparel does the same after its component projection; surgical parts resolve the authoritative item definition mass from their retained production commit provenance.
+- Output crash recovery keeps committed grams at zero until the aggregate observes the physical commit, then increments quantity and grams together. Production, Environmental Field, and Surgery focused suites remain fresh PASS. Partial-output terminalization is still deliberately blocked until process-fluid/byproduct grams can be joined without double-counting.
+
+# 2026-08-21 production V11 partial-output and process-fluid mass closure
+
+- Production current-format authority advanced to V11. Each active cycle now persists exact clean-water and wastewater grams alongside WIP input and per-output committed grams.
+- Terminal cancellation and missing-facility reconciliation use the checked equation `input + clean water = committed output + wastewater + declared loss`. Negative or overflowing remainder fails loudly and leaves the bill authoritative instead of deleting it.
+- The focused partial-output fixture closes `3000 + 100 = 1000 + 50 + 2050g`, round-trips byte-exactly, and rejects a one-gram committed-output tamper without live mutation. Output-free cancellation and real facility destruction remain exact.
+- Added a real `ProductionCycleUtilityService` regression: facility `0.3/0.2` plus recipe `0.2/0.1` is consumed once as `0.5/0.3` and captured as `250g clean water / 150g wastewater` under the baseline `500g per authored fluid unit` authority.
+- Fresh clean Unity assemblies pass Production Economy, Production Workshop, Industrial Infrastructure, Environmental Field, and Surgery focused suites; Console Warning/Error is `0/0`.
+- Remaining production fluid blockers are network-wide atomic mutation across linked supports, exact manual-container lot provenance, and typed wastewater/byproduct composition. The parent WIP/fluid phase remains in progress.
+- Error log: one read targeted nonexistent `Assets/Scripts/Models/Buildings/Core/BuildingAbilityModels.cs`; `BuildingProcessFluidAbility` was resolved at `Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureBuildingAbilities.cs`. No file changed in the failed read.
+- Added the second terminal path for partial output: a V11 save restored against an empty building world is reconciled by the production Tick into an exact `FacilityDestroyed` receipt with the same `3000+100=1000+50+2050g` equation. The fresh focused suite remains PASS.
+- Linked-support identities are now resolved and deduplicated before the first facility-fluid mutation. A missing required support returns a zero receipt and leaves the recording process-fluid runtime call count unchanged. This closes missing-support partial debit, while aggregate water reservation/commit across several valid supports remains pending.
+- Added append-only balance record `architecture:v27-production-wip-fluid-terminal-mass-v11`; authored BOM, WU, item kg, cycle time, facility capacity, and utility throughput remain unchanged, so the current classification is `밸런스 영향 없음 / 구조 검증 PASS` rather than balance completion.
+- Current tracked plan SHA-256 after the V11 status correction is `711203EF8695244713EB6F3B6EAE1835E6DA006404472776BE0F3E0256F08AB7`; this supersedes the pre-implementation reference hash but is not yet a final PR approval digest.
+
+# 2026-08-21 linked-support piped-fluid atomic batch closure
+
+- Added `IFluidInfrastructureBatchTransaction` and registered `FluidNetworkRuntime` as its single mutable authority. Batch demands are canonicalized by water quality, persistent node ID, and original ordinal.
+- The runtime simulates every clean-water debit and wastewater capacity credit before mutation. Any aggregate shortage leaves water, wastewater, and network revision unchanged; a successful batch applies every debit/credit and touches revision exactly once.
+- `ProductionCycleUtilityService` now resolves and deduplicates every required support before creating one `ProcessFluidCycleDemand` vector. `ProcessFluidUseRuntime` sends all-piped demands through the atomic network transaction; manual-container fallback remains an explicit legacy physical branch and is not falsely marked atomic.
+- Added production-assembly regression `FluidNetworkBatchDebugContract`: two consumers each request 3 water/1 wastewater from one shared network. Five water rejects without mutation; six water commits to 0 water/2 wastewater with one revision.
+- Fresh clean Unity compile and `IndustrialInfrastructureDebugScenarios.RunAll`, `ProductionEconomyDebugScenarios.RunAll`, `ProductionWorkshopDebugScenarios.Run`, `EnvironmentalFieldDebugScenarios.RunAll`, `SurgeryDebugScenarios.RunAll(true)` all PASS. Console Warning/Error is `0/0`.
+- Remaining fluid scope: exact physical manual-container lot provenance, reusable/one-shot container disposition, and typed wastewater/byproduct composition. These remain unchecked.
+- Revised tracked plan SHA-256 is `EB55CCF9BF573753783B96284D9A56D3BEA3C90DD075D924A3938BE6CFAEEE63`; it records the linked-support batch completion but is not a final PR approval digest.
+
+# 2026-08-21 manual clean-water exact-lot continuation
+
+- Replaced the production manual-water category consume with an exact `resource:clean-water` FacilityBuffer slice selection and Physical V10 pending `Transfer` receipt. A Water-category decoy remains untouched.
+- Fluid current-format authority advanced to V5 and persists canonical operation/destination, physical commit ID, exact source stack IDs, transferred units, input grams, requested authored units, and whether reserve state was applied.
+- Production current-format authority advanced to V12 and stores the same manual-water provenance beside cycle clean-water/wastewater grams. The aggregate acknowledges physical custody only after recording `processFluidConsumed`; replay acknowledgement is idempotent.
+- One 0.2-authored-unit process use stages one 500g bulk-water unit, consumes 100g-equivalent process fluid, and preserves 0.8 authored units/400g in manual reserve. The item has `packageTareGrams=0`, so no empty-container byproduct is fabricated.
+- Focused actual-runtime regression passes exact source selection, conflict rejection, pre/post-restore replay, no double reserve credit, acknowledgement cleanup, and `ProcessFluidUseRuntime` batch orchestration. `ProductionEconomyDebugScenarios.RunAll()` and `IndustrialInfrastructureDebugScenarios.RunAll()` remain PASS; Unity compile and Console Warning/Error are `0/0`.
+- Typed wastewater composition remains open: the hydraulic network still stores aggregate wastewater volume, so whey/brine/washwater attribution is not yet complete.
+- Revised tracked plan SHA-256 is `C3B52C83A15B5C3C4C1DB4EB80283D145B1585DC328B2A03E1EFE13BC7966A5E`; it supersedes the linked-support-only hash and is not a final PR approval digest.
+
+# 2026-08-21 typed process-wastewater provenance closure
+
+- Production current-format authority advanced to V13. Active bills and terminal WIP receipts now persist deterministic wastewater components containing composition, source kind, canonical source stable ID, authored hydraulic units, and exact integer grams.
+- Classified every nonzero authored source: 43 recipe/facility/support assets, missing composition authority 0. The closed vocabulary is sanitary washwater, food-process washwater, whey, brine, fermentation effluent, medical effluent, industrial effluent, and agricultural runoff.
+- `ProductionCycleUtilityService` builds facility, recipe, and linked-support components before mutation. `ProcessFluidUseRuntime` rejects missing, duplicate, or aggregate-mismatched components and returns a stable sorted component vector while `FluidNetworkRuntime` continues to own aggregate hydraulic capacity.
+- A real runtime focused fixture proves invalid `0.3` wastewater backed by only `0.2` components leaves network wastewater and manual-transfer state unchanged. The valid mixed case commits `0.1 SanitaryWashwater + 0.2 Whey = 150g` exactly.
+- Production V13 save/restore preserves active and terminal component lists; a one-gram terminal component tamper is rejected atomically. `ProductionEconomyDebugScenarios`, `ProductionWorkshopDebugScenarios`, `IndustrialInfrastructureDebugScenarios`, `EnvironmentalFieldDebugScenarios`, `SurgeryDebugScenarios`, and the manual-water/typed-wastewater focused physical fixture all pass; Unity Console Warning/Error is `0/0`.
+- The wastewater provenance/byproduct-gram sub-slice is complete. Composition-specific treatment routing, sludge/off-gas physical outputs, and the broader terminal disposition outbox remain pending and are not reported as balance completion.
+- Revised tracked plan SHA-256 is `677093692DDD287DABCE94BED529CB02C4FA02B634348A14DEB4AE0DF79EC683`; it is evidence for this structural slice, not a final PR approval digest.
+
+# 2026-08-21 surgical-part installation pending outbox
+
+- Added exact pending receipt lookup to the physical batch disposition boundary and moved surgical-part installation from synchronous consume-then-domain-update to a durable per-order/per-part Transfer operation.
+- Surgery current-format authority advanced to V9. Every installed part now owns installation order, operation, physical commit, source stack, and subject provenance; missing or conflicting provenance fails validation without legacy migration.
+- The shared installation outbox helper terminalizes the domain part before acknowledging the exact physical pending receipt. Installed replay is idempotent, while a different order/subject or tampered commit is rejected without losing the pending receipt.
+- `SurgeryRestoreCoordinator` reconciles the exact pending receipt before candidate publication, after physical authority is available. This closes the crash seam between physical removal and installed-part aggregate publication for this domain.
+- The focused `surgical_part_installation_pending_outbox` row, Physical Stock V18, Production Economy, Dungeon Save Sections, and Surgery Editor suites pass. Fresh `Artifacts/QA/surgery-playmode-report.txt` UTC `2026-08-20T20:09:15.1331318Z` is `RESULT=PASS; failures=0`; captured and final Unity Console Warning/Error are `0/0`.
+- This is one terminal-domain migration. The parent global disposition outbox and remaining single-stack/terminal domains remain pending.
+- Revised tracked plan SHA-256 is `2A3F157180B77C81BA337E0D2A4729486DE4C26185548DE3C698D8DA54508B5C`; it is checkpoint evidence, not a final approval digest.
+
+# 2026-08-21 captive labor-tool assignment pending outbox
+
+- Replaced the captivity labor-tool consume-then-assign seam with a deterministic `captiveId + itemInstanceId` pending physical Transfer operation.
+- Captivity current-format authority advanced to V3. The captive aggregate now persists operation ID, physical commit ID, source stack ID, exact assigned instance, and whether durable assignment publication completed.
+- Assignment finalization is domain-first and acknowledgement-second. A retry with the same pending receipt does not consume the unique tool twice; malformed or mismatched provenance fails without changing the captive or losing the receipt.
+- `CaptivityRestoreCoordinator` reconciles pending assignment custody through the candidate-owned mutation boundary before the captive aggregate is published. Release, labor cancellation, tool breakage, and return clear the same provenance only after safe finalization.
+- Unity clean compilation and `PhysicalStockQueryV18DebugScenarios.RunAll()`, `CaptivityCircusDebugScenarios.RunAll(true)`, `DungeonSaveSectionDebugScenarios.RunAll(true)`, and `DungeonRuntimeCompositionDebugScenarios.RunAll(true)` pass. Fresh `Artifacts/QA/captivity-ai-playmode.txt` UTC `2026-08-20T20:29:20.4909781Z` is `RESULT=PASS; failures=0`; final Console Warning/Error is `0/0`.
+- This closes the captive durable-tool assignment domain slice only. Remaining unique-ID terminal domains, the production raw-consume manifest, and full mid-action SaveLoad remain pending.
+- Revised tracked plan SHA-256 is `B33B4578E04E7FC7D90938619A3DDAFE7C4154F7036761C033297FC2CF276213`; it is checkpoint evidence, not a final approval digest.
+# 2026-08-21 raw removal zero·admission history·full restore closure
+
+- Added a production source manifest that permits raw `TryConsumeStackQuantity` only inside the typed Items boundary and reports `V27_PRODUCTION_RAW_CONSUME_CALLS_ZERO=PASS`.
+- Diagnosed the full Physical failure as an operation-identity collision: deterministic fixture isolation released an existing warehouse admission into a terminal tombstone, then a physical-only reset rewound the haul sequence and attempted to reuse the same owner operation with a new source revision.
+- Preserved exact-once tombstones and strict fingerprint validation. The haul planner now skips operation IDs already present in warehouse admission history instead of weakening request equality or pruning the terminal record.
+- Hardened reverse restore rollback so an already-completed wildlife candidate-to-live grid rebind is an exact idempotent success for the later facility participant rollback; mismatched registration remains a failure.
+- Unity clean compile and focused Physical Stock, Wildlife, Modular Facility save/load, and Dungeon save-section contracts pass.
+- Fresh full Physical logistics UTC `2026-08-20T20:54:48.1823414Z` is `RESULT=PASS; failures=0`, captured Warning/Error `0/0`. Fresh mid-action SaveLoad UTC `2026-08-20T20:55:07.2614796Z` is `result=PASS`, `failures=0`, repeated restore conservation exact, and no unexpected Error/Exception/Assert logs.
+- The revised V27 physical-mass plan SHA-256 is `54E2A53A96AD28875798947F51123C4F7B203D4EAD328D0789D2F6628979743B`; the append-only baseline record binds this checkpoint to that plan revision.
+
+# 2026-08-21 faction restitution pending outbox
+
+- Replaced the faction restitution consume-then-domain-update seam with a scar-unique pending physical Transfer operation. Recurring goodwill remains outside this migration because `faction + day` is not a genuinely unique payment epoch.
+- Faction current-format authority advanced to V2 and now persists exact operation/commit/source-stack/quantity/gram/value provenance, an absolute campaign grievance target, and terminal completion.
+- Finalization validates the exact pending receipt, publishes faction restitution, converges campaign grievance to the stored absolute target, and then acknowledges the physical commit. Completed replay never rewinds later legitimate grievance changes.
+- Restore reconciles only incomplete provenance after the already-declared PhysicalItems and OffenseAggregate dependencies are available. Tampered provenance leaves faction, campaign, and pending receipt unchanged.
+- Unity compilation is clean. `FactionRestitutionOutboxDebugScenarios.RunAll()` and `SpeciesFactionDefenseExpansionDebugScenarios.ValidateOnly()` pass; Console Error count is 0.
+- This closes one terminal-domain slice only. Facility evolution, apparel repair, packaged lots, remaining ingress, full kg After, EWU/prices, six-adult loop, and final three-seed evidence remain open.
+
+# 2026-08-21 Facility Evolution V4 material outbox and restore reconciliation
+
+- Upgraded `FacilityEvolutionStateComponent` current-format authority to V4 with exact material operation/reason/commit/source-stack vector/quantity/grams, recipe and source/result identities, history sequence, resolved mutation tags, canonical resolved-result payload, and `MaterialCommitted|DomainApplied` phase.
+- Added restore participant `224.world.facility-evolution-materials` to validate the authored recipe and Physical pending-receipt join before participant 225, without mutating gameplay state during restore validation.
+- Added the post-publication `FacilityEvolutionPendingMaterialProjection`; valid restored pending work resumes the stored result and never reruns proposal, mutation, record-token, material selection, or probability resolution.
+- Closed replacement-first-failure and acknowledgement-first-failure seams. Retrying cannot debit materials twice or replace a result building twice, and failed replacement preserves the exact source occupant until result registration succeeds.
+- Added current-format JSON round-trip, six structural/cross-authority tamper cases, automatic projection, save-section participant and composition evidence.
+- Fresh evidence: clean Unity compile; Facility Evolution, Dungeon save-section, runtime composition, and Offense Strategic 11-row suites PASS; final Console Warning/Error 0/0.
+- Updated the V27 plan with checkpoint 27 and appended baseline record `architecture:v27-facility-evolution-material-outbox-v4`. Current plan SHA-256: `BB1CD797882EAA5D0BCBF8ED4C290922ED4E31E8B730D88DA3710EE33BDDBC09`.
+- Facility evolution is now closed as one terminal-domain slice. Apparel repair, packaged lots, remaining ingress, full kg After, EWU/prices, six-adult loop, and final three-seed evidence remain open.
+
+# 2026-08-21 Apparel repair terminal outbox investigation started
+
+- Began the next planned terminal-domain slice after closing Facility V4.
+- Enumerated the live UI/AI command, `ApparelWorkOrderRuntime`, physical item/disposition dependencies, save persistence seam, and non-repair sibling order kinds.
+- No apparel gameplay values or assets have been changed. The next step is to map `ResolveRepair`, exact disposition order, and Character Environment restore publication before writing the structure contract and code.
+
+- Confirmed the concrete crash seam: `ResolveRepair` writes the repaired durability before synchronously removing thread/scrap; successful removal has no order-level commit/phase provenance, and generic restore resets the order to `NeedsRevalidation`.
+- Confirmed that Character Environment currently publishes the prepared order list into a singleton without an order-root rollback snapshot. The implementation must establish reversible candidate ownership before adding automatic repair reconciliation.
+
+- Mapped the safe restore shape: prepare orders as detached data, stage them during Character Environment section commit, then publish/reconcile through a new reversible apparel-order transaction participant after Physical Items candidate publication.
+- Mapped the repair phase contract to pending physical disposition: exact material receipt, exact original/resolved apparel state, `MaterialCommitted|RepairApplied`, domain-first publication, exact acknowledgement, and rollback-safe current-format validation.
+
+- Confirmed no additional prefab/ScriptableObject wiring is required: the existing singleton can expose the restore participant interface. Confirmed a new focused repair outbox regression is necessary because the existing apparel suite does not directly cover this seam.
+
+- First Unity refresh exposed two expected C# definite-assignment errors in short-circuited validation branches (`acknowledgementFailure`, duplicate-operation `failure`). Split both branches so each diagnostic is assigned before use; no gameplay contract changed.
+
+- Apparel repair outbox source now compiles cleanly in Unity; post-refresh Console Warning/Error is `0/0`.
+- Implemented Environment V6 repair provenance, pending/resolved phase replay, participant `226.world.apparel-work-orders`, reversible order publication, and registration. Focused execution/tamper/rollback evidence is still pending, so the slice remains open.
+
+- Audited existing apparel tests: they cover authored assets and save version only, not live repair execution. Preparing a dedicated focused runtime scenario rather than inflating authoring checks into false execution evidence.
+
+- Selected the focused fixture boundary: real physical repository/mass/disposition and real quantity leases, authoritative apparel/material catalogs, transient operational repair facility, and minimal deterministic clock/performance adapters.
+
+- Reused the existing Physical Item cross-domain fixture instead of building a second item world. The upcoming focused row will live in `PhysicalItemDebugScenarios` and exercise the actual repository, quantity reservations, disposition service and apparel runtime.
+
+- Identified exact test inputs and fault injection: authored V22 repair facility, physical apparel instance component, sewing-thread and mending-scrap stacks, plus a fail-once acknowledgement wrapper to preserve `RepairApplied` across retry/restore.
+
+- Corrected the reservation-to-disposition handoff: release the repair order's own quantity leases immediately before the atomic pending material commit, after all work/preflight is complete. The pending receipt—not a stale lease—owns custody during finalization.
+- Added `ApparelRepairOutboxDebugScenarios` and wired it into the physical item contract list. The focused fixture uses the authored V22 repair facility, real world item repository, quantity leases, and Physical batch disposition. It passed exact one-thread/one-scrap debit, durability `40→70`, acknowledgement retry, commit tamper no-mutation/no-loss, and normal restore reconciliation through participant `226.world.apparel-work-orders`.
+- Recompiled successfully after the focused fixture and reran `DungeonRuntimeCompositionDebugScenarios.RunAll(false)` plus `DungeonSaveSectionDebugScenarios.RunAll(false)`: PASS. Focused/restore-contract Console Warning/Error was `0/0`.
+- Adjacent aggregate status remains explicitly non-green for unrelated existing fixture drift: `V22ApparelDebugScenarios` stops at `material:dreamweave must have MaxStack 100`; `PhysicalItemDebugScenarios` has one `warehouse_stored_stack_consumption: stored water mirror was missing` failure. `PhysicalStockQueryV18DebugScenarios` ran before the latter failure without reporting an error. These rows are not waived and do not invalidate the focused apparel receipt/phase evidence.
+
+# 2026-08-21 wildlife food-raid pending Sink outbox
+
+- Raised current-format Wildlife payload V4→V5 and added exact food-raid disposition provenance plus `ItemCommitted|RaidPublished` phases. No legacy migration was added.
+- Replaced synchronous food theft with a pending Physical Sink keyed by `raidId + wildlifeId`; two wolves in one raid no longer share an operation ID.
+- Added retry handling to the live raid tick, actor-death/removal boundary, and Wildlife participant publication. Pending theft is reconciled before departure or terminal cancellation, and mismatches fail loudly without target substitution.
+- Added focused real-physical evidence and the row to `WildlifeDebugScenarios`. Clean compile, focused outbox, full Wildlife Editor contracts, and Dungeon save-section contracts PASS; Console Warning/Error `0/0`.
+- Revised tracked plan SHA-256 is `C197C9CDF83E1387B6C5A14880625D58FC6E0FC2BD81F9EA2FFCCB04157FE93E`; it is checkpoint evidence, not a final approval digest.
+
+# 2026-08-21 facility evolution multi-material pending batch
+
+- Replaced the engine's per-requirement material consumption loop with one aggregated pending material commit. Production selection now resolves every category and exact physical stack before any source mutation.
+- Material operation identity is the persistent facility ID plus next history sequence; recipe identity is part of the request fingerprint, so another recipe cannot inherit the same pending debit.
+- The engine detects an exact pending receipt before validation and uses it only as the material-availability authority for that same request. Retry therefore succeeds after the physical stock has already left the warehouse without consuming it twice.
+- Hardened the grid building replacer: source occupancy and visual remain until result registration succeeds; create/register failure removes the failed result and re-registers the exact source.
+- Added an injected fail-once replacement fixture. First evolution attempt leaves the source facility live after one pending debit; the second attempt replays that pending commit and evolves successfully. Facility Evolution full Editor suite and Offense Strategic 11-scenario suite pass; final Console Warning/Error is `0/0`.
+- This remains a partial terminal slice. Facility state does not yet persist pending recipe/commit/resolved mutation provenance, so restore-time automatic resume/acknowledgement and tamper rollback remain open.
+- Revised tracked plan SHA-256 is `D5798CB7C835322D9A93367A7C91D4BB3EF72D403E9979DF7FFA6AD7A1797C21`; it is checkpoint evidence, not a final approval digest.
+
+# 2026-08-21 faction goodwill recurring outbox
+
+- Replaced the recurring `faction + currentDay` goodwill operation identity with a persisted monotonic Faction V3 sequence and exact `faction-goodwill:{factionId}:{sequence:D8}` operation IDs.
+- Added pending Physical Transfer provenance, absolute campaign rapport target, acknowledgement-only replay, current-format restore reconciliation, and strict structural validation.
+- Proved two same-day goodwill transfers use different operation IDs, consume one exact lot each, reject commit tampering without mutation or receipt loss, and do not reapply an already-reached campaign target.
+- Repaired two pre-existing aggregate fixture drifts: authored woven MaxStack expectations and Water-category stored-stack selection. V22 apparel full, stored-water focused, and PhysicalItem full now pass.
+- Unity compile, faction focused, authored faction validation, save-section regression, and final Console Warning/Error `0/0` pass.
+- Revised tracked plan SHA-256 is `99EB25D8A4A10D2B60A4C3B3E3AFE878F2EE0276A3F05C1DC00CECE4E712F8AC`; it is checkpoint evidence, not a final approval digest.
+# 2026-08-21 captured-wildlife feed outbox implementation checkpoint
+
+- Wired normal food and waste direct feeding through one exact pending Physical Sink path instead of synchronous item removal followed by care mutation.
+- Added a persisted monotonic feed sequence, exact operation/commit/source/mass provenance, once-resolved disease outcome, absolute hunger/health/sickness targets, actor-side commit idempotence, and acknowledgement-second cleanup.
+- Added restore-time reconciliation inside the reversible Circus captured-wildlife projection and deep-cloned the pending source-stack list so rollback state does not alias the candidate.
+- Added core-only Circus V3 structural validation, pending item catalog validation, and Wildlife V6 feed commit validation. Unity compilation and focused/full regressions are the next gate.
+- Added the real-repository `captured_wildlife_feed_pending_outbox` focused row to the Captivity/Circus aggregate. It covers two unique feed epochs, exact Sink debit, failed acknowledgement retention, JSON round-trip, clone isolation, commit tamper rejection, already-acknowledged recovery, and once-resolved disease damage.
+- Wired the production `WildlifeCaptureRuntime` normal and waste feed paths through that outbox. Circus V3 and Wildlife V6 now preserve exact feed sequence/commit/source/mass/outcome authority, and the reversible Circus restore projection reconciles pending receipts before actor publication.
+- Unity clean compilation passed. The focused outbox row, `CaptivityCircusDebugScenarios.RunAll(true)`, and the fresh full `CaptivityWildlifeLifecyclePlayModeVerifier.RequestRun()` all pass.
+- Fresh PlayMode evidence at `2026-08-20T23:46:08.3171612Z` proves authored `feed:hay` `196g` quantity `1→0`, hunger `0.9→0.1889`, exact Sink commit, cleared pending outbox, current-format save provenance, and Console Warning/Error `0/0`.
+- Coverage manifest now accepts `wildlife:animal-care` as fresh `LiveExecuted` with the four feed markers. The global manifest remains honestly red (`uncovered=79`) because unrelated evidence was invalidated by the later coverage-critical production cutoff; this slice does not claim a fresh all-AI sweep.
+- Updated the task checklist, plan checkpoint 31, findings, and append-only balance record. The revised plan SHA-256 is `345B6DE952950DA1246B2DCC1B3DF113D7BA7A809339F2D8E17D4D79D4B5C273`.
+
+# 2026-08-21 external-influence trail-charm pending Sink checkpoint
+
+- Raised External Influence current-format save V3→V4 and added one-site pending trail-charm Sink provenance with `ItemCommitted|IntelPublished` phases. No past-save migration was added.
+- Replaced synchronous trail-charm consumption with a Physical pending Sink keyed by canonical site ID. Domain membership publishes before acknowledgement, and retry/repeat cannot consume a second charm.
+- Added a CoreSession-owned pure save contract, strict Infrastructure validation, deterministic source selection, restore reconciliation, and exact item/operation/reason/commit/source/quantity/gram checks.
+- Added `ExternalInfluenceTrailCharmOutboxDebugScenarios`; real-repository acknowledgement failure, retry, item-committed restore, crash-after-ack restore and tamper no-mutation all pass. `BatchACoreSessionSaveDebugScenarios.RunAll(false)` also passes.
+- Unity compilation is clean and final Console Warning/Error is `0/0`. Authored recipe, quantity, WU, kg, EWU, price and expedition rewards were unchanged.
+- Updated the implementation checklist, plan checkpoint 32, findings, and append-only balance record. The revised tracked plan SHA-256 is `F750EE24373CEAA0E32C8621E9CD04D709018C80E81F81B5790B09309402F34D`.
+
+# 2026-08-21 reserved pending Sink foundation checkpoint
+
+- Implemented `IReservedPhysicalItemBatchDispositionService` without relaxing generic pending-batch reserved-source rejection.
+- Wired production DI to the same `ItemQuantityReservationService` singleton and added failed-commit restoration of exact lease ownership.
+- Added focused real-repository commit/replay/ack/rollback coverage to `PhysicalStockQueryV18DebugScenarios.RunAll()`.
+- Unity clean compilation and focused aggregate PASS; Console Warning/Error `0/0`.
+- Checked only the Items foundation subtask. Character meal plan persistence/outbox and the global terminal-domain parent remain open.
+- Revised tracked plan SHA-256: `5748712A5AB4D91F6B037CFF16C4683F7180DFA5DCB7DDCDE1647CF8301C1B40`.
+
+# 2026-08-21 Character Consumables V7 meal pending outbox checkpoint
+
+- Raised the current Character Consumables payload V6→V7; no past-save migration was added.
+- Replaced facility-meal synchronous reserved consumption with the Items reserved pending Sink boundary and persisted exact operation/reason/commit/source/quantity/grams plus `ItemCommitted|EffectsPublished` phases.
+- Added exact candidate-build receipt joins, completed-ledger phase validation, acknowledgement-only replay and missing/tampered receipt rejection.
+- Added a real-repository/real-lease focused regression with first-ack failure, save/restore, no second hunger effect, no second debit, tamper no-mutation, missing receipt rejection and existing spoil-abort coverage.
+- Unity compile, `V27_CHARACTER_MEAL_V7_PENDING_OUTBOX=PASS`, `V27_CHARACTER_MEAL_V7_COMPOSITION_SAVE=PASS`; Console Warning/Error `0/0`.
+- Checked only the Character meal terminal-domain subtask. The global terminal-domain parent and the broader kg/EWU/6-person balance work remain open.
+- Revised tracked plan SHA-256: `CFC7707C2FE707899ACA7D18451FBB1F81A6F064E5A8862328B17DC6C0B0BD20`.
+
+# 2026-08-21 primitive field-meal V7 pending outbox checkpoint
+
+- Migrated `TryConsumeFieldMeal` from synchronous reserved consumption to the existing Character Consumables V7 `ItemCommitted|EffectsPublished` pending Sink outbox, using the aggregate-generated unique operation ID.
+- Corrected the virtual facility authority to canonical `building:primitive-field-meal`; restore exempts only its world-building membership and still enforces typed `BuildingInstanceId` validity.
+- Fixed a restore-time facility-slot ownership leak exposed by the new combined fixture: terminal slot release is now an idempotent stable operation/facility command even when the restored transient reservation flag is false.
+- The real-repository focused row proves facility meal pending/restore exactness, field meal one-debit/one-effect acknowledgement recovery, spoil-before-commit typed abort, and lease cleanup.
+- Unity clean compile, `V27_CHARACTER_MEAL_V7_PENDING_OUTBOX=PASS`, `V27_CHARACTER_MEAL_V7_COMPOSITION_SAVE=PASS`; final Console Warning/Error `0/0`.
+- Checked only the primitive field-meal subtask. Remaining genuinely unique terminal domains and the broader kg/EWU/6-person balance work remain open.
+
+## 2026-08-21 Character Consumables V8 substance pending outbox checkpoint
+
+- Raised Character Consumables current-format V7→V8 without past-save migration and added persisted `ItemCommitted|EffectsPublished` substance plans with exact physical receipt provenance and once-resolved absolute substance targets.
+- Migrated Loose, FacilityBuffer and Carried substance doses to pending physical Sink custody. Carried debit now removes carry/world custody together through a narrow capability and restores the carry snapshot if the physical commit fails.
+- Added focused receipt-mass tamper and missing-receipt restore rejection, first-ack replay, different-RNG restore, duplicate operation, forbidden policy, missing stack, carried custody and tavern FacilityBuffer coverage.
+- Registered and synchronized nine warehouse mass admission typed failures and their exact arities in the DomainFailures ko/en/shared localization assets.
+- Unity compile, focused V8, full Survival, runtime composition and save-section scenarios pass; final Console Warning/Error is 0/0.
+- Updated implementation plan SHA-256: `33838B228D634898EC09915CE6424C227101ED9BF753CE8AF088E816D0AE1B30`.
+- Checked only the Character Consumables substance terminal-domain child. Remaining unique terminal domains and the broader packaged-lot/kg/EWU/6-person balance work remain open.
+- Revised tracked plan SHA-256: `40F0C64E20F2B8DEBFF634F47AA23E9F71E2ABFDB80AD99DC1934A3AC2A4AE5F`.
+
+# 2026-08-23 packaged-lot runtime and surgery tare outbox checkpoint
+
+- Added a data-driven `PackagedLotItemFeature` and immutable runtime package snapshot with exact total/content/tare grams, physical output definition, and fail-loud container-mass parity.
+- Added the packaged-lot mass subject/projector and production DI registration. Runtime mass queries still consume immutable subjects rather than save DTOs.
+- Replaced synchronous surgery material removal with one deterministic pending physical Sink. The surgery domain now publishes `materialsConsumed` only after every reusable/disposable tare byproduct exists as an exact Loose stack at the owned facility drop cell.
+- Tare output uses a deterministic production-output commit component, so acknowledgement failure and restore retry do not duplicate the container/waste stack. Pending receipt kind, quantity, and total input grams are checked against the saved surgery material requirements before publication.
+- Added focused projector coverage for 160g packaged medicine = 130g content + 30g reusable vial, including a fail-loud 30g/40g container mismatch.
+- Unity 6000.3.8 Bee/Roslyn compilation passes for Assembly-CSharp and Assembly-CSharp-Editor. Unity MCP focused execution is pending because the editor revoked the current connection approval.
+- No ScriptableObject mass, BOM, WU, EWU, price, or item count was changed in this checkpoint. Actual `medicine:standard` packaging remains pending the reusable-vial versus disposable-medical-waste content decision.
+
+# 2026-08-23 packaged-lot common tare outbox continuation
+
+- Extracted surgery's tare publication into `PackagedLotTareDispositionService` and a narrow `IPackagedLotTareOutputGateway`; surgery no longer owns package-definition lookup or output-spawn mechanics.
+- Routed Character Consumables meal and substance receipt acknowledgement through the same common outbox. The owning actor cell is the physical return position and the receipt is acknowledged only after exact tare outputs exist.
+- Added a focused common-service contract for exact output mass/quantity, replay idempotence, marker-position conflict and explicit-loss enforcement. Unity 6000.3.8 Bee/Roslyn runtime and Editor compilation both exit 0.
+- Unity MCP focused execution did not return while the Editor connection approval remained unavailable, so the call was terminated after a bounded wait. This checkpoint does not claim focused Unity PASS or Console 0/0.
+- No authored item, kg, BOM, WU, EWU or price changed. The actual reusable-vial versus disposable-medical-waste topology remains the next content decision.
+- Revised tracked plan SHA-256: `49FAF848786A7C1AB31755FF53D397973D760C2AD6C5210AEB935B2B51D1FE7D`.
+
+# 2026-08-23 anesthetic reusable-vial authoring closure
+
+- Rejected `medicine:standard` as the first packaged content because it is consumed by five production transforms that do not yet carry package disposition. Selected terminal-only `medicine:anesthetic` to keep the first slice vertically closed.
+- Added deterministic authoring for a 30g reusable `container:medical-vial`, exact 900g iron-ingot → 30-vial recipe, and 120g anesthetic with one vial input and reusable-vial return.
+- Added a fail-loud builder topology guard for package mass, exact vial BOM/output mass, anesthetic input/output, and the absence of unsupported downstream anesthetic transforms.
+- Unity 6000.3.8 Bee/Roslyn compilation passes for `DungeonStory.Economy`, `Assembly-CSharp`, and `Assembly-CSharp-Editor`. Actual ScriptableObject regeneration and production-live surgery evidence remain pending because the Unity MCP editor connection is unavailable.
+- Revised tracked plan SHA-256: `23399AB43011763FD609FC075D6DE32AF49A2325374BB6ECC94AD6BDF21B7A3E`.
+
+# 2026-08-24 Unity MCP 재개 후 packaged-lot 수직 슬라이스
+
+- Unity에서 economy builder를 실제 실행해 의료 바이알 item/recipe와 마취제 package/BOM을 생성·갱신하고 item/domain catalog를 재색인했다.
+- authority inventory와 explicit semantic audit를 current assets로 재생성했다: item 414, recipe 355, weight site 1,074, explicit semantic 51, package contract 1, unknown writer 0.
+- Surgery PlayMode를 실제 authored foreign-body 수술까지 확장했다. 마취약 2개 Sink, 바이알 2개/60g exact return, pending acknowledge, whole-save restore no duplicate가 PASS했고 captured Warning/Error는 0/0이다.
+- 첫 실패에서 발견한 expired meal delivery duplicate-route current-format 결함을 원자 replacement로 수정했다. 이후 Survival full, runtime composition, save-section, PhysicalItemLogistics, AI mid-action repeated restore를 모두 fresh PASS했다.
+- Resource item semantic no-op dirty gate를 추가해 managed-reference RID YAML churn을 제거했다. Economy 494-file aggregate hash와 V27 artifact 8종 hash가 각각 연속 실행에서 동일했다.
+- 계획서 checkpoint 37–40, task checklist, findings와 append-only balance baseline v2 record를 갱신했다. 아직 반환 바이알의 실제 warehouse 재입고→재생산, 363개 semantic, EWU·가격, 6인 생존망과 최종 3-seed는 pending이다.
+- Revised tracked plan SHA-256: `C4F9B86BC6D17B5985DC706E1ED256E897DF4FCE2D92216B0DA69199D1B20B30`.
+
+# 2026-08-24 반환 의료 바이알 production-live 재활용 순환 checkpoint
+
+- 실제 수술 반환 commit stack을 식별하고 real `AIHaul`로 AI가 선택한 일반 warehouse에 바이알 `2/2`를 입고했다.
+- 실제 `P18_약제대`, `research:pharmacology:anesthesia`, `recipe:anesthetic` ProductionBill을 사용했다. AI가 몽엽 2·알코올 1·회수 바이알 1을 입력 `FacilityBuffer`로 운반했고 실제 생산 work가 마취제 `0→1`, 바이알 `2→1`, canonical `FacilityOutputBuffer` output 1을 커밋했다.
+- whole-game current-format save/restore 뒤 마취제 1·바이알 1이 유지되어 second debit/output이 없었다.
+- 장시간 실행에서 퇴역 actor·사라진 facility를 참조하는 stale Character Consumables delivery/route가 save를 막는 결함을 수정했다. live membership reconciliation을 tick early-return 전과 Capture 직전에 수행하며, 이후 `SurvivalDebugScenarios.RunAll()`이 fresh PASS했다.
+- 최종 `Artifacts/QA/surgery-playmode-report.txt`는 `RESULT=PASS; failures=0`; captured 및 Unity Editor Console Warning/Error `0/0`이다.
+- task checklist의 반환 바이알 warehouse→재생산 child를 닫았다. remaining semantic 363, packaged Transform/다른 용기, 전수 kg After, EWU·가격, 6인 생존망, Floor Clutter/paired run, 최종 3-se드는 계속 pending이다.
+- Revised tracked plan SHA-256: `80A83DDD0157DC44101387F7A7B7DB86CE285203E91C2D177A1AE6F0F8290C9E`.
+
+# 2026-08-24 Unity MCP current-revision audit checkpoint
+
+- Fresh Unity current assembly compile and Console Warning/Error `0/0`.
+- Builder no-clobber PASS: 5 builders, 7,219 files, 0 changes.
+- Physical item 44/44 and V27 ledger 13/13 PASS; current inventory remains 414 items, 355 recipes, 1,074 weight sites, 51 explicit semantics, 363 remaining, 0 unknown writers.
+- Six-adult loop, N+1 continuity, 1,536/1,536 population/static and asset spatial scenarios, output-capacity recovery PASS.
+- Fresh 32-seed paired clutter PlayMode PASS: 512 windows, 640 floor rows, 0 failures, exact clean repeatability, RNG cross-talk 0, Wait WU median/p95/max 0%, final Console 0/0.
+- Added and compiled an atomic previous-approval source-rebase path after the economy audit found the new room-partition-kit BOM changes building:8882 target WU 234→240.
+- The actual rebase/apply and post-apply 256-seed economy rerun are pending because Unity MCP returned `Connection revoked`. No manual asset mutation was used.
+- Checkpoint plan SHA-256: `19DF6E6E434F0EC7D659A8BF429C09330F738E012C0688B8BB875D660ED15AA1`.
+
+# 2026-08-24 Phase 2 equipment/apparel semantic implementation checkpoint
+
+- Implemented authority-backed semantic generation for all 61 combat equipment definitions and all 56 distinct apparel physical items. Four apparel definitions intentionally target non-`apparel:` IDs.
+- Added an explicit `IndividualEquipment` haul class so one dagger/apparel piece is not falsely required to form a 6–11kg commodity stack.
+- Split haul validation by MicroUrgent, Ordinary, IndividualEquipment, Heavy, Oversize and DedicatedTransport.
+- Current artifacts remain 51/414 until Unity executes the deterministic recapture; this slice alone is 168/414 and the current cumulative compiled expectation is 355/414 with 59 remaining.
+- Current Bee/Roslyn compilation passes for DungeonStory.Economy and Assembly-CSharp-Editor. MCP remains revoked, so Unity execution and Console evidence are not claimed.
+- Revised checkpoint plan SHA-256: `5A8B4232D55F171A75C5CC8CA3BB9963C26DD722C1BBC3A767CE5CCFE305A06D`.
+
+# 2026-08-24 Phase 2 non-packaged commodity semantic implementation
+
+- Added 54 exact allowlisted unit meanings: ammunition 21, records 4, waste 4, non-iron ingots 4, raw fiber 7, yarn 10, processed textile 3 and dog food 1.
+- The combined compiled semantic catalog is expected to move 51→218 of 414 after Unity recapture; the current artifact remains 51 until that execution passes.
+- No kg/BOM/WU/EWU/price asset was changed. Recipe-derived and byproduct entries retain current gram only as a provisional semantic value pending Phase 5 conservation.
+- DungeonStory.Economy and Assembly-CSharp-Editor compile with exit 0. MCP execution remains unavailable due connection revocation.
+- Revised checkpoint plan SHA-256: `1950A9EE99718975D48CFF8CC5584E5CD8A590311F8E79EC1971B364845A314A`.
+
+# 2026-08-24 Phase 5 recipe mass inventory implementation
+
+- Implemented deterministic enumeration and current-gram accounting for all 355 recipes.
+- Probabilistic outputs retain guaranteed, maximum and decimal expected mass; maximum-branch creation is a Critical instead of being hidden by an average.
+- Existing 38 exact contracts must still match current recipe authority. Every other Transform remains missing until an explicit byproduct/loss contract is authored.
+- Proposed semantic grams drive reviewed recipes; recipes touching any of the remaining semantic gaps keep exact missing IDs and only provisional mass-creation candidates.
+- Added canonical recipe CSV and IN_PROGRESS audit report writers with double-capture byte identity and no-asset-mutation digest gates.
+- Current Bee/Roslyn compilation passes. Unity counts/artifacts are pending because MCP remains revoked.
+- Revised checkpoint plan SHA-256: `2BFDE11DA19B10FE79C44E1F35735A462BBEFDBA5814E92E41B516B09A346993`.
+- Semantic-aware recipe-inventory plan SHA-256: `84BCDEA01EF4BAC13F74C5AE27664C01087DD597ADB4914415369F37494C1B3E`.
+
+# 2026-08-24 Phase 2 raw-resource semantic implementation
+
+- Added 22 exact unpackaged resource unit meanings across blood, herbs, animal materials, minerals, stone, resin, mana/rune resources, shade fiber, trail charm and manure.
+- Ordinary resource stacks satisfy the 6–11kg current maxStack band; feather, rune dust and trail charm are explicit MicroUrgent exceptions.
+- This checkpoint's corrected cumulative expectation is 244/414 with 170 remaining; later compiled slices bring it to 355/414 with 59 remaining.
+- No asset mass or balance value changed. Current Economy/Editor compile passes.
+- Revised checkpoint plan SHA-256: `84438B3D4ADF1E54088AF4F44A5578BAFCDD3808CE642ADE56C2411C4A4C5352`.
+
+# 2026-08-24 Phase 2 tool/prosthetic/bedding semantic implementation
+
+- Added unit meanings for 17 tools, 3 prosthetics and one husbandry-bedding item.
+- Hauling harness remains owned by the already generated apparel physical semantic, preventing a duplicate item row.
+- Single tools/prosthetics use IndividualEquipment; stocked kits/bedding satisfy the Ordinary 6–11kg batch gate.
+- This checkpoint's corrected cumulative expectation is 265/414, 149 remaining; later compiled slices bring it to 355/414, 59 remaining. No authored value changed; compile passes.
+- Revised checkpoint plan SHA-256: `8FA561A4B60726A13A088D182DC9494F9AB59E68E5D94162A6989BE1C4986708`.
+
+# 2026-08-24 Phase 2 component semantic implementation
+
+- Added unit meanings for all 36 current component items: 2 engineering documents and 34 BOM components/subassemblies.
+- Current 2kg boundary distinguishes Small/Large components for review; all remain Ordinary haul batches with current maxStack.
+- This checkpoint's corrected cumulative expectation is 301/414, 113 remaining; later compiled slices bring it to 355/414, 59 remaining. No authored value changed; compile passes.
+- Revised checkpoint plan SHA-256: `66D8AFDB7B1B362C0D08503C7556D789B617B8644A9D17DCC782B576B4765660`.
+
+# 2026-08-24 exact-item warehouse candidate cutover
+
+- Removed the last three production count-only one-item warehouse checks from production output compatibility, haul destination prefiltering and gameplay-flow diagnostics.
+- All three now carry the exact item ID into `CanStoreItem`, while stock category acceptance remains an independent constraint.
+- Final ingress still requires the existing revision-bound exact-lot `WarehouseMassAdmissionToken`; the prefilter does not reserve or commit ownership.
+- Current Economy, Assembly-CSharp and Editor compilation (including the new recipe inventory source) exits 0. Unity execution remains pending while MCP reports `Connection revoked`.
+- Added an Editor focused manifest that fails if production `.CanStore(...)` count predicates return, plus the exact 25kg/1.2kg item read-side boundary assertion; Editor compile remains green.
+- Checkpoint plan SHA-256: `66F207F70F18D55C822FB3F885B5AAB8371F3654E2E2E192FDEEA616126745FF`.
+
+# 2026-08-24 unpackaged processed-material semantic implementation
+
+- Catalog GUID/YAML inspection corrected the apparel expectation to 56 definitions and 56 distinct physical IDs; four use non-`apparel:` namespaces and were previously miscounted.
+- Added 48 non-packaged semantic rows: 40 processed material lots, 6 unambiguous solid crafts and 2 loot lots. Ambiguous medicines, coatings, meals and supply boxes remain deferred.
+- Process-lot container mass is explicitly outside the unit through `BulkInfrastructureNotInUnit`; no hidden disposable tare was invented.
+- This slice reached 349/414; the current cumulative compiled expectation after the unpackaged meal/process slice is 355/414 with 59 remaining. Unity artifacts remain 51/414 until MCP approval permits deterministic recapture.
+- Checkpoint plan SHA-256: `67CE55F060E6353518A4F0152FE08750258D24D57579DA8093FD987698B54CB2`.
+
+# 2026-08-24 remaining packaging review implementation
+
+- Implemented a deterministic 59-row packaging review ledger over the 414-item/355-recipe authority and the compiled 355 semantic catalog.
+- Each row retains exact producers/consumers and any authored PackagedLot feature; classification never fabricates tare grams or a container from an item name.
+- Added recipe lifecycle (`source-input`, `transform-intermediate`, `terminal-output`, `recipe-orphan`), required disposition proof and runtime gateway evidence fields.
+- Survival and Surgery tare consumer sources now participate in the no-mutation/source digest, but gateway presence remains explicitly weaker than an exact item-route proof.
+- Static catalog inspection exposed that the live ItemDefinitionCatalog is larger than the 414-item economic ledger. The review now obtains the canonical ledger IDs from the same V23/V27 authority inventory and scopes its exact item index to those 414 IDs.
+- Added fail-loud joins for ledger→live authority and semantic→ledger. Editor compilation remains exit 0 after the scope correction.
+- The packaging report now emits a SHA-256 over the sorted 414 ledger IDs and hashes the live catalog asset, so equal row counts cannot hide a changed ledger membership.
+- The report remains IN_PROGRESS until every return, waste, destruction, target transfer, bulk-infrastructure or true no-package route has runtime evidence.
+- New CSV/report writers are deterministic/no-mutation by contract; current Editor compile exits 0. Unity execution remains pending on MCP approval.
+- Latest checkpoint plan SHA-256: `F10663F3F8C78968BB2FB1D60AF9B0DE960C57E0E37F169E60BFE357A77948BC`.
+- Ledger-scope correction plan SHA-256: `425B76CB7F06B38DE51160913BF3EAD929B1A055CA782F180006A5A24739EA15`.
+- Current checkpoint plan SHA-256: `D51DA2E60BFF76D25F85F5136D23E46AEC13B73C1B7850845EC7F921022932D6`.
+
+# 2026-08-24 unpackaged meal/process semantic implementation
+
+- Added six semantics that do not need physical tare: one solid temporal seal, one bulk alchemical-solvent measure, three facility-served meals and one unpackaged jerky portion.
+- Reusable serving ware and process vessels are explicitly facility infrastructure outside the unit, not disappearing item mass.
+- Packaged rations remain deferred. The compiled semantic catalog is now expected at 355/414 and the packaging review at 59 rows.
+- Editor compile including semantic, recipe and packaging audit sources exits 0; Unity recapture remains pending.
+- Packaging lifecycle/proof enrichment also compiles with exit 0; plan SHA-256 is `F10663F3F8C78968BB2FB1D60AF9B0DE960C57E0E37F169E60BFE357A77948BC`.
+
+# 2026-08-24 destroyed package tare receipt implementation
+
+- `DestroyedDuringUse` no longer makes every authored item permanently unconsumable. The common terminal tare service returns exact destroyed tare grams tied to the existing physical Sink parent commit.
+- Physical returned/waste outputs and destroyed losses are separate receipt fields; `AccountedTareMassGrams` proves their sum without hiding content or Transform residuals.
+- Focused checks cover exact 60g destruction, zero output spawn and deterministic replay. Runtime and explicit-source Editor Roslyn compiles exit 0.
+- Unity execution remains pending because MCP still returns `Connection revoked`.
+- Current checkpoint plan SHA-256: `6896E36AB704B63075A10CC0739C9FC13784A278809FFF9D14F1AA38EDD2C40A`.
+
+# 2026-08-24 packaged consumable authority gate
+
+- Character meal/substance acknowledgement now asks the immutable mass authority whether the exact consumed item is packaged.
+- If it is packaged and the tare service is absent, the physical receipt remains pending and the path fails with `*-packaged-tare-service-missing`; it can no longer silently acknowledge the whole package as content Sink.
+- The gate is per item rather than a blanket constructor requirement, preserving non-packaged physical fixtures. Runtime Roslyn compile exits 0.
+- Unity fault evidence remains pending on MCP approval.
+- Current checkpoint plan SHA-256: `27DC71D22BD8578B8470D7127A19981C7889094963D1429075F088E710103BFE`.
+
+# 2026-08-24 packaging identity closure
+
+- Static joining of the canonical ledger artifact and compiled semantic source established the exact remaining set: craft 4, drug 6, food 2, medical 15, medicine 13, antigen sample 7 and supply 12.
+- `medicine:mycelial-culture-pack` explains the previous 58-vs-59 manual recount discrepancy.
+- The packaging audit now rejects any equal-count identity substitution. Editor compile and diff check pass; Unity fresh identity proof is pending.
+- Current checkpoint plan SHA-256: `31FACF8C7D71F12E5750B81917D3C60C3887B1D4A3C04F91CC99EEE1AC9A7F13`.
+
+# 2026-08-24 current-source 360/414 preparation and MCP approval check
+
+- Added exact unit semantics for sterile bandage, sterile mycelium graft, mana-core case, organ-regeneration scaffold and slime-coagulation frame. No kg/BOM/WU/EWU/price asset changed.
+- Packaging review now contains exactly 54 ordinal-sorted IDs with duplicates 0; all five promoted IDs are absent from the review vector.
+- Runtime Roslyn compile exits 0. The ordinary Editor rsp still points at a stale Bee runtime assembly, so it reports the expected missing new tare fields; compiling the Editor against the current tare source exits 0. This is a stale-reference condition to be cleared by Unity, not an accepted final Unity compile.
+- Unity MCP `GetState` and `GetProjectData` both returned `Connection revoked`; no Unity scenario or artifact was falsely marked fresh.
+- Added plan checkpoint 56. Current plan SHA-256: `37AEC10542054E5E0C33C3CD0336EC077AAC41801C98EA73EDA9E012DB17E93C`.
+- Read-only inspection of `Library/AI.MCP/connections-v2.asset` found the concrete MCP blocker: a stale auto-approved Codex client occupies the single 1/1 slot, while the current `codex-local` entry is rejected for the connection limit. The recorded old and current registry PIDs are no longer running. No registry file was modified; approval cleanup remains a Unity Settings action.
+
+# 2026-08-24 packaging runtime-consumer join
+
+- Packaging audit schema v2 now distinguishes recipe consumers from typed runtime owners and computes execution lifecycle from both.
+- Exact current unresolved join is 11 rows / 11 links: six medical runtime items and five supply runtime items.
+- Unknown item, malformed owner, duplicate pair or expected-count drift fails before artifact publication. Presence of an owner remains insufficient to approve tare disposition.
+- Current-source Editor Roslyn compile exits 0. Unity MCP remains revoked by the stale 1/1 approval slot.
+- Current plan SHA-256: `81EB55BA99F4B116DB4CF63DCEBA568A5C137BD52A25D5FEC74ACD9C6557FD14`.
+
+# 2026-08-24 rune-hibernation catalyst semantic
+
+- Exact recipe/procedure evidence establishes `medical:rune-hibernation-catalyst` as a consumed solid surgical item, not liquid content in a separable container.
+- Promoted one semantic; current-source expectation is 361/414 with exact remaining review 53, sorted and duplicate-free.
+- No authored gameplay numeric or asset value changed. Current-source Editor compile exits 0; Unity fresh capture remains pending.
+- Current plan SHA-256: `C96A5BC07C459F62D77C520E90FD187AB715E9AB0CEB8F026E0A84D9FF1833A8`.
+
+# 2026-08-24 integral solid consumable semantics
+
+- Exact BOM and live use establish herbal poultice as a complete fibrous dressing and inoculated log as a cultivation log body; neither has separable tare.
+- Promoted two semantics without asset-number changes. Current-source expectation is 363/414; remaining exact review is 51, sorted and duplicate-free.
+- Current-source Editor compile exits 0. Unity fresh capture remains pending.
+- Current plan SHA-256: `F272BFAB2B23E5EEB25E2335D1416C569E27A3985D4D42332904982B835D1D67`.
+
+# 2026-08-24 runtime consumer authority expansion
+
+- Disease field-response had seven physical item links missing from the audit catalog; all eight distinct rule items now share exact owner `runtime:disease-field-response` and an exact-set focused assertion.
+- All eleven Offense supply mappings now have owner `runtime:offense-supply-package`; the audit explicitly identifies this as a future Transfer boundary rather than a Sink.
+- Runtime catalog is now 42 exact links. Remaining packaging review expects 18 runtime-owner rows/links and hashes the disease/offense source files.
+- Runtime and current-source Editor compiles exit 0. No item/effect numbers changed; Unity execution remains pending.
+- Current plan SHA-256: `28392506FAC15AC3EC180F65DF4D126849473C995060ED231A36B0BEC751C0A1`.
+
+# 2026-08-24 disease field-response typed Sink outbox
+
+- Replaced the disease field-response untyped facility-buffer debit with deterministic exact-stack selection and a pending `PhysicalItemDispositionKind.Sink` receipt.
+- Population-health current schema is now v2 and owns a monotonic operation sequence plus `IntentRecorded`/`OutcomePublished` provenance. Restore rejects malformed identity, missing active intent targets, receipt drift and cross-section reference drift.
+- Execution order is intent publication, physical Sink, packaged tare disposition, detached health outcome publication, receipt acknowledgement, then pending clear. Startup recovery closes either interrupted phase without a second debit/effect/output.
+- Focused Editor fixture covers 2 units / 1,500g, severity 50→36, tare parent/cell once, replay no-op and no-receipt intent cancellation.
+- DungeonStory.Species, Assembly-CSharp and explicit-source Assembly-CSharp-Editor Roslyn compiles exit 0; diff check errors 0. Unity MCP is still revoked by the stale approval slot, so fresh Unity execution remains pending.
+- Plan SHA-256: `C3833E2B78742A23D221604509A9444B37E25B6C3D6BA0BD8A255741AEB74595`.
+- Baseline SHA-256: `74434D3A60F98A05DFBCCEC11974157610133B444AAEDF78187DC73E4D3F38F1`.
+
+# 2026-08-24 Offense supply physical custody
+
+- Expedition departure now commits exact FacilityBuffer stacks as a pending physical Transfer before package ownership and acknowledgement; it no longer uses count-only `ConsumeDelivered`.
+- Current-format Offense world schema v7 preserves custody sources, input grams, return intent/output commits and exact returned+consumed/lost mass closure.
+- Survivor returns publish deterministic Loose Source stacks from persisted owned quantities. Unknown package, over-return, replay and terminal restore cannot mint a second output.
+- Focused fixture covers 2 units/2,000g Transfer, one acknowledgement, 3-unit over-return rejection, 1 unit/1,000g return, 1,000g residual and no duplicate output after retry/restore.
+- Runtime and Editor Roslyn compiles and scoped diff check pass. Unity MCP still responds `Connection revoked`, so the Unity menu and PlayMode evidence remain pending.
+- Plan SHA-256: `EA22FD1C5BAB9CA4FCC818BC07EBEA3E1AD724C825E88F9AE09DECB896D4B6D7`; baseline SHA-256: `E62F0A577641E2ABB4974BCB878FCF117C233F295D7171E9DA1274C5583E5FA6`.
+
+# 2026-08-24 urgent mitigation physical WIP outbox
+
+- Replaced mitigation's count-only material deletion with a pending exact Transfer-to-WIP receipt and persisted `MaterialsCommitted/OutcomePublished` phases.
+- Restore compares urgent-site mitigation against the recorded before/after values: before publishes one delta, after resumes acknowledgement, any third value fails as a conflict.
+- Completion releases unexpected residual deliveries instead of deleting the destination. A post-commit user cancel is rejected.
+- Whole-save preflight joins an unacknowledged order to the exact Physical pending operation, commit, quantity and grams.
+- Focused fixture injects acknowledgement failure after outcome publication, restores the current state and proves no second Transfer or outcome.
+- Runtime consumer authority is now 46 links; remaining packaging review stays 18 rows and becomes 19 links because standard medicine has both supply-package and mitigation owners.
+- Runtime and Editor Roslyn compiles pass. Unity execution remains pending while MCP is revoked.
+- Plan SHA-256: `DE15E4D1F9A3452C5EB76D7FACCDF08CFB9E5441E823F78EE6518912B331FEF8`; baseline SHA-256: `D6D072F129E4185EFAC040E12B09328D604D710D29BB903BD251A612FC3E6AD4`.
+
+# 2026-08-24 physical vaccination Sink and immunity outbox
+
+- Vaccination now records a durable PopulationHealth v3 intent before committing one exact facility-buffer physical Sink. Immunity is published on a detached aggregate only after package tare disposition succeeds; the receipt is acknowledged last.
+- A failed acknowledgement leaves `OutcomePublished` plus exact source IDs, quantity, input grams and commit ID. Startup/current command recovery acknowledges and clears without a second Sink, tare output or immunity publication.
+- Whole-save preflight now joins both disease-response and vaccination health outboxes to pending physical Sink receipts.
+- Seven vaccine items now have exact owner `runtime:physical-vaccination`; runtime catalog is 53 links and remaining packaging review is 25 rows/26 links.
+- The focused fixture compiles and covers one 400g Sink from a two-unit stack, immunity 0→70, injected ack failure, restore and terminal replay. Species/runtime/Editor compiles and scoped diff check pass.
+- Unity MCP still returns `Connection revoked`; fresh Unity execution remains pending.
+- The authored vaccine transform is intentionally not approved: 900g antigen + 140g advanced medicine + 500g water = 1,540g while four 400g outputs create 60g. Reusable vial BOM and exact process loss must be solved together.
+- Plan SHA-256: `5E4D80DC694831A86F09972EFE6622F7CD07014EE235826A8731980D8D09C90E`; baseline SHA-256: `0C3BC316614AB71631D85AB0B4E299BF90BA9A6FEB19C2FE0C68B0E1DED2AD2C`.
+
+# 2026-08-25 character medical supply physical outbox
+
+- Character medical treatment now records an intent before committing one exact FacilityBuffer Sink. Package tare is resolved before the order publishes consumed supply, and acknowledgement is terminal.
+- Current-format schema v4 retains operation sequence, physical item/quantity, facility cell, source stack IDs, input grams and commit ID. Restore validates generic physical IDs through the all-item catalog and joins pending physical receipts in whole-save preflight.
+- Extracted-blood fallback now requests only `captivity:extracted-blood`; arbitrary Biological-category consumption and duplicate active delivery requests are removed.
+- Exact live owner set is seven ranked Resource medicines plus extracted blood. Runtime catalog is 61 links; remaining packaging review expects 28 runtime-owner rows and 31 links.
+- Focused source covers 2×140g medicine, one Sink, one tare call, injected acknowledgement failure, saved `SupplyPublished`, acknowledgement-only recovery, no second debit/tare, uncommitted intent cancellation, exact extracted-blood request and generic-item restore validation.
+- Runtime and Editor Roslyn compiles pass. Unity execution remains pending because MCP still returns `Connection revoked`.
+- Plan SHA-256: `F8758CEEE0BCCFDB637FD4B2DB6830F15982CBE6CACC1EC769E89A090B82090D`; baseline SHA-256: `4A9D03788505BA71546CCC60FD44C8337868D607822B5C56158793212C8A9560`.
+
+# 2026-08-25 temporal-stasis maintenance exact physical outbox
+
+- Removed callerless `IPhysicalAgeTreatmentService` and its direct regeneration/stasis material paths; production age treatment remains surgery-owned.
+- Added a deterministic multi-item facility Sink gateway and converted seasonal temporal-stasis maintenance to one atomic rune-conductor + mana-crystal pending receipt.
+- CharacterLife current-format is v3 with intent/outcome phases, exact owner/input/day provenance and acknowledgement-only recovery. Whole-save preflight joins the pending life record to the Physical Sink receipt.
+- Added a focused fixture for 2 inputs/1,200g, injected acknowledgement failure, restore/replay, missing second input with zero partial debit, and receipt-free intent cancellation.
+- Static gates: dead age service refs 0, age-runtime untyped facility consume 0, repository-wide untyped facility consume calls 36.
+- `DungeonStory.Species`, `Assembly-CSharp` and explicit focused `Assembly-CSharp-Editor` Roslyn compiles exit 0; scoped diff check errors 0.
+- Unity MCP still returns `Connection revoked`; focused menu, actual surgery/whole-save and live facility PlayMode remain open.
+- Updated V27 plan SHA-256: `42A009C746ACD50223BDC43CDB4109F41D29DBA42A8BA0A2AB96572573604E05`; baseline SHA-256: `B626A05DCD881465B83859D9342580CEA53A034989C003F89111EE5CD8117861`.
+- V27 implementation checklist is now `252/304` checked with `52` explicitly open; the added open rows are Unity/live acceptance gates, not silently claimed completion.
+
+# 2026-08-25 generator fuel exact physical outbox
+
+- Fuelled generators no longer call `TryConsumeFacilityItemBuffer`; they commit one exact authored fuel item as a pending combustion Sink.
+- PowerInfrastructure schema v3 persists node fuel sequence, intent/outcome phase, source stack IDs, input grams and commit ID. Whole-save preflight joins the power node to the exact physical pending receipt.
+- Acknowledgement failure no longer grants a free frozen fuel interval: published FuelSeconds continues to decrease, recovery retries acknowledgement, and no next fuel can commit until it completes.
+- Phase validation rejects stale empty provenance and requires ordinal unique outcome source IDs. The industrial JSON fixture now records Sink enum value 3 and 2,000g provenance.
+- Current runtime and Editor Roslyn compiles exit 0; scoped diff check has no errors. Electrical untyped consume is 0 and the repository-wide occurrence count is 35.
+- Unity MCP still returns `Connection revoked`; fresh import, industrial scenario, live generator fault/restore and Console 0/0 remain open.
+- Plan SHA-256: `C6C871390E65760605C056607DB55FBF99222E7DF237860E900231024093C85B`; baseline SHA-256: `21F15BAC8A6D8CE51BB83ACA62BCCA5E6982972B40A382FF99669EC344433B24`.
+- Checklist: `262/316` checked, `54` open, `82.9%` row completion. Practical remaining effort is roughly `25–30%` because the remaining rows include Unity/PlayMode and full authored kg/EWU regeneration.
+
+# 2026-08-25 equipment-module appraisal exact physical outbox
+
+- Module appraisal no longer uses count-only facility consumption. It persists a module-owned intent, commits the exact material-test coupon as one pending Sink, publishes module identification plus exact gauge/lens wear, then acknowledges and clears.
+- Equipment-module physical state is current schema v2. Restore validation covers phase-empty provenance, deterministic sequence/operation, exact before/after envelopes, source IDs/input grams/commit and physical save owner/receipt joins.
+- Pending appraisal authority cannot be installed or encoded into attached equipment state.
+- Focused source covers the normal path and injected acknowledgement failure, current-format capture/restore, acknowledgement-only recovery, mismatched receipt rejection, second debit/wear 0 and terminal replay rejection.
+- Runtime consumer evidence fixes the exact coupon, inspection-gauge and rune-lens owner pairs. Equipment-module untyped facility consume and dead direct-wear helper counts are 0; repository-wide untyped occurrence count is 34.
+- `DungeonStory.Combat`, current-source `Assembly-CSharp` and `Assembly-CSharp-Editor` Roslyn compiles exit 0; scoped diff check has no errors.
+- Unity MCP still returns `Connection revoked`, so fresh menu execution, PlayMode and Console 0/0 remain open.
+- Plan SHA-256: `ABB3AB8D59813780ABE372F1DD34DF98B82C02A03257B3991B1DE162B2B26A50`; baseline SHA-256: `D984CA888F2777F2ED223B3016FAF1F96C7874ACF599286B133576265AF95DB4`.
+- Checklist: `274/330` checked, `56` open, `83.0%` row completion.
+
+# 2026-08-25 regional supply contract export Transfer outbox
+
+- Removed the live regional-contract `TryConsumeFacilityItemBuffer` call and added exact facility-buffer `Transfer` through the shared stable lot selector.
+- Added RegionalSupply current-format v2 delivery phases and exact operation/commit/source stack/quantity/input-gram provenance.
+- Added deadline/history protections, reward-before-ack sequencing and acknowledgement-only recovery with second transfer/income 0.
+- Added `RegionalSupplyContractTransferOutboxDebugScenarios`, registered it in Physical Item Contracts, and strengthened the source authority validator against count-deletion regression.
+- `DungeonStory.Economy`, current-source `Assembly-CSharp`, and current-source `Assembly-CSharp-Editor` Roslyn compiles exit 0.
+- RegionalSupply application-adapter untyped consume count is 0. Repository-wide text occurrences remain 34 because the new validator contains the forbidden method token as a regression assertion; the live production call was removed.
+- Plan checkpoint 69 and baseline record `balance:v27:regional-supply-contract-export-transfer-outbox-v1` were appended.
+- Unity MCP still reports `Connection revoked`; fresh fixture execution, real PlayMode delivery and Console 0/0 remain open.
+- Plan SHA-256: `CF00E3A67EE98C3BDD0B1D6B1A5B4BA9BCEE13CC755CD6431423012994EDED08`; baseline SHA-256: `44ADCBA92D2898DC49A0BDAECA32D640A0B7E1260C676928B3193B369EB061E3`.
+- Checklist: `287/345` checked, `58` open, `83.2%` row completion.
+
+# 2026-08-25 regional supply incoming physical restore cross-join
+
+- Audited the strict save registry and confirmed that every candidate is staged before commit; a dependent section reading the live physical gateway would compare against the wrong world.
+- Added `PhysicalItemRestoreCandidateQuery.cs` with an immutable incoming pending-disposition projection and made `WorldItemStackRuntime` expose it only during transactional staging.
+- Replaced the physical delegate restore stage with a discardable stage that clears the candidate view after either discard or successful aggregate handoff.
+- RegionalSupply preflight remains DTO-local; ordered staging now requires the incoming physical candidate and validates both contract→receipt and `regional-supply-transfer:*` receipt→contract ownership.
+- Focused source rejects missing, orphan and mass-mismatched receipts and proves a real physical runtime candidate view is visible during stage, absent after discard, absent after commit, and exact in the committed runtime.
+- Runtime authority source gates now require DI registration, stage lifetime, two-way joins and the three failure fixtures.
+- Current `Assembly-CSharp` and focused `Assembly-CSharp-Editor` Roslyn compiles exit 0. Scoped diff check exits 0 and the new meta GUID occurs exactly once. Unity execution remains pending because MCP is revoked.
+- Plan checkpoint 70 and baseline record `balance:v27:regional-supply-incoming-physical-restore-join-v1` were appended.
+- Plan SHA-256: `D5DA5DA9B387BC466E2523FBB3FF33214F0E59D2FF683C485AE5F5DF137FAE84`; baseline SHA-256: `39A117D2474EF28A649DA8977EB10A54AD516B55029178937459A643D3B9A9B3`.
+- Checklist: `295/354` checked, `59` open, `83.3%` row completion.
+
+# 2026-08-25 resource stock-policy exact market Transfer outbox
+
+- Generic stock-policy sales no longer count-delete FacilityBuffer goods. They commit exact stable lots as an external-custody Transfer and persist source IDs, quantity, grams, proceeds and deterministic sequence identity.
+- ResourceStockPolicy current-format is v2 with a pending-sale dictionary independent of replaceable UI policy settings. Recovery order is physical commit, exact income publication, acknowledgement and owner clear.
+- Ordered save staging validates pending sale→incoming receipt and every `stock-policy-sale:*` incoming receipt→sale owner in both directions before any live aggregate publication.
+- Focused source covers 2-of-3 lumber Transfer, missing/orphan/mass mismatch rejection, acknowledgement failure, `IncomePublished` JSON round-trip, acknowledgement-only recovery, source remainder 1 and second income/Transfer 0.
+- Runtime authority gates forbid stock-policy count deletion and require the outbox/schema/join/fault evidence. Stock-policy untyped consume is 0; repository-wide text occurrences are 33.
+- `DungeonStory.Economy`, current-source `Assembly-CSharp` and current-source `Assembly-CSharp-Editor` Roslyn compiles exit 0. Scoped diff check has no errors and both new meta GUIDs are unique.
+- Unity MCP still returns `Connection revoked`; no Unity menu, live AI sale, whole-save or Console PASS is claimed.
+- Plan checkpoint 71 and baseline record `balance:v27:resource-stock-policy-market-transfer-outbox-v1` were appended.
+- Plan SHA-256: `DAE97F2C9208F306134CE08AF422CE3260D43061EDDD735CBDCF4426B4C0A966`; baseline SHA-256: `E6CFEE9E1712E02399435938954A1140B5D68C83372CAF5D783BBC39AC7CD08E`.
+- Checklist: `304/365` checked, `61` open, `83.3%` row completion.
+
+# 2026-08-25 callerless crop-treatment mutation removal
+
+- Reverse-call audit found only the interface/implementation and DI registration for `IPhysicalCropTreatmentService`; live UI, AI, work-runner and command callers are 0.
+- Removed the unreachable runtime source/meta and registration instead of wrapping its count deletion in a misleading typed Sink. Authored treatment metadata, recipes, research and numeric values are unchanged.
+- Runtime authority validation now fails if the deleted source or DI interface returns before a complete live planner/runner/outbox path exists.
+- Runtime and Editor Roslyn compiles exit 0, scoped diff errors are 0, deleted GUID external references are 0 and repository untyped text occurrences dropped 33→32.
+- The real treatment feature remains explicitly open: exact plot destination, delivery, work/WU, physical Sink+package tare, ecology result outbox, save join, UI/AI observation and final kg/economy approval.
+- Plan checkpoint 72 and baseline record `balance:v27:crop-treatment-dead-mutation-removal-v1` were appended.
+- Plan SHA-256: `A80C22706341F53B247142EA9A2C8AD38C461B9FA05E932861FADE3F5A4921F8`; baseline SHA-256: `01860CD85E8C3B865E00907EA1603A03AA8C4666068232EB5051C394D2DA2F57`.
+- Checklist: `308/371` checked, `63` open, `83.0%` row completion.
+# 2026-08-25 circus show supply physical outbox
+
+- [x] Replaced generic prop-box count deletion with an exact physical Sink receipt.
+- [x] Persisted cart durability before/after and terminal supply commit in Circus save V4.
+- [x] Preserved acknowledgement-only retry and blocked restore-time duplicate debit/wear.
+- [x] Compiled current Captivity model assembly and current runtime sources with Roslyn.
+- [ ] Add incoming physical restore cross-join/fault fixture and run fresh Unity/PlayMode evidence after MCP approval.
+  - Direct `CircusSaveSection` injection was compile-audited and rejected because Infrastructure cannot depend on default-assembly physical query types; the invalid wiring was removed. A lower shared projection or default-assembly restore coordinator is required.
+  - [x] Moved the immutable query/projection and disposition enum into `DungeonStory.Items`, added the legal Infrastructure→Items reference, and implemented the bidirectional Circus join plus valid/missing/orphan/mismatch fixture. Items/Infrastructure/Runtime/Editor Roslyn compiles pass.
+# 2026-08-25 accord signal physical outbox
+
+- [x] Replaced alliance-signal count deletion with day-scoped exact physical Sink and persisted milestone outcome provenance.
+- [x] Added bidirectional incoming restore join and valid/missing/orphan/mass-mismatch fixture; Runtime and Editor Roslyn compile pass.
+- [x] Added and compiled a real physical-repository acknowledgement-fault + JSON restore fixture proving the expected second-Sink count remains zero.
+- [ ] Execute the fixture and live combat evidence in Unity.
+# 2026-08-25 organ preservation canister physical outbox
+
+- [x] Replaced organ-storage count deletion with an exact canister Sink and part-owned V10 pending provenance.
+- [x] Added outcome-before-ack replay behavior and strict preservation provenance validation.
+- [x] Medical, Runtime and Editor Roslyn compiles pass.
+- [x] Added the whole-save bidirectional incoming receipt join and valid/missing/orphan/mass-mismatch fixture.
+- [x] Extracted the shared organ-preservation outbox and added a real physical acknowledgement-fault replay fixture proving second Sink 0.
+- [ ] Execute it and the live organ-storage scenario in Unity.
+# 2026-08-25 facility relocation package Transfer-to-WIP
+
+- [x] Reclassified the unique facility package as Transfer-to-relocation-WIP and removed generic count deletion.
+- [x] Added order-owned pending provenance, outcome-before-ack replay and V5 validation.
+- [x] Evolution, Runtime and Editor Roslyn compiles pass.
+- [x] Extended the existing restore guard with bidirectional relocation package owner/receipt validation; Runtime and Editor compiles pass.
+- [x] Added a current-format relocation-order real-repository fixture covering acknowledgement recovery and valid/missing/orphan/mass-mismatch joins.
+- [ ] Execute it and the live relocation flow in Unity.
+# 2026-08-25 facility recalibration catalyst Transfer-to-WIP
+
+- [x] Replaced the single-catalyst count deletion with an exact Transfer-to-WIP outbox.
+- [x] Added order-owned receipt/source/mass/outcome persistence and V5 validation.
+- [x] Evolution, Runtime and Editor Roslyn compiles pass.
+- [x] Added bidirectional incoming receipt joins, valid/missing/orphan/mass/source mismatch rejection and a real acknowledgement-fault/JSON-restore fixture.
+- [x] Terminal direct replay is a no-op and live pending receipt validation covers exact kind/reason/commit/source/quantity/input grams.
+- [x] Evolution, current-source Runtime and current-source Editor Roslyn compiles plus scoped diff check pass.
+- [ ] Execute the focused fixture and live delivery/recalibration/whole-save path in Unity, then capture Console Warning/Error 0/0.
+- [ ] Approve catalyst grams, potency cadence, WU/EWU/price and facility ROI after the full mass ledger is applied.
+- Unity MCP is not currently present in the exposed MCP server/resource list, so no Unity execution PASS is claimed.
+- Plan SHA-256: `13B6F0D17FFE146A5EA4785306E041994BFD00A8AC541E5C3743388D4DE8D109`.
+- Baseline SHA-256: `0626C33B2F9ED33383AD5BD8B80D8AA40BF6B3AF1D91BF8D0B64C1830D49192A`.
+- V27 implementation checklist is now `345/421` checked with `76` explicitly open (`81.9%` row completion).
+
+# 2026-08-25 facility modification multi-material Transfer-to-WIP
+
+- [x] Replaced the last FacilityEvolution count-based buffer debit with one atomic exact-lot batch Transfer for binding material plus optional catalyst.
+- [x] Added Facility Evolution V6 source/item/quantity/fingerprint/mass/outcome provenance and strict local validation.
+- [x] Added bidirectional incoming receipt joins and a real acknowledgement-fault/JSON-recovery fixture with split resin stacks, catalyst, terminal no-op and missing-input atomic rollback evidence.
+- [x] Fixed relocation and recalibration acknowledgement recovery so a published result with a pending operation cannot be skipped on the next runtime call.
+- [x] Added static source ratchets; FacilityEvolution untyped FacilityBuffer consume callsites are 0. Evolution, Runtime and Editor Roslyn compiles and scoped diff check pass.
+- [ ] Execute the focused fixtures and actual modification/recalibration/relocation whole-save PlayMode paths in Unity; Unity MCP is not exposed in the current MCP server list.
+- [ ] Approve the facility-evolution item grams, buffer capacity, haul counts, WU/EWU/price and generation ROI after the full mass ledger is applied.
+- [x] Split legacy focused constructors from `[Inject]` production constructors so the physical disposition service and incoming candidate query cannot silently resolve as null in the live graph.
+- Plan SHA-256: `6C167EDE175129723D60FA44568E7F192267C02D2219300A3FA46B84D06865D8`.
+- Baseline SHA-256: `0EF50C41635BB691D5BB40D119FC49A4E4FAA46341550EBE50F25D6A13C05692`.
+- V27 implementation checklist is now `354/432` checked with `78` explicitly open (`81.9%` row completion).
+
+## 2026-08-25 — Equipment evolution material Transfer checkpoint 79
+
+- Reforge and reattunement no longer call count-only `TryConsumeFacilityItemBuffer`.
+- Added exact atomic Transfer-to-WIP outbox with source-equipment exclusion, durable operation/commit/fingerprint/source/gram provenance, acknowledgement-only replay, and terminal no-op.
+- Equipment Evolution current save section is V4; restore validation and a bidirectional incoming Physical receipt guard reject missing/orphan/mismatched provenance.
+- Added real-repository acknowledgement-fault/JSON restore fixture for reforge and reattunement plus missing-input atomicity; registered it in Strict Progression Combat Save scenarios.
+- `DungeonStory.Evolution`, runtime, and Editor Roslyn compiles pass. Unity MCP is discoverable but the Editor returned `Connection revoked`, so live execution remains unchecked.
+- Plan SHA-256: `3AA2D454E3E42F3AD3E572C168FDE16D549D6A74C916E40EA7271E3D907A7BC2`.
+- Baseline SHA-256: `04B16AB88466BA300F3664031C8F5295E23C41D0D0C8C20E48F5D22329FF169C`.
+- V27 implementation checklist is now `364/445` checked with `81` explicitly open (`81.8%` row completion).
+
+## 2026-08-25 — Equipment repair material/durability/output checkpoint 80
+
+- Removed the equipment-maintenance count debit and added exact split-lot repair-material Transfer-to-WIP ownership with equipment-source exclusion.
+- Equipment Maintenance current save section is V3 and persists material receipt provenance, durability before/after, acknowledgement, and output-release phases.
+- Durability applies through a replay envelope; acknowledgement and exact equipment output release cannot cause a second material debit or repair result.
+- Added bidirectional incoming receipt validation, acknowledged-receipt rejection, a real repository acknowledgement-fault/JSON fixture, and source ratchets.
+- Runtime and Editor Roslyn compiles pass. Unity execution remains open because the Editor MCP connection is revoked.
+- Plan SHA-256: `34C5202CCF4845434631ADBBD305ECD4C324426A171CABC3AB8647C6A24B79B5`.
+- Baseline SHA-256: `E77CF26FEA5DE9DC233835A5561EFCDA48F8857F5BA74E1E917B3BFD0F4070ED`.
+- V27 implementation checklist is now `377/461` checked with `84` explicitly open (`81.8%` row completion).
+
+## 2026-08-25 — Combat equipment crafting transaction checkpoint 81
+
+- Replaced the final combat-crafting count debit with one attempt-scoped exact multi-lot Transfer-to-WIP.
+- Combat Equipment V7 persists material provenance, fixed quality/Mythic result and generic/unique output publication state.
+- Moved accepted/rejected output materialization into the crafting runtime; the building completion handler no longer removes the order before spawning.
+- Added deterministic ammunition output commits, unique equipment instance/stack replay, incoming physical owner/receipt guard and a real-repository acknowledgement-fault/JSON fixture.
+- `DungeonStory.Combat`, Runtime and Editor Roslyn compiles pass; production combat crafting count-consume callsites are 0. Unity MCP still returns `Connection revoked`.
+- Rejected-equipment auto-dismantle now uses an exact pending Transfer-to-WIP plus fixed, commit-tagged recovery Source outputs. Input acknowledgement occurs only after every recovery output is published, and restore rejects missing/orphan/mismatched dismantle provenance.
+- Authored mass/economy approval remains open. Plan SHA-256: `1B72B516FEC0E5A628FE883A4E6492482AE17BF9078DF6C77BA827AEDD5AF61C`; baseline SHA-256: `8BCD1A13B1BC867C2DD72EA84B17463716A164271B360E22A306A2E0C4F7A651`.
+- V27 implementation checklist is now `390/476` checked with `86` explicitly open (`81.9%` row completion).
+
+## 2026-08-25 — Defense facility maintenance/supply transaction checkpoint 82
+
+- Removed all DefenseFacilityRuntime item/category count deletion paths.
+- Added exact maintenance Sink and supply-to-internal-custody Transfer transactions with deterministic operation sequence, exact source lots, input grams and persisted outcome phases in Defense Facility V2.
+- Added bidirectional incoming Physical receipt validation and a real-repository split-source/acknowledgement-fault/JSON recovery fixture.
+- Prevented mixed ammunition boxes from being partially discarded by requiring full 8-unit free-capacity increments; exact authored item delivery is now authoritative.
+- `DungeonStory.Defense`, Runtime and Editor Roslyn compiles pass; source ratchets and scoped diff check pass. Unity MCP still returns `Connection revoked`.
+- Plan SHA-256: `525CCEB16E9E260AD4DBDE16BAF408717AC688B34165F59F85F6C967FF743624`; baseline SHA-256: `AAA4E5DEBAFBC3624C25783C51126E4F3438DC8DAC42DB455550860D60A75831`.
+- V27 implementation checklist is now `399/487` checked with `88` explicitly open (`81.9%` row completion).
+
+## 2026-08-25 — Crop physical transaction checkpoint 83
+
+- Removed `TryConsumeSowingInputs` and replaced crop inputs with an exact multi-input pending Transfer outbox.
+- Added Crop Plot V4 pending sow ownership and ecology before/after replay envelope.
+- Added Certified Seed V1 persistent orders, fixed certified state and exact component-bearing FacilityOutputBuffer publication.
+- Added whole-save certified output joins and bidirectional crop/certified pending receipt validation.
+- Added real-repository split-input, missing-input atomicity, acknowledgement-fault, V4/V1 JSON and missing/orphan/mass fixture source; linked it to the Crop Plot verifier.
+- Runtime and Editor Roslyn compiles exit 0, five new GUIDs are unique, scoped diff check has no errors, and remaining production count-debit callers are three.
+- Unity MCP state query still returns `Connection revoked`; focused/live execution remains unchecked.
+- Plan SHA-256: `15700F09DEF19C392D76781C346A014AAAB5E55836BC54D37A8F3FDFE38FA7D0`.
+- Baseline SHA-256: `A9A4878447E6931F31390AA89E366A1EEE530B45A07483FB4A0EBFFCE3AB9480`.
+- V27 implementation checklist is now `411/503` checked with `92` explicitly open (`81.7%` row completion).
+
+## 2026-08-25 — Grand-project physical transaction checkpoint 84
+
+- Removed the GrandProject `ConsumeDelivered` count debit and committed the full delivered BOM as one exact pending infrastructure-embedded Sink.
+- Added Grand Project V2 physical owner provenance, before/after completion envelopes, cancellation gating and acknowledgement-only replay.
+- Added incoming physical receipt bidirectional joins and focused acknowledgement-fault/V2 JSON/missing-orphan recovery evidence.
+- Exposed the immutable physical request fingerprint in runtime disposition receipts and kept physical save receipt reconstruction exact.
+- `DungeonStory.Economy`, Runtime and Editor Roslyn compiles exit 0; scoped diff check has no errors. The remaining legacy semantic gateway consumer is ProductionStockSensor, plus direct WorkAmountSystem and FluidNetwork count paths.
+- Unity MCP still returns `Connection revoked`; focused/live execution remains unchecked.
+- Plan SHA-256: `353C2A2CF050002DDCFE70155CCEF3E11C856D73E89A5A8AB31F096E1F728CC7`.
+- Baseline SHA-256: `CC4697D37C103507F607D2768BCE074F28227FBB142C9ACFF36EF8D82EE28D20`.
+- V27 implementation checklist is now `423/519` checked with `96` explicitly open (`81.5%` row completion).
+
+## 2026-08-25 — Production stock-sensor install checkpoint 85
+
+- Replaced stock-sensor installation count deletion with an exact one-item pending infrastructure-embedded Sink.
+- Added Production V14 installation owner provenance, installed-outcome phase and acknowledgement-only replay.
+- Added incoming receipt bidirectional joins and focused acknowledgement-fault/missing-orphan evidence.
+- Removed the unused production `ConsumeDelivered` API and `ProductionItemGateway.TryConsumeFacilityItemBuffer`; two direct semantic count-debit callers remain.
+- Production, Economy, Runtime and Editor Roslyn compiles exit 0; scoped diff check has no errors.
+- Stock-sensor removal output atomicity and Unity live execution remain open; MCP still returns `Connection revoked`.
+- Plan SHA-256: `26B15C1F31A2E4001479949B5B24DF0684822C3FBEA0236CDF3CFDBD2F759E9A`.
+- Baseline SHA-256: `F20DA9299769977803A2BDD48AFF091C74EAC4380689E819EB68A4451814AF34`.
+- V27 implementation checklist is now `435/535` checked with `100` explicitly open (`81.3%` row completion).
+
+## 2026-08-25 — Fluid manual/container-feed transaction checkpoint 86
+
+- Removed both remaining Fluid count/category debit paths and replaced them with exact `resource:clean-water` FacilityBuffer `Transfer` ownership.
+- Fluid current-format V6 persists the immediate/manual and automatic-feed operation sequences, request fingerprint, exact source/quantity/input grams and reserve/network outcome phase.
+- Outcome publication precedes acknowledgement; acknowledgement failure and restore resume without a second item debit or water outcome.
+- Added bidirectional incoming Physical receipt joins, detached local validation, missing/orphan/mismatch rejection, wrong-category decoy coverage and a real-repository acknowledgement-fault fixture.
+- `DungeonStory.Infrastructure`, current-source Runtime and Editor Roslyn compiles exit 0; scoped diff has no errors. Fluid legacy count/category debit callsites are 0 and only `WorkAmountSystem.EnsureMaterialsReady` remains.
+- Unity live execution and empty-container/tare plus final water grams/buffer/haul/WU/EWU/price/six-adult closed-loop evidence remain open because the Editor MCP currently returns `Connection revoked`.
+- The plan checklist is `449/553` checked with `104` explicitly open (`81.2%` row completion).
+
+## 2026-08-25 — Construction material Transfer-to-WIP checkpoint 87
+
+- Replaced the final WorkAmount construction-material count debit with one exact atomic multi-BOM pending Transfer.
+- Work Order V6 persists source item/stack/quantity, request fingerprint, commit, input grams and custody/restitution phase; incoming pending receipts are joined bidirectionally.
+- Cancellation no longer bulk-deletes destination stock. Acknowledged WIP publishes deterministic exact-mass restitution and remains `WaitingForOutputSpace` until publication succeeds.
+- Construction site cancellation and completion now retain their order/owner on restitution or placement failure; debug completion cannot synthesize delivered materials.
+- Added source ratchets and focused acknowledgement-fault/V6 JSON/missing-orphan/single-commit/exact-return evidence. Current-source Runtime and Editor Roslyn compiles exit 0; WorkAmount production semantic count-debit callers are 0.
+- Partial multi-output restitution restore preflight is now complete. Unity live execution and final construction grams/buffer/haul/WU/EWU/price/space/six-adult growth evidence remain open because the Editor MCP currently returns `Connection revoked`.
+- Plan SHA-256: `0621ACEB37E574FCE15C1079A53A1877A1D4D13C8A99C2DDD9DFA89ECFBB6FA6`.
+- Baseline SHA-256: `B8D5D1A6BEBC851FE6D1AAE24532F1B91AA8ABEA684C749F42452BB78B6F2196`.
+- V27 implementation checklist is now `463/571` checked with `108` explicitly open (`81.1%` row completion).
+
+## 2026-08-25 — Stock-sensor removal Source output checkpoint 88
+
+- Upgraded Production current format to V15 and preserved each installed sensor's input operation/commit/source stack and embedded grams.
+- Replaced clear-state-before-spawn removal with Prepared/OutputPublished ownership and deterministic Loose Source publication; output-space failure retains installed ownership and exact retry produces one output.
+- Removal identity now includes the installation source stack, preventing past-cycle output commit collisions on repeated install/remove use.
+- Added a detached committed-output restore candidate query and used it for pending sensor removal plus partial/complete construction restitution preflight.
+- Added Production/Work Amount focused fault and tamper evidence plus runtime source ratchets. Items, Production, Economy, Runtime and Editor Roslyn compiles exit 0; scoped diff errors 0 and new GUID count 1.
+- Unity focused/PlayMode execution and final sensor grams/buffer/haul/WU/EWU/price/ROI remain open because Editor MCP still returns `Connection revoked`.
+- V27 implementation checklist is now `480/589` checked with `109` explicitly open (`81.5%` row completion).
+- Plan SHA-256: `AB06045E89BB5ABE7B770404A4EF522CB5021CB8921A570560093FFE5DDF29C0`.
+- Baseline SHA-256: `202502CB0FA2A22B2F729A6DB36C23DE41F965613A8E79ADFB38600970B9FCDC`.
+
+## 2026-08-25 — Crop-plot destruction WIP terminal-loss checkpoint 89
+
+- Upgraded Crop Plot current format to V5 with last-known grid position and typed destroyed-WIP loss provenance.
+- Destroyed plots now retain exact sow input quantity/grams through acknowledgement failure instead of orphaning custody or teleporting inputs to storage.
+- Added acknowledgement-only replay, phase-specific restore validation and crop ecology owner cleanup after terminal receipt completion.
+- Extended the real-repository crop fixture and runtime ratchets for destroyed loss, tampered mass and V5 ownership.
+- Economy, Runtime and Editor Roslyn compiles exit 0; scoped diff errors are 0.
+- Unity focused/PlayMode destruction evidence and final crop-input kg/buffer/haul/WU/EWU/price/six-adult balance remain open because Editor MCP still returns `Connection revoked`.
+- V27 implementation checklist is now `496/607` checked with `111` explicitly open (`81.7%` row completion).
+- Plan SHA-256: `EFC41C402E3DE7CA03A78B5131F6CFCC700FF58AE271B3CC847F4876A61B9096`.
+- Baseline SHA-256: `86A2D90D6A3B1A3C96B05BD2346289220305E686A2A6C9738EA08D2B36B6A8DC`.
+# 2026-08-25 crop treatment vertical slice resumed
+
+- Re-read root agent contract, whole-game balance authority, V27 plan, and persistent planning files.
+- Re-ran planning session catch-up and `git diff --stat`; the worktree remains intentionally broad and dirty, so edits will stay scoped.
+- Unity MCP connection is now healthy and the Editor is idle. Fresh compile/fixture/Console evidence will be captured after the next slice compiles.
+- Began section 72 call-path inventory; no gameplay or asset values have been changed yet.
+
+## 2026-08-25 crop treatment structural implementation pass 1
+
+- Added authored treatment policy fields and provisional builder values for pest lure, botanical pesticide, and fungicide.
+- Upgraded Crop Plot current-format schema V5->V6 with a durable treatment order, exact physical receipt/tare/ecology provenance, cooldowns, and destruction loss state.
+- Added `CropTreatmentPhysicalOutbox` for exact Sink, package tare replay, outcome acknowledgement, and destroyed-plot terminal loss.
+- Connected crop panel schedule/cancel/observation, exact treatment delivery destinations, persistent Treat work, and ecology result publication.
+- Added Treat support to all four crop facility assets and both authoritative builders; no new prefab/Inspector reference is required.
+- Removed the free daily SoilDiagnostics fungicide mutation so physical fungicide cannot be bypassed. SoilDiagnostics' existing yield and other authored benefits remain.
+- Unity AssetDatabase refresh succeeded. Economy, Runtime, and Editor Roslyn compiles exit 0; Unity Console currently reports Warning/Error 0/0.
+- Focused real-repository acknowledgement/restore/tamper fixture and runtime source ratchets remain to be added before section 72 is checked complete.
+
+## 2026-08-25 crop treatment checkpoint 90 and live save-roundtrip repair
+
+- Extended the crop physical fixture with a real exact Sink gateway, repeated tare publication, acknowledgement fault, JSON replay, bidirectional incoming join, kind/fingerprint/mass tamper rejection and destroyed-treatment terminal loss.
+- Added public restore-validation snapshots so Editor evidence uses the same production guard without exposing mutable `CropPlotState`.
+- Added source ratchets for the live planner, Sink/tare outbox, V7 owner, exact Sink receipt, reverse join and focused treatment/destruction evidence.
+- Economy, Runtime and Editor Roslyn compiles all exit 0. Unity `CropPhysicalTransactionFixture.Run()` passed repeatedly.
+- The first Crop Plot PlayMode run exposed a real self-save bug: Unity serialized null `SeedLotState` as an empty object, so an empty completed sow owner failed strict restore.
+- Added Crop Plot V7 `hasSeedLot` as an explicit absence/presence discriminator and retained fail-loud validation for actual pending seed provenance.
+- After the fix, the Crop Plot PlayMode report is `valid=true`, outdoor harvest `0->6`, indoor phase `Growing`, typed output-containment work/quantity conservation true, and Console Warning/Error `0/0`.
+- Closed plan section 72's structural live-consumer row and the duplicate Unity focused rows in checkpoints 83 and 89. Final treatment kg/package/BOM/WU/EWU/price/six-adult/multi-seed work remains open.
+- The global runtime authority validator still fails on unrelated stale save-count/version and architecture-report ratchets; this was recorded rather than misreported as a crop failure or global PASS.
+- V27 checklist is now `499/607` checked with `108` open (`82.2%`). Plan SHA-256 is `CEB7A7B30BD6A575911A359B3E75CF1D9124A82DA4335FE73D6CE5954DBA3E73`; baseline SHA-256 is `D5B8BBD55E9581EF240DB3D306D16BE4EA296E68F1B2BE2BF58A3B5F38ACFA1C`.
+
+## 2026-08-26 packaged consumable missing-tare recovery
+
+- Replaced stale “MCP pending” language in five baseline records with the actual focused Unity results while preserving every still-missing live PlayMode and final authored-balance gate.
+- Added a test-only catalog injection overload to `PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture`; the disposition service now reuses the runtime's same immutable mass query, avoiding a split test authority.
+- Added `SurvivalDebugScenarios.RunPackagedConsumableTareRecoveryFocused()` using a packaged vitality-tonic fixture with a 30g reusable medical vial.
+- With tare service omitted, the physical item is Sink-committed once, the gameplay effect ledger is written once, the active plan remains `EffectsPublished`, the pending receipt survives repeated retries, and acknowledgement fails with exact `substance-packaged-tare-service-missing`.
+- Restoring the same current-format payload with `PackagedLotTareDispositionService` publishes one Loose vial, acknowledges the pending Sink, closes the active plan and remains idempotent on the next Tick.
+- Full `SurvivalDebugScenarios.RunAll()` and `PhysicalItemDebugScenarios.RunAll()` pass in Unity; Console Warning/Error is `0/0`; scoped `git diff --check` reports no errors.
+- Closed both rows in checkpoint 55. Checklist is now `535/607`, `72` open (`88.1%`). Plan hash is `5A117524A17162627D5574583F2F5E96A9FD5AC0C0F225053C8290B26517EE73`; baseline hash is `11D739F8EF1373B23936B37CE345ED866660FDF880CD0A31C4132FD74796D74D`.
+
+## 2026-08-25 Unity backlog: accord signal and organ preservation
+
+- Ran `AccordSignalRestoreJoinFixture.Run()` in Unity: exact Signal Kit Sink, valid/missing/orphan/mass mismatch joins, acknowledgement fault, JSON restore and acknowledgement-only recovery passed.
+- Ran `OrganPreservationRestoreJoinFixture.Run()` in Unity: exact canister Sink, fail-closed restore joins, acknowledgement fault and second-Sink-0 recovery passed.
+- Unity Console Warning/Error remained `0/0`; closed the focused execution rows in checkpoints 74 and 75. Their actual combat/storage PlayMode and final authored mass/economy rows remain open.
+- Checklist is now `501/607` checked, `106` open (`82.5%`). Plan SHA-256 is `DA87E90EFDF476CF6B5B624899A40FA51E83DE8E46BDBAFF859479B42FD61FFA`; baseline remains `D5B8BBD55E9581EF240DB3D306D16BE4EA296E68F1B2BE2BF58A3B5F38ACFA1C`.
+
+## 2026-08-25 Unity backlog: facility evolution material fixtures
+
+- Ran relocation package, recalibration catalyst and atomic multi-material modification fixtures in Unity; all passed.
+- Ran the full `FacilityEvolutionDebugScenarios.RunAll` suite; candidate validation, replacement, pending material replay/tamper, UI action and all three physical fixtures passed with Console Warning/Error `0/0`.
+- Closed only checkpoint 76's explicitly focused relocation-fixture row. Checkpoints 77 and 78 still require actual live delivery/work/whole-save evidence, so their broader rows remain open with partial evidence recorded.
+- Checklist is now `502/607` checked, `105` open (`82.7%`). Plan SHA-256 is `ABE954DDB190F976BE80F7EDD46041E14741ED854733AE886A2A19F278124A91`; baseline remains `D5B8BBD55E9581EF240DB3D306D16BE4EA296E68F1B2BE2BF58A3B5F38ACFA1C`.
+
+## 2026-08-25 Unity backlog: strict combat and defense
+
+- Strict combat initially failed only the generic combat-craft output stage. Detailed fixture diagnostics showed `combat-craft-output-owner-conflict` while the deterministic operation was present and the commit was correctly absent pre-publication.
+- Fixed `CombatEquipmentCraftOutputOutbox` to permit operation-only prepared owners, reject commit-without-operation, and still require exact operation+commit once `outputPublished` is true.
+- Added durable stage diagnostics to `CombatEquipmentCraftTransactionFixture`; Runtime and Editor Roslyn compiles pass.
+- Reran Strict Progression Combat Save: equipment evolution, equipment repair, combat crafting and strict detached restore all passed.
+- Ran the P1 Defense Facility suite: assets, trigger/effects, damage/repair, guard room, strict save and physical supply/maintenance transaction all passed. Console Warning/Error remained `0/0`.
+- Closed the focused Unity execution rows in checkpoints 79 and 80. The actual workbench and defense-hauler PlayMode rows in checkpoints 81/82 remain open.
+- Checklist is now `504/607` checked, `103` open (`83.0%`). Plan SHA-256 is `69D4CF844944952ECDE7F098E7255F732CCDC9EA581A693607D40CB7F71B0633`; baseline SHA-256 is `9F739ABAF8EEEAC6F2F95528964550D1133CC419C8EE1A9A46887B999E8F4194`.
+
+## 2026-08-25 Unity production/items/work checkpoint 94 — in progress
+
+- `ProductionEconomyDebugScenarios.RunAll()` is green after the default-safe `GrandProjectPhysicalInputReceipt.IsCommitted` correction.
+- The first fresh `PhysicalItemDebugScenarios.RunAll()` run failed two strict-authority rows: `equipment_instance_physical_authority` used the obsolete `equipment-module-instance:*` fixture ID, and `equipment_module_appraisal_ack_restore` registered a maintenance-buffer host solely for a codec-negative assertion without creating its required physical stack.
+- These failures are being repaired at the fixture composition boundary; the production typed-ID and physical-stack invariants remain strict.
+- After Physical Item became green, the first Work Amount run failed `construction order lifecycle`: the fixture's null catalog provider made strict restore validation classify authored `material:lumber` as invalid. This is a fixture-composition defect, not evidence for relaxing the production catalog join.
+- Updated the Physical Item fixtures to use canonical item-instance identity and a real physical stack for the registered maintenance-buffer host. The full Physical Item suite then passed.
+- Updated the Work Amount fake world to expose the authored Editor item catalog. The full Work Amount suite then passed without changing production restore validation.
+- Production Economy, Physical Item and Work Amount all pass in the fresh Unity session; Console Warning/Error is `0/0` and scoped `git diff --check` has no errors.
+- Closed only the focused Unity rows in V27 checkpoints 84, 85, 87 and 88. Checklist is now `508/607` checked (`99` open, `83.7%`). Plan SHA-256 is `01E7E8218E29677114371F09F20F945FDEE44DF8779978D65EC016C5437BE773`; baseline SHA-256 is `B7EEB640951813E28597787D37A587580B57CD08DD3F10287D36B845F785EE3B`.
+
+## 2026-08-25 Unity Industrial Infrastructure checkpoint 95 — in progress
+
+- Industrial Infrastructure initially stopped before the fluid transaction fixture because medical facilities such as M01 had lost their process-fluid settings.
+- Root cause: `IndustrialInfrastructureAssetBuilder` correctly overlays clean-water/wastewater, 0.2 medical-effluent cycles and Plumbing, but later `SurgeryContentAssetBuilder.ReplaceAbilities` erased that cross-domain contract.
+- The existing Industrial overlay is now a reusable authoring method and the Surgery builder reapplies it after replacing its medical abilities. Actual assets and no-op rebuild determinism still need Unity validation.
+
+## 2026-08-25 Unity Industrial Infrastructure checkpoint 95 — complete
+
+- Refined the medical builder so it replaces only medical-owned ability types and preserves cross-domain overlays plus existing external unlock authority.
+- Made Industrial process-fluid and Service Room hub overlays mutate existing abilities in place; M01's Direct medical service is also reapplied by the Surgery builder.
+- Rebuilt M01–M13 twice and compared every asset SHA-256: second-run byte changes were `0/13`.
+- Industrial Infrastructure and Service Room focused suites both pass. M01 simultaneously retains Direct service, unlocked state, CleanWater/Wastewater, Plumbing and 0.2/0.2 medical-effluent process fluid. Console Warning/Error is `0/0`.
+- Closed only checkpoint 86's focused Unity row; live AI water transport, packaging and final mass/economy remain open.
+- Checklist is now `509/607` checked, `98` open (`83.9%`). Plan SHA-256 is `4708F0201D165196DDFBF600F01C0DDF8859704DD46E5F02C094F5CB1D4FF8F4`; baseline SHA-256 is `81376571EF06DD30FA636A115C104B81F387E69A888B6E3A26B30C948571E149`.
+
+## 2026-08-25 physical-mass authority/semantic/recipe recapture
+
+- Fresh authority capture exposed two new Editor fixture files missing from the exact writer manifest. Verified they use fixed test mass queries only and registered both as `editor-test-writer`; production writer authority stayed unchanged.
+- Re-ran authority inventory, explicit semantics, 355-recipe inventory and remaining packaging review from Unity current catalogs.
+- Current results are 414 ledger items, 1,074 weight sites, 363 explicit semantics, 51 remaining package-review items, 355 recipes, 38 reviewed transforms, 159 missing dispositions and 84 mass-creation Critical rows.
+- Runtime consumer rows/links are 28/31 and packaging execution orphan count is zero. Unknown writers, duplicate/out-of-ledger semantic, role-shape mismatch and asset mutation are all zero.
+- Repeated all four generators and compared 12 artifact SHA-256 values; second-run changes were zero. Console Warning/Error remained `0/0`.
+- Closed only the recapture/history rows, including superseded intermediate semantic counts. Item-level package decisions, Critical recipes, final kg, EWU/prices and live regressions remain open.
+- Checklist is now `525/607` checked, `82` open (`86.5%`). Plan SHA-256 is `1E0059ABB1C814736985D12AA92B4842EA5862655C2B3FB55D9A0972470C7786`; baseline SHA-256 is `A3661FF610F5CB1009E85677186F557A47F0749F31E740A0E31A749F6A7A7784`.
+
+## 2026-08-26 Unity generator fuel outbox checkpoint 98
+
+- Added `IndustrialPowerFuelOutboxContractProbe` under the runtime assembly with `UNITY_EDITOR` gating so it can exercise internal topology without making industrial implementation types public.
+- The focused fixture uses a real `BuildableObject`, production `ElectricalNetworkRuntime`, physical coal stack and `PhysicalFacilityItemSinkGateway`.
+- An injected first acknowledgement failure leaves one physical debit, `OutcomePublished`, `FuelSeconds=120` and the pending receipt intact. Current-format restore completes acknowledgement only; after a ten-second tick `FuelSeconds=110` and the source quantity is still reduced by exactly one.
+- `IndustrialInfrastructureDebugScenarios.RunFuelOutboxTransactionFocused()` and the complete `RunAll()` suite PASS after fresh import. Unity Console Warning/Error is `0/0`; scoped `git diff --check` reports no errors.
+- Closed only checkpoint 67's Unity transaction row. Final fuel gram, combustion-loss/byproduct, BOM/WU/EWU/price and six-adult power/logistics rows remain open.
+- Checklist is now `538/607` checked, `69` open (`88.6%`). Plan SHA-256 is `E379E5D268E75C757168B3C7068DF3C932065F4E7D8915C496820E42F7FBB3C0`; baseline SHA-256 is `CE5200E6ADBCD6CCAE7EE671527C5C456B87947728D8246E1FB5FAFD5F98A0EF`.
+
+## 2026-08-26 whole-save physical candidate transaction checkpoint 99
+
+- The first actual Surgery PlayMode run reached a live Procedure save, then failed because production bills, Circus, Surgery and RunMilestones attempted physical-candidate joins during registry preflight, before `items.physical` had staged its detached candidate.
+- After moving those joins to dependency-ordered staging, the next run exposed a second defect: `PhysicalItemCandidateSaveRestoreStage.Commit` cleared the candidate before transaction participants published. The failing facility-evolution participant also left crop guard state active for the verifier's cleanup restore.
+- `WorldItemStackRuntime` now owns a final transaction participant that keeps the immutable candidate index alive across commit and all cross-section publication, then clears it on complete/rollback/discard. Guard rollback paths reset both active and published state.
+- Physical Items, regional supply, production economy, Captivity/Circus, V20 campaign, Surgery, temporal-stasis and strategic save-registry focused suites all PASS.
+- The third actual Surgery PlayMode run passed mid-procedure current-format whole-save restore, exact state/work and physical inventory conservation, AI exact-once resume, completion, packaged anesthetic vial return, AI warehouse intake and vial reuse. `Artifacts/QA/surgery-playmode-report.txt` ends with `RESULT=PASS`; Console Warning/Error is `0/0`.
+- Closed checkpoint 68's Unity focused row and checkpoint 66's fresh Unity/surgery/whole-save row. Checkpoint 70 remains open specifically for a whole-save containing a pending regional delivery owner/receipt pair and its tamper matrix.
+- Checklist is now `540/607` checked, `67` open (`89.0%`). Plan SHA-256 is `D24A049A6ECDEF8275CA12C3227D919B2DB1C55CA96FC973BC088732E9C92CD3`; baseline SHA-256 is `A70FCF6042A2DD905BF73B733E95F3F53A9900C0C84097784DD0A0FD7165DD9B`.
+
+## 2026-08-26 pending regional delivery whole-save checkpoint 100
+
+- The Regional Supply fixture now gives the real Physical Items runtime and `DungeonSaveSectionRegistry` the same injected aggregate-root store; no production repository property was widened for testing.
+- The captured whole-save contains the exact pending regional owner and Physical Items Transfer receipt. A valid restore preserves source remainder `1`, the pending owner and a cleared post-transaction candidate index.
+- Missing receipt, owner mass mismatch and orphan incoming receipt all fail before live aggregate publication and leave candidate-index leak `0`.
+- The focused fixture, Physical Items, Production Economy and Dungeon Save Section suites PASS after fresh Unity import.
+- The exact pending-delivery matrix also ran with `EditorApplication.isPlaying=true` and reported `PLAYMODE=1`; Unity Console Warning/Error is `0/0` and scoped diff-check reports no errors.
+- Closed checkpoint 70's final PlayMode row. Contract authored kg, quantity/reward, haul/WU, EWU/price and six-adult economy validation remain open under checkpoint 69.
+- Checklist is now `541/607` checked, `66` open (`89.1%`). Plan SHA-256 is `66756929F2AEA770E0C94FD03E40940669B6AC00207E023A02CDB0F29571F490`; baseline SHA-256 is `E9215ED4F782C9F8C22A4E6DE591EBB1174A4F75711C48A78449B426BDA7332C`.
+
+## 2026-08-25 dog-food exact mass vertical slice checkpoint 101
+
+- The two dog-food recipes previously consumed `1,050g` and emitted `1,100g`; both are terminal feed transforms without water, fuel, packaging or probabilistic output.
+- Changed the single item authority from `550g` to `525g`, added a builder exact override, and made the builder fail loudly if either recipe's item/count/gram topology drifts.
+- Added two reviewed `PhysicalMassTransformContract` records with `0g` loss and updated the expected reviewed count from `39` to `41`.
+- Applied only `feed_dog_food.asset`, then ran the semantic and recipe audits twice. All six artifact hashes were byte-identical.
+- Current recipe inventory is `355` total, `41` reviewed exact, `81` mass-creation Critical, `159` disposition missing and `47` missing-semantic recipes.
+- `CaptivityCircusDebugScenarios.RunAll(false)` PASSed the exact captive-feed Sink/outbox regression at the new authority; Unity Console Warning/Error is `0/0`.
+- Added plan checkpoint 91 and baseline record `balance:v27:dog-food-ration-mass-conservation-v1`. Final kg warehouse admission, FacilityBuffer, AI haul, EWU/price and six-adult loops remain open.
+- Checklist is now `554/622` checked, `68` open (`89.1%`). Weighted remaining effort remains approximately `35–45%`.
+- Plan SHA-256 is `F4DA97CADB39D16CBDA57E7CC9991771A55FF5409E925F32B2743F185496EA4D`; baseline SHA-256 is `8F02C6EDEFF7E3338D4868135ED8173A5E6ED6A9A70AB108F9774C13B1E9DF5B`.
+
+## 2026-08-25 inoculated-log exact mass/RF13 consumer checkpoint 102
+
+- Bedding triage found incompatible `280g` and `1,350g` input pathways plus no live husbandry consumer, so no arbitrary large loss was authored.
+- Changed the independent inoculated-log authority from `1,800g` to `700g`; treated lumber `1,150g` plus cave mushroom `250g` now produces two exact `700g` cultivation-log sections.
+- Added Research builder exact override/topology guard, corrected the semantic label, added one reviewed no-loss transform and raised the recipe expected-contract count to `42`.
+- Consecutive mass recaptures were byte-identical. Recipe inventory is now `355` total, `42` reviewed exact, `80` mass-creation Critical, `159` disposition missing and `47` missing-semantic recipes.
+- The first full builder no-clobber run exposed stale `Treat` projection in RF03/RF93 and partially changed those files. The exact mutations were restored; only the two intended supported-work scalar values were then aligned while preserving every RID.
+- The corrected full no-clobber run PASSed all 5 builders across 7,219 files with changes `0`.
+- Common crop physical transaction/restore PASSed. Fresh PlayMode used the real RF13 definition, requested `supply:inoculated-log×1`, consumed the `700g` physical stack, entered `Growing`, retained output-containment conservation and ended with Console Warning/Error `0/0`.
+- Added plan checkpoint 92 and baseline record `balance:v27:inoculated-log-section-mass-conservation-v1`.
+- Checklist is now `564/632` checked, `68` open (`89.2%`). Plan SHA-256 is `3FAFD18685DC6B7A4819BA86AC1970DA9F7204D6D9F2407D2BD23510B4917EA7`; baseline SHA-256 is `67C8C2A65B876FA3BB9CF582A73A3FB1C90ABA02852D09146C0EC0A858A3753F`.
+# 2026-08-25 V27 labor/facility iterative rebase continuation
+
+- Resumed from the current worktree and authoritative checklist: `543/609` rows checked, `66` open.
+- Fresh output-capacity PlayMode evidence and the granulated-powder exact transform are already present; they are not being re-run as substitutes for the remaining full gates.
+- The immediate production blocker is a one-pass authored labor/facility rebase: applying the current target changes downstream BOM/EWU inputs and can produce a second exact target (`building:9822` observed `308 -> 582 -> 882`). The next change is a bounded exact fixed-point loop with per-iteration custody approvals, dynamic asset-byte rollback, final approval regeneration, standard audit and dry-run `no-op diff=0`.
+- No checklist row will be closed until the current Unity source revision compiles and the rebase converges under the real asset authority.
+- Implemented the bounded coordinator in `V27BalanceAssetApplication`: maximum eight exact iterations, temporary per-iteration approvals, de-duplicated historical/first-time patch sets, lazy original-byte capture for every newly exposed asset, one outer approval+asset rollback unit, final converged approvals, strict audit and dry-run no-op verification.
+- Unity reimport produced a fresh `Assembly-CSharp-Editor.dll` at `2026-08-25 01:45:49Z`; Console Warning/Error is `0/0`. Runtime convergence execution is the next gate, so the rebase checklist remains open.
+- First bounded execution reached the final `no-op-verify` phase, proving the iterative refresh itself no longer fails at `building:9822`. The dry-run still reported a nonzero difference and the outer transaction restored the approval file plus every touched asset. No checklist row was closed. The generic error lacks patch identities; the next diagnostic separates labor/facility scope from unrelated preserved approvals before changing behavior.
+- Parsed the strict audit CSV after the rolled-back run: exactly `203` approved, patchable, `assetApplied=false` rows remained, and every one was an `item-market` unit-price or sale-rate property. No labor/facility row remained unapplied. The coordinator now includes approved market rows in its direct refresh set, matching the approval predicate and final no-op scope.
+- One PowerShell artifact inventory command failed before reading files because a `foreach` block was piped directly and produced an empty-pipe parser error. The corrected command accumulates rows in an array before sorting; no project file changed in the failed attempt.
+- The corrected Unity execution PASSed the full bounded transaction: `iterations=1`, `rebasePatches=4`, `directRefreshPatches=370`, `changedAssets=232`, `rollbackAssets=230`, `approvals=1936`, `noOpDiff=0`. The current source compiled, the former `building:9822` iterative drift no longer failed, and all approved patchable properties were exact no-ops under the converged ledger. The corresponding main-plan checklist row is now checked.
+- Fresh 256-seed economy simulation PASSed: `seeds=256`, `failures=0`, `items=414`, `recipes=351`, `crops=12`, lossy-transform checks `92,928`, minimum margin `-1,060,045mEWU`, partition checks `16,384`, rows `85,105`, Critical `0`, SCC `297`.
+- The subsequent whole-game coverage command correctly failed before accepting stale evidence: `Daily-routine evidence is missing or stale: seed=157181`. Applied labor/facility verification did not execute because coverage was first in the combined command. The next action is to resolve and rerun the current-source daily evidence authority, then rerun both gates; no downstream checklist row was closed.
+- Regenerated all three official five-day PlayMode reports from current source. Per adult-day results: seed 157181 actual/effective `49.194/45.196`; 157182 `40.651/37.596`; 157183 `56.754/52.381`. Every report has `failures=0`, `capturedIssues=0` and the current `ai-runtime-gate-v3` marker.
+- The formal whole-game daily gate still failed: mean actual/effective `48.8665/45.0578` are inside the 5% target bands, but CV `13.461%/13.397%` exceeds the unchanged `12%` cap. The gate was not weakened and the coverage/applied-authority checklist rows remain open pending variance root-cause analysis.
+- Source audit found the neutral verifier's layout defect: it selected the service candidate nearest the seed-dependent actor origin, then independently selected the first construction candidate nearest that origin. It never minimized service-to-construction distance despite naming the layout compact. Seed 157182 therefore measured a much wider test fixture than the other seeds. The planned correction is deterministic pair selection minimizing operational access distance first, with ordinal coordinate tie-breaks; production gameplay placement and authored space values remain unchanged.
+- Implemented deterministic facility/construction pair selection in the Editor-only daily verifier and compiled a fresh `Assembly-CSharp-Editor.dll` at `2026-08-25 02:37:23Z`; Console Warning/Error is `0/0`. All three reports are now correctly stale against the modified verifier and must be regenerated before judging the CV correction.
+- The first post-fix seed 157181 kept the visible `(21,0)` construction and `(28,0)` service geometry but changed from the immediately prior `49.194/45.196` to `52.378/48.273` WU/adult-day and completed 11 rather than 12 meals, failing only the `0.8 meals/actor-day` lower bound. Because the geometry endpoint did not change, the next gate is an exact same-source/same-seed rerun; do not attribute this result to the pair selector without repeatability evidence.
+- Exact repeatability failed. First post-fix 157181: SHA-256 `754F820B...D1D8C5`, actual/output `785.671/724.102`, 11 meals, FAIL. Immediate same-source/same-seed repeat: `567076AC...F5C5F`, `794.279/731.693`, 12 meals, PASS. Construction endpoint stayed `(21,0)`, but final reserved worker changed. The 3-seed CV cannot be accepted as a pure balance measurement until random/scheduler authority is reset from `runSeed` for each run.
+- Post-layout seed 157182 PASSed at `49.613/45.632 WU/adult-day`, with work transit `31.738s`, need travel `28.372s`, failures `0` and captured issues `0`.
+- Post-layout seed 157183 reached `49.921/46.285` but failed only because the verifier counted one deliberate routine-need work-finalization handoff as `urgent-unserved`: its trace had incoming `RoutineUtility`, outgoing work action and `routineFinalizing=true` at the same time.
+- Updated the Editor-only verifier so the typed `IsRoutineNeedInterruptionFinalizing` custody flag suppresses no-progress classification regardless of the already-switched presentation branch. A fresh Unity compile and rerun are required before accepting any coverage row.
+
+## 2026-08-25 L02 positive-gram warehouse checkpoint 103
+
+- Confirmed the real warehouse gram engine already bypasses legacy count admission whenever `maxStoredMassGrams>0`; L02 itself was the missing authored deployment.
+- Added L02 `12,500g` authority to the modular builder and asset, preserving `General`, restricted policy and legacy count metadata `16`.
+- Added an exact static admission/restore fixture using `supply:inoculated-log=700g`: an 18-unit request admits 17 (`11,900g`), commits one physical stack, leaves 600g and rejects the next unit without mutation.
+- Extended modular runtime checks so real `Facility.Initialization` projects L01 `25,000g` and L02 `12,500g` into `WarehouseInventory`.
+- Added an L02-focused PlayMode mode. It uses production `WorldItemWarehouseService`, restores the physical checkpoint, then invokes the real planning service against an isolated L02 warehouse view. Overfill fails before pickup with Loose quantity 1, reservation 0, carry `0→0`, inbound mass 0 and stored mass `11,900g`.
+- Focused artifact `Artifacts/QA/l02-mass-admission-playmode-report.txt` is `RESULT=PASS; failures=0`; captured Console Error/Warning is `0/0`.
+- The broad physical-logistics run exposed 18 unrelated existing failures in craft output, expedition and official restore. Those remain open and are not hidden by the focused PASS.
+- Full no-clobber rerun passed 5 builders across 7,219 files with `changes=0`.
+- Added plan checkpoint 93 and baseline record `balance:v27:l02-mass-authoritative-general-warehouse-v1`.
+- Checklist is `576/647` checked, `71` open (`89.0%`). Plan SHA-256 is `75ECE55A45B97269ED95A372E2546B3E0449ED05B1E012A54FC8BC34182AF5A9`; baseline SHA-256 is `F33D633F54B4DE64BEFE3A43972BFBB4EAA98F34FE1249AC3CF7DBFAD4BE1676`.
+- The exact global census is 21 positive-count storage abilities: L01/L02 are positive gram, 19 remain zero. M08 organ storage was missing from the earlier 18-count estimate.
+
+## 2026-08-25 remaining 19 storage gram rollout in progress
+
+- Confirmed the interrupted bulk patch had applied `0/19`; the 13 legacy Modular assets omitted the field and Q03/Q04/Q05, M08 and both P1 defense assets still serialized zero.
+- Applied only the gram scalar in small file-local patches. All 21 positive-count storage assets now contain exactly one field and match the reviewed authority table (`21/21`). Existing RID churn, ability order, count, category and all-categories policy were preserved.
+- Added an exact 21-row authored table and global positive-count census to Physical Stock, positive gram projection for every Modular runtime warehouse, exact M08 Biological/count 8/12,500g validation and exact P1 1802/1803 25,000g policy validation.
+- Fresh Unity import compiled successfully. Physical Stock, Modular runtime, Surgery and Species/Faction/Defense focused scenarios all PASS; Unity Console Warning/Error is `0/0`.
+- This checkpoint remains in progress until builder-source/asset regeneration stability, scoped diff check, plan/baseline evidence and the separate carcass/dedicated-transport admission policy are closed. FacilityBuffer remains the next distinct runtime slice.
+
+## 2026-08-25 positive-gram storage census checkpoint 104
+
+- Closed the capacity-authority deployment for all 21 positive-count storage definitions: every asset has one positive gram field and matches its real writer seam.
+- Added deterministic artifact `Artifacts/QA/v27-storage-mass-authority.txt`; two consecutive runs have identical SHA-256 `1D77C4EA3D8011561EDE0010EBB77E80432A87ED6E256CC5141CDA4A7461E214` and report `21/21`.
+- Initial Unity calls had used the last good assembly while the real Bee build was failing on a removed L02 local. The false-green calls were discarded. After fixing that compile error, the Editor DLL advanced to `04:25:15Z / 8,096,256B` and all focused evidence was rerun.
+- Fresh Physical Stock, Modular runtime, Surgery and P1 Defense scenarios PASS. Console Warning/Error is `0/0`.
+- Fresh five-builder no-clobber PASSes `5/5`, `7,219` files and `changes=0`; report SHA-256 is `913AC6D7D8BC9D47005C5A8BAFB585C2BCFB881426F269615ACCAC25B35EC88F`.
+- Scoped diff-check has no errors after removing one M08 YAML trailing space; line-ending notices are informational.
+- Added checkpoint 94 and baseline `balance:v27:positive-gram-storage-census-v1`. Checklist is `587/660` checked, `73` open (`88.9%`).
+- Heavy-item audit remains deliberately open: rune-deer 22kg, moss-boar/humanoid corpse 28kg have no dedicated transport, no 28kg all-category warehouse, and D03 currently remote-consumes carcasses. The next capacity slice must not hide this with an ordinary warehouse exception.
+
+## 2026-08-25 production input FacilityBuffer bounded-mass checkpoint 105 (partial)
+
+- Added exact destination-bound carried mass projection to the physical-item runtime and exact pending/definition gram queries to the production item gateway.
+- Production input prefetch now derives one capacity from the complete cycle BOM and persisted `2~3` batch window, then exclusively uses bounded delivery requests.
+- Added a source ratchet: exactly one bounded production caller, zero unbounded callers.
+- Focused PlayMode used the real world item runtime and production gateway. It admitted inoculated-log inputs at exactly `4,200g`, rejected the next `250g` before pickup without mutation, preserved `4,200g` through current-format restore and released to `0g`; `RESULT=PASS`, captured Error/Warning `0/0`.
+- Fresh clean compilation advanced `Assembly-CSharp-Editor.dll` to `2026-08-25 04:56:22Z`; Production Economy contracts PASS and Unity Console Error/Warning is `0/0`.
+- Closed five of checkpoint 95's nine rows. Pickup transition, consume leak, actual AIHaul, exact production destination claim and all-owner manifest remain open, so this checkpoint is not complete.
+- Corrected literal plan count is `592/669` checked, `77` open (`88.49%`). Weighted remaining work is approximately `30~40%`.
+- Plan SHA-256 is `CC3102DCB6CDBF6F3206FDB1A414F7EF8F3056C5396EF45C3E11FE7B729469D2`; baseline SHA-256 is `D0D915D5DB563290D44E6765C5BBF2128216B4B7CC78871451FFCDF4BACD5BAD`; focused report SHA-256 is `9ADBFCE54D880D2D2B10C1E6FE7693253C4C4BAC3310019B073228AB7A9E8F1F`.
+## 2026-08-25 Production input FacilityBuffer pickup/cancel ownership
+
+- Implemented preflighted exact loose/stored retargeting; no source debit depends on a later spawner result and legacy partial helpers are gone.
+- Published/restored exact production input destination claims and gated all four claim-revocation paths on atomic haul/carry cleanup.
+- Focused PlayMode proved 4,200g before/after pickup, actor-cell recovery on cancel, 8/8 quantity conservation, zero orphan intent after immediate restore, and Console 0/0.
+- Checklist is 594/669 complete. WIP consume gram decrement and cross-domain FacilityBuffer manifest remain next.
+- WIP consume is now green at exact `1,400g/2 units`, including pending receipt restore/acknowledge and 8/8 quantity conservation. Checklist is 595/669; the cross-domain FacilityBuffer manifest is the only remaining row in checkpoint 95.
+
+## 2026-08-25 FacilityBuffer owner-manifest audit started
+
+- Recounted the authoritative plan document rather than historical planning-file checkboxes: `595/669` checked, `74` open (`88.94%`). Weighted remaining effort remains approximately `30~40%`.
+- Assigned a read-only parallel audit to enumerate every live FacilityBuffer/FacilityOutputBuffer owner, claim, producer, consumer, persistence boundary, release path and bypass.
+- Local implementation work is bounded to deterministic owner-manifest generation and classification; no gameplay value or asset changes are authorized by this checkpoint.
+
+## 2026-08-25 FacilityBuffer owner-manifest checkpoint 106
+
+- Added `V27FacilityBufferOwnerManifestDebugScenarios` with 50 deterministic rows: 39 live input owners, 5 output owners, 5 direct bypasses and 1 orphan API family.
+- Dynamic source discovery proves 59 generic delivery invocations across 39 production files and rejects unclassified or stale path classifications.
+- Production input remains the sole migrated gram-bounded row. The report explicitly says `fullStoredDestinationCoverage=false` and the final full-migration gate remains open for 43 remaining rows, 5 bypasses and 1 orphan.
+- CSV/TXT recapture is byte-identical and `WriteIfDifferent` preserved both mtimes. CSV SHA-256 is `6A4806D381DE458321B4738ADC70B07AB00DB747023F9D323B9D7BDEFC640056`; TXT SHA-256 is `AFB1E8EA2F71447205603B52D00230B0470DB19D60F39416557957C347114750`.
+- Fresh Unity compile, Production Economy contracts and classification gate PASS; Console Warning/Error `0/0`.
+- Authoritative plan is now `596/669` checked, `73` open (`89.09%`). Weighted remaining effort is still approximately `30~40%`; the manifest makes the large migration debt explicit rather than completing it.
+
+## 2026-08-25 common FacilityBuffer admission / power-fuel slice
+
+- Added a shared exact-lot FacilityBuffer gram admission service, service-owned physical/carried occupancy calculation, bounded token/receipt retirement and reversible claim/profile lifecycle.
+- Added `power:{nodeId}` exact claim and four-fuel-unit positive gram profile publication, plus fail-loud handling for a managed power destination with no profile.
+- Integrated generic delivery reservation and source split/retarget rollback around the new token.
+- Forced current-source Unity compilation; `Assembly-CSharp.dll` and `Assembly-CSharp-Editor.dll` advanced at 15:48 KST.
+- Focused results: FacilityBuffer Mass Admission PASS, Physical Stock PASS, Industrial Infrastructure PASS, Production Economy PASS, Console Warning/Error `0/0`.
+- Full migration is still open: terminal close/restore/exact-stack power handling, production common-profile cutover, 37 further input owners, 5 output owners, 5 bypasses and 1 orphan API.
+
+## 2026-08-25 power-fuel FacilityBuffer live closure
+
+- Added the common terminal destination release service and routed production/power claim retirement through it. Unpicked leases release logically; committed carried cargo drops at the carrier; deposited buffer stock releases at the former owner position; publication failure preserves ownership.
+- Stabilized the power capacity profile at authored revision `1` instead of transient topology `SourceVersion`, and made claim/profile restore publication a precomputed non-failing swap.
+- Generic exact-stack delivery now reserves common FacilityBuffer gram admission before any split/retarget mutation, rolls routed tokens back on downstream failure, and rejects raw low-level `power:` routing.
+- Actual PlayMode used a real AIHaul actor and full save-section registry checkpoint while `350g` of mana crystal was carried. The same operation and gram were restored, delivery completed, the fuel was consumed, the pump network received `6.4/10` power and no haul intent remained.
+- Focused report: `Artifacts/QA/industrial-power-fuel-buffer-playmode-report.txt`, SHA-256 `357C7DA95B4C675F54E230F2A50FDE895FAE46B0E1E4F434DE809D4989FC452F`; `result=PASS`, Console Warning/Error `0/0`.
+- Fresh FacilityBuffer Mass Admission, Physical Stock, Industrial Infrastructure and Production Economy static suites all PASS with Console Warning/Error `0/0`.
+
+## 2026-08-25 production-input common profile cutover closure
+
+- `ProductionInputDestinationClaimRuntime` now owns the exact claim and positive `2~3` cycle gram profile as one atomic lifecycle image; production input no longer supplies a caller-authored maximum to `RequestDeliveryWithinMassCapacity`.
+- The isolated current-source PlayMode run used an actual injected production facility and actual AIHaul. It passed exact 4,200g admission, overflow pre-pickup rejection, pickup mass identity, actor-cell physical recovery on cancel, current-format save/restore, orphan-zero and exact 1,400g WIP Transfer with fixture quantity 8/8.
+- `Artifacts/QA/production-input-buffer-mass-playmode-report.txt` SHA-256 is `A3902852796480CA6F6F253CF64E415E0904915913D3AFE22148B450B993466A`; captured and Unity Console Warning/Error are both `0/0`.
+- The normalized power-fuel artifact was run twice in isolation. SHA-256 is `41CD376E62EA60D556DEF18382F38E1482FDF65B3FFF9F639593F997479CE0CC` and the second run changed neither bytes nor mtime.
+- The current-source owner manifest was regenerated twice. Input owners remain `migrated=2/remaining=37`, output remaining `5`, bypass `5`, orphan `1`, unclassified `0`; CSV/TXT SHA-256 are `DF455D3CA1BD9D7C07939FA0758C210743CDCEC03BF4F0753B3271E52DC6E5A4` / `377388A7B6187E83031EA0DB9F1B8DEA7A170FB94F49967C510B069667A5FADC`, second-run byte/mtime change `0`.
+- Fresh FacilityBuffer Mass Admission, Physical Stock, Production Economy and Industrial Infrastructure static suites PASS with Console Warning/Error `0/0`.
+- Revised tracked V27 physical-mass plan SHA-256 after expanding the production-output audit into explicit gates is `10F0376FBAA2E7C532531E18A83ACC3FEC189EF187E7512A3DF85A3DBE68B9E8`; checklist is `607/692`, `85` open (`87.72%` surface). This is checkpoint evidence, not a final PR approval digest.
+
+## 2026-08-25 equipment-repair common FacilityBuffer closure
+
+- Migrated `equipment-repair:{equipmentInstanceId}` to owner-wide common claim/profile lifecycle. Capacity is one exact repair job: current unique equipment mass including installed modules/loaded ammunition plus exact material grams.
+- Create, restore, complete and cancel deterministically republish the entire active repair-order image; one terminal order cannot delete another order's authority.
+- Fresh clean compilation first found CS0165 in a short-circuit `out` local. Splitting equipment lookup and capacity calculation into separate fail-loud branches fixed it; current-source Assembly-CSharp/Editor DLLs advanced and all focused static suites passed.
+- Added an isolated PlayMode mode. Actual AIHaul delivered the equipment and three blacksteel ingots, exact profile was `6,500g/revision 1`, duplicate request count was zero, repair and salvage preserved ownership, and terminal claim/profile were zero. Focused report SHA-256 is `867BC180F3C532F549A1584250B7C5D95C274EE8834352D12D188838526DFDDE`; Console Warning/Error `0/0`.
+- The broad logistics verifier also passed all repair assertions but retains 11 unrelated craft-output/construction-restore failures. These remain open rather than being hidden by the focused result.
+- Latest owner manifest is input `migrated=3/remaining=36`, output `5`, bypass `5`, orphan `1`, unclassified `0`; deterministic CSV/TXT hashes are `4578FAA4E4D1310484E2CB966E4FCD7BCECC17A99E1BB322E765DA74421B55EE` / `CAAC0A58031E9C50926161A0A6F5858BAFBB018C63D14374E26006B7CBB56A31`.
+- Plan checklist is `616/701`, `85` open (`87.87%`); plan SHA-256 `7A183703CD748272035655B48A1F9E0EF71393E4128E454F57FDFEF5126916FF`.
+- Error log: the first dynamic PlayMode start imported a nonexistent `DungeonStory.Infrastructure.Industrial.Editor` namespace and failed before execution. The verifier is in the global namespace; the corrected `global::IndustrialInfrastructurePlayModeVerifier.RunPowerFuelOnly()` command passed. Do not repeat the guessed namespace.
+
+## 2026-08-25 standard production-output admission work started
+
+- Kept all available collaboration slots productive: one agent is implementing the source-independent planned/nonexistent-output gram token on the common destination ledger, and one agent is completing the 355-recipe/357-line canonical-output census. Unity execution remains serialized under the root agent.
+- Re-audited the current generic path at the exact authority boundary: shared sequential RNG, line-to-item grouping, per-unit direct buffered output commit and absence of durable full-batch output-space waiting are still present.
+- Updated the active execution plan to integrate and verify the planned-output primitive first, then apply canonical line/role data and implement one real generic WIP-to-FacilityBuffer exact-once vertical slice.
+- Error log: `session-catchup.py` found 32 unsynced messages but crashed while rendering Korean text under CP949 (`UnicodeEncodeError` for U+2014). No project state changed; current plan/progress/findings tails and `git diff --stat` were used for recovery.
+- The Items-only planned-output foundation is now present and root-reviewed at the contract boundary: it has no live producer yet, stores no fake stack ID, shares `reservedByDestination`, recomputes exact mass, and validates full receipt line/stack totals.
+- First clean Unity build was intentionally not counted: it caught the concurrent output-line schema edit between constructor and builder callsite updates, producing CS7036 at two builders. The schema worker was instructed to close all seven callsites before the next clean build.
+- Completed all seven source construction sites, tightened output-line IDs to lowercase `output:` grammar, and added a project-owned duplicate/noncanonical regression rather than relying on MCP's Sirenix-incomplete dynamic compiler.
+- Fresh current-source compile passed; `Assembly-CSharp.dll` is `7,938,048 bytes @ 09:37:47Z`, `Assembly-CSharp-Editor.dll` is `8,189,440 bytes @ 09:41:09Z`. Planned admission plus Production Economy/canonical-line regressions PASS with Console Warning/Error `0/0`.
+- Closed only checkpoint 97's common planned-output token row. Checklist is `617/701`; the 351-asset backfill, live prepared WIP, atomic publication and restore join remain open.
+
+## 2026-08-25 production-output integration continuation
+
+- Recovered all three delegated foundations and requested final static handoffs before Unity compilation.
+- Current authoritative V27 checklist remains `617/701` checked, `84` open (`88.02%`); no new row was closed because the new APIs still have zero production-live callers.
+- Updated the active execution plan to review the three contracts, wire the four feedbench recipes through persisted WIP/waiting/exact FacilityBuffer publication, then run one serialized Unity evidence pass and synchronize baseline/manifest/checklists.
+- The prepared-output contract advanced the current Production save schema to V16; the known V15 hardcode in `RuntimeAuthorityV18Validator` remains an explicit compile/validation follow-up.
+- Error log: one read-only orchestration cell mixed a PowerShell `$files` declaration into JavaScript and failed before executing any nested command. No project state changed; the corrected retry uses valid JavaScript string commands only.
+- Root contract review fixed the common planned-output fingerprint to one lowercase 64-hex SHA-256 authority, matching Production V16 instead of adapter-side rehashing.
+- Delegated the Economy-domain port/runtime cutover, Items restore/rollback/marker APIs, and generic component codec as three non-overlapping work packages. Root retains the facility-scoped output authority, default-assembly adapter, DI, Unity and documentation integration.
+- Added `ProductionOutputDestinationAuthorityRuntime`, the facility-scoped owner for `production-output:{facilityId}` claim/profile pairs. It atomically publishes the full owner-domain image, never shrinks a live capacity, and separates terminal revocation from per-bill lifecycle so one bill cannot revoke another bill's shared output buffer.
+- Corrected V16 restore validation to join prepared lines through `CaptureCanonicalOutputs()` and validate authored line identity/role/item without falsely requiring the resolved quantity to equal the authored base amount. This preserves legitimate multiplier, fractional-rounding and passive-integrity outcomes while leaving exact outcome fingerprint verification to the live port.
+- Error log: a read guessed nonexistent `ResourceEconomyDefinitions.cs`; `rg` had identified the real interface file as `ResourceEconomyModels.cs`. No file changed and the guessed path will not be reused.
+## 2026-08-25 — prepared FacilityBuffer 통합 시작
+
+- 병렬 구현 3건을 회수했다: Economy prepared-output port/runtime 분기, Items planned-output 원자 publication·restore·acknowledgement, output destination gram authority 집중 시나리오.
+- 현재 네 feedbench recipe는 legacy count reservation/ResolveAll 경로를 우회하도록 분기됐지만 composition-root adapter와 DI가 아직 없어 live 경로는 미완료다.
+- 다음 증거 경계는 하나의 gram 권위로 `resolve -> reserve -> physical publish -> admission commit -> durable non-stacking acknowledgement`를 exact-once 연결하고, Production save와 Items restore candidate를 양방향 join하는 것이다.
+- 현재 체크리스트 `617/701`, open `84`; fresh Unity compile/PlayMode 전에는 새 행을 닫지 않는다.
+
+## 2026-08-25 — prepared output restore reverse join 구현
+
+- `ProductionPreparedOutputRestoreJoin`을 추가해 Production V16 owner와 Items planned-publication restore candidate를 batch/line/stack/quantity/gram/destination/fingerprint 기준으로 양방향 대조한다.
+- `PublicationPrepared` 상태에 이미 exact 물리 batch가 존재하는 crash window는 physical candidates를 채택해 `Completed`로 정규화하고, `PhysicalBatchCommittedPublicationPending`은 persisted candidates까지 exact 비교한다.
+- 고아·누락·부분·변조·Completed+pending marker를 fail-loud하며, Production save section commit 안에서 detached aggregate restore 후 marker를 durable non-stacking provenance로 acknowledgement한다.
+- 기존 Production economy fixtures는 prepared authority가 없는 범위에서만 명시적 empty join을 사용하도록 갱신했다. 실제 DI와 fresh Unity 증거는 아직 pending이다.
+
+## 2026-08-25 — prepared output 통합 결함 보강
+
+- 체크리스트 수치는 계속 `617/701`, open `84`다. fresh Unity/PlayMode 전에는 구현 존재만으로 체크를 닫지 않는다.
+- restore-join focused scenario에 저장 owner보다 실제 physical stack이 하나 더 존재하는 초과 batch 회귀를 추가했다. aggregate quantity/mass까지 변조한 extra stack은 publish 전에 fail-loud해야 한다.
+- 정적 P1 감사에서 resume/restore의 중복 cycle-start 용량 요구, adapter transient token cache의 restore 잔존, migrated prepared authority와 legacy count reservation 혼합 preflight 누락을 확인해 별도 수정 중이다.
+- 완료 직후 prepared lines를 지우는 현재 수명주기 때문에 사일리지 `plant-rot`가 authored `recipe.Outputs` 기반 distribution에서 누락됨을 확인했다. recipe에서 추론하지 않고, 실제 committed physical line을 drain 완료까지 보존하는 durable routing authority를 별도 구현 중이다.
+- Error log: focused scenario 목록을 찾는 첫 PowerShell `rg` 명령은 double-quoted regex의 `|`가 pipeline으로 해석되어 ParserError가 났다. 파일 변경은 없었고 single-quoted regex로 즉시 재실행해 시나리오 목록을 확보했다.
+- Error log: DI 등록 위치를 `Assets/Scripts/Composition/...`으로 추측한 첫 `rg` 입력 하나가 nonexistent-path 경고를 냈다. 실제 권위는 `Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs`로 확인했고, 검색 자체는 나머지 workspace에서 정상 완료됐다.
+- Durable routing 초안의 active-bill/destination-wide 소비와 legacy item-only relocation이 owner·provenance·component 보존을 깨는 P0/P1임을 확인했다. prepared 소비 연결은 제거하고 authority/save/publication hook만 compile-safe하게 남긴 뒤, 별도 exact-lot routing transaction 설계로 이어가도록 분리했다.
+- Error log: 첫 MCP clean compile 뒤 Console API는 0건을 반환했지만 default assembly DLL 시각이 갱신되지 않았다. Editor.log를 교차 확인해 `ProductionBillRuntime.cs:266`의 out-variable scope 이름 충돌(CS0136)을 발견했고, prepared branch 지역 변수를 `preparedReleaseFailure`로 분리했다. 향후 compile 증거는 Console만 믿지 않고 Editor.log와 관련 DLL timestamp를 함께 확인한다.
+- Error log: 두 번째 clean compile은 `ProductionPreparedOutputExecutionAdapter.cs:796`의 동일 out-variable 이름 충돌(CS0136)과 `FacilityBufferPlannedOutputPublicationService.cs:1056`에서 out parameter를 LINQ lambda가 capture한 CS1628을 발견했다. live acknowledgement 변수명을 분리하고, out 값을 먼저 local `batchAcknowledged`로 복사해 lambda는 local만 capture하도록 수정했다.
+- Error log: 위 두 파일을 한 번에 고치려던 첫 multi-file patch는 파일 구분 앞의 불완전 hunk 때문에 검증 단계에서 거부됐고 아무 파일도 바꾸지 않았다. 두 개의 정상 patch로 즉시 재실행해 적용했다.
+- 세 번째 clean compile에서 runtime `Assembly-CSharp.dll`과 `DungeonStory.Economy.dll`은 fresh 시각으로 갱신됐지만 Editor assembly가 실패했다. 원인은 restore-join scenario의 target-typed `new(long)`/internal repository 접근, Production economy fixture 6곳의 새 join 인자 누락, planned-publication Editor scenario의 runtime internal 접근이다. 세 묶음을 두 agent에 분리해 테스트 범위를 유지한 채 public test-access/query 경계 또는 명시적 empty join으로 수정 중이다.
+- 네 번째 clean compile은 current log segment 기준 error 0이며 fresh `Assembly-CSharp.dll 8,041,472 bytes @ 11:06:08Z`, `Assembly-CSharp-Editor.dll 8,258,048 bytes @ 11:06:11Z`를 생성했다. Console Warning/Error도 0/0이다.
+- Focused prepared-output 11개 중 admission, atomic publication, canonical output, prepared contract, component codec, destination authority, resume authority, restore join, silage ruin contract, durable routing authority의 10개가 PASS했다. 전체 ProductionEconomy만 non-migrated `test:recipe:fermentation` ruined batch까지 silage-only port로 보낸 scope 회귀로 실패했다.
+- 해당 회귀는 `recipe:silage`만 exact prepared ruined port를 사용하고, 아직 이관되지 않은 passive recipe는 기존 spoilage publication을 유지하도록 positive scope를 고쳤다. 이후 fresh compile과 11개 focused rerun이 필요하다.
+- Positive ruined scope 수정 후 fresh clean compile과 같은 11개 focused suite 재실행이 모두 PASS했고 Console Warning/Error `0/0`을 확인했다.
+- 계획서에 split-aware custody, Items/Economy 양방향 outbox, physical restore cross-join, legacy bypass fail-closed와 실제 AIHaul을 별도 97.4 체크포인트 9행으로 추가했다. 발견된 필수 범위를 숨기지 않아 전체 checklist는 `620/710`, open `90` (`87.32%`)가 됐다.
+- Fresh 증거로 97.3의 key-addressed output RNG, Production V16 prepared save 권위, partial/missing/extra/wrong/orphan WIP↔physical restore join 세 행만 닫았다. 1g live feedbench, multi-role atomic publication, profile retire, exact route/PlayMode/manifest는 계속 열어뒀다.
+
+## 2026-08-25 — exact provenance-lot route 통합 진행
+
+- 계획 체크리스트는 Unity 재검증 전까지 `620/710`, open `90` (`87.32%`)로 유지한다.
+- Economy durable route outbox V3, Items exact route/custody, PhysicalItems V11 cross-restore join을 병렬 구현하고 root가 `ProductionDistributionRuntime`의 batch/line exact route coordinator를 연결했다.
+- 통합 감사에서 Economy non-empty target과 Items empty-only target 계약 충돌을 발견했다. 최종 계약은 target ID가 canonical optional이며, non-empty는 소비처 지시 운반, empty는 일반 창고 선택을 의미한다.
+- 초기 Items route가 산출물을 `TargetPosition`으로 직접 relocate하는 텔레포트 결함을 발견했다. routed stack은 시설의 원래 물리 위치에서 `Loose`로만 전환하고, 목적지 ID/좌표는 별도 AI haul intent로만 기록하도록 교정 중이다.
+- prepared line의 payload SHA-256과 generic physical subject의 빈 component fingerprint를 혼동해 모든 정상 route가 `ComponentMismatch`가 되는 P0을 발견했다. admission slice와 physical publication provenance에 owner prepared-component fingerprint를 별도 보존하고 Economy caller가 검증된 projection fingerprint를 전달하도록 연결했다.
+- `RoutedOffsetQuantity`는 operation-global이 아니라 routed-stack lineage-local(신규 routed stack은 0), `SourceOffsetQuantity`는 line-global 연속으로 확정했다. AI partial split의 descendant offset 갱신은 후속 hauling slice에서 검증한다.
+- route request/receipt fingerprint 토큰 순서를 Economy와 Items 사이에서 byte-identical하게 정렬했다. Unity clean compile과 focused/PlayMode 증거는 세 병렬 작업 합류 후 한 번에 수행한다.
+
+## 2026-08-25 — exact provenance/checkpoint Unity 검증 완료
+
+- Physical Items current-format을 V13으로 올리고 원본 physical receipt/target과 current-delivery revision overlay를 분리했다. outbox와 모든 descendant overlay는 restore 전에 exact join하며 Economy 최신 revision이 사용할 immutable Items query를 제공한다.
+- direct carry consumer/removal, contextless carried drop, retail, theft, relocation, textile compaction, generic custody spawn과 FacilityBuffer aggregation/deposit fallback을 physical mutation 전에 fail-close했다. production direct destructive carry-removal caller는 `ItemTransferService` 내부 3개만 남고 static ratchet이 이를 고정한다.
+- durable save는 `WriteThrough + Flush(true)` 뒤 atomic replace하고 성공 후에만 Economy/Items 두 participant가 동일 candidate/digest/sequence를 checkpoint GC한다. same-digest replay는 no-op이고 carried/in-transit/reserved/recovery batch는 전체 defer한다.
+- fresh compile 과정에서 internal JSON helper 접근, Editor 진단 assembly 경계, 기존 persistence fixture의 새 outbox 인자 누락을 실제 Editor.log로 발견해 수정했다. public gameplay 권위를 넓히거나 `InternalsVisibleTo`를 추가하지 않고 Items 내부 진단을 `#if UNITY_EDITOR` 동일 assembly로 이동했다.
+- 최종 DLL: `Assembly-CSharp.dll 8,239,104 bytes @ 13:40:59Z`, `Assembly-CSharp-Editor.dll 8,302,592 bytes @ 13:43:02Z`, `DungeonStory.Economy.dll 434,176 bytes @ 13:21:23Z`, `DungeonStory.Items.dll 62,464 bytes @ 13:21:22Z`, `DungeonStory.Production.dll 90,624 bytes @ 13:21:22Z`. 최종 compile 구간 `error CS/Tundra/Script Compilation/Unhandled=0/0/0/0`.
+- `PreparedOutputCheckpointGc`, `FacilityOutputExactRoute`, custody mutation/buffer/carry guards, Economy routing authority/routing restore join, prepared contract/component/restore/resume와 전체 `ProductionEconomy` PASS. Console Warning/Error `0/0`.
+- 계획서 97.4의 split/transaction/Items outbox/Economy owner/restore join/checkpoint GC 6행만 닫았다. legacy bypass 전수 0, actual AIHaul PlayMode, live delivery reroute, feedbench 전구간, artifact 2회 identity는 증거 부족으로 열어뒀다.
+- 체크리스트는 `626/712`, open `86`, `87.92%`다.
+- 문서 SHA-256은 plan `E9440C697002EA2B20173F8880C1CB7C0319645332BCE0362963AC19DC4A848E`, baseline `2E8E14F96B5C2BF97BAD448BFB4D534195AE9C7D83258A330ACFB2FE53905584`다.
+
+## 2026-08-26 — prepared-output capacity source closure and sawmill focused promotion
+
+- Bound the prepared-output capacity source to mass authority, exact recipe/item/component/migration digests, authored support and Grand Project maximum factors, facility definition/instance/position, destination, cycle count, projected portfolio grams and exact batch minimum.
+- Advanced the current-format prepared batch to schema v3. Restore/resume now share a pure `ProductionOutputBufferCapacitySourceGuard`; a canonical but stale source fails with `prepared-output-capacity-source-stale` without mutating the durable batch.
+- Closed the production admission hole: production-owner planned output requires a lowercase SHA-256 source digest and a positive minimum, and the actual profile must meet that minimum. Surgical custom output now publishes its own exact source binding.
+- Promoted `recipe:sawmill-lumber` only through the focused exact-profile path: `material:lumber ×3 = 3,600g`, P03 four-cycle minimum `14,400g`, definition-only component codec, recipe/item/migration digest ratchets. Profile SHA-256 is `aff2ab2651af8d28bc86764c0edd151e22b1b7b91e6cc2bf20feea19aeb128fb`; five-profile registry SHA-256 is `1c8fd366e5a5c8761c3cf8119afde3d758344025c952f48a29e7c58a2ecce218`.
+- Fresh Unity compilation produced `Assembly-CSharp.dll 8,372,736 bytes @ 2026-08-25T19:46:04Z` and `Assembly-CSharp-Editor.dll 8,492,032 bytes @ 2026-08-25T19:46:06Z`; Editor.log had no current compile errors.
+- Fresh PASS: capacity projector/profile/contract/restore/admission closure suite, isolated planned publication, recipe/item/component source digests, resume/routing/destination, Production Economy. Unity Console Warning/Error `0/0`.
+- Kept the sawmill live row OPEN: a real `ProductionPreparedOutputExecutionAdapter` execution→schema-v3 save/restore→physical publication/routing/ack fixture and normal-boot PlayMode evidence are still required. Full migration scope, lifecycle/fault matrix, EWU/prices and six-person survival also remain open.
+- Authoritative checklist after this update: `649/750` checked, `101` open (`86.53%` surface). This count is not weighted completion.
+- Canonical-LF SHA-256 after documentation sync: plan `DC7AC9AF8CF654C86BF52BB03636A48AA5E0CE3709FDECE0D4F2A4A8FF8921F7`; whole-game baseline `574E5A94E793CF30B9A90836B34A6F4805F52E00FCA58DDB1F73DC161E5922DF`.
+
+### 2026-08-26 sawmill real-adapter focused E2E
+
+- Added an actual P03/recipe/catalog/bridge/Items repository/admission/publication/routing fixture inside the existing Production Economy suite instead of a duplicate fake adapter.
+- One real adapter execution produced one `material:lumber ×3` FacilityOutputBuffer stack at exact `3,600g`, retained the P03 `14,400g` four-cycle capacity, committed reservation `0g`, converted the publication marker to durable non-stacking provenance and published one exact routing line.
+- The v3 batch round-tripped through `JsonUtility`, current-source destination authority restore succeeded, and two valid-format stale sources (digest-only and cycle `3`/`10,800g`) failed with no change to claim/profile/admission/occupancy/item-stack authority.
+- Fresh Unity compile: `Assembly-CSharp.dll 8,372,736 bytes @ 2026-08-25T20:10:42Z`, `Assembly-CSharp-Editor.dll 8,499,712 bytes @ 2026-08-25T20:10:44Z`; Editor.log compile errors `0`. Full `ProductionEconomyDebugScenarios` PASS and Console Warning/Error `0/0`.
+- Closed the focused real-adapter row only. Full current-format Production/Physical/Routing rehydration and normal-boot AIHaul/fault PlayMode remain OPEN. Checklist is now `650/751`, `101` open (`86.55%` surface).
+- Canonical-LF SHA-256 after the focused E2E record: plan `C9C7DDB16B8C93AB58F2789B16D0EA78B045134EFFD775771CC5B191B4B057B7`; whole-game baseline `44341D5A3503284F4A7EBDCA0AE2722E4A75001E936F8DAE2C3A01A6F7CD9CD3`.
+
+## 2026-08-26 Batch A whole-workstation definition-only expansion
+
+- [x] Expanded the positive prepared-output registry from 5 to 11 recipes by migrating the complete charcoal-kiln, mill, steelworks and treated-lumber workstation families.
+- [x] Added `recipe:malt` after the independent reachability audit proved it was an installed-support-reachable mill branch; the mill maximum is therefore `700g × 4 = 2,800g`, not `600g × 4`.
+- [x] Added exact definition-only component, recipe semantic, item semantic, migration profile and registry digest ratchets for the six new recipes/items.
+- [x] Authored `physicalOutputBufferCycleCapacity: 4` explicitly on P01/P03/P04/P08/RF16 and proved a second Unity import changed none of the five asset bytes.
+- [x] Added whole-family legacy-bypass-zero and exact capacity projections: charcoal `3,600g`, mill `2,800g`, steelworks `3,400g`, treated lumber `9,200g`.
+- [x] Fresh project compilation and component/profile/recipe/item/capacity/prepared contract/restore/admission/publication/full Production Economy suites PASS.
+- [ ] Full current-format aggregate rehydrate, normal-boot AIHaul/fault, remaining stateful/custom output families and Batch B lifecycle remain OPEN.
+
+Checklist accounting: two new evidence rows were added and closed, and the pre-existing capacity-source revision row is now evidenced, producing `653/753` checked and `100` open (`86.72%` literal surface). This is not weighted completion.
+
+Canonical-LF SHA-256 after this checkpoint: plan `9E03C776DA5684817A9CB2F66332D3C40BF1628C09BF872392193F4A57652F6A`; whole-game baseline `CE1D334D1A394701DE3789A1FB1057F8FF42AFC5F3B27E86AAD14BDD7438E34D`.
+
+## 2026-08-26 sawmill full current-format aggregate restore
+
+- [x] Added a public save-section fixture that owns a V17 sawmill bill, executes the real prepared-output adapter and captures Physical/Production/Routing envelopes.
+- [x] Fixed Production and Routing preflight so self-payload validation occurs before staging while cross-section joins remain fail-loud in dependency-ordered detached staging.
+- [x] Restored into a new aggregate through `DungeonSaveSectionRegistry.RestoreAll`; exact `3 items / 3,600g / 14,400g`, digests, routing and section JSON recapture identity PASS.
+- [x] Completed replay generated zero additional physical stacks; restore join/routing/full Production Economy regressions and Console Warning/Error `0/0` PASS.
+- [ ] Routed outbox lifecycle and normal-boot AIHaul/cancel/Downed/mid-haul restore remain OPEN.
+
+Checklist after adding the focused aggregate-restore evidence row: `654/754` checked, `100` open (`86.74%` literal surface). This is not weighted completion.
+
+Latest canonical-LF SHA-256: plan `01F06E973208A47C48021789F1FDC7E87BC517743082A8CCD87C6D20B21D5CD2`; whole-game baseline `ACCD2E65C7172F6C97074AB7D990A5330B064807BD99256E77D0BEC54E055D96`.
+## 2026-08-26 — Batch B lifecycle fence started
+
+- Re-read the selected planning and Unity scripting skills plus repository `AGENT.md`.
+- Confirmed Unity is idle (`IsPlaying=false`, `IsCompiling=false`, `IsUpdating=false`) and preserved the dirty GameplayScene without scene operations.
+- Parallel read-only audits were delegated for asmdef placement and destructive facility callsites.
+- Fixed the next implementation boundary to production bill lifecycle snapshot, independent mutation epoch, physical custody aggregation, combined empty-only fence, then direct demolition integration and focused Unity evidence.
+- Completed two read-only audits. They found that equipment crafting and apparel work orders are additional production-output lifecycle owners, and that direct demolition, relocation, synthesis, evolution, combat destruction, save replacement and scene shutdown require distinct mutation contexts. No checklist row was closed from audit-only evidence.
+- Refactoring the uncompiled Economy-owned draft contracts into `DungeonStory.Production` and a contributor-based default-assembly aggregate is now the immediate integration step.
+- First fresh compile after the contract move updated Production/Economy/runtime assemblies but failed the Editor assembly at `ProductionEconomyDebugScenarios.cs:3405`: one manually constructed `ProductionBillOrderDependencies` fixture lacked the new mutation epoch. The fixture now receives an independent real epoch runtime; no compatibility-null fallback was added.
+- Moved the lifecycle contracts to `DungeonStory.Production`, introduced the canonical `ProductionOutputDestinationId`, and connected five deterministic contributors: generic bills/WIP, combat equipment crafting, apparel work orders, capacity/routing/outbox, and physical custody/carry/recovery.
+- Fresh Unity compilation succeeded (`Assembly-CSharp.dll` and `Assembly-CSharp-Editor.dll` refreshed at 21:38 UTC local-log display); `V27_PRODUCTION_OUTPUT_DESTINATION_LIFECYCLE=PASS` proved canonical identity, typed generic/equipment/apparel blockers, insertion-order-independent fingerprints, duplicate-contributor failure and mutation-epoch ownership.
+- Added the reversible empty-only mutation fence and wired the player/automatic direct demolition path. The fence freezes new generic production, rechecks the exact lifecycle fingerprint, revokes only a drained output authority, verifies the revoke postcondition, and can restore the exact prior positive capacity if grid removal fails. Unity compile and demolition-focused evidence are pending, so no checklist row is closed yet.
+- Completed the Batch B focused lifecycle slice. The common query now combines generic bill/WIP, combat equipment crafting, apparel work orders, capacity/routing/outbox and physical custody/carry/recovery without reading save DTOs.
+- Direct demolition now runs an exact empty-only mutation candidate and restores authority plus grid occupancy on injected removal failure. Relocation, synthesis and evolution are intentionally fail-closed whenever production-output authority exists; active retarget and persistent-ID preservation remain OPEN.
+- Post-compile focused regression passed `ProductionOutputDestinationLifecycleDebugScenarios`, output destination authority, full Production Economy, synthesis and evolution suites. Unity Console Warning/Error was `0/0`; current Editor.log had compile errors `0` and a subsequent `Tundra build success`.
+- Closed only the existing common lifecycle-query row and three newly added narrow evidence rows. The composite mutation row, structural/cover loss, retarget, normal-boot PlayMode and full fault matrix remain OPEN.
+- Checklist after the evidence split is `658/759` checked with `101` open (`86.69%` literal surface). Canonical-LF SHA-256: plan `1C338BA132F0CA3FC5A12607D53F078BF00CCB2E211E4DCB27E93854BC9A2F09`; whole-game baseline `9BA733B7D2FD17F356C9EE80D17EC53499A87CDD07D9E640F34C594D7C42AEEF`.
+
+## 2026-08-26 — Batch B empty destructive loss and world replacement retirement
+
+- Added `BuildingDestructiveLossRuntime` and routed structural-integrity and combat-cover lethal removal through the same strict-empty production mutation candidate. Raw `DestroySelf()` calls were removed from both damage components.
+- Blocked production authority and injected grid-removal failure leave HP, grid occupancy and output authority unchanged. Successful combat removal does not call demolition salvage/refund. Restored zero-HP cover does not re-register.
+- Changed modular world replacement to `RetireForWorldReplacement()`. The existing round-trip fixture now asserts stale object destruction events `0`; two report generations were byte-identical with SHA-256 `EA0C49DFEC716CC1CE19817ADEC366714465B9D5ED40AF355C6D14294281DE40`.
+- Fresh Unity compile produced `Assembly-CSharp.dll 8,423,936 bytes @ 2026-08-26 07:34:00 +09:00` and `Assembly-CSharp-Editor.dll 8,526,336 bytes @ 07:34:03`; current Editor.log compile errors `0`.
+- Focused lifecycle, output authority, full Production Economy, modular save/load, synthesis, evolution and invasion static suites PASS with Console Warning/Error `0/0`.
+- A broader Combat suite was also attempted but remains red for pre-existing authored cover asset expectations and a V18 medical reflection parameter-count drift. Those unrelated failures were not hidden or counted as this slice evidence; the isolated cover/structural and invasion suites are green.
+- Active WIP/equipment/apparel/routing/carry destructive release and actual invasion PlayMode remain OPEN.
+- Checklist after this narrow evidence split is `660/761` checked, `101` open (`86.73%` literal surface). Canonical-LF SHA-256: plan `2B0830BCE0E7828DE5CB9A9A6FC2AAA589B7F0B9051022ADF79887697EA051EB`; whole-game baseline `B4FECCFE3EBE0AEA7639B079C75D2DA61495313CB35D99150C4F30602C4BFEB0`.
+
+## 2026-08-26 — Batch B durable destructive-drain foundation and detached projection
+
+- [x] Added the current-format destructive-drain journal/save skeleton, replay-safe production-input revoke, carried-cargo failure atomicity and attempt-scoped apparel material operation ID.
+- [x] Split volatile and save-stable lifecycle fingerprints and projected generic production, combat craft and apparel from their complete persisted DTOs.
+- [x] Added full facility-owned prepared-routing and Items exact-route outbox projection, including nested lines, operations, physical slices and delivery revisions with order-shuffle invariance.
+- [x] Reused the physical save projector for live durable capture; stack identity/components/location/destination/recovery timestamps, exact carry intent/inventory and stable warehouse admission provenance are included while reissued token IDs are excluded.
+- [x] Fresh focused lifecycle/journal/economy/physical/apparel suites PASS; Console Warning/Error `0/0`. `Assembly-CSharp.dll 8,460,288 bytes @ 09:28:09 +09:00`; current Editor.log compiler failure patterns `0/0/0/0`.
+- [ ] Capacity save re-projection, 5-contributor aggregate, cross-section forward/reverse restore joins, actual drain participants and dirty-scene-safe invasion PlayMode remain open. The journal is deliberately not registered yet.
+
+Literal plan checklist after this evidence split is `671/780` checked, `109` open (`86.03%` surface). Plan SHA-256 is `1BF771CA0BA1C6E8389F269BBF17321E5FED9D6A804FFC94FCDB557FFB5E45E9`; this is not weighted completion.
+
+## 2026-08-26 — Batch B capacity/save aggregate closure
+
+- [x] Added immutable `ProductionFacilityCapacitySubject` and rebuilt the same capacity authority from live handles or `ModularFacilityBuildingSaveData + BuildingSO` without reading a live profile.
+- [x] Recomputed maximum reachable recipe output, prepared-output required minimum and exact physical occupancy from current-format DTOs; transient reserved grams remain excluded.
+- [x] Composed the exact required five contributor fingerprints under `production-output-durable-lifecycle@1`; missing, substituted or duplicate contributor schemas now fail loudly.
+- [x] Tightened carried occupancy/custody joins: missing physical stacks, duplicate commitment owners and carry inventory operation/source/item/quantity/signature mismatches cannot be silently dropped.
+- [x] Proved source live = source save-only = restored live = restored save-only in the sawmill full-persistence fixture. Also proved 588g buffered + 196g carried occupancy, deposit-window no-double-count, post-intent retirement, wrong destination, orphan physical stack and reversed-catalog determinism.
+- [x] Fresh Unity assemblies: `Assembly-CSharp.dll 8,471,552 bytes @ 2026-08-26T00:57:14Z`, `Assembly-CSharp-Editor.dll 8,553,472 bytes @ 2026-08-26T01:01:08Z`; focused six-suite execution PASS, recent compiler failure patterns `0`, Console Warning/Error `0/0`.
+- [ ] Cross-section forward/reverse restore joins, real destructive-drain participants, journal registration and dirty-scene-safe invasion PlayMode remain open. The journal stays deliberately unregistered.
+
+Literal plan checklist after this evidence split is `673/780` checked, `107` open (`86.28%` surface). Plan SHA-256 is `30CF5DEBA8FC6B7C8C892BB63803A85505858A6C78C3B90FAF49FD2B6B27C3EC`; this is not weighted completion.
+
+## 2026-08-26 — Batch B conditional cross-aggregate preflight and absent lifecycle
+
+- [x] Added one pure destructive-drain raw-save validator and invoked it from both whole-game preflight and registry pre-stage validation; direct registry restore no longer bypasses this first cross-section gate.
+- [x] Kept the production drain save section and journal DI registration disabled. Saves without its envelope are unchanged and pass as a no-op.
+- [x] Present phases require the exact single facility and exact five-contributor current fingerprint. One-bit drift and missing/duplicate facility identities fail loudly.
+- [x] Added canonical world-removed projection: facility, generic/combat/apparel owner, routing/outbox, physical custody and carried destination intent must all be absent. Any orphan source fails with `absent-lifecycle-has-owner`.
+- [x] Fresh Unity assemblies: `Assembly-CSharp.dll 8,477,696 bytes @ 2026-08-26T01:23:59Z`, `Assembly-CSharp-Editor.dll 8,558,592 bytes @ 2026-08-26T01:24:02Z`; focused seven-suite execution PASS, recent compiler failure patterns `0`, Console Warning/Error `0/0`.
+- [ ] Raw-envelope preflight and absent lifecycle are complete. Normalized section-stage slots are closed by the next checkpoint; participant registry fingerprint, owner↔source/receipt reverse joins and actual drain participants remain open, so registration remains forbidden.
+
+## 2026-08-26 — Batch B normalized seven-section restore candidate index
+
+- [x] Added one transaction-scoped index for normalized world, character, physical, production, routing, combat and environment payloads. Publication occurs only from real section Commit paths after transaction Begin, never from ordinary preflight or candidate construction.
+- [x] Each slot is deep-cloned exactly once. The immutable bundle computes one fixed-section-order manifest independent of publication order and rejects null, duplicate, missing and out-of-transaction writes.
+- [x] Connected the unregistered destructive-drain section so its Commit requires the complete bundle and reruns the same pure current-format cross-aggregate validator before journal publication.
+- [x] Registered only the candidate-index transaction participant, not the destructive-drain journal/save section. Complete, rollback and discard all clear every source/drain reference.
+- [x] Expanded the sawmill full current-format registry fixture: actual World/Physical/Production/Routing section commits plus Character/Combat/Environment projections fill all seven slots in one transaction and leave zero slots after success.
+- [x] Fresh `Assembly-CSharp.dll 8,486,400 bytes @ 2026-08-26T01:43:10Z`, `Assembly-CSharp-Editor.dll 8,568,832 bytes @ 2026-08-26T01:50:01Z`; index/full-persistence/capacity/lifecycle/journal/Production Economy/Physical Items/Dungeon Save focused suites PASS, recent compiler failure patterns `0`, Console Warning/Error `0/0`.
+- [ ] Participant registry fingerprint, journal participant↔contributor mapping, owner↔source/receipt forward/reverse joins, actual durable drain participants and journal registration remain open.
+
+Literal plan checklist after this evidence split is `675/782` checked with `107` open (`86.32%` surface). Plan SHA-256 is `AB723F6AEB4309B72A8E8431B8312AF6895283BA0242E357FC260C549FE51D25`; this is not weighted completion.
+
+## 2026-08-26 — Batch B exact participant registry and immutable journal plan
+
+- [x] Added the exact five-participant registry with contract version `1`, deterministic dependency normalization and a fixed DAG: apparel/combat/generic owners terminate first, capacity/routing closes next, physical custody drains last.
+- [x] Separated persisted ID-ordinal participant rows from dependency-derived execution order and bound the registry schema/count/IDs/versions/edges to canonical fingerprint `316767864bd434d682d84c57b3b4de82fa8309304672eafd4ecea9645ec218a2`.
+- [x] Rejected missing/extra/duplicate participants, version/edge drift, unknown/self/duplicate dependencies and cycles independent of DI order and culture.
+- [x] Tightened journal replay/advance: immutable participant and owner plan fields cannot drift; owners cannot disappear, regress, mutate committed receipt identity or jump directly from planned to acknowledged.
+- [x] Fresh Unity compile produced `Assembly-CSharp.dll 8,495,104 bytes @ 2026-08-26T02:07:18Z` and `Assembly-CSharp-Editor.dll 8,577,024 bytes @ 2026-08-26T02:07:21Z`. Registry/Journal/Index/Full Persistence/Lifecycle/Production Economy/Physical Items/Dungeon Save focused regression PASS; recent compiler failure patterns `0`; Console Warning/Error `0/0`.
+- [ ] Actual five participant implementations, owner↔source/receipt forward/reverse join, durable-save resume/GC, DI/save registration and invasion PlayMode remain open.
+
+Literal plan checklist is now `676/783` checked with `107` open (`86.33%` surface). Canonical-LF plan SHA-256 is `76DB4C07C53FA86BDC50D28E4D3010F514B5FA3ED074218784B98EE76F53D919`; this remains a surface count, not weighted completion.
+
+## 2026-08-26 — ordered durable-save commit pipeline
+
+- [x] Added Foundation-level durable-save context/result/participant/coordinator contracts with canonical slot and lowercase SHA-256 validation.
+- [x] Added a deterministic coordinator with unique positive order and participant ID, `Applied/AlreadyApplied` continuation, `Deferred/Corruption` suffix stop and typed corruption for thrown or conflicting results.
+- [x] Wrapped existing prepared-output checkpoint GC as order `100` without changing its internal transaction, and changed production save-slot DI to the common pipeline while preserving legacy constructors through the same adapter.
+- [x] Kept atomic ordering `temporary WriteThrough+Flush → replace → durable pipeline → backup cleanup`; write/replace failure still invokes no participant, and corruption keeps the durable save plus backup while failing loudly.
+- [x] Fresh Foundation/runtime/editor assemblies advanced to `02:17:57Z`/`02:18:09Z`/`02:18:11Z`. Durable Save Commit, Prepared Output Checkpoint GC and Dungeon Save Section suites PASS; compiler failure patterns and Console Warning/Error are `0/0`.
+- [ ] Destructive-drain order `200` adapter remains unregistered until actual participants and owner/receipt reverse joins are green.
+
+Literal plan checklist is now `677/784` checked with `107` open (`86.35%` surface). Canonical-LF plan SHA-256 is `981B0DD7099B87632EAB9A043A830E1E6BD2B61039A42660C77E6048B4779934`; this remains a surface count, not weighted completion.
+
+## 2026-08-26 — destructive-drain participant-to-contributor mapping
+
+- [x] Promoted the registry fingerprint to one current-format constant checked by registry construction and raw/normalized save validation.
+- [x] Required all five participant IDs at version `1` and compared every participant's current contribution fingerprint with the detached projection from the seven normalized section payloads.
+- [x] Required prepared contribution equality in `Prepared` and canonical empty contributor projections in `WorldRemovedAwaitingCheckpointGc`; missing participant and one-bit contribution drift now fail before publication.
+- [x] Updated the sawmill full-persistence fixture to carry the exact five participant projections through present and absent phases. Fresh runtime/editor assemblies advanced to `02:26:10Z`/`02:26:12Z`; focused eight-suite regression PASS; compiler patterns and Console Warning/Error `0/0`.
+- [ ] Per-owner source/receipt bijection is still open. The current evidence must not be reported as generic/combat/apparel/routing/physical participant execution or terminal receipt completion.
+
+Literal plan checklist is now `678/785` checked with `107` open (`86.37%` surface). Canonical-LF plan SHA-256 is `9F0DBD52330123C6C6D13D8EDAC49D682DC7DFE50C819124E68113D73C749AA6`; this remains a surface count, not weighted completion.
+
+## 2026-08-26 — Prepared destructive-drain owner/source bijection
+
+- [x] Added canonical owner key codecs for generic bills, combat craft orders, apparel work orders, prepared-output routing batches and physical custody stacks.
+- [x] Added a detached owner source projector over Production/Combat/Environment/Routing/Physical DTOs, including facility matching, completed-apparel exclusion and exact-route origin custody recognition.
+- [x] Required each Prepared participant's journal owners to equal its source projection in both directions and remain in the Planned phase. Duplicate source IDs, source-only rows and journal-only owners fail before candidate publication.
+- [x] Required every world-removed journal owner to be acknowledged while the existing absent-lifecycle projector proves all active sources are gone.
+- [x] Fresh runtime/editor assemblies advanced to `02:33:07Z`/`02:33:09Z`; registry/journal/index/full persistence/lifecycle/economy/physical/save focused regression PASS; compiler patterns and Console Warning/Error `0/0`.
+- [ ] EffectCommitted receipt joins, acknowledged terminal receipts, combat/apparel missing receipt authorities and non-ID-preserving physical transfer proof remain open.
+
+Literal plan checklist is now `679/786` checked with `107` open (`86.39%` surface). Canonical-LF plan SHA-256 is `70F09D157DBA4200E3B87EBC0DE83ADA5B62DBB261A87191090CD7284F9120C4`; this remains a surface count, not weighted completion.
+
+## 2026-08-26 — physical destructive-drain destination owner and V14 producer outbox
+
+- [x] Replaced per-stack physical journal owners with one `physical-destination:<destinationId>` owner so the journal step matches the actual destination-wide release boundary. The sawmill fixture explicitly projects two origin stacks to one owner.
+- [x] Bumped Physical Items current format to V14 and persisted an Items-owned custody-drain producer outbox with owner cell, request/source fingerprints, canonical source stack/actor/intent vectors, exact input/released quantity and grams, deterministic phase progress, commit and receipt fingerprints.
+- [x] Added replay/conflict/deferred/ack/checkpoint-GC contracts and validation. Out-of-order actor/intent progress, changed request, incomplete effect, duplicate destination/operation and `±1g` terminal mutation fail loudly.
+- [x] Joined producer rows to journal physical owners by step/request/owner/destination and the permitted producer-consumer phase matrix. Missing producer after journal commit, receipt drift and producer-only orphan fail before live publication.
+- [x] Registered only the producer outbox service. Actual five drain participants, journal/save section registration and order-200 durable callback remain forbidden.
+- [x] Fresh focused outbox/full-persistence plus broad Physical Items, Dungeon Save Section and Production Economy regressions PASS. `Assembly-CSharp.dll 8,521,216 bytes @ 2026-08-26T03:08:03Z`, `Assembly-CSharp-Editor.dll 8,595,968 bytes @ 03:17:38Z`; recent compiler failure patterns `0`, Console Warning/Error `0/0`.
+- [ ] The live physical drain port still needs actor-scoped resume, exact destination release and a mixed-destination Pick-and-Haul guard. Generic/combat/apparel/routing receipt authorities and actual participant execution remain open.
+
+Literal plan checklist is now `681/789` checked with `108` open (`86.31%` surface). Canonical-LF plan SHA-256 is `99C980EDFA6284AE164B9E046100A79BE8A3651FD25A405870DCC43B42FEA5FD`; this remains a surface count, not weighted completion.
+## 2026-08-26 continuation — physical custody drain runtime slice
+
+- Re-entered the active V27 Batch A–H goal and reloaded the `planning-with-files` and `unity-csharp-scripting` skill contracts.
+- Current implementation target remains the actual physical custody drain port plus mixed-destination atomicity guard; checklist entries remain open until fresh compile and focused runtime evidence exist.
+- Session catch-up reported only the three current skill/instruction inspection commands as unsynced; no earlier implementation evidence was missing. The dirty worktree will be revalidated before editing.
+- Added the first live `ProductionPhysicalCustodyDrainService` implementation and marked its public mutation contract as internal orchestration-only. The service freezes exact stack/actor/intent vectors, gates exact-route predecessors, preflights all remaining actors before one actor mutation, releases one intent per call, and verifies exact IDs/quantity/grams before committing the destination effect. Compile/test evidence is still pending, so no V27 checklist row is closed.
+- Unity accepted the compile request and reached `IsCompiling=false`; Console Warning/Error is `0/0`. Exact DLL timestamps and Editor.log freshness still need explicit verification before this compile is accepted as evidence.
+- Replaced destination-based haul intent discovery with source-stack lease-owner joins, moved actor lookup to `ICharacterLifetimeQuery`, tightened actor-scoped mixed cargo and exact intent/carry/repository equality, grouped the release postcondition explicitly, and added the missing producer-source↔prepared-contributor save fingerprint join.
+- Fresh assemblies advanced after those edits (`Assembly-CSharp.dll 04:04:02Z`, `Assembly-CSharp-Editor.dll 04:04:05Z`) and the bounded latest compiler log has no compile-failure markers. Console MCP reconnection is still pending, so no checklist row was closed.
+- Read-only parallel audit proved that exact-route carried cargo needs a capacity-routing-owned current-cell quiesce plus whole-batch route-retire transaction. This is the next P0 slice; the draft physical port remains deliberately unregistered.
+- Corrected the generic Physical save validator so an exact-route Downed/Dead recovery drop may retain the routed delivery destination, while an ordinary recovery drop still may not. Added both directions to `FacilityOutputExactRouteDebugScenarios`; runtime DLL freshness is proven, but the focused MCP run hung without a PASS marker, so its checklist remains open.
+- Second-pass parallel review identified three blockers before port registration: operation-wide lease closure, a durable prepare-to-effect destination/source mutation fence, and replacement of synthetic live carried projection with lifetime actor carry authority. These are now the ordered implementation targets rather than hidden follow-up debt.
+- Replaced synthetic carried lifecycle rows with exact lifetime actor carry snapshots and corrected unique-item signature comparison to the commitment's reservation-signature authority.
+- Added operation-wide source lease closure, reserved-quantity reconciliation, non-haul external-claim blocking, exact committed lease/carry/repository joins, actor destination checks and item-instance equality. The durable multi-tick mutation fence and full frozen-row/result@2 authority are still open, so the live port remains unregistered and no checklist row was closed.
+## 2026-08-26 physical custody replay preflight recheck
+
+- Re-read the latest `ProductionPhysicalCustodyDrainService` actor-release and replay-preflight paths after the missing-actor/orphan-authority changes.
+- Confirmed the intended replay contract: an absent actor or intent is accepted only when the frozen operation has no remaining live plan, cargo, lease, or intent authority; duplicate actors and cross-actor ownership remain conflicts.
+- Parenthesized the lease subexpression in `HasAnyLiveOperationAuthority` so the mixed `||`/`&&` guard is review-stable. No checklist item is closed yet; the latest source still needs a fresh Unity compile and focused replay/fault evidence.
+
+## 2026-08-26 fresh Unity compile evidence
+
+- Requested a forced Unity script refresh/recompile without touching or saving the dirty `GameplayScene`.
+- `Assembly-CSharp.dll` was regenerated at `2026-08-26T04:29:13.7282247Z`, after the latest runtime source edit at `2026-08-26T04:28:21.8684002Z`.
+- The bounded latest `Editor.log` compile window contained `0` instances of `error CS`, `Compilation failed`, or `Scripts have compiler errors`. `Assembly-CSharp-Editor.dll` remained older because this edit set touched runtime sources only.
+- Located the focused exact-route regression entry point `FacilityOutputExactRouteDebugScenarios.RunAll`; execution evidence is still pending.
+
+## 2026-08-26 exact-route recovery focused evidence
+
+- Executed `FacilityOutputExactRouteDebugScenarios.RunAll()` through Unity MCP after the fresh compile.
+- Result: `EXACT_ROUTE_RECOVERY_FOCUSED=PASS`; command compilation and execution both succeeded.
+- Re-read Unity Console after execution: `warningCount=0`, `errorCount=0`.
+- This proves the routed/ordinary recovery-drop validation regressions currently in that suite, but it does not close the broader physical custody drain checklist: exact frozen-vector persistence, capacity-routing quiesce/retire, participant registration, and participant fault/replay fixtures remain open.
+
+## 2026-08-26 destructive-drain slice reassessment
+
+- Paused participant wiring after read-only subagent audits found destination-vs-batch ownership, OriginBuffered dependency, delivered-state, reservation, and assembly-boundary defects in the first retire draft.
+- Decision: preserve the proven hauling/exact-route/save/checkpoint systems; rewrite only the new, unregistered destructive-drain slice from a state/ownership table. The current code remains scaffold only and closes no checklist item.
+- Moved the internal destructive-retire contract into `Services/Items` while preserving its meta GUID so it stays in the same assembly as the implementation without widening mutation APIs.
+- Corrected candidate scope toward `sourceDestinationId + batchCommitId`, left same-batch OriginBuffered custody to the downstream physical participant, and added `reservedQuantity` fencing. A fresh compile is required before this scaffold is considered syntactically safe.
+- The first compile raced the contract move and emitted stale accessibility errors. Bee's current response file then showed the moved contract under `Assembly-CSharp`; a second forced refresh/recompile completed, and the latest bounded 1,500-line compiler window contained 0 C# failure markers.
+- Unity Console retrieval hung after that recompile, so no new Console 0/0 claim is made for the reassessed scaffold. The earlier exact-route focused suite remains PASS, but the new destructive-retire scaffold has no focused evidence and remains unchecked/unregistered.
+- Re-entered the slice with a bounded-rewrite decision: retain all previously green hauling/save/recovery code and redesign only the unregistered capacity-routing drain around explicit state/ownership and atomic rollback contracts. No checklist row was closed and no gameplay/asset value was changed by this decision.
+- Replaced the arbitrary batch-retire direction with the existing normal lifecycle as the implementation authority: route every OriginBuffered remainder, quiesce carried exact custody, acknowledge both sides, and let the existing durable checkpoint GC remove the exact Economy/Items batch pair.
+- Added `IProductionPreparedOutputRoutingBatchQuery` and immutable batch/line/operation/physical-receipt projection. It preserves initial remainder, applied physical slices, drained tombstone and `IsDrainAcknowledged` state without giving gameplay code a save DTO.
+- Registered the query in the runtime composition root and extended `ProductionPreparedOutputRoutingAuthorityDebugScenarios` for missing-batch, initial, applied receipt/slice and drained tombstone coverage.
+- First compile caught one model/service assembly visibility error; only the read-only snapshot constructor was exposed. Fresh `Assembly-CSharp.dll` advanced to `2026-08-26T05:24:31Z`, focused routing suite reported `ROUTING_BATCH_QUERY_FOCUSED=PASS`, and Unity Console Warning/Error was `0/0`.
+- The capacity-routing participant, V15 producer outbox, actor-current-cell quiesce and invasion PlayMode remain open. No gameplay number, ScriptableObject or scene was changed.
+
+## 2026-08-26 — generic production terminal-drain boundary static closure
+
+- [x] Added the Production-owned generic bill terminal producer, exact Items input-destination child orchestration, generic destructive-drain participant, and current-format detached save projection.
+- [x] Added focused fixtures for the live Items drain, producer outbox, participant and save section. The participant fixture caught and fixed a child-only orphan recovery gap while retaining the valid producer-first/child-missing crash window.
+- [x] Cross-aggregate restore now validates canonical producer/child identity, request/source fingerprints, exact released quantity/grams, phase ordering, source-bill evidence and FacilityDestroyed WIP terminal receipts before publishing live authority.
+- [x] Rebuilt the derived current-source `Assembly-CSharp.dll` and `Assembly-CSharp-Editor.dll` with the complete generic slice and all four fixtures; both Roslyn invocations exited `0`, and targeted `git diff --check` is clean.
+- [ ] The save section, participant and exact-five registry remain deliberately unregistered. Fresh Unity execution, Console `0/0`, combat/apparel producers and complete exact-five restore/GC topology are still required before gameplay activation.
+- 밸런스 영향 없음: this slice changes destruction/cancellation custody and save validation only; no ScriptableObject, kg, WU, EWU, price, recipe or scene value changed.
+
+## 2026-08-26 — combat/apparel/exact-five read-only implementation map
+
+- [x] Audited combat craft, equipment repair, apparel craft/repair/dismantle, the seven-source restore candidate index, exact-five registry, upper cross-validator, restore hook and durable checkpoint pipeline.
+- [x] Confirmed that a full rewrite is slower and riskier: the lower gram/admission/routing/custody/save foundation is reusable; missing work is confined to combat/apparel upper producer receipts, full restore joins, pre-gameplay recovery and atomic reverse-DAG GC.
+- [ ] Combat contributor must first include repair orders under the existing combat participant; a bounded subtask is implementing that projection without registering gameplay.
+- [ ] Apparel must first gain an exact owner-based lease release port that works after restore even when the legacy wrapper cache is empty; a bounded subtask is implementing that port and focused regression.
+- [ ] Exact-five registration remains forbidden until combat/apparel producers, full producer joins, synchronous restore recovery and rollback-capable checkpoint GC all pass fresh Unity evidence.
+
+## 2026-08-26 — combat repair projection and apparel lease port integration
+
+- [x] Kept the exact-five contract at five participants and expanded `combat-equipment-crafting` to fingerprint and project both active craft orders and active equipment-repair orders with typed `repair-order:*` owners.
+- [x] Added Equipment Maintenance as the eighth normalized base restore source, made destructive save/cross-validation require it, and covered shuffle, missing collection, duplicate repair ID, source-only owner and stale journal owner failures.
+- [x] Added an unregistered apparel lease authority port that fingerprints stable owner/purpose/cohort/stack/quantity/signature data, ignores transient lease IDs, and releases only an exact live match through the real quantity-reservation authority.
+- [x] Integrated current Production, Combat, Items, Assembly-CSharp and Editor sources with Unity 6000.3.8 bundled Roslyn. Derived SHA-256: Production `CBC2FFD893FDD1D9A03E1083C72EB2C8A0AAA45567CF16649AE01F240415B3D2`, Combat `E01B1659EEDB03DA04E4BD5F6CE470E6716EACA6BC539DA44983CF7B3857F69C`, runtime `D5C832D4576BB6070E7D26D19E7DF323682BE63125461D765B714EC68523A514`, Editor `510D79A55C35AF663580A78EDE5B985C47746AF91DC532E1903D8C57AF00F2B6`.
+- [ ] Unity Editor execution and Console `0/0` remain unavailable while MCP is revoked. Neither new boundary is registered into live destructive gameplay.
+- 밸런스 영향 없음: this slice changes authority projection and an unregistered exact lease port only; no kg, BOM, WU, EWU, price, recipe, ScriptableObject or scene value changed.
+- Post-update plan SHA-256: `206803B00C657AC4F9CC8326FDD6E908B9E65833DE27C48FDA10E40565FF13BD`. Targeted `git diff --check` reported no whitespace error; the only message was the repository's existing LF→CRLF warning for the tracked registration file.
+
+## 2026-08-26 continuation read recovery
+
+- The first combined authority/skill read exceeded the tool output limit (`160,348` source tokens; direct output truncated). Per the non-repeat rule, the same broad dump will not be retried.
+- Switched to bounded, file-local reads. Current authority sizes are: implementation plan `5,501` lines, task plan `4,212`, findings `6,846`, progress `6,631`, and root `AGENT.md` `296`.
+- No code, asset, save schema, or scene state changed during this recovery step. The next serial edit remains the capacity-routing durable producer outbox and Physical Items V15 restore join.
+
+## 2026-08-26 Physical V15 capacity-routing outbox implementation start
+
+- Added Items-owned primitive contracts for one `routing-batch:<batchCommitId>` producer record without introducing an Items→Production assembly reference.
+- The immutable request binds facility/destination/batch, outcome/routing/contribution fingerprints, exact line/route/slice evidence, actor→intent→carried rows, custody stack IDs, and exact quantity/grams.
+- Added a durable monotonic outbox authority with explicit routing, actor quiesce, operation-authority release, physical stabilization, durable checkpoint wait, effect receipt, owner acknowledgement, and checkpoint-GC phases.
+- This is not registered or counted complete yet. Repository/save/validation/cross-aggregate joins, focused tests, fresh Unity compile, actual participant, and live coordinator remain open.
+- Added the capacity producer dictionary and deterministic capture/get/set/remove/duplicate-restore paths to `WorldItemRepositoryState`.
+- Bumped only the Physical Items section payload from V14 to V15 and added the explicit `pendingCapacityRoutingDrains` collection. Past-save migration remains excluded; raw current-format omission rejection is still pending.
+- Wired canonical V15 capture and detached repository restore, and made raw JSON require all three durable arrays (`pendingExactOutputRoutes`, custody drains, capacity-routing drains). A payload that only changes its numeric version while omitting the new producer authority can no longer be silently accepted by field initializers.
+- Added the new collection's null/count/local-validation entry points. Full phase/source-vector validation and cross-aggregate joins are the next edits; no checklist row is closed yet.
+- Completed V15 local producer validation for canonical source vectors, exact original quantity/gram totals, phase-specific monotonic prefixes, deterministic request/commit/receipt fingerprints, batch/route/carry uniqueness, and terminal mass preservation.
+- Added journal↔capacity-producer forward/reverse joins and orphan rejection. Preterminal producers now require the frozen Economy batch; terminal producers require both Economy batch and Items exact routes absent; the durable-checkpoint observation window permits only both-authorities-absent, never one-sided absence.
+- Frozen batch identity, line monotonicity, pre-existing route identity, and final Economy/Items route-set equality are checked before publication. Exact slice/carry joins and focused fixtures remain open, so no completion checkbox changed.
+- Forced Unity refresh/recompile completed without touching the dirty scene. Fresh `DungeonStory.Items.dll` (`85,504` bytes, `05:54:00Z`), `Assembly-CSharp.dll` (`8,600,064` bytes, `05:54:10Z`), and `Assembly-CSharp-Editor.dll` (`8,598,016` bytes, `05:54:12Z`) are newer than the latest source edit.
+- The bounded latest Editor log reported `error CS=0`, `Tundra build failed=0`, `Script Compilation Error=0`, `Unhandled Exception=0`; Unity Console returned Warning/Error `0/0`. This is compile evidence only; focused V15/outbox regression is still pending.
+- Added a focused V15 capacity outbox scenario covering exact prepare replay/conflict, ordered line/actor/intent/stack progress, one-gram terminal rejection, deterministic receipt replay, local save tamper rejection, V14 rejection, raw V15 missing-array rejection, owner acknowledgement, and producer GC.
+- Extracted the exact current-schema raw-shape check as an internal save-section helper used by production deserialization and the focused fixture. This does not bypass the real parser; it verifies the same required-array/scalar gate.
+- The first fixture compile exposed an Editor/runtime visibility error for that pure helper; only the validation method was made public. A subsequent Unity invocation successfully resolved and executed the new Editor fixture: `V15_CAPACITY_ROUTING_FOCUSED=PASS`.
+- After the focused run, Unity Console Warning/Error remained `0/0` and the latest bounded Editor log contained no C# compilation, Tundra, script compilation, or unhandled-exception markers. DLL mtimes were not used as sole proof because Unity cache reuse preserved older file timestamps; the new Editor fixture symbol and execution prove the current compiled graph contains the change.
+- Running the existing full prepared-output persistence regression exposed the expected new gate: the world-removed fixture acknowledged a capacity owner without a producer tombstone and failed `capacity-producer-missing`.
+- Updated that fixture to create a canonical terminal capacity producer from the original routing batch and source custody stacks, then bind its deterministic request/commit/receipt back to the acknowledged journal owner.
+- Added focused cross-aggregate rejection cases for capacity receipt drift, acknowledged-owner missing producer, and producer orphan. Fresh compile and rerun are pending.
+- `ProductionPreparedOutputFullPersistenceDebugScenarios.VerifyFullCurrentFormatRoundTrip()` now passes with the V15 terminal capacity producer and new bidirectional join/fault cases: `FULL_PERSISTENCE_V15_CAPACITY_JOIN=PASS`.
+- The combined capacity outbox, existing physical-custody outbox, and broad Physical Item focused set also passes: `PHYSICAL_V15_FOCUSED_SET=PASS`.
+- Unity Console Warning/Error is `0/0`. Scoped `git diff --check` emitted only the repository's existing LF→CRLF conversion warnings and no whitespace error. Final bounded log/GUID checks are being repeated narrowly because the first combined shell output ended after its GUID header.
+## 2026-08-26 — Capacity-routing actor quiescence durable-receipt foundation
+
+- Added a narrow `IProductionCapacityRoutingActorQuiescence` command instead of widening ordinary item-drop semantics.
+- Corrected the V15 frozen carry vector with `sourceStackId` so legal partial pickup can distinguish the carried child from the unpicked source slice.
+- Replaced actor-ID-only progress with `ProductionCapacityRoutingActorQuiesceReceiptSaveData` containing actor, batch, current cell, exact row keys, pre/post physical fingerprints, and deterministic receipt fingerprint.
+- Made world-record relocation and receipt publication one `WorldItemRepository` transaction. An injected later-row failure restores every position/state/index field and the pending capacity record before the inventory candidate rolls back.
+- Added exact inventory prepared-removal candidate; it rejects foreign/extra/missing rows before mutation and defers `Changed` until the repository transaction commits.
+- Added ItemTransferService preflight for actor identity, frozen rows, physical grams, exact-route custody batch/route/source, durable haul intent/commitments, and shared target destination.
+- Unity fresh reimport compiled with Console Warning/Error `0/0` after correcting two compile issues recorded in `task_plan.md`.
+- Focused evidence:
+  - `CAPACITY_ROUTING_ACTOR_RECEIPT_ATOMIC_GATE=PASS`
+  - `FULL_PERSISTENCE_V15_ACTOR_RECEIPT=PASS`
+- This is foundation evidence only. The live `AbilityHaul` freeze/finalize boundary, partial-pickup/fault runtime fixture, exact reverse joins, and capacity participant remain open; no parent checklist was closed.
+
+## 2026-08-26 — rewrite scope decision after system reinspection
+
+- Reinspected the live hauling freeze/finalize boundary, the V15 capacity-routing producer state, the dirty worktree and the remaining V27 plan surface.
+- A whole-system rewrite is rejected as slower and riskier: already-green exact-route hauling, gram warehouse admission, save/restore joins, WIP/outbox and checkpoint-GC contracts would all require reimplementation and full regression.
+- The bounded rewrite remains the fastest path: replace only the still-unregistered capacity-routing destructive-drain participant with the existing normal `route -> physical commit -> authority release -> durable checkpoint GC` lifecycle.
+- `AbilityHaul.TryFinalizeCapacityRoutingQuiescence` is present. The immediate missing implementation is the typed operation-authority release coordinator plus focused success/fault/replay fixtures; no parent checklist item is closed by this decision.
+
+## 2026-08-26 — capacity-routing typed authority release implementation
+
+- Added a dedicated actor authority-release service that consumes only an atomically published V15 actor receipt, preflights exact actor/operation/lease/admission/intent ownership, and applies replay-safe monotonic release before finalizing the frozen haul plan.
+- The service bypasses the ordinary `ReleaseHaulDeliveryIntent` helper because that helper discards admission-release results. It releases only currently live receipt-bound leases, only Reserved admission tokens, and only matching durable intents, then verifies every authority is terminal before advancing the outbox.
+- Registered the narrow internal orchestration interface in the world simulation composition root.
+- Unity MCP returned `Connection revoked`; no editor or scene workaround was used. The system `dotnet` has no SDK, but Unity 6000.3.8f1's bundled Roslyn compiler compiled the current `Assembly-CSharp.rsp` plus the new source successfully with no diagnostics.
+- Fresh Unity compile, runtime fault/replay fixture and Console 0/0 remain required; no parent checklist row is closed.
+
+## 2026-08-26 — simple release service rejected before integration
+
+- A second read-only lifecycle audit found that the first release service had no durable actor-wide prepare/effect/commit record. A process crash after releasing a lease but before recording outbox progress could not distinguish a legitimate prefix from unrelated generic mutation.
+- The unverified service and its DI registration were removed immediately. Its static compile result is historical syntax evidence only and closes nothing.
+- The replacement scope is now explicit: durable actor-wide release DTO/outbox, exact lease/admission/intent release APIs, a mutation fence, durable-receipt physical revalidation, coordinator, restore joins and fault/save fixtures. This is a new P0 inside the already-unregistered boundary, not an expansion into unrelated gameplay.
+## 2026-08-26 rewrite-scope reassessment
+
+- Re-read the repository authority rules and the physical-mass implementation plan, then re-inventoried the current capacity-routing release/save symbols and live haul restore coordinator.
+- Full hauling/warehouse rewrite is not yet justified. The active decision gate is whether release plans can survive current-format restore when lease/admission runtime IDs are reconstructed.
+- No gameplay values, ScriptableObjects, scenes, or assets were changed during this reassessment.
+
+## 2026-08-26 actor-set transition rewrite
+
+- Replaced the callerless next-actor release method with one actor-set coordinator that freezes, quiesces, validates, releases exact leases/admissions/intents, finalizes AbilityHaul and advances to stable physical verification in one synchronous invocation.
+- Added an Editor-only row fault hook and made durable receipt verification accept only per-operation all-or-none lease progress during an in-process exact replay.
+- Marked `QuiescingActors` and `ReleasingOperationAuthority` as non-saveable in physical current-format validation, eliminating the restore contract that depended on regenerated lease/admission IDs.
+- Ordered static compilation of Items, Runtime and Editor response files passed with no diagnostics. Unity fresh compile and focused runtime scenarios remain required.
+
+## 2026-08-26 actor-transition focused fixture started
+
+- Reconfirmed the test topology as `2 actors x 1 operation` and located the existing real fixture components for grid, carry inventory, quantity leases, gram admissions, durable intent and exact-route custody.
+- Kept the new scenario isolated in a new Editor file to avoid overwriting unrelated dirty fixture changes.
+- The open implementation choice is now narrow: populate the durable intent with real warehouse admission projections before pickup, then inject a fault before actor B's first authority-row mutation and prove actor A replay stability plus transition-save rejection.
+- Added the isolated `2 actors x 1 operation` fixture using real quantity leases, real gram admission tokens, durable haul intents, physical carry inventory and exact Routable custody. Its injected actor-B fault asserts actor-A commit stability, actor-B live authority, V16 transition-save rejection, exact retry and no-op replay byte identity.
+- Added only Editor-gated helpers for admission-aware intent registration, canonical haul operation allocation and exact custody authoring; no player-build planning or custody bypass was widened.
+- Ordered Unity-bundled Roslyn compilation of Items, Runtime and Editor assemblies passes with no diagnostics. This is static evidence only; the new scenario has not yet executed in Unity.
+
+## 2026-08-26 stable-phase save rejection gates
+
+- Added one shared durable actor-physical fingerprint for runtime records and detached save rows, then switched actor quiescence receipts to that save-reconstructible projection.
+- Added V16 stable-phase joins for released reservation intents and actor receipt-to-physical-stack exactness.
+- Added cross-aggregate defense-in-depth for transient phases, missing journal sections and lingering Character haul/carry authority.
+- Extended focused fixtures with lingering reservation, physical tamper, missing physical row, direct transient phase and producer-without-journal rejection cases.
+- The complete ordered static compile passes again and scoped `git diff --check` reports no whitespace errors (only existing LF-to-CRLF warnings). Unity execution remains pending because MCP approval is revoked.
+# 2026-08-26 shared exact-route lifecycle extraction
+
+- Added typed lifecycle status/reason/result and `IProductionPreparedOutputExactRouteLifecycle` to Production contracts.
+- Added `ProductionPreparedOutputExactRouteLifecycle`, covering Items route, Economy physical receipt, Items acknowledgement, Economy acknowledgement and final destination authority as one replayable call.
+- Rewired `ProductionDistributionRuntime` to the shared lifecycle and removed its private route executor/receipt mapper/quantum implementation. The existing assembly-local delivery probe remains only for its focused diagnostic.
+- Registered the shared lifecycle in world-simulation DI.
+- Ordered static compile passed: `DungeonStory.Production`, `DungeonStory.Economy`, then `Assembly-CSharp` with current untracked contract files explicitly included.
+- Runtime fixture and Unity Console evidence remain open; no V27 checklist row was closed from static compilation alone.
+- Added `ProductionCapacityRoutingPhysicalSourceQuery` and registered it as the canonical live world/carry source-vector projection.
+- Added a read-only capacity drain query, blocked new haul plans for pending batches, froze picked plans, released only unpicked plans, and blocked restored carried delivery from restarting during the drain.
+- Added `ProductionCapacityRoutingDrainExecutionCoordinator`: normal exact routing, delivery authority, actor-set quiescence/release, stable stack verification, durable checkpoint wait and exact effect receipt are one replayable producer lifecycle.
+- Added the real `ProductionCapacityRoutingDestructiveDrainParticipant` implementation and durable-prepare adapter. It is intentionally not registered in the exact-five production registry until the other four actual participants and restore/GC gates exist.
+- Current ordered Production/Items/Economy/Assembly-CSharp compile passes; the lifecycle and actor-transition Editor fixtures also statically compile against the current runtime DLLs.
+
+## 2026-08-26 capacity participant continuation
+
+- Resumed the targeted upper-boundary rewrite while preserving proven gram admission, exact-route custody, save/restore, hauling, and FacilityBuffer contracts.
+- Confirmed the newly added capacity participant fixture covers the required prepare/durable-prepare/commit/ack/recovery branches at a high level; bounded source review and fresh static compilation are the next evidence gates.
+- Kept live participant/save-section registration closed because only capacity has a concrete participant and the common durable open-operation gate, next-Tick recovery runner, reverse-DAG checkpoint GC, and remaining domain adapters are not yet proven.
+- Completed bounded review and fresh static compilation of `ProductionCapacityRoutingDestructiveDrainParticipantDebugScenarios`; all prepare, durable replay/drift, commit/ack mapping, and recovery scenarios also passed the subagent's independent reflection run. Live physical integration and Unity evidence remain explicitly open.
+- Hardened capacity recovery against incomplete terminal fields and journal/producer receipt drift, and extended the focused fixture with both fail-closed cases.
+- Added the root-store-only durable open-operation query, composed it with the transient mutation authority in production DI, froze every generic bill command/automatic retirement path already routed through the epoch query, and rejected new exact/planned FacilityBuffer admission while the owner drain is open.
+- Added a focused durable-open-gate Editor scenario proving the gate remains closed from Prepared through `WorldRemovedAwaitingCheckpointGc` and opens only after journal-last removal.
+- Recompiled `DungeonStory.Production`, `DungeonStory.Economy`, `Assembly-CSharp`, and `Assembly-CSharp-Editor` in dependency order with Unity 6 Roslyn; exit 0 and zero diagnostics. Live Unity execution and Console 0/0 remain pending.
+- Added the conflict-free physical-custody destructive-drain participant and fixture. It composes the existing Items producer port without widening save authority, handles empty facilities with a zero-owner plan, and binds authoritative facilities to one exact destination-wide terminal owner.
+- Recompiled runtime and Editor assemblies after integrating the physical participant with the durable gate changes; exit 0 and zero diagnostics. The physical participant is intentionally not registered in the exact-five registry until generic, combat, apparel, runner, and staged GC are complete.
+- Extended detached capacity reconstruction so facility-owned routing batches keep their original physical mass floor after the generic bill owner retires. This prevents save-only/live lifecycle fingerprint drift without masking legitimate over-capacity stock.
+- Paused generic participant mutation work at a newly proven P0 boundary: the existing destination release is count-only and partially mutating. A distinct replay-safe input-destination custody effect is being specified before any v18 generic producer schema or removal bypass is committed.
+# 2026-08-26 targeted destructive-boundary pivot
+
+- Re-audited the live destructive entry point and confirmed it is still empty-only and synchronous.
+- Kept the existing mass/warehouse/routing/custody foundation; selected a bounded rewrite of the removal transaction boundary.
+- Received independent subagent agreement that 80-90% of the current physical authority should remain and that the input-destination release needs a durable actor -> intent -> destination outbox.
+- Received the new FacilityBuffer open-journal admission fixture: static Editor compile passed and managed `VerifyAll` returned `FACILITY_BUFFER_DRAIN_GATE_FIXTURE_PASS`; Unity-loaded execution/Console evidence remains open.
+- Next integration order is latent prepared-output journal-start preflight, durable input-destination drain port, then generic producer outbox/participant.
+
+# 2026-08-26 targeted boundary rewrite implementation
+
+- Added the journal-start prepared-output preflight and statically compiled its safe, deferred and conflict rules against current Production/Economy/runtime references.
+- Added `ProductionInputDestinationCustodyDrainContracts` and `ProductionInputDestinationCustodyDrainOutbox`, bumped the physical-item current-format payload to V17, and connected capture, detached restore, required raw JSON shape and DI registration.
+- Added current-format validation for canonical input-destination rows with unique step, bill and destination ownership.
+- Fresh bounded Roslyn builds of `DungeonStory.Production`, `DungeonStory.Items`, `DungeonStory.Economy` and the current runtime all exit 0. The Editor fixture and live mutation port remain the next gates; no final V27 checklist row is closed yet.
+- Added and compiled the focused outbox Editor fixture. A save-authority review then replaced transient lease IDs with durable lease-authority fingerprints; current Items/runtime/Editor builds still exit 0 after the correction.
+
+## 2026-08-26 input-destination live service and generic producer checkpoint
+
+- Added and statically compiled `ProductionInputDestinationCustodyDrainService`: exact live capture, stable lease-authority fingerprints, actor-cell physical drops, replay-safe operation authority release, exact quantity/gram destination release and terminal result receipt.
+- Added and statically compiled `ProductionGenericBillTerminalDrainOutbox`: child input receipt, acknowledgement, WIP FacilityDestroyed receipt, claim revoke, exact source-bill retirement, producer receipt, owner acknowledgement and child-first checkpoint GC.
+- Registered both the live input service and generic producer query/command in `DungeonWorldSimulationRegistration`.
+- Derived current-source `Assembly-CSharp` compilation passed after the registration changes. Unity import/execution, participant integration, current-format save join and Console evidence remain open.
+- No authored mass, WU, EWU, price, ScriptableObject or balance value changed at this checkpoint.
+# 2026-08-26 generic producer upper join integration
+
+- Extended the transaction-scoped restore validator contract so the upper destructive-drain journal receives the detached generic producer candidate together with the base-eight lifecycle bundle.
+- Added exact generic producer forward/reverse joins, phase compatibility, request/commit/receipt equality and producer-only orphan rejection to the cross-aggregate validator.
+- Added the generic producer section as a journal save dependency and registered its stateless validation dependency without registering the still-incomplete producer/journal sections live.
+- Updated focused validator fakes and the full persistence fixture's section topology. Unity-bundled Roslyn runtime and Editor compilation both pass after one fixture constructor correction.
+- No ScriptableObject, scene, authored kg, WU, EWU or price value changed. Unity-loaded execution remains pending.
+
+# 2026-08-26 combat/apparel terminal producer topology
+
+- Integrated the independently authored combat craft+repair and apparel terminal producer outboxes plus both exact-five participants into the current derived runtime/Editor compile graph.
+- Added current-format combat/apparel producer payloads, strict own-payload validators and unregistered staged save sections. Their dependencies are the base-eight lifecycle sections; the upper journal now depends on generic, combat and apparel producer sections after those base candidates.
+- Extended the transaction-scoped restore index with cloned combat/apparel producer projections and complete cleanup, while preserving the cycle-free base-eight capture used by producer sections.
+- Extended the upper cross-aggregate validator with exact generic/combat/apparel owner joins, legal producer-ahead phase windows, exact request/commit/receipt checks and producer-only orphan rejection. Added a focused upper-join fixture and expanded the candidate-index clone/duplicate/cleanup fixture.
+- Current integrated Unity-bundled Roslyn runtime and Editor compiles pass. Latest derived hashes before the final join-fixture visibility correction were runtime `5D6526EE1EA3833E8AA6E3216E263DCE36C71A781FD634D989E5F6C10CFC7FFD` and Editor `70966310A9757687EDFC9DBC3A5F85202C02BE5217420F0F34656F929C302A6D`; fresh final hashes remain to be recorded.
+- Live registration remains closed: combat/apparel lower terminal receipt authorities, synchronous restore recovery, rollback-capable reverse-DAG checkpoint GC and Unity-loaded execution are still open.
+## 2026-08-26 bounded terminal-boundary rewrite decision
+
+- Re-read the live combat craft/repair and apparel work-order authority paths through two conflict-free read-only audits.
+- Chose a bounded rewrite rather than a whole-system rewrite: preserve the compiled shared destructive-drain topology and replace only the unsafe combat/apparel terminal receipt and owner-removal boundary.
+- Added explicit checklist rows for combat and apparel owner-aggregate terminal rewrites; exact-five registration, synchronous recovery, rollback-capable reverse-DAG GC and Unity execution remain open.
+- No gameplay value or asset was changed at this decision checkpoint.
+
+## 2026-08-26 combat one-shot custody checkpoint
+
+- Added immutable Items custody source snapshot capture/build APIs and retained `TryCaptureRequest` as their deterministic compatibility composition.
+- Added capture-barrier, stale revision, ownership digest, canonical row and exact quantity/gram validation.
+- Added combat prepared-source binding, source fingerprint V2, full child request validation, source-claim joins and phase-aware released-gram joins.
+- Added focused Editor assertions for split/wrapper identity, capture barrier observation, stale snapshot rejection, mutated-row rejection, pending-only source identity stability and custody 1g mismatch rejection.
+- Rebuilt current Items, Runtime and Editor response files in dependency order; all three compile with zero diagnostics.
+- Overall Batch A-H progress estimate: 79%. Exact-five P0 boundary estimate: 70%. Remaining: live craft authority, live repair authority, apparel authority, synchronous recovery, atomic reverse-DAG GC, exact-five registration/Unity execution, then the wider Batch A-H and final balance regressions.
+
+## 2026-08-26 rewrite-scope decision checkpoint
+
+- Re-read the active plans and audited current DI/symbol registrations before deciding whether to restart.
+- Decision: preserve the compiled lower physical/warehouse/haul/generic layers; stop adding generic framework surface and rewrite only the unclosed exact-five upper orchestration and combat repair/apparel owner-terminal boundaries.
+- No gameplay value, asset, scene, save data or runtime registration changed in this checkpoint.
+- Progress remains approximately 80% overall and 75% for the exact-five P0 boundary; Unity-loaded execution remains unavailable while MCP approval is revoked.
+- Independent current-source re-audit confirmed the fastest route is now smaller than a boundary rewrite: preserve all five implemented participant/producer/join layers and add only live DI composition, synchronous pre-gameplay recovery, and rollback-capable reverse-DAG checkpoint GC. No runtime registration was changed during this decision audit.
+
+## 2026-08-26 exact-five live authority preflight
+
+- Revalidated all five participant shells, current DI, live building destructive-loss entry point, combat craft authority, maintenance aggregate and apparel runtime.
+- Corrected the next sequence: combat repair authority/router and apparel same-aggregate authority/durable rejected Transform must close before live registry/journal registration.
+- No gameplay values or assets changed. Overall progress remains about 80%; exact-five P0 remains about 75% because structural shells are present but live owner authorities are incomplete.
+# 2026-08-26 exact-five combat repair/router continuation
+
+- Revalidated the current live boundary: `BuildingDestructiveLossRuntime` and `GridBuildingRuntime` still call the old synchronous `TryPrepareEmpty`; exact-five registration remains closed.
+- Repaired three C# definite-assignment faults in `CombatEquipmentRepairTerminalAuthority`; runtime static compilation now passes with craft, repair, and diagnostic sources.
+- Added `CombatEquipmentTerminalSourceAuthorityRouter` with concrete craft/repair dependencies, strict owner-prefix dispatch, ambiguous cross-authority receipt rejection, gameplay-mutation annotations, and deterministic Unity meta files.
+- Runtime static compilation including craft authority, repair authority, router, and craft diagnostic access passes with exit code 0.
+- Balance impact: none. This slice changes terminal ownership/orchestration only; no kg, BOM, WU, EWU, price, capacity, or ScriptableObject value changed.
+- One runtime compile attempt after starting the parallel focused-test agent failed with CS2012 because both compilers targeted the same `Library/CodexCompile/GenericDrainRestoreJoin/Assembly-CSharp.dll`. This is an output-file contention error, not a source diagnostic; subsequent root compiles use an isolated output path.
+- Added the repair terminal takeover to `EquipmentRepairMaterialRestoreGuard`: pre-removal rows require an exact frozen live order, post-ack rows reject surviving physical receipts, and the row-first acknowledgement crash window is accepted only for the matching terminal owner.
+- Added and reviewed five focused Repair/Router Editor scenarios. Fresh serialized runtime/editor static compilation after the current Apparel changes passes `0/0`.
+
+# 2026-08-26 exact-five apparel same-aggregate authority start
+
+- Refactored `ApparelWorkOrderRuntime` so orders, terminal rows, sequence, and revision live under one pointer-swapped authority state. Exact source removal and source-receipt publication now occur in one authority replacement.
+- Implemented the live apparel terminal effect/source ports on that runtime, including row-first effect publication, exact frozen-source comparison, replay, duplicate-commit rejection, and source-terminal receipt capture.
+- Added `ApparelWorkOrderTerminalStateSaveData`, atomic restore candidate publication, terminal/live source joins, and CharacterEnvironment current-format V7. Missing terminal arrays are rejected; past-save migration remains out of scope.
+- Registered the runtime as both terminal ports. Runtime and Editor static compilation pass, but focused apparel scenarios and durable rejected-dismantle Transform are still open; exact-five registration remains closed.
+- Balance impact: none so far. No kg, BOM, WU, EWU, price, capacity, or ScriptableObject value changed.
+
+## 2026-08-26 rejected-apparel crash-ahead validation correction
+
+- Rechecked the bounded rewrite against the existing planned-output admission/publication APIs. The lower gram-capacity and atomic batch publisher are reusable; a whole warehouse/haul rewrite remains slower and riskier.
+- Corrected the acknowledgement crash-ahead path so a missing pending input row no longer marks the Apparel owner acknowledged before the expected facility output is validated.
+- Corrected published-output replay so an owner-declared published recovery batch that is physically missing fails loudly instead of being respawned and potentially duplicated.
+- Corrected cancellation diagnostics to report the rejected-dismantle operation/commit rather than unrelated repair identifiers.
+- Added/reviewed the independent ten-scenario rejected-dismantle Editor fixture and updated its crash-ahead expectation to validate output before idempotent acknowledgement.
+- Isolated Unity-bundled Roslyn compilation passes: runtime `0`, Editor `0`. Unity-loaded execution is still unavailable; full gram reservation/atomic planned-output publication and the raw source-garment publication window remain open P0 work.
+- One broad symbol search exceeded the output budget and was replaced with bounded line-window reads. A Windows wildcard path passed to `rg` also failed with OS error 123; subsequent searches use directory roots plus `-g` filters.
+- Balance impact: none. No authored kg, BOM, WU, EWU, price, capacity, ScriptableObject, or scene value changed.
+
+## 2026-08-27 bounded Apparel planned-output continuation start
+
+- Re-read the repository authority, planning skill and Unity C# implementation rules, then ran planning session catch-up and inspected the current dirty worktree without resetting user changes.
+- Split the rejected-Apparel P0 into evidence-bearing substeps: durable owner/input receipt is present; full FacilityBuffer gram reservation, atomic recovery publication, and initial unique-garment publication remain open.
+- Updated the structure contract so the existing destination authority, planned-output admission and atomic publisher remain the lower single authorities. Apparel will own only the cross-aggregate transaction phase and replay join.
+- Two conflict-free read-only agents are auditing the minimal bridge API and focused test gaps. Unity/common contracts/save edits remain serialized under the root agent.
+- Progress remains approximately 81% overall and 84% for the exact-five P0 until the new physical transaction path compiles and runs.
+
+## 2026-08-27 reserved Transfer pending foundation
+
+- Extended the existing reserved physical disposition boundary with `TryCommitReservedTransferPending`; Sink and Transfer now share the same exact-lease revalidation, pending receipt publication, lease debit, physical debit and rollback core.
+- Replay remains operation/kind/quantity/reason exact and no longer depends on a lease after the first durable commit. A Transfer replay cannot be mistaken for a Sink replay.
+- Added explicit internal gameplay-mutation annotations for the reserved Sink and Transfer entry points.
+- Fresh isolated Unity-bundled Roslyn runtime compilation passes with exit `0`. A conflict-free agent is adding focused Transfer atomicity/replay/failure tests; the checklist remains open until those tests compile and execute.
+- Balance impact: none. This adds a custody transaction kind but changes no authored kg, quantities, rates, WU, EWU, prices, assets or scene state.
+- A first broad `Get-Content` window for the new focused scenario exceeded the tool output budget. Review resumed with three bounded line windows; the truncated read did not change files or test evidence.
+- Root review confirmed the focused scenario covers exact source/lease debit, durable `Transfer` kind, replay after lease consumption, kind/owner conflicts, and exception rollback. Fresh root Runtime and Editor Roslyn compiles both pass with exit `0`; Unity-loaded execution remains open.
+- The first CharacterEnvironment V9 patch used a stale assertion message from an earlier version of `PlayerFairnessDebugScenarios`; `apply_patch` rejected the whole hunk without changing either file. The exact current assertion was then read and patched.
+
+## 2026-08-27 Apparel planned craft publication slice
+
+- Added `ApparelPhysicalTransaction`, composing the existing gram-capacity authority, planned-output admission, atomic publisher and pending material disposition instead of adding a second physical authority.
+- `ResolveCraft` no longer calls `SpawnUniqueItemAt`, craft-time `TrySetInstanceComponent`, `DeleteStack`, or the immediate material-consumption helper. The frozen unique Apparel component and preallocated instance ID now enter the admitted full-batch path.
+- Added durable craft owner fields for batch/outcome/component/capacity/token/input/output/ack/market-route identity, exact clone support, owner-shape validation, and bumped the strict CharacterEnvironment current format from V8 to V9. Past-save migration remains out of scope.
+- Added read-only lookup of a persisted planned-output token so a domain owner can resume a reserved or routed admission without reconstructing gameplay state from save DTOs.
+- Fresh isolated Runtime and Editor Roslyn compiles pass `0/0`. Unity imported the changed scripts with Console `0 Warning / 0 Error`.
+- Unity-loaded `PhysicalStockQueryV18DebugScenarios.RunAll()` completed successfully, including the new reserved Transfer atomicity/replay/rollback scenario; Console remained `0/0` afterward.
+- The new Apparel craft facade focused fixture is being authored independently. The production checklist remains open until output-full preservation, exact unique component/mass, replay, and market routing execute in Unity.
+- Balance impact: none. No authored kg, quantity, WU, EWU, price, capacity asset, ScriptableObject, or scene value changed.
+- Corrected the Apparel prepared-component fingerprint from raw canonical component text to a lowercase SHA-256 digest. Fresh isolated Runtime/Editor compiles pass `0/0`.
+- Unity-loaded `ApparelPhysicalTransactionDebugScenarios.RunAll()` passed output-full source preservation, exact unique Apparel component/mass, terminal input/output acknowledgements, completed replay idempotence and physical FacilityBuffer market routing. A narrow Console query remained `0 Warning / 0 Error`.
+- The RunCommand transport did not return after the test completed, so the wrapper wait was terminated. The Unity Console contained the explicit PASS record and no Error/Warning; this is recorded as a transport response failure, not a test failure or a reason to rerun the same long command.
+- Began the bounded rejected-dismantle rewrite: the facade now has a planned recovery transaction path, exact source quantity lease plus reserved Transfer pending, immutable recovery outcome/capacity owner fields, and planned-output publication/acknowledgement. `ResolveRejectedApparelDismantle` no longer invokes the old input-first/direct-spawn sequence. Current-source Runtime/Editor static compiles pass `0/0`; focused Unity execution and restore-query conversion remain open.
+- Balance impact remains none. This slice changes physical transaction order and custody only; authored kg, quantities, WU, EWU, prices, capacities, assets and scene values are unchanged.
+# 2026-08-26 bounded exact-five continuation
+
+- Re-read the root agent authority plus the planning-with-files and Unity C# skill instructions, ran session catch-up, and inspected the current worktree instead of relying on conversation memory.
+- Reconfirmed the bounded rewrite decision: preserve gram/warehouse/haul/routing foundations and rewrite only the remaining upper destructive transaction boundaries.
+- The independent Apparel terminal-authority scenario file was delivered without production edits. Runtime and Editor static compiles and `git diff --check` passed; Unity menu execution remains unavailable while Unity MCP is revoked.
+- Current direct code evidence: `ApparelWorkOrderRuntime.ResolveRejectedApparelDismantle` still performs `DeleteStack` followed by separate `SpawnItemAt`, while its same-aggregate terminal receipts and CharacterEnvironment V7 restore shape are already present.
+- Next production slice: durable exact rejected-Apparel input Transfer plus deterministic recovery output publication, save/restore joins and focused static regression.
+- First isolated Runtime compile of the new Apparel outbox failed with three CS7036 diagnostics because `GameplayInternalOnlyAttribute` requires both a reason and an allowed-caller scope. No runtime evidence was claimed. The annotations were corrected to name `ApparelWorkOrderRuntime` as the sole caller; do not repeat the one-argument form.
+- The second isolated compile exposed CS0165 because a recovery-item drift check short-circuited before assigning `inputFailure`. The item-authority check and outbox call were split into two fail-loud branches; no fallback was added.

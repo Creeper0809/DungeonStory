@@ -387,6 +387,16 @@ public sealed class CropEcologyAggregateState
         if (plot.diseasePressure <= 0f) plot.disease = CropDiseaseKind.None;
     }
 
+    public bool AbandonPlot(string plotId)
+    {
+        if (string.IsNullOrWhiteSpace(plotId)
+            || !string.Equals(plotId, plotId.Trim(), StringComparison.Ordinal))
+            throw new ArgumentException(
+                "A canonical crop plot ID is required.",
+                nameof(plotId));
+        return plots.Remove(plotId);
+    }
+
     public CropEcologyWorldSaveData Capture() => new()
     {
         initialSeedGrantIssued = initialSeedGrantIssued,
@@ -577,6 +587,7 @@ public interface ICropEcologyService
     void ApplyCompost(string plotId);
     void ApplyPestControl(string plotId, float amount);
     void ApplyFungicide(string plotId, float amount);
+    bool AbandonPlot(string plotId);
     IReadOnlyList<CropEcologyPlotSaveData> Plots { get; }
 }
 

@@ -89,6 +89,10 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
         {
             return 0;
         }
+        if (FacilityOutputExactRouteCustodyCodec.HasAnyCustody(components))
+        {
+            return 0;
+        }
 
         string normalizedItemId = itemId.Trim();
         if (RequiresAuthoritativeEquipmentInstance(normalizedItemId))
@@ -337,6 +341,7 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
 
         return positionStacks.FirstOrDefault(stack => stack != null
             && stack.quantity > 0
+            && stack.dropDisposition == WorldItemDropDisposition.None
             && stack.quantity < maxStack
             && stack.state == state
             && string.Equals(

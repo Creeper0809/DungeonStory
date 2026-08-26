@@ -7,8 +7,8 @@ using UnityEngine;
 
 public static class ResourceEconomyAssetBuilder
 {
-    public const int ExpectedItemCount = 108;
-    public const int ExpectedRecipeCount = 109;
+    public const int ExpectedItemCount = 109;
+    public const int ExpectedRecipeCount = 110;
     public const int ExpectedCropCount = 8;
     public const int ExpectedMaterialCount = 12;
     public const int ExpectedSubstanceCount = 9;
@@ -40,6 +40,11 @@ public static class ResourceEconomyAssetBuilder
             items.Count(item => item.TryGetFeature(out SubstanceItemFeature _)),
             ExpectedCoreSubstanceCount,
             "core item substance features");
+        ValidateMedicalVialTopology(items, recipes);
+        ValidateDogFoodTopology(items, recipes);
+
+        GameContentCatalogAssetBuilder.ReindexItemDefinitions();
+        GameContentCatalogAssetBuilder.ReindexProductionRecipes();
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -56,6 +61,165 @@ public static class ResourceEconomyAssetBuilder
         {
             throw new InvalidOperationException(
                 $"Resource economy must contain {expected} {contentKind}, found {actual}.");
+        }
+    }
+
+    private static void ValidateMedicalVialTopology(
+        IReadOnlyList<ResourceItemDefinitionSO> items,
+        IReadOnlyList<ProductionRecipeSO> recipes)
+    {
+        ResourceItemDefinitionSO vial = items.Single(item => string.Equals(
+            item.ItemId,
+            "container:medical-vial",
+            StringComparison.Ordinal));
+        ResourceItemDefinitionSO anesthetic = items.Single(item => string.Equals(
+            item.ItemId,
+            "medicine:anesthetic",
+            StringComparison.Ordinal));
+        ResourceItemDefinitionSO iron = items.Single(item => string.Equals(
+            item.ItemId,
+            "material:iron-ingot",
+            StringComparison.Ordinal));
+        if (!anesthetic.TryGetFeature(out PackagedLotItemFeature package)
+            || package.packageTareGrams != 30
+            || package.tareDisposition
+                != PackageTareDisposition.ReusableContainerReturn
+            || !string.Equals(
+                package.containerItemId,
+                vial.ItemId,
+                StringComparison.Ordinal)
+            || PhysicalMassGrams.FromCanonicalKilograms(anesthetic.UnitWeight).Value
+                != 120L
+            || PhysicalMassGrams.FromCanonicalKilograms(vial.UnitWeight).Value
+                != 30L)
+        {
+            throw new InvalidOperationException(
+                "Anesthetic packaged-lot authority must be exact 120g=90g+30g reusable vial.");
+        }
+
+        ProductionRecipeSO vialRecipe = recipes.Single(recipe => string.Equals(
+            recipe.RecipeId,
+            "recipe:medical-vial",
+            StringComparison.Ordinal));
+        long vialInputMass = checked(
+            PhysicalMassGrams.FromCanonicalKilograms(iron.UnitWeight).Value
+            * vialRecipe.Inputs.Single(input => string.Equals(
+                input.ItemId,
+                iron.ItemId,
+                StringComparison.Ordinal)).Amount);
+        long vialOutputMass = checked(
+            PhysicalMassGrams.FromCanonicalKilograms(vial.UnitWeight).Value
+            * vialRecipe.Outputs.Single(output => string.Equals(
+                output.ItemId,
+                vial.ItemId,
+                StringComparison.Ordinal)).Amount);
+        ProductionRecipeSO anestheticRecipe = recipes.Single(recipe =>
+            string.Equals(
+                recipe.RecipeId,
+                "recipe:anesthetic",
+                StringComparison.Ordinal));
+        if (vialInputMass != 900L
+            || vialOutputMass != 900L
+            || Math.Abs(anestheticRecipe.RequiredWork - 28f) > 0.001f
+            || anestheticRecipe.Inputs.Count(input => string.Equals(
+                input.ItemId,
+                vial.ItemId,
+                StringComparison.Ordinal) && input.Amount == 1) != 1
+            || anestheticRecipe.Outputs.Count(output => string.Equals(
+                output.ItemId,
+                anesthetic.ItemId,
+                StringComparison.Ordinal) && output.Amount == 1) != 1
+            || recipes.Any(recipe => recipe.Inputs.Any(input => string.Equals(
+                input.ItemId,
+                anesthetic.ItemId,
+                StringComparison.Ordinal))))
+        {
+            throw new InvalidOperationException(
+                "Medical-vial loop must conserve 900g exactly, preserve anesthetic recurring work at 28 WU, and remain terminal-only.");
+        }
+    }
+
+    private static void ValidateDogFoodTopology(
+        IReadOnlyList<ResourceItemDefinitionSO> items,
+        IReadOnlyList<ProductionRecipeSO> recipes)
+    {
+        ResourceItemDefinitionSO dogFood = items.Single(item => string.Equals(
+            item.ItemId,
+            "feed:dog-food",
+            StringComparison.Ordinal));
+        if (PhysicalMassGrams.FromCanonicalKilograms(dogFood.UnitWeight).Value
+            != 525L)
+        {
+            throw new InvalidOperationException(
+                "Dog-food authority must define one ration as exactly 525 g.");
+        }
+
+        ProductionRecipeSO byproductRecipe = recipes.Single(recipe =>
+            string.Equals(
+                recipe.RecipeId,
+                "recipe:dog-food",
+                StringComparison.Ordinal));
+        ProductionRecipeSO freshRecipe = recipes.Single(recipe => string.Equals(
+            recipe.RecipeId,
+            "recipe:dog-food-fresh",
+            StringComparison.Ordinal));
+        ResourceItemDefinitionSO grain = items.Single(item => string.Equals(
+            item.ItemId,
+            "resource:twilight-grain",
+            StringComparison.Ordinal));
+        ResourceItemDefinitionSO animalRot = items.Single(item => string.Equals(
+            item.ItemId,
+            "waste:animal-rot",
+            StringComparison.Ordinal));
+        ResourceItemDefinitionSO meat = items.Single(item => string.Equals(
+            item.ItemId,
+            "resource:meat",
+            StringComparison.Ordinal));
+
+        ValidateDogFoodRecipeMass(
+            byproductRecipe,
+            animalRot,
+            grain,
+            dogFood);
+        ValidateDogFoodRecipeMass(
+            freshRecipe,
+            meat,
+            grain,
+            dogFood);
+    }
+
+    private static void ValidateDogFoodRecipeMass(
+        ProductionRecipeSO recipe,
+        ResourceItemDefinitionSO primary,
+        ResourceItemDefinitionSO grain,
+        ResourceItemDefinitionSO dogFood)
+    {
+        bool exactShape = recipe.Inputs.Count == 2
+            && recipe.Inputs.Count(input => string.Equals(
+                input.ItemId,
+                primary.ItemId,
+                StringComparison.Ordinal) && input.Amount == 1) == 1
+            && recipe.Inputs.Count(input => string.Equals(
+                input.ItemId,
+                grain.ItemId,
+                StringComparison.Ordinal) && input.Amount == 1) == 1
+            && recipe.Outputs.Count == 1
+            && string.Equals(
+                recipe.Outputs[0].ItemId,
+                dogFood.ItemId,
+                StringComparison.Ordinal)
+            && recipe.Outputs[0].Amount == 2
+            && Mathf.Approximately(recipe.Outputs[0].Probability, 1f);
+        long inputGrams = checked(
+            PhysicalMassGrams.FromCanonicalKilograms(primary.UnitWeight).Value
+            + PhysicalMassGrams.FromCanonicalKilograms(grain.UnitWeight).Value);
+        long outputGrams = checked(
+            PhysicalMassGrams.FromCanonicalKilograms(dogFood.UnitWeight).Value
+            * 2L);
+        if (!exactShape || inputGrams != 1_050L || outputGrams != inputGrams)
+        {
+            throw new InvalidOperationException(
+                $"{recipe.RecipeId} must conserve exactly 1,050 g into two 525 g rations.");
         }
     }
 
@@ -117,6 +281,7 @@ public static class ResourceEconomyAssetBuilder
             I("material:alchemical-solvent", "연금 용매", "약효 성분과 마나를 안정적으로 섞는 용매.", StockCategory.General, ResourceItemKind.Intermediate, ResourceIngredientTag.Arcane, 12, 0.3f, 50, "research:pharmacology:distillation"),
             I("material:tallow", "정제 지방", "비누, 양초와 연고의 기초.", StockCategory.General, ResourceItemKind.Intermediate, ResourceIngredientTag.Fat, 6, 0.35f, 60, "research:cuisine:livestock"),
             I("material:bowstring", "활시위", "활과 석궁 제작에 쓰는 고장력 섬유.", StockCategory.General, ResourceItemKind.Intermediate, ResourceIngredientTag.Fiber, 8, 0.08f, 50, "research:textile:fiber"),
+            I("container:medical-vial", "재사용 의료 바이알", "마취제와 약액을 담고 사용 뒤 회수하는 소형 철제 바이알.", StockCategory.General, ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral, 1, 0.03f, 300, "research:pharmacology:anesthesia"),
             I("material:treated-lumber", "처리 목재", "수액으로 방습·강화한 목재.", StockCategory.General, ResourceItemKind.Intermediate, ResourceIngredientTag.Wood, 12, 1.15f, 40, "research:forestry:treated"),
             I("material:cheese", "치즈", "보존성이 좋은 채식 단백질 식재료.", StockCategory.Food, ResourceItemKind.Intermediate, ResourceIngredientTag.Milk, 8, 0.4f, 50, "research:cuisine:livestock"),
             I("material:low-fuel", "저급 연료", "부패물과 분뇨를 굳힌 냄새나는 연료.", StockCategory.Fuel, ResourceItemKind.Intermediate, ResourceIngredientTag.Spoiled | ResourceIngredientTag.Fuel, 1, 0.8f, 75, "research:agriculture:compost"),
@@ -127,16 +292,16 @@ public static class ResourceEconomyAssetBuilder
             M("food:mushroom-soup", "동굴버섯국", "단백질이 풍부한 비건 국.", ResourceIngredientTag.Fungus, 7, 0.65f, 50, "research:cuisine:crops", MealQualityTier.Simple, 36f, 1f, 330f),
             M("food:garden-meal", "정원 요리", "곡물과 뿌리, 버섯을 섞은 비건 고급식.", ResourceIngredientTag.Plant | ResourceIngredientTag.Fungus, 12, 0.75f, 40, "research:cuisine:vegan", MealQualityTier.Fine, 50f, 4f, 420f),
             M("food:egg-pancake", "달걀전", "알과 곡물로 만든 채식식.", ResourceIngredientTag.Egg | ResourceIngredientTag.Plant, 11, 0.65f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 50f, 4f, 360f),
-            M("food:cheese-mushroom", "치즈버섯찜", "치즈와 버섯을 곁들인 채식 고급식.", ResourceIngredientTag.Milk | ResourceIngredientTag.Fungus, 14, 0.7f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 50f, 5f, 390f),
+            M("food:cheese-mushroom", "치즈버섯찜", "치즈와 버섯을 곁들인 채식 고급식.", ResourceIngredientTag.Milk | ResourceIngredientTag.Fungus, 14, 0.45f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 50f, 5f, 390f),
             M("food:roasted-meat", "고기구이", "간단히 구운 육식 단순식.", ResourceIngredientTag.Meat, 9, 0.75f, 40, "research:cuisine:livestock", MealQualityTier.Simple, 42f, 3f, 300f),
             M("food:boar-stew", "멧돼지 스튜", "고기와 뿌리를 끓인 혼합 고급식.", ResourceIngredientTag.Meat | ResourceIngredientTag.Plant, 15, 0.85f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 55f, 7f, 390f),
-            M("food:meat-pie", "고기 파이", "고기와 밀가루를 쓴 혼합 고급식.", ResourceIngredientTag.Meat | ResourceIngredientTag.Plant, 17, 0.8f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 55f, 7f, 450f),
+            M("food:meat-pie", "고기 파이", "고기와 밀가루를 쓴 혼합 고급식.", ResourceIngredientTag.Meat | ResourceIngredientTag.Plant, 17, 0.575f, 40, "research:cuisine:livestock", MealQualityTier.Fine, 55f, 7f, 450f),
             M("food:jerky", "육포", "오래 보관 가능한 육식 보존식.", ResourceIngredientTag.Meat, 12, 0.45f, 50, "research:survival:preservation", MealQualityTier.Preserved, 35f, -1f, 1440f, true),
             M("food:lavish-vegan", "월야 비건 만찬", "세 가지 식물 재료군을 쓴 비건 호화식.", ResourceIngredientTag.Plant | ResourceIngredientTag.Fungus, 24, 0.9f, 30, "research:cuisine:lavish", MealQualityTier.Lavish, 60f, 10f, 480f),
             M("food:lavish-meat", "핏빛 호화식", "고기와 유제품, 과일을 쓴 호화식.", ResourceIngredientTag.Meat | ResourceIngredientTag.Milk | ResourceIngredientTag.Plant, 27, 1f, 30, "research:cuisine:lavish", MealQualityTier.Lavish, 65f, 12f, 480f),
             M("food:preserved-ration", "보존 배급식", "전분과 소금으로 수명을 늘린 원정 식량.", ResourceIngredientTag.Plant, 13, 0.5f, 60, "research:cuisine:lavish", MealQualityTier.Preserved, 40f, 0f, 1800f, true),
-            I("feed:hay", "건초 사료", "초식동물용 기본 사료.", StockCategory.Food, ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, 2, 0.45f, 75, "research:husbandry:feed"),
-            I("feed:dog-food", "개밥", "곡물과 동물성 부산물을 섞은 육식·잡식 사료.", StockCategory.Food, ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant | ResourceIngredientTag.Meat, 3, 0.55f, 75, "research:husbandry:feed"),
+            I("feed:hay", "건초 사료", "초식동물용 기본 사료.", StockCategory.Food, ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant, 2, 0.196f, 75, "research:husbandry:feed"),
+            I("feed:dog-food", "개밥", "곡물과 동물성 부산물을 섞은 육식·잡식 사료.", StockCategory.Food, ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant | ResourceIngredientTag.Meat, 3, 0.525f, 75, "research:husbandry:feed"),
             I("husbandry:bedding", "깔짚", "축사 위생과 휴식을 유지하는 바닥재.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, 3, 0.5f, 60, "research:husbandry:feed"),
             I("craft:soap", "비누", "위생 작업과 목욕에 쓰는 소모품.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fat, 7, 0.25f, 50, "research:survival:sanitation"),
             I("craft:candle", "양초", "조명과 의식에 쓰는 연료성 완제품.", StockCategory.Fuel, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fat | ResourceIngredientTag.Fuel, 6, 0.2f, 50, "research:authority:ritual"),
@@ -155,14 +320,17 @@ public static class ResourceEconomyAssetBuilder
             Med("medicine:standard", "표준 약품", "치료 효율과 회복 속도를 높이는 약품.", ResourceIngredientTag.Plant | ResourceIngredientTag.Fungus, 20, 0.16f, 40, "research:pharmacology:distillation", true, 1f, 8f, 2f, 8f),
             Med("medicine:advanced", "고급 약품", "마나와 월화를 안정화한 고급 치료제.", ResourceIngredientTag.Plant | ResourceIngredientTag.Arcane, 42, 0.14f, 30, "research:pharmacology:advanced", true, 1.35f, 14f, 8f, 12f),
             Med("medicine:antidote", "해독제", "독소와 과다 복용 증상을 완화한다.", ResourceIngredientTag.Plant | ResourceIngredientTag.Arcane, 28, 0.12f, 30, "research:pharmacology:advanced", false, 0.6f, 2f, 30f, 0f),
-            Med("medicine:anesthetic", "마취제", "수술과 중상 치료의 고통을 낮춘다.", ResourceIngredientTag.Plant, 24, 0.12f, 30, "research:pharmacology:anesthesia", false, 0.75f, 0f, 0f, 35f),
+            Med("medicine:anesthetic", "마취제", "수술과 중상 치료의 고통을 낮춘다.", ResourceIngredientTag.Plant, 24, 0.12f, 75, "research:pharmacology:anesthesia", false, 0.75f, 0f, 0f, 35f,
+                packageTareGrams: 30,
+                packageTareDisposition: PackageTareDisposition.ReusableContainerReturn,
+                packageContainerItemId: "container:medical-vial"),
 
             I("drug:moonflower-tea", "월화차", "의존성 없이 집중과 기분을 조금 높이는 차.", StockCategory.Medicine, ResourceItemKind.Substance, ResourceIngredientTag.Plant | ResourceIngredientTag.Arcane, 9, 0.25f, 40, "research:pharmacology:herbalism"),
             I("drug:vitality-tonic", "활력 강장제", "피로를 줄이는 비중독성 강장제.", StockCategory.Medicine, ResourceItemKind.Substance, ResourceIngredientTag.Plant, 16, 0.2f, 40, "research:pharmacology:distillation"),
             I("drug:dreamleaf-analgesic", "몽엽 진통제", "통증을 크게 낮추지만 의존 위험이 있다.", StockCategory.Medicine, ResourceItemKind.Substance, ResourceIngredientTag.Plant, 18, 0.12f, 30, "research:pharmacology:anesthesia"),
             I("drug:blood-stimulant", "혈화 촉진제", "전투력을 끌어올리지만 중독과 과다 복용 위험이 높다.", StockCategory.Medicine, ResourceItemKind.Substance, ResourceIngredientTag.Blood | ResourceIngredientTag.Forbidden, 28, 0.1f, 25, "research:pharmacology:stimulants"),
             I("drug:mana-awakener", "마나 각성제", "연구와 비전 감각을 증폭하는 중독성 약물.", StockCategory.Medicine, ResourceItemKind.Substance, ResourceIngredientTag.Arcane, 34, 0.1f, 25, "research:pharmacology:stimulants"),
-            I("drug:night-wine", "밤포도주", "기분과 사교성을 높이는 유흥성 술.", StockCategory.Food, ResourceItemKind.Substance, ResourceIngredientTag.Plant, 14, 0.5f, 40, "research:cuisine:fermentation"),
+            I("drug:night-wine", "밤포도주", "기분과 사교성을 높이는 유흥성 술.", StockCategory.Food, ResourceItemKind.Substance, ResourceIngredientTag.Plant, 14, 0.325f, 40, "research:cuisine:fermentation"),
             I("drug:hallucinogenic-distillate", "환각균 증류액", "강한 환각과 오락 효과를 주는 유흥 약물.", StockCategory.Medicine, ResourceItemKind.Substance, ResourceIngredientTag.Fungus, 22, 0.15f, 25, "research:pharmacology:distillation"),
 
             I("ammo:arrow-bone", "뼈촉 화살", "가볍지만 관통이 낮은 화살.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 2, 0.08f, 100, "research:defense:ranged-positions"),
@@ -179,20 +347,6 @@ public static class ResourceEconomyAssetBuilder
 
         return specs.Select((spec, index) =>
         {
-            ResourceItemDefinitionSO asset = GetOrCreate<ResourceItemDefinitionSO>(
-                $"{ItemRoot}/{Sanitize(spec.Id)}.asset");
-            asset.id = 8000 + index;
-            asset.Configure(
-                spec.Id,
-                spec.Name,
-                spec.Description,
-                spec.Category,
-                spec.Kind,
-                spec.Tags,
-                spec.Price,
-                spec.Weight,
-                spec.MaxStack,
-                spec.ResearchId);
             (float fuelValue, float feedValue, bool feedEligible) = spec.Id switch
             {
                 "resource:log" => (10f, 0f, false),
@@ -208,12 +362,49 @@ public static class ResourceEconomyAssetBuilder
                 "craft:candle" => (2f, 0f, false),
                 _ => (0f, 0f, false)
             };
+            string assetPath = $"{ItemRoot}/{Sanitize(spec.Id)}.asset";
+            ResourceItemDefinitionSO existing =
+                AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>(assetPath);
+            bool preserveApprovedMarketAuthority = existing != null;
+            int authoredUnitPrice = preserveApprovedMarketAuthority
+                ? existing.UnitPrice
+                : spec.Price;
+            float authoredUnitWeight = ResolveAuthoredUnitWeight(spec, existing);
+            float authoredMarketSaleRate = preserveApprovedMarketAuthority
+                ? existing.MarketSaleRate
+                : spec.MarketSaleRate;
+            ResourceItemDefinitionSO asset = GetOrCreate<ResourceItemDefinitionSO>(assetPath);
+            if (ItemMatchesSpec(
+                    asset,
+                    spec,
+                    8000 + index,
+                    fuelValue,
+                    feedValue,
+                    feedEligible,
+                    authoredUnitPrice,
+                    authoredUnitWeight,
+                    authoredMarketSaleRate))
+            {
+                return asset;
+            }
+            asset.id = 8000 + index;
+            asset.Configure(
+                spec.Id,
+                spec.Name,
+                spec.Description,
+                spec.Category,
+                spec.Kind,
+                spec.Tags,
+                authoredUnitPrice,
+                authoredUnitWeight,
+                spec.MaxStack,
+                spec.ResearchId);
             asset.ConfigureFacilitySupply(
                 fuelValue,
                 feedValue,
                 feedEligible,
                 spec.Kind == ResourceItemKind.Intermediate);
-            asset.ConfigureMarketSaleRate(spec.MarketSaleRate);
+            asset.ConfigureMarketSaleRate(authoredMarketSaleRate);
             if (spec.HasMealData)
             {
                 asset.ConfigureMeal(
@@ -234,19 +425,236 @@ public static class ResourceEconomyAssetBuilder
                     spec.DetoxReduction,
                     spec.PainReduction);
             }
+            if (spec.PackageTareGrams > 0)
+            {
+                asset.SetFeature(new PackagedLotItemFeature
+                {
+                    packageTareGrams = spec.PackageTareGrams,
+                    tareDisposition = spec.PackageTareDisposition,
+                    containerItemId = spec.PackageContainerItemId
+                });
+            }
+            else
+            {
+                asset.RemoveFeature<PackagedLotItemFeature>();
+            }
             ConfigureSubstanceFeature(asset);
             EditorUtility.SetDirty(asset);
             return asset;
         }).ToArray();
     }
 
+    private static float ResolveAuthoredUnitWeight(
+        ItemSpec spec,
+        ResourceItemDefinitionSO existing)
+    {
+        if (string.Equals(spec.Id, "feed:dog-food", StringComparison.Ordinal))
+        {
+            // V27 physical-mass authority: both dog-food recipes consume
+            // 1,050 g and publish two count-compatible 525 g feed rations.
+            // Do not preserve the former 550 g asset value on rebuild.
+            return 0.525f;
+        }
+
+        return existing != null ? existing.UnitWeight : spec.Weight;
+    }
+
+    private static bool ItemMatchesSpec(
+        ResourceItemDefinitionSO asset,
+        ItemSpec spec,
+        int authoredId,
+        float fuelValue,
+        float feedValue,
+        bool feedEligible,
+        int authoredUnitPrice,
+        float authoredUnitWeight,
+        float authoredMarketSaleRate)
+    {
+        if (asset == null
+            || asset.id != authoredId
+            || !string.Equals(asset.ItemId, spec.Id, StringComparison.Ordinal)
+            || !string.Equals(asset.DisplayName, spec.Name, StringComparison.Ordinal)
+            || !string.Equals(asset.Description, spec.Description, StringComparison.Ordinal)
+            || asset.StockCategory != spec.Category
+            || asset.Kind != spec.Kind
+            || asset.IngredientTags != spec.Tags
+            || asset.UnitPrice != authoredUnitPrice
+            || !Mathf.Approximately(asset.UnitWeight, authoredUnitWeight)
+            || asset.MaxStack != spec.MaxStack
+            || !string.Equals(
+                asset.RequiredResearchId,
+                spec.ResearchId ?? string.Empty,
+                StringComparison.Ordinal)
+            || !Mathf.Approximately(asset.MarketSaleRate, authoredMarketSaleRate)
+            || asset.SharedIntermediate
+                != (spec.Kind == ResourceItemKind.Intermediate)
+            || !Mathf.Approximately(asset.FuelValue, fuelValue)
+            || !Mathf.Approximately(asset.FacilityNutritionValue, feedValue)
+            || asset.FacilityFeedEligible != feedEligible)
+        {
+            return false;
+        }
+
+        bool expectsFacilitySupply = fuelValue > 0f
+            || feedValue > 0f
+            || feedEligible;
+        bool hasFacilitySupply = asset.TryGetFeature(
+            out FacilitySupplyItemFeature _);
+        if (hasFacilitySupply != expectsFacilitySupply)
+        {
+            return false;
+        }
+
+        bool hasFood = asset.TryGetFeature(out FoodItemFeature food);
+        if (hasFood != spec.HasMealData
+            || hasFood
+                && (food.quality != spec.MealQuality
+                    || food.qualityBand != ResolveMealQualityBand(spec.Id)
+                    || food.servingRole != ResolveMealServingRole(spec.Id)
+                    || !Mathf.Approximately(food.nutrition, spec.Nutrition)
+                    || !Mathf.Approximately(food.mood, spec.MealMood)
+                    || !Mathf.Approximately(
+                        food.freshnessSeconds,
+                        spec.FreshnessSeconds)
+                    || food.preserved != spec.Preserved))
+        {
+            return false;
+        }
+
+        bool hasMedicine = asset.TryGetFeature(
+            out MedicineItemFeature medicine);
+        if (hasMedicine != spec.HasMedicineData
+            || hasMedicine
+                && (medicine.supportsInjuryTreatment
+                        != spec.SupportsInjuryTreatment
+                    || !Mathf.Approximately(
+                        medicine.treatmentPotency,
+                        spec.TreatmentPotency)
+                    || !Mathf.Approximately(
+                        medicine.infectionReduction,
+                        spec.InfectionReduction)
+                    || !Mathf.Approximately(
+                        medicine.detoxReduction,
+                        spec.DetoxReduction)
+                    || !Mathf.Approximately(
+                        medicine.painReduction,
+                        spec.PainReduction)))
+        {
+            return false;
+        }
+
+        bool hasPackage = asset.TryGetFeature(
+            out PackagedLotItemFeature package);
+        if (hasPackage != (spec.PackageTareGrams > 0)
+            || hasPackage
+                && (package.packageTareGrams != spec.PackageTareGrams
+                    || package.tareDisposition
+                        != spec.PackageTareDisposition
+                    || !string.Equals(
+                        package.containerItemId,
+                        spec.PackageContainerItemId,
+                        StringComparison.Ordinal)))
+        {
+            return false;
+        }
+
+        bool expectsAmmunition = spec.Kind == ResourceItemKind.Ammunition;
+        bool hasAmmunition = asset.TryGetFeature(
+            out AmmunitionItemFeature ammunition);
+        if (hasAmmunition != expectsAmmunition
+            || hasAmmunition
+                && !string.Equals(
+                    ammunition.ammunitionKindId,
+                    spec.Id,
+                    StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        bool hasResearch = asset.TryGetFeature(
+            out ResearchGateItemFeature _);
+        bool expectsResearch = !string.IsNullOrWhiteSpace(spec.ResearchId);
+        if (hasResearch != expectsResearch
+            || !MatchesSubstanceFeature(asset))
+        {
+            return false;
+        }
+
+        int expectedFeatureCount = 2
+            + (expectsResearch ? 1 : 0)
+            + (expectsAmmunition ? 1 : 0)
+            + (expectsFacilitySupply ? 1 : 0)
+            + (spec.HasMealData ? 1 : 0)
+            + (spec.HasMedicineData ? 1 : 0)
+            + (spec.PackageTareGrams > 0 ? 1 : 0)
+            + (asset.GetFeatureOrDefault<SubstanceItemFeature>() != null ? 1 : 0);
+        return asset.Features.Count(feature => feature != null)
+            == expectedFeatureCount;
+    }
+
+    private static bool MatchesSubstanceFeature(
+        ResourceItemDefinitionSO asset)
+    {
+        SubstanceItemFeature feature =
+            asset.GetFeatureOrDefault<SubstanceItemFeature>();
+        return asset.ItemId switch
+        {
+            "drug:moonflower-tea" => MatchesSubstance(feature,
+                "substance:moonflower-tea", SubstanceUseClass.NonAddictive,
+                0f, 0.002f, 0f, 0f, 3f, 0.04f, 0f, 180f),
+            "drug:vitality-tonic" => MatchesSubstance(feature,
+                "substance:vitality-tonic", SubstanceUseClass.NonAddictive,
+                0f, 0.006f, 0f, 0f, 2f, 0.12f, 0f, 150f),
+            "drug:dreamleaf-analgesic" => MatchesSubstance(feature,
+                "substance:dreamleaf-analgesic", SubstanceUseClass.Addictive,
+                0.08f, 0.02f, 0.12f, 0.02f, 4f, 0.05f, -0.03f, 240f),
+            "drug:blood-stimulant" => MatchesSubstance(feature,
+                "substance:blood-stimulant", SubstanceUseClass.Addictive,
+                0.14f, 0.06f, 0.18f, 0.03f, 1f, 0.16f, 0.20f, 150f),
+            "drug:mana-awakener" => MatchesSubstance(feature,
+                "substance:mana-awakener", SubstanceUseClass.Addictive,
+                0.11f, 0.05f, 0.16f, 0.025f, 2f, 0.18f, 0.08f, 180f),
+            "drug:night-wine" => MatchesSubstance(feature,
+                "substance:night-wine", SubstanceUseClass.Recreational,
+                0.04f, 0.025f, 0.08f, 0.015f, 7f, -0.04f, -0.04f, 240f),
+            "drug:hallucinogenic-distillate" => MatchesSubstance(feature,
+                "substance:hallucinogenic", SubstanceUseClass.Recreational,
+                0.09f, 0.04f, 0.13f, 0.025f, 10f, -0.12f, -0.08f, 210f),
+            _ => feature == null
+        };
+    }
+
+    private static bool MatchesSubstance(
+        SubstanceItemFeature feature,
+        string id,
+        SubstanceUseClass useClass,
+        float addiction,
+        float overdose,
+        float tolerance,
+        float withdrawal,
+        float mood,
+        float work,
+        float combat,
+        float duration) =>
+        feature != null
+        && string.Equals(feature.substanceId, id, StringComparison.Ordinal)
+        && feature.useClass == useClass
+        && Mathf.Approximately(feature.addictionChance, addiction)
+        && Mathf.Approximately(feature.overdoseChance, overdose)
+        && Mathf.Approximately(feature.toleranceGain, tolerance)
+        && Mathf.Approximately(feature.withdrawalPerHour, withdrawal)
+        && Mathf.Approximately(feature.moodEffect, mood)
+        && Mathf.Approximately(feature.workSpeedEffect, work)
+        && Mathf.Approximately(feature.combatEffect, combat)
+        && Mathf.Approximately(feature.durationSeconds, duration);
+
     private static ProductionRecipeSO[] BuildRecipes()
     {
         List<RecipeSpec> specs = new List<RecipeSpec>
         {
-            SourceWork("source:logging", "벌목 수확", "exterior-tree", "work:logging", "research:forestry:logging", O("resource:log", 5), O("resource:dark-resin", 1, 0.18f)),
-            SourceWork("source:quarry", "심부 채석", "quarry", "work:quarry", "research:mining:quarry", O("resource:stone", 4), O("resource:coal", 1, 0.20f), O("resource:iron-ore", 1, 0.16f), O("resource:gold-ore", 1, 0.03f), O("resource:mana-crystal", 1, 0.01f)),
-            SourceWork("source:saltstone", "노천 채석", "exterior-rock", "work:quarry", "research:mining:surface", O("resource:stone", 3), O("resource:saltstone", 1, 0.25f)),
+            SourceWork("source:logging", "벌목 수확", "exterior-tree", "work:logging", "research:forestry:logging", O("resource:log", 5, outputLineId: "output:main", role: ProductionOutputRole.Main), O("resource:dark-resin", 1, 0.18f, "output:resource:dark-resin", ProductionOutputRole.Byproduct)),
+            SourceWork("source:quarry", "심부 채석", "quarry", "work:quarry", "research:mining:quarry", O("resource:stone", 4, outputLineId: "output:main", role: ProductionOutputRole.Main), O("resource:coal", 1, 0.20f, "output:resource:coal", ProductionOutputRole.Byproduct), O("resource:iron-ore", 1, 0.16f, "output:resource:iron-ore", ProductionOutputRole.Byproduct), O("resource:gold-ore", 1, 0.03f, "output:resource:gold-ore", ProductionOutputRole.Byproduct), O("resource:mana-crystal", 1, 0.01f, "output:resource:mana-crystal", ProductionOutputRole.Byproduct)),
+            SourceWork("source:saltstone", "노천 채석", "exterior-rock", "work:quarry", "research:mining:surface", O("resource:stone", 3, outputLineId: "output:main", role: ProductionOutputRole.Main), O("resource:saltstone", 1, 0.25f, "output:resource:saltstone", ProductionOutputRole.Byproduct)),
             SourceWork("source:grass", "풀과 짚 채집", "exterior-grass", "work:gather", "research:agriculture:gathering", O("resource:grass-straw", 4)),
             Source("source:animal-meat", "도축 고기", "butcher", "research:husbandry:capture", O("resource:meat", 4)),
             Source("source:animal-blood", "도축 혈액", "butcher", "research:husbandry:capture", O("resource:blood", 2)),
@@ -291,6 +699,7 @@ public static class ResourceEconomyAssetBuilder
             R("recipe:tallow", "지방 정제", "cookbench", "work:cook", "research:cuisine:livestock", 8, A("resource:fat", 2), O("material:tallow", 1)),
             R("recipe:bowstring-fiber", "섬유 활시위", "loom", "work:craft", "research:textile:fiber", 8, A("resource:shade-fiber", 2), O("material:bowstring", 1)),
             R("recipe:bowstring-sinew", "뿔 보강 활시위", "loom", "work:craft", "research:husbandry:selective", 10, A("resource:horn", 1), A("resource:hide", 1), O("material:bowstring", 1)),
+            R("recipe:medical-vial", "재사용 의료 바이알", "forge", "work:craft", "research:pharmacology:anesthesia", 12, A("material:iron-ingot", 1), O("container:medical-vial", 30)),
             R("recipe:treated-lumber", "목재 처리", "workstation:v3:treated-lumber", "work:craft", "research:forestry:treated", 15, A("material:lumber", 2), A("resource:dark-resin", 1), O("material:treated-lumber", 2)),
             R("recipe:cheese", "치즈 숙성", "cookbench", "work:cook", "research:cuisine:livestock", 12, A("resource:milk", 3), A("resource:saltstone", 1), O("material:cheese", 2)),
             R("recipe:low-fuel-rot", "부패 연료", "composter", "work:craft", "research:agriculture:compost", 10, A("waste:mixed-rot", 4), A("resource:grass-straw", 1), O("material:low-fuel", 1)),
@@ -339,7 +748,7 @@ public static class ResourceEconomyAssetBuilder
             R("recipe:standard-medicine", "표준 약품", "apothecary", "work:craft", "research:pharmacology:distillation", 14, A("resource:cave-mushroom", 1), A("resource:moonflower", 1), A("material:alchemical-solvent", 1), O("medicine:standard", 2)),
             R("recipe:advanced-medicine", "고급 약품", "alchemy", "work:craft", "research:pharmacology:advanced", 22, A("medicine:standard", 1), A("resource:mana-crystal", 1), A("resource:moonflower", 2), A("resource:milk", 1), O("medicine:advanced", 1)),
             R("recipe:antidote", "해독제", "alchemy", "work:craft", "research:pharmacology:advanced", 18, A("resource:bloodleaf", 1), A("resource:cave-mushroom", 1), A("material:alchemical-solvent", 1), O("medicine:antidote", 1)),
-            R("recipe:anesthetic", "마취제", "apothecary", "work:craft", "research:pharmacology:anesthesia", 16, A("resource:dreamleaf", 2), A("material:alcohol", 1), O("medicine:anesthetic", 1)),
+            R("recipe:anesthetic", "마취제", "apothecary", "work:craft", "research:pharmacology:anesthesia", 16, A("resource:dreamleaf", 2), A("material:alcohol", 1), A("container:medical-vial", 1), O("medicine:anesthetic", 1)),
 
             R("recipe:moonflower-tea", "월화차", "cookbench", "work:cook", "research:pharmacology:herbalism", 5, A("resource:moonflower", 1), O("drug:moonflower-tea", 2)),
             R("recipe:vitality-tonic", "활력 강장제", "apothecary", "work:craft", "research:pharmacology:distillation", 11, A("resource:ember-root", 1), A("resource:bloodleaf", 1), A("material:syrup", 1), O("drug:vitality-tonic", 2)),
@@ -372,8 +781,13 @@ public static class ResourceEconomyAssetBuilder
 
         return specs.Select((spec, index) =>
         {
-            ProductionRecipeSO asset = GetOrCreate<ProductionRecipeSO>(
-                $"{RecipeRoot}/{Sanitize(spec.Id)}.asset");
+            string assetPath = $"{RecipeRoot}/{Sanitize(spec.Id)}.asset";
+            ProductionRecipeSO existing =
+                AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>(assetPath);
+            float preservedRequiredWork = existing != null
+                ? existing.RequiredWork
+                : 0f;
+            ProductionRecipeSO asset = GetOrCreate<ProductionRecipeSO>(assetPath);
             asset.id = 9000 + index;
             asset.Configure(
                 spec.Id,
@@ -397,9 +811,11 @@ public static class ResourceEconomyAssetBuilder
             }
             asset.ConfigureProcessClass(spec.ProcessClass);
             asset.ConfigureBalanceWork(
-                V23BalanceWorkCalculator.CalculateRecipeBaseWork(
-                    asset,
-                    spec.ProcessClass));
+                existing != null
+                    ? preservedRequiredWork
+                    : V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                        asset,
+                        spec.ProcessClass));
             EditorUtility.SetDirty(asset);
             return asset;
         }).ToArray();
@@ -700,7 +1116,11 @@ public static class ResourceEconomyAssetBuilder
         float treatmentPotency,
         float infectionReduction,
         float detoxReduction,
-        float painReduction)
+        float painReduction,
+        int packageTareGrams = 0,
+        PackageTareDisposition packageTareDisposition =
+            PackageTareDisposition.None,
+        string packageContainerItemId = "")
     {
         return new ItemSpec(
             id,
@@ -718,14 +1138,27 @@ public static class ResourceEconomyAssetBuilder
             treatmentPotency: treatmentPotency,
             infectionReduction: infectionReduction,
             detoxReduction: detoxReduction,
-            painReduction: painReduction);
+            painReduction: painReduction,
+            packageTareGrams: packageTareGrams,
+            packageTareDisposition: packageTareDisposition,
+            packageContainerItemId: packageContainerItemId);
     }
 
     private static ItemAmountDefinition A(string itemId, int amount) =>
         new ItemAmountDefinition(itemId, amount);
 
-    private static ProductionOutputDefinition O(string itemId, int amount, float probability = 1f) =>
-        new ProductionOutputDefinition(itemId, amount, probability);
+    private static ProductionOutputDefinition O(
+        string itemId,
+        int amount,
+        float probability = 1f,
+        string outputLineId = "output:main",
+        ProductionOutputRole role = ProductionOutputRole.Main) =>
+        new ProductionOutputDefinition(
+            outputLineId,
+            role,
+            itemId,
+            amount,
+            probability);
 
     private static RecipeSpec R(
         string id,
@@ -887,7 +1320,11 @@ public static class ResourceEconomyAssetBuilder
             float infectionReduction = 0f,
             float detoxReduction = 0f,
             float painReduction = 0f,
-            float marketSaleRate = 0.6f)
+            float marketSaleRate = 0.6f,
+            int packageTareGrams = 0,
+            PackageTareDisposition packageTareDisposition =
+                PackageTareDisposition.None,
+            string packageContainerItemId = "")
         {
             Id = id; Name = name; Description = description; Category = category; Kind = kind;
             Tags = tags; Price = price; Weight = weight; MaxStack = maxStack; ResearchId = researchId;
@@ -900,6 +1337,9 @@ public static class ResourceEconomyAssetBuilder
             DetoxReduction = detoxReduction;
             PainReduction = painReduction;
             MarketSaleRate = Mathf.Clamp01(marketSaleRate);
+            PackageTareGrams = packageTareGrams;
+            PackageTareDisposition = packageTareDisposition;
+            PackageContainerItemId = packageContainerItemId ?? string.Empty;
         }
         public string Id { get; }
         public string Name { get; }
@@ -924,6 +1364,9 @@ public static class ResourceEconomyAssetBuilder
         public float DetoxReduction { get; }
         public float PainReduction { get; }
         public float MarketSaleRate { get; }
+        public int PackageTareGrams { get; }
+        public PackageTareDisposition PackageTareDisposition { get; }
+        public string PackageContainerItemId { get; }
     }
 
     private sealed class RecipeSpec
@@ -1010,15 +1453,24 @@ public static class ResourceEconomyAssetBuilder
 
     private sealed class NullWorldItemStackRuntime : IWorldItemStackRuntime
     {
+        public bool SpawnItemAtWithComponents(string itemId, int amount, Vector2Int position, WorldItemStackState state, string destinationId, IReadOnlyList<ItemInstanceComponentSaveData> components, out int spawned) { spawned = 0; return false; }
+        public bool TryRemoveInstanceComponent(string stackId, string componentTypeId) => false;
         public IDungeonItemCatalogProvider CatalogProvider => null;
+        public IPhysicalItemMassQuery MassQuery => null;
         public IItemHaulingSettingsProvider HaulingSettingsProvider => null;
         public bool StoredItemMarkersVisible => false;
         public int ItemStackVersion => 0;
         public int HaulJobVersion => 0;
         public int GetCommittedHaulDeliveryQuantity(string destinationId, string itemId) => 0;
+        public long GetCommittedHaulDeliveryMassGrams(string destinationId) => 0L;
         public bool TryCommitHaulPickup(string ownerOperationId, CharacterCarryInventory inventory, out string failureReason) { failureReason = "null haul delivery authority unavailable"; return false; }
         public bool TryCaptureHaulDeliveryIntent(string ownerOperationId, out HaulDeliveryIntentSaveData intent) { intent = null; return false; }
+        public IReadOnlyList<HaulDeliveryIntentSaveData> CaptureHaulDeliveryIntentsByDestination(string destinationId) => Array.Empty<HaulDeliveryIntentSaveData>();
         public bool ReleaseHaulDeliveryIntent(string ownerOperationId) => false;
+        public bool TryCommitBatchPhysicalDisposition(IReadOnlyList<PhysicalItemTransformInput> inputs, PhysicalItemDispositionKind kind, string operationId, string reasonCode, out PhysicalItemBatchDispositionReceipt receipt, out string failureReason) { receipt = default; failureReason = "null physical disposition authority unavailable"; return false; }
+        public bool TryCommitPendingBatchPhysicalDisposition(IReadOnlyList<PhysicalItemTransformInput> inputs, PhysicalItemDispositionKind kind, string operationId, string reasonCode, out PhysicalItemBatchDispositionReceipt receipt, out string failureReason) { receipt = default; failureReason = "null physical disposition authority unavailable"; return false; }
+        public bool TryGetPendingBatchPhysicalDisposition(string operationId, out PhysicalItemBatchDispositionReceipt receipt) { receipt = default; return false; }
+        public bool AcknowledgeBatchPhysicalDisposition(string commitId, out string failureReason) { failureReason = "null physical disposition authority unavailable"; return false; }
         public DungeonPhysicalItemSaveData Capture() => new DungeonPhysicalItemSaveData();
         public void Restore(DungeonPhysicalItemSaveData snapshot) { }
         public void SetStoredItemMarkersVisible(bool visible) { }

@@ -50,6 +50,7 @@ public sealed class WasteProcessingRuntime :
     IWasteProcessingQuery,
     IWastePolicyCommand,
     IWasteFeedCommand,
+    IWasteFeedCandidateQuery,
     IWasteProcessingPersistence,
     ITickable
 {
@@ -221,23 +222,20 @@ public sealed class WasteProcessingRuntime :
             DomainFailure.None);
     }
 
-    public WasteFeedResult ConsumeDirectFeed(
+    public bool TryGetDirectFeedCandidate(
         WildlifeDietType diet,
-        string destinationId)
+        string destinationId,
+        out WasteDirectFeedCandidate candidate,
+        out DomainFailure failure)
     {
+        candidate = default;
+        failure = DomainFailure.None;
         string destination = destinationId?.Trim() ?? string.Empty;
         if (destination.Length == 0)
         {
-            return new WasteFeedResult(
-                false,
-                string.Empty,
-                WasteOriginKind.Unknown,
-                0f,
-                0f,
-                0f,
-                WasteFeedOutcomeCode.None,
-                new DomainFailure(
-                    FailureCode.ItemTransferDestinationMissing));
+            failure = new DomainFailure(
+                FailureCode.ItemTransferDestinationMissing);
+            return false;
         }
         WasteProcessingStackSnapshot selected = GetWasteStacks()
             .Where(stack => stack.State == WorldItemStackState.FacilityBuffer
@@ -249,53 +247,25 @@ public sealed class WasteProcessingRuntime :
             .OrderBy(stack => stack.Contamination)
             .ThenBy(stack => stack.StackId.Value, StringComparer.Ordinal)
             .FirstOrDefault();
-        DomainFailure transferFailure = DomainFailure.None;
         if (selected == null
             || !selected.StackId.IsValid
-            || !inventory.TryConsumeStackQuantity(
-                selected.StackId,
-                1,
-                out WasteProcessingStackSnapshot consumed,
-                out transferFailure))
-        {
-            return new WasteFeedResult(
-                false,
-                string.Empty,
-                WasteOriginKind.Unknown,
-                0f,
-                0f,
-                0f,
-                WasteFeedOutcomeCode.None,
-                transferFailure.IsFailure
-                    ? transferFailure
-                    : new DomainFailure(FailureCode.WasteFeedBufferUnavailable));
-        }
-
-        if (!rules.TryGetFeedValues(
+            || !rules.TryGetFeedValues(
                 diet,
-                consumed.WasteOrigin,
+                selected.WasteOrigin,
                 out float nutrition,
                 out float diseaseChance))
         {
-            return new WasteFeedResult(
-                false,
-                consumed.ItemId,
-                consumed.WasteOrigin,
-                consumed.Contamination,
-                0f,
-                0f,
-                WasteFeedOutcomeCode.None,
-                new DomainFailure(FailureCode.WasteFeedUnavailable));
+            failure = new DomainFailure(FailureCode.WasteFeedUnavailable);
+            return false;
         }
-        return new WasteFeedResult(
-            true,
-            consumed.ItemId,
-            consumed.WasteOrigin,
-            consumed.Contamination,
+        candidate = new WasteDirectFeedCandidate(
+            selected.StackId,
+            selected.ItemId,
+            selected.WasteOrigin,
+            selected.Contamination,
             nutrition,
-            diseaseChance,
-            WasteFeedOutcomeCode.FeedConsumed,
-            DomainFailure.None);
+            diseaseChance);
+        return candidate.IsValid;
     }
 
     public DungeonWasteProcessingSaveData Capture()

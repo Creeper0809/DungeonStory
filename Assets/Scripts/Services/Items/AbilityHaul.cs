@@ -1,4 +1,5 @@
 using System.Collections;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -10,6 +11,7 @@ public sealed class AbilityHaul : MonoBehaviour
     private const int MaximumMovementAttempts = 5;
     private const double ActivePlanLeaseSeconds = 45d;
     private const double LeaseHeartbeatIntervalSeconds = 10d;
+    private const double TransientRecoveryDeadlineSeconds = 15d;
     private static readonly WaitForSeconds MovementRetryDelay =
         new WaitForSeconds(0.15f);
 
@@ -29,6 +31,7 @@ public sealed class AbilityHaul : MonoBehaviour
     private long runtimeHaulStartCount;
     private long runtimeHaulTerminalCount;
     private string lastTerminalDiagnostics = string.Empty;
+    private string capacityRoutingQuiescencePlanFingerprint = string.Empty;
     private readonly HashSet<string> pickedLeaseIds =
         new HashSet<string>(System.StringComparer.Ordinal);
     private readonly HashSet<string> releasedLeaseIds =
@@ -40,11 +43,19 @@ public sealed class AbilityHaul : MonoBehaviour
     private IGameCalendar calendar;
     private ICharacterSpeciesCommand speciesCommands;
     private IWorkOrderQuery workOrders;
+    private IProductionCapacityRoutingDrainQuery capacityRoutingDrains;
 #if UNITY_EDITOR
     public System.Action<WorldItemHaulPlan> DebugBeforeHaulRoutineStart;
     private int diagnosticUpdateHeartbeat;
 #endif
-    private IWorldItemStackRuntime ItemRuntime => actor?.WorldItemStackRuntime;
+#if UNITY_EDITOR
+    private IWorldItemStackRuntime editorFixtureItemRuntime;
+#endif
+    private IWorldItemStackRuntime ItemRuntime =>
+#if UNITY_EDITOR
+        editorFixtureItemRuntime ??
+#endif
+        actor?.WorldItemStackRuntime;
 
     public bool IsHauling => haulExecutionActive;
     public string CurrentPlanSummary => activePlan != null && activePlan.IsValid
@@ -58,17 +69,469 @@ public sealed class AbilityHaul : MonoBehaviour
     public long RuntimeHaulStartCount => runtimeHaulStartCount;
     public long RuntimeHaulTerminalCount => runtimeHaulTerminalCount;
     public string LastTerminalDiagnostics => lastTerminalDiagnostics;
+    public HaulInterruptionDisposition LastInterruptionDisposition { get; private set; }
     public bool HasBoundDeliveryIntent => activePlan != null
         && activePlan.IsDeliveryOnlyResume;
+
+    public bool IsCapacityRoutingQuiescenceFrozen =>
+        capacityRoutingQuiescencePlanFingerprint.Length > 0;
+
+#if UNITY_EDITOR
+    [GameplayInternalOnly(
+        "Binds one exact already-picked delivery plan to an isolated Editor fixture without widening the production haul start API.",
+        "Capacity-routing actor transition focused Editor fixture only")]
+    public bool TryBindCapacityRoutingEditorFixture(
+        IWorldItemStackRuntime itemRuntime,
+        WorldItemHaulPlan plan,
+        IEnumerable<string> exactPickedLeaseIds,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CacheReferences();
+        string[] picked = (exactPickedLeaseIds ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] planned = plan?.ReservedStackQuantities
+            .Select(value => value.LeaseId)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray() ?? Array.Empty<string>();
+        if (actor == null
+            || itemRuntime == null
+            || plan?.IsValid != true
+            || picked.Length == 0
+            || picked.Distinct(StringComparer.Ordinal).Count() != picked.Length
+            || !picked.SequenceEqual(planned, StringComparer.Ordinal)
+            || activePlan != null
+            || IsCapacityRoutingQuiescenceFrozen)
+        {
+            failureReason = "capacity-routing-editor-fixture-plan-invalid";
+            return false;
+        }
+        editorFixtureItemRuntime = itemRuntime;
+        activePlan = plan;
+        pickedLeaseIds.Clear();
+        foreach (string leaseId in picked)
+            pickedLeaseIds.Add(leaseId);
+        releasedLeaseIds.Clear();
+        haulExecutionActive = false;
+        restoredDeliveryPending = true;
+        unloadReason = WorldItemHaulPlanUnloadReason.None;
+        executionStage = "capacity-routing-editor-fixture-bound";
+        return true;
+    }
+#endif
+
+    public bool OwnsHaulOperation(string operationId)
+    {
+        string canonical = operationId ?? string.Empty;
+        return canonical.Length > 0
+            && string.Equals(canonical, canonical.Trim(), System.StringComparison.Ordinal)
+            && GetActivePlanOwnerOperationIds().Contains(
+                canonical,
+                System.StringComparer.Ordinal);
+    }
+
+    public IReadOnlyList<string> CaptureActiveHaulOperationIds() =>
+        System.Array.AsReadOnly(GetActivePlanOwnerOperationIds()
+            .OrderBy(value => value, System.StringComparer.Ordinal)
+            .ToArray());
+
+    [GameplayInternalOnly(
+        "Freezes movement only after the active haul plan exactly matches a capacity-routing actor carry vector; leases, admissions, intents, cargo and plan remain authoritative.",
+        "Production capacity-routing destructive-drain participant only")]
+    public bool TryFreezeForCapacityRoutingQuiescence(
+        string actorPersistentId,
+        IReadOnlyList<ProductionCapacityRoutingDrainActorCarrySaveData>
+            expectedCarries,
+        out ProductionCapacityRoutingActorPlanSnapshot snapshot,
+        out string failureReason)
+    {
+        snapshot = null;
+        failureReason = string.Empty;
+        CacheReferences();
+        string actorId = actor?.Identity?.PersistentId ?? string.Empty;
+        ProductionCapacityRoutingDrainActorCarrySaveData[] expected =
+            (expectedCarries
+                ?? System.Array.Empty<
+                    ProductionCapacityRoutingDrainActorCarrySaveData>())
+            .Where(value => value != null)
+            .OrderBy(value => value.carriedStackId,
+                System.StringComparer.Ordinal)
+            .ToArray();
+        if (actor == null
+            || actor.CarryInventory == null
+            || activePlan == null
+            || !activePlan.IsValid
+            || !string.Equals(
+                actorId,
+                actorPersistentId,
+                System.StringComparison.Ordinal)
+            || expected.Length == 0
+            || expected.Any(value => !string.Equals(
+                value.actorPersistentId,
+                actorId,
+                System.StringComparison.Ordinal)))
+        {
+            failureReason = "capacity-routing-haul-freeze-request-invalid";
+            return false;
+        }
+        if (!actor.CarryInventory.TryPrepareCapacityRoutingExactPhysicalTransfer(
+                expected,
+                out _,
+                out failureReason))
+        {
+            return false;
+        }
+
+        string[] expectedOperations = expected
+            .Select(value => value.haulIntentOperationId)
+            .Distinct(System.StringComparer.Ordinal)
+            .OrderBy(value => value, System.StringComparer.Ordinal)
+            .ToArray();
+        string[] activeOperations = GetActivePlanOwnerOperationIds()
+            .OrderBy(value => value, System.StringComparer.Ordinal)
+            .ToArray();
+        WorldItemReservedStackQuantity[] reservations = activePlan
+            .ReservedStackQuantities
+            .OrderBy(value => value.LeaseId, System.StringComparer.Ordinal)
+            .ToArray();
+        if (!activeOperations.SequenceEqual(
+                expectedOperations,
+                System.StringComparer.Ordinal)
+            || reservations.Length == 0
+            || reservations.Any(value =>
+                string.IsNullOrWhiteSpace(value.LeaseId)
+                || !expectedOperations.Contains(
+                    value.OwnerOperationId,
+                    System.StringComparer.Ordinal))
+            || expectedOperations.Any(operationId => !reservations.Any(value =>
+                string.Equals(
+                    value.OwnerOperationId,
+                    operationId,
+                    System.StringComparison.Ordinal)
+                && pickedLeaseIds.Contains(value.LeaseId))))
+        {
+            failureReason = "capacity-routing-haul-freeze-plan-conflict";
+            return false;
+        }
+
+        WorldItemHaulDestinationKind? destinationKind = null;
+        string destinationId = string.Empty;
+        Vector2Int deliveryPosition = default;
+        Vector2Int dropPosition = default;
+        List<string> admissionTokenIds = new();
+        foreach (string operationId in expectedOperations)
+        {
+            if (ItemRuntime == null
+                || !ItemRuntime.TryCaptureHaulDeliveryIntent(
+                    operationId,
+                    out HaulDeliveryIntentSaveData intent)
+                || intent == null
+                || !string.Equals(
+                    intent.ownerCharacterId,
+                    actorId,
+                    System.StringComparison.Ordinal))
+            {
+                failureReason =
+                    "capacity-routing-haul-freeze-intent-missing:"
+                    + operationId;
+                return false;
+            }
+            string[] expectedStacks = expected
+                .Where(value => string.Equals(
+                    value.haulIntentOperationId,
+                    operationId,
+                    System.StringComparison.Ordinal))
+                .Select(value => value.carriedStackId)
+                .OrderBy(value => value, System.StringComparer.Ordinal)
+                .ToArray();
+            string[] intentStacks = (intent.commitments
+                    ?? new List<HaulDeliveryItemCommitmentSaveData>())
+                .Where(value => value != null && value.quantity > 0)
+                .Select(value => value.carriedStackId)
+                .OrderBy(value => value, System.StringComparer.Ordinal)
+                .ToArray();
+            Vector2Int intentDelivery = new(
+                intent.deliveryGridX,
+                intent.deliveryGridY);
+            Vector2Int intentDrop = new(intent.dropGridX, intent.dropGridY);
+            if (!expectedStacks.SequenceEqual(
+                    intentStacks,
+                    System.StringComparer.Ordinal)
+                || destinationKind.HasValue
+                && (destinationKind.Value != intent.destinationKind
+                    || !string.Equals(
+                        destinationId,
+                        intent.destinationId,
+                        System.StringComparison.Ordinal)
+                    || deliveryPosition != intentDelivery
+                    || dropPosition != intentDrop))
+            {
+                failureReason =
+                    "capacity-routing-haul-freeze-destination-or-commitment-conflict:"
+                    + operationId;
+                return false;
+            }
+            destinationKind ??= intent.destinationKind;
+            destinationId = intent.destinationId;
+            deliveryPosition = intentDelivery;
+            dropPosition = intentDrop;
+            admissionTokenIds.AddRange((intent.warehouseAdmissions
+                    ?? new List<WarehouseHaulAdmissionSaveData>())
+                .Where(value => value != null
+                    && !string.IsNullOrWhiteSpace(value.tokenId))
+                .Select(value => value.tokenId));
+        }
+
+        snapshot = new ProductionCapacityRoutingActorPlanSnapshot(
+            actorId,
+            expectedOperations,
+            reservations.Select(value => value.LeaseId),
+            pickedLeaseIds,
+            admissionTokenIds.Distinct(System.StringComparer.Ordinal),
+            destinationKind ?? activePlan.PrimaryDestination,
+            destinationId,
+            deliveryPosition,
+            dropPosition);
+        if (capacityRoutingQuiescencePlanFingerprint.Length > 0)
+        {
+            if (string.Equals(
+                    capacityRoutingQuiescencePlanFingerprint,
+                    snapshot.Fingerprint,
+                    System.StringComparison.Ordinal))
+                return true;
+            failureReason = "capacity-routing-haul-freeze-replay-conflict";
+            snapshot = null;
+            return false;
+        }
+
+        haulExecutionActive = false;
+        haulMovementWorkStartedAt = double.NaN;
+        if (haulingRoutine != null)
+            StopCoroutine(haulingRoutine);
+        haulingRoutine = null;
+        move?.CancelActiveMovement();
+        restoredDeliveryPending = true;
+        executionStage = "시설 제거 운반 안정화";
+        activePathDebug = string.Empty;
+        capacityRoutingQuiescencePlanFingerprint = snapshot.Fingerprint;
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Validates the exact frozen haul plan before a capacity-routing coordinator mutates any lease, admission or intent authority.",
+        "Production capacity-routing actor authority release service only")]
+    public bool TryValidateCapacityRoutingQuiescencePlan(
+        IReadOnlyCollection<string> expectedOperationIds,
+        ProductionCapacityRoutingActorQuiesceReceiptSaveData receipt,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CacheReferences();
+        string actorId = actor?.Identity?.PersistentId ?? string.Empty;
+        string[] operations = (expectedOperationIds
+                ?? System.Array.Empty<string>())
+            .OrderBy(value => value, System.StringComparer.Ordinal)
+            .ToArray();
+        if (actor == null
+            || activePlan == null
+            || !IsCapacityRoutingQuiescenceFrozen
+            || receipt == null
+            || operations.Length == 0
+            || operations.Distinct(System.StringComparer.Ordinal).Count()
+                != operations.Length
+            || !string.Equals(
+                receipt.actorPersistentId,
+                actorId,
+                System.StringComparison.Ordinal))
+        {
+            failureReason =
+                "capacity-routing-haul-frozen-plan-unavailable";
+            return false;
+        }
+        string[] activeOperations = GetActivePlanOwnerOperationIds()
+            .OrderBy(value => value, System.StringComparer.Ordinal)
+            .ToArray();
+        string[] activeLeaseIds = activePlan.ReservedStackQuantities
+            .Select(value => value.LeaseId)
+            .OrderBy(value => value, System.StringComparer.Ordinal)
+            .ToArray();
+        if (!activeOperations.SequenceEqual(
+                operations,
+                System.StringComparer.Ordinal)
+            || !activeLeaseIds.SequenceEqual(
+                receipt.quantityLeaseIds,
+                System.StringComparer.Ordinal)
+            || !string.Equals(
+                capacityRoutingQuiescencePlanFingerprint,
+                receipt.activePlanFingerprint,
+                System.StringComparison.Ordinal))
+        {
+            failureReason =
+                "capacity-routing-haul-frozen-plan-conflict";
+            return false;
+        }
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Clears a previously frozen active haul plan only after the durable actor receipt's exact leases, admissions and intents have been released.",
+        "Production capacity-routing actor authority release service only")]
+    public bool TryFinalizeCapacityRoutingQuiescence(
+        IReadOnlyCollection<string> expectedOperationIds,
+        ProductionCapacityRoutingActorQuiesceReceiptSaveData receipt,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CacheReferences();
+        string actorId = actor?.Identity?.PersistentId ?? string.Empty;
+        string[] operations = (expectedOperationIds
+                ?? System.Array.Empty<string>())
+            .OrderBy(value => value, System.StringComparer.Ordinal)
+            .ToArray();
+        if (actor == null
+            || receipt == null
+            || operations.Length == 0
+            || operations.Distinct(System.StringComparer.Ordinal).Count()
+                != operations.Length
+            || !string.Equals(
+                receipt.actorPersistentId,
+                actorId,
+                System.StringComparison.Ordinal)
+            || actor.CarryInventory?.Items.Any(item => item != null
+                && item.quantity > 0
+                && operations.Contains(
+                    item.ownerOperationId,
+                    System.StringComparer.Ordinal)) == true
+            || operations.Any(operationId => ItemRuntime != null
+                && ItemRuntime.TryCaptureHaulDeliveryIntent(
+                    operationId,
+                    out _)))
+        {
+            failureReason =
+                "capacity-routing-haul-finalize-authority-still-live";
+            return false;
+        }
+
+        if (activePlan != null)
+        {
+            string[] activeOperations = GetActivePlanOwnerOperationIds()
+                .OrderBy(value => value, System.StringComparer.Ordinal)
+                .ToArray();
+            string[] activeLeaseIds = activePlan.ReservedStackQuantities
+                .Select(value => value.LeaseId)
+                .OrderBy(value => value, System.StringComparer.Ordinal)
+                .ToArray();
+            if (!activeOperations.SequenceEqual(
+                    operations,
+                    System.StringComparer.Ordinal)
+                || !activeLeaseIds.SequenceEqual(
+                    receipt.quantityLeaseIds,
+                    System.StringComparer.Ordinal)
+                || capacityRoutingQuiescencePlanFingerprint.Length > 0
+                && !string.Equals(
+                    capacityRoutingQuiescencePlanFingerprint,
+                    receipt.activePlanFingerprint,
+                    System.StringComparison.Ordinal))
+            {
+                failureReason =
+                    "capacity-routing-haul-finalize-plan-conflict";
+                return false;
+            }
+        }
+
+        haulExecutionActive = false;
+        haulMovementWorkStartedAt = double.NaN;
+        restoredDeliveryPending = false;
+        if (haulingRoutine != null)
+            StopCoroutine(haulingRoutine);
+        haulingRoutine = null;
+        move?.CancelActiveMovement();
+        actor.CarryInventory?.CompleteHaulingHarness(
+            haulingHarnessEquippedForCurrentRun,
+            applyWear: false);
+        haulingHarnessEquippedForCurrentRun = false;
+        activePlan = null;
+        pickedLeaseIds.Clear();
+        releasedLeaseIds.Clear();
+        capacityRoutingQuiescencePlanFingerprint = string.Empty;
+        unloadReason = WorldItemHaulPlanUnloadReason.Interrupted;
+        executionStage = "시설 제거 운반 권위 해제";
+        activePathDebug = string.Empty;
+        return true;
+    }
+
+    public bool TryStopHaulingIfActiveOperationsSubsetOf(
+        IReadOnlyCollection<string> allowedOperationIds,
+        string reason,
+        HaulInterruptionDisposition disposition,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        HashSet<string> allowed = new HashSet<string>(
+            (allowedOperationIds ?? System.Array.Empty<string>())
+            .Select(value => value ?? string.Empty)
+            .Where(value => value.Length > 0
+                && string.Equals(
+                    value,
+                    value.Trim(),
+                    System.StringComparison.Ordinal)),
+            System.StringComparer.Ordinal);
+        string[] active = GetActivePlanOwnerOperationIds();
+        string foreign = active.FirstOrDefault(value => !allowed.Contains(value));
+        if (!string.IsNullOrEmpty(foreign))
+        {
+            failureReason = "mixed-destination-active-plan:" + foreign;
+            return false;
+        }
+
+        string foreignCarry = actor?.CarryInventory?.Items
+            .Where(item => item != null && item.quantity > 0)
+            .Select(item => item.ownerOperationId ?? string.Empty)
+            .FirstOrDefault(value => value.Length > 0
+                && !allowed.Contains(value));
+        if (!string.IsNullOrEmpty(foreignCarry))
+        {
+            failureReason = "mixed-destination-carried-cargo:" + foreignCarry;
+            return false;
+        }
+
+        return TryStopHauling(reason, disposition, out failureReason);
+    }
 #if UNITY_EDITOR
     public bool HasHaulingRoutineForDiagnostics => haulingRoutine != null;
     public int UpdateHeartbeatForDiagnostics => diagnosticUpdateHeartbeat;
+    public IReadOnlyList<WorldItemReservedStackQuantity>
+        ActiveReservationsForDiagnostics => activePlan?.ReservedStackQuantities
+            ?? System.Array.Empty<WorldItemReservedStackQuantity>();
+#endif
 
     private void Update()
     {
+#if UNITY_EDITOR
         diagnosticUpdateHeartbeat++;
-    }
 #endif
+        if (!restoredDeliveryPending
+            || activePlan?.IsDeliveryOnlyResume != true
+            || haulExecutionActive
+            || actor?.GameClock == null
+            || actor.GameClock.Time < nextLeaseHeartbeatAt)
+        {
+            return;
+        }
+
+        if (TryHeartbeatActivePlanLeases(out string failureReason))
+        {
+            return;
+        }
+
+        StopHauling(
+            "pending-delivery-lease-invalid:" + failureReason,
+            HaulInterruptionDisposition
+                .ReleaseUnpickedAndDropCarriedAtActor);
+    }
 
     public int GetInTransitQuantity(string destinationId, string itemId)
     {
@@ -140,10 +603,20 @@ public sealed class AbilityHaul : MonoBehaviour
             ?? throw new System.ArgumentNullException(nameof(workOrderQuery));
     }
 
+    [Inject]
+    public void ConstructCapacityRoutingDrainGate(
+        IProductionCapacityRoutingDrainQuery drainQuery)
+    {
+        capacityRoutingDrains = drainQuery
+            ?? throw new System.ArgumentNullException(nameof(drainQuery));
+    }
+
     private void OnDisable()
     {
         if (Application.isPlaying)
         {
+            if (IsCapacityRoutingQuiescenceFrozen)
+                return;
             StopHauling("disabled");
         }
     }
@@ -174,6 +647,11 @@ public sealed class AbilityHaul : MonoBehaviour
             failureReason = "hauling-dependencies-unavailable";
             return false;
         }
+        if (TryGetPendingCarriedCapacityDrain(out string drainingBatch))
+        {
+            failureReason = "capacity-routing-drain-pending:" + drainingBatch;
+            return false;
+        }
         if (restoredDeliveryPending && activePlan?.IsDeliveryOnlyResume == true)
         {
             string operationId = GetActivePlanOwnerOperationIds().SingleOrDefault();
@@ -188,6 +666,35 @@ public sealed class AbilityHaul : MonoBehaviour
         return ItemRuntime.HasAvailableHaulJob(actor);
     }
 
+    private bool TryGetPendingCarriedCapacityDrain(out string batchCommitId)
+    {
+        batchCommitId = string.Empty;
+        if (capacityRoutingDrains == null
+            || actor?.CarryInventory?.Items == null)
+        {
+            return false;
+        }
+
+        foreach (CharacterCarriedItemSaveData item in actor.CarryInventory.Items
+                     .Where(value => value != null && value.quantity > 0)
+                     .OrderBy(value => value.carriedStackId,
+                         System.StringComparer.Ordinal))
+        {
+            if (!FacilityOutputExactRouteCustodyCodec.TryRead(
+                    item.components,
+                    out FacilityOutputExactRouteCustodyMetadata custody)
+                || !capacityRoutingDrains.IsBatchPending(
+                    custody.BatchCommitId))
+            {
+                continue;
+            }
+
+            batchCommitId = custody.BatchCommitId;
+            return true;
+        }
+        return false;
+    }
+
     public void StartHauling()
     {
         CacheReferences();
@@ -199,6 +706,17 @@ public sealed class AbilityHaul : MonoBehaviour
                 AIActionFailure.Create(
                     AIActionFailureKind.Unsupported,
                     "Hauling dependencies are unavailable."));
+            return;
+        }
+        if (TryGetPendingCarriedCapacityDrain(out string drainingBatch))
+        {
+            actor.Brain?.SetActionPhase(
+                "운반 안정화 대기",
+                null,
+                "capacity-routing-drain-pending:" + drainingBatch);
+            EndAiAction(
+                CharacterAiActionTerminalKind.Cancelled,
+                AIActionFailure.None);
             return;
         }
 
@@ -234,8 +752,22 @@ public sealed class AbilityHaul : MonoBehaviour
         {
             string[] operationIds = GetActivePlanOwnerOperationIds();
             actor.Brain?.SetActionPhase("운반 대기", null, reason);
-            if (resumingRestoredDelivery)
-                ReturnCarriedItemsAfterInterruptedHaul(reason);
+            if (resumingRestoredDelivery
+                && !TryReturnCarriedItemsAfterInterruptedHaul(
+                    reason,
+                    ResolvePhysicalInterruptionKind(),
+                    out string recoveryFailure))
+            {
+                restoredDeliveryPending = true;
+                haulExecutionActive = false;
+                executionStage = "운반 중단 복구 대기";
+                EndAiAction(
+                    CharacterAiActionTerminalKind.Failed,
+                    AIActionFailure.Create(
+                        AIActionFailureKind.ResourceUnavailable,
+                        recoveryFailure));
+                return;
+            }
             ReleaseActivePlanReservations(ItemReservationReleaseReason.Cancelled);
             restoredDeliveryPending = false;
             activePlan = null;
@@ -319,11 +851,79 @@ public sealed class AbilityHaul : MonoBehaviour
             }
         }
 
+        foreach (string operationId in GetActivePlanOwnerOperationIds())
+        {
+            if (!leaseRuntime.TryRenewWarehouseAdmissionsForHaul(
+                    operationId,
+                    out failureReason))
+            {
+                return false;
+            }
+        }
+
         return renewed.Count > 0;
     }
 
     public void StopHauling(string reason)
     {
+        StopHauling(
+            reason,
+            HaulInterruptionDisposition.ReleaseUnpickedAndDropCarriedAtActor);
+    }
+
+    public void StopHaulingForReplan(string reason)
+    {
+        HaulInterruptionDisposition disposition = actor != null
+            && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+            && !actor.IsDead
+                ? HaulInterruptionDisposition
+                    .ReleaseUnpickedAndRetainCarriedForReplan
+                : HaulInterruptionDisposition
+                    .ReleaseUnpickedAndDropCarriedAtActor;
+        StopHauling(reason, disposition);
+    }
+
+    public void StopHauling(
+        string reason,
+        HaulInterruptionDisposition disposition)
+    {
+        if (!TryStopHauling(reason, disposition, out string failureReason))
+        {
+            Debug.LogError(
+                $"[AbilityHaul] haul interruption retained its authority: "
+                + $"{failureReason}; actor={actor?.BuildingCharacterId}");
+        }
+    }
+
+    public bool TryStopHauling(
+        string reason,
+        HaulInterruptionDisposition disposition,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (IsCapacityRoutingQuiescenceFrozen)
+        {
+            failureReason = "capacity-routing-haul-authority-release-frozen";
+            return false;
+        }
+        if (disposition == HaulInterruptionDisposition
+                .ReleaseUnpickedAndRetainCarriedForReplan
+            && TrySuspendCarriedDeliveryForReplan(reason, stopRoutine: true))
+        {
+            return true;
+        }
+
+        if (!TryReturnCarriedItemsAfterInterruptedHaul(
+                reason,
+                ResolvePhysicalInterruptionKind(),
+                out failureReason))
+        {
+            executionStage = "운반 중단 복구 대기";
+            return false;
+        }
+        LastInterruptionDisposition = HaulInterruptionDisposition
+            .ReleaseUnpickedAndDropCarriedAtActor;
+
         string[] operationIds = GetActivePlanOwnerOperationIds();
         haulExecutionActive = false;
         haulMovementWorkStartedAt = double.NaN;
@@ -334,7 +934,6 @@ public sealed class AbilityHaul : MonoBehaviour
             haulingRoutine = null;
         }
 
-        ReturnCarriedItemsAfterInterruptedHaul(reason);
         ReleaseActivePlanReservations(ItemReservationReleaseReason.Cancelled);
         actor?.CarryInventory?.CompleteHaulingHarness(
             haulingHarnessEquippedForCurrentRun,
@@ -346,6 +945,72 @@ public sealed class AbilityHaul : MonoBehaviour
         unloadReason = WorldItemHaulPlanUnloadReason.Interrupted;
         executionStage = "중단";
         activePathDebug = string.Empty;
+        return true;
+    }
+
+    private bool TrySuspendCarriedDeliveryForReplan(
+        string reason,
+        bool stopRoutine)
+    {
+        if (activePlan == null || actor?.CarryInventory?.HasItems != true)
+            return false;
+
+        HashSet<string> carriedOperations = actor.CarryInventory.Capture().items
+            .Where(item => item != null
+                && item.quantity > 0
+                && !string.IsNullOrWhiteSpace(item.ownerOperationId))
+            .Select(item => item.ownerOperationId.Trim())
+            .ToHashSet(System.StringComparer.Ordinal);
+        WorldItemReservedStackQuantity[] carriedReservations = activePlan
+            .ReservedStackQuantities
+            .Where(reservation => pickedLeaseIds.Contains(reservation.LeaseId)
+                && carriedOperations.Contains(reservation.OwnerOperationId))
+            .ToArray();
+        if (carriedReservations.Length == 0)
+            return false;
+
+        HashSet<string> carriedLeaseIds = carriedReservations
+            .Select(reservation => reservation.LeaseId)
+            .ToHashSet(System.StringComparer.Ordinal);
+        WorldItemHaulPlanLeg[] carriedDeliveryLegs = activePlan.DeliveryLegs
+            .Where(leg => carriedLeaseIds.Contains(leg.Reservation.LeaseId))
+            .ToArray();
+        if (carriedDeliveryLegs.Length == 0)
+            return false;
+
+        LastInterruptionDisposition = HaulInterruptionDisposition
+            .ReleaseUnpickedAndRetainCarriedForReplan;
+        haulExecutionActive = false;
+        haulMovementWorkStartedAt = double.NaN;
+        if (stopRoutine && haulingRoutine != null)
+            StopCoroutine(haulingRoutine);
+        haulingRoutine = null;
+        move?.CancelActiveMovement();
+        ReleaseUnpickedPlanReservations();
+        activePlan = new WorldItemHaulPlan(
+            System.Array.Empty<WorldItemHaulPlanLeg>(),
+            carriedDeliveryLegs,
+            carriedReservations,
+            activePlan.TotalWeight,
+            activePlan.ExpectedDetourCost,
+            activePlan.PrimaryDestination,
+            activePlan.PrimaryDestinationId,
+            deliveryOnlyResume: true,
+            isPriority: activePlan.IsPriority);
+        pickedLeaseIds.Clear();
+        foreach (WorldItemReservedStackQuantity reservation in carriedReservations)
+            pickedLeaseIds.Add(reservation.LeaseId);
+        actor.CarryInventory.CompleteHaulingHarness(
+            haulingHarnessEquippedForCurrentRun,
+            applyWear: false);
+        haulingHarnessEquippedForCurrentRun = false;
+        restoredDeliveryPending = true;
+        unloadReason = WorldItemHaulPlanUnloadReason.Interrupted;
+        executionStage = "운반 화물 유지·재계획";
+        activePathDebug = string.Empty;
+        lastFailureReason = reason?.Trim() ?? string.Empty;
+        actor.Brain?.RequestImmediateReplan(clearFailures: false);
+        return true;
     }
 
     public HaulDeliveryIntentSaveData CaptureDeliveryIntentForSave()
@@ -361,7 +1026,10 @@ public sealed class AbilityHaul : MonoBehaviour
             throw new System.InvalidOperationException(
                 $"Active haul plan '{operationId}' has no delivery intent authority.");
         }
-        return intent.HasCommittedPickup ? intent : null;
+        if (!intent.HasCommittedPickup)
+            return null;
+        ExactWarehouseHaulAdmissionJoin.RetainCommittedAdmissions(intent);
+        return intent;
     }
 
     public bool TryRebindRestoredDeliveryIntent(
@@ -614,7 +1282,7 @@ public sealed class AbilityHaul : MonoBehaviour
         // This actor does not exist in the restored snapshot. Its current-world
         // carry is intentionally discarded with that world, never materialized
         // into the restored physical item authority.
-        actor?.CarryInventory?.RemoveAllItems();
+        actor?.CarryInventory?.DiscardAllItemsForRestoredWorldReplacement();
         CompleteRestoreRetirementState();
     }
 
@@ -884,6 +1552,14 @@ public sealed class AbilityHaul : MonoBehaviour
             }
             else
             {
+                // A successful deposit has already transferred the exact carried
+                // slices into their physical destination. Retire the logical
+                // delivery intent immediately so a save captured before the
+                // coroutine reaches FinishHauling cannot observe the same grams
+                // as both deposited and still carried. FinishHauling repeats
+                // this idempotently as a terminal safety net.
+                foreach (string ownerOperationId in ownerOperationIds)
+                    itemRuntime.ReleaseHaulDeliveryIntent(ownerOperationId);
                 actor.AddLog($"바닥 물건 {pickedStackCount}묶음을 정리했다.");
                 unloadReason = WorldItemHaulPlanUnloadReason.Completed;
                 AwardHaulingProficiency(deliveredQuantity);
@@ -1134,6 +1810,12 @@ public sealed class AbilityHaul : MonoBehaviour
 
     private void FinishHauling()
     {
+        if (IsCapacityRoutingQuiescenceFrozen)
+        {
+            lastFailureReason =
+                "capacity-routing-haul-authority-release-frozen";
+            return;
+        }
         string[] operationIds = GetActivePlanOwnerOperationIds();
         CharacterCarryInventory carry = actor?.CarryInventory;
         if (unloadReason == WorldItemHaulPlanUnloadReason.Completed
@@ -1145,7 +1827,45 @@ public sealed class AbilityHaul : MonoBehaviour
 
         if (unloadReason != WorldItemHaulPlanUnloadReason.Completed)
         {
-            ReturnCarriedItemsAfterInterruptedHaul(unloadReason.ToString());
+            if (actor != null
+                && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+                && !actor.IsDead
+                && TrySuspendCarriedDeliveryForReplan(
+                    unloadReason.ToString(),
+                    stopRoutine: false))
+            {
+                runtimeHaulTerminalCount++;
+                lastTerminalDiagnostics =
+                    $"{unloadReason}:{lastFailureReason}:stage={executionStage}";
+                EndAiAction(
+                    CharacterAiActionTerminalKind.Failed,
+                    AIActionFailure.Create(
+                        ResolveFailureKind(unloadReason),
+                        $"Hauling retained carried cargo for replan: {unloadReason}; "
+                        + $"detail={lastFailureReason}."));
+                return;
+            }
+
+            if (!TryReturnCarriedItemsAfterInterruptedHaul(
+                    unloadReason.ToString(),
+                    ResolvePhysicalInterruptionKind(),
+                    out string recoveryFailure))
+            {
+                runtimeHaulTerminalCount++;
+                lastTerminalDiagnostics =
+                    $"{unloadReason}:{recoveryFailure}:stage=recovery-pending";
+                restoredDeliveryPending = true;
+                haulExecutionActive = false;
+                haulMovementWorkStartedAt = double.NaN;
+                haulingRoutine = null;
+                executionStage = "운반 중단 복구 대기";
+                EndAiAction(
+                    CharacterAiActionTerminalKind.Failed,
+                    AIActionFailure.Create(
+                        AIActionFailureKind.ResourceUnavailable,
+                        recoveryFailure));
+                return;
+            }
         }
 
         runtimeHaulTerminalCount++;
@@ -1183,18 +1903,22 @@ public sealed class AbilityHaul : MonoBehaviour
                 : AIActionFailure.None);
     }
 
-    private void ReturnCarriedItemsAfterInterruptedHaul(string reason)
+    private bool TryReturnCarriedItemsAfterInterruptedHaul(
+        string reason,
+        WorldItemCarryInterruptionKind interruptionKind,
+        out string failureReason)
     {
+        failureReason = string.Empty;
         CharacterCarryInventory carry = actor?.CarryInventory;
         if (carry?.HasItems != true || activePlan == null)
         {
-            return;
+            return true;
         }
 
         string[] ownerOperationIds = GetActivePlanOwnerOperationIds();
         if (ownerOperationIds.Length == 0)
         {
-            return;
+            return true;
         }
 
         if (ItemRuntime is not IWorldItemCarryRecoveryRuntime recovery)
@@ -1202,20 +1926,59 @@ public sealed class AbilityHaul : MonoBehaviour
             lastFailureReason = $"carried-item-recovery-unavailable:{reason}";
             Debug.LogError(
                 $"[AbilityHaul] {lastFailureReason}; actor={actor?.BuildingCharacterId}");
-            return;
+            failureReason = lastFailureReason;
+            return false;
         }
 
-        if (!recovery.TryDropCarriedItems(
+        bool dropped;
+        string dropFailure;
+        if (interruptionKind is WorldItemCarryInterruptionKind.Downed
+            or WorldItemCarryInterruptionKind.Dead)
+        {
+            double droppedAt = actor.GameClock?.Time ?? 0d;
+            HaulCarryDropContext context = new(
+                actor.BuildingCharacterId.Value,
+                interruptionKind,
+                droppedAt,
+                droppedAt + TransientRecoveryDeadlineSeconds);
+            dropped = recovery.TryDropCarriedItems(
                 actor,
                 carry,
                 ownerOperationIds,
-                out string failureReason))
+                context,
+                out dropFailure);
+        }
+        else
+        {
+            dropped = recovery.TryDropCarriedItems(
+                actor,
+                carry,
+                ownerOperationIds,
+                out dropFailure);
+        }
+
+        if (!dropped)
         {
             lastFailureReason =
-                $"carried-item-recovery-failed:{reason}:{failureReason}";
+                $"carried-item-recovery-failed:{reason}:{dropFailure}";
             Debug.LogError(
                 $"[AbilityHaul] {lastFailureReason}; actor={actor?.BuildingCharacterId}");
+            failureReason = lastFailureReason;
+            return false;
         }
+
+        return true;
+    }
+
+    private WorldItemCarryInterruptionKind ResolvePhysicalInterruptionKind()
+    {
+        if (actor == null)
+            return WorldItemCarryInterruptionKind.None;
+        if (actor.CurrentLifecycleState == CharacterLifecycleState.Downed)
+            return WorldItemCarryInterruptionKind.Downed;
+        return actor.Stats?.IsDead == true
+            ? WorldItemCarryInterruptionKind.Dead
+            : WorldItemCarryInterruptionKind.None;
     }
 
     private string[] GetActivePlanOwnerOperationIds()

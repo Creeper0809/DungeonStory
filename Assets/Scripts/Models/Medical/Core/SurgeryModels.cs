@@ -456,14 +456,33 @@ public sealed class SurgicalPartInstance
     public string storedFacilityId = string.Empty;
     public string reservedOrderId = string.Empty;
     public bool preservationCanisterApplied;
+    public string preservationOperationId = string.Empty;
+    public string preservationCommitId = string.Empty;
+    public string preservationSourceStackId = string.Empty;
+    public long preservationInputMassGrams;
+    public bool preservationOutcomePublished;
     public bool installed;
     public string installedSubjectId = string.Empty;
+    public string sourceProductionCommitId = string.Empty;
+    public string installationOrderId = string.Empty;
+    public string installationOperationId = string.Empty;
+    public string installationCommitId = string.Empty;
+    public string installationSourceStackId = string.Empty;
+    public string installationSubjectId = string.Empty;
+}
+
+public static class SurgicalPartInstallationIdentity
+{
+    public static string FormatOperationId(
+        string orderId,
+        string partInstanceId) =>
+        $"surgical-part-install:{orderId}:{partInstanceId}";
 }
 
 [Serializable]
 public sealed class DungeonSurgerySaveData
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 10;
 
     public int version = CurrentVersion;
     public List<SurgeryOrder> orders = new();

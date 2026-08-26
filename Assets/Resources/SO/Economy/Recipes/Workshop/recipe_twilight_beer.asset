@@ -52,12 +52,15 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:plant-rot
   inputs:
   - itemId: material:fermented-liquor
     amount: 2
   outputs:
-  - itemId: food:twilight-beer
+  - outputLineId: output:recipe:twilight-beer/000/main/food:twilight-beer
+    role: 0
+    itemId: food:twilight-beer
     amount: 2
     probability: 1

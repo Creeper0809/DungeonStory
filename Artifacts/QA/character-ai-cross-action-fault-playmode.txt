@@ -25,8 +25,29 @@ PASS	haul-source-quantity-shrink: lease released exactly once
 PASS	haul-source-quantity-shrink: quantity conserved across injected physical loss
 haul-source-quantity-shrink=PASS
 PASS	haul-destination-destroy: temporary warehouse created
-PASS	haul-destination-destroy: carry recovered and coroutine terminal
+PASS	haul-destination-destroy: isolated physical source spawned
+PASS	haul-destination-destroy: isolated source identified and prioritized
+PASS	haul-active-replan: physical pickup committed
+PASS	haul-active-replan: carried cargo retained with delivery ownership
+PASS	haul-active-replan: physical quantity conserved without source return
+HAUL_ACTIVE_REPLAN_RETAINS_CARRIED=PASS
+PASS	haul-downed-drop: exact actor-cell physical drop without teleport
+PASS	haul-downed-drop: transient provenance and recovery deadline exact
+PASS	haul-downed-drop: source+carried+drop quantity conserved
+PASS	haul-downed-drop: V9 physical save preserves recovery provenance
+HAUL_DOWNED_CURRENT_CELL_TRANSIENT_DROP=PASS
+HAUL_DOWNED_QUANTITY_NO_TELEPORT=PASS
 haul-destination-destroy=PASS
+PASS	haul-dead-drop: temporary carrier created
+PASS	haul-dead-drop: reachable carrier start located
+PASS	haul-dead-drop: temporary warehouse created
+PASS	haul-dead-drop: physical source spawned
+PASS	haul-dead-drop: source prioritized
+PASS	haul-dead-drop: physical pickup committed
+PASS	haul-dead-drop: exact last actor-cell physical drop without teleport
+PASS	haul-dead-drop: quantity conserved across death interruption
+HAUL_DEAD_CURRENT_CELL_TRANSIENT_DROP=PASS
+HAUL_DEAD_QUANTITY_NO_TELEPORT=PASS
 PASS	rescue-save-load: medical aggregate restored through V18 transaction boundary
 PASS	rescue-patient-despawn/save-load: coroutine and reservation terminal
 PASS	rescue-patient-despawn/save-load: medical ownership released

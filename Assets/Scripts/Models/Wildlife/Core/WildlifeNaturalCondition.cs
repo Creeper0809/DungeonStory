@@ -124,6 +124,11 @@ public sealed class WildlifeNaturalCondition
         hunger = Mathf.Clamp01(hunger + delta);
     }
 
+    public void SetHunger(float value)
+    {
+        hunger = Mathf.Clamp01(value);
+    }
+
     public void ChangeThirst(float delta)
     {
         thirst = Mathf.Clamp01(thirst + delta);

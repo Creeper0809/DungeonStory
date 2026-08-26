@@ -43,6 +43,8 @@ public static class CustomerAiDebugScenarios
         RunScenario("무인 상점 셀프 계산과 직원 위험 감소", VerifyUnstaffedShopAllowsSelfServiceCheckout, errors);
         RunScenario("Replaced shop transaction cannot commit money or on-buy effects", VerifyReplacedShopTransactionCannotCommit, errors);
         RunScenario("Concurrent shop buyers cannot oversell one stock unit", VerifyConcurrentShopBuyersCannotOversellSingleStock, errors);
+        RunScenario("Authored unique retail equipment commits one exact external sink", VerifyAuthoredUniqueRetailEquipmentCommitsExactSink, errors);
+        RunScenario("Retail source activation and restock ownership survive current save exactly once", VerifyRetailActivationAndRestockOwnershipRoundTrip, errors);
         RunScenario("Checkout patience stages scale by personality and queue", VerifyCheckoutPatienceStages, errors);
         RunScenario("Abandoned checkout preserves another shopping attempt", VerifyAbandonedCheckoutPreservesVisit, errors);
         RunScenario("Abandoned checkout creates personal facility memory", VerifyCheckoutComplaintCreatesFacilityMemory, errors);
@@ -836,9 +838,29 @@ public static class CustomerAiDebugScenarios
             return false;
         }
 
+        ShopStockStateSnapshot authoredSnapshot = shop.CreateStockSnapshot();
+        RetailStockLotSnapshot exactSource = authoredSnapshot.lots
+            .FirstOrDefault(lot => lot != null
+                && lot.quantity > 0
+                && string.IsNullOrEmpty(lot.itemInstanceId));
+        if (exactSource == null)
+        {
+            return false;
+        }
+        exactSource = exactSource.Clone();
+        exactSource.quantity = 1;
+        shop.ApplyStockSnapshot(new ShopStockStateSnapshot
+        {
+            schemaVersion = ShopStockStateSnapshot.CurrentSchemaVersion,
+            activatedAuthoredSaleItemIds = new List<int>(
+                authoredSnapshot.activatedAuthoredSaleItemIds),
+            lots = new List<RetailStockLotSnapshot> { exactSource }
+        });
+        RetailProductSnapshot product = shop.ProductSnapshots.Single(snapshot =>
+            snapshot.Id == exactSource.saleItemId);
         RemainStock stock = new RemainStock(
-            id: int.MinValue + 158,
-            itemName: "QA contested final stock",
+            id: product.Id,
+            itemName: product.Name,
             cost: 25,
             stock: 1,
             onbuy: Array.Empty<OnBuyItemSO>());
@@ -876,9 +898,16 @@ public static class CustomerAiDebugScenarios
             && firstResult.IsResolved
             && secondResult.IsResolved
             && committedCount == 1
-            && stock.stock == 0
+            && shop.GetStockCount() == 0
             && totalMoneySpent == 25
-            && secondResult.FailureCode == "shop-stock-depleted-before-commit";
+            && firstResult.CommittedLot != null
+            && firstResult.CommittedLot.quantity == 1
+            && firstResult.CommittedLot.unitMassGrams > 0L
+            && string.Equals(
+                firstResult.CommittedLot.sourceOperationId,
+                exactSource.sourceOperationId,
+                StringComparison.Ordinal)
+            && secondResult.FailureCode == "retail-lot-unavailable";
         if (!passed)
         {
             Debug.LogError(
@@ -888,9 +917,154 @@ public static class CustomerAiDebugScenarios
                 + $"resolved={firstResult.IsResolved}/{secondResult.IsResolved}; "
                 + $"committed={firstResult.Committed}/{secondResult.Committed}; "
                 + $"failures={firstResult.FailureCode}/{secondResult.FailureCode}; "
-                + $"stock={stock.stock}; spent={totalMoneySpent}.");
+                + $"stock={shop.GetStockCount()}; spent={totalMoneySpent}; "
+                + $"receipt={firstResult.CommittedLot?.sourceOperationId ?? "<null>"}.");
         }
 
+        return passed;
+    }
+
+    private static bool VerifyRetailActivationAndRestockOwnershipRoundTrip()
+    {
+        using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
+        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0)) as Shop;
+        if (shop == null)
+        {
+            return false;
+        }
+
+        ShopStockStateSnapshot authored = shop.CreateStockSnapshot();
+        if (authored.activatedAuthoredSaleItemIds.Count == 0)
+        {
+            return false;
+        }
+
+        string operationId =
+            $"restock:fixture-actor:{shop.RequirePersistentInstanceId().Value}:2:00000001";
+        if (!shop.TryBeginRestockOperation(operationId))
+        {
+            return false;
+        }
+        ShopStockStateSnapshot emptyButActivated = new ShopStockStateSnapshot
+        {
+            schemaVersion = ShopStockStateSnapshot.CurrentSchemaVersion,
+            activatedAuthoredSaleItemIds = new List<int>(
+                authored.activatedAuthoredSaleItemIds),
+            activeRestockOperationIds = new List<string> { operationId },
+            lots = new List<RetailStockLotSnapshot>()
+        };
+        shop.EndRestockOperation(operationId);
+        shop.ApplyStockSnapshot(emptyButActivated);
+        bool noSourceReplay = shop.CurrentStock == 0
+            && shop.ActiveRestockOperationCount == 1;
+
+        ShopStockStateSnapshot beforeTamper = shop.CreateStockSnapshot();
+        ShopStockStateSnapshot tampered = new ShopStockStateSnapshot
+        {
+            schemaVersion = ShopStockStateSnapshot.CurrentSchemaVersion,
+            activatedAuthoredSaleItemIds = new List<int>(
+                beforeTamper.activatedAuthoredSaleItemIds)
+            {
+                beforeTamper.activatedAuthoredSaleItemIds[0]
+            },
+            activeRestockOperationIds = new List<string>(
+                beforeTamper.activeRestockOperationIds),
+            lots = beforeTamper.lots.Select(lot => lot.Clone()).ToList()
+        };
+        bool rejected = false;
+        try
+        {
+            shop.ApplyStockSnapshot(tampered);
+        }
+        catch (InvalidOperationException)
+        {
+            rejected = true;
+        }
+
+        ShopStockStateSnapshot afterTamper = shop.CreateStockSnapshot();
+        bool atomic = afterTamper.activatedAuthoredSaleItemIds.SequenceEqual(
+                beforeTamper.activatedAuthoredSaleItemIds)
+            && afterTamper.activeRestockOperationIds.SequenceEqual(
+                beforeTamper.activeRestockOperationIds)
+            && afterTamper.lots.Count == beforeTamper.lots.Count;
+        shop.EndRestockOperation(operationId);
+        return noSourceReplay && rejected && atomic;
+    }
+
+    private static bool VerifyAuthoredUniqueRetailEquipmentCommitsExactSink()
+    {
+        using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
+        Shop shop = world.Place("P1_WeaponShop", new Vector2Int(4, 0)) as Shop;
+        CharacterActor customer = world.CreateCustomer(
+            "Slime",
+            Vector2Int.zero,
+            90f,
+            90f,
+            10f,
+            20f);
+        AbilityShopping shopping = customer?.GetAbility<AbilityShopping>();
+        RetailStockLotSnapshot source = shop?.CreateStockSnapshot().lots
+            .FirstOrDefault(lot => lot != null
+                && lot.quantity == 1
+                && !string.IsNullOrEmpty(lot.itemInstanceId));
+        if (shop == null || shopping == null || source == null)
+        {
+            return false;
+        }
+
+        int stockBefore = shop.GetStockCount();
+        ICombatEquipmentRuntime equipment =
+            CharacterAiEditorTestDependencies.CombatEquipment;
+        bool sourceExact = equipment.TryGetInstance(
+                source.itemInstanceId,
+                out CombatEquipmentInstance before)
+            && before.worldState == CombatEquipmentWorldState.RetailStock
+            && string.Equals(
+                before.sourceStackId,
+                source.sourceOperationId,
+                StringComparison.Ordinal)
+            && source.unitMassGrams > 0L
+            && !string.IsNullOrEmpty(source.componentFingerprint);
+        RetailProductSnapshot product = shop.ProductSnapshots.Single(snapshot =>
+            snapshot.Id == source.saleItemId);
+        RemainStock stock = new RemainStock(
+            product.Id,
+            product.Name,
+            25,
+            1,
+            Array.Empty<OnBuyItemSO>());
+        SetHoldingMoney(customer, 500);
+        AIActionSet shoppingSet = Resources.Load<AIActionSet>("SO/AI/Action/Shopping");
+        AIAction action = new AIAction(shoppingSet, AIActionPlan.AtDestination(shop));
+        customer.ai.bestAction = action;
+        customer.ai.isBestActionEnd = false;
+        BuildingRetailPurchaseCommitResult commit =
+            new BuildingRetailPurchaseCommitResult();
+        IEnumerator purchase = shopping.BuyItem(stock, 25, action, shop, commit);
+        bool reachedDelay = purchase.MoveNext();
+        bool continued = purchase.MoveNext();
+
+        bool passed = sourceExact
+            && reachedDelay
+            && !continued
+            && commit.IsResolved
+            && commit.Committed
+            && commit.CommittedLot != null
+            && string.Equals(
+                commit.CommittedLot.itemInstanceId,
+                source.itemInstanceId,
+                StringComparison.Ordinal)
+            && shop.GetStockCount() == stockBefore - 1
+            && !equipment.TryGetInstance(source.itemInstanceId, out _);
+        if (!passed)
+        {
+            Debug.LogError(
+                "Unique retail sink detail: "
+                + $"sourceExact={sourceExact}; delay={reachedDelay}; "
+                + $"continued={continued}; resolved={commit.IsResolved}; "
+                + $"committed={commit.Committed}; failure={commit.FailureCode}; "
+                + $"stock={stockBefore}->{shop.GetStockCount()}; instance={source.itemInstanceId}.");
+        }
         return passed;
     }
 

@@ -185,28 +185,91 @@ public sealed class ItemAmountDefinition
 }
 
 [Serializable]
+public enum ProductionOutputRole
+{
+    Main = 0,
+    Byproduct = 1,
+    ReturnedPackaging = 2,
+    RecoverableWaste = 3,
+    DeclaredLoss = 4
+}
+
+[Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ProductionOutputDefinition
 {
+    [SerializeField] private string outputLineId = string.Empty;
+    [SerializeField] private ProductionOutputRole role;
     [SerializeField] private string itemId = string.Empty;
     [Min(1), SerializeField] private int amount = 1;
     [Range(0f, 1f), SerializeField] private float probability = 1f;
 
+    public string OutputLineId => outputLineId ?? string.Empty;
+    public ProductionOutputRole Role => role;
     public string ItemId => itemId?.Trim() ?? string.Empty;
     public int Amount => Mathf.Max(1, amount);
     public float Probability => Mathf.Clamp01(probability);
+    public bool HasCanonicalAuthoredValue =>
+        IsCanonicalOutputLineId(outputLineId)
+        && Enum.IsDefined(typeof(ProductionOutputRole), role)
+        && !string.IsNullOrWhiteSpace(itemId)
+        && string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal)
+        && amount > 0
+        && !float.IsNaN(probability)
+        && !float.IsInfinity(probability)
+        && probability >= 0f
+        && probability <= 1f;
 
     public ProductionOutputDefinition()
     {
     }
 
     public ProductionOutputDefinition(
+        string outputLineId,
+        ProductionOutputRole role,
         string itemId,
         int amount,
         float probability = 1f)
     {
+        if (!IsCanonicalOutputLineId(outputLineId))
+        {
+            throw new ArgumentException(
+                "Production output line IDs must be non-empty canonical "
+                + "ASCII IDs beginning with 'output:'.",
+                nameof(outputLineId));
+        }
+        if (!Enum.IsDefined(typeof(ProductionOutputRole), role))
+            throw new ArgumentOutOfRangeException(nameof(role), role, null);
+
+        this.outputLineId = outputLineId;
+        this.role = role;
         this.itemId = itemId?.Trim() ?? string.Empty;
         this.amount = Mathf.Max(1, amount);
         this.probability = Mathf.Clamp01(probability);
+    }
+
+    public static bool IsCanonicalOutputLineId(string value)
+    {
+        if (string.IsNullOrEmpty(value)
+            || !value.StartsWith("output:", StringComparison.Ordinal)
+            || value.Length == "output:".Length
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        for (int index = 0; index < value.Length; index++)
+        {
+            char character = value[index];
+            bool allowed = character >= 'a' && character <= 'z'
+                || character >= '0' && character <= '9'
+                || character == ':' || character == '/'
+                || character == '.' || character == '_'
+                || character == '-';
+            if (!allowed)
+                return false;
+        }
+
+        return true;
     }
 }

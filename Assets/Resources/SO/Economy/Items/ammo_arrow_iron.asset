@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8099
+  id: 8100
   itemId: ammo:arrow-iron
   displayName: "\uCCA0\uCD09 \uD654\uC0B4"
   description: "\uD45C\uC900 \uD53C\uD574\uC640 \uAD00\uD1B5\uC744 \uAC00\uC9C4 \uD654\uC0B4."
@@ -31,28 +31,28 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 7
   features:
-  - rid: 7737211905666712234
-  - rid: 7737211905666712235
-  - rid: 7737211905666712236
-  - rid: 7737212042831200982
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712234
+    - rid: 1000
       type: {class: AmmunitionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         ammunitionKindId: ammo:arrow-iron
-    - rid: 7737211905666712235
+    - rid: 1001
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:metallurgy:iron
-    - rid: 7737211905666712236
+    - rid: 1002
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 7
         ingredientTags: 768
         sharedIntermediate: 0
-    - rid: 7737212042831200982
+    - rid: 1003
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.578238

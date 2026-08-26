@@ -119,8 +119,15 @@ public static class V22ApparelDebugScenarios
         {
             ResourceItemDefinitionSO item = items.FirstOrDefault(value =>
                 string.Equals(value.ItemId, material.PhysicalItemId, StringComparison.Ordinal));
-            Require(item != null && item.MaxStack == 100,
-                $"Woven material '{material.PhysicalItemId}' must have MaxStack 100.");
+            int expectedMaxStack = material.PhysicalItemId switch
+            {
+                "material:cloth" => 75,
+                "material:dreamweave" => 40,
+                _ => 100
+            };
+            Require(item != null && item.MaxStack == expectedMaxStack,
+                $"Woven material '{material.PhysicalItemId}' must have authored "
+                + $"MaxStack {expectedMaxStack}.");
         }
     }
 
@@ -206,10 +213,13 @@ public static class V22ApparelDebugScenarios
     {
         Require(DungeonGameSaveData.CurrentVersion == 24,
             "The full-world save generation must be V23.");
-        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 5,
-            "The character environment section must include apparel work orders.");
+        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 8,
+            "The character environment section must include apparel terminal authority.");
         Require(new DungeonCharacterEnvironmentSaveData().apparelWorkOrders == null,
             "Missing apparel work-order arrays must remain distinguishable from captured empties.");
+        Require(new DungeonCharacterEnvironmentSaveData()
+                .apparelWorkOrderTerminalStates == null,
+            "Missing apparel terminal-state arrays must remain distinguishable from captured empties.");
     }
 
     private static T[] LoadAll<T>(string root) where T : UnityEngine.Object =>

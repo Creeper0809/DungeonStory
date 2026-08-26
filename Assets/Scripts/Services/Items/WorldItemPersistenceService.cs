@@ -7,8 +7,12 @@ internal sealed class WorldItemRestoreState
 {
     public ItemHaulingSettingsSnapshot HaulingSettings { get; set; }
     public WorldItemRepositoryState RepositoryState { get; set; }
+    public WarehousePhysicalRestoreAssessment WarehouseAssessment { get; set; } =
+        WarehousePhysicalRestoreAssessment.Empty;
     public IReadOnlyList<ItemReservationIntentSaveData> ReservationIntents { get; set; } =
         Array.Empty<ItemReservationIntentSaveData>();
+    public FacilityOutputExactRouteRestoreCandidate ExactRouteCandidate
+        { get; set; }
 }
 
 /// <summary>
@@ -22,6 +26,8 @@ public sealed class WorldItemPersistenceService
     private readonly WorldItemRepository repository;
     private readonly IItemQuantityReservationPersistence reservationPersistence;
     private readonly IItemReservationMutationGate mutationGate;
+    private readonly IFacilityOutputExactRouteOutboxPersistence
+        exactRouteOutboxPersistence;
     private IHaulDeliveryIntentQuery HaulDeliveryIntents =>
         repository.HaulDeliveryIntents;
 
@@ -29,6 +35,7 @@ public sealed class WorldItemPersistenceService
         IDungeonItemCatalogProvider catalogProvider,
         IItemHaulingSettingsProvider haulingSettings,
         WorldItemRepository repository,
+        IFacilityOutputExactRouteOutboxPersistence exactRouteOutboxPersistence,
         IItemQuantityReservationPersistence reservationPersistence = null,
         IItemReservationMutationGate mutationGate = null)
     {
@@ -40,6 +47,8 @@ public sealed class WorldItemPersistenceService
             ?? throw new ArgumentNullException(nameof(repository));
         this.reservationPersistence = reservationPersistence;
         this.mutationGate = mutationGate;
+        this.exactRouteOutboxPersistence = exactRouteOutboxPersistence
+            ?? throw new ArgumentNullException(nameof(exactRouteOutboxPersistence));
     }
 
     public DungeonPhysicalItemSaveData Capture()
@@ -56,7 +65,7 @@ public sealed class WorldItemPersistenceService
                 .ThenBy(stack => stack.position.x)
                 .ThenBy(stack => stack.itemId, StringComparer.Ordinal)
                 .ThenBy(stack => stack.stackId, StringComparer.Ordinal)
-                .Select(ToSaveData)
+                .Select(CaptureDurableStack)
                 .ToList(),
             uniqueItems = repository.EquipmentInstances.Values
                 .Where(instance => instance != null)
@@ -94,7 +103,28 @@ public sealed class WorldItemPersistenceService
                     }))
                 .OrderBy(item => item.itemInstanceId, StringComparer.Ordinal)
                 .ToList(),
-            reservationIntents = CaptureDurableReservationIntents()
+            reservationIntents = CaptureDurableReservationIntents(),
+            pendingBatchDispositions = repository
+                .CapturePendingBatchDispositions()
+                .ToList(),
+            pendingExactOutputRoutes = exactRouteOutboxPersistence
+                .CaptureOutbox()
+                .OrderBy(value => value.routeOperationId, StringComparer.Ordinal)
+                .Select(value => value.Clone())
+                .ToList(),
+            pendingProductionCustodyDrains = repository
+                .CapturePendingProductionCustodyDrains()
+                .ToList(),
+            pendingProductionInputDestinationDrains = repository
+                .CapturePendingProductionInputDestinationDrains()
+                .ToList(),
+            pendingCapacityRoutingDrains = repository
+                .CapturePendingCapacityRoutingDrains()
+                .ToList(),
+            lastConfirmedExactRouteCheckpointSequence =
+                exactRouteOutboxPersistence.LastConfirmedCheckpointSequence,
+            lastConfirmedExactRouteCheckpointDigest =
+                exactRouteOutboxPersistence.LastConfirmedCheckpointDigest
         };
 
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
@@ -107,6 +137,11 @@ public sealed class WorldItemPersistenceService
         }
         return snapshot;
     }
+
+#if UNITY_EDITOR
+    public void RestoreForEditorTest(DungeonPhysicalItemSaveData snapshot) =>
+        Commit(StageRestore(snapshot));
+#endif
 
     private List<ItemReservationIntentSaveData> CaptureDurableReservationIntents()
     {
@@ -150,6 +185,77 @@ public sealed class WorldItemPersistenceService
                     saved.ownerOperationId,
                     intent.operationId,
                     StringComparison.Ordinal));
+            if (savedIntent == null)
+            {
+                savedIntent = new ItemReservationIntentSaveData
+                {
+                    ownerOperationId = intent.operationId,
+                    ownerCharacterId = intent.ownerCharacterId,
+                    hadActiveItemReservation = true,
+                    reservationHints = new List<ItemReservationClaimHintSaveData>()
+                };
+                captured.Add(savedIntent);
+            }
+
+            savedIntent.reservationHints ??=
+                new List<ItemReservationClaimHintSaveData>();
+            foreach (HaulDeliveryItemCommitmentSaveData commitment in
+                     intent.commitments.Where(value => value != null))
+            {
+                bool alreadyProjected = savedIntent.reservationHints.Any(hint =>
+                    hint != null
+                    && hint.purpose == ItemReservationPurpose.Hauling
+                    && hint.quantity == commitment.quantity
+                    && string.Equals(
+                        hint.preferredPhysicalStackId,
+                        commitment.carriedStackId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        hint.expectedStackSignature,
+                        commitment.expectedStackSignature,
+                        StringComparison.Ordinal));
+                if (alreadyProjected)
+                {
+                    continue;
+                }
+
+                // The committed carried lot is the physical ownership
+                // authority. Its scheduling TTL may expire while the carrier
+                // waits to replan, but save/restore must preserve that exact
+                // destination ownership instead of orphaning the cargo.
+                savedIntent.reservationHints.Add(
+                    new ItemReservationClaimHintSaveData
+                    {
+                        originStackId = string.IsNullOrWhiteSpace(
+                                commitment.sourceStackId)
+                            ? commitment.carriedStackId
+                            : commitment.sourceStackId,
+                        preferredPhysicalStackId = commitment.carriedStackId,
+                        itemId = commitment.itemId,
+                        expectedStackSignature =
+                            commitment.expectedStackSignature,
+                        quantity = commitment.quantity,
+                        purpose = ItemReservationPurpose.Hauling,
+                        aggregationCohortId =
+                            $"haul:{intent.destinationKind}:{intent.destinationId}"
+                    });
+            }
+            savedIntent.reservationHints = savedIntent.reservationHints
+                .Where(hint => hint != null)
+                .OrderBy(hint => hint.preferredPhysicalStackId,
+                    StringComparer.Ordinal)
+                .ThenBy(hint => hint.expectedStackSignature,
+                    StringComparer.Ordinal)
+                .ThenBy(hint => hint.quantity)
+                .ToList();
+            for (int index = 0;
+                 index < savedIntent.reservationHints.Count;
+                 index++)
+            {
+                savedIntent.reservationHints[index].claimOrdinal = index;
+                savedIntent.reservationHints[index].claimHintId =
+                    $"claim:{savedIntent.ownerOperationId}:{index}";
+            }
             ItemReservationClaimHintSaveData[] haulingHints = savedIntent?
                 .reservationHints?
                 .Where(hint => hint != null
@@ -169,8 +275,24 @@ public sealed class WorldItemPersistenceService
                             StringComparison.Ordinal)) == 1);
             if (!exact)
             {
+                string commitmentProjection = string.Join(
+                    ",",
+                    (intent.commitments
+                        ?? new List<HaulDeliveryItemCommitmentSaveData>())
+                    .Where(commitment => commitment != null)
+                    .Select(commitment =>
+                        commitment.carriedStackId + ":"
+                        + commitment.expectedStackSignature + ":"
+                        + commitment.quantity));
+                string hintProjection = string.Join(
+                    ",",
+                    haulingHints.Select(hint =>
+                        hint.preferredPhysicalStackId + ":"
+                        + hint.expectedStackSignature + ":"
+                        + hint.quantity));
                 throw new InvalidOperationException(
-                    $"Committed haul delivery '{intent.operationId}' does not have a one-to-one saved quantity lease projection.");
+                    $"Committed haul delivery '{intent.operationId}' does not have a one-to-one saved quantity lease projection. "
+                    + $"commitments=[{commitmentProjection}]; hints=[{hintProjection}]");
             }
         }
         return captured
@@ -179,6 +301,14 @@ public sealed class WorldItemPersistenceService
     }
 
     internal WorldItemRestoreState StageRestore(DungeonPhysicalItemSaveData snapshot)
+    {
+        return StageRestore(snapshot, null, null);
+    }
+
+    internal WorldItemRestoreState StageRestore(
+        DungeonPhysicalItemSaveData snapshot,
+        IReadOnlyList<BuildableObject> candidateBuildings,
+        IPhysicalItemMassQuery massQuery)
     {
         DungeonGameRestoreReport validation = new DungeonGameRestoreReport();
         PhysicalItemSaveValidation.Validate(
@@ -281,7 +411,14 @@ public sealed class WorldItemPersistenceService
                 emergencyButcheryAllowed = entry.emergencyButcheryAllowed,
                 wasteOrigin = entry.wasteOrigin,
                 contamination = entry.contamination,
-                components = CloneComponents(entry.components)
+                components = CloneComponents(entry.components),
+                dropDisposition = entry.dropDisposition,
+                recoveryOwnerOperationId = entry.recoveryOwnerOperationId,
+                recoverySourceStackId = entry.recoverySourceStackId,
+                recoveryCarrierPersistentId = entry.recoveryCarrierPersistentId,
+                recoveryInterruptionKind = entry.recoveryInterruptionKind,
+                droppedAtGameTime = entry.droppedAtGameTime,
+                recoveryDeadlineGameTime = entry.recoveryDeadlineGameTime
             };
             if (record.state == WorldItemStackState.Stored)
             {
@@ -335,6 +472,17 @@ public sealed class WorldItemPersistenceService
             }
         }
 
+        WarehousePhysicalRestoreAssessment warehouseAssessment =
+            WarehousePhysicalRestoreAssessment.Empty;
+        if (candidateBuildings != null)
+        {
+            warehouseAssessment = WarehousePhysicalRestoreValidation.Validate(
+                records,
+                candidateBuildings,
+                catalogProvider,
+                massQuery ?? throw new ArgumentNullException(nameof(massQuery)));
+        }
+
         return new WorldItemRestoreState
         {
             HaulingSettings = new ItemHaulingSettingsSnapshot
@@ -345,10 +493,22 @@ public sealed class WorldItemPersistenceService
                 records,
                 equipment,
                 modules,
-                snapshot.nextHaulOperationSequence),
+                snapshot.nextHaulOperationSequence,
+                warehouseAssessment.OverCapacityWarehouseIds,
+                snapshot.pendingBatchDispositions,
+                snapshot.pendingProductionCustodyDrains,
+                snapshot.pendingProductionInputDestinationDrains,
+                snapshot.pendingCapacityRoutingDrains),
+            WarehouseAssessment = warehouseAssessment,
             ReservationIntents = CloneReservationIntents(
                 snapshot.reservationIntents
-                    ?? new List<ItemReservationIntentSaveData>())
+                    ?? new List<ItemReservationIntentSaveData>()),
+            ExactRouteCandidate = exactRouteOutboxPersistence
+                .BuildRestoreCandidate(
+                    snapshot.pendingExactOutputRoutes,
+                    snapshot.stacks,
+                    snapshot.lastConfirmedExactRouteCheckpointSequence,
+                    snapshot.lastConfirmedExactRouteCheckpointDigest)
         };
     }
 
@@ -359,6 +519,10 @@ public sealed class WorldItemPersistenceService
             ?? throw new ArgumentNullException(nameof(staged));
         haulingSettings.Restore(required.HaulingSettings);
         repository.ReplaceState(required.RepositoryState);
+        exactRouteOutboxPersistence.RestoreCandidate(
+            required.ExactRouteCandidate
+            ?? throw new InvalidOperationException(
+                "Physical restore has no exact-output-route candidate."));
         if (reservationPersistence != null)
         {
             if (!reservationPersistence.TryRestoreGrandfathered(
@@ -450,7 +614,8 @@ public sealed class WorldItemPersistenceService
         }
     }
 
-    private static WorldItemStackSaveData ToSaveData(WorldItemStackRecord stack)
+    internal static WorldItemStackSaveData CaptureDurableStack(
+        WorldItemStackRecord stack)
     {
         bool directPickup = !string.IsNullOrWhiteSpace(
                 stack.reservedByPersistentId)
@@ -496,7 +661,17 @@ public sealed class WorldItemPersistenceService
             emergencyButcheryAllowed = stack.emergencyButcheryAllowed,
             wasteOrigin = stack.wasteOrigin,
             contamination = stack.contamination,
-            components = CloneComponents(stack.components)
+            components = CloneComponents(stack.components),
+            dropDisposition = stack.dropDisposition,
+            recoveryOwnerOperationId = stack.recoveryOwnerOperationId?.Trim()
+                ?? string.Empty,
+            recoverySourceStackId = stack.recoverySourceStackId?.Trim()
+                ?? string.Empty,
+            recoveryCarrierPersistentId = stack.recoveryCarrierPersistentId?.Trim()
+                ?? string.Empty,
+            recoveryInterruptionKind = stack.recoveryInterruptionKind,
+            droppedAtGameTime = stack.droppedAtGameTime,
+            recoveryDeadlineGameTime = stack.recoveryDeadlineGameTime
         };
     }
 

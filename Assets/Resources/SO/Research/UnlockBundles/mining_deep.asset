@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 7085
   researchId: research:mining:deep
-  role: 1
+  role: 0
   designIntent: "\uC5F0\uB8CC\uC640 \uC720\uC9C0\uBCF4\uC218\uB97C \uB300\uAC00\uB85C
     \uAE4A\uC740 \uAD11\uB9E5\uC744 \uD310\uB2E4."
   rewardGroups:
@@ -57,4 +57,5 @@ MonoBehaviour:
   - kind: 4
     displayOrder: 60
     heading: "\uC758\uB8CC \uC2DC\uC220"
-  singletonReason: 
+  singletonReason: "\uC5EC\uB7EC \uD6C4\uC18D \uC5F0\uAD6C\uC640 \uAE30\uC874 \uC81C\uC791
+    \uACC4\uD1B5\uC744 \uC5EC\uB294 \uAE30\uBC18 \uC5F0\uAD6C\uB2E4."

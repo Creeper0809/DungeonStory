@@ -265,7 +265,6 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             {
                 DungeonRuntimeLifetimeScope candidate = candidates[index];
                 if (candidate != null
-                    && candidate.isActiveAndEnabled
                     && candidate.gameObject.scene.IsValid()
                     && candidate.gameObject.scene.isLoaded
                     && candidate.Container != null)

@@ -108,18 +108,18 @@ public sealed class WarehouseFeatureCommandService : IWarehouseFeatureCommandSer
             return new WarehouseFeatureCommandResult(false, "보충할 시설을 찾지 못했습니다.");
         }
 
-        IWarehouseFacility[] warehouses = FindWarehouses();
         int beforeShop = facility.CurrentStock;
-        int beforeWarehouse = warehouses.Sum((warehouse) => warehouse.Inventory.TotalStock);
-        int moved = facility.RestockFrom(
-            warehouses,
-            Mathf.Min(Mathf.Max(0, amount), facility.MissingStock),
-            out string message);
-        int afterWarehouse = warehouses.Sum((warehouse) => warehouse.Inventory.TotalStock);
+        string message = string.Empty;
+        bool requested = amount > 0
+            && facility.TryRequestRestock(out message);
+        if (amount <= 0)
+        {
+            message = "보충 요청량은 1 이상이어야 합니다.";
+        }
         string result =
-            $"보충 {(moved > 0 ? "성공" : "실패")}: {GetBuildingName(target)} {message} / " +
-            $"상점 {beforeShop}->{facility.CurrentStock}, 창고 {beforeWarehouse}->{afterWarehouse}";
-        return new WarehouseFeatureCommandResult(moved > 0, result);
+            $"보충 {(requested ? "요청" : "실패")}: {GetBuildingName(target)} {message} / " +
+            $"상점 현재 재고 {beforeShop}, 물리 운반 완료 후 반영";
+        return new WarehouseFeatureCommandResult(requested, result);
     }
 
     public WarehouseFeatureCommandResult PurchaseDelivery(StockDeliveryOffer offer)

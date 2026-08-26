@@ -124,18 +124,46 @@ internal sealed class ConveyorItemGateway
             .ToArray();
         IWarehouseFacility preferred = candidates.FirstOrDefault(candidate =>
             MatchesWarehouseId(candidate, preferredWarehouseId));
-        IWarehouseFacility selected = preferred != null
-            && preferred.Inventory.CanStore(
-                definition.StockCategory,
-                stack.Quantity)
-                ? preferred
-                : allowAnyCompatible
-                    ? candidates.FirstOrDefault(candidate =>
-                        candidate.Inventory.CanStore(
-                            definition.StockCategory,
-                            stack.Quantity))
-                    : null;
-        if (selected == null)
+        IEnumerable<IWarehouseFacility> orderedCandidates = preferred != null
+            ? new[] { preferred }.Concat(candidates.Where(candidate =>
+                !ReferenceEquals(candidate, preferred)))
+            : candidates;
+        IWarehouseFacility[] compatible = orderedCandidates
+            .Where(candidate => candidate.Inventory.HasMassCapacityAuthority
+                && candidate.Inventory.Accepts(definition.StockCategory))
+            .ToArray();
+        if (!allowAnyCompatible)
+        {
+            compatible = preferred != null
+                && preferred.Inventory.HasMassCapacityAuthority
+                && preferred.Inventory.Accepts(definition.StockCategory)
+                    ? new[] { preferred }
+                    : Array.Empty<IWarehouseFacility>();
+        }
+
+        DomainFailure lastFailure = DomainFailure.None;
+        foreach (IWarehouseFacility candidate in compatible)
+        {
+            if (!transfers.TryCompleteTransitToWarehouse(
+                    stackId,
+                    payloadId,
+                    candidate,
+                    out _,
+                    out lastFailure))
+            {
+                if (!TryGetTransit(stackId, payloadId, out _))
+                {
+                    failure = lastFailure;
+                    return false;
+                }
+                continue;
+            }
+
+            warehouseId = ResolveWarehouseId(candidate);
+            return true;
+        }
+
+        if (compatible.Length == 0)
         {
             failure = new DomainFailure(
                 FailureCode.ConveyorDestinationUnavailable,
@@ -143,17 +171,12 @@ internal sealed class ConveyorItemGateway
             return false;
         }
 
-        warehouseId = ResolveWarehouseId(selected);
-        Vector2Int position = selected is BuildableObject building
-            ? building.centerPos
-            : Vector2Int.zero;
-        return transfers.TryCompleteTransit(
-            stackId,
-            payloadId,
-            WorldItemStackState.Stored,
-            position,
-            WarehouseStorageIdentity.RequireDestinationId(selected),
-            out failure);
+        failure = lastFailure.IsFailure
+            ? lastFailure
+            : new DomainFailure(
+                FailureCode.ConveyorDestinationUnavailable,
+                preferredWarehouseId ?? string.Empty);
+        return false;
     }
 
     public Vector2Int ResolveNodeDropPosition(

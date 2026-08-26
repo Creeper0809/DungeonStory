@@ -53,13 +53,13 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737212033836254021
-    - rid: 7737212033836254022
-    - rid: 7737212033836254023
-    - rid: 7737212033836254024
-    - rid: 7737212033836254025
-    - rid: 7737212033836254026
-    - rid: 7737212033836254027
+    - rid: 7737212199244661618
+    - rid: 7737212199244661619
+    - rid: 7737212199244661620
+    - rid: 7737212199244661621
+    - rid: 7737212199244661622
+    - rid: 7737212199244661623
+    - rid: 7737212199244661624
   width: 3
   height: 1
   layer: 1
@@ -75,12 +75,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737212033836254021
+    - rid: 7737212199244661618
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I12
-    - rid: 7737212033836254022
+    - rid: 7737212199244661619
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -89,7 +89,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7737212033836254023
+    - rid: 7737212199244661620
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -119,14 +119,16 @@ MonoBehaviour:
           amount: 1
         - itemId: component:machine-parts
           amount: 2
-    - rid: 7737212033836254024
+        - itemId: component:reclaimed-water-filter
+          amount: 1
+    - rid: 7737212199244661621
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7737212033836254025
+    - rid: 7737212199244661622
       type: {class: BuildingWastewaterProcessorAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWastewaterProcessorAbility
@@ -137,14 +139,14 @@ MonoBehaviour:
         sludgeItemId: industrial:sludge
         sludgeAmount: 1
         secondsPerBatch: 8
-    - rid: 7737212033836254026
+    - rid: 7737212199244661623
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 4
         priority: 3
         minimumSupplyFraction: 1
-    - rid: 7737212033836254027
+    - rid: 7737212199244661624
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

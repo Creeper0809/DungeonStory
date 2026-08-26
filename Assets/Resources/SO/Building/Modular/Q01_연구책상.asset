@@ -60,7 +60,7 @@ MonoBehaviour:
     - rid: 7737211921440178607
     - rid: 7737211921440178608
     - rid: 7737211921440178609
-    - rid: 7737211992021139766
+    - rid: 7737212199327498422
   width: 2
   height: 1
   layer: 1
@@ -156,7 +156,7 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 0
-    - rid: 7737211992021139766
+    - rid: 7737212199327498422
       type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingResearchCapacityAbility

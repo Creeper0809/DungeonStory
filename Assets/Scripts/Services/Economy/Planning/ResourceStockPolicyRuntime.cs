@@ -9,11 +9,14 @@ public sealed class ResourceStockPolicyLogisticsDependencies
 {
     public ResourceStockPolicyLogisticsDependencies(
         IWorldItemStackRuntime itemRuntime,
+        IPhysicalFacilityItemBatchTransferGateway transferGateway,
         IWorldDropZoneQuery dropZones,
         IWorkforceReplanService workforce)
     {
         ItemRuntime = itemRuntime
             ?? throw new ArgumentNullException(nameof(itemRuntime));
+        TransferGateway = transferGateway
+            ?? throw new ArgumentNullException(nameof(transferGateway));
         DropZones = dropZones
             ?? throw new ArgumentNullException(nameof(dropZones));
         Workforce = workforce
@@ -21,6 +24,7 @@ public sealed class ResourceStockPolicyLogisticsDependencies
     }
 
     internal IWorldItemStackRuntime ItemRuntime { get; }
+    internal IPhysicalFacilityItemBatchTransferGateway TransferGateway { get; }
     internal IWorldDropZoneQuery DropZones { get; }
     internal IWorkforceReplanService Workforce { get; }
 }
@@ -47,11 +51,13 @@ public sealed class ResourceStockPolicyProductionDependencies
 
 public sealed class ResourceStockPolicyRuntime :
     IResourceStockPolicyRuntime,
+    IResourceStockPolicySaleCommandPort,
     IInitializable,
     ITickable
 {
     private const float EvaluationInterval = 2f;
-    private const string SellDestinationPrefix = "stock-policy:sell:";
+    private const string SellDestinationPrefix =
+        ResourceStockPolicySaleOutbox.DestinationPrefix;
 
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly ResourceStockPolicyLogisticsDependencies logistics;
@@ -110,6 +116,7 @@ public sealed class ResourceStockPolicyRuntime :
 
     public void Tick()
     {
+        RecoverPendingSales();
         if (gameClock.IsPaused || gameClock.Time < state.NextEvaluationTime)
         {
             return;
@@ -189,8 +196,13 @@ public sealed class ResourceStockPolicyRuntime :
     {
         return new DungeonResourceStockPolicySaveData
         {
+            nextSaleSequence = state.NextSaleSequence,
             policies = policyView
                 .Select(policy => policy.Clone())
+                .ToList(),
+            pendingSales = state.PendingSalesByItemId.Values
+                .OrderBy(pending => pending.itemId, StringComparer.Ordinal)
+                .Select(pending => pending.Clone())
                 .ToList()
         };
     }
@@ -198,13 +210,14 @@ public sealed class ResourceStockPolicyRuntime :
     public ResourceStockPolicyRestoreCandidate PrepareRestoreCandidate(
         DungeonResourceStockPolicySaveData saveData)
     {
-        if (saveData?.policies == null)
+        if (saveData?.policies == null || saveData.pendingSales == null)
         {
             throw new InvalidOperationException(
                 "Stock-policy restore payload or policy list is missing.");
         }
         ResourceStockPolicyAggregateState restored = new()
         {
+            NextSaleSequence = saveData.nextSaleSequence,
             Version = state.Version + 1,
             NextEvaluationTime = gameClock.Time + EvaluationInterval
         };
@@ -212,6 +225,11 @@ public sealed class ResourceStockPolicyRuntime :
         {
             ResourceStockPolicyData copy = saved.Clone();
             restored.ByItemId.Add(copy.itemId, copy);
+        }
+        foreach (ResourceStockPolicyPendingSale saved in saveData.pendingSales)
+        {
+            ResourceStockPolicyPendingSale copy = saved.Clone();
+            restored.PendingSalesByItemId.Add(copy.itemId, copy);
         }
 
         RefreshView(restored);
@@ -233,6 +251,11 @@ public sealed class ResourceStockPolicyRuntime :
     {
         if (policy == null || !policy.enabled)
         {
+            return;
+        }
+        if (state.PendingSalesByItemId.ContainsKey(policy.itemId))
+        {
+            SetStatus(policy, "판매 정산 복구 대기");
             return;
         }
 
@@ -297,21 +320,45 @@ public sealed class ResourceStockPolicyRuntime :
                 return;
             }
 
-            if (logistics.ItemRuntime.TryConsumeFacilityItemBuffer(
+            int sequence = state.NextSaleSequence;
+            if (sequence <= 0 || sequence == int.MaxValue)
+            {
+                SetStatus(policy, "판매 작업 순번이 소진되었습니다.");
+                return;
+            }
+            string operationId = ResourceStockPolicySaleOutbox.FormatOperationId(
+                policy.itemId,
+                sequence);
+            if (logistics.TransferGateway.TryCommitTransferPending(
                     destinationId,
                     new Dictionary<string, int>(StringComparer.Ordinal)
                     {
                         [policy.itemId] = delivered
                     },
-                    out string consumeReason))
+                    operationId,
+                    ResourceStockPolicySaleOutbox.TransferReason,
+                    out PhysicalItemBatchDispositionReceipt physicalReceipt,
+                    out string transferReason))
             {
-                AddMoney(proceeds);
-                SetStatus(policy, $"초과 재고 {delivered}개 판매 · {proceeds} 골드");
+                ResourceStockPolicyPendingSale pendingSale =
+                    ResourceStockPolicySaleOutbox.CreatePending(
+                        sequence,
+                        policy.itemId,
+                        proceeds,
+                        ToSaleReceipt(physicalReceipt));
+                state.PendingSalesByItemId.Add(policy.itemId, pendingSale);
+                state.NextSaleSequence = checked(sequence + 1);
                 state.Version++;
+                if (!TryFinalizePendingSale(
+                        pendingSale,
+                        out string finalizeFailure))
+                {
+                    SetStatus(policy, finalizeFailure);
+                }
                 return;
             }
 
-            SetStatus(policy, consumeReason);
+            SetStatus(policy, transferReason);
             return;
         }
 
@@ -679,18 +726,132 @@ public sealed class ResourceStockPolicyRuntime :
         }
     }
 
-    private void AddMoney(int amount)
+    private void RecoverPendingSales()
     {
-        if (amount > 0)
+        ResourceStockPolicyPendingSale[] pendingSales =
+            state.PendingSalesByItemId.Values
+                .OrderBy(pending => pending.itemId, StringComparer.Ordinal)
+                .ToArray();
+        foreach (ResourceStockPolicyPendingSale pending in pendingSales)
         {
-            money.Add(
-                amount,
-                new EconomyTransactionContext(
-                    EconomyTransactionKind.SaleIncome,
-                    "stock-policy",
-                    description: "초과 재고 판매"));
+            if (!TryFinalizePendingSale(pending, out string failureReason)
+                && byItemId.TryGetValue(
+                    pending.itemId,
+                    out ResourceStockPolicyData policy))
+            {
+                SetStatus(policy, failureReason);
+            }
         }
     }
+
+    private bool TryFinalizePendingSale(
+        ResourceStockPolicyPendingSale pending,
+        out string failureReason)
+    {
+        if (!ResourceStockPolicySaleOutbox.TryFinalizePending(
+                pending,
+                this,
+                out failureReason))
+        {
+            return false;
+        }
+
+        if (!state.PendingSalesByItemId.Remove(pending.itemId))
+        {
+            failureReason = "stock-policy-sale-owner-missing-after-ack";
+            throw new InvalidOperationException(failureReason);
+        }
+        if (byItemId.TryGetValue(
+                pending.itemId,
+                out ResourceStockPolicyData policy))
+        {
+            SetStatus(
+                policy,
+                $"초과 재고 {pending.quantity}개 판매 · {pending.proceeds} 골드");
+        }
+        state.Version++;
+        failureReason = string.Empty;
+        return true;
+    }
+
+    public bool TryGetPendingSaleTransfer(
+        string operationId,
+        out ResourceStockPolicySaleTransferReceipt receipt)
+    {
+        receipt = null;
+        if (!logistics.TransferGateway.TryGetPending(
+                operationId,
+                out PhysicalItemBatchDispositionReceipt physicalReceipt))
+        {
+            return false;
+        }
+        receipt = ToSaleReceipt(physicalReceipt);
+        return true;
+    }
+
+    public bool TryPublishSaleIncome(
+        int amount,
+        string operationId,
+        string itemId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (amount <= 0
+            || string.IsNullOrWhiteSpace(operationId)
+            || !string.Equals(
+                operationId,
+                operationId.Trim(),
+                StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(itemId)
+            || !string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal))
+        {
+            failureReason = "stock-policy-sale-income-invalid";
+            return false;
+        }
+
+        int balanceBefore = money.Balance;
+        int expectedBalance;
+        try
+        {
+            expectedBalance = checked(balanceBefore + amount);
+        }
+        catch (OverflowException)
+        {
+            failureReason = "stock-policy-sale-income-overflow";
+            return false;
+        }
+        money.Add(
+            amount,
+            new EconomyTransactionContext(
+                EconomyTransactionKind.SaleIncome,
+                operationId,
+                itemId,
+                "초과 재고 판매"));
+        if (money.Balance != expectedBalance)
+        {
+            failureReason = "stock-policy-sale-income-not-published";
+            return false;
+        }
+        return true;
+    }
+
+    public bool AcknowledgeSaleTransfer(
+        string commitId,
+        out string failureReason) =>
+        logistics.TransferGateway.Acknowledge(commitId, out failureReason);
+
+    private static ResourceStockPolicySaleTransferReceipt ToSaleReceipt(
+        PhysicalItemBatchDispositionReceipt receipt) => new()
+    {
+        operationId = receipt.OperationId,
+        reasonCode = receipt.ReasonCode,
+        commitId = receipt.CommitId,
+        sourceStackIds = receipt.SourceStackIds
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList(),
+        quantity = receipt.Quantity,
+        inputMassGrams = receipt.InputMassGrams
+    };
 
     private void SetStatus(
         ResourceStockPolicyData policy,

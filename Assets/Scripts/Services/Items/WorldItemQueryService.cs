@@ -33,6 +33,7 @@ public interface IWorldItemQueryService
 public sealed class WorldItemQueryService : IWorldItemQueryService
 {
     private readonly IDungeonItemCatalogProvider catalogProvider;
+    private readonly IPhysicalItemMassQuery massQuery;
     private readonly WorldItemRepository repository;
     private readonly IItemMarkerPresenter markerPresenter;
     private bool storedItemMarkersVisible;
@@ -42,11 +43,14 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
 
     public WorldItemQueryService(
         IDungeonItemCatalogProvider catalogProvider,
+        IPhysicalItemMassQuery massQuery,
         WorldItemRepository repository,
         IItemMarkerPresenter markerPresenter)
     {
         this.catalogProvider = catalogProvider
             ?? throw new ArgumentNullException(nameof(catalogProvider));
+        this.massQuery = massQuery
+            ?? throw new ArgumentNullException(nameof(massQuery));
         this.repository = repository
             ?? throw new ArgumentNullException(nameof(repository));
         this.markerPresenter = markerPresenter
@@ -331,7 +335,9 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
                 0,
                 Mathf.Max(0, stack.quantity)),
             UnitPrice = definition.UnitPrice,
-            UnitWeight = definition.UnitWeight,
+            UnitWeight = massQuery
+                .GetDefinitionUnitMass((ItemDefinitionId)stack.itemId)
+                .Value / 1000f,
             Sprite = definition.Sprite,
             State = stack.state,
             Position = stack.position,
@@ -351,6 +357,13 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
             EmergencyButcheryAllowed = stack.emergencyButcheryAllowed,
             WasteOrigin = stack.wasteOrigin,
             Contamination = Mathf.Clamp(stack.contamination, 0f, 100f),
+            DropDisposition = stack.dropDisposition,
+            RecoveryOwnerOperationId = stack.recoveryOwnerOperationId ?? string.Empty,
+            RecoverySourceStackId = stack.recoverySourceStackId ?? string.Empty,
+            RecoveryCarrierPersistentId = stack.recoveryCarrierPersistentId ?? string.Empty,
+            RecoveryInterruptionKind = stack.recoveryInterruptionKind,
+            DroppedAtGameTime = stack.droppedAtGameTime,
+            RecoveryDeadlineGameTime = stack.recoveryDeadlineGameTime,
             Components = (stack.components ?? new List<ItemInstanceComponentSaveData>())
                 .Where(component => component != null)
                 .Select(component => component.Clone())

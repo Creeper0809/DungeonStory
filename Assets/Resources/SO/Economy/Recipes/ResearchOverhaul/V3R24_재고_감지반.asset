@@ -42,7 +42,7 @@ MonoBehaviour:
     combinationMode: 0
     recommendedRank: 2
     minimumRiskRank: 0
-  requiredResearchId: research:industry:stock-sensors
+  requiredResearchId: research:industry:automatic-bills
   requiredWork: 32
   preparationWork: 0
   finishingWork: 0
@@ -51,6 +51,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -59,6 +60,8 @@ MonoBehaviour:
   - itemId: component:precision-parts
     amount: 1
   outputs:
-  - itemId: component:stock-sensor-panel
+  - outputLineId: output:recipe:component:stock-sensor-panel/000/main/component:stock-sensor-panel
+    role: 0
+    itemId: component:stock-sensor-panel
     amount: 1
     probability: 1

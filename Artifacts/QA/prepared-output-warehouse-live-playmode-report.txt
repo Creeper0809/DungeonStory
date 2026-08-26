@@ -1,0 +1,18 @@
+[PASS] RUNTIME_COMPOSITION_READY scope/container and authored owner provider match
+[PASS] SCOPE_READY gameplay LifetimeScope resolved
+[PASS] ITEM_RUNTIME_READY world item runtime resolved
+[PASS] WORK_ORDER_RUNTIME_READY work order runtime resolved
+[PASS] EQUIPMENT_RUNTIME_READY common combat equipment runtime resolved
+[PASS] EQUIPMENT_MAINTENANCE_READY equipment maintenance runtime resolved
+[PASS] ECONOMY_CATALOG_READY resource economy catalog resolved
+[PASS] PREPARATION_RUNTIME_READY offense preparation service resolved
+[PASS] DESTINATION_CLAIM_RUNTIME_READY haul destination claim authority resolved
+[PASS] WAREHOUSE_MASS_ADMISSION_RUNTIME_READY warehouse gram admission authority resolved
+[PASS] DEBUG_MODE_READY debug mode service resolved
+[PASS] GRID_READY grid resolved
+[INFO] FAST_PARTY_COMMIT Runtime dependencies are missing: scope=True; container=True; managerProvider=True; manager=True; preparation=True; commit=True; diagnostics=True; ownerCandidate=False; ownerCandidateCount=0.
+[FAIL] RUN_READY owner=missing; staff=0
+[FAIL] HAULER_READY no staff/owner hauler
+capturedErrors=0; <none>
+capturedWarnings=0; <none>
+RESULT=FAIL; failures=2; RUN_READY: owner=missing; staff=0 | HAULER_READY: no staff/owner hauler

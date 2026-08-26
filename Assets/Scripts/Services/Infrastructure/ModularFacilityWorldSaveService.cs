@@ -309,7 +309,8 @@ public sealed class ModularFacilityWorldSaveService :
         if (rollbackFailure != null)
         {
             throw new InvalidOperationException(
-                "Facility-world publication rollback could not restore the prior live state.",
+                "Facility-world publication rollback could not restore the prior live state: "
+                + rollbackFailure.Message,
                 rollbackFailure);
         }
     }
@@ -1024,7 +1025,7 @@ public sealed class ModularFacilityWorldSaveService :
             }
 
             ResolveBuildingFactory().DeleteVisual(data, building.centerPos);
-            building.DestroySelf();
+            building.RetireForWorldReplacement();
             report.clearedCount++;
         }
     }

@@ -51,10 +51,13 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs: []
   outputs:
-  - itemId: resource:clean-water
+  - outputLineId: output:recipe:resource:clean-water/000/main/resource:clean-water
+    role: 0
+    itemId: resource:clean-water
     amount: 8
     probability: 1

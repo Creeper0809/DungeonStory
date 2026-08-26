@@ -21,35 +21,40 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8090
+  id: 8091
   itemId: medicine:anesthetic
   displayName: "\uB9C8\uCDE8\uC81C"
   description: "\uC218\uC220\uACFC \uC911\uC0C1 \uCE58\uB8CC\uC758 \uACE0\uD1B5\uC744
     \uB0AE\uCD98\uB2E4."
   stockCategory: 5
   unitWeight: 0.12
-  maxStack: 30
+  maxStack: 75
   sprite: {fileID: 0}
-  unitPrice: 42
+  unitPrice: 45
   features:
-  - rid: 7737211905666711970
-  - rid: 7737211905666711971
-  - rid: 7737211905666711973
-  - rid: 7737212042857939889
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
+  - rid: 1004
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666711970
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:pharmacology:anesthesia
-    - rid: 7737211905666711971
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 3
         ingredientTags: 1
         sharedIntermediate: 0
-    - rid: 7737211905666711973
+    - rid: 1002
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5989629
+    - rid: 1003
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         supportsInjuryTreatment: 0
@@ -57,7 +62,9 @@ MonoBehaviour:
         infectionReduction: 0
         detoxReduction: 0
         painReduction: 35
-    - rid: 7737212042857939889
-      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+    - rid: 1004
+      type: {class: PackagedLotItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.596373
+        packageTareGrams: 30
+        tareDisposition: 1
+        containerItemId: container:medical-vial

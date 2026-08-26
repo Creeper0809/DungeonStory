@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using DungeonStory.Balance;
@@ -16,18 +17,29 @@ public interface IStockQuery : IWarehousePhysicalStockQueryPort
 /// Rebuildable read index over authoritative physical item stacks. It owns no stock and
 /// deliberately has no save DTO.
 /// </summary>
-public sealed class PhysicalStockQuery : IStockQuery
+public sealed class PhysicalStockQuery :
+    IStockQuery,
+    IWarehousePhysicalMassQueryPort
 {
     private readonly WorldItemRepository repository;
     private readonly IDungeonItemCatalogProvider catalog;
+    private readonly IPhysicalItemMassQuery massQuery;
+    private readonly Dictionary<string, long> warehouseMassById =
+        new(StringComparer.Ordinal);
+    private readonly Dictionary<string, long> warehouseMassRevisionById =
+        new(StringComparer.Ordinal);
+    private int cachedMassItemStackVersion = int.MinValue;
+    private long cachedMassAuthorityRevision = long.MinValue;
 
     public PhysicalStockQuery(
         WorldItemRepository repository,
-        IDungeonItemCatalogProvider catalog)
+        IDungeonItemCatalogProvider catalog,
+        IPhysicalItemMassQuery massQuery)
     {
         this.repository = repository
             ?? throw new ArgumentNullException(nameof(repository));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        this.massQuery = massQuery ?? throw new ArgumentNullException(nameof(massQuery));
     }
 
     public System.Collections.Generic.IReadOnlyList<WorldItemStackSnapshot>
@@ -35,6 +47,9 @@ public sealed class PhysicalStockQuery : IStockQuery
             .Where(record => record != null && record.quantity > 0)
             .Select(CreateSnapshot)
             .ToArray();
+
+    public int PhysicalItemStackVersion => repository.ItemStackVersion;
+    public long PhysicalMassAuthorityRevision => massQuery.AuthorityRevision;
 
     public int GetGlobalQuantity(string itemDefinitionId)
     {
@@ -77,6 +92,43 @@ public sealed class PhysicalStockQuery : IStockQuery
             .Select(record => record.quantity));
     }
 
+    public long GetWarehouseStoredMassGrams(BuildingInstanceId warehouseId)
+    {
+        if (!warehouseId.IsValid)
+        {
+            throw new ArgumentException(
+                "A valid warehouse BuildingInstanceId is required.",
+                nameof(warehouseId));
+        }
+        RebuildWarehouseMassIndexIfStale();
+        return warehouseMassById.TryGetValue(warehouseId.Value, out long mass)
+            ? mass
+            : 0L;
+    }
+
+    public long GetWarehouseStoredMassRevision(BuildingInstanceId warehouseId)
+    {
+        if (!warehouseId.IsValid)
+        {
+            throw new ArgumentException(
+                "A valid warehouse BuildingInstanceId is required.",
+                nameof(warehouseId));
+        }
+
+        RebuildWarehouseMassIndexIfStale();
+        return warehouseMassRevisionById.TryGetValue(
+            warehouseId.Value,
+            out long revision)
+                ? revision
+                : 0L;
+    }
+
+    public long GetDefinitionUnitMassGrams(string itemDefinitionId)
+    {
+        string itemId = RequireItemId(itemDefinitionId);
+        return massQuery.GetDefinitionUnitMass((ItemDefinitionId)itemId).Value;
+    }
+
     private System.Collections.Generic.IEnumerable<WorldItemStackRecord>
         GetWarehouseRecords(string destinationId)
     {
@@ -89,6 +141,89 @@ public sealed class PhysicalStockQuery : IStockQuery
                     : record.sourceStorageDestinationId,
                 destinationId,
                 StringComparison.Ordinal));
+    }
+
+    private void RebuildWarehouseMassIndexIfStale()
+    {
+        int itemStackVersion = repository.ItemStackVersion;
+        long massAuthorityRevision = massQuery.AuthorityRevision;
+        if (cachedMassItemStackVersion == itemStackVersion
+            && cachedMassAuthorityRevision == massAuthorityRevision)
+        {
+            return;
+        }
+
+        Dictionary<string, long> rebuiltMassById = new(StringComparer.Ordinal);
+        foreach (WorldItemStackRecord record in repository.Records)
+        {
+            if (record == null
+                || record.quantity <= 0
+                || record.state != WorldItemStackState.Stored)
+            {
+                continue;
+            }
+
+            string destinationId = string.IsNullOrWhiteSpace(
+                    record.sourceStorageDestinationId)
+                ? record.destinationId
+                : record.sourceStorageDestinationId;
+            if (string.IsNullOrWhiteSpace(destinationId)
+                || !destinationId.StartsWith(
+                    WorldItemStackRuntime.WarehouseStorageDestinationPrefix,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            PhysicalItemMassSubject subject =
+                PhysicalItemMassSubjectAdapter.Create(
+                    massQuery,
+                    (ItemDefinitionId)record.itemId,
+                    record.itemInstanceId,
+                    record.components);
+            long stackMass = massQuery
+                .GetStackUnitMass((ItemDefinitionId)record.itemId, subject)
+                .Multiply(record.quantity)
+                .Value;
+            string warehouseId = destinationId.Substring(
+                WorldItemStackRuntime.WarehouseStorageDestinationPrefix.Length);
+            if (warehouseId.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    $"Warehouse Stored destination '{destinationId}' has no owner ID.");
+            }
+            rebuiltMassById.TryGetValue(warehouseId, out long existing);
+            rebuiltMassById[warehouseId] = checked(existing + stackMass);
+        }
+
+        HashSet<string> changedWarehouseIds = new(
+            warehouseMassById.Keys,
+            StringComparer.Ordinal);
+        changedWarehouseIds.UnionWith(rebuiltMassById.Keys);
+        foreach (string warehouseId in changedWarehouseIds)
+        {
+            warehouseMassById.TryGetValue(warehouseId, out long before);
+            rebuiltMassById.TryGetValue(warehouseId, out long after);
+            if (before == after)
+            {
+                continue;
+            }
+
+            warehouseMassRevisionById.TryGetValue(
+                warehouseId,
+                out long currentRevision);
+            warehouseMassRevisionById[warehouseId] =
+                checked(currentRevision + 1L);
+        }
+
+        warehouseMassById.Clear();
+        foreach (KeyValuePair<string, long> pair in rebuiltMassById)
+        {
+            warehouseMassById.Add(pair.Key, pair.Value);
+        }
+
+        cachedMassItemStackVersion = itemStackVersion;
+        cachedMassAuthorityRevision = massAuthorityRevision;
     }
 
     private WorldItemStackSnapshot CreateSnapshot(WorldItemStackRecord record)
@@ -107,7 +242,15 @@ public sealed class PhysicalStockQuery : IStockQuery
             Quantity = record.quantity,
             ReservedQuantity = ResolveReservedQuantity(record),
             UnitPrice = definition.UnitPrice,
-            UnitWeight = definition.UnitWeight,
+            UnitWeight = massQuery
+                .GetStackUnitMass(
+                    (ItemDefinitionId)record.itemId,
+                    PhysicalItemMassSubjectAdapter.Create(
+                        massQuery,
+                        (ItemDefinitionId)record.itemId,
+                        record.itemInstanceId,
+                        record.components))
+                .Value / 1000f,
             Sprite = definition.Sprite,
             State = record.state,
             Position = record.position,
@@ -125,6 +268,13 @@ public sealed class PhysicalStockQuery : IStockQuery
             EmergencyButcheryAllowed = record.emergencyButcheryAllowed,
             WasteOrigin = record.wasteOrigin,
             Contamination = record.contamination,
+            DropDisposition = record.dropDisposition,
+            RecoveryOwnerOperationId = record.recoveryOwnerOperationId,
+            RecoverySourceStackId = record.recoverySourceStackId,
+            RecoveryCarrierPersistentId = record.recoveryCarrierPersistentId,
+            RecoveryInterruptionKind = record.recoveryInterruptionKind,
+            DroppedAtGameTime = record.droppedAtGameTime,
+            RecoveryDeadlineGameTime = record.recoveryDeadlineGameTime,
             Components = record.components
                 .Where(component => component != null)
                 .Select(component => component.Clone())
@@ -253,9 +403,19 @@ public sealed class FloorClutterDiagnosticsQuery : IFloorClutterDiagnosticsQuery
                 observation = new Observation(stack.Position, currentGameTime);
                 observations[stack.StackId] = observation;
             }
-            float age = currentGameTime - observation.FirstSeenAt;
-            bool immediate = (roles & SpatialCellRole.EmergencyEgress) != 0
+            bool transientRecovery = stack.IsTransientCarryRecoveryDrop;
+            float firstSeenAt = transientRecovery
+                ? (float)stack.DroppedAtGameTime
+                : observation.FirstSeenAt;
+            float deadline = transientRecovery
+                ? (float)stack.RecoveryDeadlineGameTime
+                : firstSeenAt + graceSeconds;
+            float age = Mathf.Max(0f, currentGameTime - firstSeenAt);
+            bool criticalCell = (roles & SpatialCellRole.EmergencyEgress) != 0
                 || layout.IsCriticalAccess(stack.Position);
+            bool recoveryExpired = currentGameTime > deadline;
+            bool immediate = criticalCell
+                && (!transientRecovery || recoveryExpired);
             outside.Add(new FloorClutterStackAssessment(
                 stack.StackId,
                 stack.Position,
@@ -263,7 +423,12 @@ public sealed class FloorClutterDiagnosticsQuery : IFloorClutterDiagnosticsQuery
                 age,
                 roles,
                 immediate,
-                immediate || age > graceSeconds));
+                immediate || recoveryExpired,
+                stack.DropDisposition,
+                stack.RecoveryOwnerOperationId,
+                stack.RecoveryCarrierPersistentId,
+                stack.RecoveryInterruptionKind,
+                deadline));
         }
 
         foreach (string stale in observations.Keys

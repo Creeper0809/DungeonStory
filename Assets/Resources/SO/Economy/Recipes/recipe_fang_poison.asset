@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9086
+  id: 9087
   recipeId: recipe:fang-poison
   displayName: "\uC1A1\uACF3\uB2C8 \uB3C5\uC561"
   description: "\uC1A1\uACF3\uB2C8 \uB3C5\uC561 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
@@ -58,6 +59,8 @@ MonoBehaviour:
   - itemId: material:alchemical-solvent
     amount: 1
   outputs:
-  - itemId: craft:fang-poison
+  - outputLineId: output:recipe:fang-poison/000/main/craft:fang-poison
+    role: 0
+    itemId: craft:fang-poison
     amount: 1
     probability: 1

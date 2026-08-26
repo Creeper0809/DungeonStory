@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0.2
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 1
   spoilageItemId: waste:plant-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: resource:twilight-grain
     amount: 1
   outputs:
-  - itemId: feed:silage
+  - outputLineId: output:main
+    role: 0
+    itemId: feed:silage
     amount: 3
     probability: 1

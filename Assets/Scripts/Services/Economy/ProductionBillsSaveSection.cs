@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public sealed class ProductionBillsSaveSection :
@@ -17,11 +18,30 @@ public sealed class ProductionBillsSaveSection :
     };
 
     private readonly IProductionBillPersistence persistence;
+    private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
+    private readonly IPhysicalItemRestoreCandidateOutputQuery outputCandidates;
+    private readonly IProductionPreparedOutputRestoreJoin preparedOutputJoin;
+    private readonly IProductionOutputLifecycleRestoreCandidatePublisher
+        lifecycleRestoreCandidates;
 
-    public ProductionBillsSaveSection(IProductionBillPersistence persistence)
+    public ProductionBillsSaveSection(
+        IProductionBillPersistence persistence,
+        IPhysicalItemRestoreCandidateQuery physicalCandidates,
+        IPhysicalItemRestoreCandidateOutputQuery outputCandidates,
+        IProductionPreparedOutputRestoreJoin preparedOutputJoin,
+        IProductionOutputLifecycleRestoreCandidatePublisher
+            lifecycleRestoreCandidates)
     {
         this.persistence = persistence
             ?? throw new ArgumentNullException(nameof(persistence));
+        this.physicalCandidates = physicalCandidates
+            ?? throw new ArgumentNullException(nameof(physicalCandidates));
+        this.outputCandidates = outputCandidates
+            ?? throw new ArgumentNullException(nameof(outputCandidates));
+        this.preparedOutputJoin = preparedOutputJoin
+            ?? throw new ArgumentNullException(nameof(preparedOutputJoin));
+        this.lifecycleRestoreCandidates = lifecycleRestoreCandidates
+            ?? throw new ArgumentNullException(nameof(lifecycleRestoreCandidates));
     }
 
     public string SectionId => Id;
@@ -38,7 +58,12 @@ public sealed class ProductionBillsSaveSection :
         DungeonGameRestoreReport report)
     {
         RequireVersion(sectionVersion);
-        persistence.BuildRestore(Parse(payloadJson, report));
+        // Registry preflight runs before any dependency is staged. Validate
+        // this section's own current-format payload here; the Physical ->
+        // Production cross-section joins remain fail-loud in StageRestore,
+        // after the physical dependency has published its detached candidate.
+        DungeonProductionBillSaveData payload = Parse(payloadJson, report);
+        _ = persistence.BuildRestore(payload);
     }
 
     public void Restore(
@@ -62,11 +87,17 @@ public sealed class ProductionBillsSaveSection :
         DungeonGameRestoreReport report)
     {
         RequireVersion(sectionVersion);
-        ProductionBillRestoreCandidate candidate =
-            persistence.BuildRestore(Parse(payloadJson, report));
+        PreparedOutputRestoreStageCandidate candidate =
+            BuildCandidate(payloadJson, report);
         return new DungeonDelegateSaveRestoreStage(
             SectionId,
-            _ => persistence.Restore(candidate));
+            _ =>
+            {
+                lifecycleRestoreCandidates.SetProduction(
+                    candidate.PreparedOutput.NormalizedPayload);
+                persistence.Restore(candidate.Bills);
+                preparedOutputJoin.Acknowledge(candidate.PreparedOutput);
+            });
     }
 
     private void RequireVersion(int sectionVersion)
@@ -111,4 +142,166 @@ public sealed class ProductionBillsSaveSection :
                 exception);
         }
     }
+
+    private PreparedOutputRestoreStageCandidate BuildCandidate(
+        string payloadJson,
+        DungeonGameRestoreReport report)
+    {
+        DungeonProductionBillSaveData payload = Parse(payloadJson, report);
+        ValidateStockSensorPhysicalRestoreCandidate(
+            payload,
+            physicalCandidates);
+        ValidateStockSensorRemovalOutputCandidate(payload, outputCandidates);
+        ProductionPreparedOutputRestoreJoinPlan prepared =
+            preparedOutputJoin.Build(payload);
+        return new PreparedOutputRestoreStageCandidate(
+            persistence.BuildRestore(prepared.NormalizedPayload),
+            prepared);
+    }
+
+    private sealed class PreparedOutputRestoreStageCandidate
+    {
+        internal PreparedOutputRestoreStageCandidate(
+            ProductionBillRestoreCandidate bills,
+            ProductionPreparedOutputRestoreJoinPlan preparedOutput)
+        {
+            Bills = bills ?? throw new ArgumentNullException(nameof(bills));
+            PreparedOutput = preparedOutput
+                ?? throw new ArgumentNullException(nameof(preparedOutput));
+        }
+
+        internal ProductionBillRestoreCandidate Bills { get; }
+        internal ProductionPreparedOutputRestoreJoinPlan PreparedOutput { get; }
+    }
+
+    public static void ValidateStockSensorRemovalOutputCandidate(
+        DungeonProductionBillSaveData payload,
+        IPhysicalItemRestoreCandidateOutputQuery query)
+    {
+        if (payload?.pendingStockSensorRemovals == null)
+            throw new InvalidOperationException(
+                "Production stock-sensor restore has no removal owner collection.");
+        if (query == null || !query.IsCandidateAvailable)
+            throw new InvalidOperationException(
+                "Production stock-sensor removal restore requires the incoming output candidate.");
+
+        foreach (ProductionStockSensorRemovalSaveData owner in
+                 payload.pendingStockSensorRemovals)
+        {
+            string prefix = "physical-source:" + owner.operationId + ":";
+            PhysicalItemRestoreCandidateOutputSnapshot[] candidates =
+                (query.CommittedOutputs
+                    ?? Array.Empty<
+                        PhysicalItemRestoreCandidateOutputSnapshot>())
+                .Where(output => output != null
+                    && output.CommitId.StartsWith(
+                        prefix,
+                        StringComparison.Ordinal))
+                .OrderBy(output => output.CommitId, StringComparer.Ordinal)
+                .ThenBy(output => output.StackId, StringComparer.Ordinal)
+                .ToArray();
+            if (owner.phase == ProductionStockSensorRemovalPhase.Prepared)
+            {
+                if (candidates.Length != 0)
+                    throw new InvalidOperationException(
+                        "Prepared stock-sensor removal already has an incoming physical output: "
+                        + owner.operationId);
+                continue;
+            }
+
+            string expectedCommit =
+                ProductionStockSensorRuntime.BuildRemovalOutputCommitId(owner);
+            if (owner.phase !=
+                    ProductionStockSensorRemovalPhase.OutputPublished
+                || owner.outputCommitIds == null
+                || owner.outputCommitIds.Count != 1
+                || !string.Equals(
+                    owner.outputCommitIds[0],
+                    expectedCommit,
+                    StringComparison.Ordinal)
+                || !query.TryGetCommittedOutput(
+                    expectedCommit,
+                    out IReadOnlyList<
+                        PhysicalItemRestoreCandidateOutputSnapshot> exact)
+                || exact == null
+                || exact.Count == 0
+                || candidates.Length != exact.Count
+                || exact.Any(output => output == null
+                    || !string.Equals(
+                        output.ItemId,
+                        owner.itemId,
+                        StringComparison.Ordinal)
+                    || output.State != WorldItemStackState.Loose
+                    || output.Position.x != owner.outputPositionX
+                    || output.Position.y != owner.outputPositionY
+                    || !string.IsNullOrEmpty(output.DestinationId))
+                || exact.Sum(output => (long)output.Quantity)
+                    != owner.outputQuantity
+                || exact.Sum(output => output.MassGrams)
+                    != owner.outputMassGrams)
+            {
+                throw new InvalidOperationException(
+                    "Published stock-sensor removal has no exact incoming physical output: "
+                    + owner.operationId);
+            }
+        }
+    }
+
+    public static void ValidateStockSensorPhysicalRestoreCandidate(
+        DungeonProductionBillSaveData payload,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        if (payload?.pendingStockSensorInstalls == null)
+            throw new InvalidOperationException(
+                "Production stock-sensor restore has no physical owner collection.");
+        if (query == null || !query.IsCandidateAvailable)
+            throw new InvalidOperationException(
+                "Production stock-sensor restore requires the incoming item candidate.");
+        Dictionary<string, ProductionStockSensorPhysicalCommitSaveData> owners =
+            payload.pendingStockSensorInstalls.ToDictionary(
+                owner => owner.operationId,
+                StringComparer.Ordinal);
+        foreach (KeyValuePair<string, ProductionStockSensorPhysicalCommitSaveData>
+                 pair in owners)
+        {
+            if (!query.TryGetPendingBatchDisposition(
+                    pair.Key,
+                    out PhysicalItemRestoreCandidateDispositionSnapshot receipt)
+                || !Matches(pair.Value, receipt))
+                throw new InvalidOperationException(
+                    "Production stock-sensor owner has no exact incoming Sink receipt: "
+                    + pair.Key);
+        }
+        foreach (PhysicalItemRestoreCandidateDispositionSnapshot receipt in
+                 query.PendingBatchDispositions
+                 ?? Array.Empty<PhysicalItemRestoreCandidateDispositionSnapshot>())
+        {
+            if (receipt?.OperationId == null
+                || !receipt.OperationId.StartsWith(
+                    ProductionStockSensorRuntime.PhysicalOperationPrefix,
+                    StringComparison.Ordinal))
+                continue;
+            if (!owners.TryGetValue(receipt.OperationId, out var owner)
+                || !Matches(owner, receipt))
+                throw new InvalidOperationException(
+                    "Incoming production stock-sensor Sink has no exact owner: "
+                    + receipt.OperationId);
+        }
+    }
+
+    private static bool Matches(
+        ProductionStockSensorPhysicalCommitSaveData owner,
+        PhysicalItemRestoreCandidateDispositionSnapshot receipt) =>
+        owner != null
+        && receipt != null
+        && receipt.Kind == PhysicalItemDispositionKind.Sink
+        && string.Equals(owner.operationId, receipt.OperationId, StringComparison.Ordinal)
+        && string.Equals(owner.reasonCode, receipt.ReasonCode, StringComparison.Ordinal)
+        && string.Equals(owner.requestFingerprint, receipt.RequestFingerprint, StringComparison.Ordinal)
+        && string.Equals(owner.commitId, receipt.CommitId, StringComparison.Ordinal)
+        && owner.inputQuantity == receipt.Quantity
+        && owner.inputMassGrams == receipt.InputMassGrams
+        && receipt.SourceStackIds.SequenceEqual(
+            owner.sourceStackIds,
+            StringComparer.Ordinal);
 }

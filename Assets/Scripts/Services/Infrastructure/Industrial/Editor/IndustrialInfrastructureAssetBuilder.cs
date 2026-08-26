@@ -351,62 +351,90 @@ public static class IndustrialInfrastructureAssetBuilder
     {
         foreach (BuildingSO building in LoadAllBuildings())
         {
-            bool cooking = building.Facility?.SupportsWork(
-                    BuiltInWorkTypeIds.Cook)
-                == true
-                || building.GetAbility<BuildingCookingAbility>() != null;
-            bool surgery = building.Facility?.SupportsWork(
-                    BuiltInWorkTypeIds.Surgery)
-                == true
-                || building.GetAbility<BuildingSurgeryTableAbility>() != null
-                || building.GetAbility<BuildingAnatomyTableAbility>() != null
-                || building.GetAbility<BuildingTransplantSupportAbility>() != null
-                || building.GetAbility<BuildingArcaneSurgeryAbility>() != null;
-            if (!cooking && !surgery)
+            if (!ApplyProcessFluidConsumerOverlay(building))
             {
                 continue;
             }
 
-            MergeUtilityChannels(
-                building,
-                UtilityChannel.CleanWater | UtilityChannel.Wastewater);
-            List<string> workTypeIds = new List<string>();
-            if (cooking)
-            {
-                workTypeIds.Add(BuiltInWorkTypeIds.Cook.Value);
-            }
-
-            if (surgery)
-            {
-                workTypeIds.Add(BuiltInWorkTypeIds.Surgery.Value);
-            }
-
-            Replace(building, new BuildingProcessFluidAbility
-            {
-                workTypeIds = workTypeIds.ToArray(),
-                cleanWaterPerCycle = surgery && !cooking ? 0.2f : 0.25f,
-                wastewaterPerCycle = surgery && !cooking ? 0.2f : 0.25f,
-                minimumQuality = WorldWaterQuality.Clean,
-                allowsManualWaterFallback = true
-            });
-            EnsureFacility(building)
-                .AddSupportedWorkTypeId(BuiltInWorkTypeIds.Plumbing);
             FinalizeBuilding(building);
         }
+    }
+
+    public static bool ApplyProcessFluidConsumerOverlay(BuildingSO building)
+    {
+        if (building == null)
+        {
+            throw new ArgumentNullException(nameof(building));
+        }
+
+        bool cooking = building.Facility?.SupportsWork(
+                BuiltInWorkTypeIds.Cook)
+            == true
+            || building.GetAbility<BuildingCookingAbility>() != null;
+        bool surgery = building.Facility?.SupportsWork(
+                BuiltInWorkTypeIds.Surgery)
+            == true
+            || building.GetAbility<BuildingSurgeryTableAbility>() != null
+            || building.GetAbility<BuildingAnatomyTableAbility>() != null
+            || building.GetAbility<BuildingTransplantSupportAbility>() != null
+            || building.GetAbility<BuildingArcaneSurgeryAbility>() != null;
+        if (!cooking && !surgery)
+        {
+            return false;
+        }
+
+        MergeUtilityChannels(
+            building,
+            UtilityChannel.CleanWater | UtilityChannel.Wastewater);
+        List<string> workTypeIds = new List<string>();
+        if (cooking)
+        {
+            workTypeIds.Add(BuiltInWorkTypeIds.Cook.Value);
+        }
+
+        if (surgery)
+        {
+            workTypeIds.Add(BuiltInWorkTypeIds.Surgery.Value);
+        }
+
+        BuildingProcessFluidAbility processFluid =
+            building.GetAbility<BuildingProcessFluidAbility>();
+        if (processFluid == null)
+        {
+            processFluid = new BuildingProcessFluidAbility();
+            building.AbilityModules.Add(processFluid);
+        }
+
+        processFluid.workTypeIds = workTypeIds.ToArray();
+        processFluid.cleanWaterPerCycle = surgery && !cooking ? 0.2f : 0.25f;
+        processFluid.wastewaterPerCycle = surgery && !cooking ? 0.2f : 0.25f;
+        processFluid.wastewaterComposition = surgery && !cooking
+            ? ProcessWastewaterComposition.MedicalEffluent
+            : ProcessWastewaterComposition.SanitaryWashwater;
+        processFluid.minimumQuality = WorldWaterQuality.Clean;
+        processFluid.allowsManualWaterFallback = true;
+        EnsureFacility(building)
+            .AddSupportedWorkTypeId(BuiltInWorkTypeIds.Plumbing);
+        return true;
     }
 
     private static void MergeUtilityChannels(
         BuildingSO building,
         UtilityChannel channels)
     {
-        BuildingUtilityConnectionAbility existing =
+        BuildingUtilityConnectionAbility utility =
             building.GetAbility<BuildingUtilityConnectionAbility>();
-        Replace(building, new BuildingUtilityConnectionAbility
+        if (utility == null)
         {
-            channels = (existing?.channels ?? UtilityChannel.None) | channels,
-            maxThroughput = existing?.maxThroughput ?? 20f,
-            normallyOpen = existing?.normallyOpen ?? true
-        });
+            utility = new BuildingUtilityConnectionAbility
+            {
+                maxThroughput = 20f,
+                normallyOpen = true
+            };
+            building.AbilityModules.Add(utility);
+        }
+
+        utility.channels |= channels;
         if ((channels
                 & (UtilityChannel.CleanWater
                    | UtilityChannel.Wastewater))
@@ -662,7 +690,8 @@ public static class IndustrialInfrastructureAssetBuilder
                 },
                 new BuildingProductionBufferAbility
                 {
-                    defaultBatchCapacity = 4
+                    defaultBatchCapacity = 4,
+                    physicalOutputBufferCycleCapacity = 4
                 },
                 new BuildingFacilityAbility
                 {
@@ -694,7 +723,8 @@ public static class IndustrialInfrastructureAssetBuilder
                 },
                 new BuildingProductionBufferAbility
                 {
-                    defaultBatchCapacity = 4
+                    defaultBatchCapacity = 4,
+                    physicalOutputBufferCycleCapacity = 4
                 },
                 new BuildingFacilityAbility
                 {

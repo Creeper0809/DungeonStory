@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8077
+  id: 8078
   itemId: resource:trail-charm
   displayName: "\uAE38\uC7A1\uC774 \uBD80\uC801"
   description: "\uC228\uACA8\uC9C4 \uC6D0\uC815\uC9C0\uC758 \uC704\uD5D8\uACFC \uC57D\uC810\uC744
@@ -32,23 +32,23 @@ MonoBehaviour:
   sprite: {fileID: 0}
   unitPrice: 29
   features:
-  - rid: 7737211905666712125
-  - rid: 7737211905666712126
-  - rid: 7737212042831201071
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
   references:
     version: 2
     RefIds:
-    - rid: 7737211905666712125
+    - rid: 1000
       type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         requiredResearchId: research:husbandry:capture
-    - rid: 7737211905666712126
+    - rid: 1001
       type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         kind: 8
         ingredientTags: 1024
         sharedIntermediate: 0
-    - rid: 7737212042831201071
+    - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.596862

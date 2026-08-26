@@ -53,18 +53,17 @@ MonoBehaviour:
     minimumRiskRank: 0
   abilityModules:
     items:
-    - rid: 7737211857806557906
-    - rid: 7737211857806557907
-    - rid: 7737211857806557908
-    - rid: 7737211857806557910
-    - rid: 7737211857806557911
+    - rid: 1000
+    - rid: 1001
+    - rid: 1002
+    - rid: 1003
+    - rid: 1004
+    - rid: 1005
     - rid: 7737211857806557912
-    - rid: 7737211857806557913
-    - rid: 7737211857806557914
-    - rid: 7737211905666711764
-    - rid: 7737211905666711765
-    - rid: 7737212042831200296
-    - rid: 7737212042831200297
+    - rid: 1006
+    - rid: 1007
+    - rid: 1016
+    - rid: 1017
   width: 2
   height: 1
   layer: 1
@@ -80,12 +79,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211857806557906
+    - rid: 1000
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M02
-    - rid: 7737211857806557907
+    - rid: 1001
       type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -93,7 +92,7 @@ MonoBehaviour:
         - medical
         - surgery
         - m02
-    - rid: 7737211857806557908
+    - rid: 1002
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -102,16 +101,63 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211857806557910
+    - rid: 1003
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 671088640
+          disabledWhenDamaged: 1
+    - rid: 1004
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211857806557911
+    - rid: 1005
       type: {class: BuildingInternalStockAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
+    - rid: 1006
+      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEvolutionAbility
+        settings:
+          contributesToRoomProfile: 1
+          tags:
+          - medical
+          - surgery
+          - m02
+          scores: []
+          metrics: []
+    - rid: 1007
+      type: {class: BuildingAnatomyTableAbility, ns: , asm: DungeonStory.Medical}
+      data:
+        abilityId: BuildingAnatomyTableAbility
+        successBonus: 0.02
+        workSpeedMultiplier: 1
+    - rid: 1016
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 1017
+      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProcessFluidAbility
+        workTypeIds:
+        - work:surgery
+        cleanWaterPerCycle: 0.2
+        wastewaterPerCycle: 0.2
+        wastewaterComposition: 6
+        minimumQuality: 0
+        allowsManualWaterFallback: 1
     - rid: 7737211857806557912
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -136,57 +182,3 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 6
-    - rid: 7737211857806557913
-      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingEvolutionAbility
-        settings:
-          contributesToRoomProfile: 1
-          tags:
-          - medical
-          - surgery
-          - m02
-          scores: []
-          metrics: []
-    - rid: 7737211857806557914
-      type: {class: BuildingAnatomyTableAbility, ns: , asm: DungeonStory.Medical}
-      data:
-        abilityId: BuildingAnatomyTableAbility
-        successBonus: 0.02
-        workSpeedMultiplier: 1
-    - rid: 7737211905666711764
-      type: {class: BuildingGolemRechargeAbility, ns: , asm: DungeonStory.Survival}
-      data:
-        abilityId: BuildingGolemRechargeAbility
-        materialItemId: resource:mana-crystal
-        materialQuantity: 1
-        requiredWork: 100
-        restoredCharge: 50
-    - rid: 7737211905666711765
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 4096
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 671154176
-          disabledWhenDamaged: 1
-    - rid: 7737212042831200296
-      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingUtilityConnectionAbility
-        channels: 6
-        maxThroughput: 20
-        normallyOpen: 1
-    - rid: 7737212042831200297
-      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingProcessFluidAbility
-        workTypeIds:
-        - work:surgery
-        cleanWaterPerCycle: 0.2
-        wastewaterPerCycle: 0.2
-        minimumQuality: 0
-        allowsManualWaterFallback: 1

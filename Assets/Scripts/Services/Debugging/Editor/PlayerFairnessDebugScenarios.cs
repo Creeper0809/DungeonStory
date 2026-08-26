@@ -118,12 +118,12 @@ public static class PlayerFairnessDebugScenarios
 
     private static string VerifySavePayloads()
     {
-        Require(DungeonExternalInfluenceSaveData.CurrentVersion == 3,
-            "external.influence version is not V3");
-        Require(DungeonWildlifeSaveData.CurrentVersion == 4,
-            "wildlife.population version is not V4");
-        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 5,
-            "environment.exposure version is not V22 apparel revision 5");
+        Require(DungeonExternalInfluenceSaveData.CurrentVersion == 4,
+            "external.influence version is not V4");
+        Require(DungeonWildlifeSaveData.CurrentVersion == 5,
+            "wildlife.population version is not V5");
+        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 9,
+            "environment.exposure version lacks apparel physical transaction authority");
 
         DungeonExternalInfluenceSaveData external = new()
         {

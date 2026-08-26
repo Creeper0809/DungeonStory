@@ -218,7 +218,9 @@ public sealed class CharacterEnvironmentUnityAdapter :
                 .ToArray(),
             equippedWorkwear = workwear.CaptureEquipped().ToArray(),
             equippedApparel = apparel.CaptureApparel().ToArray(),
-            apparelWorkOrders = apparelWorkOrders.CaptureOrders()
+            apparelWorkOrders = apparelWorkOrders.CaptureOrders(),
+            apparelWorkOrderTerminalStates =
+                apparelWorkOrders.CaptureTerminalStates()
         };
     }
 
@@ -290,8 +292,10 @@ public sealed class CharacterEnvironmentUnityAdapter :
         // V22 keeps equippedWorkwear as a derived compatibility projection.
         // It is validated above but no longer copied into the environment state.
         _ = preparedWorkwear;
-        IReadOnlyList<ApparelWorkOrderSaveData> preparedWorkOrders =
-            apparelWorkOrders.PrepareRestoreOrders(source.apparelWorkOrders);
+        ApparelWorkOrderRestoreCandidate preparedWorkOrders =
+            apparelWorkOrders.PrepareRestoreState(
+                source.apparelWorkOrders,
+                source.apparelWorkOrderTerminalStates);
         return new CharacterEnvironmentRestoreCandidate(
             restored,
             preparedApparel,
@@ -305,7 +309,7 @@ public sealed class CharacterEnvironmentUnityAdapter :
             ?? throw new ArgumentNullException(nameof(candidate));
         stateStore.Replace(required.State);
         apparel.PublishRestoreApparel(required.Apparel);
-        apparelWorkOrders.PublishRestoreOrders(required.ApparelWorkOrders);
+        apparelWorkOrders.PublishRestoreState(required.ApparelWorkOrders);
     }
 
     public void Reset()

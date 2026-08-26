@@ -87,6 +87,7 @@ public sealed class WorkOrderRuntime :
     private readonly IFacilityCandidateCache facilityCandidateCache;
     private readonly ICharacterPerformanceQuery performance;
     private readonly IProjectWorkforceRuntime projectWorkforce;
+    private readonly IPhysicalItemSourcePublicationService materialSources;
     private GridBuildingPlacementService placementService;
     private readonly Dictionary<ConstructionSite, string> orderIdBySite =
         new Dictionary<ConstructionSite, string>();
@@ -118,7 +119,8 @@ public sealed class WorkOrderRuntime :
         IBuildingDefinitionLookup buildingDefinitionLookup,
         IObjectResolver objectResolver,
         WorkOrderExecutionServices executionServices,
-        WorkOrderAggregateStateStore stateStore)
+        WorkOrderAggregateStateStore stateStore,
+        IPhysicalItemSourcePublicationService materialSources)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
@@ -144,6 +146,8 @@ public sealed class WorkOrderRuntime :
         projectWorkforce = ResolveOptional<IProjectWorkforceRuntime>();
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
+        this.materialSources = materialSources
+            ?? throw new ArgumentNullException(nameof(materialSources));
     }
 
     internal void BindPlacementService(
@@ -174,6 +178,7 @@ public sealed class WorkOrderRuntime :
         nextReadyConstructionReplanAt = cadenceTime + 1f;
         RefreshWorkerAvailability();
         ContinuePendingFacilityRecoveries();
+        ContinuePendingMaterialRestitutions();
         string orphanedConstructionOrderId = ordersById.Values
             .Where(order => order.workTypeId == BuiltInWorkTypeIds.Construct
                 && order.status != WorkOrderStatus.Completed
@@ -538,13 +543,10 @@ public sealed class WorkOrderRuntime :
         BumpWorkOrderCandidates();
         if (debugRules.IsEnabled(DungeonDebugCheat.InstantConstruction))
         {
-            foreach (string itemId in order.requiredItemMaterials.Keys.ToArray())
+            if (EnsureMaterialsReady(order, out failureReason))
             {
-                order.deliveredItemMaterials[itemId] =
-                    order.requiredItemMaterials[itemId];
+                CompleteOrder(order, site, out _, out failureReason);
             }
-            order.status = WorkOrderStatus.Ready;
-            CompleteOrder(order, site, out _, out failureReason);
         }
         return true;
     }
@@ -609,12 +611,9 @@ public sealed class WorkOrderRuntime :
         order.workerPolicy = policy.CloneNormalized();
         if (order.status == WorkOrderStatus.WaitingForEligibleWorker)
         {
-            order.status = order.requiredItemMaterials.Count == 0
-                || order.requiredItemMaterials.All(pair =>
-                    order.deliveredItemMaterials.TryGetValue(pair.Key, out int delivered)
-                    && delivered >= pair.Value)
-                    ? WorkOrderStatus.Ready
-                    : WorkOrderStatus.WaitingForMaterials;
+            order.status = WorkOrderMaterialOutbox.HasAcknowledgedCustody(order)
+                ? WorkOrderStatus.Ready
+                : WorkOrderStatus.WaitingForMaterials;
         }
         BumpWorkOrderCandidates();
         return true;
@@ -1006,25 +1005,38 @@ public sealed class WorkOrderRuntime :
             return false;
         }
 
+        if (!refundDeliveredMaterials
+            && (order.requiredItemMaterials.Count > 0
+                || CountPendingDestinationItems(order) > 0))
+        {
+            return false;
+        }
+        if (order.materialTransfer.HasCustody)
+        {
+            if (order.materialTransfer.Phase is
+                    WorkOrderMaterialTransferPhase.InputCommitted
+                    or WorkOrderMaterialTransferPhase.CustodyPublished
+                && !WorkOrderMaterialOutbox.TryCommitOrResume(
+                    order,
+                    itemStackRuntime,
+                    out _))
+            {
+                return false;
+            }
+            if (!WorkOrderMaterialOutbox.TryPublishRestitution(
+                    order,
+                    materialSources,
+                    out _))
+            {
+                order.status = WorkOrderStatus.WaitingForOutputSpace;
+                BumpWorkOrderCandidates();
+                return false;
+            }
+        }
+        itemStackRuntime.ReleaseStacksByDestination(
+            order.materialDestinationId,
+            order.position);
         order.status = WorkOrderStatus.Cancelled;
-        if (refundDeliveredMaterials)
-        {
-            itemStackRuntime.ReleaseStacksByDestination(
-                order.materialDestinationId,
-                order.position);
-        }
-        else
-        {
-            itemStackRuntime.RemoveStacksByStateAndDestination(
-                WorldItemStackState.Loose,
-                order.materialDestinationId);
-            itemStackRuntime.RemoveStacksByStateAndDestination(
-                WorldItemStackState.FacilityBuffer,
-                order.materialDestinationId);
-            itemStackRuntime.RemoveStacksByStateAndDestination(
-                WorldItemStackState.Stored,
-                order.materialDestinationId);
-        }
         ordersById.Remove(orderId);
         foreach (KeyValuePair<ConstructionSite, string> pair in orderIdBySite.ToArray())
         {
@@ -1079,6 +1091,11 @@ public sealed class WorkOrderRuntime :
         if (target == null)
         {
             message = "작업 대상을 찾을 수 없습니다.";
+            return false;
+        }
+        if (!EnsureMaterialsReady(order, out message))
+        {
+            RequestMissingMaterials(order);
             return false;
         }
 
@@ -1152,30 +1169,43 @@ public sealed class WorkOrderRuntime :
                 out appliedCompletionEffects,
                 out message);
         }
+        if (target is ConstructionSite site)
+        {
+            if (!WorkOrderMaterialOutbox.HasAcknowledgedCustody(order))
+            {
+                order.status = WorkOrderStatus.WaitingForMaterials;
+                message = "construction material custody is not acknowledged";
+                return false;
+            }
+            bool placed = site.CompleteConstruction();
+            if (!placed)
+            {
+                order.status = WorkOrderStatus.Blocked;
+                message = "construction completion failed";
+                return false;
+            }
+            order.status = WorkOrderStatus.Completed;
+            order.completedWork = order.requiredWork;
+            order.preciseCompletedWork = order.requiredWork;
+            ordersById.Remove(order.workOrderId);
+            orderIdBySite.Remove(site);
+            BumpWorkOrderCandidates();
+            appliedCompletionEffects = true;
+            BuildableObject completedBuilding =
+                ApplyCompletedBuildingQuality(order, quality);
+            ResolveQualityPipelineAttempt(
+                order,
+                quality,
+                completedBuilding);
+            message = "construction completed";
+            return true;
+        }
+
         order.status = WorkOrderStatus.Completed;
         order.completedWork = order.requiredWork;
         order.preciseCompletedWork = order.requiredWork;
         ordersById.Remove(order.workOrderId);
         BumpWorkOrderCandidates();
-
-        if (target is ConstructionSite site)
-        {
-            orderIdBySite.Remove(site);
-            appliedCompletionEffects = true;
-            bool placed = site.CompleteConstruction();
-            if (placed)
-            {
-                BuildableObject completedBuilding =
-                    ApplyCompletedBuildingQuality(order, quality);
-                ResolveQualityPipelineAttempt(
-                    order,
-                    quality,
-                    completedBuilding);
-            }
-            message = placed ? "construction completed" : "construction completion failed";
-            return placed;
-        }
-
         message = "work completed";
         return true;
     }
@@ -1217,40 +1247,13 @@ public sealed class WorkOrderRuntime :
             return true;
         }
 
-        Dictionary<string, int> missingItems =
-            new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (KeyValuePair<string, int> pair in order.requiredItemMaterials)
+        if (!WorkOrderMaterialOutbox.TryCommitOrResume(
+                order,
+                itemStackRuntime,
+                out failureReason))
         {
-            order.deliveredItemMaterials.TryGetValue(
-                pair.Key,
-                out int delivered);
-            int remaining = pair.Value - delivered;
-            if (remaining > 0)
-            {
-                missingItems[pair.Key] = remaining;
-            }
-        }
-
-        if (missingItems.Count > 0)
-        {
-            if (!itemStackRuntime.TryConsumeFacilityItemBuffer(
-                    order.materialDestinationId,
-                    missingItems,
-                    out failureReason))
-            {
-                order.status = WorkOrderStatus.WaitingForMaterials;
-                return false;
-            }
-
-            foreach (KeyValuePair<string, int> pair in missingItems)
-            {
-                order.deliveredItemMaterials[pair.Key] =
-                    order.deliveredItemMaterials.TryGetValue(
-                        pair.Key,
-                        out int current)
-                        ? current + pair.Value
-                        : pair.Value;
-            }
+            order.status = WorkOrderStatus.WaitingForMaterials;
+            return false;
         }
 
         order.status = WorkOrderStatus.Ready;
@@ -1337,6 +1340,52 @@ public sealed class WorkOrderRuntime :
                 order.materialDestinationId,
                 itemId);
         return worldQuantity + carriedQuantity;
+    }
+
+    private int CountPendingDestinationItems(WorkOrderRecord order)
+    {
+        if (order == null)
+        {
+            return 0;
+        }
+        long total = order.requiredItemMaterials.Keys.Sum(itemId =>
+            (long)CountPendingDestinationItem(order, itemId));
+        return total >= int.MaxValue ? int.MaxValue : (int)total;
+    }
+
+    private void ContinuePendingMaterialRestitutions()
+    {
+        foreach (WorkOrderRecord order in ordersById.Values
+                     .Where(value => value?.materialTransfer?.Phase ==
+                         WorkOrderMaterialTransferPhase.RestitutionPending)
+                     .OrderBy(value => value.workOrderId, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            if (!WorkOrderMaterialOutbox.TryPublishRestitution(
+                    order,
+                    materialSources,
+                    out _))
+            {
+                continue;
+            }
+
+            order.status = WorkOrderStatus.Cancelled;
+            ordersById.Remove(order.workOrderId);
+            foreach (KeyValuePair<ConstructionSite, string> pair in
+                     orderIdBySite.ToArray())
+            {
+                if (!string.Equals(
+                        pair.Value,
+                        order.workOrderId,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                orderIdBySite.Remove(pair.Key);
+                pair.Key?.RemoveSiteOnly();
+            }
+            BumpWorkOrderCandidates();
+        }
     }
 
     private bool HasAvailableInstallationKit(string itemId)
@@ -1669,6 +1718,8 @@ public sealed class WorkOrderRuntime :
                         : 0
                 })
                 .ToList(),
+            materialTransfer = WorkOrderMaterialOutbox.ToSaveData(
+                order.materialTransfer),
             recoveryOutputs = order.requiredRecoveryOutputs
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => new WorkOrderItemMaterialSaveData
@@ -1710,7 +1761,9 @@ public sealed class WorkOrderRuntime :
             qualityPipelineId = source.qualityPipelineId?.Trim() ?? string.Empty,
             qualityAttemptIndex = Mathf.Max(0, source.qualityAttemptIndex),
             facilityRemovedForRetry = source.facilityRemovedForRetry,
-            status = source.status
+            status = source.status,
+            materialTransfer = WorkOrderMaterialOutbox.FromSaveData(
+                source.materialTransfer)
         };
 
         order.contributions.AddRange((source.contributions
@@ -1781,7 +1834,9 @@ public sealed class WorkOrderRuntime :
                 StringComparer.Ordinal),
             DeliveredItemMaterials = new Dictionary<string, int>(
                 order.deliveredItemMaterials,
-                StringComparer.Ordinal)
+                StringComparer.Ordinal),
+            MaterialTransferPhase = order.materialTransfer.Phase,
+            MaterialInputMassGrams = order.materialTransfer.InputMassGrams
         };
     }
 

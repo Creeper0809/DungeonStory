@@ -17,7 +17,14 @@ public static class StrictProgressionCombatSaveDebugScenarios
     {
         bool markerContracts = VerifyMarkerContracts();
         bool evolutionRestore = VerifyEvolutionRestoreIsStrictAndDetached();
-        bool success = markerContracts && evolutionRestore;
+        bool materialOutbox = EquipmentEvolutionMaterialOutboxFixture.Run();
+        bool repairOutbox = EquipmentRepairMaterialOutboxFixture.Run();
+        bool craftTransaction = CombatEquipmentCraftTransactionFixture.Run();
+        bool success = markerContracts
+            && evolutionRestore
+            && materialOutbox
+            && repairOutbox
+            && craftTransaction;
         if (success && logSuccess)
         {
             Debug.Log(
@@ -60,7 +67,7 @@ public static class StrictProgressionCombatSaveDebugScenarios
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
         IDungeonSaveRestoreStage staged = section.StageRestore(
             validJson,
-            3,
+            EquipmentEvolutionSaveSection.CurrentVersion,
             report);
         if (persistence.CommitCount != 0)
         {
@@ -83,12 +90,12 @@ public static class StrictProgressionCombatSaveDebugScenarios
         bool invalidRejected = ThrowsInvalidOperation(() =>
             section.StageRestore(
                 JsonUtility.ToJson(invalid),
-                3,
+                EquipmentEvolutionSaveSection.CurrentVersion,
                 new DungeonGameRestoreReport()));
         bool legacyRejected = ThrowsInvalidOperation(() =>
             section.StageRestore(
                 validJson,
-                2,
+                EquipmentEvolutionSaveSection.CurrentVersion - 1,
                 new DungeonGameRestoreReport()));
 
         if (!invalidRejected || !legacyRejected || persistence.CommitCount != 1)

@@ -43,6 +43,15 @@ public sealed class WorldItemStackSnapshot
     public float Contamination { get; set; }
     public IReadOnlyList<ItemInstanceComponentSaveData> Components { get; set; } =
         Array.Empty<ItemInstanceComponentSaveData>();
+    public WorldItemDropDisposition DropDisposition { get; set; }
+    public string RecoveryOwnerOperationId { get; set; }
+    public string RecoverySourceStackId { get; set; }
+    public string RecoveryCarrierPersistentId { get; set; }
+    public WorldItemCarryInterruptionKind RecoveryInterruptionKind { get; set; }
+    public double DroppedAtGameTime { get; set; }
+    public double RecoveryDeadlineGameTime { get; set; }
+    public bool IsTransientCarryRecoveryDrop =>
+        DropDisposition == WorldItemDropDisposition.TransientCarryRecoveryDrop;
     public string StackSignature => ItemStackSignature.Create(ItemId, Components);
     public string ReservationSignature =>
         ItemReservationSignature.Create(ItemId, Components);
@@ -267,6 +276,14 @@ public interface IEquipmentPhysicalItemGateway
         WorldItemStackState state,
         string destinationId,
         out int spawned);
+    bool SpawnItemAtWithComponents(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out int spawned);
     bool SpawnExistingUniqueItemAt(
         string itemId,
         ItemInstanceId itemInstanceId,
@@ -294,9 +311,32 @@ public interface IEquipmentPhysicalItemGateway
         string stackId,
         int quantity,
         out WorldItemStackSnapshot consumed);
+    bool TryCommitBatchPhysicalDisposition(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason);
+    bool TryCommitPendingBatchPhysicalDisposition(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason);
+    bool TryGetPendingBatchPhysicalDisposition(
+        string operationId,
+        out PhysicalItemBatchDispositionReceipt receipt);
+    bool AcknowledgeBatchPhysicalDisposition(
+        string commitId,
+        out string failureReason);
     bool TrySetInstanceComponent(
         string stackId,
         ItemInstanceComponentSaveData component);
+    bool TryRemoveInstanceComponent(
+        string stackId,
+        string componentTypeId);
     int ReleaseStacksByDestination(
         string destinationId,
         Vector2Int releasePosition);
@@ -375,9 +415,68 @@ public sealed class UnavailableEquipmentPhysicalItemGateway :
         return false;
     }
 
+    public bool SpawnItemAtWithComponents(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out int spawned)
+    {
+        spawned = 0;
+        return false;
+    }
+
+    public bool TryCommitBatchPhysicalDisposition(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        failureReason = "physical item capability unavailable";
+        return false;
+    }
+
+    public bool TryCommitPendingBatchPhysicalDisposition(
+        IReadOnlyList<PhysicalItemTransformInput> inputs,
+        PhysicalItemDispositionKind kind,
+        string operationId,
+        string reasonCode,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        failureReason = "physical item capability unavailable";
+        return false;
+    }
+
+    public bool TryGetPendingBatchPhysicalDisposition(
+        string operationId,
+        out PhysicalItemBatchDispositionReceipt receipt)
+    {
+        receipt = default;
+        return false;
+    }
+
+    public bool AcknowledgeBatchPhysicalDisposition(
+        string commitId,
+        out string failureReason)
+    {
+        failureReason = "physical item capability unavailable";
+        return false;
+    }
+
     public bool TrySetInstanceComponent(
         string stackId,
         ItemInstanceComponentSaveData component) => false;
+
+    public bool TryRemoveInstanceComponent(
+        string stackId,
+        string componentTypeId) => false;
 
     public int ReleaseStacksByDestination(
         string destinationId,
@@ -387,11 +486,13 @@ public sealed class UnavailableEquipmentPhysicalItemGateway :
 public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
 {
     IDungeonItemCatalogProvider CatalogProvider { get; }
+    IPhysicalItemMassQuery MassQuery { get; }
     IItemHaulingSettingsProvider HaulingSettingsProvider { get; }
     bool StoredItemMarkersVisible { get; }
     int ItemStackVersion { get; }
     int HaulJobVersion { get; }
     int GetCommittedHaulDeliveryQuantity(string destinationId, string itemId);
+    long GetCommittedHaulDeliveryMassGrams(string destinationId);
     bool TryCommitHaulPickup(
         string ownerOperationId,
         CharacterCarryInventory inventory,
@@ -399,6 +500,8 @@ public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
     bool TryCaptureHaulDeliveryIntent(
         string ownerOperationId,
         out HaulDeliveryIntentSaveData intent);
+    IReadOnlyList<HaulDeliveryIntentSaveData> CaptureHaulDeliveryIntentsByDestination(
+        string destinationId);
     bool ReleaseHaulDeliveryIntent(string ownerOperationId);
     DungeonPhysicalItemSaveData Capture();
     void Restore(DungeonPhysicalItemSaveData snapshot);
@@ -594,6 +697,10 @@ public interface IWorldItemQuantityLeaseRuntime
         string leaseId,
         out string failureReason);
 
+    bool TryRenewWarehouseAdmissionsForHaul(
+        string ownerOperationId,
+        out string failureReason);
+
     bool ReleaseQuantityLease(
         string leaseId,
         ItemReservationReleaseReason reason);
@@ -610,6 +717,47 @@ public interface IWorldItemCarryRecoveryRuntime
         CharacterCarryInventory inventory,
         IReadOnlyCollection<string> ownerOperationIds,
         out string failureReason);
+    bool TryDropCarriedItems(
+        CharacterActor actor,
+        CharacterCarryInventory inventory,
+        IReadOnlyCollection<string> ownerOperationIds,
+        HaulCarryDropContext context,
+        out string failureReason);
+}
+
+public enum HaulInterruptionDisposition
+{
+    ReleaseUnpickedAndRetainCarriedForReplan = 0,
+    ReleaseUnpickedAndDropCarriedAtActor = 1
+}
+
+public readonly struct HaulCarryDropContext
+{
+    public HaulCarryDropContext(
+        string carrierPersistentId,
+        WorldItemCarryInterruptionKind interruptionKind,
+        double droppedAtGameTime,
+        double recoveryDeadlineGameTime)
+    {
+        CarrierPersistentId = carrierPersistentId?.Trim() ?? string.Empty;
+        InterruptionKind = interruptionKind;
+        DroppedAtGameTime = droppedAtGameTime;
+        RecoveryDeadlineGameTime = recoveryDeadlineGameTime;
+    }
+
+    public string CarrierPersistentId { get; }
+    public WorldItemCarryInterruptionKind InterruptionKind { get; }
+    public double DroppedAtGameTime { get; }
+    public double RecoveryDeadlineGameTime { get; }
+    public bool IsValid => !string.IsNullOrEmpty(CarrierPersistentId)
+        && InterruptionKind is WorldItemCarryInterruptionKind.Downed
+            or WorldItemCarryInterruptionKind.Dead
+        && !double.IsNaN(DroppedAtGameTime)
+        && !double.IsInfinity(DroppedAtGameTime)
+        && DroppedAtGameTime >= 0d
+        && !double.IsNaN(RecoveryDeadlineGameTime)
+        && !double.IsInfinity(RecoveryDeadlineGameTime)
+        && RecoveryDeadlineGameTime > DroppedAtGameTime;
 }
 
 internal sealed class WorldItemStackRecord
@@ -637,4 +785,11 @@ internal sealed class WorldItemStackRecord
     public WasteOriginKind wasteOrigin;
     public float contamination;
     public List<ItemInstanceComponentSaveData> components = new();
+    public WorldItemDropDisposition dropDisposition;
+    public string recoveryOwnerOperationId = string.Empty;
+    public string recoverySourceStackId = string.Empty;
+    public string recoveryCarrierPersistentId = string.Empty;
+    public WorldItemCarryInterruptionKind recoveryInterruptionKind;
+    public double droppedAtGameTime;
+    public double recoveryDeadlineGameTime;
 }

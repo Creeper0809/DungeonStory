@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9053
+  id: 9054
   recipeId: recipe:incinerate-plant
   displayName: "\uC2DD\uBB3C\uC131 \uBD80\uD328\uBB3C \uC18C\uAC01"
   description: "\uC2DD\uBB3C\uC131 \uBD80\uD328\uBB3C \uC18C\uAC01 \uC0DD\uC0B0 \uC8FC\uBB38"
@@ -50,6 +50,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:

@@ -110,22 +110,27 @@ public static class V23RecipeProcessClassAuthoring
 
     public static void NormalizeRecipeWorkUnder(
         string recipeRoot,
-        bool requireEveryRecipeAuthored = false)
+        bool requireEveryRecipeAuthored = false,
+        bool recalculateAuthoredBalanceWork = false)
     {
         if (string.IsNullOrWhiteSpace(recipeRoot))
             throw new ArgumentException("Recipe root is required.", nameof(recipeRoot));
 
-        ScriptableObject[] definitions = AssetDatabase.FindAssets(
-                "t:ScriptableObject",
-                new[] { ContentRoot })
-            .Select(AssetDatabase.GUIDToAssetPath)
-            .Select(AssetDatabase.LoadMainAssetAtPath)
-            .OfType<ScriptableObject>()
-            .Distinct()
-            .ToArray();
-        V23BalanceWorkCalculator calculator = new(
-            new ResourceMaterialEconomicProfileCatalog(
-                new AssetDatabaseContentSource(definitions)));
+        V23BalanceWorkCalculator calculator = null;
+        if (recalculateAuthoredBalanceWork)
+        {
+            ScriptableObject[] definitions = AssetDatabase.FindAssets(
+                    "t:ScriptableObject",
+                    new[] { ContentRoot })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadMainAssetAtPath)
+                .OfType<ScriptableObject>()
+                .Distinct()
+                .ToArray();
+            calculator = new V23BalanceWorkCalculator(
+                new ResourceMaterialEconomicProfileCatalog(
+                    new AssetDatabaseContentSource(definitions)));
+        }
 
         foreach (ProductionRecipeSO recipe in AssetDatabase.FindAssets(
                      "t:ProductionRecipeSO",
@@ -145,8 +150,11 @@ public static class V23RecipeProcessClassAuthoring
                 }
                 continue;
             }
-            recipe.ConfigureBalanceWork(calculator.CalculateRecipe(recipe));
-            EditorUtility.SetDirty(recipe);
+            if (recalculateAuthoredBalanceWork)
+            {
+                recipe.ConfigureBalanceWork(calculator.CalculateRecipe(recipe));
+                EditorUtility.SetDirty(recipe);
+            }
         }
     }
 

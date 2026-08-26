@@ -11,6 +11,7 @@ public static class V20CampaignDebugScenarios
     [MenuItem("DungeonStory/QA/V20 Campaign And Endless Rules")]
     public static void Run()
     {
+        AccordSignalRestoreJoinFixture.Run();
         ResourceGameContentCatalog content = new(
             new UnityGameContentRootLoader());
         V20StoryContentCatalog catalog = new(content);

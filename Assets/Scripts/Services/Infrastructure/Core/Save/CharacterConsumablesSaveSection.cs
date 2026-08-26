@@ -64,6 +64,10 @@ public sealed class CharacterConsumablesSaveSection :
             (value, id) => value.characterId = id, report, "pendingMealDeliveries");
         NormalizeCharacterIds(payload.completedOperations, value => value.characterId,
             (value, id) => value.characterId = id, report, "completedOperations");
+        NormalizeCharacterIds(payload.activeMealPlans, value => value.characterId,
+            (value, id) => value.characterId = id, report, "activeMealPlans");
+        NormalizeCharacterIds(payload.activeSubstanceUsePlans, value => value.characterId,
+            (value, id) => value.characterId = id, report, "activeSubstanceUsePlans");
     }
 
     private void NormalizeCharacterIds<T>(

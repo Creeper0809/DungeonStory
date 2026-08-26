@@ -14,6 +14,13 @@ public enum OffenseUrgentMitigationOrderStatus
     InProgress = 3
 }
 
+public enum OffenseUrgentMitigationCommitPhase
+{
+    None = 0,
+    MaterialsCommitted = 1,
+    OutcomePublished = 2
+}
+
 [Serializable]
 public sealed class OffenseUrgentMitigationOrderStateData
 {
@@ -28,6 +35,14 @@ public sealed class OffenseUrgentMitigationOrderStateData
     public float completedWork;
     public OffenseUrgentMitigationOrderStatus status;
     public string statusText;
+    public int physicalCommitPhase;
+    public string physicalOperationId = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public int inputQuantity;
+    public long inputMassGrams;
+    public bool physicalReceiptAcknowledged;
+    public float mitigationBefore;
+    public float mitigationAfter;
 }
 
 public readonly struct OffenseUrgentMitigationWorkSnapshot
@@ -108,6 +123,8 @@ public sealed class OffenseUrgentMitigationRuntime :
     ITickable
 {
     private const float EvaluationInterval = 0.5f;
+    private const string PhysicalOperationPrefix =
+        "offense-urgent-mitigation:";
 
     private readonly IOffenseWorldSimulation world;
     private readonly IOffenseContentCatalog content;
@@ -241,7 +258,13 @@ public sealed class OffenseUrgentMitigationRuntime :
         string displayName =
             FindDefinition(order.definitionId)?.displayName
             ?? order.siteId;
-        CancelOrder(order, releaseMaterials: true);
+        if ((OffenseUrgentMitigationCommitPhase)order.physicalCommitPhase
+            != OffenseUrgentMitigationCommitPhase.None)
+        {
+            message = "재료가 이미 완화 작업에 귀속되어 취소할 수 없습니다.";
+            return false;
+        }
+        CancelOrder(order);
         message = $"{displayName} 완화 작업을 취소했습니다.";
         return true;
     }
@@ -278,6 +301,13 @@ public sealed class OffenseUrgentMitigationRuntime :
         if (definition == null)
         {
             work = Unavailable(order, "완화 설정이 사라졌습니다.");
+            return false;
+        }
+
+        if ((OffenseUrgentMitigationCommitPhase)order.physicalCommitPhase
+            != OffenseUrgentMitigationCommitPhase.None)
+        {
+            work = Unavailable(order, "완화 결과를 원자적으로 확정하는 중입니다.");
             return false;
         }
 
@@ -339,36 +369,20 @@ public sealed class OffenseUrgentMitigationRuntime :
             return true;
         }
 
-        Dictionary<string, int> cost = BuildCost(definition);
-        if (cost.Count > 0
-            && !items.ConsumeDelivered(
-                order.destinationId,
-                cost,
+        if (!TryFinalizeCompletedOrder(
+                order,
+                definition,
                 out string failureReason))
         {
-            order.completedWork = Mathf.Max(0f, work.RequiredWork - 0.01f);
             SetStatus(
                 order,
-                OffenseUrgentMitigationOrderStatus.WaitingForMaterials,
-                $"완화 재료 확인 실패: {failureReason}");
-            Touch();
-            return false;
-        }
-
-        if (!world.TryMitigateUrgentSite(
-                order.siteId,
-                definition.maximumMitigation))
-        {
-            SetStatus(
-                order,
-                OffenseUrgentMitigationOrderStatus.Ready,
-                "긴급 거점 상태가 바뀌어 완화를 적용하지 못했습니다.");
+                OffenseUrgentMitigationOrderStatus.InProgress,
+                "완화 결과 확정 대기: " + failureReason);
             Touch();
             return false;
         }
 
         completed = true;
-        RemoveOrder(order, releaseMaterials: false);
         return true;
     }
 
@@ -416,6 +430,9 @@ public sealed class OffenseUrgentMitigationRuntime :
             }
 
             OffenseUrgentMitigationOrderStateData order = Clone(restored);
+            ValidatePhysicalCommitState(
+                order,
+                FindDefinition(order.definitionId));
             candidate.Add(order);
             int separator = order.orderId.LastIndexOf(':');
             if (separator >= 0
@@ -457,10 +474,253 @@ public sealed class OffenseUrgentMitigationRuntime :
     private static bool IsFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value);
 
+    private void ValidatePhysicalCommitState(
+        OffenseUrgentMitigationOrderStateData order,
+        OffenseUrgentSiteDefinitionSO definition)
+    {
+        OffenseUrgentMitigationCommitPhase phase =
+            (OffenseUrgentMitigationCommitPhase)order.physicalCommitPhase;
+        if (!Enum.IsDefined(typeof(OffenseUrgentMitigationCommitPhase), phase))
+        {
+            throw new InvalidOperationException(
+                $"Mitigation order '{order.orderId}' has an unknown physical commit phase.");
+        }
+        if (phase == OffenseUrgentMitigationCommitPhase.None)
+        {
+            if (!string.IsNullOrEmpty(order.physicalOperationId)
+                || !string.IsNullOrEmpty(order.physicalCommitId)
+                || order.inputQuantity != 0
+                || order.inputMassGrams != 0L
+                || order.physicalReceiptAcknowledged
+                || order.mitigationBefore != 0f
+                || order.mitigationAfter != 0f)
+            {
+                throw new InvalidOperationException(
+                    $"Mitigation order '{order.orderId}' has orphan physical provenance.");
+            }
+            return;
+        }
+
+        int expectedQuantity = BuildCost(definition).Values.Sum();
+        string expectedOperation = FormatPhysicalOperationId(order.orderId);
+        string expectedCommit =
+            $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Transfer}:{expectedOperation}:{order.inputQuantity}:{order.inputMassGrams}";
+        if (expectedQuantity <= 0
+            || !string.Equals(
+                order.physicalOperationId,
+                expectedOperation,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                order.physicalCommitId,
+                expectedCommit,
+                StringComparison.Ordinal)
+            || order.inputQuantity != expectedQuantity
+            || order.inputMassGrams <= 0L
+            || !IsFinite(order.mitigationBefore)
+            || !IsFinite(order.mitigationAfter)
+            || order.mitigationBefore < 0f
+            || order.mitigationAfter <= order.mitigationBefore
+            || order.mitigationAfter > 0.6001f
+            || order.completedWork + 0.001f < order.requiredWork
+            || (phase == OffenseUrgentMitigationCommitPhase.MaterialsCommitted
+                && order.physicalReceiptAcknowledged))
+        {
+            throw new InvalidOperationException(
+                $"Mitigation order '{order.orderId}' has invalid physical commit provenance.");
+        }
+    }
+
+    private bool TryFinalizeCompletedOrder(
+        OffenseUrgentMitigationOrderStateData order,
+        OffenseUrgentSiteDefinitionSO definition,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (order == null || definition == null)
+        {
+            failureReason = "완화 작업 권위가 없습니다.";
+            return false;
+        }
+
+        OffenseUrgentMitigationCommitPhase phase =
+            (OffenseUrgentMitigationCommitPhase)order.physicalCommitPhase;
+        Dictionary<string, int> cost = BuildCost(definition);
+        if (cost.Count == 0)
+        {
+            if (phase != OffenseUrgentMitigationCommitPhase.None
+                || !world.TryMitigateUrgentSite(
+                    order.siteId,
+                    definition.maximumMitigation))
+            {
+                failureReason = "무재료 완화 결과를 게시하지 못했습니다.";
+                return false;
+            }
+            RemoveOrder(order);
+            return true;
+        }
+
+        if (phase == OffenseUrgentMitigationCommitPhase.None)
+        {
+            if (!world.TryGetUrgentSite(
+                    order.siteId,
+                    out OffenseUrgentSiteStateData site)
+                || site == null
+                || !site.IsActive)
+            {
+                failureReason = "완화 대상 거점이 더 이상 활성 상태가 아닙니다.";
+                return false;
+            }
+
+            float maximum = Mathf.Clamp(
+                definition.maximumMitigation,
+                0f,
+                0.6f);
+            if (site.mitigation + 0.001f >= maximum)
+            {
+                failureReason = "완화 대상이 이미 authored 상한에 도달했습니다.";
+                return false;
+            }
+
+            string operationId = FormatPhysicalOperationId(order.orderId);
+            if (!items.ConsumeDeliveredToWip(
+                    order.destinationId,
+                    cost,
+                    operationId,
+                    out ProductionWipInputReceipt receipt,
+                    out failureReason)
+                || !receipt.IsCommitted)
+            {
+                failureReason = string.IsNullOrWhiteSpace(failureReason)
+                    ? "완화 재료 Transfer receipt를 만들지 못했습니다."
+                    : failureReason;
+                return false;
+            }
+
+            order.physicalCommitPhase =
+                (int)OffenseUrgentMitigationCommitPhase.MaterialsCommitted;
+            order.physicalOperationId = operationId;
+            order.physicalCommitId = receipt.CommitId;
+            order.inputQuantity = receipt.Quantity;
+            order.inputMassGrams = receipt.InputMassGrams;
+            order.physicalReceiptAcknowledged = false;
+            order.mitigationBefore = site.mitigation;
+            order.mitigationAfter = Mathf.Clamp(
+                site.mitigation + Mathf.Max(0f, definition.maximumMitigation),
+                0f,
+                maximum);
+            phase = OffenseUrgentMitigationCommitPhase.MaterialsCommitted;
+            Touch();
+        }
+
+        if (phase == OffenseUrgentMitigationCommitPhase.MaterialsCommitted)
+        {
+            if (!TryPublishMitigationOutcome(order, out failureReason))
+            {
+                return false;
+            }
+            order.physicalCommitPhase =
+                (int)OffenseUrgentMitigationCommitPhase.OutcomePublished;
+            phase = OffenseUrgentMitigationCommitPhase.OutcomePublished;
+            Touch();
+        }
+
+        if (!order.physicalReceiptAcknowledged)
+        {
+            if (!items.AcknowledgeWipInput(
+                    order.physicalCommitId,
+                    out failureReason))
+            {
+                return false;
+            }
+            order.physicalReceiptAcknowledged = true;
+            Touch();
+        }
+
+        if (phase != OffenseUrgentMitigationCommitPhase.OutcomePublished)
+        {
+            failureReason = "완화 작업 commit phase가 비정상입니다.";
+            return false;
+        }
+
+        // Preserve any unexpected residual delivery as physical Loose stock.
+        // Completion must never use count-only RemoveDestination deletion.
+        RemoveOrder(order);
+        return true;
+    }
+
+    private bool TryPublishMitigationOutcome(
+        OffenseUrgentMitigationOrderStateData order,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!world.TryGetUrgentSite(
+                order.siteId,
+                out OffenseUrgentSiteStateData site)
+            || site == null
+            || !site.IsActive)
+        {
+            failureReason = "완화 결과 대상 거점이 사라졌습니다.";
+            return false;
+        }
+
+        if (Approximately(site.mitigation, order.mitigationAfter))
+        {
+            return true;
+        }
+        if (!Approximately(site.mitigation, order.mitigationBefore))
+        {
+            failureReason =
+                $"완화 결과 기준값 충돌: current={site.mitigation:R}, before={order.mitigationBefore:R}, after={order.mitigationAfter:R}";
+            return false;
+        }
+
+        float delta = order.mitigationAfter - order.mitigationBefore;
+        if (delta <= 0f
+            || !world.TryMitigateUrgentSite(order.siteId, delta)
+            || !world.TryGetUrgentSite(order.siteId, out site)
+            || site == null
+            || !Approximately(site.mitigation, order.mitigationAfter))
+        {
+            failureReason = "완화 결과 게시 뒤 exact 상태를 확인하지 못했습니다.";
+            return false;
+        }
+        return true;
+    }
+
+    private static bool Approximately(float left, float right) =>
+        Mathf.Abs(left - right) <= 0.0001f;
+
+    public static string FormatPhysicalOperationId(string orderId) =>
+        PhysicalOperationPrefix + (orderId ?? string.Empty);
+
     private void Evaluate(OffenseUrgentMitigationOrderStateData order)
     {
         if (order == null)
         {
+            return;
+        }
+
+        OffenseUrgentMitigationCommitPhase phase =
+            (OffenseUrgentMitigationCommitPhase)order.physicalCommitPhase;
+        if (phase != OffenseUrgentMitigationCommitPhase.None)
+        {
+            OffenseUrgentSiteDefinitionSO pendingDefinition =
+                FindDefinition(order.definitionId);
+            string pendingFailure = string.Empty;
+            if (pendingDefinition == null
+                || !TryFinalizeCompletedOrder(
+                    order,
+                    pendingDefinition,
+                    out pendingFailure))
+            {
+                SetStatus(
+                    order,
+                    OffenseUrgentMitigationOrderStatus.InProgress,
+                    "완화 결과 복구 대기: "
+                    + (pendingDefinition == null
+                        ? "완화 설정 누락"
+                        : pendingFailure));
+            }
             return;
         }
 
@@ -470,7 +730,7 @@ public sealed class OffenseUrgentMitigationRuntime :
             || site == null
             || !site.IsActive)
         {
-            CancelOrder(order, releaseMaterials: true);
+            CancelOrder(order);
             return;
         }
 
@@ -479,7 +739,7 @@ public sealed class OffenseUrgentMitigationRuntime :
         if (definition == null
             || site.mitigation + 0.001f >= definition.maximumMitigation)
         {
-            CancelOrder(order, releaseMaterials: true);
+            CancelOrder(order);
             return;
         }
 
@@ -776,32 +1036,21 @@ public sealed class OffenseUrgentMitigationRuntime :
         boundFacilities.Remove(order.orderId);
     }
 
-    private void CancelOrder(
-        OffenseUrgentMitigationOrderStateData order,
-        bool releaseMaterials)
+    private void CancelOrder(OffenseUrgentMitigationOrderStateData order)
     {
-        RemoveOrder(order, releaseMaterials);
+        RemoveOrder(order);
     }
 
-    private void RemoveOrder(
-        OffenseUrgentMitigationOrderStateData order,
-        bool releaseMaterials)
+    private void RemoveOrder(OffenseUrgentMitigationOrderStateData order)
     {
         if (order == null)
         {
             return;
         }
 
-        if (releaseMaterials)
-        {
-            items.ReleaseDestination(
-                order.destinationId,
-                new Vector2Int(order.facilityX, order.facilityY));
-        }
-        else
-        {
-            items.RemoveDestination(order.destinationId);
-        }
+        items.ReleaseDestination(
+            order.destinationId,
+            new Vector2Int(order.facilityX, order.facilityY));
 
         UnbindFacility(order);
         orders.Remove(order);
@@ -895,7 +1144,15 @@ public sealed class OffenseUrgentMitigationRuntime :
             requiredWork = source.requiredWork,
             completedWork = source.completedWork,
             status = source.status,
-            statusText = source.statusText ?? string.Empty
+            statusText = source.statusText ?? string.Empty,
+            physicalCommitPhase = source.physicalCommitPhase,
+            physicalOperationId = source.physicalOperationId ?? string.Empty,
+            physicalCommitId = source.physicalCommitId ?? string.Empty,
+            inputQuantity = source.inputQuantity,
+            inputMassGrams = source.inputMassGrams,
+            physicalReceiptAcknowledged = source.physicalReceiptAcknowledged,
+            mitigationBefore = source.mitigationBefore,
+            mitigationAfter = source.mitigationAfter
         };
     }
 }

@@ -52,6 +52,7 @@ MonoBehaviour:
   warningTemperatureC: {x: 4, y: 32}
   cleanWaterPerCycle: 0
   wastewaterPerCycle: 0
+  wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:plant-rot
   inputs:
@@ -60,6 +61,8 @@ MonoBehaviour:
   - itemId: material:syrup
     amount: 1
   outputs:
-  - itemId: food:night-spirit
+  - outputLineId: output:recipe:night-spirit/000/main/food:night-spirit
+    role: 0
+    itemId: food:night-spirit
     amount: 2
     probability: 1

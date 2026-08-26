@@ -41,6 +41,13 @@ public sealed class ResourceItemDefinitionSO : ItemDefinitionSO
         return feature != null;
     }
 
+    public bool TryGetCropTreatment(out CropTreatmentPolicy policy)
+    {
+        CropTreatmentItemFeature feature = GetFeatureOrDefault<CropTreatmentItemFeature>();
+        policy = feature?.ToPolicy() ?? default;
+        return feature != null && policy.IsValid;
+    }
+
 #if UNITY_EDITOR
     public void Configure(
         string stableId,
@@ -151,9 +158,21 @@ public sealed class ResourceItemDefinitionSO : ItemDefinitionSO
         });
     }
 
-    public void ConfigureCropTreatment(CropTreatmentKind kind)
+    public void ConfigureCropTreatment(
+        CropTreatmentKind kind,
+        int quantityPerApplication,
+        float requiredWork,
+        float effectAmount,
+        int cooldownDays)
     {
-        SetFeature(new CropTreatmentItemFeature { treatmentKind = kind });
+        SetFeature(new CropTreatmentItemFeature
+        {
+            treatmentKind = kind,
+            quantityPerApplication = Mathf.Max(1, quantityPerApplication),
+            requiredWork = Mathf.Max(0.1f, requiredWork),
+            effectAmount = Mathf.Max(0.1f, effectAmount),
+            cooldownDays = Mathf.Max(0, cooldownDays)
+        });
     }
 
     public void ConfigureSubstance(

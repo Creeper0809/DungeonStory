@@ -29,6 +29,8 @@ public enum EconomyTransactionKind
     Bribe = 34,
     ExpeditionFieldFundAllocation = 35,
     ExpeditionFieldFundReturn = 36,
+    CatalystExchange = 37,
+    CatalystExchangeRefund = 38,
     DebugAdjustment = 90
 }
 

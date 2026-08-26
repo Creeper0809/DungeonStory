@@ -39,6 +39,21 @@ public sealed class TextileBatchCompactionService :
             return 0;
         }
 
+        if (repository.Records.Any(record => record != null
+                && record.quantity > 0
+                && string.Equals(
+                    record.destinationId,
+                    destination,
+                    StringComparison.Ordinal)
+                && IsTextileBatch(record)
+                && FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                    record.components)))
+        {
+            throw new FacilityOutputExactRouteBypassException(
+                FacilityOutputExactRouteFailureCode.ProtectedRouteBypass,
+                nameof(CompactDestination));
+        }
+
         int removed = 0;
         WorldItemStackRecord[] candidates = repository.Records
             .Where(record => record != null

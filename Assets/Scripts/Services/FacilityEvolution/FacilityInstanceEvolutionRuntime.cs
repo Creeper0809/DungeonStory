@@ -25,6 +25,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
     private readonly IRunSeedProvider runSeedProvider;
     private readonly IWorldItemStackRuntime worldItems;
     private readonly IFacilityRelocationWorldService relocationWorld;
+    private readonly IPhysicalItemBatchDispositionService batchDispositions;
 
     public FacilityInstanceEvolutionRuntime(
         IFacilityEvolutionStateComponentFactory stateFactory,
@@ -49,6 +50,36 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             ?? throw new ArgumentNullException(nameof(relocationWorld));
         this.runSeedProvider = runSeedProvider
             ?? throw new ArgumentNullException(nameof(runSeedProvider));
+        batchDispositions = null;
+    }
+
+    [VContainer.Inject]
+    public FacilityInstanceEvolutionRuntime(
+        IFacilityEvolutionStateComponentFactory stateFactory,
+        IUsageLedgerCompactor ledgerCompactor,
+        IEvolutionModuleRegistry moduleRegistry,
+        IRoomEnvironmentQuery roomEnvironment,
+        IFacilityCandidateCache facilityCandidateCache,
+        IWorldItemStackRuntime worldItems,
+        IFacilityRelocationWorldService relocationWorld,
+        IRunSeedProvider runSeedProvider,
+        IPhysicalItemBatchDispositionService batchDispositions)
+    {
+        this.stateFactory = stateFactory
+            ?? throw new ArgumentNullException(nameof(stateFactory));
+        this.ledgerCompactor = ledgerCompactor
+            ?? throw new ArgumentNullException(nameof(ledgerCompactor));
+        this.moduleRegistry = moduleRegistry
+            ?? throw new ArgumentNullException(nameof(moduleRegistry));
+        this.roomEnvironment = roomEnvironment;
+        this.facilityCandidateCache = facilityCandidateCache;
+        this.worldItems = worldItems;
+        this.relocationWorld = relocationWorld
+            ?? throw new ArgumentNullException(nameof(relocationWorld));
+        this.runSeedProvider = runSeedProvider
+            ?? throw new ArgumentNullException(nameof(runSeedProvider));
+        this.batchDispositions = batchDispositions
+            ?? throw new ArgumentNullException(nameof(batchDispositions));
     }
 
     public FacilityEvolutionState GetState(BuildableObject facility)
@@ -438,15 +469,10 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         }
 
         if (order.phase == FacilityRelocationPhase.WaitingForPackage
-            && !order.packageConsumed
-            && worldItems != null
-            && worldItems.TryConsumeFacilityItemBuffer(
-                order.destinationId,
-                new Dictionary<string, int>(StringComparer.Ordinal)
-                {
-                    [order.packageItemId] = 1
-                },
-                out _))
+            && (!order.packageConsumed
+                || !string.IsNullOrEmpty(order.packageTransferOperationId))
+            && FacilityRelocationPackageOutbox.TryCommitOrFinalize(
+                order,batchDispositions,out _))
         {
             order.packageConsumed = true;
             order.phase = FacilityRelocationPhase.Reinstalling;
@@ -477,7 +503,6 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             FacilityModificationOrder order = state.modificationOrder;
             if (!EnsureMaterialsReady(order, out failureReason))
             {
-                order.state = EvolutionReforgeOrderState.WaitingForMaterials;
                 component.ReplaceInstanceEvolution(state);
                 return false;
             }
@@ -519,7 +544,6 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             FacilityRecalibrationOrder order = state.recalibrationOrder;
             if (!EnsureMaterialsReady(order, out failureReason))
             {
-                order.state = EvolutionReforgeOrderState.WaitingForMaterials;
                 component.ReplaceInstanceEvolution(state);
                 return false;
             }
@@ -830,22 +854,21 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (order.materialsConsumed)
+        if (order.materialsConsumed
+            && string.IsNullOrEmpty(order.materialTransferOperationId))
         {
             return true;
         }
 
-        if (worldItems == null
-            || !worldItems.TryConsumeFacilityItemBuffer(
-                order.destinationId,
-                FacilityEvolutionRules.BuildRequirements(order),
+        if (!FacilityModificationMaterialOutbox.TryCommitOrFinalize(
+                order,
+                worldItems,
+                batchDispositions,
                 out failureReason))
         {
             return false;
         }
 
-        order.materialsConsumed = true;
-        order.state = EvolutionReforgeOrderState.Ready;
         return true;
     }
 
@@ -854,27 +877,18 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (order.materialsConsumed)
+        if (order.materialsConsumed
+            && string.IsNullOrEmpty(order.materialTransferOperationId))
         {
             return true;
         }
 
-        Dictionary<string, int> costs =
-            new Dictionary<string, int>(StringComparer.Ordinal)
-            {
-                [order.catalystItemId] = 1
-            };
-        if (worldItems == null
-            || !worldItems.TryConsumeFacilityItemBuffer(
-                order.destinationId,
-                costs,
-                out failureReason))
+        if (!FacilityRecalibrationMaterialOutbox.TryCommitOrFinalize(
+                order,worldItems,batchDispositions,out failureReason))
         {
             return false;
         }
 
-        order.materialsConsumed = true;
-        order.state = EvolutionReforgeOrderState.Ready;
         return true;
     }
 

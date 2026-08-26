@@ -2,7 +2,7 @@ serviceId,pathId,primitive,capacityPermille,recurringMilliWuPerDay,requiredPhysi
 service:excretion,facility:toilet,false,1000,0,,0,0,0,0,0,0,0
 service:excretion,survival:primitive-latrine,true,1000,6777,,0,6000,85000,-2000,-8000,8000,2000
 service:food,facility:meal-service,false,1000,0,food:grain-porridge,0,0,0,0,0,0,0
-service:food,survival:field-meal,true,1000,8572,food:grain-porridge,1,4000,35000,2000,0,0,0
+service:food,survival:field-meal,true,1000,8572,food:grain-porridge,1,4000,35000,0,0,0,0
 service:hygiene,facility:hygiene,false,1000,0,,0,0,0,0,0,0,0
 service:hygiene,survival:bucket-wash,true,1000,11664,resource:clean-water,1,6000,50000,0,0,0,0
 service:sleep,facility:bed,false,1000,0,,0,0,0,0,0,0,0
