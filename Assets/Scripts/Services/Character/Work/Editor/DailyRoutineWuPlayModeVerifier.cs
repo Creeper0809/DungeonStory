@@ -177,6 +177,9 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
     private IItemDefinitionCatalog itemDefinitions;
     private ICharacterAiWorldRegistry worldRegistry;
     private ICharacterConsumablesPersistence consumablesPersistence;
+    private ICharacterConsumablesInputOwnerDescriptorSource
+        consumablesInputOwnerSource;
+    private ICharacterConsumablesInputOwnerRuntime consumablesInputOwners;
     private ICharacterDeprivationRuntime deprivationRuntime;
     private StaffDiscontentRuntime staffDiscontent;
     private IGameEventBus gameEvents;
@@ -284,6 +287,10 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             itemDefinitions = scope.Container.Resolve<IItemDefinitionCatalog>();
             worldRegistry = scope.Container.Resolve<ICharacterAiWorldRegistry>();
             consumablesPersistence = scope.Container.Resolve<ICharacterConsumablesPersistence>();
+            consumablesInputOwnerSource = scope.Container.Resolve<
+                ICharacterConsumablesInputOwnerDescriptorSource>();
+            consumablesInputOwners = scope.Container.Resolve<
+                ICharacterConsumablesInputOwnerRuntime>();
             deprivationRuntime = scope.Container.Resolve<ICharacterDeprivationRuntime>();
             staffDiscontent = UnityEngine.Object.FindFirstObjectByType<StaffDiscontentRuntime>();
             gameEvents = scope.Container.Resolve<IGameEventBus>();
@@ -348,6 +355,18 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         {
             failures.Add("Settlement labor accounting resolve failed: "
                 + Compact(exception.Message));
+        }
+
+        if (!StartPartyPreparationPlayModeVerifier
+                .TryReconcileTierZeroForDirectGameplayFixture(
+                    scope,
+                    out string tierZeroDetail))
+        {
+            failures.Add(
+                "Direct-entry Tier-0 reconciliation failed: "
+                + tierZeroDetail);
+            Finish(0f);
+            yield break;
         }
 
         SetDiagnosticStage("ensuring-actors");
@@ -809,6 +828,14 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         report.AppendLine($"runSeed={requestedRunSeed}");
         report.AppendLine(
             $"runtimeDiagnosticsGate={DailyRoutineWuPlayModeVerifier.RuntimeDiagnosticsGateVersion}");
+        V27CurrentSourceEvidenceSnapshot source =
+            V27CurrentSourceEvidenceDigest.Capture();
+        report.AppendLine($"currentSourceDigest={source.Digest}");
+        report.AppendLine($"currentSourceInputCount={source.InputCount}");
+        report.AppendLine(
+            $"currentSourcePathListDigest={source.PathListDigest}");
+        report.AppendLine(
+            $"gameplaySceneSha256={V27CurrentSourceEvidenceDigest.ComputeGameplaySceneDigest()}");
         report.AppendLine($"dailyCadenceContract={DailyCadenceContractVersion}; toilet={ToiletCadenceMinimum:0.###}~{ToiletCadenceMaximum:0.###}; hygiene={HygieneCadenceMinimum:0.###}~{HygieneCadenceMaximum:0.###}");
         report.AppendLine($"actors={observations.Count}");
         report.AppendLine($"activeActorsAtEnd={finalActiveActorCount}");
@@ -1136,6 +1163,8 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             report.AppendLine($"fixtureOrder status={fixtureOrder.Status}; measuredStart={fixtureMeasuredStartWork:0.###}; measuredEnd={fixtureOrder.CompletedWork:0.###}; measuredDelta={measuredProjectDelta:0.###}; required={fixtureOrder.RequiredWork:0.###}; destination={fixtureOrder.MaterialDestinationId}; reservedWorker={fixtureOrder.ReservedWorkerPersistentId}");
         }
 
+        CleanupFixture();
+
         report.AppendLine();
         report.AppendLine("## Diagnostics");
         foreach (string warning in warnings)
@@ -1161,7 +1190,6 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             DailyRoutineWuPlayModeVerifier.ReportPath,
             report.ToString(),
             Encoding.UTF8);
-        CleanupFixture();
         Debug.Log($"PHASE157_DAILY_ROUTINE_WU={(failures.Count == 0 && capturedIssues.Count == 0 ? "PASS" : "FAIL")}; "
             + $"actors={observations.Count}; gameSeconds={observedGameSeconds:0.###}; "
             + $"actualWU={observedActualLaborMilliWu / 1000f:0.###}; failures={failures.Count}");
@@ -2145,12 +2173,15 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
             .ToArray();
         foreach (BuildableObject facility in mealFacilities)
         {
+            string mealDestinationId = CharacterConsumablesRuntime.GetMealDestinationId(
+                facility.RequirePersistentInstanceId(),
+                new ConsumableItemDefinitionId(foodId));
             if (!itemStacks.SpawnItemAt(
                     foodId,
                     30,
                     facility.centerPos,
                     WorldItemStackState.FacilityBuffer,
-                    $"facility-input:meal:{facility.RequirePersistentInstanceId().Value}",
+                    mealDestinationId,
                     out int spawned))
             {
                 throw new InvalidOperationException(
@@ -2375,6 +2406,31 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
 
     private void CleanupFixture()
     {
+        if (itemStacks != null)
+        {
+            WorldItemStackSnapshot[] fixtureConsumables = itemStacks
+                .GetAllStacks()
+                .Where(value => value != null
+                    && (string.Equals(
+                            value.ItemId,
+                            fixtureFoodId,
+                            StringComparison.Ordinal)
+                        || string.Equals(
+                            value.ItemId,
+                            fixtureWaterId,
+                            StringComparison.Ordinal)))
+                .OrderBy(value => value.StackId, StringComparer.Ordinal)
+                .ToArray();
+            foreach (WorldItemStackSnapshot stack in fixtureConsumables)
+            {
+                if (!itemStacks.DeleteStack(stack.StackId))
+                {
+                    failures.Add(
+                        "Fixture consumable cleanup could not retire stack '"
+                        + stack.StackId + "'.");
+                }
+            }
+        }
         if (workOrders != null && !string.IsNullOrWhiteSpace(fixtureConstructionOrderId))
         {
             workOrders.CancelOrder(
@@ -2396,10 +2452,33 @@ public sealed class DailyRoutineWuPlayModeRunner : MonoBehaviour
         {
             if (temporaryObject != null)
             {
+                BuildableObject buildable =
+                    temporaryObject.GetComponent<BuildableObject>();
+                if (buildable != null)
+                {
+                    // Object.Destroy is deferred until the end of the frame.
+                    // Mark the test owner unavailable synchronously so the
+                    // production descriptor source cannot republish it during
+                    // the exit autosave window.
+                    buildable.isDestroy = true;
+                }
                 Destroy(temporaryObject);
             }
         }
         temporaryObjects.Clear();
+
+        if (consumablesInputOwnerSource != null
+            && consumablesInputOwners != null
+            && !consumablesInputOwners.TryReconcileLive(
+                consumablesInputOwnerSource.BuildLiveInputOwnerDescriptors(),
+                CharacterConsumablesInputOwnerAuthority
+                    .FacilityLostReleaseReasonCode,
+                out string ownerCleanupFailure))
+        {
+            failures.Add(
+                "Fixture consumable input-owner cleanup failed: "
+                + ownerCleanupFailure);
+        }
         fixtureActorPositions = Array.Empty<Vector2Int>();
         fixtureMealFacility = null;
         fixtureHygieneFacility = null;

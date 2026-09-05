@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "ritual-site",
+    "spoiler_tier": "none",
+    "title": "의식 장소"
+  },
+  "edges": [],
+  "schema_version": 1
+}

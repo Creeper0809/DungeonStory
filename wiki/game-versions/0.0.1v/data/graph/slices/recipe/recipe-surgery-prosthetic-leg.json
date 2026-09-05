@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-surgery-prosthetic-leg",
+    "spoiler_tier": "none",
+    "title": "철제 의족 조립"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-leg-left",
+      "target_spoiler_tier": "none",
+      "target_title": "왼다리 보철",
+      "to": "item/surgery-prosthetic-leg-left",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

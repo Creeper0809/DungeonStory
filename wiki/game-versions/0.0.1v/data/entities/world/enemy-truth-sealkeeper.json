@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-arcane-null",
+      "target_spoiler_tier": "none",
+      "target_title": "마법 차단",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-truth-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "진실 봉인",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "enemy-truth-sealkeeper",
+  "spoiler_tier": "none",
+  "summary": "강화된 목표를 찾아 진실 봉인을 새긴다.",
+  "title": "진실 봉인수호자"
+}

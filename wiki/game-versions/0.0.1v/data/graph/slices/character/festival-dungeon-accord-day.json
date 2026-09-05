@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "festival-dungeon-accord-day",
+    "spoiler_tier": "none",
+    "title": "던전 협약 기념일"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "character/festival-dungeon-accord-day",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "craft-dreamweave-ritual-banner",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 의식 장식",
+      "to": "item/craft-dreamweave-ritual-banner",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-night-grape-cold",
+  "spoiler_tier": "none",
+  "summary": "차가운 동굴에서도 당도를 유지하지만 성장이 느리다.",
+  "title": "genome_night-grape_cold"
+}

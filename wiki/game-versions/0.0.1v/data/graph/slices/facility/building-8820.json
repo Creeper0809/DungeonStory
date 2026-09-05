@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8820",
+    "spoiler_tier": "none",
+    "title": "조련용 고삐 걸이"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-husbandry-taming",
+      "label": "시설 해금",
+      "to": "facility/building-8820",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

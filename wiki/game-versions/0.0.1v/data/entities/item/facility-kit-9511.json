@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "210"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "격리 회복 침상에서 환자를 살피고 필요한 처치를 이어 갈 수 있게 꾸린 설치 부품이다. 므네실라식 격리 회복 침상의 바닥 홈은 환자, 도구와 세척수가 서로 다른 색으로 흘러 섞인 자리를 드러낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-9511",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "격리 회복 침상 설치 키트"
+}

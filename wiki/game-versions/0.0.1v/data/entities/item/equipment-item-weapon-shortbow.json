@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "122"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "좁은 통로에서도 빠르게 당겨 쏠 수 있는 가벼운 활이다. 아일라세라의 푸른 깃매듭은 단궁이 바람 절벽의 세 횡풍을 버텼다는 표시다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-shortbow",
+  "spoiler_tier": "none",
+  "summary": "단궁 전투 장비",
+  "title": "단궁"
+}

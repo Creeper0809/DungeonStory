@@ -1,0 +1,181 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+EquipmentModuleDefinitionSO|module:armor:blacksteel-rib,module:armor:blacksteel-rib,m_Name,EM16,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:blacksteel-rib,module:armor:blacksteel-rib,moduleId,module:armor:blacksteel-rib,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:blacksteel-rib,module:armor:blacksteel-rib,displayName,흑강 늑골,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:blacksteel-rib,module:armor:blacksteel-rib,description,원정에서 회수하는 흑강 늑골 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:blacksteel-rib,module:armor:blacksteel-rib,lineageKind,1,EquipmentLineageKind,Armor,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:blacksteel-rib,module:armor:blacksteel-rib,minimumEra,2,EquipmentEra,Early Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:blacksteel-rib,module:armor:blacksteel-rib,powerPerGrade,0.05,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:blacksteel-rib,module:armor:blacksteel-rib,utilityPerGrade,0.025,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:blacksteel-rib,module:armor:blacksteel-rib,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:impact-liner,module:armor:impact-liner,m_Name,EM09,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:impact-liner,module:armor:impact-liner,moduleId,module:armor:impact-liner,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:impact-liner,module:armor:impact-liner,displayName,충격 내피,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:impact-liner,module:armor:impact-liner,description,원정에서 회수하는 충격 내피 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:impact-liner,module:armor:impact-liner,lineageKind,1,EquipmentLineageKind,Armor,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:impact-liner,module:armor:impact-liner,minimumEra,2,EquipmentEra,Early Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:impact-liner,module:armor:impact-liner,powerPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:impact-liner,module:armor:impact-liner,utilityPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:impact-liner,module:armor:impact-liner,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:mobility-joint,module:armor:mobility-joint,m_Name,EM13,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:mobility-joint,module:armor:mobility-joint,moduleId,module:armor:mobility-joint,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:mobility-joint,module:armor:mobility-joint,displayName,기동 관절,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:mobility-joint,module:armor:mobility-joint,description,원정에서 회수하는 기동 관절 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:mobility-joint,module:armor:mobility-joint,lineageKind,1,EquipmentLineageKind,Armor,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:mobility-joint,module:armor:mobility-joint,minimumEra,2,EquipmentEra,Early Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:mobility-joint,module:armor:mobility-joint,powerPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:mobility-joint,module:armor:mobility-joint,utilityPerGrade,0.025,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:mobility-joint,module:armor:mobility-joint,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:plate-web,module:armor:plate-web,m_Name,EM10,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:plate-web,module:armor:plate-web,moduleId,module:armor:plate-web,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:plate-web,module:armor:plate-web,displayName,판금 연결망,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:plate-web,module:armor:plate-web,description,원정에서 회수하는 판금 연결망 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:plate-web,module:armor:plate-web,lineageKind,1,EquipmentLineageKind,Armor,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:plate-web,module:armor:plate-web,minimumEra,2,EquipmentEra,Early Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:plate-web,module:armor:plate-web,powerPerGrade,0.04,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:plate-web,module:armor:plate-web,utilityPerGrade,0.025,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:plate-web,module:armor:plate-web,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:rune-ward,module:armor:rune-ward,m_Name,EM15,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:rune-ward,module:armor:rune-ward,moduleId,module:armor:rune-ward,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:rune-ward,module:armor:rune-ward,displayName,룬 수호편,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:rune-ward,module:armor:rune-ward,description,원정에서 회수하는 룬 수호편 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:rune-ward,module:armor:rune-ward,lineageKind,1,EquipmentLineageKind,Armor,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:rune-ward,module:armor:rune-ward,minimumEra,2,EquipmentEra,Early Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:rune-ward,module:armor:rune-ward,powerPerGrade,0.045,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:rune-ward,module:armor:rune-ward,utilityPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:rune-ward,module:armor:rune-ward,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:self-seal,module:armor:self-seal,m_Name,EM14,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:self-seal,module:armor:self-seal,moduleId,module:armor:self-seal,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:self-seal,module:armor:self-seal,displayName,자가 봉합재,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:self-seal,module:armor:self-seal,description,원정에서 회수하는 자가 봉합재 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:self-seal,module:armor:self-seal,lineageKind,1,EquipmentLineageKind,Armor,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:self-seal,module:armor:self-seal,minimumEra,2,EquipmentEra,Early Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:self-seal,module:armor:self-seal,powerPerGrade,0.04,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:self-seal,module:armor:self-seal,utilityPerGrade,0.03,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:self-seal,module:armor:self-seal,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:smoke-filter,module:armor:smoke-filter,m_Name,EM11,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:smoke-filter,module:armor:smoke-filter,moduleId,module:armor:smoke-filter,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:smoke-filter,module:armor:smoke-filter,displayName,연기 여과기,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:smoke-filter,module:armor:smoke-filter,description,원정에서 회수하는 연기 여과기 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:smoke-filter,module:armor:smoke-filter,lineageKind,1,EquipmentLineageKind,Armor,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:smoke-filter,module:armor:smoke-filter,minimumEra,2,EquipmentEra,Early Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:smoke-filter,module:armor:smoke-filter,powerPerGrade,0.045,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:smoke-filter,module:armor:smoke-filter,utilityPerGrade,0.03,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:smoke-filter,module:armor:smoke-filter,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:thermal-layer,module:armor:thermal-layer,m_Name,EM12,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:thermal-layer,module:armor:thermal-layer,moduleId,module:armor:thermal-layer,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:thermal-layer,module:armor:thermal-layer,displayName,열 차폐층,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:thermal-layer,module:armor:thermal-layer,description,원정에서 회수하는 열 차폐층 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:thermal-layer,module:armor:thermal-layer,lineageKind,1,EquipmentLineageKind,Armor,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:thermal-layer,module:armor:thermal-layer,minimumEra,2,EquipmentEra,Early Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:thermal-layer,module:armor:thermal-layer,powerPerGrade,0.05,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:thermal-layer,module:armor:thermal-layer,utilityPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:armor:thermal-layer,module:armor:thermal-layer,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:anchor-core,module:shield:anchor-core,m_Name,EM20,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:anchor-core,module:shield:anchor-core,moduleId,module:shield:anchor-core,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:anchor-core,module:shield:anchor-core,displayName,고정 핵,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:anchor-core,module:shield:anchor-core,description,원정에서 회수하는 고정 핵 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:anchor-core,module:shield:anchor-core,lineageKind,2,EquipmentLineageKind,Shield,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:anchor-core,module:shield:anchor-core,minimumEra,3,EquipmentEra,Mature Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:anchor-core,module:shield:anchor-core,powerPerGrade,0.05,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:anchor-core,module:shield:anchor-core,utilityPerGrade,0.03,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:anchor-core,module:shield:anchor-core,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:reinforced-rim,module:shield:reinforced-rim,m_Name,EM17,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:reinforced-rim,module:shield:reinforced-rim,moduleId,module:shield:reinforced-rim,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:reinforced-rim,module:shield:reinforced-rim,displayName,강화 테두리,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:reinforced-rim,module:shield:reinforced-rim,description,원정에서 회수하는 강화 테두리 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:reinforced-rim,module:shield:reinforced-rim,lineageKind,2,EquipmentLineageKind,Shield,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:reinforced-rim,module:shield:reinforced-rim,minimumEra,3,EquipmentEra,Mature Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:reinforced-rim,module:shield:reinforced-rim,powerPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:reinforced-rim,module:shield:reinforced-rim,utilityPerGrade,0.03,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:reinforced-rim,module:shield:reinforced-rim,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:shock-grip,module:shield:shock-grip,m_Name,EM18,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:shock-grip,module:shield:shock-grip,moduleId,module:shield:shock-grip,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:shock-grip,module:shield:shock-grip,displayName,충격 손잡이,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:shock-grip,module:shield:shock-grip,description,원정에서 회수하는 충격 손잡이 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:shock-grip,module:shield:shock-grip,lineageKind,2,EquipmentLineageKind,Shield,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:shock-grip,module:shield:shock-grip,minimumEra,3,EquipmentEra,Mature Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:shock-grip,module:shield:shock-grip,powerPerGrade,0.04,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:shock-grip,module:shield:shock-grip,utilityPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:shock-grip,module:shield:shock-grip,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:ward-emitter,module:shield:ward-emitter,m_Name,EM19,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:ward-emitter,module:shield:ward-emitter,moduleId,module:shield:ward-emitter,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:ward-emitter,module:shield:ward-emitter,displayName,수호 방출기,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:ward-emitter,module:shield:ward-emitter,description,원정에서 회수하는 수호 방출기 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:ward-emitter,module:shield:ward-emitter,lineageKind,2,EquipmentLineageKind,Shield,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:ward-emitter,module:shield:ward-emitter,minimumEra,3,EquipmentEra,Mature Industrial,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:ward-emitter,module:shield:ward-emitter,powerPerGrade,0.045,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:ward-emitter,module:shield:ward-emitter,utilityPerGrade,0.025,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:shield:ward-emitter,module:shield:ward-emitter,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:balanced-core,module:weapon:balanced-core,m_Name,EM01,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:balanced-core,module:weapon:balanced-core,moduleId,module:weapon:balanced-core,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:balanced-core,module:weapon:balanced-core,displayName,균형 심재,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:balanced-core,module:weapon:balanced-core,description,원정에서 회수하는 균형 심재 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:balanced-core,module:weapon:balanced-core,lineageKind,0,EquipmentLineageKind,Weapon,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:balanced-core,module:weapon:balanced-core,minimumEra,1,EquipmentEra,Medieval,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:balanced-core,module:weapon:balanced-core,powerPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:balanced-core,module:weapon:balanced-core,utilityPerGrade,0.025,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:balanced-core,module:weapon:balanced-core,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:endurance-binding,module:weapon:endurance-binding,m_Name,EM07,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:endurance-binding,module:weapon:endurance-binding,moduleId,module:weapon:endurance-binding,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:endurance-binding,module:weapon:endurance-binding,displayName,내구 결속,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:endurance-binding,module:weapon:endurance-binding,description,원정에서 회수하는 내구 결속 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:endurance-binding,module:weapon:endurance-binding,lineageKind,0,EquipmentLineageKind,Weapon,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:endurance-binding,module:weapon:endurance-binding,minimumEra,1,EquipmentEra,Medieval,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:endurance-binding,module:weapon:endurance-binding,powerPerGrade,0.045,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:endurance-binding,module:weapon:endurance-binding,utilityPerGrade,0.025,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:endurance-binding,module:weapon:endurance-binding,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:execution-edge,module:weapon:execution-edge,m_Name,EM06,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:execution-edge,module:weapon:execution-edge,moduleId,module:weapon:execution-edge,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:execution-edge,module:weapon:execution-edge,displayName,처형 날,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:execution-edge,module:weapon:execution-edge,description,원정에서 회수하는 처형 날 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:execution-edge,module:weapon:execution-edge,lineageKind,0,EquipmentLineageKind,Weapon,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:execution-edge,module:weapon:execution-edge,minimumEra,1,EquipmentEra,Medieval,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:execution-edge,module:weapon:execution-edge,powerPerGrade,0.04,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:execution-edge,module:weapon:execution-edge,utilityPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:execution-edge,module:weapon:execution-edge,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:mana-conduit,module:weapon:mana-conduit,m_Name,EM08,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:mana-conduit,module:weapon:mana-conduit,moduleId,module:weapon:mana-conduit,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:mana-conduit,module:weapon:mana-conduit,displayName,마나 도관,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:mana-conduit,module:weapon:mana-conduit,description,원정에서 회수하는 마나 도관 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:mana-conduit,module:weapon:mana-conduit,lineageKind,0,EquipmentLineageKind,Weapon,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:mana-conduit,module:weapon:mana-conduit,minimumEra,1,EquipmentEra,Medieval,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:mana-conduit,module:weapon:mana-conduit,powerPerGrade,0.05,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:mana-conduit,module:weapon:mana-conduit,utilityPerGrade,0.03,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:mana-conduit,module:weapon:mana-conduit,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:penetrator,module:weapon:penetrator,m_Name,EM02,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:penetrator,module:weapon:penetrator,moduleId,module:weapon:penetrator,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:penetrator,module:weapon:penetrator,displayName,관통 촉,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:penetrator,module:weapon:penetrator,description,원정에서 회수하는 관통 촉 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:penetrator,module:weapon:penetrator,lineageKind,0,EquipmentLineageKind,Weapon,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:penetrator,module:weapon:penetrator,minimumEra,1,EquipmentEra,Medieval,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:penetrator,module:weapon:penetrator,powerPerGrade,0.04,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:penetrator,module:weapon:penetrator,utilityPerGrade,0.03,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:penetrator,module:weapon:penetrator,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:precision-sight,module:weapon:precision-sight,m_Name,EM03,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:precision-sight,module:weapon:precision-sight,moduleId,module:weapon:precision-sight,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:precision-sight,module:weapon:precision-sight,displayName,정밀 조준기,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:precision-sight,module:weapon:precision-sight,description,원정에서 회수하는 정밀 조준기 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:precision-sight,module:weapon:precision-sight,lineageKind,0,EquipmentLineageKind,Weapon,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:precision-sight,module:weapon:precision-sight,minimumEra,1,EquipmentEra,Medieval,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:precision-sight,module:weapon:precision-sight,powerPerGrade,0.045,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:precision-sight,module:weapon:precision-sight,utilityPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:precision-sight,module:weapon:precision-sight,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:quick-action,module:weapon:quick-action,m_Name,EM04,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:quick-action,module:weapon:quick-action,moduleId,module:weapon:quick-action,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:quick-action,module:weapon:quick-action,displayName,속동 기구,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:quick-action,module:weapon:quick-action,description,원정에서 회수하는 속동 기구 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:quick-action,module:weapon:quick-action,lineageKind,0,EquipmentLineageKind,Weapon,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:quick-action,module:weapon:quick-action,minimumEra,1,EquipmentEra,Medieval,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:quick-action,module:weapon:quick-action,powerPerGrade,0.05,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:quick-action,module:weapon:quick-action,utilityPerGrade,0.025,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:quick-action,module:weapon:quick-action,effects,[],,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:suppression-coil,module:weapon:suppression-coil,m_Name,EM05,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:suppression-coil,module:weapon:suppression-coil,moduleId,module:weapon:suppression-coil,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:suppression-coil,module:weapon:suppression-coil,displayName,제압 코일,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:suppression-coil,module:weapon:suppression-coil,description,원정에서 회수하는 제압 코일 개량 부품,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:suppression-coil,module:weapon:suppression-coil,lineageKind,0,EquipmentLineageKind,Weapon,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:suppression-coil,module:weapon:suppression-coil,minimumEra,1,EquipmentEra,Medieval,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:suppression-coil,module:weapon:suppression-coil,powerPerGrade,0.035,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:suppression-coil,module:weapon:suppression-coil,utilityPerGrade,0.03,,,explicit-serialized
+EquipmentModuleDefinitionSO|module:weapon:suppression-coil,module:weapon:suppression-coil,effects,[],,,explicit-serialized

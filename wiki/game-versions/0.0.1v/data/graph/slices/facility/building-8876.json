@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8876",
+    "spoiler_tier": "none",
+    "title": "백신 연구실"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "시설 해금",
+      "to": "facility/building-8876",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

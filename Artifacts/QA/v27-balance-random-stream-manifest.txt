@@ -1,5 +1,6 @@
-RESULT=PASS; runtimeFiles=1363; consumers=43; failures=0; legacyCharacterStreams=0; unityRandomRuntimeUses=0; namedIsolationTests=10
-sourceDigest=500f4698306a88a3879da2a5edeab43f57fe1f0e1f80f0ab24d529126c6b6247
+RESULT=PASS; runtimeFiles=1705; consumers=45; failures=0; legacyCharacterStreams=0; unityRandomRuntimeUses=0; namedIsolationTests=10
+sourceDigest=23b7751e22ae85ca1d3734c76102df274df20868690deeaa95632559bc461672
+CONSUMER	Assets/Scripts/Models/Economy/Content/CanonicalProductionOutputResolver.cs	scope=domain-stable	providerReference=true
 CONSUMER	Assets/Scripts/Models/Economy/Content/ProductionOutputExecutionService.cs	scope=domain-stable	providerReference=true
 CONSUMER	Assets/Scripts/Models/Economy/Content/WorldResourceRuntime.cs	scope=domain-stable	providerReference=true
 CONSUMER	Assets/Scripts/Models/Species/Core/CharacterLifeDomain.cs	scope=domain-stable	providerReference=true
@@ -7,6 +8,7 @@ CONSUMER	Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntime.cs	scop
 CONSUMER	Assets/Scripts/Models/Wildlife/Core/WildlifeEcosystemRuntime.cs	scope=domain-stable	providerReference=true
 CONSUMER	Assets/Scripts/Services/Buildings/Shop.cs	scope=domain-stable	providerReference=true
 CONSUMER	Assets/Scripts/Services/Captivity/CaptivityRuntimeContexts.cs	scope=domain-stable	providerReference=true
+CONSUMER	Assets/Scripts/Services/Captivity/MinionSettlementSocialRuntime.cs	scope=domain-stable	providerReference=true
 CONSUMER	Assets/Scripts/Services/Captivity/WildlifeCaptureRuntime.cs	scope=domain-stable	providerReference=true
 CONSUMER	Assets/Scripts/Services/Character/AI/AIBrain.cs	scope=character-decision:persistent-id	providerReference=true
 CONSUMER	Assets/Scripts/Services/Character/AI/AIBrainServices.cs	scope=domain-stable	providerReference=true

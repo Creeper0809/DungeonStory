@@ -1,0 +1,45 @@
+{
+  "facts": [
+    {
+      "label": "효과",
+      "value": "17개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-orc",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Orc",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-orc",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Orc",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-orc",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Orc",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "characterspecies-2",
+  "spoiler_tier": "none",
+  "summary": "돈을 많이 쓰고 경비 인력으로 강하지만, 불만이 쌓이면 시설 파손 사고를 일으킨다.",
+  "title": "오크"
+}

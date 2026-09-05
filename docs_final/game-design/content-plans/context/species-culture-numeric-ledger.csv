@@ -1,0 +1,11 @@
+culture_id,default_species_id,assimilation_days,ideal_temperature_c,temperature_tolerance_c,minimum_ventilation,minimum_lighting,maximum_lighting,minimum_cleanliness,prefers_shared_space,prefers_private_space,preferred_item_count,forbidden_item_count,ceremony_count,attitude_target_count,source_path
+culture:adventurer-frontier,Adventurer,120,20,10,45,55,100,40,1,0,1,1,2,9,Assets/Resources/SO/V20/Narrative/Cultures/culture_adventurer-frontier.asset
+culture:beastkin-pack,Beastkin,120,24,8,35,20,80,30,1,0,1,1,2,9,Assets/Resources/SO/V20/Narrative/Cultures/culture_beastkin-pack.asset
+culture:demon-contract,Demon,120,27,8,35,20,70,40,0,1,1,1,2,9,Assets/Resources/SO/V20/Narrative/Cultures/culture_demon-contract.asset
+culture:golem-core,Golem,120,18,15,50,30,90,60,0,1,1,1,2,9,Assets/Resources/SO/V20/Narrative/Cultures/culture_golem-core.asset
+culture:harpy-aerie,Harpy,120,18,10,70,50,100,35,1,0,1,1,2,9,Assets/Resources/SO/V20/Narrative/Cultures/culture_harpy-aerie.asset
+culture:kobold-toolclan,Kobold,120,24,7,50,45,100,40,1,0,1,1,2,9,Assets/Resources/SO/V20/Narrative/Cultures/culture_kobold-toolclan.asset
+culture:myconid-grove,Myconid,120,20,5,45,5,35,40,1,0,1,1,2,9,Assets/Resources/SO/V20/Narrative/Cultures/culture_myconid-grove.asset
+culture:orc-vigil,Orc,120,20,10,40,25,85,30,1,0,1,1,2,9,Assets/Resources/SO/V20/Narrative/Cultures/culture_orc-vigil.asset
+culture:slime-confluence,Slime,120,22,5,40,20,70,70,1,0,1,1,2,9,Assets/Resources/SO/V20/Narrative/Cultures/culture_slime-confluence.asset
+culture:vampire-nightcourt,Vampire,120,18,7,40,0,30,55,0,1,1,1,2,9,Assets/Resources/SO/V20/Narrative/Cultures/culture_vampire-nightcourt.asset

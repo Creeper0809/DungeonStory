@@ -1,0 +1,130 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-ballistics",
+    "spoiler_tier": "none",
+    "title": "탄도학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "to": "research/research-defense-ranged-positions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-ignition-mechanisms",
+      "target_spoiler_tier": "none",
+      "target_title": "점화 기구학",
+      "to": "research/research-equipment-ignition-mechanisms",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-ignition-mechanisms",
+      "target_spoiler_tier": "none",
+      "target_title": "점화 기구학",
+      "to": "research/research-equipment-ignition-mechanisms",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-ignition-mechanisms",
+      "target_spoiler_tier": "none",
+      "target_title": "점화 기구학",
+      "to": "research/research-equipment-ignition-mechanisms",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ballistics",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8900",
+      "target_spoiler_tier": "none",
+      "target_title": "탄도 시험장",
+      "to": "facility/building-8900",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "필요 조건",
+      "to": "research/research-equipment-ballistics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-matchlock-long-gun",
+      "label": "필요 조건",
+      "to": "research/research-equipment-ballistics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-sniper-arquebus",
+      "label": "필요 조건",
+      "to": "research/research-equipment-ballistics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "to": "research/research-equipment-ballistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "to": "research/research-equipment-ballistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "to": "research/research-equipment-ballistics",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

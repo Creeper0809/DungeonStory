@@ -69,6 +69,9 @@ public sealed class DungeonPreparationLifetimeScope : LifetimeScope
         DungeonSceneComponentQuery sceneQuery = new DungeonSceneComponentQuery(preparationScene);
         builder.RegisterInstance(new SceneUiBootstrapReferences(
             sceneQuery.First<EventSystem>(includeInactive: true)));
+        builder.RegisterInstance(new DungeonUserSettingsRuntimeTargets(
+            sceneQuery.First<CameraManager>(includeInactive: true),
+            sceneQuery.All<DungeonUiThemeRuntime>(includeInactive: true)));
         builder.RegisterDungeonFoundation();
         builder.Register<UnityGameContentRootLoader>(Lifetime.Singleton)
             .As<IGameContentRootLoader>();
@@ -77,6 +80,8 @@ public sealed class DungeonPreparationLifetimeScope : LifetimeScope
             .As<ITmpKoreanFontProvider>();
         builder.Register<TmpKoreanFontService>(Lifetime.Singleton)
             .As<ITmpKoreanFontService>();
+        builder.RegisterEntryPoint<DungeonUserSettingsService>(Lifetime.Singleton)
+            .As<IDungeonUserSettingsService>();
         builder.Register<DungeonPreparationCanvasProvider>(Lifetime.Singleton)
             .As<IDungeonUiCanvasProvider>();
         builder.Register<DungeonSceneNavigator>(Lifetime.Singleton)
@@ -86,6 +91,8 @@ public sealed class DungeonPreparationLifetimeScope : LifetimeScope
             .As<IRunCharacterCatalog>();
         builder.Register<ResourceOwnerCandidateCatalog>(Lifetime.Singleton)
             .As<IOwnerCandidateCatalog>();
+        builder.Register<CharacterRuntimeProfileFactory>(Lifetime.Singleton)
+            .As<ICharacterRuntimeProfileFactory>();
         builder.Register<PreparationLocalLlmRuntimeProvider>(Lifetime.Singleton)
             .As<ILocalLlmRuntimeProvider>();
         builder.Register<ResourceCharacterSkillSystemSettingsProvider>(Lifetime.Singleton)

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "ambition-build-clinic",
+    "spoiler_tier": "none",
+    "title": "모두를 위한 진료소"
+  },
+  "edges": [],
+  "schema_version": 1
+}

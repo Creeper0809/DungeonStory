@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Textiles"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8835",
+      "target_spoiler_tier": "none",
+      "target_title": "방어구 맞춤대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-equipment-armor-tailoring",
+  "spoiler_tier": "none",
+  "summary": "직물과 가죽의 하중선을 맞추는 방어구 재단법을 확립한다.",
+  "title": "방어구 재단"
+}

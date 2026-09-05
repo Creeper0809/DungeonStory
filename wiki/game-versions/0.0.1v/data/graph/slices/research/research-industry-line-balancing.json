@@ -1,0 +1,139 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-line-balancing",
+    "spoiler_tier": "none",
+    "title": "라인 균형과 방어 보급"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-tactical-command",
+      "target_spoiler_tier": "none",
+      "target_title": "전술 지휘",
+      "to": "research/research-defense-tactical-command",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-tactical-command",
+      "target_spoiler_tier": "none",
+      "target_title": "전술 지휘",
+      "to": "research/research-defense-tactical-command",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-tactical-command",
+      "target_spoiler_tier": "none",
+      "target_title": "전술 지휘",
+      "to": "research/research-defense-tactical-command",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-junctions",
+      "target_spoiler_tier": "none",
+      "target_title": "분기·필터·우선순위 제어",
+      "to": "research/research-industry-junctions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-junctions",
+      "target_spoiler_tier": "none",
+      "target_title": "분기·필터·우선순위 제어",
+      "to": "research/research-industry-junctions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-junctions",
+      "target_spoiler_tier": "none",
+      "target_title": "분기·필터·우선순위 제어",
+      "to": "research/research-industry-junctions",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8824",
+      "target_spoiler_tier": "none",
+      "target_title": "방어시설 장전기",
+      "to": "facility/building-8824",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8829",
+      "target_spoiler_tier": "none",
+      "target_title": "유량계",
+      "to": "facility/building-8829",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-defense-mixed-ammo-box",
+      "label": "필요 조건",
+      "to": "research/research-industry-line-balancing",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

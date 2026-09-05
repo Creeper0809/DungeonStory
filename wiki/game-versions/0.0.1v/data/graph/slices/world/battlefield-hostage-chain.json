@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-hostage-chain",
+    "spoiler_tier": "none",
+    "title": "인질 구속줄"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-08",
+      "label": "관련",
+      "to": "world/battlefield-hostage-chain",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-20",
+      "label": "관련",
+      "to": "world/battlefield-hostage-chain",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-32",
+      "label": "관련",
+      "to": "world/battlefield-hostage-chain",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

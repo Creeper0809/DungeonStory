@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Metallurgy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8838",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 조립틀",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-equipment-mail-weaving",
+  "spoiler_tier": "none",
+  "summary": "철 고리와 층상 충전재를 결속해 유연한 방호 외피를 만든다.",
+  "title": "사슬 편조"
+}

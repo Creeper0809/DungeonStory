@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "culture-kobold-toolclan",
+    "spoiler_tier": "none",
+    "title": "도구씨족 문화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/culture-kobold-toolclan",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-kobold-bench-feast",
+      "target_spoiler_tier": "none",
+      "target_title": "작업대 잔치",
+      "to": "event/practice-kobold-bench-feast",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-kobold-toolclan",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-kobold-tool-naming",
+      "target_spoiler_tier": "none",
+      "target_title": "첫 도구 이름짓기",
+      "to": "event/practice-kobold-tool-naming",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

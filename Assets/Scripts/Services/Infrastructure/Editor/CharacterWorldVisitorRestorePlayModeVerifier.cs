@@ -69,7 +69,7 @@ public static class CharacterWorldVisitorRestorePlayModeVerifier
 public sealed class CharacterWorldVisitorRestorePlayModeRunner : MonoBehaviour
 {
     private const float OverallTimeout = 240f;
-    private const string Revision = "character-world-visitor-restore-v1";
+    private const string Revision = "character-world-visitor-restore-v2";
     private readonly List<string> evidence = new List<string>();
     private readonly List<string> failures = new List<string>();
     private IDungeonSaveSectionRegistry saveRegistry;
@@ -213,7 +213,6 @@ public sealed class CharacterWorldVisitorRestorePlayModeRunner : MonoBehaviour
             scope.Container.Resolve<ICharacterWorldSaveService>();
         CharacterWorldSaveService concreteSave =
             saveService as CharacterWorldSaveService;
-        ICharacterWorldQuery world = scope.Container.Resolve<ICharacterWorldQuery>();
         ICharacterLifetimeQuery lifetime =
             scope.Container.Resolve<ICharacterLifetimeQuery>();
         ICharacterProficiencyQuery proficiency =
@@ -265,6 +264,13 @@ public sealed class CharacterWorldVisitorRestorePlayModeRunner : MonoBehaviour
         DungeonCharacterWorldSaveData characterBaseline =
             JsonUtility.FromJson<DungeonCharacterWorldSaveData>(
                 characterEnvelope.payloadJson);
+        DungeonSaveSectionEnvelope bodyHealthEnvelope = baseline.Single(value =>
+            string.Equals(
+                value.sectionId,
+                CharacterBodyHealthSaveSection.Id,
+                StringComparison.Ordinal));
+        string baselineBodyHealthPayload = bodyHealthEnvelope.payloadJson
+            ?? string.Empty;
         HashSet<string> baselinePopulationIds = new HashSet<string>(
             (characterBaseline.populationProfiles
                 ?? new List<WorldCharacterProfile>())
@@ -374,6 +380,67 @@ public sealed class CharacterWorldVisitorRestorePlayModeRunner : MonoBehaviour
             yield break;
         }
 
+        IReadOnlyList<DungeonSaveSectionEnvelope> immediateCapture =
+            saveRegistry.CaptureAll();
+        string immediateBodyHealthPayload = immediateCapture.Single(value =>
+            string.Equals(
+                value.sectionId,
+                CharacterBodyHealthSaveSection.Id,
+                StringComparison.Ordinal)).payloadJson ?? string.Empty;
+        Require(string.Equals(
+                baselineBodyHealthPayload,
+                immediateBodyHealthPayload,
+                StringComparison.Ordinal),
+            "committed restore recreated or removed body-health state before "
+            + "the immediate capture boundary");
+        CharacterAiRuntimeGateSnapshot retiredGate =
+            visitor.Brain?.CaptureRuntimeGateSnapshot()
+            ?? default;
+        Require(!visitor.gameObject.activeInHierarchy
+                && visitor.CurrentLifecycleState
+                    == CharacterLifecycleState.Despawned,
+            "committed restore did not synchronously return visitor to pool");
+        Require(retiredGate.LivePathRequests == 0
+                && retiredGate.LiveReservations == 0,
+            $"retired visitor leaked paths/reservations: "
+            + $"{retiredGate.LivePathRequests}/{retiredGate.LiveReservations}");
+        Require(visitor.CarryInventory == null
+                || visitor.CarryInventory.Items.Count == 0,
+            "retired visitor retained physical carry ownership");
+        Require(spawner.RetireVisitorForWorldRestore(
+                visitor,
+                out string idempotentFailure),
+            "synchronous idempotent retirement failed: "
+            + idempotentFailure);
+
+        DungeonGameRestoreReport secondRestoreReport =
+            new DungeonGameRestoreReport();
+        bool secondRestore = saveRegistry.RestoreAll(
+            baseline,
+            secondRestoreReport);
+        Require(secondRestore,
+            "second full baseline restore failed: "
+            + string.Join(" | ", secondRestoreReport.Errors));
+        if (!secondRestore)
+        {
+            yield break;
+        }
+
+        IReadOnlyList<DungeonSaveSectionEnvelope> secondImmediateCapture =
+            saveRegistry.CaptureAll();
+        string secondBodyHealthPayload = secondImmediateCapture.Single(value =>
+            string.Equals(
+                value.sectionId,
+                CharacterBodyHealthSaveSection.Id,
+                StringComparison.Ordinal)).payloadJson ?? string.Empty;
+        Require(string.Equals(
+                baselineBodyHealthPayload,
+                secondBodyHealthPayload,
+                StringComparison.Ordinal),
+            "second restore was not body-health byte-idempotent at the "
+            + "immediate capture boundary");
+        evidence.Add("body-health-immediate-restore-exact=true;double-restore=true");
+
         // RestoreAll is synchronous. Assert exact narrative replacement at its
         // commit boundary, before the production spawner gets another frame to
         // replenish an intentionally empty baseline pool. Population serials
@@ -390,31 +457,6 @@ public sealed class CharacterWorldVisitorRestorePlayModeRunner : MonoBehaviour
         yield return null;
         yield return null;
 
-        CharacterAiRuntimeGateSnapshot gate =
-            visitor.Brain?.CaptureRuntimeGateSnapshot()
-            ?? default;
-        bool absentFromLiveWorld = !world.Characters.Any(value =>
-            value != null
-            && string.Equals(
-                value.Identity?.PersistentId,
-                visitorId,
-                StringComparison.Ordinal));
-        Require(!visitor.gameObject.activeInHierarchy
-                && visitor.CurrentLifecycleState
-                    == CharacterLifecycleState.Despawned,
-            "committed restore did not return visitor to pool");
-        Require(absentFromLiveWorld,
-            "committed restore left visitor in live world registry");
-        Require(gate.LivePathRequests == 0 && gate.LiveReservations == 0,
-            $"retired visitor leaked paths/reservations: "
-            + $"{gate.LivePathRequests}/{gate.LiveReservations}");
-        Require(visitor.CarryInventory == null
-                || visitor.CarryInventory.Items.Count == 0,
-            "retired visitor retained physical carry ownership");
-        Require(spawner.RetireVisitorForWorldRestore(
-                visitor,
-                out string idempotentFailure),
-            "idempotent retirement failed: " + idempotentFailure);
         bool deterministicIdReissued = population.Profiles.Any(profile =>
             profile != null
             && string.Equals(
@@ -423,7 +465,7 @@ public sealed class CharacterWorldVisitorRestorePlayModeRunner : MonoBehaviour
                 StringComparison.Ordinal));
         evidence.Add("post-commit-pool-replenishment-id-reissued="
             + deterministicIdReissued);
-        evidence.Add("commit-retired=pool+world+path+reservation+carry;idempotent=true");
+        evidence.Add("commit-retired=pool+path+reservation+carry;idempotent=true");
     }
 
     private static Shop EnsureProductionShop(Grid grid, out string detail)

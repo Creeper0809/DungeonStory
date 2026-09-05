@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "440"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "냉각 매니폴드에서 재료를 다듬어 부품과 완성품을 만드는 공정을 맡기 위해 준비한 설치 부품이다. 크릭 제7굴의 냉각 매니폴드는 교대가 끝나면 공구 손잡이를 일곱 톱니 방향으로 돌려 두어 빠진 도구를 드러낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-8828",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "냉각 매니폴드 설치 키트"
+}

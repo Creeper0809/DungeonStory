@@ -1,0 +1,39 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "무기 형식학"
+    },
+    {
+      "label": "제작 작업",
+      "value": "64"
+    },
+    {
+      "label": "무게",
+      "value": "1.7kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-weapon-patterns",
+      "target_spoiler_tier": "none",
+      "target_title": "무기 형식학",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-falchion",
+  "spoiler_tier": "none",
+  "summary": "팔시온 전투 장비",
+  "title": "팔시온"
+}

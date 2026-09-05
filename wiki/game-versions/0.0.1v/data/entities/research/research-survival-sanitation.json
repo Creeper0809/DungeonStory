@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "17"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Life And Survival"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1097",
+      "target_spoiler_tier": "none",
+      "target_title": "폐기 소각로",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-survival-sanitation",
+  "spoiler_tier": "none",
+  "summary": "오염을 통제하고 기본 위생 설비를 운용한다.",
+  "title": "기초 위생"
+}

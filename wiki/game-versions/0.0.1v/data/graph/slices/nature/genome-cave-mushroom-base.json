@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "genome-cave-mushroom-base",
+    "spoiler_tier": "none",
+    "title": "Genome_cave-mushroom"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-cave-mushroom",
+      "label": "관련",
+      "to": "nature/genome-cave-mushroom-base",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

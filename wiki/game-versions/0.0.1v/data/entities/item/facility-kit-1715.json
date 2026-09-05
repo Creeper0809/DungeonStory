@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "40"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "자동 급배수 제어기에서 손님의 주문과 서비스 절차를 처리하도록 꾸린 설치 부품이다. 라카쉬 세갈래길의 자동 급배수 제어기 출구에는 물건값보다 다음 안전한 길을 크게 그린 지도가 걸려 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-1715",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "자동 급배수 제어기 설치 키트"
+}

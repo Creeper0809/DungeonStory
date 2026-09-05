@@ -1,0 +1,158 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-authority-office",
+    "spoiler_tier": "none",
+    "title": "영주 집무"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-authority-office",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-prestige",
+      "target_spoiler_tier": "none",
+      "target_title": "장식과 위신",
+      "to": "research/research-authority-prestige",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-office",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-prestige",
+      "target_spoiler_tier": "none",
+      "target_title": "장식과 위신",
+      "to": "research/research-authority-prestige",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-office",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-prestige",
+      "target_spoiler_tier": "none",
+      "target_title": "장식과 위신",
+      "to": "research/research-authority-prestige",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-office",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-office",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-office",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-office",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1026",
+      "target_spoiler_tier": "none",
+      "target_title": "영주집무책상",
+      "to": "facility/building-1026",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-administrative-seal",
+      "label": "필요 조건",
+      "to": "research/research-authority-office",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-ritual",
+      "label": "선행 연구",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-ritual",
+      "label": "선행 연구",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-authority-ritual",
+      "label": "선행 연구",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-career-records",
+      "label": "선행 연구",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-generation-management",
+      "label": "선행 연구",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-generation-management",
+      "label": "선행 연구",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-generation-management",
+      "label": "선행 연구",
+      "to": "research/research-authority-office",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

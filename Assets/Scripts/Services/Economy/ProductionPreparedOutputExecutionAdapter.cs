@@ -17,12 +17,6 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
 {
     private const string RestoreParticipantId =
         "365.economy.production-prepared-output-transient";
-    private const string SilageRecipeId = "recipe:silage";
-    private const string PlantRotItemId = "waste:plant-rot";
-    private const long SilageRuinedWipMassGrams = 590L;
-    private const long SilageRuinedCleanWaterMassGrams = 100L;
-    private const long SilageRuinedAvailableMassGrams = 690L;
-    private const long PlantRotUnitMassGrams = 600L;
     private const string PublicationOperationSuffix = ":publication";
     private const string MissingBatchPrefix = "planned-output-batch-missing:";
 
@@ -31,7 +25,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
     private readonly IProductionAssemblyBridge bridge;
     private readonly IGrandProjectBenefitQuery grandProjectBenefits;
     private readonly CanonicalProductionOutputResolver resolver;
-    private readonly IProductionPreparedOutputComponentCodec componentCodec;
+    private readonly IProductionPreparedOutputMaterializerRegistry materializers;
     private readonly IPhysicalItemMassQuery massQuery;
     private readonly ProductionOutputBufferCapacityProjector capacityProjector;
     private readonly IProductionOutputDestinationAuthorityRuntime destinations;
@@ -40,6 +34,8 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
     private readonly IFacilityBufferMassAdmissionService admission;
     private readonly IFacilityBufferPlannedOutputPublicationService publication;
     private readonly IProductionPreparedOutputRoutingAuthority routingAuthority;
+    private readonly ProductionMassExplanationCapabilityRegistry
+        massExplanations;
     private readonly Dictionary<string, LivePublication> liveByBatch =
         new(StringComparer.Ordinal);
     private Dictionary<string, LivePublication> previousLiveByBatch;
@@ -52,7 +48,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         IProductionAssemblyBridge bridge,
         IGrandProjectBenefitQuery grandProjectBenefits,
         CanonicalProductionOutputResolver resolver,
-        IProductionPreparedOutputComponentCodec componentCodec,
+        IProductionPreparedOutputMaterializerRegistry materializers,
         IPhysicalItemMassQuery massQuery,
         ProductionOutputBufferCapacityProjector capacityProjector,
         IProductionOutputDestinationAuthorityRuntime destinations,
@@ -60,7 +56,8 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         IFacilityBufferPhysicalOccupancyQuery occupancy,
         IFacilityBufferMassAdmissionService admission,
         IFacilityBufferPlannedOutputPublicationService publication,
-        IProductionPreparedOutputRoutingAuthority routingAuthority)
+        IProductionPreparedOutputRoutingAuthority routingAuthority,
+        ProductionMassExplanationCapabilityRegistry massExplanations = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.outputPlanning = outputPlanning
@@ -69,8 +66,8 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         this.grandProjectBenefits = grandProjectBenefits
             ?? throw new ArgumentNullException(nameof(grandProjectBenefits));
         this.resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
-        this.componentCodec = componentCodec
-            ?? throw new ArgumentNullException(nameof(componentCodec));
+        this.materializers = materializers
+            ?? throw new ArgumentNullException(nameof(materializers));
         this.massQuery = massQuery ?? throw new ArgumentNullException(nameof(massQuery));
         this.capacityProjector = capacityProjector
             ?? throw new ArgumentNullException(nameof(capacityProjector));
@@ -84,6 +81,8 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             ?? throw new ArgumentNullException(nameof(publication));
         this.routingAuthority = routingAuthority
             ?? throw new ArgumentNullException(nameof(routingAuthority));
+        this.massExplanations = massExplanations
+            ?? ProductionMassExplanationCapabilityRegistry.CreateDefault();
     }
 
     public void RestoreDestinationAuthorities(
@@ -108,7 +107,11 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             .ToHashSet(StringComparer.Ordinal);
         ProductionBillRecord orphan = exactRecords
             .Where(value => value != null
-                && ProductionPreparedOutputMigrationScope.Contains(value.recipeId))
+                && catalog.TryGetRecipe(
+                    value.recipeId,
+                    out ProductionRecipeSO recipe)
+                && ProductionPreparedOutputCapabilitySelection
+                    .UsesPreparedOutputMaterializer(recipe, bridge))
             .OrderBy(value => value.billId.Value, StringComparer.Ordinal)
             .FirstOrDefault(value => !facilityIds.Contains(
                 value.buildingInstanceId.Value));
@@ -118,31 +121,60 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 $"Production output restore bill '{orphan.billId.Value}' has no live facility '{orphan.buildingInstanceId.Value}'.");
         }
 
-        Dictionary<string, long> projectedByFacility =
+        Dictionary<string, ProductionOutputBufferCapacitySourceSnapshot>
+            projectedByFacility =
             new(StringComparer.Ordinal);
         foreach (ProductionFacilityHandle facility in exactFacilities)
         {
             string destinationId = ProductionBillRuntime.OutputDestinationPrefix
                 + facility.InstanceId.Value;
             ProductionOutputBufferCapacitySourceSnapshot portfolio =
-                capacityProjector.CaptureSource(facility, 0L);
-            long projectedCapacity = portfolio.ProjectedPortfolioCapacityGrams;
+                capacityProjector.CapturePortfolioSource(facility);
+            ProductionOutputBufferCapacitySourceSnapshot projectedSource =
+                portfolio;
+            long projectedCapacity = portfolio.RequiredMinimumCapacityGrams;
             foreach (ProductionBillRecord record in exactRecords
                          .Where(value => value != null
                              && value.buildingInstanceId.Equals(
                                  facility.InstanceId)
                              && value.preparedOutput != null
                              && value.preparedOutput.phase !=
-                                 ProductionPreparedOutputPhase.Unresolved))
+                                  ProductionPreparedOutputPhase.Unresolved))
             {
+                if (!catalog.TryGetRecipe(
+                        record.recipeId,
+                        out ProductionRecipeSO preparedRecipe))
+                {
+                    throw new InvalidOperationException(
+                        $"Production output restore bill '{record.billId.Value}' has no recipe '{record.recipeId}'.");
+                }
+                ValidateResolvedSourceAuthority(
+                    record,
+                    preparedRecipe,
+                    facility,
+                    $"Production output restore bill '{record.billId.Value}'");
                 ProductionOutputBufferCapacitySourceSnapshot batchCapacity =
                     ValidateCapacitySource(
+                        record,
+                        preparedRecipe,
                         record.preparedOutput,
                         facility,
                         $"Production output restore bill '{record.billId.Value}'");
-                projectedCapacity = Math.Max(
-                    projectedCapacity,
-                    batchCapacity.RequiredMinimumCapacityGrams);
+                if (!string.Equals(
+                        projectedSource.ClearanceGateDigest,
+                        batchCapacity.ClearanceGateDigest,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        "Production output restore clearance authority drifted within facility '"
+                        + facility.InstanceId.Value + "'.");
+                }
+                if (batchCapacity.RequiredMinimumCapacityGrams
+                    > projectedCapacity)
+                {
+                    projectedSource = batchCapacity;
+                    projectedCapacity = batchCapacity.RequiredMinimumCapacityGrams;
+                }
             }
             long occupiedMass = occupancy.Capture(destinationId).TotalMassGrams;
             if (projectedCapacity == 0L)
@@ -159,13 +191,13 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 throw new InvalidOperationException(
                     $"Production output restore destination '{destinationId}' exceeds its exact {projectedCapacity}g capacity with {occupiedMass}g physical occupancy.");
             }
-            projectedByFacility.Add(facility.InstanceId.Value, projectedCapacity);
+            projectedByFacility.Add(facility.InstanceId.Value, projectedSource);
         }
 
         ProductionFacilityHandle[] capableFacilities = exactFacilities
             .Where(value => projectedByFacility.ContainsKey(value.InstanceId.Value))
             .ToArray();
-        if (!destinations.TryReplaceProjected(
+        if (!destinations.TryReplaceProjectedCapacitySources(
                 capableFacilities,
                 projectedByFacility,
                 out string authorityFailure))
@@ -237,20 +269,27 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility)
     {
-        if (!TryValidateScope(record, recipe, facility, out DomainFailure failure)
-            || !TryResolveBatch(record, recipe, facility, out ProductionPreparedOutputBatchSaveData batch, out failure))
+        if (!TryValidateScope(record, recipe, facility, out DomainFailure failure))
         {
             return ProductionPreparedOutputCapacityResult.Unavailable(failure);
         }
 
-        long bootstrapCapacity;
+        ProductionOutputBufferCapacitySourceSnapshot capacitySource;
         try
         {
-            bootstrapCapacity = ValidateCapacitySource(
-                    batch,
-                    facility,
-                    $"Production bill '{record.billId.Value}'")
-                .RequiredMinimumCapacityGrams;
+            // Cycle-start admission runs before physical inputs become durable
+            // WIP. Resolving an exact prepared batch here would therefore feed
+            // a zero input mass into process-loss/external-input equations and
+            // would also decide the exact outcome before work completion. The
+            // immutable facility portfolio is already the conservative maximum
+            // proof required for a read-only start check.
+            capacitySource = capacityProjector.CapturePortfolioSource(facility);
+            if (capacitySource.RequiredMinimumCapacityGrams <= 0L
+                || capacitySource.MaximumBatchMassGrams <= 0L)
+            {
+                throw new InvalidOperationException(
+                    "Prepared-output facility has no positive maximum capacity proof.");
+            }
         }
         catch (Exception exception) when (exception is ArgumentException
                                            or InvalidOperationException
@@ -262,7 +301,9 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 exception.Message));
         }
 
-        string destinationId = batch.destinationId;
+        long bootstrapCapacity = capacitySource.RequiredMinimumCapacityGrams;
+        long maximumBatchMass = capacitySource.MaximumBatchMassGrams;
+        string destinationId = record.outputDestinationId;
         if (!capacities.TryGetCapacity(
                 destinationId,
                 facility.Position,
@@ -289,7 +330,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             long used = checked(
                 physical.TotalMassGrams + capacity.ReservedMassGrams);
             if (used <= capacity.Profile.MaxMassGrams
-                && batch.totalPhysicalMassGrams
+                && maximumBatchMass
                     <= capacity.Profile.MaxMassGrams - used)
             {
                 return ProductionPreparedOutputCapacityResult.Available(
@@ -341,6 +382,8 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         try
         {
             bootstrapCapacity = ValidateCapacitySource(
+                    record,
+                    recipe,
                     batch,
                     facility,
                     $"Production bill '{record.billId.Value}'")
@@ -486,11 +529,12 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility)
     {
-        if (!TryCreateSilageRuinedDisposition(
+        if (!TryCreateRuinedDisposition(
                 record,
                 recipe,
                 facility,
                 out ProductionRuinedBatchDispositionPlan disposition,
+                out ProductionRuinedOutputCapacityClaim capacityClaim,
                 out DomainFailure failure))
         {
             return RuinedBlocked(record, failure);
@@ -517,6 +561,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                                 recipe,
                                 facility,
                                 disposition,
+                                capacityClaim,
                                 out ProductionPreparedOutputBatchSaveData resolved,
                                 out failure))
                         {
@@ -542,8 +587,9 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                         break;
 
                     case ProductionPreparedOutputPhase.Completed:
-                        if (!IsExactSilageRuinedBatch(
+                        if (!IsExactRuinedBatch(
                                 record.preparedOutput,
+                                recipe,
                                 disposition))
                         {
                             return RuinedBlocked(
@@ -606,9 +652,24 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             {
                 if (live.HasReceipt)
                 {
-                    return ProductionPreparedOutputReleaseResult.Blocked(
-                        true,
-                        Fail(record, "prepared-output-physical-batch-retained"));
+                    // Publication created physical stacks, but the admission
+                    // token has not been committed yet while the aggregate is
+                    // still PublicationPrepared.  Cancellation must roll that
+                    // uncommitted physical batch back before releasing its
+                    // reserved mass.  Once admission commit advances the
+                    // aggregate, the earlier physical-retained guard applies.
+                    if (!publication.TryRollbackPublishedBatch(
+                            live.Receipt,
+                            out _,
+                            out string rollbackFailure))
+                    {
+                        return ProductionPreparedOutputReleaseResult.Blocked(
+                            true,
+                            Fail(
+                                record,
+                                "prepared-output-publication-rollback-failed",
+                                rollbackFailure));
+                    }
                 }
                 if (!admission.TryReleasePlannedOutput(
                         live.Token,
@@ -656,12 +717,14 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         out DomainFailure failure)
     {
         ProductionPreparedOutputBatchSaveData batch = record.preparedOutput;
-        long capacity = ValidateCapacitySource(
+        ProductionOutputBufferCapacitySourceSnapshot capacity =
+            ValidateCapacitySource(
+                record,
+                recipe,
                 batch,
                 facility,
-                $"Production bill '{record.billId.Value}'")
-            .RequiredMinimumCapacityGrams;
-        if (!destinations.TryEnsure(
+                $"Production bill '{record.billId.Value}'");
+        if (!destinations.TryEnsureCapacitySource(
                 facility,
                 capacity,
                 out FacilityBufferCapacityProfile profile,
@@ -672,7 +735,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         }
 
         FacilityBufferPlannedOutputSlice[] slices = batch.lines
-            .Where(line => line.role != ProductionOutputRole.DeclaredLoss
+            .Where(line => ProductionOutputRoleRules.IsPhysical(line.role)
                 && line.quantity > 0)
             .Select(line => CreateSlice(line))
             .ToArray();
@@ -688,7 +751,8 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             profile.CapacityRevision,
             slices,
             batch.capacitySourceDigest,
-            batch.requiredMinimumCapacityGrams);
+            batch.requiredMinimumCapacityGrams,
+            capacity.ClearanceGateDigest);
         if (!admission.TryReservePlannedOutput(
                 request,
                 out FacilityBufferPlannedOutputToken token,
@@ -714,9 +778,39 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             return false;
         }
 
-        record.MarkPreparedOutputPublicationPrepared(
-            token.PlannedOutput.Fingerprint);
-        liveByBatch.Add(batch.batchCommitId, new LivePublication(token));
+        try
+        {
+            if (liveByBatch.ContainsKey(batch.batchCommitId))
+                throw new InvalidOperationException(
+                    $"Prepared output batch '{batch.batchCommitId}' already has a live publication owner.");
+            record.MarkPreparedOutputPublicationPrepared(
+                token.PlannedOutput.Fingerprint);
+            liveByBatch.Add(batch.batchCommitId, new LivePublication(token));
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            liveByBatch.Remove(batch.batchCommitId);
+            bool released = admission.TryReleasePlannedOutput(
+                token,
+                FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
+                out _,
+                out string releaseFailure);
+            if (record.preparedOutput?.phase ==
+                ProductionPreparedOutputPhase.PublicationPrepared)
+            {
+                record.ReturnPreparedOutputToWaitingForSpace();
+            }
+            failure = Fail(
+                record,
+                "prepared-output-reserve-publication-transition-failed",
+                exception.Message
+                    + (released
+                        ? string.Empty
+                        : ";release=" + releaseFailure));
+            return false;
+        }
         failure = DomainFailure.None;
         return true;
     }
@@ -906,10 +1000,10 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             foreach (CanonicalProductionResolvedOutputLine resolved in
                      resolution.Lines.OrderBy(value => value.OutputLineId, StringComparer.Ordinal))
             {
-                if (resolved.Role == ProductionOutputRole.DeclaredLoss)
+                if (ProductionOutputRoleRules.IsNonPhysical(resolved.Role))
                 {
                     throw new InvalidOperationException(
-                        "The first prepared-output slice does not support declared-loss output lines.");
+                        "Authored non-physical output lines cannot enter the physical prepared-output resolver.");
                 }
                 if (!catalog.TryGetItem(
                         resolved.ItemId,
@@ -918,8 +1012,12 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                     throw new InvalidOperationException(
                         $"Prepared output item '{resolved.ItemId}' is missing.");
                 }
+                ProductionOutputCapabilityDescriptor capability =
+                    bridge.CaptureOutputCapability(
+                        resolved.OutputLineId,
+                        resolved.ItemId);
                 ProductionPreparedOutputComponentProjection projection =
-                    componentCodec.Create(definition);
+                    materializers.Create(capability, definition);
                 long exactMass = resolved.ResolvedQuantity == 0
                     ? 0L
                     : massQuery.GetQuantityMass(
@@ -932,6 +1030,11 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                     outputLineId = resolved.OutputLineId,
                     role = resolved.Role,
                     itemId = resolved.ItemId,
+                    outputCapabilityId = capability.CapabilityId,
+                    outputCapabilityVersion = capability.CapabilityVersion,
+                    outputComponentCodecId = capability.ComponentCodecId,
+                    outputComponentCodecVersion = capability.ComponentCodecVersion,
+                    outputCapabilityFingerprint = capability.Fingerprint,
                     quantity = resolved.ResolvedQuantity,
                     componentPayload = projection.CanonicalPayload,
                     componentFingerprint = projection.Fingerprint,
@@ -946,8 +1049,87 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             if (physicalMass <= 0L)
                 throw new InvalidOperationException("Prepared output resolved no physical mass.");
 
+            ProductionPreparedOutputCapacityClaim capacityClaim =
+                capacityProjector.CapturePreparedClaim(
+                    record.billId.Value,
+                    record.cycleSequence,
+                    recipe,
+                    lines);
+            if (capacityClaim.ExactBatchMassGrams != physicalMass)
+            {
+                throw new InvalidOperationException(
+                    "Prepared output exact mass drifted from its capacity claim.");
+            }
             ProductionOutputBufferCapacitySourceSnapshot capacitySource =
-                capacityProjector.CaptureSource(facility, physicalMass);
+                capacityProjector.CaptureSource(facility, capacityClaim);
+
+            long declaredLossMass = 0L;
+            long declaredExternalInputMass = 0L;
+            ProductionMassExplanationAuthoringSnapshot massAuthoring =
+                recipe.MassExplanation;
+            if (!massAuthoring.IsEmpty)
+            {
+                ProductionMassExplanationDisposition disposition =
+                    massExplanations.Resolve(
+                        massAuthoring,
+                        new ProductionMassExplanationEquationSubject(
+                            recipe.RecipeId,
+                            record.wipInputMassGrams,
+                            0L,
+                            record.processCleanWaterMassGrams,
+                            physicalMass,
+                            record.processWastewaterMassGrams,
+                            0L));
+                if (!disposition.HasDisposition)
+                {
+                    throw new InvalidOperationException(
+                        "Authored production mass explanation resolved no disposition.");
+                }
+                declaredLossMass = disposition.DeclaredLossGrams;
+                declaredExternalInputMass =
+                    disposition.DeclaredExternalInputGrams;
+                if (declaredLossMass > 0L)
+                {
+                    lines.Add(new ProductionPreparedOutputLineSaveData
+                    {
+                        outputLineId = BuildProcessLossOutputLineId(
+                            recipe.RecipeId),
+                        role = ProductionOutputRole.DeclaredLoss,
+                        itemId = string.Empty,
+                        quantity = 0,
+                        componentPayload = disposition.CanonicalReceiptPayload,
+                        componentFingerprint = disposition.Fingerprint,
+                        qualityPermille = 1000,
+                        rollKind = "process-loss",
+                        rollValue = 0L,
+                        rollUpperExclusive = 1L,
+                        rollSucceeded = true,
+                        exactMassGrams = declaredLossMass
+                    });
+                }
+                else if (declaredExternalInputMass > 0L)
+                {
+                    lines.Add(new ProductionPreparedOutputLineSaveData
+                    {
+                        outputLineId = BuildProcessExternalInputOutputLineId(
+                            recipe.RecipeId),
+                        role = ProductionOutputRole.DeclaredExternalInput,
+                        itemId = string.Empty,
+                        quantity = 0,
+                        componentPayload = disposition.CanonicalReceiptPayload,
+                        componentFingerprint = disposition.Fingerprint,
+                        qualityPermille = 1000,
+                        rollKind = "process-addition",
+                        rollValue = 0L,
+                        rollUpperExclusive = 1L,
+                        rollSucceeded = true,
+                        exactMassGrams = declaredExternalInputMass
+                    });
+                }
+                lines = lines
+                    .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+                    .ToList();
+            }
 
             string outcomeFingerprint = ComputeOutcomeFingerprint(
                 resolution,
@@ -971,8 +1153,13 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 destinationId = record.outputDestinationId,
                 recipeDefinitionDigest = recipeDigest,
                 migrationProfileDigest = ProductionPreparedOutputMigrationScope
-                    .CaptureProfileDigest(recipe.RecipeId),
+                    .CaptureProfileDigest(recipe),
                 capacitySourceDigest = capacitySource.SourceDigest,
+                maximumMassProofDigest = capacityClaim.MaximumMassProof
+                    .SourceDigest,
+                maximumBatchMassGrams = capacityClaim.MaximumMassProof
+                    .MaximumBatchMassGrams,
+                capacityClaimDigest = capacityClaim.SourceDigest,
                 outputBufferCycleCapacity = capacitySource.CycleCapacity,
                 projectedPortfolioCapacityGrams = capacitySource
                     .ProjectedPortfolioCapacityGrams,
@@ -981,7 +1168,9 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 outcomeFingerprint = outcomeFingerprint,
                 batchCommitId = batchCommitId,
                 totalPhysicalMassGrams = physicalMass,
-                totalDeclaredLossMassGrams = 0L,
+                totalDeclaredLossMassGrams = declaredLossMass,
+                totalDeclaredExternalInputMassGrams =
+                    declaredExternalInputMass,
                 lines = lines
             };
             ProductionPreparedOutputContract.ValidateForBill(
@@ -1009,6 +1198,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility,
         ProductionRuinedBatchDispositionPlan disposition,
+        ProductionRuinedOutputCapacityClaim capacityClaim,
         out ProductionPreparedOutputBatchSaveData batch,
         out DomainFailure failure)
     {
@@ -1035,7 +1225,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                     exception.Message);
                 return false;
             }
-            if (!IsExactSilageRuinedBatch(batch, disposition))
+            if (!IsExactRuinedBatch(batch, recipe, disposition))
             {
                 failure = Fail(record, "ruined-output-existing-batch-conflict");
                 return false;
@@ -1058,13 +1248,22 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                     throw new InvalidOperationException(
                         $"Ruined output item '{authored.ItemId}' is missing.");
                 }
+                ProductionOutputCapabilityDescriptor capability =
+                    bridge.CaptureOutputCapability(
+                        authored.OutputLineId,
+                        authored.ItemId);
                 ProductionPreparedOutputComponentProjection projection =
-                    componentCodec.Create(definition);
+                    materializers.Create(capability, definition);
                 lines.Add(new ProductionPreparedOutputLineSaveData
                 {
                     outputLineId = authored.OutputLineId,
                     role = authored.Role,
                     itemId = authored.ItemId,
+                    outputCapabilityId = capability.CapabilityId,
+                    outputCapabilityVersion = capability.CapabilityVersion,
+                    outputComponentCodecId = capability.ComponentCodecId,
+                    outputComponentCodecVersion = capability.ComponentCodecVersion,
+                    outputCapabilityFingerprint = capability.Fingerprint,
                     quantity = 0,
                     componentPayload = projection.CanonicalPayload,
                     componentFingerprint = projection.Fingerprint,
@@ -1084,8 +1283,13 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 throw new InvalidOperationException(
                     $"Ruined recoverable item '{disposition.SpoilageItemId}' is missing.");
             }
+            ProductionOutputCapabilityDescriptor wasteCapability =
+                bridge.CaptureOutputCapability(
+                    ProductionRuinedBatchDispositionPlan
+                        .RecoverableWasteOutputLineId,
+                    disposition.SpoilageItemId);
             ProductionPreparedOutputComponentProjection wasteProjection =
-                componentCodec.Create(spoilageDefinition);
+                materializers.Create(wasteCapability, spoilageDefinition);
             long queriedWasteMass = massQuery.GetQuantityMass(
                     (ItemDefinitionId)disposition.SpoilageItemId,
                     wasteProjection.MassSubject,
@@ -1102,6 +1306,11 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                     .RecoverableWasteOutputLineId,
                 role = ProductionOutputRole.RecoverableWaste,
                 itemId = disposition.SpoilageItemId,
+                outputCapabilityId = wasteCapability.CapabilityId,
+                outputCapabilityVersion = wasteCapability.CapabilityVersion,
+                outputComponentCodecId = wasteCapability.ComponentCodecId,
+                outputComponentCodecVersion = wasteCapability.ComponentCodecVersion,
+                outputCapabilityFingerprint = wasteCapability.Fingerprint,
                 quantity = disposition.RecoverableWasteQuantity,
                 componentPayload = wasteProjection.CanonicalPayload,
                 componentFingerprint = wasteProjection.Fingerprint,
@@ -1116,7 +1325,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             if (disposition.DeclaredLossMassGrams > 0L)
             {
                 const string lossPayload =
-                    "production-ruined-declared-loss@1|reason=fermentation-loss";
+                    "production-ruined-declared-loss@1|reason=passive-batch-ruin-remainder";
                 lines.Add(new ProductionPreparedOutputLineSaveData
                 {
                     outputLineId = ProductionRuinedBatchDispositionPlan
@@ -1139,13 +1348,28 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
                 .ToList();
             string recipeDigest = ComputeRecipeDigest(recipe);
+            if (capacityClaim == null
+                || capacityClaim.Disposition.RecoverableWasteQuantity
+                    != disposition.RecoverableWasteQuantity
+                || capacityClaim.Disposition.RecoverableWasteMassGrams
+                    != disposition.RecoverableWasteMassGrams)
+            {
+                throw new InvalidOperationException(
+                    "Ruined output capacity claim drifted before batch resolution.");
+            }
             ProductionOutputBufferCapacitySourceSnapshot capacitySource =
-                capacityProjector.CaptureSource(
-                    facility,
-                    disposition.RecoverableWasteMassGrams);
+                capacityProjector.CaptureSource(facility, capacityClaim);
+            if (disposition.RecoverableWasteMassGrams
+                > capacityClaim.MaximumMassProof.MaximumBatchMassGrams)
+            {
+                throw new InvalidOperationException(
+                    "Ruined output exceeds its pre-publication maximum-mass proof.");
+            }
             string outcomeFingerprint = ComputeRuinedOutcomeFingerprint(
                 record,
+                recipe,
                 disposition,
+                capacityClaim,
                 lines);
             string batchCommitId = ProductionPreparedOutputIdentity.BuildBatchCommitId(
                 record.billId,
@@ -1166,8 +1390,13 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 destinationId = record.outputDestinationId,
                 recipeDefinitionDigest = recipeDigest,
                 migrationProfileDigest = ProductionPreparedOutputMigrationScope
-                    .CaptureProfileDigest(recipe.RecipeId),
+                    .CaptureProfileDigest(recipe),
                 capacitySourceDigest = capacitySource.SourceDigest,
+                maximumMassProofDigest = capacityClaim.MaximumMassProof
+                    .SourceDigest,
+                maximumBatchMassGrams = capacityClaim.MaximumMassProof
+                    .MaximumBatchMassGrams,
+                capacityClaimDigest = capacityClaim.SourceDigest,
                 outputBufferCycleCapacity = capacitySource.CycleCapacity,
                 projectedPortfolioCapacityGrams = capacitySource
                     .ProjectedPortfolioCapacityGrams,
@@ -1185,7 +1414,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 recipe.RecipeId,
                 record.cycleSequence,
                 record.outputDestinationId);
-            if (!IsExactSilageRuinedBatch(batch, disposition))
+            if (!IsExactRuinedBatch(batch, recipe, disposition))
                 throw new InvalidOperationException("Ruined output batch is not exact.");
             failure = DomainFailure.None;
             return true;
@@ -1206,11 +1435,26 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
     {
         if (!catalog.TryGetItem(line.itemId, out ResourceItemDefinitionSO definition))
             throw new InvalidOperationException($"Prepared output item '{line.itemId}' is missing.");
+        ProductionOutputCapabilityDescriptor capability = new(
+            line.outputLineId,
+            line.itemId,
+            line.outputCapabilityId,
+            line.outputCapabilityVersion,
+            line.outputComponentCodecId,
+            line.outputComponentCodecVersion,
+            line.outputCapabilityFingerprint);
         ProductionPreparedOutputComponentProjection projection =
-            componentCodec.ValidateAndDecode(
+            materializers.ValidateAndDecode(
+                capability,
                 definition,
                 line.componentPayload,
                 line.componentFingerprint);
+        if (projection.MassSubject.ItemInstanceId.Length != 0
+            && line.quantity != 1)
+        {
+            throw new InvalidOperationException(
+                $"Prepared output line '{line.outputLineId}' cannot materialize multiple unique instances from one saved state.");
+        }
         return new FacilityBufferPlannedOutputSlice(
             line.outputLineId,
             projection.MassSubject,
@@ -1352,16 +1596,73 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             StringComparison.Ordinal);
 
     private ProductionOutputBufferCapacitySourceSnapshot ValidateCapacitySource(
+        ProductionBillRecord record,
+        ProductionRecipeSO recipe,
         ProductionPreparedOutputBatchSaveData batch,
         ProductionFacilityHandle facility,
         string context)
     {
-        if (batch == null)
+        if (record == null || recipe == null || batch == null)
             throw new ArgumentNullException(nameof(batch));
-        ProductionOutputBufferCapacitySourceSnapshot current =
-            capacityProjector.CaptureSource(
-                facility,
-                batch.totalPhysicalMassGrams);
+        ProductionOutputBufferCapacitySourceSnapshot current;
+        ProductionPreparedOutputLineSaveData ruinedWaste = batch.lines?
+            .SingleOrDefault(value => value != null
+                && value.role == ProductionOutputRole.RecoverableWaste
+                && string.Equals(
+                    value.outputLineId,
+                    ProductionRuinedBatchDispositionPlan
+                        .RecoverableWasteOutputLineId,
+                    StringComparison.Ordinal));
+        if (ruinedWaste != null)
+        {
+            ProductionOutputCapabilityDescriptor descriptor = new(
+                ruinedWaste.outputLineId,
+                ruinedWaste.itemId,
+                ruinedWaste.outputCapabilityId,
+                ruinedWaste.outputCapabilityVersion,
+                ruinedWaste.outputComponentCodecId,
+                ruinedWaste.outputComponentCodecVersion,
+                ruinedWaste.outputCapabilityFingerprint);
+            ProductionRuinedOutputCapacityClaim claim = capacityProjector
+                .CaptureRuinedClaim(record, recipe, descriptor);
+            if (!string.Equals(
+                    batch.maximumMassProofDigest,
+                    claim.MaximumMassProof.SourceDigest,
+                    StringComparison.Ordinal)
+                || batch.maximumBatchMassGrams
+                    != claim.MaximumMassProof.MaximumBatchMassGrams
+                || !string.Equals(
+                    batch.capacityClaimDigest,
+                    claim.SourceDigest,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    (context ?? string.Empty)
+                    + ":prepared-output-capacity-proof-stale");
+            }
+            current = capacityProjector.CaptureSource(facility, claim);
+        }
+        else
+        {
+            ProductionPreparedOutputCapacityClaim claim = capacityProjector
+                .CapturePreparedClaim(batch, recipe);
+            if (!string.Equals(
+                    batch.maximumMassProofDigest,
+                    claim.MaximumMassProof.SourceDigest,
+                    StringComparison.Ordinal)
+                || batch.maximumBatchMassGrams
+                    != claim.MaximumMassProof.MaximumBatchMassGrams
+                || !string.Equals(
+                    batch.capacityClaimDigest,
+                    claim.SourceDigest,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    (context ?? string.Empty)
+                    + ":prepared-output-capacity-proof-stale");
+            }
+            current = capacityProjector.CaptureSource(facility, claim);
+        }
         return ProductionOutputBufferCapacitySourceGuard.ValidateSaved(
             batch,
             current,
@@ -1385,7 +1686,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             recipe.RecipeId,
             record.cycleSequence,
             record.outputDestinationId);
-        ProductionPreparedOutputMigrationScope.ValidateExactProfileOrThrow(
+        ProductionPreparedOutputMigrationScope.ValidateCanonicalProfileOrThrow(
             recipe);
         ProductionPreparedOutputSourceRevisionGuard.ValidateResolvedBatch(
             batch,
@@ -1393,11 +1694,27 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             context);
         ProductionPreparedOutputMigrationScope.ValidateSavedProfileDigest(
             batch,
+            recipe,
             context);
         foreach (ProductionPreparedOutputLineSaveData line in batch.lines
-                     .Where(value => value.role
-                         != ProductionOutputRole.DeclaredLoss))
+                     .Where(value => ProductionOutputRoleRules.IsPhysical(
+                         value.role)))
         {
+            ProductionOutputCapabilityDescriptor capability = new(
+                line.outputLineId,
+                line.itemId,
+                line.outputCapabilityId,
+                line.outputCapabilityVersion,
+                line.outputComponentCodecId,
+                line.outputComponentCodecVersion,
+                line.outputCapabilityFingerprint);
+            if (!bridge.TryValidateOutputCapability(
+                    capability,
+                    out DomainFailure capabilityFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Prepared output line '{line.outputLineId}' has a missing or drifted output capability: {capabilityFailure.Code}.");
+            }
             if (!catalog.TryGetItem(
                     line.itemId,
                     out ResourceItemDefinitionSO definition))
@@ -1405,15 +1722,16 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 throw new InvalidOperationException(
                     $"Prepared output item '{line.itemId}' is missing.");
             }
-            componentCodec.ValidateAndDecode(
+            materializers.ValidateAndDecode(
+                capability,
                 definition,
                 line.componentPayload,
                 line.componentFingerprint);
         }
-        ValidateCapacitySource(batch, facility, context);
+        ValidateCapacitySource(record, recipe, batch, facility, context);
     }
 
-    private static bool TryValidateScope(
+    private bool TryValidateScope(
         ProductionBillRecord record,
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility,
@@ -1425,8 +1743,8 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             || facility.IsDestroyed
             || ProductionPreparedOutputMigrationScope
                 .HasLegacyOutputAuthority(record)
-            || !ProductionPreparedOutputMigrationScope.Contains(recipe.RecipeId)
-            || !ProductionPreparedOutputMigrationScope.MatchesExactProfile(recipe)
+            || !ProductionPreparedOutputCapabilitySelection
+                .UsesPreparedOutputMaterializer(recipe, bridge)
             || !string.Equals(record.recipeId, recipe.RecipeId, StringComparison.Ordinal)
             || !record.buildingInstanceId.Equals(facility.InstanceId)
             || !string.Equals(
@@ -1441,81 +1759,157 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         return true;
     }
 
-    private static bool TryCreateSilageRuinedDisposition(
+    private bool TryCreateRuinedDisposition(
         ProductionBillRecord record,
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility,
         out ProductionRuinedBatchDispositionPlan disposition,
+        out ProductionRuinedOutputCapacityClaim capacityClaim,
         out DomainFailure failure)
     {
         disposition = default;
+        capacityClaim = null;
         if (!TryValidateScope(record, recipe, facility, out failure))
             return false;
-        if (!string.Equals(recipe.RecipeId, SilageRecipeId, StringComparison.Ordinal)
-            || recipe.ProcessKind != ProductionProcessKind.PassiveBatch
-            || !string.Equals(
-                recipe.SpoilageItemId,
-                PlantRotItemId,
-                StringComparison.Ordinal)
+        if (recipe.ProcessKind != ProductionProcessKind.PassiveBatch
             || record.batchIntegrity > 0f
-            || record.wipInputMassGrams != SilageRuinedWipMassGrams
-            || record.processCleanWaterMassGrams !=
-                SilageRuinedCleanWaterMassGrams
-            || record.processWastewaterMassGrams != 0L
+            || record.wipInputMassGrams <= 0L
+            || record.processCleanWaterMassGrams < 0L
+            || record.processWastewaterMassGrams < 0L
             || ProductionPreparedOutputMigrationScope
                 .HasLegacyOutputAuthority(record))
         {
-            failure = Fail(record, "ruined-output-silage-contract-invalid");
+            failure = Fail(record, "ruined-output-capability-contract-invalid");
+            return false;
+        }
+        if (recipe.CaptureCanonicalOutputs().Any(output => string.Equals(
+                    output.OutputLineId,
+                    ProductionRuinedBatchDispositionPlan
+                        .RecoverableWasteOutputLineId,
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    output.OutputLineId,
+                    ProductionRuinedBatchDispositionPlan.DeclaredLossOutputLineId,
+                    StringComparison.Ordinal)))
+        {
+            failure = Fail(record, "ruined-output-reserved-line-id-conflict");
             return false;
         }
 
         try
         {
-            disposition = ProductionRuinedBatchDispositionPlan.Create(
-                record.wipInputMassGrams,
-                record.processCleanWaterMassGrams,
-                record.processWastewaterMassGrams,
-                recipe.SpoilageItemId,
-                PlantRotUnitMassGrams);
-            if (disposition.AvailableMassGrams !=
-                    SilageRuinedAvailableMassGrams
-                || disposition.RecoverableWasteQuantity != 1
-                || disposition.RecoverableWasteMassGrams !=
-                    PlantRotUnitMassGrams
-                || disposition.DeclaredLossMassGrams != 90L)
+            if (!catalog.TryGetItem(
+                    recipe.SpoilageItemId,
+                    out ResourceItemDefinitionSO spoilageDefinition))
             {
-                failure = Fail(record, "ruined-output-silage-mass-invalid");
+                failure = Fail(
+                    record,
+                    "ruined-output-spoilage-item-missing",
+                    recipe.SpoilageItemId);
+                return false;
+            }
+            ProductionOutputCapabilityDescriptor spoilageCapability =
+                bridge.CaptureOutputCapability(
+                    ProductionRuinedBatchDispositionPlan
+                        .RecoverableWasteOutputLineId,
+                    recipe.SpoilageItemId);
+            try
+            {
+                materializers.ValidateDescriptor(spoilageCapability);
+            }
+            catch (InvalidOperationException exception)
+            {
+                failure = Fail(
+                    record,
+                    "ruined-output-spoilage-capability-unsupported",
+                    recipe.SpoilageItemId,
+                    exception.Message);
+                return false;
+            }
+            capacityClaim = capacityProjector.CaptureRuinedClaim(
+                record,
+                recipe,
+                spoilageCapability);
+            disposition = capacityClaim.Disposition;
+            if (disposition.SpoilageUnitMassGrams <= 0L
+                || checked(
+                    disposition.RecoverableWasteMassGrams
+                    + disposition.ProcessWastewaterMassGrams
+                    + disposition.DeclaredLossMassGrams)
+                    != disposition.AvailableMassGrams)
+            {
+                failure = Fail(record, "ruined-output-capability-mass-invalid");
                 disposition = default;
+                capacityClaim = null;
                 return false;
             }
             failure = DomainFailure.None;
             return true;
         }
         catch (Exception exception) when (exception is ArgumentException
+                                           or KeyNotFoundException
                                            or InvalidOperationException
                                            or OverflowException)
         {
-            failure = Fail(record, "ruined-output-silage-plan-failed", exception.Message);
+            failure = Fail(
+                record,
+                "ruined-output-capability-plan-failed",
+                exception.Message);
             disposition = default;
+            capacityClaim = null;
             return false;
         }
     }
 
-    private static bool IsExactSilageRuinedBatch(
+    private static bool IsExactRuinedBatch(
         ProductionPreparedOutputBatchSaveData batch,
+        ProductionRecipeSO recipe,
         ProductionRuinedBatchDispositionPlan disposition)
     {
         if (batch == null
-            || !string.Equals(batch.recipeId, SilageRecipeId, StringComparison.Ordinal)
-            || batch.totalPhysicalMassGrams != PlantRotUnitMassGrams
-            || batch.totalDeclaredLossMassGrams != 90L
+            || recipe == null
+            || !string.Equals(
+                batch.recipeId,
+                recipe.RecipeId,
+                StringComparison.Ordinal)
+            || batch.totalPhysicalMassGrams !=
+                disposition.RecoverableWasteMassGrams
+            || batch.totalDeclaredLossMassGrams !=
+                disposition.DeclaredLossMassGrams
             || batch.lines == null
-            || batch.lines.Count != 3)
+            || batch.lines.Any(value => value == null)
+            || batch.lines.Select(value => value.outputLineId)
+                .Distinct(StringComparer.Ordinal).Count() != batch.lines.Count)
         {
             return false;
         }
-        ProductionPreparedOutputLineSaveData main = batch.lines.SingleOrDefault(
-            value => value != null && value.role == ProductionOutputRole.Main);
+        ProductionOutputDefinition[] authored = recipe.CaptureCanonicalOutputs()
+            .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
+            .ToArray();
+        int expectedLineCount = authored.Length + 1
+            + (disposition.DeclaredLossMassGrams > 0L ? 1 : 0);
+        if (batch.lines.Count != expectedLineCount)
+            return false;
+        foreach (ProductionOutputDefinition output in authored)
+        {
+            ProductionPreparedOutputLineSaveData failed = batch.lines
+                .SingleOrDefault(value => string.Equals(
+                    value.outputLineId,
+                    output.OutputLineId,
+                    StringComparison.Ordinal));
+            if (failed == null
+                || failed.role != output.Role
+                || !string.Equals(
+                    failed.itemId,
+                    output.ItemId,
+                    StringComparison.Ordinal)
+                || failed.rollSucceeded
+                || failed.quantity != 0
+                || failed.exactMassGrams != 0L)
+            {
+                return false;
+            }
+        }
         ProductionPreparedOutputLineSaveData waste = batch.lines.SingleOrDefault(
             value => value != null
                 && value.role == ProductionOutputRole.RecoverableWaste
@@ -1532,11 +1926,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                     ProductionRuinedBatchDispositionPlan
                         .DeclaredLossOutputLineId,
                     StringComparison.Ordinal));
-        return main != null
-            && !main.rollSucceeded
-            && main.quantity == 0
-            && main.exactMassGrams == 0L
-            && waste != null
+        return waste != null
             && string.Equals(
                 waste.itemId,
                 disposition.SpoilageItemId,
@@ -1544,11 +1934,14 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             && waste.rollSucceeded
             && waste.quantity == disposition.RecoverableWasteQuantity
             && waste.exactMassGrams == disposition.RecoverableWasteMassGrams
-            && loss != null
-            && loss.rollSucceeded
-            && loss.quantity == 0
-            && loss.itemId.Length == 0
-            && loss.exactMassGrams == disposition.DeclaredLossMassGrams;
+            && (disposition.DeclaredLossMassGrams == 0L
+                ? loss == null
+                : loss != null
+                    && loss.rollSucceeded
+                    && loss.quantity == 0
+                    && loss.itemId.Length == 0
+                    && loss.exactMassGrams ==
+                        disposition.DeclaredLossMassGrams);
     }
 
     private static ProductionPreparedOutputExecutionResult Block(
@@ -1607,12 +2000,20 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
     private static string ComputeRecipeDigest(ProductionRecipeSO recipe)
         => ProductionRecipeSemanticDigest.Capture(recipe);
 
+    private static string BuildProcessLossOutputLineId(string recipeId) =>
+        "output:" + recipeId + "/999/declared-loss/process-loss";
+
+    private static string BuildProcessExternalInputOutputLineId(
+        string recipeId) =>
+        "output:" + recipeId
+        + "/999/declared-external-input/process-addition";
+
     private static string ComputeOutcomeFingerprint(
         CanonicalProductionOutputResolution resolution,
         IEnumerable<ProductionPreparedOutputLineSaveData> lines)
     {
         StringBuilder text = new();
-        Append(text, "production-prepared-outcome-v1");
+        Append(text, "production-prepared-outcome-v2");
         Append(text, resolution.RootSeed.ToString(CultureInfo.InvariantCulture));
         Append(text, resolution.BillId.Value);
         Append(text, resolution.CycleSequence.ToString(CultureInfo.InvariantCulture));
@@ -1626,6 +2027,13 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             Append(text, line.outputLineId);
             Append(text, ((int)line.role).ToString(CultureInfo.InvariantCulture));
             Append(text, line.itemId);
+            Append(text, line.outputCapabilityId);
+            Append(text, line.outputCapabilityVersion.ToString(
+                CultureInfo.InvariantCulture));
+            Append(text, line.outputComponentCodecId);
+            Append(text, line.outputComponentCodecVersion.ToString(
+                CultureInfo.InvariantCulture));
+            Append(text, line.outputCapabilityFingerprint);
             Append(text, line.quantity.ToString(CultureInfo.InvariantCulture));
             Append(text, line.exactMassGrams.ToString(CultureInfo.InvariantCulture));
             Append(text, line.componentFingerprint);
@@ -1636,26 +2044,39 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
 
     private static string ComputeRuinedOutcomeFingerprint(
         ProductionBillRecord record,
+        ProductionRecipeSO recipe,
         ProductionRuinedBatchDispositionPlan disposition,
+        ProductionRuinedOutputCapacityClaim capacityClaim,
         IEnumerable<ProductionPreparedOutputLineSaveData> lines)
     {
         StringBuilder text = new();
-        Append(text, "production-ruined-outcome-v1");
+        Append(text, "production-ruined-outcome-v4");
         Append(text, record.billId.Value);
         Append(text, record.cycleSequence.ToString(CultureInfo.InvariantCulture));
-        Append(text, SilageRecipeId);
+        Append(text, recipe.RecipeId);
         Append(text, record.wipInputMassGrams.ToString(CultureInfo.InvariantCulture));
         Append(text, record.processCleanWaterMassGrams.ToString(
             CultureInfo.InvariantCulture));
         Append(text, record.processWastewaterMassGrams.ToString(
             CultureInfo.InvariantCulture));
         Append(text, disposition.SpoilageItemId);
+        Append(text, capacityClaim.SourceDigest);
+        Append(text, capacityClaim.MaximumMassProof.SourceDigest);
+        Append(text, capacityClaim.MaximumMassProof.MaximumBatchMassGrams
+            .ToString(CultureInfo.InvariantCulture));
         foreach (ProductionPreparedOutputLineSaveData line in lines
                      .OrderBy(value => value.outputLineId, StringComparer.Ordinal))
         {
             Append(text, line.outputLineId);
             Append(text, ((int)line.role).ToString(CultureInfo.InvariantCulture));
             Append(text, line.itemId);
+            Append(text, line.outputCapabilityId);
+            Append(text, line.outputCapabilityVersion.ToString(
+                CultureInfo.InvariantCulture));
+            Append(text, line.outputComponentCodecId);
+            Append(text, line.outputComponentCodecVersion.ToString(
+                CultureInfo.InvariantCulture));
+            Append(text, line.outputCapabilityFingerprint);
             Append(text, line.quantity.ToString(CultureInfo.InvariantCulture));
             Append(text, line.exactMassGrams.ToString(CultureInfo.InvariantCulture));
             Append(text, line.componentFingerprint);

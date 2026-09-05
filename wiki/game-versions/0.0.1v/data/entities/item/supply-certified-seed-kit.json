@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "18"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "발아와 품종 기록을 확인한 종자를 파종 단위별로 나눠 담은 꾸러미다. 므네실라의 종자 꾸러미 안쪽에는 품종, 채종 연도와 예상 발아율을 함께 적는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-certified-seed-kit",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 인증 품종 종자 꾸러미.",
+  "title": "인증 품종 종자 꾸러미"
+}

@@ -139,7 +139,8 @@ public sealed class ProductionRecipeConsumerDemandProvider :
             }
         }
 
-        if (ProductionPreparedOutputMigrationScope.Contains(recipe.RecipeId))
+        if (ProductionPreparedOutputCapabilitySelection
+            .UsesPreparedOutputMaterializer(recipe, bridge))
         {
             if (ProductionPreparedOutputMigrationScope
                 .HasLegacyOutputAuthority(bill))

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "proficiency-medicine",
+    "spoiler_tier": "none",
+    "title": "의료"
+  },
+  "edges": [],
+  "schema_version": 1
+}

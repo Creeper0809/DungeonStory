@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-ammo-tranquilizer-dart",
+    "spoiler_tier": "none",
+    "title": "진정 다트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-tranquilizer-dart",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-tranquilizer-dart",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-tranquilizer-dart",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-tranquilizer-dart",
+      "target_spoiler_tier": "none",
+      "target_title": "진정 다트",
+      "to": "item/ammo-tranquilizer-dart",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-tranquilizer-dart",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

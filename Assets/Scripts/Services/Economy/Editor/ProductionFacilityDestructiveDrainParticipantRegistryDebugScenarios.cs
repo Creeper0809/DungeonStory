@@ -29,7 +29,9 @@ public static class
             ProductionFacilityDestructiveDrainParticipantIds
                 .CapacityRoutingOutbox,
             ProductionFacilityDestructiveDrainParticipantIds
-                .PhysicalCustodyCarryRecovery
+                .PhysicalCustodyCarryRecovery,
+            ProductionFacilityDestructiveDrainParticipantIds
+                .StockSensorEmbeddedSalvage
         };
         Require(
             forward.ExecutionOrder.Select(value => value.ParticipantId)
@@ -72,7 +74,7 @@ public static class
 
         RequireThrows(
             () => new ProductionFacilityDestructiveDrainParticipantRegistry(
-                canonical.Take(4)),
+                canonical.Take(5)),
             "a missing required destructive-drain participant was accepted");
         RequireThrows(
             () => new ProductionFacilityDestructiveDrainParticipantRegistry(
@@ -271,6 +273,15 @@ public static class
                 {
                     ProductionFacilityDestructiveDrainParticipantIds
                         .CapacityRoutingOutbox
+                }),
+            new FakeParticipant(
+                ProductionFacilityDestructiveDrainParticipantIds
+                    .StockSensorEmbeddedSalvage,
+                2,
+                new[]
+                {
+                    ProductionFacilityDestructiveDrainParticipantIds
+                        .PhysicalCustodyCarryRecovery
                 })
         };
 

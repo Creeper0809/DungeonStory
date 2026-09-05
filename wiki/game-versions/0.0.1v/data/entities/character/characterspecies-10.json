@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-adventurer",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Adventurer",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-adventurer",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Adventurer",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-adventurer",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Adventurer",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "characterspecies-10",
+  "spoiler_tier": "none",
+  "summary": "던전을 침입하는 적대적 외부 원정자 종족 정의다.",
+  "title": "원정자"
+}

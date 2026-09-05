@@ -1,0 +1,5 @@
+stable_id,legacy_source_path,canonical_source_path,canonical_design_row,reconciliation_status
+festival:high-sun,Assets/Resources/SO/Population/Festivals/festival_high-sun.asset,Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,"같은 stable ID의 구형 빈 설명 자산; V20 정의를 단일 설계 권위로 사용; 자산 정리는 구현 체크리스트 OPEN"
+festival:long-night-memorial,Assets/Resources/SO/Population/Festivals/festival_long-night-memorial.asset,Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,"같은 stable ID의 구형 빈 설명 자산; V20 정의를 단일 설계 권위로 사용; 자산 정리는 구현 체크리스트 OPEN"
+festival:sprout,Assets/Resources/SO/Population/Festivals/festival_sprout.asset,Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,"같은 stable ID의 구형 빈 설명 자산; V20 정의를 단일 설계 권위로 사용; 자산 정리는 구현 체크리스트 OPEN"
+festival:storage,Assets/Resources/SO/Population/Festivals/festival_storage.asset,Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,"같은 stable ID의 구형 빈 설명 자산; V20 정의를 단일 설계 권위로 사용; 자산 정리는 구현 체크리스트 OPEN"

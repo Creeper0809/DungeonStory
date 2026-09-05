@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Metallurgy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1080",
+      "target_spoiler_tier": "none",
+      "target_title": "제강로",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-metallurgy-steel",
+  "spoiler_tier": "none",
+  "summary": "철과 숯으로 더 단단하고 가벼운 강철을 만든다.",
+  "title": "제강"
+}

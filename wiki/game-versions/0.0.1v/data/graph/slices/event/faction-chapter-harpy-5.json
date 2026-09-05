@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-harpy-5",
+    "spoiler_tier": "warning",
+    "title": "폭풍여왕의 거짓 노래"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-harpy-5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독제",
+      "to": "item/medicine-antiseptic",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-chapter-harpy-5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독제",
+      "to": "item/medicine-antiseptic",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "to": "event/faction-chapter-harpy-5",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

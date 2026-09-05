@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Captivity And Entertainment"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-show",
+      "target_spoiler_tier": "none",
+      "target_title": "흥행 운영",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-show",
+      "target_spoiler_tier": "none",
+      "target_title": "흥행 운영",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-show",
+      "target_spoiler_tier": "none",
+      "target_title": "흥행 운영",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8808",
+      "target_spoiler_tier": "none",
+      "target_title": "피의 무대 배수구",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-control-blood-show",
+  "spoiler_tier": "none",
+  "summary": "위험 공연과 공개 처벌을 통제된 흥행으로 만든다.",
+  "title": "피의 흥행"
+}

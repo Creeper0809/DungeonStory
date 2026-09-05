@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "제작"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-8830",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 장비 정비, 생산 작업대이다. 건설에는 작업량 369, 재료 석재 블록×10, 강철×6, 기계 부품×4, 정밀 부품×1, 외 1개이 필요하다.",
+  "title": "정비 부품함"
+}

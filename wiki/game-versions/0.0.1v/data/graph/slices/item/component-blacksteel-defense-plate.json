@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-blacksteel-defense-plate",
+    "spoiler_tier": "none",
+    "title": "흑강 방어 장갑판"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-blacksteel-defense-plate",
+      "label": "생산·해금",
+      "to": "item/component-blacksteel-defense-plate",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-armor-blacksteel-carapace",
+      "label": "필요 조건",
+      "to": "item/component-blacksteel-defense-plate",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

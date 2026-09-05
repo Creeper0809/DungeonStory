@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "73"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "적과 거리를 둔 채 찌르고 전열을 세우는 기본 장창이다. 하르나크의 오크는 무기 철야에 창을 버리기 전 흠집을 손끝으로 짚으며 마지막 주인의 싸움을 들려준다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-spear",
+  "spoiler_tier": "none",
+  "summary": "창 전투 장비",
+  "title": "창"
+}

@@ -1,0 +1,291 @@
+{
+  "status": "in_progress",
+  "scope": "연구 직접효과180개, 금단의도약302, 연구 승인WU 공식과 계승 강화9개/런재화 산식의 정적 대조. 전체 시스템/문서 감사와 Unity 실행·저장 왕복 완료를 뜻하지 않음.",
+  "sourceDefinition": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset:2444-2568",
+  "wikiOwners": [
+    "wiki/game-versions/0.0.1v/content/guides/research.md",
+    "wiki/game-versions/0.0.1v/content/guides/milestones-runs-and-meta.md",
+    "wiki/game-versions/0.0.1v/data/entities/character/trait-302.json"
+  ],
+  "researchDirectEffects": {
+    "targetCount": 180,
+    "emptyCount": 180,
+    "nonEmpty": [],
+    "disposition": "현재 직접효과 바인딩 누락0. Unlocks 보상과 극한특성·관리기술·메타 효과는 별도 시스템이므로 이0건으로 연구 전체 완료 판정하지 않음."
+  },
+  "forbiddenLeap": {
+    "traitId": 302,
+    "outcomes": [
+      {
+        "chance": 0.1,
+        "requiredWorkDelta": 0.25
+      },
+      {
+        "chance": 0.2,
+        "requiredWorkDelta": -0.1
+      },
+      {
+        "chance": 0.7,
+        "requiredWorkDelta": 0
+      }
+    ],
+    "aftermathDays": 1,
+    "researchSpeedMultiplier": 0.7,
+    "attemptLimit": "인물별/프로젝트별1회",
+    "target": "실제 활성연구. UI는 인물ID순 첫 생존보유자 자동선택.",
+    "gap": "GAP-048"
+  },
+  "researchApprovedWork": {
+    "formula": "min(remainingProjectWork, A * (1 + S / 4))",
+    "A": "일반연구 수행WU에 공헌·도구·계승배율을 적용한 승인WU",
+    "S": "WorkCompleted 패시브/주인고정기술 및 활성관리궁극기의 research 모듈 primaryValue 합",
+    "moduleVariants": [
+      {
+        "id": "small",
+        "primaryValue": 5,
+        "cost": 2
+      },
+      {
+        "id": "large",
+        "primaryValue": 18,
+        "cost": 6
+      }
+    ],
+    "normalizationIsNotRuntimeWUPerSecond": true,
+    "examples": [
+      {
+        "A": 4,
+        "S": 5,
+        "uncapped": 9
+      },
+      {
+        "A": 4,
+        "S": 18,
+        "uncapped": 22
+      }
+    ],
+    "gap": "GAP-049"
+  },
+  "metaUpgrades": [
+    {
+      "id": "meta:starting-facility-candidate",
+      "title": "시작 시설 후보 +1",
+      "cost": 80,
+      "maxLevel": 2,
+      "effectId": "meta:starting-facility-candidates",
+      "kind": 1,
+      "perLevel": 1,
+      "maxAuthoredEffect": 2,
+      "consumer": "RunStartVariableSelector.Create",
+      "meaning": "기본3개+레벨당1개의 시작시설 후보. 벽/이동칸 제외·1성 이하 목록을 시드셔플.",
+      "status": "static-consumer-found",
+      "wikiCoverage": "missing",
+      "gap": "GAP-050"
+    },
+    {
+      "id": "meta:starting-owner-trait-candidate",
+      "title": "시작 사장 특성 후보 +1",
+      "cost": 90,
+      "maxLevel": 1,
+      "effectId": "meta:starting-owner-trait-candidates",
+      "kind": 1,
+      "perLevel": 1,
+      "maxAuthoredEffect": 1,
+      "consumer": "Reader getter only",
+      "meaning": "구매는 가능하지만 실제 시작 특성 선택의 비Editor 소비처는 미확인.",
+      "status": "consumer-unconfirmed",
+      "wikiCoverage": "missing",
+      "gap": "GAP-050"
+    },
+    {
+      "id": "meta:basic-purchase-list-expansion",
+      "title": "1일차 기본 구매 목록 확장",
+      "cost": 100,
+      "maxLevel": 3,
+      "effectId": "meta:basic-purchase-entries",
+      "kind": 1,
+      "perLevel": 1,
+      "maxAuthoredEffect": 3,
+      "consumer": "MetaProgressionRuntime.GetExpandedBasicPurchaseBuildingIds → FacilityShopService.CreateBasicPurchaseOffers",
+      "meaning": "벽/이동칸 제외·1성 이하를 ID순으로 단계당1개 선택.",
+      "status": "static-consumer-found",
+      "wikiCoverage": "missing",
+      "gap": "GAP-050"
+    },
+    {
+      "id": "meta:special-recipe-record-slot",
+      "title": "특수 조합식 기록 보존",
+      "cost": 120,
+      "maxLevel": 3,
+      "effectId": "meta:preserved-recipe-slots",
+      "kind": 1,
+      "perLevel": 1,
+      "maxAuthoredEffect": 3,
+      "consumer": "MetaProgressionRuntime.EndRun → State.PreserveRecipes → FacilitySynthesisService.IsRecipeVisible / FacilityEvolutionService",
+      "meaning": "런 해금ID를 문자열순으로 단계수만큼 기존집합에 추가. 전체보존상한/사용자선택으로 해석하지 않음.",
+      "status": "static-consumer-found",
+      "wikiCoverage": "missing",
+      "gap": "GAP-050"
+    },
+    {
+      "id": "meta:owner-survival-bonus",
+      "title": "사장 생존력 보너스 증가",
+      "cost": 110,
+      "maxLevel": 3,
+      "effectId": "meta:owner-max-health",
+      "kind": 2,
+      "perLevel": 0.08,
+      "maxAuthoredEffect": 1.24,
+      "consumer": "CharacterStatsProjectionService.CalculateMaximumHealth → CharacterStats.RecalculateVitals",
+      "meaning": "주인 최대체력 투영에1+0.08L. 구입직후 재계산시점 전수검증은 별도.",
+      "status": "static-consumer-found",
+      "wikiCoverage": "missing",
+      "gap": "GAP-050"
+    },
+    {
+      "id": "meta:invasion-warning-accuracy",
+      "title": "침입 전 경고 정확도 증가",
+      "cost": 90,
+      "maxLevel": 2,
+      "effectId": "meta:invasion-warning-threshold",
+      "kind": 2,
+      "perLevel": -0.08,
+      "maxAuthoredEffect": 0.84,
+      "consumer": "InvasionThreatRuntime.TryRaiseWarning / TickCandidateDelay",
+      "meaning": "경고와 침입후보 양쪽 문턱에1-0.08L. '일찍 경고만 받음'이라는 설명과 의도대조 필요.",
+      "status": "static-consumer-found-with-semantic-risk",
+      "wikiCoverage": "missing",
+      "gap": "GAP-050"
+    },
+    {
+      "id": "meta:commerce-supply-network",
+      "title": "상단 보급망",
+      "cost": 100,
+      "maxLevel": 3,
+      "effectId": "meta:commerce-stock-cost",
+      "kind": 2,
+      "perLevel": -0.04,
+      "maxAuthoredEffect": 0.88,
+      "consumer": "RunVariableRuntimeReader.GetStockCostMultiplier → StockSupplyService.CreateOffer",
+      "meaning": "Food/General 배송가격. 런배율×(1-0.04L), 실제가격은 올림.",
+      "status": "static-consumer-found",
+      "wikiCoverage": "missing",
+      "gap": "GAP-050"
+    },
+    {
+      "id": "meta:fortress-engineering",
+      "title": "요새 공학",
+      "cost": 110,
+      "maxLevel": 3,
+      "effectId": "meta:fortress-defense-facility-cost",
+      "kind": 2,
+      "perLevel": -0.05,
+      "maxAuthoredEffect": 0.85,
+      "consumer": "RunVariableRuntimeReader.GetFacilityShopCostMultiplier → FacilityShopService.GetOfferCost",
+      "meaning": "Defense.IsDefenseFacility 구매가격에1-0.05L. 시설가격은 최소1/반올림.",
+      "status": "static-consumer-found",
+      "wikiCoverage": "missing",
+      "gap": "GAP-050"
+    },
+    {
+      "id": "meta:arcane-research-method",
+      "title": "비전 연구법",
+      "cost": 110,
+      "maxLevel": 3,
+      "effectId": "meta:arcane-research-work",
+      "kind": 2,
+      "perLevel": 0.08,
+      "maxAuthoredEffect": 1.24,
+      "consumer": "BlueprintResearchWorkService.ApplyApprovedResearchWork",
+      "meaning": "일반 연구와 기억잔재 승인WU에1+0.08L. 일반 연구 관리모듈 보너스 전.",
+      "status": "static-consumer-found",
+      "wikiCoverage": "missing",
+      "gap": "GAP-050"
+    }
+  ],
+  "metaPurchase": {
+    "priceRule": "단계마다 authored cost 고정",
+    "effectRule": "정수=L×증가량, 배율=max(0.05,1+L×증감량)",
+    "ui": "OperationsFeatureSurfacePresenter.AddMeta → OperationsFeatureCommandService.PurchaseMetaUpgrade",
+    "validation": "정적 UI→명령→State 통화/레벨 갱신 확인. 실제 클릭 미실행."
+  },
+  "runReward": {
+    "formula": "max(0, RoundToInt((8*T/60 + 35*D + 10*R + 30*B + 12*H + 0.25*P + min(60,4*F) + min(60,10*C) + 25*O) * max(0.1,M)))",
+    "variables": {
+      "T": "게임시계 경과초",
+      "D": "도달 운영일(초기1)",
+      "R": "운영일 결산 이벤트 횟수",
+      "B": "방어성공횟수",
+      "H": "최고 위협단계 점수: Warning1 / Candidate,Safety2 / 기타0",
+      "P": "관측위협 최댓값",
+      "F": "런 고유 발견시설ID 수",
+      "C": "런 고유 해금조합식ID 수",
+      "O": "원정성공횟수",
+      "M": "현재 침입 난도 설정 배율"
+    },
+    "currentDifficultyMultipliers": {
+      "easy": 0.65,
+      "normal": 1,
+      "hard": 1.45
+    },
+    "survivalPressureIsDirectMultiplier": false,
+    "gap": "GAP-051"
+  },
+  "validation": {
+    "metaDefinitionCount": 9,
+    "uiEnumeratesCatalog": true,
+    "staticConsumerPathsFound": 8,
+    "consumerUnconfirmed": 1,
+    "actualUnityUIExecutions": 0,
+    "saveRoundTrips": 0,
+    "globalDeduplication": "pending",
+    "sourceRegeneration": false
+  },
+  "sources": [
+    "Assets/Resources/SO/Character/CharacterSkillSystemSettings.asset",
+    "Assets/Resources/SO/Content/GameDomainContentCatalog.asset",
+    "Assets/Resources/SO/V26/Effects/Conditions/state_forbidden-leap-aftermath.asset",
+    "Assets/Resources/SO/V26/Effects/Definitions/effect_character_research-speed_multiply.asset",
+    "Assets/Resources/SO/V26/Traits/Founder/Trait_302_forbidden-leap.asset",
+    "Assets/Scenes/GameplayScene.unity",
+    "Assets/Scripts/Models/Invasion/Core/InvasionPrimitives.cs",
+    "Assets/Scripts/Models/Meta/Core/MetaProgressionCalculator.cs",
+    "Assets/Scripts/Models/Meta/Core/MetaProgressionEffects.cs",
+    "Assets/Scripts/Models/Meta/Core/MetaProgressionModel.cs",
+    "Assets/Scripts/Models/Meta/Core/MetaProgressionRunResultServices.cs",
+    "Assets/Scripts/Models/Meta/Core/MetaRunProgressTracker.cs",
+    "Assets/Scripts/Models/Research/Core/ResearchProgressRules.cs",
+    "Assets/Scripts/Services/Buildings/SO/StockInfo.cs",
+    "Assets/Scripts/Services/Character/Core/CharacterSkillRuntimeEffects.cs",
+    "Assets/Scripts/Services/Character/Core/CharacterStats.cs",
+    "Assets/Scripts/Services/Character/Core/CharacterStatsProjectionService.cs",
+    "Assets/Scripts/Services/Character/Core/StartPartyPreparationService.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs",
+    "Assets/Scripts/Services/Character/Work/WorkExecutionRegistry.cs",
+    "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs",
+    "Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs",
+    "Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs",
+    "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs",
+    "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntimeProvider.cs",
+    "Assets/Scripts/Services/Infrastructure/Core/MetaProfilePersistence.cs",
+    "Assets/Scripts/Services/Infrastructure/Core/MetaProgressionRuntime.cs",
+    "Assets/Scripts/Services/Infrastructure/MetaProgressionRuntimeProvider.cs",
+    "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+    "Assets/Scripts/Services/Infrastructure/ResearchWorkExecutionAdapter.cs",
+    "Assets/Scripts/Services/Infrastructure/RunVariableRuntimeProvider.cs",
+    "Assets/Scripts/Services/Invasion/InvasionThreatRuntime.cs",
+    "Assets/Scripts/Services/Meta/MetaRuntimeApplicationAdapter.cs",
+    "Assets/Scripts/Services/Offense/OffenseExpeditionResultFinalizer.cs",
+    "Assets/Scripts/Services/Run/AuthoredGameplayCatalog.cs",
+    "Assets/Scripts/Services/Run/RunStartVariableSelector.cs",
+    "Assets/Scripts/Services/Synthesis/FacilitySynthesisSystem.cs",
+    "Assets/Scripts/Views/UI/Core/OperationsFeatureSurfacePresenter.cs",
+    "Assets/Scripts/Views/UI/OperationsFeatureCommandService.cs",
+    "Assets/Scripts/Views/UI/OperationsFeatureQueryService.cs",
+    "Assets/Scripts/Views/UI/ResearchTreeWindow.cs",
+    "wiki/game-versions/0.0.1v/content/guides/milestones-runs-and-meta.md",
+    "wiki/game-versions/0.0.1v/content/guides/research.md",
+    "wiki/game-versions/0.0.1v/content/guides/residents-and-work.md",
+    "wiki/game-versions/0.0.1v/data/entities/character/trait-302.json"
+  ]
+}

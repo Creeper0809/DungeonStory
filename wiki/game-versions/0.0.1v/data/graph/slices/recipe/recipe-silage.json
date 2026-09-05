@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-silage",
+    "spoiler_tier": "none",
+    "title": "사일리지 발효"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-silage",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-twilight-grain",
+      "target_spoiler_tier": "none",
+      "target_title": "황혼곡",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-silage",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "feed-silage",
+      "target_spoiler_tier": "none",
+      "target_title": "사일리지",
+      "to": "item/feed-silage",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-silage",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-grass-straw",
+      "target_spoiler_tier": "none",
+      "target_title": "풀·짚",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-silage",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

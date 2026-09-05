@@ -5,7 +5,7 @@ using System.Linq;
 [Serializable]
 public sealed class DungeonProductionApparelOrderTerminalDrainSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 3;
 
     // Missing current-format version must remain zero and fail loudly.
     public int version;

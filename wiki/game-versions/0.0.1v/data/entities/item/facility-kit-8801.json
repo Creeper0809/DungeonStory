@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "130"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "채집 바구니 작업대에서 채집물과 현장 표본을 정리하는 공정을 맡기 위해 준비한 설치 부품이다. 라카쉬 세갈래길식 채집 바구니 작업대 주변은 짐수레 두 대와 피난 행렬이 엇갈릴 만큼 넓게 비워 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-8801",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "채집 바구니 작업대 설치 키트"
+}

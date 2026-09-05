@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "17"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Husbandry"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1034",
+      "target_spoiler_tier": "none",
+      "target_title": "표본보관장",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-husbandry-capture",
+  "spoiler_tier": "none",
+  "summary": "살아 있는 야생동물을 안정화해 우리로 옮긴다.",
+  "title": "야생 포획"
+}

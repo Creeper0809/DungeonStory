@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-material-chain-mesh",
+    "spoiler_tier": "none",
+    "title": "사슬 망"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-chain-mesh",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-chain-mesh",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 망",
+      "to": "item/material-chain-mesh",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-material-chain-mesh",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "to": "item/material-iron-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-chain-mesh",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-mail-weaving",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 편조",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

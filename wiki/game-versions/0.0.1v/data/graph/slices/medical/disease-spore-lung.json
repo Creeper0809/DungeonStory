@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "disease-spore-lung",
+    "spoiler_tier": "none",
+    "title": "포자폐증"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "event/seasonal-spring-spore-rain",
+      "label": "연결",
+      "to": "medical/disease-spore-lung",
+      "type": "adds-disease-exposure"
+    }
+  ],
+  "schema_version": 1
+}

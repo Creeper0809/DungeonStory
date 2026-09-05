@@ -1,0 +1,2 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+CareerPositionDefinitionSO,content-type,,type-reference,services:character,content-loading,structural-type-consumer,Assets/Scripts/Services/Character/CareerPositionDefinitionCatalog.cs

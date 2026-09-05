@@ -1,0 +1,149 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-climate-environment-control",
+    "spoiler_tier": "none",
+    "title": "기후 제어"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-greenhouse-horticulture",
+      "target_spoiler_tier": "none",
+      "target_title": "온실 원예",
+      "to": "research/research-agriculture-greenhouse-horticulture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-greenhouse-horticulture",
+      "target_spoiler_tier": "none",
+      "target_title": "온실 원예",
+      "to": "research/research-agriculture-greenhouse-horticulture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-greenhouse-horticulture",
+      "target_spoiler_tier": "none",
+      "target_title": "온실 원예",
+      "to": "research/research-agriculture-greenhouse-horticulture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-environment-rune-insulation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 단열학",
+      "to": "research/research-environment-rune-insulation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-environment-rune-insulation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 단열학",
+      "to": "research/research-environment-rune-insulation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-environment-rune-insulation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 단열학",
+      "to": "research/research-environment-rune-insulation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-electric-smelting",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 제련과 산업 냉각",
+      "to": "research/research-industry-electric-smelting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-electric-smelting",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 제련과 산업 냉각",
+      "to": "research/research-industry-electric-smelting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-electric-smelting",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 제련과 산업 냉각",
+      "to": "research/research-industry-electric-smelting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8856",
+      "target_spoiler_tier": "none",
+      "target_title": "기후 제어실",
+      "to": "facility/building-8856",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-climate-control-manifold",
+      "label": "필요 조건",
+      "to": "research/research-climate-environment-control",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-regional-climatology",
+      "label": "선행 연구",
+      "to": "research/research-climate-environment-control",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-regional-climatology",
+      "label": "선행 연구",
+      "to": "research/research-climate-environment-control",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-regional-climatology",
+      "label": "선행 연구",
+      "to": "research/research-climate-environment-control",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

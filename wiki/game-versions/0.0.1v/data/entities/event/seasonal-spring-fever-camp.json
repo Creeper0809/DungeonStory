@@ -1,0 +1,35 @@
+{
+  "facts": [
+    {
+      "label": "최소 지속 기간",
+      "value": "2일"
+    },
+    {
+      "label": "최대 지속 기간",
+      "value": "4일"
+    },
+    {
+      "label": "종료 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "10",
+      "label": "연결",
+      "target_kind": "medical",
+      "target_slug": "disease-red-fever",
+      "target_spoiler_tier": "none",
+      "target_title": "적열병",
+      "type": "adds-disease-exposure"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "seasonal-spring-fever-camp",
+  "spoiler_tier": "warning",
+  "summary": "열병이 도는 피난 행렬이 치료와 격리 공간을 요청한다.",
+  "title": "봄열 피난민"
+}

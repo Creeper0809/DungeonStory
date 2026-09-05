@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1073",
+    "spoiler_tier": "none",
+    "title": "제분소"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-milling",
+      "label": "시설 해금",
+      "to": "facility/building-1073",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

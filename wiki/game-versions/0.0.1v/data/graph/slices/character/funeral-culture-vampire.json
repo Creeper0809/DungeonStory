@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "funeral-culture-vampire",
+    "spoiler_tier": "none",
+    "title": "Funeral_Vampire"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-3",
+      "label": "관련",
+      "to": "character/funeral-culture-vampire",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

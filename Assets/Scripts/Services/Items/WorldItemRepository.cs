@@ -220,6 +220,53 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         return true;
     }
 
+    internal bool TryRemoveExactPendingCapacityRoutingDrainForCheckpointGc(
+        ProductionCapacityRoutingDrainSaveData expected,
+        out ProductionCapacityRoutingDrainSaveData removed)
+    {
+        removed = null;
+        if (expected == null
+            || string.IsNullOrEmpty(expected.stepOperationId)
+            || !state.PendingCapacityRoutingDrains.TryGetValue(
+                expected.stepOperationId,
+                out ProductionCapacityRoutingDrainSaveData current)
+            || !HasExactSerializedRow(current, expected)
+            || !state.PendingCapacityRoutingDrains.Remove(expected.stepOperationId))
+        {
+            return false;
+        }
+        removed = current.Clone();
+        return true;
+    }
+
+    internal bool TryRestoreExactPendingCapacityRoutingDrainForCheckpointGc(
+        ProductionCapacityRoutingDrainSaveData expected)
+    {
+        if (expected == null || string.IsNullOrEmpty(expected.stepOperationId))
+            return false;
+        if (state.PendingCapacityRoutingDrains.TryGetValue(
+                expected.stepOperationId,
+                out ProductionCapacityRoutingDrainSaveData current))
+        {
+            return HasExactSerializedRow(current, expected);
+        }
+        state.PendingCapacityRoutingDrains.Add(
+            expected.stepOperationId,
+            expected.Clone());
+        return true;
+    }
+
+    internal bool CanRestoreExactPendingCapacityRoutingDrainForCheckpointGc(
+        ProductionCapacityRoutingDrainSaveData expected)
+    {
+        if (expected == null || string.IsNullOrEmpty(expected.stepOperationId))
+            return false;
+        return !state.PendingCapacityRoutingDrains.TryGetValue(
+                expected.stepOperationId,
+                out ProductionCapacityRoutingDrainSaveData current)
+            || HasExactSerializedRow(current, expected);
+    }
+
     internal bool TryGetPendingProductionCustodyDrain(
         string stepOperationId,
         out ProductionPhysicalCustodyDrainSaveData pending) =>
@@ -285,6 +332,54 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         return true;
     }
 
+    internal bool TryRemoveExactPendingProductionCustodyDrainForCheckpointGc(
+        ProductionPhysicalCustodyDrainSaveData expected,
+        out ProductionPhysicalCustodyDrainSaveData removed)
+    {
+        removed = null;
+        if (expected == null
+            || string.IsNullOrEmpty(expected.stepOperationId)
+            || !state.PendingProductionCustodyDrains.TryGetValue(
+                expected.stepOperationId,
+                out ProductionPhysicalCustodyDrainSaveData current)
+            || !HasExactSerializedRow(current, expected)
+            || !state.PendingProductionCustodyDrains.Remove(
+                expected.stepOperationId))
+        {
+            return false;
+        }
+        removed = current.Clone();
+        return true;
+    }
+
+    internal bool TryRestoreExactPendingProductionCustodyDrainForCheckpointGc(
+        ProductionPhysicalCustodyDrainSaveData expected)
+    {
+        if (expected == null || string.IsNullOrEmpty(expected.stepOperationId))
+            return false;
+        if (state.PendingProductionCustodyDrains.TryGetValue(
+                expected.stepOperationId,
+                out ProductionPhysicalCustodyDrainSaveData current))
+        {
+            return HasExactSerializedRow(current, expected);
+        }
+        state.PendingProductionCustodyDrains.Add(
+            expected.stepOperationId,
+            expected.Clone());
+        return true;
+    }
+
+    internal bool CanRestoreExactPendingProductionCustodyDrainForCheckpointGc(
+        ProductionPhysicalCustodyDrainSaveData expected)
+    {
+        if (expected == null || string.IsNullOrEmpty(expected.stepOperationId))
+            return false;
+        return !state.PendingProductionCustodyDrains.TryGetValue(
+                expected.stepOperationId,
+                out ProductionPhysicalCustodyDrainSaveData current)
+            || HasExactSerializedRow(current, expected);
+    }
+
     internal bool TryGetPendingProductionInputDestinationDrain(
         string stepOperationId,
         out ProductionInputDestinationCustodyDrainSaveData pending) =>
@@ -326,6 +421,57 @@ public sealed class WorldItemRepository : IItemInstanceRepository
             return false;
         MarkChanged();
         return true;
+    }
+
+    internal bool
+        TryRemoveExactPendingProductionInputDestinationDrainForCheckpointGc(
+            ProductionInputDestinationCustodyDrainSaveData expected,
+            out ProductionInputDestinationCustodyDrainSaveData removed)
+    {
+        removed = null;
+        if (expected == null
+            || string.IsNullOrEmpty(expected.stepOperationId)
+            || !state.PendingProductionInputDestinationDrains.TryGetValue(
+                expected.stepOperationId,
+                out ProductionInputDestinationCustodyDrainSaveData current)
+            || !HasExactSerializedRow(current, expected)
+            || !state.PendingProductionInputDestinationDrains.Remove(
+                expected.stepOperationId))
+        {
+            return false;
+        }
+        removed = current.Clone();
+        return true;
+    }
+
+    internal bool
+        TryRestoreExactPendingProductionInputDestinationDrainForCheckpointGc(
+            ProductionInputDestinationCustodyDrainSaveData expected)
+    {
+        if (expected == null || string.IsNullOrEmpty(expected.stepOperationId))
+            return false;
+        if (state.PendingProductionInputDestinationDrains.TryGetValue(
+                expected.stepOperationId,
+                out ProductionInputDestinationCustodyDrainSaveData current))
+        {
+            return HasExactSerializedRow(current, expected);
+        }
+        state.PendingProductionInputDestinationDrains.Add(
+            expected.stepOperationId,
+            expected.Clone());
+        return true;
+    }
+
+    internal bool
+        CanRestoreExactPendingProductionInputDestinationDrainForCheckpointGc(
+            ProductionInputDestinationCustodyDrainSaveData expected)
+    {
+        if (expected == null || string.IsNullOrEmpty(expected.stepOperationId))
+            return false;
+        return !state.PendingProductionInputDestinationDrains.TryGetValue(
+                expected.stepOperationId,
+                out ProductionInputDestinationCustodyDrainSaveData current)
+            || HasExactSerializedRow(current, expected);
     }
 
     internal bool TryGetPendingBatchDisposition(
@@ -687,7 +833,10 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         CombatEquipmentWorldState worldState)
     {
         CombatEquipmentInstance instance = FindEquipmentBySourceStack(sourceStackId);
-        if (instance == null)
+        if (instance == null
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(worldState))
         {
             return false;
         }
@@ -711,7 +860,10 @@ public sealed class WorldItemRepository : IItemInstanceRepository
             || !string.Equals(
                 record.itemInstanceId,
                 instance.instanceId,
-                StringComparison.Ordinal))
+                StringComparison.Ordinal)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(worldState))
         {
             return false;
         }
@@ -734,7 +886,9 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         CombatEquipmentInstance instance = FindEquipmentBySourceStack(sourceStackId);
         if (instance == null
             || instance.worldState is CombatEquipmentWorldState.Carried
-                or CombatEquipmentWorldState.Equipped)
+                or CombatEquipmentWorldState.Equipped
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             return false;
         }
@@ -832,11 +986,25 @@ public sealed class WorldItemRepository : IItemInstanceRepository
     internal bool TryAddBatchAtomically(
         IReadOnlyList<WorldItemStackRecord> records,
         Func<int, bool> failBeforeAdd,
+        out string failureReason) => TryAddBatchAtomically(
+        records,
+        Array.Empty<CombatEquipmentInstance>(),
+        failBeforeAdd,
+        out failureReason);
+
+    internal bool TryAddBatchAtomically(
+        IReadOnlyList<WorldItemStackRecord> records,
+        IReadOnlyList<CombatEquipmentInstance> equipment,
+        Func<int, bool> failBeforeAdd,
         out string failureReason)
     {
         failureReason = string.Empty;
         WorldItemStackRecord[] batch = (records
                 ?? Array.Empty<WorldItemStackRecord>())
+            .ToArray();
+        CombatEquipmentInstance[] equipmentBatch = (equipment
+                ?? Array.Empty<CombatEquipmentInstance>())
+            .Select(value => value?.Clone())
             .ToArray();
         if (batch.Length == 0
             || batch.Any(record => record == null
@@ -852,15 +1020,31 @@ public sealed class WorldItemRepository : IItemInstanceRepository
                 && Records.Any(existing => string.Equals(
                     existing.itemInstanceId,
                     record.itemInstanceId,
-                    StringComparison.Ordinal))))
+                    StringComparison.Ordinal)))
+            || equipmentBatch.Any(value => value == null
+                || string.IsNullOrWhiteSpace(value.instanceId)
+                || EquipmentInstances.ContainsKey(value.instanceId))
+            || equipmentBatch.Select(value => value.instanceId)
+                .Distinct(StringComparer.Ordinal).Count()
+                != equipmentBatch.Length
+            || equipmentBatch.Any(value => !TryValidatePreparedEquipment(
+                value,
+                batch,
+                out _)))
         {
             failureReason = "world-item-atomic-batch-invalid";
             return false;
         }
 
         List<WorldItemStackRecord> inserted = new(batch.Length);
+        List<string> insertedEquipment = new(equipmentBatch.Length);
         try
         {
+            foreach (CombatEquipmentInstance instance in equipmentBatch)
+            {
+                EquipmentInstances.Add(instance.instanceId, instance);
+                insertedEquipment.Add(instance.instanceId);
+            }
             for (int index = 0; index < batch.Length; index++)
             {
                 if (failBeforeAdd?.Invoke(index) == true)
@@ -885,6 +1069,8 @@ public sealed class WorldItemRepository : IItemInstanceRepository
                         RecordsByPosition.Remove(record.position);
                 }
             }
+            for (int index = insertedEquipment.Count - 1; index >= 0; index--)
+                EquipmentInstances.Remove(insertedEquipment[index]);
             failureReason = exception.Message;
             return false;
         }
@@ -913,8 +1099,10 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         string targetDestinationId,
         Vector2Int targetPosition,
         int quantity,
-        long massGrams)
+        long massGrams,
+        out string businessComponentFingerprint)
     {
+        businessComponentFingerprint = string.Empty;
         if (!RecordsById.TryGetValue(
                 stackId?.Trim() ?? string.Empty,
                 out WorldItemStackRecord record)
@@ -943,7 +1131,7 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         string businessSignature = ItemStackSignature.Create(
             record.itemId,
             record.components);
-        string componentFingerprint =
+        businessComponentFingerprint =
             ProductionCapacityRoutingDrainFingerprint
                 .CreateActorCarryStackSignature(
                     record.itemId,
@@ -965,7 +1153,7 @@ public sealed class WorldItemRepository : IItemInstanceRepository
             originalLineMassGrams: originalBatchMassGrams,
             record.itemId,
             businessSignature,
-            componentFingerprint,
+            businessComponentFingerprint,
             "facility-output:capacity-routing-editor-origin",
             targetDestinationId,
             sourceStackId,
@@ -976,7 +1164,14 @@ public sealed class WorldItemRepository : IItemInstanceRepository
             massGrams,
             routeOperationId,
             new string('c', 64),
-            new string('d', 64));
+            new string('d', 64),
+            currentDeliveryRevision: 0L,
+            currentDeliveryRevisionFingerprint: new string('e', 64),
+            currentDeliveryRerouteOperationId: string.Empty,
+            currentTargetDestinationId: targetDestinationId,
+            currentTargetPositionX: targetPosition.x,
+            currentTargetPositionY: targetPosition.y,
+            currentTargetAuthorityFingerprint: string.Empty);
         record.components.Add(FacilityOutputExactRouteCustodyCodec.Create(metadata));
         Relocate(record, physicalCell);
         record.state = WorldItemStackState.Carried;
@@ -999,11 +1194,22 @@ public sealed class WorldItemRepository : IItemInstanceRepository
 
     internal bool TryRemoveBatchAtomically(
         IReadOnlyList<WorldItemStackRecord> records,
+        out string failureReason) => TryRemoveBatchAtomically(
+        records,
+        Array.Empty<string>(),
+        out failureReason);
+
+    internal bool TryRemoveBatchAtomically(
+        IReadOnlyList<WorldItemStackRecord> records,
+        IReadOnlyList<string> equipmentInstanceIds,
         out string failureReason)
     {
         failureReason = string.Empty;
         WorldItemStackRecord[] batch = (records
                 ?? Array.Empty<WorldItemStackRecord>())
+            .ToArray();
+        string[] equipmentIds = (equipmentInstanceIds ?? Array.Empty<string>())
+            .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
         if (batch.Length == 0
             || batch.Distinct().Count() != batch.Length
@@ -1017,7 +1223,15 @@ public sealed class WorldItemRepository : IItemInstanceRepository
                 || !positioned.Contains(record)
                 || record.reservedQuantity != 0
                 || !string.IsNullOrEmpty(record.reservedByPersistentId)
-                || PrioritizedHaulStackIds.Contains(record.stackId)))
+                || PrioritizedHaulStackIds.Contains(record.stackId))
+            || equipmentIds.Any(value => string.IsNullOrWhiteSpace(value))
+            || equipmentIds.Distinct(StringComparer.Ordinal).Count()
+                != equipmentIds.Length
+            || equipmentIds.Any(value =>
+                !EquipmentInstances.TryGetValue(
+                    value,
+                    out CombatEquipmentInstance instance)
+                || !TryValidatePreparedEquipment(instance, batch, out _)))
         {
             failureReason = "world-item-atomic-remove-batch-invalid";
             return false;
@@ -1036,7 +1250,59 @@ public sealed class WorldItemRepository : IItemInstanceRepository
                     RecordsByPosition.Remove(record.position);
             }
         }
+        foreach (string equipmentId in equipmentIds)
+            EquipmentInstances.Remove(equipmentId);
         MarkChanged();
+        return true;
+    }
+
+    private static bool TryValidatePreparedEquipment(
+        CombatEquipmentInstance instance,
+        IReadOnlyList<WorldItemStackRecord> records,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        WorldItemStackRecord[] matches = (records
+                ?? Array.Empty<WorldItemStackRecord>())
+            .Where(value => value != null && string.Equals(
+                value.itemInstanceId,
+                instance?.instanceId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (instance == null
+            || matches.Length != 1
+            || !string.Equals(
+                instance.sourceStackId,
+                matches[0].stackId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                matches[0].itemId,
+                PhysicalItemIds.ForEquipment(instance.definitionId),
+                StringComparison.Ordinal)
+            || matches[0].quantity != 1)
+        {
+            failureReason = "world-item-equipment-stack-join-invalid";
+            return false;
+        }
+        ItemInstanceComponentSaveData component = (matches[0].components
+                ?? new List<ItemInstanceComponentSaveData>())
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.componentTypeId,
+                ItemInstanceComponentIds.Equipment,
+                StringComparison.Ordinal));
+        if (component == null
+            || !EquipmentItemStateCodec.TryDecode(
+                component,
+                out CombatEquipmentInstance decoded,
+                out _)
+            || !string.Equals(
+                EquipmentItemStateCodec.Encode(instance).ToCanonicalString(),
+                EquipmentItemStateCodec.Encode(decoded).ToCanonicalString(),
+                StringComparison.Ordinal))
+        {
+            failureReason = "world-item-equipment-component-join-invalid";
+            return false;
+        }
         return true;
     }
 
@@ -1092,6 +1358,125 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         }
         MarkChanged();
         return true;
+    }
+
+    internal bool TryAcknowledgeAndRouteBatchAtomically(
+        IReadOnlyList<WorldItemStackRecord> records,
+        IReadOnlyDictionary<string, IReadOnlyList<ItemInstanceComponentSaveData>>
+            componentReplacements,
+        FacilityBufferAcknowledgedOutputReleaseTarget target,
+        Func<int, bool> failBeforeMutation,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        WorldItemStackRecord[] batch = (records
+                ?? Array.Empty<WorldItemStackRecord>())
+            .OrderBy(value => value?.stackId, StringComparer.Ordinal)
+            .ToArray();
+        IReadOnlyDictionary<string, IReadOnlyList<ItemInstanceComponentSaveData>>
+            replacements = componentReplacements
+                ?? new Dictionary<string,
+                    IReadOnlyList<ItemInstanceComponentSaveData>>();
+        if (batch.Length == 0
+            || !target.IsValid
+            || batch.Any(record => record == null
+                || string.IsNullOrWhiteSpace(record.stackId)
+                || !RecordsById.TryGetValue(
+                    record.stackId,
+                    out WorldItemStackRecord live)
+                || !ReferenceEquals(record, live)
+                || !replacements.TryGetValue(
+                    record.stackId,
+                    out IReadOnlyList<ItemInstanceComponentSaveData> components)
+                || components == null
+                || components.Any(component => component == null))
+            || replacements.Count != batch.Length
+            || batch.Select(record => record.stackId)
+                .Distinct(StringComparer.Ordinal).Count() != batch.Length)
+        {
+            failureReason = "world-item-atomic-acknowledged-route-batch-invalid";
+            return false;
+        }
+
+        Dictionary<string, AcknowledgedRouteRollback> previous =
+            new(StringComparer.Ordinal);
+        try
+        {
+            for (int index = 0; index < batch.Length; index++)
+            {
+                WorldItemStackRecord record = batch[index];
+                previous.Add(record.stackId, new AcknowledgedRouteRollback(record));
+                if (failBeforeMutation?.Invoke(index) == true)
+                {
+                    throw new InvalidOperationException(
+                        "injected-atomic-acknowledged-route-failure");
+                }
+                record.components = replacements[record.stackId]
+                    .Select(component => component.Clone())
+                    .ToList();
+                record.state = WorldItemStackState.Loose;
+                record.destinationId = target.HasDestination
+                    ? target.DestinationId
+                    : string.Empty;
+                record.sourceStorageDestinationId = string.Empty;
+                record.hasDestinationPosition = target.HasDestination;
+                record.destinationPosition = target.HasDestination
+                    ? target.DestinationPosition
+                    : default;
+            }
+        }
+        catch (Exception exception)
+        {
+            foreach (KeyValuePair<string, AcknowledgedRouteRollback> pair in previous)
+            {
+                if (RecordsById.TryGetValue(
+                        pair.Key,
+                        out WorldItemStackRecord record))
+                {
+                    pair.Value.Restore(record);
+                }
+            }
+            failureReason = exception.Message;
+            return false;
+        }
+        MarkChanged();
+        return true;
+    }
+
+    private sealed class AcknowledgedRouteRollback
+    {
+        private readonly List<ItemInstanceComponentSaveData> components;
+        private readonly WorldItemStackState state;
+        private readonly string destinationId;
+        private readonly string sourceStorageDestinationId;
+        private readonly bool hasDestinationPosition;
+        private readonly Vector2Int destinationPosition;
+
+        internal AcknowledgedRouteRollback(WorldItemStackRecord record)
+        {
+            components = (record.components
+                    ?? new List<ItemInstanceComponentSaveData>())
+                .Select(component => component?.Clone())
+                .ToList();
+            state = record.state;
+            destinationId = record.destinationId ?? string.Empty;
+            sourceStorageDestinationId =
+                record.sourceStorageDestinationId ?? string.Empty;
+            hasDestinationPosition = record.hasDestinationPosition;
+            destinationPosition = record.destinationPosition;
+        }
+
+        internal void Restore(WorldItemStackRecord record)
+        {
+            record.components = components
+                .Select(component => component?.Clone())
+                .ToList();
+            record.state = state;
+            record.destinationId = destinationId;
+            record.sourceStorageDestinationId = sourceStorageDestinationId;
+            record.hasDestinationPosition = hasDestinationPosition;
+            record.destinationPosition = destinationPosition;
+        }
     }
 
     internal bool TryQuiesceCarriedBatchAtomically(
@@ -1359,6 +1744,14 @@ public sealed class WorldItemRepository : IItemInstanceRepository
         });
         MarkChanged();
     }
+
+    private static bool HasExactSerializedRow<T>(T current, T expected)
+        where T : class => current != null
+        && expected != null
+        && string.Equals(
+            JsonUtility.ToJson(current),
+            JsonUtility.ToJson(expected),
+            StringComparison.Ordinal);
 
     internal void MarkChanged()
     {

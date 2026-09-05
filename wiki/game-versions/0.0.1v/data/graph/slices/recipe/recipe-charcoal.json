@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-charcoal",
+    "spoiler_tier": "none",
+    "title": "숯 굽기"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-charcoal",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-charcoal",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-log",
+      "target_spoiler_tier": "none",
+      "target_title": "원목",
+      "to": "item/resource-log",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-charcoal",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "to": "research/research-forestry-charcoal",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

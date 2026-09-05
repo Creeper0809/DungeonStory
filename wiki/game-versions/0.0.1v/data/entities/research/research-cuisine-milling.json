@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Cuisine"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1600",
+      "target_spoiler_tier": "none",
+      "target_title": "미세 체 선반",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1073",
+      "target_spoiler_tier": "none",
+      "target_title": "제분소",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-cuisine-milling",
+  "spoiler_tier": "none",
+  "summary": "황혼곡을 밀가루와 빵으로 가공한다.",
+  "title": "제분·제빵"
+}

@@ -61,6 +61,9 @@ public static class ApparelRepairOutboxDebugScenarios
                 disposition,
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IApparelPhysicalTransaction>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IProductionOutputMaximumMassRegistry>(),
+                new ProductionFacilityMutationEpochRuntime(),
                 performance: BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<ICharacterPerformanceQuery>());
 

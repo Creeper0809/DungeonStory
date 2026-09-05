@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-rune-bow",
+    "spoiler_tier": "none",
+    "title": "룬 활"
+  },
+  "edges": [],
+  "schema_version": 1
+}

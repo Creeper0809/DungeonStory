@@ -1,0 +1,39 @@
+# HeritableTraitDefinitionSO
+
+인물·특성 영역의 작성 콘텐츠 유형이다.
+
+총 24개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
+
+## 데이터
+
+- [유형별 콘텐츠 CSV](../../../csv/characters-traits/heritable-trait.csv)
+- [중첩 작성 필드 CSV](../../../fields/characters-traits/heritable-trait.csv)
+- [정방향 관계 CSV](../../../relations/characters-traits/heritable-trait.csv)
+- [역방향 관계 CSV](../../../incoming/characters-traits/heritable-trait.csv)
+
+| 안정 ID | 이름 | 전략적 역할 | 비용·위험 | 런타임 상태 | 수명주기 | 역참조 | 구현 권위 |
+|---|---|---|---|---|---|---:|---|
+| `heritable:abundant-seed` | 풍부한 종자 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_abundant-seed.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_abundant-seed.asset) |
+| `heritable:broad-immunity` | 광범위 면역 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_broad-immunity.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_broad-immunity.asset) |
+| `heritable:cold-blood-adaptation` | 저온 대사 적응 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_cold-blood-adaptation.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_cold-blood-adaptation.asset) |
+| `heritable:cross-lineage-tolerance` | 교차계통 내성 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_cross-lineage-tolerance.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_cross-lineage-tolerance.asset) |
+| `heritable:dense-bone` | 고밀도 골격 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_dense-bone.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_dense-bone.asset) |
+| `heritable:dream-reception` | 꿈 수신 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_dream-reception.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_dream-reception.asset) |
+| `heritable:efficient-digestion` | 고효율 소화 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_efficient-digestion.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_efficient-digestion.asset) |
+| `heritable:expanded-lung` | 확장 폐낭 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_expanded-lung.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_expanded-lung.asset) |
+| `heritable:flexible-joints` | 유연 관절 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_flexible-joints.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_flexible-joints.asset) |
+| `heritable:focused-antibodies` | 집중 항체 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_focused-antibodies.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_focused-antibodies.asset) |
+| `heritable:heat-shedding` | 열 배출 피부 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_heat-shedding.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_heat-shedding.asset) |
+| `heritable:hollow-bone` | 공동 골격 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_hollow-bone.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_hollow-bone.asset) |
+| `heritable:mana-grounding` | 마나 접지맥 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_mana-grounding.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_mana-grounding.asset) |
+| `heritable:mana-reservoir` | 마나 저장낭 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_mana-reservoir.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_mana-reservoir.asset) |
+| `heritable:rapid-burn` | 고속 대사 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_rapid-burn.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_rapid-burn.asset) |
+| `heritable:rapid-repair` | 고속 면역 복구 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_rapid-repair.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_rapid-repair.asset) |
+| `heritable:regrowing-tissue` | 재생 조직 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_regrowing-tissue.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_regrowing-tissue.asset) |
+| `heritable:reinforced-joints` | 강화 관절 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_reinforced-joints.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_reinforced-joints.asset) |
+| `heritable:rune-sight` | 룬시 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_rune-sight.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_rune-sight.asset) |
+| `heritable:slow-aging` | 완만한 노화 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_slow-aging.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_slow-aging.asset) |
+| `heritable:slow-fertility` | 느린 가임 주기 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_slow-fertility.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_slow-fertility.asset) |
+| `heritable:stable-gestation` | 안정 임신 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_stable-gestation.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_stable-gestation.asset) |
+| `heritable:toxin-filter` | 독소 여과 기관 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_toxin-filter.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_toxin-filter.asset) |
+| `heritable:water-retention` | 수분 보존 조직 | 인물·특성 영역의 HeritableTraitDefinitionSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [heritable_water-retention.asset](../../../../../Assets/Resources/SO/V20/Traits/Heritable/heritable_water-retention.asset) |

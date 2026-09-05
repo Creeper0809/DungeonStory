@@ -64,6 +64,7 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
         substancesById = substances.ToDictionary(
             substance => substance.SubstanceId,
             StringComparer.Ordinal);
+        ValidatePassiveSpoilageContracts();
     }
 
     public IReadOnlyList<ResourceItemDefinitionSO> Items => items;
@@ -121,6 +122,29 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
             feature.combatEffect,
             feature.durationSeconds,
             item.RequiredResearchId);
+    }
+
+    private void ValidatePassiveSpoilageContracts()
+    {
+        foreach (ProductionRecipeSO recipe in recipes.Where(value =>
+                     value.ProcessKind == ProductionProcessKind.PassiveBatch))
+        {
+            string spoilageItemId = recipe.SpoilageItemId;
+            if (string.IsNullOrWhiteSpace(spoilageItemId)
+                || !string.Equals(
+                    spoilageItemId,
+                    spoilageItemId.Trim(),
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Passive production recipe '{recipe.RecipeId}' requires an explicitly authored canonical spoilage item ID.");
+            }
+            if (!itemsById.ContainsKey(spoilageItemId))
+            {
+                throw new InvalidOperationException(
+                    $"Passive production recipe '{recipe.RecipeId}' references unknown spoilage item '{spoilageItemId}'.");
+            }
+        }
     }
 
     private static IReadOnlyList<T> Normalize<T>(

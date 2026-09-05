@@ -283,18 +283,7 @@ internal sealed class CharacterMedicalRestoreCoordinator
     internal CharacterMedicalRestoreCandidate PrepareRestore(
         DungeonCharacterMedicalSaveData saveData)
     {
-        DungeonGameRestoreReport report = new();
-        CharacterMedicalSaveValidation.Validate(
-            saveData,
-            report,
-            resourceCatalog,
-            itemDefinitions);
-        if (!report.Success)
-        {
-            throw new InvalidOperationException(
-                "Character-medical restore candidate is invalid: "
-                + string.Join(" | ", report.Errors));
-        }
+        CharacterMedicalAggregateState restored = PrepareLocalState(saveData);
         if (!worldRegistry.TryGetGrid(out Grid candidateGrid)
             || candidateGrid == null)
         {
@@ -302,9 +291,8 @@ internal sealed class CharacterMedicalRestoreCoordinator
                 "Character medical restore requires a facility Grid candidate.");
         }
 
-        CharacterMedicalAggregateState restored =
-            CharacterMedicalSaveValidation.CreateState(saveData);
         CharacterMedicalRestoreCandidate candidate = new(restored);
+        DungeonGameRestoreReport report = new();
         ValidateWorldReferencesAndPrepareProjection(
             restored,
             candidateGrid,
@@ -318,6 +306,58 @@ internal sealed class CharacterMedicalRestoreCoordinator
         }
 
         return candidate;
+    }
+
+    internal void ValidatePayload(DungeonCharacterMedicalSaveData saveData)
+    {
+        _ = PrepareLocalState(saveData);
+    }
+
+    internal void RefreshCandidateProjection(
+        CharacterMedicalRestoreCandidate candidate)
+    {
+        if (candidate == null)
+        {
+            throw new ArgumentNullException(nameof(candidate));
+        }
+        if (!worldRegistry.TryGetGrid(out Grid candidateGrid)
+            || candidateGrid == null)
+        {
+            throw new InvalidOperationException(
+                "Character medical restore requires a facility Grid candidate.");
+        }
+        candidate.DownedRegistrations.Clear();
+        candidate.DownedPatients.Clear();
+        DungeonGameRestoreReport report = new();
+        ValidateWorldReferencesAndPrepareProjection(
+            candidate.State,
+            candidateGrid,
+            candidate,
+            report);
+        if (!report.Success)
+        {
+            throw new InvalidOperationException(
+                "Character-medical refreshed world references are invalid: "
+                + string.Join(" | ", report.Errors));
+        }
+    }
+
+    private CharacterMedicalAggregateState PrepareLocalState(
+        DungeonCharacterMedicalSaveData saveData)
+    {
+        DungeonGameRestoreReport report = new();
+        CharacterMedicalSaveValidation.Validate(
+            saveData,
+            report,
+            resourceCatalog,
+            itemDefinitions);
+        if (!report.Success)
+        {
+            throw new InvalidOperationException(
+                "Character-medical restore candidate is invalid: "
+                + string.Join(" | ", report.Errors));
+        }
+        return CharacterMedicalSaveValidation.CreateState(saveData);
     }
 
     internal void PublishRestore(CharacterMedicalRestoreCandidate candidate)
@@ -455,14 +495,33 @@ internal sealed class CharacterMedicalRestoreCoordinator
                 continue;
             }
 
+            bool isDraining = order.state ==
+                CharacterMedicalOrderState.MaterialDestinationDraining;
+            CharacterMedicalSupplyDestinationDrainJoinData activeDrain =
+                isDraining
+                    ? order.treatmentDestinationDrainJoins.SingleOrDefault(
+                        value => value != null
+                            && value.phase !=
+                                CharacterMedicalSupplyDestinationDrainPhase
+                                    .ClosedAwaitingCheckpointGc)
+                    : null;
             CharacterActor patient = FindCharacter(order.patientId);
             if (patient == null || patient.IsDead)
             {
+                if (isDraining
+                    && activeDrain?.targetState ==
+                        CharacterMedicalOrderState.Cancelled)
+                {
+                    order.carried = false;
+                    order.rescuerId = string.Empty;
+                    continue;
+                }
                 report.AddError(
                     $"Active medical order '{order.orderId}' references missing patient '{order.patientId}'.");
                 continue;
             }
-            if (!string.IsNullOrWhiteSpace(order.rescuerId))
+            if (!isDraining
+                && !string.IsNullOrWhiteSpace(order.rescuerId))
             {
                 CharacterActor rescuer = FindCharacter(order.rescuerId);
                 if (rescuer == null || rescuer.IsDead)
@@ -471,7 +530,8 @@ internal sealed class CharacterMedicalRestoreCoordinator
                         $"Active medical order '{order.orderId}' references missing rescuer '{order.rescuerId}'.");
                 }
             }
-            if (!string.IsNullOrWhiteSpace(order.treatmentFacilityId)
+            if (!isDraining
+                && !string.IsNullOrWhiteSpace(order.treatmentFacilityId)
                 && (!facilities.ContainsKey(order.treatmentFacilityId)
                     || !reservedFacilities.Add(
                         order.treatmentFacilityId)))
@@ -484,19 +544,27 @@ internal sealed class CharacterMedicalRestoreCoordinator
                 bodyHealthQuery.GetSnapshot(patient);
             if (!health.Downed)
             {
-                if (order.carried)
+                if (isDraining)
                 {
-                    report.AddError(
-                        $"Medical order '{order.orderId}' carries a patient who is not downed.");
+                    order.carried = false;
+                    order.rescuerId = string.Empty;
+                    continue;
                 }
+                order.carried = false;
+                order.rescuerId = string.Empty;
+                order.state = CharacterMedicalOrderState.Completed;
+                order.SetStatus(CharacterMedicalStatusCode.TreatmentCompleted);
                 continue;
             }
 
             order.carried = false;
             order.rescuerId = string.Empty;
-            order.state = order.stabilized
-                ? CharacterMedicalOrderState.AwaitingRescue
-                : CharacterMedicalOrderState.AwaitingStabilization;
+            if (!isDraining)
+            {
+                order.state = order.stabilized
+                    ? CharacterMedicalOrderState.AwaitingRescue
+                    : CharacterMedicalOrderState.AwaitingStabilization;
+            }
             if (!TryPrepareDownedRegistration(
                     candidateGrid,
                     patient,

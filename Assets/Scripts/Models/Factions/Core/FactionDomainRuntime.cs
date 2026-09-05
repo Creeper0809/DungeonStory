@@ -46,13 +46,174 @@ namespace DungeonStory.Factions
         public IReadOnlyList<FactionRouteState> Routes => State.Routes;
         public int CurrentDay => State.CurrentDay;
         public int RouteSequence => State.RouteSequence;
+        public int RouteSettlementOperationSequence =>
+            State.RouteSettlementOperationSequence;
         public int GoodwillOperationSequence => State.GoodwillOperationSequence;
+        public long AllianceBenefitBalanceMilliEwu =>
+            State.AllianceBenefitBalanceMilliEwu;
+        public long AllianceBenefitRefillRemainder =>
+            State.AllianceBenefitRefillRemainder;
+        public int AllianceBenefitLastRefillDay =>
+            State.AllianceBenefitLastRefillDay;
+        public string AllianceBenefitAuthorityDigest =>
+            State.AllianceBenefitAuthorityDigest;
         public bool IsRestoreStaging => aggregateRootStore.IsRestoreStaging;
         public int PublishedRestoreRevision => aggregateRootStore.PublishedRestoreRevision;
 
         public void SetCurrentDay(int day)
         {
             State.CurrentDay = Math.Max(1, day);
+        }
+
+        public void ApplyAllianceBenefitRefill(
+            int day,
+            string authorityDigest,
+            long capacityMilliEwu,
+            long refillNumeratorMilliEwu,
+            long refillDenominatorDays)
+        {
+            FactionAggregateState state = State;
+            int canonicalDay = Math.Max(1, day);
+            ValidateAllianceBenefitAuthority(
+                state,
+                authorityDigest,
+                capacityMilliEwu,
+                refillNumeratorMilliEwu,
+                refillDenominatorDays);
+            if (canonicalDay < state.AllianceBenefitLastRefillDay)
+            {
+                throw new InvalidOperationException(
+                    "Faction alliance-benefit refill day cannot move backwards.");
+            }
+            if (canonicalDay == state.AllianceBenefitLastRefillDay)
+            {
+                return;
+            }
+
+            int elapsedDays = checked(
+                canonicalDay - state.AllianceBenefitLastRefillDay);
+            state.AllianceBenefitLastRefillDay = canonicalDay;
+            if (state.AllianceBenefitBalanceMilliEwu >= capacityMilliEwu)
+            {
+                state.AllianceBenefitBalanceMilliEwu = capacityMilliEwu;
+                state.AllianceBenefitRefillRemainder = 0L;
+                return;
+            }
+
+            long wholePerDay = refillNumeratorMilliEwu
+                / refillDenominatorDays;
+            long remainderPerDay = refillNumeratorMilliEwu
+                % refillDenominatorDays;
+            long wholeCredit = checked(wholePerDay * elapsedDays);
+            long remainderTotal = checked(
+                state.AllianceBenefitRefillRemainder
+                + checked(remainderPerDay * elapsedDays));
+            long fractionalCredit = remainderTotal / refillDenominatorDays;
+            long nextRemainder = remainderTotal % refillDenominatorDays;
+            long credit = checked(wholeCredit + fractionalCredit);
+            long room = capacityMilliEwu - state.AllianceBenefitBalanceMilliEwu;
+            if (credit >= room)
+            {
+                state.AllianceBenefitBalanceMilliEwu = capacityMilliEwu;
+                state.AllianceBenefitRefillRemainder = 0L;
+                return;
+            }
+
+            state.AllianceBenefitBalanceMilliEwu = checked(
+                state.AllianceBenefitBalanceMilliEwu + credit);
+            state.AllianceBenefitRefillRemainder = nextRemainder;
+        }
+
+        public bool TryReserveAllianceBenefit(
+            string authorityDigest,
+            long capacityMilliEwu,
+            long debitMilliEwu,
+            out long balanceBeforeMilliEwu,
+            out long balanceAfterMilliEwu,
+            out string failureReason)
+        {
+            FactionAggregateState state = State;
+            balanceBeforeMilliEwu = state.AllianceBenefitBalanceMilliEwu;
+            balanceAfterMilliEwu = balanceBeforeMilliEwu;
+            if (!string.Equals(
+                    state.AllianceBenefitAuthorityDigest,
+                    authorityDigest,
+                    StringComparison.Ordinal))
+            {
+                failureReason = "세력 보급 예산 권위가 현재 승인 원장과 일치하지 않습니다.";
+                return false;
+            }
+            if (debitMilliEwu <= 0 || debitMilliEwu > capacityMilliEwu)
+            {
+                failureReason = "세력 보급 경로의 EWU 비용이 유효하지 않습니다.";
+                return false;
+            }
+            if (balanceBeforeMilliEwu < debitMilliEwu)
+            {
+                failureReason = "전역 동맹 보급 예산이 부족합니다.";
+                return false;
+            }
+
+            balanceAfterMilliEwu = checked(
+                balanceBeforeMilliEwu - debitMilliEwu);
+            state.AllianceBenefitBalanceMilliEwu = balanceAfterMilliEwu;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public void RefundAllianceBenefit(
+            string authorityDigest,
+            long capacityMilliEwu,
+            long debitMilliEwu,
+            long expectedBalanceAfterMilliEwu)
+        {
+            FactionAggregateState state = State;
+            if (!string.Equals(
+                    state.AllianceBenefitAuthorityDigest,
+                    authorityDigest,
+                    StringComparison.Ordinal)
+                || state.AllianceBenefitBalanceMilliEwu
+                    != expectedBalanceAfterMilliEwu)
+            {
+                throw new InvalidOperationException(
+                    "Alliance-benefit refund no longer matches its aggregate reservation boundary.");
+            }
+            long refunded = checked(
+                state.AllianceBenefitBalanceMilliEwu + debitMilliEwu);
+            if (refunded > capacityMilliEwu)
+            {
+                throw new InvalidOperationException(
+                    "Alliance-benefit refund exceeds its configured capacity.");
+            }
+            state.AllianceBenefitBalanceMilliEwu = refunded;
+        }
+
+        private static void ValidateAllianceBenefitAuthority(
+            FactionAggregateState state,
+            string authorityDigest,
+            long capacityMilliEwu,
+            long refillNumeratorMilliEwu,
+            long refillDenominatorDays)
+        {
+            if (state == null
+                || string.IsNullOrEmpty(authorityDigest)
+                || capacityMilliEwu <= 0
+                || refillNumeratorMilliEwu <= 0
+                || refillDenominatorDays <= 0
+                || !string.Equals(
+                    state.AllianceBenefitAuthorityDigest,
+                    authorityDigest,
+                    StringComparison.Ordinal)
+                || state.AllianceBenefitBalanceMilliEwu < 0
+                || state.AllianceBenefitBalanceMilliEwu > capacityMilliEwu
+                || state.AllianceBenefitRefillRemainder < 0
+                || state.AllianceBenefitRefillRemainder
+                    >= refillDenominatorDays
+                || state.AllianceBenefitLastRefillDay <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Faction alliance-benefit budget authority is invalid or stale.");
+            }
         }
 
         public int AllocateGoodwillOperationSequence()
@@ -63,6 +224,16 @@ namespace DungeonStory.Factions
                     "Faction goodwill operation sequence is exhausted.");
             }
             return ++State.GoodwillOperationSequence;
+        }
+
+        public int AllocateRouteSettlementOperationSequence()
+        {
+            if (State.RouteSettlementOperationSequence == int.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    "Faction route settlement operation sequence is exhausted.");
+            }
+            return ++State.RouteSettlementOperationSequence;
         }
 
         public bool TryGetFaction(string factionId, out DungeonFactionState faction)
@@ -293,17 +464,34 @@ namespace DungeonStory.Factions
                 throw new ArgumentNullException(nameof(route));
             }
 
-            route.routeId = $"faction-route:{++State.RouteSequence}";
+            if (State.RouteSequence == int.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    "Faction route sequence is exhausted.");
+            }
+            int nextSequence = checked(State.RouteSequence + 1);
+            route.routeId = $"faction-route:{nextSequence}";
             State.Routes.Add(route);
+            State.RouteSequence = nextSequence;
             return route.routeId;
         }
 
-        public void MarkCargoDelivered(FactionRouteState route)
+        public void MarkCargoDelivered(
+            FactionRouteState route,
+            FactionRouteCargoDeliveryReceipt receipt)
         {
-            if (route != null)
+            if (route == null)
             {
-                route.cargoDelivered = true;
+                throw new ArgumentNullException(nameof(route));
             }
+            if (receipt == null
+                || receipt.state != FactionRouteCargoDeliveryState.Delivered)
+            {
+                throw new ArgumentException(
+                    "A terminal faction cargo receipt is required.",
+                    nameof(receipt));
+            }
+            route.cargoDelivery = receipt;
         }
 
         public void AddReinforcementActor(FactionRouteState route, string actorId)

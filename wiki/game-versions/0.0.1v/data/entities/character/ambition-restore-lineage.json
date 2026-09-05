@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Family"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-restore-lineage",
+  "spoiler_tier": "none",
+  "summary": "잃어버린 가문의 기록과 유산을 다음 세대에 잇고자 한다.",
+  "title": "끊긴 계보 복원"
+}

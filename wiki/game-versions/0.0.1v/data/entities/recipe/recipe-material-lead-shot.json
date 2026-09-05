@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "140"
+    },
+    {
+      "label": "필요 연구",
+      "value": "탄약 규격화"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "12",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-lead-shot",
+      "target_spoiler_tier": "none",
+      "target_title": "납탄",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lead-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "납괴",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-standard-ammunition",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약 규격화",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-material-lead-shot",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 납탄을(를) 생산한다.",
+  "title": "납탄"
+}

@@ -1,0 +1,149 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-agriculture-greenhouse-horticulture",
+    "spoiler_tier": "none",
+    "title": "온실 원예"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-indoor",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 재배",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-indoor",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 재배",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-indoor",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 재배",
+      "to": "research/research-agriculture-indoor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-climate-weather-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측",
+      "to": "research/research-climate-weather-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-climate-weather-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측",
+      "to": "research/research-climate-weather-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-climate-weather-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측",
+      "to": "research/research-climate-weather-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-basics",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 배관과 펌프 급수",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-basics",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 배관과 펌프 급수",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-basics",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 배관과 펌프 급수",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8854",
+      "target_spoiler_tier": "none",
+      "target_title": "재배 온실",
+      "to": "facility/building-8854",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-greenhouse-nutrient",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-greenhouse-horticulture",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-greenhouse-horticulture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-greenhouse-horticulture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-greenhouse-horticulture",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

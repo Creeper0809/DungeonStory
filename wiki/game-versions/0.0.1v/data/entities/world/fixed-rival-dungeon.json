@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "최소 강도",
+      "value": "5"
+    },
+    {
+      "label": "최대 강도",
+      "value": "5"
+    },
+    {
+      "label": "최소 유지 기간",
+      "value": "2일"
+    },
+    {
+      "label": "최대 유지 기간",
+      "value": "7일"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "fixed-rival-dungeon",
+  "spoiler_tier": "none",
+  "summary": "오랫동안 던전 주변을 압박해 온 경쟁 세력의 중심 권역이다.",
+  "title": "경쟁 던전 전초권"
+}

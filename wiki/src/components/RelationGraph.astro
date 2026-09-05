@@ -1,0 +1,26 @@
+---
+import type { WikiEntity } from '../lib/wiki-data';
+interface Props { entity: WikiEntity; version?: string }
+const { entity, version } = Astro.props;
+const visible = entity.relations.filter((relation) => relation.target_spoiler_tier === 'none').slice(0, 12);
+const href = (kind: string, slug: string) => version ? `/game-versions/${version}/entry/${kind}/${slug}/` : `/entry/${kind}/${slug}/`;
+---
+
+<section class="graph-card" aria-labelledby="graph-title" data-relation-graph>
+  <div class="section-heading section-heading--inline"><div><p class="eyebrow">관계 그래프</p><h2 id="graph-title">한 단계 연결</h2></div><span>{visible.length}개 연결</span></div>
+  {visible.length > 0 ? (
+    <>
+      <div class="graph-controls" aria-label="관계 그래프 필터">
+        <label><input type="checkbox" checked data-graph-filter="all" /> 모든 관계</label>
+        {Array.from(new Set(visible.map((item) => item.label))).slice(0, 4).map((label) => <label><input type="checkbox" checked data-graph-filter={label} /> {label}</label>)}
+      </div>
+      <div class="graph-flow" aria-label={`${entity.title}의 연결 그래프`}>
+        <div class="graph-node graph-node--center"><span>현재</span><strong>{entity.title}</strong></div>
+        <div class="graph-edges">
+          {visible.map((relation) => <a class="graph-edge" data-graph-edge={relation.label} href={href(relation.target_kind, relation.target_slug)}><span>{relation.label}</span><strong>{relation.target_title}</strong>{relation.amount && <small>×{relation.amount}</small>}</a>)}
+        </div>
+      </div>
+      <p class="graph-note">그래프는 보조 표현이다. 같은 정보는 위 관계 표에서 키보드와 화면 읽기 도구로도 확인할 수 있다.</p>
+    </>
+  ) : <p class="empty-state">표시할 공개 관계가 없다.</p>}
+</section>

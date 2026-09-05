@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "180"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손상되거나 잃은 위의 기능을 대신하도록 신체에 연결하는 보철 부품이다. 제4주조도시산 위 보철에는 받아들일 수 있는 음식 크기와 산성도가 입구 둘레의 눈금으로 표시되어 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-prosthetic-stomach",
+  "spoiler_tier": "none",
+  "summary": "수술로 설치하는 고유 보철 부품",
+  "title": "위 보철"
+}

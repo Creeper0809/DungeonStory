@@ -1,0 +1,133 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,m_Name,battlefield_broken-pillars,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,stableId,battlefield:broken-pillars,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,displayName,무너진 기둥숲,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,description,엄폐는 많지만 직선 사격과 빠른 이동이 어렵다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,kind,0,BattlefieldModifierKind,Terrain,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,movementMultiplier,0.8,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,accuracyMultiplier,0.75,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,damageMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:broken-pillars,battlefield:broken-pillars,requiredCounterTag,counter:flank,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,m_Name,battlefield_civilian-corridor,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,stableId,battlefield:civilian-corridor,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,displayName,피난 통로,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,description,민간인 보호 때문에 광역 공격을 자유롭게 쓰기 어렵다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,kind,1,BattlefieldModifierKind,Objective,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,movementMultiplier,0.9,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,accuracyMultiplier,0.9,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,damageMultiplier,0.85,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:civilian-corridor,battlefield:civilian-corridor,requiredCounterTag,counter:precision,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,m_Name,battlefield_collapsing-ceiling,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,stableId,battlefield:collapsing-ceiling,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,displayName,붕괴 천장,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,description,한 위치에 오래 머물수록 낙하 피해 위험이 커진다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,kind,2,BattlefieldModifierKind,Hazard,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,movementMultiplier,1.2,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,accuracyMultiplier,0.9,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,damageMultiplier,1.1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:collapsing-ceiling,battlefield:collapsing-ceiling,requiredCounterTag,counter:mobile,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,m_Name,battlefield_elevated-gallery,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,stableId,battlefield:elevated-gallery,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,displayName,고가 회랑,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,description,높은 사격 위치와 추락 위험이 동시에 생긴다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,kind,0,BattlefieldModifierKind,Terrain,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,movementMultiplier,0.9,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,accuracyMultiplier,1.18,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,damageMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:elevated-gallery,battlefield:elevated-gallery,requiredCounterTag,counter:anti-air,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,m_Name,battlefield_flooded-floor,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,stableId,battlefield:flooded-floor,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,displayName,침수 바닥,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,description,중장비 이동이 느려지고 전기·서리 효과가 강화된다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,kind,0,BattlefieldModifierKind,Terrain,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,movementMultiplier,0.65,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,accuracyMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,damageMultiplier,1.1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:flooded-floor,battlefield:flooded-floor,requiredCounterTag,counter:insulated,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,m_Name,battlefield_hostage-chain,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,stableId,battlefield:hostage-chain,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,displayName,인질 구속줄,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,description,지휘관 생포와 인질 보호가 같은 위치에서 충돌한다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,kind,1,BattlefieldModifierKind,Objective,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,movementMultiplier,0.9,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,accuracyMultiplier,0.9,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,damageMultiplier,0.9,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:hostage-chain,battlefield:hostage-chain,requiredCounterTag,counter:nonlethal,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,m_Name,battlefield_mana-storm,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,stableId,battlefield:mana-storm,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,displayName,마나 폭풍,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,description,비전 피해가 강해지지만 능력 오작동 위험도 커진다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,kind,2,BattlefieldModifierKind,Hazard,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,movementMultiplier,0.9,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,accuracyMultiplier,0.85,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,damageMultiplier,1.2,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:mana-storm,battlefield:mana-storm,requiredCounterTag,counter:mana-grounding,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,m_Name,battlefield_narrow-bridge,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,stableId,battlefield:narrow-bridge,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,displayName,좁은 교량,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,description,전열 교대가 어렵고 밀집 공격의 가치가 커진다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,kind,0,BattlefieldModifierKind,Terrain,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,movementMultiplier,0.7,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,accuracyMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,damageMultiplier,1.08,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:narrow-bridge,battlefield:narrow-bridge,requiredCounterTag,counter:reach,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,m_Name,battlefield_powder-smoke,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,stableId,battlefield:powder-smoke,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,displayName,화약 연무,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,description,사격 명중이 떨어지고 연기 보호구 없는 병력이 지친다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,kind,2,BattlefieldModifierKind,Hazard,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,movementMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,accuracyMultiplier,0.65,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,damageMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:powder-smoke,battlefield:powder-smoke,requiredCounterTag,counter:smoke-hood,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,m_Name,battlefield_sealed-exit,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,stableId,battlefield:sealed-exit,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,displayName,봉인된 퇴로,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,description,탈출 장치를 조작하기 전에는 퇴각할 수 없다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,kind,1,BattlefieldModifierKind,Objective,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,movementMultiplier,0.85,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,accuracyMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,damageMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:sealed-exit,battlefield:sealed-exit,requiredCounterTag,counter:engineering,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,m_Name,battlefield_spore-bloom,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,stableId,battlefield:spore-bloom,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,displayName,포자 개화,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,description,장기전일수록 포자 노출과 시야 방해가 누적된다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,kind,2,BattlefieldModifierKind,Hazard,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,movementMultiplier,0.85,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,accuracyMultiplier,0.8,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,damageMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:spore-bloom,battlefield:spore-bloom,requiredCounterTag,counter:fungicide,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,m_Name,battlefield_unstable-device,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,stableId,battlefield:unstable-device,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,displayName,불안정 장치,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,description,시간 내 장치를 파괴하지 못하면 양측 모두 피해를 입는다.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,authoringRevision,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,sourceNote,V20 hand-authored battlefield modifier.,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,kind,1,BattlefieldModifierKind,Objective,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,movementMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,accuracyMultiplier,1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,damageMultiplier,1.1,,,explicit-serialized
+BattlefieldModifierDefinitionSO|battlefield:unstable-device,battlefield:unstable-device,requiredCounterTag,counter:sabotage,,,explicit-serialized

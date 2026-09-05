@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Textiles"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-textile-rune-leather",
+  "spoiler_tier": "none",
+  "summary": "가죽에 마나 문양을 새겨 방어와 마법 저항을 높인다.",
+  "title": "룬가죽"
+}

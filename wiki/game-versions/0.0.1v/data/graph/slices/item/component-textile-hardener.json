@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-textile-hardener",
+    "spoiler_tier": "none",
+    "title": "직물 경화제"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-articulated-plate",
+      "label": "필요 조건",
+      "to": "item/component-textile-hardener",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-brigandine",
+      "label": "필요 조건",
+      "to": "item/component-textile-hardener",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-textile-hardener",
+      "label": "생산·해금",
+      "to": "item/component-textile-hardener",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

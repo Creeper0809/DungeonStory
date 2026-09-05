@@ -174,4 +174,25 @@ internal sealed class EditorEquipmentPhysicalItemGatewayProxy :
         string destinationId,
         Vector2Int releasePosition) =>
         Target.ReleaseStacksByDestination(destinationId, releasePosition);
+
+    internal bool TryRouteStackToDestinationForEditor(
+        string stackId,
+        WorldItemStackState state,
+        string destinationId,
+        Vector2Int destinationPosition,
+        out string failureReason)
+    {
+        if (Target is IWorldItemStackRuntime runtime)
+        {
+            return runtime.TryRouteStackToDestination(
+                stackId,
+                state,
+                destinationId,
+                destinationPosition,
+                out failureReason);
+        }
+
+        failureReason = "editor-equipment-gateway-route-unavailable";
+        return false;
+    }
 }

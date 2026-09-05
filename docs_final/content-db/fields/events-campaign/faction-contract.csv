@@ -1,0 +1,559 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,m_Name,contract_beastkin_crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,stableId,faction-contract:beastkin:crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,displayName,붉은발톱 교역소 위기 대응 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,description,붉은발톱 교역소이 실제 물자와 작업 결과를 요구하는 위기 대응 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,factionId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,kind,1,V20FactionContractKind,Crisis Response,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,deadlineDays,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,completionRequirements.items.0.itemDefinitionId,medicine:standard,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,completionRequirements.items.0.amount,3,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,successEffects.0.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,successEffects.1.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,failureEffects.0.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,failureEffects.0.amount,12,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:crisis,faction-contract:beastkin:crisis,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,m_Name,contract_beastkin_strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,stableId,faction-contract:beastkin:strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,displayName,붉은발톱 교역소 장기 전략 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,description,붉은발톱 교역소이 실제 물자와 작업 결과를 요구하는 장기 전략 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,factionId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,kind,2,V20FactionContractKind,Strategic,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,deadlineDays,45,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,completionRequirements.items.0.itemDefinitionId,equipment-item:shield:tower,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,completionRequirements.items.0.amount,4,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,successEffects.0.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,successEffects.0.amount,15,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,successEffects.1.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,failureEffects.0.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:strategic,faction-contract:beastkin:strategic,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,m_Name,contract_beastkin_supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,stableId,faction-contract:beastkin:supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,displayName,붉은발톱 교역소 정기 물자 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,description,붉은발톱 교역소이 실제 물자와 작업 결과를 요구하는 정기 물자 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,factionId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,deadlineDays,20,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,completionRequirements.items.0.itemDefinitionId,food:salted-meat-stew,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,completionRequirements.items.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,successEffects.0.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,successEffects.1.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,failureEffects.0.targetId,faction:dungeon:beastkin,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:beastkin:supply,faction-contract:beastkin:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,m_Name,contract_demon_crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,stableId,faction-contract:demon:crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,displayName,잿빛 계약정 위기 대응 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,description,잿빛 계약정이 실제 물자와 작업 결과를 요구하는 위기 대응 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,factionId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,kind,1,V20FactionContractKind,Crisis Response,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,deadlineDays,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,completionRequirements.items.0.itemDefinitionId,component:rune-conductor,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,completionRequirements.items.0.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,successEffects.0.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,successEffects.1.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,failureEffects.0.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,failureEffects.0.amount,12,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:crisis,faction-contract:demon:crisis,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,m_Name,contract_demon_strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,stableId,faction-contract:demon:strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,displayName,잿빛 계약정 장기 전략 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,description,잿빛 계약정이 실제 물자와 작업 결과를 요구하는 장기 전략 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,factionId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,kind,2,V20FactionContractKind,Strategic,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,deadlineDays,45,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,completionRequirements.items.0.itemDefinitionId,tool:administrative-seal,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,completionRequirements.items.0.amount,18,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,successEffects.0.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,successEffects.0.amount,15,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,successEffects.1.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,failureEffects.0.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:strategic,faction-contract:demon:strategic,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,m_Name,contract_demon_supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,stableId,faction-contract:demon:supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,displayName,잿빛 계약정 정기 물자 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,description,잿빛 계약정이 실제 물자와 작업 결과를 요구하는 정기 물자 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,factionId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,deadlineDays,20,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,completionRequirements.items.0.itemDefinitionId,material:paper,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,completionRequirements.items.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,successEffects.0.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,successEffects.1.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,failureEffects.0.targetId,faction:dungeon:demon,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:demon:supply,faction-contract:demon:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,m_Name,contract_golem_crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,stableId,faction-contract:golem:crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,displayName,돌맥 주조소 위기 대응 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,description,돌맥 주조소이 실제 물자와 작업 결과를 요구하는 위기 대응 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,factionId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,kind,1,V20FactionContractKind,Crisis Response,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,deadlineDays,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,completionRequirements.items.0.itemDefinitionId,tool:maintenance-kit,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,completionRequirements.items.0.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,successEffects.0.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,successEffects.1.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,failureEffects.0.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,failureEffects.0.amount,12,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:crisis,faction-contract:golem:crisis,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,m_Name,contract_golem_strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,stableId,faction-contract:golem:strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,displayName,돌맥 주조소 장기 전략 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,description,돌맥 주조소이 실제 물자와 작업 결과를 요구하는 장기 전략 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,factionId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,kind,2,V20FactionContractKind,Strategic,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,deadlineDays,45,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,completionRequirements.items.0.itemDefinitionId,component:rune-conductor,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,completionRequirements.items.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,successEffects.0.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,successEffects.0.amount,15,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,successEffects.1.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,failureEffects.0.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:strategic,faction-contract:golem:strategic,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,m_Name,contract_golem_supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,stableId,faction-contract:golem:supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,displayName,돌맥 주조소 정기 물자 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,description,돌맥 주조소이 실제 물자와 작업 결과를 요구하는 정기 물자 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,factionId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,deadlineDays,20,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,completionRequirements.items.0.itemDefinitionId,component:machine-parts,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,completionRequirements.items.0.amount,2,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,successEffects.0.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,successEffects.1.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,failureEffects.0.targetId,faction:dungeon:golem,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:golem:supply,faction-contract:golem:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,m_Name,contract_harpy_crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,stableId,faction-contract:harpy:crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,displayName,폭풍둥지 위기 대응 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,description,폭풍둥지이 실제 물자와 작업 결과를 요구하는 위기 대응 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,factionId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,kind,1,V20FactionContractKind,Crisis Response,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,deadlineDays,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,completionRequirements.items.0.itemDefinitionId,medicine:antiseptic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,completionRequirements.items.0.amount,6,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,successEffects.0.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,successEffects.1.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,failureEffects.0.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,failureEffects.0.amount,12,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:crisis,faction-contract:harpy:crisis,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,m_Name,contract_harpy_strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,stableId,faction-contract:harpy:strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,displayName,폭풍둥지 장기 전략 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,description,폭풍둥지이 실제 물자와 작업 결과를 요구하는 장기 전략 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,factionId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,kind,2,V20FactionContractKind,Strategic,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,deadlineDays,45,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,completionRequirements.items.0.itemDefinitionId,tool:weather-observation-kit,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,completionRequirements.items.0.amount,6,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,successEffects.0.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,successEffects.0.amount,15,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,successEffects.1.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,failureEffects.0.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:strategic,faction-contract:harpy:strategic,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,m_Name,contract_harpy_supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,stableId,faction-contract:harpy:supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,displayName,폭풍둥지 정기 물자 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,description,폭풍둥지이 실제 물자와 작업 결과를 요구하는 정기 물자 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,factionId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,deadlineDays,20,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,completionRequirements.items.0.itemDefinitionId,material:rope,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,completionRequirements.items.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,successEffects.0.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,successEffects.1.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,failureEffects.0.targetId,faction:dungeon:harpy,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:harpy:supply,faction-contract:harpy:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,m_Name,contract_kobold_crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,stableId,faction-contract:kobold:crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,displayName,깊은톱니 굴 위기 대응 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,description,깊은톱니 굴이 실제 물자와 작업 결과를 요구하는 위기 대응 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,factionId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,kind,1,V20FactionContractKind,Crisis Response,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,deadlineDays,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,completionRequirements.items.0.itemDefinitionId,tool:field-repair-kit,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,completionRequirements.items.0.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,successEffects.0.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,successEffects.1.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,failureEffects.0.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,failureEffects.0.amount,12,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:crisis,faction-contract:kobold:crisis,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,m_Name,contract_kobold_strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,stableId,faction-contract:kobold:strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,displayName,깊은톱니 굴 장기 전략 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,description,깊은톱니 굴이 실제 물자와 작업 결과를 요구하는 장기 전략 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,factionId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,kind,2,V20FactionContractKind,Strategic,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,deadlineDays,45,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,completionRequirements.items.0.itemDefinitionId,component:engineering-drawing,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,completionRequirements.items.0.amount,18,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,successEffects.0.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,successEffects.0.amount,15,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,successEffects.1.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,failureEffects.0.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:strategic,faction-contract:kobold:strategic,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,m_Name,contract_kobold_supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,stableId,faction-contract:kobold:supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,displayName,깊은톱니 굴 정기 물자 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,description,깊은톱니 굴이 실제 물자와 작업 결과를 요구하는 정기 물자 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,factionId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,deadlineDays,20,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,completionRequirements.items.0.itemDefinitionId,component:machine-parts,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,completionRequirements.items.0.amount,2,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,successEffects.0.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,successEffects.1.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,failureEffects.0.targetId,faction:dungeon:kobold,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:kobold:supply,faction-contract:kobold:supply,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,m_Name,contract_myconid_crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,stableId,faction-contract:myconid:crisis,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,displayName,균사정원 위기 대응 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,description,균사정원이 실제 물자와 작업 결과를 요구하는 위기 대응 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,factionId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,kind,1,V20FactionContractKind,Crisis Response,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,deadlineDays,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,completionRequirements.items.0.itemDefinitionId,supply:fungicide,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,completionRequirements.items.0.amount,4,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,successEffects.0.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,successEffects.1.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,failureEffects.0.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,failureEffects.0.amount,12,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:crisis,faction-contract:myconid:crisis,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,m_Name,contract_myconid_strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,stableId,faction-contract:myconid:strategic,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,displayName,균사정원 장기 전략 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,description,균사정원이 실제 물자와 작업 결과를 요구하는 장기 전략 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,factionId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,kind,2,V20FactionContractKind,Strategic,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,deadlineDays,45,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,completionRequirements.items.0.itemDefinitionId,tool:weather-observation-kit,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,completionRequirements.items.0.amount,6,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,successEffects.0.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,successEffects.0.amount,15,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,successEffects.1.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,failureEffects.0.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:strategic,faction-contract:myconid:strategic,failureEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,m_Name,contract_myconid_supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,stableId,faction-contract:myconid:supply,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,displayName,균사정원 정기 물자 계약,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,description,균사정원이 실제 물자와 작업 결과를 요구하는 정기 물자 계약이다.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,authoringRevision,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,factionId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,kind,0,V20FactionContractKind,Supply,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,deadlineDays,20,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,completionRequirements.items.0.itemDefinitionId,resource:cave-mushroom,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,completionRequirements.items.0.amount,16,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,completionRequirements.items.0.consume,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,completionRequirements.facilities,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,completionRequirements.research,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,completionRequirements.characters,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,completionRequirements.factions,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,completionRequirements.worldMetrics,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,completionRequirements.requiredFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,completionRequirements.excludedFlags,[],,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,successEffects.0.kind,6,V20FactionContractKind,알 수 없음 (6),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,successEffects.0.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,successEffects.0.amount,8,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,successEffects.0.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,successEffects.1.kind,8,V20FactionContractKind,알 수 없음 (8),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,successEffects.1.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,successEffects.1.amount,1,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,successEffects.1.durationDays,0,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,failureEffects.0.kind,7,V20FactionContractKind,알 수 없음 (7),explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,failureEffects.0.targetId,faction:dungeon:myconid,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,failureEffects.0.amount,7,,,explicit-serialized
+FactionContractDefinitionSO|faction-contract:myconid:supply,faction-contract:myconid:supply,failureEffects.0.durationDays,0,,,explicit-serialized

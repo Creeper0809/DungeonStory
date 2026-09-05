@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-organ-brain",
+    "spoiler_tier": "none",
+    "title": "적출 뇌"
+  },
+  "edges": [],
+  "schema_version": 1
+}

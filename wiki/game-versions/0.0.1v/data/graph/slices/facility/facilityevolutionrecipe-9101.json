@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facilityevolutionrecipe-9101",
+    "spoiler_tier": "none",
+    "title": "상업 화덕 진화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9101",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1000",
+      "target_spoiler_tier": "none",
+      "target_title": "간이화덕",
+      "to": "facility/building-1000",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9101",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1001",
+      "target_spoiler_tier": "none",
+      "target_title": "고기그릴",
+      "to": "facility/building-1001",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9101",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1002",
+      "target_spoiler_tier": "none",
+      "target_title": "조리손질대",
+      "to": "facility/building-1002",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

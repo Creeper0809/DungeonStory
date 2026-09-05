@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "40"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "세척·전처리 싱크는 재료의 흙과 오염을 씻고 다음 공정에 넘길 준비를 하는 시설이다. 하르나크의 도면은 체형이 다른 주민도 쓰도록 받침 높이와 배수 손잡이 위치를 조절할 수 있게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-1610",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "세척·전처리 싱크 설치 키트"
+}

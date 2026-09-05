@@ -87,6 +87,11 @@ public sealed class SurvivalWorkExecutionHandler :
             reason = availability.Failure.IsFailure
                 ? availability.Failure.Code.ToString()
                 : string.Empty;
+            if (ProductionWorkstationExecutionModeRules
+                .BlocksManualProductionFallback(availability.Failure))
+            {
+                return false;
+            }
         }
         if (workTypeId == BuiltInWorkTypeIds.Treat
             && cropPlots.TryGetWork(
@@ -194,33 +199,54 @@ public sealed class SurvivalWorkExecutionHandler :
         }
         if (context.WorkTypeId == BuiltInWorkTypeIds.Cook)
         {
-            ProductionWorkBeginResult begin = productionBills.BeginWork(
-                context.Actor,
-                context.Target,
-                context.WorkTypeId);
-            if (begin.Succeeded)
+            ProductionWorkAvailabilityResult availability =
+                productionBills.CheckWorkAvailability(
+                    context.Target,
+                    context.WorkTypeId);
+            if (availability.Available)
             {
-                ProductionBillSnapshot bill = begin.Bill;
-                bool applied = true;
-                bool completed = false;
-                yield return context.ExecutePersistentWorkAmount(
-                    bill.RequiredWork,
-                    bill.CompletedWork,
-                    bill.RecipeName,
-                    delta =>
-                    {
-                        ProductionWorkExecutionResult work =
-                            productionBills.ExecuteWork(
-                                context.Actor,
-                                context.Target,
-                                bill.BillId,
-                                delta);
-                        applied &= work.Succeeded;
-                        completed |= work.CycleCompleted;
-                        return work.Succeeded;
-                    });
-                result.CompletedSuccessfully = applied && completed;
-                result.CompletionEffectsAlreadyApplied = completed;
+                ProductionWorkBeginResult begin = productionBills.BeginWork(
+                    context.Actor,
+                    context.Target,
+                    context.WorkTypeId);
+                if (begin.Succeeded)
+                {
+                    ProductionBillSnapshot bill = begin.Bill;
+                    bool applied = true;
+                    bool completed = false;
+                    yield return context.ExecutePersistentWorkAmount(
+                        bill.RequiredWork,
+                        bill.CompletedWork,
+                        bill.RecipeName,
+                        delta =>
+                        {
+                            ProductionWorkExecutionResult work =
+                                productionBills.ExecuteWork(
+                                    context.Actor,
+                                    context.Target,
+                                    bill.BillId,
+                                    delta);
+                            applied &= work.Succeeded;
+                            completed |= work.CycleCompleted;
+                            return work.Succeeded;
+                        });
+                    result.CompletedSuccessfully = applied && completed;
+                    result.CompletionEffectsAlreadyApplied = completed;
+                    yield break;
+                }
+
+                // A selected production bill owns this action. Falling through
+                // after BeginWork rejects could consume legacy process fluids or
+                // create byproducts without committing the production WIP.
+                result.CompletedSuccessfully = false;
+                yield break;
+            }
+            if (ProductionFacilityDefinitionIdentity.IsProductionWorkstation(
+                    context.Target)
+                || ProductionWorkstationExecutionModeRules
+                    .BlocksManualProductionFallback(availability.Failure))
+            {
+                result.CompletedSuccessfully = false;
                 yield break;
             }
         }

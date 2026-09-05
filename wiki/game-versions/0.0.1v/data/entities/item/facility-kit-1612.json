@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "40"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "향신료 선반은 말린 향신료를 종류별로 나누고 조리 중 바로 꺼낼 수 있게 두는 시설이다. 하르나크의 선반은 글자를 못 읽거나 냄새를 맡지 못하는 주민도 구분하도록 용기마다 모양 표식을 붙인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-1612",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "향신료 선반 설치 키트"
+}

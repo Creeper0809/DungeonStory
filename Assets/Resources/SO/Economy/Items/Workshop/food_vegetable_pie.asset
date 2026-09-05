@@ -62,4 +62,4 @@ MonoBehaviour:
     - rid: 7737212042857939074
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5897647
+        saleRate: 0.5905686

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "background-tenant-farmer",
+    "spoiler_tier": "none",
+    "title": "소작농의 자식"
+  },
+  "edges": [],
+  "schema_version": 1
+}

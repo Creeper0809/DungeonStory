@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "328"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9824",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 아크등",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-industry-electric-lighting",
+  "spoiler_tier": "none",
+  "summary": "작업 구역의 명중·속도·안전 저하를 전기 조명으로 완화한다.",
+  "title": "산업 조명"
+}

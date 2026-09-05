@@ -53,6 +53,14 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: weighted-output-share
+    contractVersion: 1
+    canonicalPayload: output:source:logging/000/main/resource:log=5;output:source:logging/001/byproduct/resource:dark-resin=1
   inputs: []
   outputs:
   - outputLineId: output:source:logging/000/main/resource:log

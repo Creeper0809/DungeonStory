@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "encounter-31",
+    "spoiler_tier": "warning",
+    "title": "진실 봉인수호자"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-31",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "battlefield-sealed-exit",
+      "target_spoiler_tier": "none",
+      "target_title": "봉인된 퇴로",
+      "to": "world/battlefield-sealed-exit",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-31",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

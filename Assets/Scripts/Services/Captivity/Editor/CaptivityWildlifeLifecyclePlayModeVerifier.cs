@@ -2176,7 +2176,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
 
         captivity.TryGetCaptive(state.captiveId, out CaptiveState current);
         probe.Reason = $"{scenario}: invasion trigger did not start escape; "
-            + $"status={current?.status};active={current?.IsActive};"
+            + $"status={current?.status};inCustody={current?.IsInCustody};"
             + $"falseCompliance={current?.falseCompliance};"
             + $"risk={current?.escapeRisk};result={current?.lastResult};"
             + $"actor={DescribeActor(captiveActor)};"

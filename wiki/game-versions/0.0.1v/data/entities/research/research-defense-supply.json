@@ -1,0 +1,94 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Defense And Tactics"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1802",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약·촉매 보급고",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1803",
+      "target_spoiler_tier": "none",
+      "target_title": "함정 정비대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-defense-supply",
+  "spoiler_tier": "none",
+  "summary": "탄약·촉매 보급고와 함정 정비대로 방어시설의 실물 보급과 재장전을 표준화한다.",
+  "title": "방어 보급학"
+}

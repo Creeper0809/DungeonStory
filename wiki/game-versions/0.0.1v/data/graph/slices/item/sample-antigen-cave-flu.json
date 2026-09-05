@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "sample-antigen-cave-flu",
+    "spoiler_tier": "none",
+    "title": "동굴 독감 항원 표본"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-cave-flu",
+      "label": "필요 조건",
+      "to": "item/sample-antigen-cave-flu",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/guest-request-disease-sample",
+      "label": "필요 조건",
+      "to": "item/sample-antigen-cave-flu",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

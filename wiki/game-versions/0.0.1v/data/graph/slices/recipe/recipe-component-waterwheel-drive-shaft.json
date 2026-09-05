@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-waterwheel-drive-shaft",
+    "spoiler_tier": "none",
+    "title": "수차 구동축"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-waterwheel-drive-shaft",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-waterwheel-drive-shaft",
+      "target_spoiler_tier": "none",
+      "target_title": "수차 구동축",
+      "to": "item/component-waterwheel-drive-shaft",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-waterwheel-drive-shaft",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-spring-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "용수철강",
+      "to": "item/material-spring-steel",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-waterwheel-drive-shaft",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-laminated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "적층 목재",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-waterwheel-drive-shaft",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-waterwheel",
+      "target_spoiler_tier": "none",
+      "target_title": "수차 발전",
+      "to": "research/research-industry-waterwheel",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

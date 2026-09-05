@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../../components/BaseLayout.astro';
+import AnatomyReferenceContent from '../../components/AnatomyReferenceContent.astro';
+import { getAnatomyReference, getCurrentVersion } from '../../lib/wiki-data';
+
+const version = getCurrentVersion();
+const reference = getAnatomyReference(version, Astro.params.id ?? '');
+if (!reference) return new Response(null, { status: 404 });
+---
+
+<BaseLayout title={reference.title} description={reference.summary} version={version}>
+  <AnatomyReferenceContent reference={reference} version={version} />
+</BaseLayout>

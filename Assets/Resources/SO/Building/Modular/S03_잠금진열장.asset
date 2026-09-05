@@ -93,7 +93,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 1
-        constructionWorkRequired: 428
+        constructionWorkRequired: 469
         repairWorkRequired: 58
         cleanWorkRequired: 10
         researchWorkRequired: 6

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using UnityEngine;
 using System.Text;
 
 /// <summary>
@@ -11,9 +12,11 @@ using System.Text;
 /// </summary>
 public sealed class ProductionCapacityRoutingDrainOutbox :
     IProductionCapacityRoutingDrainOutbox,
-    IProductionCapacityRoutingDrainQuery
+    IProductionCapacityRoutingDrainQuery,
+    IProductionCapacityRoutingDrainCheckpointGcOutbox
 {
     private readonly WorldItemRepository repository;
+    private CheckpointGcCandidate activeCheckpointGcCandidate;
 
     public ProductionCapacityRoutingDrainOutbox(WorldItemRepository repository)
     {
@@ -518,6 +521,11 @@ public sealed class ProductionCapacityRoutingDrainOutbox :
         string stepOperationId,
         string receiptFingerprint)
     {
+        if (activeCheckpointGcCandidate != null)
+        {
+            return Deferred(
+                "production-capacity-routing-checkpoint-gc-transaction-active");
+        }
         if (!TryGet(stepOperationId, out ProductionCapacityRoutingDrainSaveData value))
         {
             return new ProductionCapacityRoutingDrainResult(
@@ -540,6 +548,139 @@ public sealed class ProductionCapacityRoutingDrainOutbox :
         }
         repository.RemovePendingCapacityRoutingDrain(stepOperationId);
         return Current(value, ProductionCapacityRoutingDrainStatus.Applied);
+    }
+
+    public bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionCapacityRoutingDrainSaveData> records,
+        out IProductionCapacityRoutingDrainCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        candidate = null;
+        failureReason = string.Empty;
+        if (activeCheckpointGcCandidate != null)
+        {
+            failureReason =
+                "production-capacity-routing-checkpoint-gc-already-prepared";
+            return false;
+        }
+        ProductionCapacityRoutingDrainSaveData[] expected = (records
+                ?? Array.Empty<ProductionCapacityRoutingDrainSaveData>())
+            .Select(value => value?.Clone())
+            .OrderBy(value => value?.stepOperationId, StringComparer.Ordinal)
+            .ToArray();
+        if (expected.Any(value => value == null)
+            || expected.Select(value => value.stepOperationId)
+                .Distinct(StringComparer.Ordinal).Count() != expected.Length
+            || expected.Select(value => value.batchCommitId)
+                .Distinct(StringComparer.Ordinal).Count() != expected.Length)
+        {
+            failureReason =
+                "production-capacity-routing-checkpoint-gc-records-invalid";
+            return false;
+        }
+        foreach (ProductionCapacityRoutingDrainSaveData row in expected)
+        {
+            if (row.phase != ProductionCapacityRoutingDrainPhase
+                    .OwnerAcknowledgedAwaitingCheckpointGc
+                || !IsDigest(row.receiptFingerprint)
+                || !string.Equals(
+                    row.receiptFingerprint,
+                    ProductionCapacityRoutingDrainFingerprint.CreateReceipt(row),
+                    StringComparison.Ordinal)
+                || !TryGet(row.stepOperationId,
+                    out ProductionCapacityRoutingDrainSaveData current)
+                || !RowsEqual(current, row))
+            {
+                failureReason =
+                    "production-capacity-routing-checkpoint-gc-row-conflict";
+                return false;
+            }
+        }
+        activeCheckpointGcCandidate = new CheckpointGcCandidate(expected);
+        candidate = activeCheckpointGcCandidate;
+        return true;
+    }
+
+    public bool TryPublishCheckpointGarbageCollection(
+        IProductionCapacityRoutingDrainCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.Published)
+            return true;
+        foreach (ProductionCapacityRoutingDrainSaveData row in exact.ExpectedRows)
+        {
+            if (!repository
+                    .TryRemoveExactPendingCapacityRoutingDrainForCheckpointGc(
+                        row,
+                        out ProductionCapacityRoutingDrainSaveData removed))
+            {
+                if (exact.RemovedRows.Any(value => !repository
+                        .CanRestoreExactPendingCapacityRoutingDrainForCheckpointGc(
+                            value)))
+                {
+                    throw new InvalidOperationException(
+                        "production-capacity-routing-checkpoint-gc-publish-rollback-conflict");
+                }
+                for (int index = exact.RemovedRows.Count - 1; index >= 0; index--)
+                {
+                    if (!repository
+                            .TryRestoreExactPendingCapacityRoutingDrainForCheckpointGc(
+                                exact.RemovedRows[index]))
+                    {
+                        throw new InvalidOperationException(
+                            "production-capacity-routing-checkpoint-gc-publish-rollback-conflict");
+                    }
+                }
+                exact.RemovedRows.Clear();
+                failureReason =
+                    "production-capacity-routing-checkpoint-gc-publish-conflict";
+                return false;
+            }
+            exact.RemovedRows.Add(removed);
+        }
+        exact.Published = true;
+        return true;
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionCapacityRoutingDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.RemovedRows.Any(value => !repository
+                .CanRestoreExactPendingCapacityRoutingDrainForCheckpointGc(
+                    value)))
+        {
+            throw new InvalidOperationException(
+                "production-capacity-routing-checkpoint-gc-rollback-conflict");
+        }
+        for (int index = exact.RemovedRows.Count - 1; index >= 0; index--)
+        {
+            if (!repository
+                    .TryRestoreExactPendingCapacityRoutingDrainForCheckpointGc(
+                        exact.RemovedRows[index]))
+            {
+                throw new InvalidOperationException(
+                    "production-capacity-routing-checkpoint-gc-rollback-conflict");
+            }
+        }
+        exact.RemovedRows.Clear();
+        exact.Published = false;
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionCapacityRoutingDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (!exact.Published && exact.RemovedRows.Count != 0)
+        {
+            throw new InvalidOperationException(
+                "production-capacity-routing-checkpoint-gc-not-rolled-back");
+        }
+        exact.Completed = true;
+        exact.RemovedRows.Clear();
+        activeCheckpointGcCandidate = null;
     }
 
     public bool TryCapture(
@@ -692,6 +833,46 @@ public sealed class ProductionCapacityRoutingDrainOutbox :
             return false;
         }
         return true;
+    }
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        IProductionCapacityRoutingDrainCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || exact.Completed
+            || !ReferenceEquals(exact, activeCheckpointGcCandidate))
+        {
+            throw new InvalidOperationException(
+                "production-capacity-routing-checkpoint-gc-candidate-conflict");
+        }
+        return exact;
+    }
+
+    private static bool RowsEqual(
+        ProductionCapacityRoutingDrainSaveData left,
+        ProductionCapacityRoutingDrainSaveData right) => left != null
+        && right != null
+        && string.Equals(
+            JsonUtility.ToJson(left),
+            JsonUtility.ToJson(right),
+            StringComparison.Ordinal);
+
+    private sealed class CheckpointGcCandidate :
+        IProductionCapacityRoutingDrainCheckpointGcCandidate
+    {
+        internal CheckpointGcCandidate(
+            IReadOnlyList<ProductionCapacityRoutingDrainSaveData> expectedRows)
+        {
+            ExpectedRows = expectedRows
+                ?? throw new ArgumentNullException(nameof(expectedRows));
+        }
+
+        internal IReadOnlyList<ProductionCapacityRoutingDrainSaveData> ExpectedRows
+        { get; }
+        internal List<ProductionCapacityRoutingDrainSaveData> RemovedRows { get; } =
+            new();
+        internal bool Published { get; set; }
+        internal bool Completed { get; set; }
     }
 
     private ProductionCapacityRoutingDrainResult RecordProgress(
@@ -852,6 +1033,21 @@ public sealed class ProductionCapacityRoutingDrainOutbox :
                     || !IsToken(line.outputLineId)
                     || !IsToken(line.itemId)
                     || !IsDigest(line.componentFingerprint)
+                    || !IsToken(line.outputCapabilityId)
+                    || line.outputCapabilityVersion <= 0
+                    || !IsToken(line.outputComponentCodecId)
+                    || line.outputComponentCodecVersion <= 0
+                    || !IsDigest(line.outputCapabilityFingerprint)
+                    || !string.Equals(
+                        line.outputCapabilityFingerprint,
+                        ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                            line.outputLineId,
+                            line.itemId,
+                            line.outputCapabilityId,
+                            line.outputCapabilityVersion,
+                            line.outputComponentCodecId,
+                            line.outputComponentCodecVersion),
+                        StringComparison.Ordinal)
                     || line.originalQuantity <= 0
                     || line.originalMassGrams <= 0L
                     || line.remainingQuantity < 0

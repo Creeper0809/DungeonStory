@@ -132,7 +132,9 @@ public sealed class RetailEquipmentAuthority : IRetailEquipmentAuthority
     {
         if (!items.EquipmentInstances.TryGetValue(
                 instanceId?.Trim() ?? string.Empty,
-                out CombatEquipmentInstance instance))
+                out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             return false;
         }
@@ -162,7 +164,9 @@ public sealed class RetailEquipmentAuthority : IRetailEquipmentAuthority
         if (!string.IsNullOrWhiteSpace(instance.ownerCharacterId)
             || instance.worldState is CombatEquipmentWorldState.ExpeditionPacked
                 or CombatEquipmentWorldState.MaintenanceBuffer
-                or CombatEquipmentWorldState.Carried)
+                or CombatEquipmentWorldState.Carried
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             failureReason = "retail-stock-equipment-owned-by-active-domain";
             return false;

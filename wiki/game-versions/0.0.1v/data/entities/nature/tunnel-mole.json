@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-deep-parasitosis",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 기생충증",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "tunnel-mole",
+  "spoiler_tier": "none",
+  "summary": "뿌리 작물을 해치지만 길들인 개체는 얕은 광맥을 찾는다.",
+  "title": "굴착두더지"
+}

@@ -5,6 +5,7 @@ public static class DungeonFoundationRegistration
 {
     public static void RegisterDungeonFoundation(this IContainerBuilder builder)
     {
+        builder.Register<DungeonRuntimeAggregateRootStore>(Lifetime.Singleton);
         builder.Register<UnityGameClock>(Lifetime.Singleton)
             .As<IGameClock>();
         builder.Register<UnityUiClock>(Lifetime.Singleton)
@@ -43,7 +44,8 @@ public static class DungeonFoundationRegistration
             .As<ISceneRuntimeRegistry<IRetailFacility>>();
         builder.Register<RestoreWorldCandidateIndex>(Lifetime.Singleton)
             .As<IRestoreWorldCandidateQuery>()
-            .As<IRestoreWorldCandidatePublisher>();
+            .As<IRestoreWorldCandidatePublisher>()
+            .As<IRestoreHaulDeliveryIntentCandidateQuery>();
         builder.Register<CharacterAiWorldRegistry>(Lifetime.Singleton)
             .AsImplementedInterfaces();
     }

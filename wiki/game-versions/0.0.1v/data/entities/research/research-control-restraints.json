@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "17"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Captivity And Entertainment"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8810",
+      "target_spoiler_tier": "none",
+      "target_title": "강화 구속구 선반",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-control-restraints",
+  "spoiler_tier": "none",
+  "summary": "포획과 구속, 감방 운용 절차를 정립한다.",
+  "title": "구속 관리"
+}

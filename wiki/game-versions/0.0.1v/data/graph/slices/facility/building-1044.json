@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1044",
+    "spoiler_tier": "none",
+    "title": "경비초소책상"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9103",
+      "label": "관련",
+      "to": "facility/building-1044",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9104",
+      "label": "필요 조건",
+      "to": "facility/building-1044",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-tactical-1",
+      "label": "관련",
+      "to": "facility/building-1044",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

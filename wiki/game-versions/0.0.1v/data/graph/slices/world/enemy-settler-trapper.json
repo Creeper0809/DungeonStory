@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-settler-trapper",
+    "spoiler_tier": "none",
+    "title": "자유개척 덫사냥꾼"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-settler-trapper",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-frost-bind",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 구속",
+      "to": "world/enemy-ability-frost-bind",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-settler-trapper",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

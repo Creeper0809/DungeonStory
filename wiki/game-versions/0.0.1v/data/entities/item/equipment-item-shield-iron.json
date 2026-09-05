@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "6kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1031"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "나무 심재에 철판을 덧대 무게와 방호의 균형을 잡은 보병 방패다. 특히 제4주조도시산 철 방패에는 충격 시험 자국을 일부러 남긴다. 흠집이 없는 물건은 아직 검사를 마치지 못한 것이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-iron",
+  "spoiler_tier": "none",
+  "summary": "철 방패 전투 장비",
+  "title": "철 방패"
+}

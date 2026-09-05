@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-organ-arm-right",
+    "spoiler_tier": "none",
+    "title": "적출 오른팔"
+  },
+  "edges": [],
+  "schema_version": 1
+}

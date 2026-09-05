@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using VContainer;
 
 public sealed class CombatEquipmentSaveSection :
     DungeonStrictJsonSaveSection<
@@ -9,19 +11,50 @@ public sealed class CombatEquipmentSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.equipment";
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 11;
+    private static readonly string[] Dependencies =
+    {
+        ModularFacilityWorldSaveSection.Id,
+        PhysicalItemsSaveSection.Id
+    };
     private readonly ICombatEquipmentRuntime runtime;
     private readonly IProductionOutputLifecycleRestoreCandidatePublisher
         lifecycleRestoreCandidates;
+    private readonly IProductionDomainOutputRestoreJoin outputRestoreJoin;
+    private readonly IProductionOutputMaximumMassRegistry maximumMass;
+    private readonly IProductionOutputDetachedFacilityCapacityRestoreGuard
+        detachedCapacity;
 
     public CombatEquipmentSaveSection(
         ICombatEquipmentRuntime runtime,
         IProductionOutputLifecycleRestoreCandidatePublisher
             lifecycleRestoreCandidates)
+        : this(
+            runtime,
+            lifecycleRestoreCandidates,
+            UnavailableOutputRestoreJoin.Instance,
+            null,
+            null)
+    {
+    }
+
+    [Inject]
+    public CombatEquipmentSaveSection(
+        ICombatEquipmentRuntime runtime,
+        IProductionOutputLifecycleRestoreCandidatePublisher
+            lifecycleRestoreCandidates,
+        IProductionDomainOutputRestoreJoin outputRestoreJoin,
+        IProductionOutputMaximumMassRegistry maximumMass,
+        IProductionOutputDetachedFacilityCapacityRestoreGuard
+            detachedCapacity)
     {
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
         this.lifecycleRestoreCandidates = lifecycleRestoreCandidates
             ?? throw new ArgumentNullException(nameof(lifecycleRestoreCandidates));
+        this.outputRestoreJoin = outputRestoreJoin
+            ?? throw new ArgumentNullException(nameof(outputRestoreJoin));
+        this.maximumMass = maximumMass;
+        this.detachedCapacity = detachedCapacity;
     }
 
     public override string SectionId => Id;
@@ -29,7 +62,7 @@ public sealed class CombatEquipmentSaveSection :
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.RuntimeState;
     public override IReadOnlyList<string> DependsOn =>
-        new[] { PhysicalItemsSaveSection.Id };
+        Dependencies;
 
     protected override DungeonCombatEquipmentSaveData CapturePayload() =>
         runtime.Capture();
@@ -42,17 +75,65 @@ public sealed class CombatEquipmentSaveSection :
             (value, path) => NormalizeV18CharacterReference(value, report, path));
 
     protected override CombatEquipmentRestoreCandidate BuildRestoreCandidate(
-        DungeonCombatEquipmentSaveData payload) =>
-        runtime.BuildRestoreCandidate(payload);
+        DungeonCombatEquipmentSaveData payload)
+    {
+        CombatEquipmentRestoreCandidate candidate =
+            runtime.BuildRestoreCandidate(payload);
+        IReadOnlyList<ProductionDomainOutputRestoreAcknowledgement>
+            acknowledgements = CombatEquipmentOutputRestorePreflight
+                .ValidateAndBuildAcknowledgements(
+                    candidate.State.CraftOrders,
+                    maximumMass,
+                    detachedCapacity,
+                    outputRestoreJoin);
+        return new CombatEquipmentRestoreCandidate(
+            candidate.State,
+            acknowledgements);
+    }
 
     protected override void PublishRestoreCandidate(
-        CombatEquipmentRestoreCandidate candidate) =>
+        CombatEquipmentRestoreCandidate candidate)
+    {
+        outputRestoreJoin.Acknowledge(candidate.OutputAcknowledgements);
         runtime.PublishRestoreCandidate(candidate);
+    }
 
     protected override void PublishRestoreCandidateProjection(
         DungeonCombatEquipmentSaveData payload,
         CombatEquipmentRestoreCandidate candidate) =>
         lifecycleRestoreCandidates.SetCombat(payload);
+
+    private sealed class UnavailableOutputRestoreJoin :
+        IProductionDomainOutputRestoreJoin
+    {
+        internal static readonly UnavailableOutputRestoreJoin Instance = new();
+
+        public ProductionDomainOutputRestoreAcknowledgement AdoptPending(
+            ProductionDomainOutputPublicationSaveData owner) =>
+            throw new InvalidOperationException(
+                "Combat current-format restore requires the common output restore join.");
+
+        public void RequireNoPending(
+            ProductionDomainOutputPublicationSaveData owner)
+        {
+            if (owner is { IsEmpty: false })
+            {
+                throw new InvalidOperationException(
+                    "Combat current-format restore requires the common output restore join.");
+            }
+        }
+
+        public void Acknowledge(
+            IReadOnlyList<ProductionDomainOutputRestoreAcknowledgement>
+                candidates)
+        {
+            if ((candidates?.Count ?? 0) != 0)
+            {
+                throw new InvalidOperationException(
+                    "Combat current-format restore requires the common output restore join.");
+            }
+        }
+    }
 }
 
 public sealed class EquipmentEvolutionSaveSection :
@@ -62,7 +143,7 @@ public sealed class EquipmentEvolutionSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.equipment-evolution";
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
     private readonly IEquipmentEvolutionPersistence runtime;
 
     public EquipmentEvolutionSaveSection(IEquipmentEvolutionPersistence runtime)
@@ -144,7 +225,8 @@ public sealed class CharacterMedicalSaveSection :
     private static readonly string[] Dependencies =
     {
         CharacterBodyHealthSaveSection.Id,
-        PhysicalItemsSaveSection.Id
+        PhysicalItemsSaveSection.Id,
+        ModularFacilityWorldSaveSection.Id
     };
 
     private readonly ICharacterMedicalPersistence persistence;
@@ -176,6 +258,10 @@ public sealed class CharacterMedicalSaveSection :
         DungeonCharacterMedicalSaveData payload) =>
         persistence.PrepareRestore(payload);
 
+    protected override void ValidateParsedPayload(
+        DungeonCharacterMedicalSaveData payload) =>
+        persistence.ValidatePayload(payload);
+
     protected override void PublishRestoreCandidate(
         CharacterMedicalRestoreCandidate candidate) =>
         persistence.PublishRestore(candidate);
@@ -193,6 +279,7 @@ public sealed class SurgerySaveSection :
         CharacterBodyHealthSaveSection.Id,
         CharacterMedicalSaveSection.Id,
         PhysicalItemsSaveSection.Id,
+        ProductionBillsSaveSection.Id,
         ModularFacilityWorldSaveSection.Id,
         WildlifeSaveSection.Id
     };

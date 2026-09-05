@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facility-blueprint-6104",
+  "spoiler_tier": "none",
+  "summary": "전문 연구와 의식·마력 물류를 위한 2단계 비전 파츠를 즉시 해금한다.",
+  "title": "비전 연구 설계도"
+}

@@ -181,7 +181,27 @@ public enum CombatEquipmentWorldState
     ExpeditionPacked,
     MaintenanceBuffer,
     Lost,
-    RetailStock
+    RetailStock,
+    MarketSalePending
+}
+
+public static class CombatEquipmentWorldStateRules
+{
+    public static bool IsExternalCustody(CombatEquipmentWorldState state) =>
+        state is CombatEquipmentWorldState.RetailStock
+            or CombatEquipmentWorldState.MarketSalePending;
+
+    public static bool RequiresPhysicalStack(CombatEquipmentWorldState state) =>
+        state is CombatEquipmentWorldState.Stored
+            or CombatEquipmentWorldState.Loose
+            or CombatEquipmentWorldState.Carried
+            or CombatEquipmentWorldState.MaintenanceBuffer;
+
+    public static bool AllowsPlayerMutation(CombatEquipmentWorldState state) =>
+        !IsExternalCustody(state)
+        && state is not (CombatEquipmentWorldState.Lost
+            or CombatEquipmentWorldState.ExpeditionPacked
+            or CombatEquipmentWorldState.MaintenanceBuffer);
 }
 
 public enum CombatEquipmentLoadoutSlot

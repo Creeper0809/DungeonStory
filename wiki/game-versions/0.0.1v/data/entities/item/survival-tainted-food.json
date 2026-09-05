@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "먹으면 병을 부를 수 있는 음식이다. 치우거나 버려야 한다. 하르나크 위생대는 오염된 음식을 버린 자리와 함께 먹은 주민을 표시해 다음 환자를 찾는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "survival-tainted-food",
+  "spoiler_tier": "none",
+  "summary": "먹으면 병을 부를 수 있는 음식이다. 치우거나 버려야 한다.",
+  "title": "오염된 음식"
+}

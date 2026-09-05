@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "26"
+    },
+    {
+      "label": "필요 연구",
+      "value": "호화·보존식"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "3",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-preserved-ration",
+      "target_spoiler_tier": "none",
+      "target_title": "보존 배급식",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-ration-mixture",
+      "target_spoiler_tier": "none",
+      "target_title": "배급식 혼합물",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-starch",
+      "target_spoiler_tier": "none",
+      "target_title": "전분",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-lavish",
+      "target_spoiler_tier": "none",
+      "target_title": "호화·보존식",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-preserved-ration",
+  "spoiler_tier": "none",
+  "summary": "보존 배급식 생산 주문",
+  "title": "보존 배급식 훈연"
+}

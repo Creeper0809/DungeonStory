@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "날개 뿌리 사이로 끈을 돌려 짐과 장식을 몸통에 고정하는 멜빵이다. 아일라세라제 날개 멜빵의 등솔기는 날개가 완전히 펴질 때만 팽팽해지며, 첫 착용자의 이름은 새벽 합창에 오른다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-wing-harness",
+  "spoiler_tier": "none",
+  "summary": "날개 멜빵 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "날개 멜빵"
+}

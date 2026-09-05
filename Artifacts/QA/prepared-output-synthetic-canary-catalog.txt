@@ -1,0 +1,12 @@
+Synthetic Prepared Output Canary Catalog
+baselineItems=1074
+augmentedItems=1075
+baselineRecipes=355
+augmentedRecipes=356
+catalogDelta=+1/+1
+dynamicPreparedProfileAudit=PASS
+transactionIdentity=PASS
+staleNonceRejected=PASS
+cleanupExact=PASS
+sceneMutation=0
+RESULT=PASS; failures=0

@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-beastkin-2",
+    "spoiler_tier": "warning",
+    "title": "비어 가는 사냥터"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-beastkin-2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-beastkin-2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "to": "event/faction-chapter-beastkin-2",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

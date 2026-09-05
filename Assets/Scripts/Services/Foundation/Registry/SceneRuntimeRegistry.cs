@@ -11,6 +11,7 @@ namespace DungeonStory.Foundation
         IReadOnlyList<T> Entries { get; }
         bool Register(T entry);
         bool Unregister(T entry);
+        bool TryReplace(T expectedCurrent, T replacement);
         void Clear();
     }
 
@@ -49,6 +50,33 @@ namespace DungeonStory.Foundation
             }
 
             entries.Remove(entry);
+            IncrementVersion();
+            return true;
+        }
+
+        public bool TryReplace(T expectedCurrent, T replacement)
+        {
+            if (expectedCurrent == null
+                || !IsAlive(replacement)
+                || ReferenceEquals(expectedCurrent, replacement)
+                || !entrySet.Contains(expectedCurrent)
+                || entrySet.Contains(replacement))
+            {
+                return false;
+            }
+
+            int index = entries.IndexOf(expectedCurrent);
+            if (index < 0)
+                throw new InvalidOperationException(
+                    "Scene registry set/list authority diverged.");
+
+            if (!entrySet.Remove(expectedCurrent)
+                || !entrySet.Add(replacement))
+            {
+                throw new InvalidOperationException(
+                    "Scene registry replacement preflight diverged during publication.");
+            }
+            entries[index] = replacement;
             IncrementVersion();
             return true;
         }

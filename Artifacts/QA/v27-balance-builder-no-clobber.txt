@@ -1,6 +1,6 @@
-RESULT=PASS; builders=5; files=7219; changes=0; sourceDigest=685c87a25400b2c8dc575829da3dc41f586a86c9ed7fc656741fbe7a07dcf0b0; assetDigest=d11f89f92bed673bb28871a749302af11fdbb92af8ec8b5129d8aab0a0e8a765;
-PASS	BUILDER_NO_CLOBBER	builder=resource-economy-and-workshops;files=7219;changes=0
-PASS	BUILDER_NO_CLOBBER	builder=v22-apparel;files=7219;changes=0
-PASS	BUILDER_NO_CLOBBER	builder=v19-crop-ecology;files=7219;changes=0
-PASS	BUILDER_NO_CLOBBER	builder=research-overhaul;files=7219;changes=0
-PASS	BUILDER_NO_CLOBBER	builder=surgery;files=7219;changes=0
+RESULT=PASS; builders=5; files=7225; changes=0; sourceDigest=39c15bb2f3f2681b57eee978cdf10417f32b905cf5222ca5be8a75d62346b792; assetDigest=e3500dfc4483827f8915996d72a17b7274c0263cef4255de8eeffca43d61a4fa; currentSourceDigest=444e10da91803afd572fb9bc947e1bca5ebdb8575793fdc40b8ab26cc827ee35; gameplaySceneSha256=6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40;
+PASS	BUILDER_NO_CLOBBER	builder=resource-economy-and-workshops;files=7225;changes=0
+PASS	BUILDER_NO_CLOBBER	builder=v22-apparel;files=7225;changes=0
+PASS	BUILDER_NO_CLOBBER	builder=v19-crop-ecology;files=7225;changes=0
+PASS	BUILDER_NO_CLOBBER	builder=research-overhaul;files=7225;changes=0
+PASS	BUILDER_NO_CLOBBER	builder=surgery;files=7225;changes=0

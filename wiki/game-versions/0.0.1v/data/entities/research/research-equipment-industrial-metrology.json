@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "437"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-prototype-engineering",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-prototype-engineering",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-prototype-engineering",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-precision",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 자동화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-precision",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 자동화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-precision",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 자동화",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8846",
+      "target_spoiler_tier": "none",
+      "target_title": "계측 작업대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-equipment-industrial-metrology",
+  "spoiler_tier": "none",
+  "summary": "시제품 공정과 정밀 자동화의 편차를 공장 규모에서 계측한다.",
+  "title": "산업 계측학"
+}

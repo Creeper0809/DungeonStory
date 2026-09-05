@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "120"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "수술로 적출한 오른팔이다. 기증자 정보와 신선도가 남아 있어 이식 전까지 보존해야 한다. 므네실라에서는 적출 오른팔의 관절을 굽힌 채 포자천으로 감싼다. 천의 푸른 점이 바래면 이식 가능한 시간이 끝난 것으로 본다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-organ-arm-right",
+  "spoiler_tier": "none",
+  "summary": "기증자와 신선도가 보존되는 고유 수술 장기",
+  "title": "적출 오른팔"
+}

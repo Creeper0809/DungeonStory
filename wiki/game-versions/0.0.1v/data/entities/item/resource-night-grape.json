@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "시럽, 술과 호화식에 쓰는 단맛 강한 열매이다. 베르사디온의 밤포도는 검은 천을 댄 바구니에 담고, 동의의 잔에 올릴 몫만 손잡이에 검은 실을 묶는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-night-grape",
+  "spoiler_tier": "none",
+  "summary": "시럽, 술과 호화식에 쓰는 단맛 강한 열매.",
+  "title": "밤포도"
+}

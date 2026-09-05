@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "genome-dreamleaf-base",
+    "spoiler_tier": "none",
+    "title": "Genome_dreamleaf"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-dreamleaf",
+      "label": "관련",
+      "to": "nature/genome-dreamleaf-base",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

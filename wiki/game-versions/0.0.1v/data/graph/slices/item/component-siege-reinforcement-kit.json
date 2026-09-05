@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-siege-reinforcement-kit",
+    "spoiler_tier": "none",
+    "title": "공성 보강 키트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-siege-reinforcement-kit",
+      "label": "생산·해금",
+      "to": "item/component-siege-reinforcement-kit",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "24"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "흥행과 권위 장식에 쓰는 거친 장신구이다. 라카쉬 세갈래길의 뼈뿔 장신구에는 재료를 내준 짐승과 만든 무리를 뜻하는 서로 다른 모양의 홈이 새겨진다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "craft-bone-charm",
+  "spoiler_tier": "none",
+  "summary": "흥행과 권위 장식에 쓰는 거친 장신구.",
+  "title": "뼈뿔 장신구"
+}

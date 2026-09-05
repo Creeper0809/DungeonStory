@@ -1,0 +1,44 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "34"
+    },
+    {
+      "label": "필요 연구",
+      "value": "균사 접목학"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-blood",
+      "target_spoiler_tier": "none",
+      "target_title": "피",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-mycelial-grafting",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 접목학",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "procedure-myconid-regrowth",
+  "spoiler_tier": "none",
+  "summary": "균사 재배양을(를) 종족 해부 구조에 맞춰 시행한다.",
+  "title": "균사 재배양"
+}

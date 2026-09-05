@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "280"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "순찰 체계와 세력 표식을 결합해 전투깃발을 만드는 희귀 조합식이다. 오르데나의 전술 지휘 설계도는 수호원, 개척원과 용병대가 서로 다른 명령을 내릴 때의 우선권을 표시한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "research-blueprint-6192",
+  "spoiler_tier": "none",
+  "summary": "순찰 체계와 세력 표식을 결합해 전투깃발을 만드는 희귀 조합식이다.",
+  "title": "전술 지휘 설계도"
+}

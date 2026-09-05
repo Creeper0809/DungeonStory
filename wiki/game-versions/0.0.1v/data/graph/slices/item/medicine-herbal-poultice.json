@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medicine-herbal-poultice",
+    "spoiler_tier": "none",
+    "title": "약초 찜질약"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-herbal-poultice",
+      "label": "생산·해금",
+      "to": "item/medicine-herbal-poultice",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

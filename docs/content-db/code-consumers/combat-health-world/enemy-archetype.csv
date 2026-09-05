@@ -1,0 +1,6 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+EnemyArchetypeDefinitionSO,content-type,,type-reference; save-restore-reference,services:invasion,runtime,structural-type-consumer,Assets/Scripts/Services/Invasion/InvasionDirectorRuntime.cs
+EnemyArchetypeDefinitionSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs
+EnemyArchetypeDefinitionSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs
+EnemyArchetypeDefinitionSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/EnemyTacticalDecisionService.cs
+EnemyArchetypeDefinitionSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseReturnArrivalRuntime.cs

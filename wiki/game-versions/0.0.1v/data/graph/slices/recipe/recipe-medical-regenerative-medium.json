@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-medical-regenerative-medium",
+    "spoiler_tier": "none",
+    "title": "재생 배양액"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-regenerative-medium",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-regenerative-medium",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-regenerative-medium",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양액",
+      "to": "item/medical-regenerative-medium",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-regenerative-medium",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-regenerative-medium",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-regenerative-culture",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

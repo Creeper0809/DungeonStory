@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "30개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "27"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "고기와 유제품, 과일을 아끼지 않고 차려 손님과 주민을 대접하는 호화식이다. 하르나크 밤궁정의 핏빛 호화식에는 피를 내준 이와 초대한 손님의 동의의 잔이 나란히 놓인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-lavish-meat",
+  "spoiler_tier": "none",
+  "summary": "고기와 유제품, 과일을 쓴 호화식.",
+  "title": "핏빛 호화식"
+}

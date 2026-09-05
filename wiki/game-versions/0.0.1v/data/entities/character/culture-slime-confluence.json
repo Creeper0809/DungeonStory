@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-slime-clear-water",
+      "target_spoiler_tier": "none",
+      "target_title": "맑은물 합류",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-slime-core-ring",
+      "target_spoiler_tier": "none",
+      "target_title": "핵고리 성년식",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "culture-slime-confluence",
+  "spoiler_tier": "none",
+  "summary": "몸의 일부와 기억을 나누는 것을 친밀함으로 여기되 핵의 경계는 엄격히 지킨다.",
+  "title": "합류수 문화"
+}

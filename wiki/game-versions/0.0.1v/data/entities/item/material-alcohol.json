@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "22"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "술, 소독제와 연금 용매의 기반이다. 베르사디온의 알코올 병은 식용·소독용·연금용을 봉인색으로 구분하고, 피를 섞은 것은 동의의 잔 표식을 더한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-alcohol",
+  "spoiler_tier": "none",
+  "summary": "술, 소독제와 연금 용매의 기반.",
+  "title": "알코올"
+}

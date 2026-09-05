@@ -1,0 +1,101 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-forestry-sawmill",
+    "spoiler_tier": "none",
+    "title": "제재"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-forestry-sawmill",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-logging",
+      "target_spoiler_tier": "none",
+      "target_title": "벌목",
+      "to": "research/research-forestry-logging",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-forestry-sawmill",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-logging",
+      "target_spoiler_tier": "none",
+      "target_title": "벌목",
+      "to": "research/research-forestry-logging",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-forestry-sawmill",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-logging",
+      "target_spoiler_tier": "none",
+      "target_title": "벌목",
+      "to": "research/research-forestry-logging",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-forestry-sawmill",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1075",
+      "target_spoiler_tier": "none",
+      "target_title": "제재소",
+      "to": "facility/building-1075",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-forestry-sawmill",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1618",
+      "target_spoiler_tier": "none",
+      "target_title": "목재 처리조",
+      "to": "facility/building-1618",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-sawmill-lumber",
+      "label": "필요 조건",
+      "to": "research/research-forestry-sawmill",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-forestry-charcoal",
+      "label": "선행 연구",
+      "to": "research/research-forestry-sawmill",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-forestry-charcoal",
+      "label": "선행 연구",
+      "to": "research/research-forestry-sawmill",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-forestry-charcoal",
+      "label": "선행 연구",
+      "to": "research/research-forestry-sawmill",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "world/material-lumber",
+      "label": "필요 조건",
+      "to": "research/research-forestry-sawmill",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

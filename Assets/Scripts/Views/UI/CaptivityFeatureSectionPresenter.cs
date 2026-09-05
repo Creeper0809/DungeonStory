@@ -12,14 +12,17 @@ public sealed class CaptivityFeatureSectionPresenter :
     private readonly ICaptivityCommandService commands;
     private readonly CaptivityInteractionRegistry interactions;
     private readonly ICharacterAiWorldRegistry world;
+    private readonly ICharacterSettlementStandingQuery standings;
     private string selectedCaptiveId = string.Empty;
+    private string selectedMinionId = string.Empty;
     private string selectedPolicyId = string.Empty;
 
     public CaptivityFeatureSectionPresenter(
         ICaptivityRuntime captivity,
         ICaptivityCommandService commands,
         CaptivityInteractionRegistry interactions,
-        ICharacterAiWorldRegistry world)
+        ICharacterAiWorldRegistry world,
+        ICharacterSettlementStandingQuery standings)
     {
         this.captivity = captivity
             ?? throw new ArgumentNullException(nameof(captivity));
@@ -29,21 +32,37 @@ public sealed class CaptivityFeatureSectionPresenter :
             ?? throw new ArgumentNullException(nameof(interactions));
         this.world = world
             ?? throw new ArgumentNullException(nameof(world));
+        this.standings = standings
+            ?? throw new ArgumentNullException(nameof(standings));
     }
 
     public void Present(IFeatureSurfaceView view)
     {
         CaptiveState[] active = captivity.Captives
-            .Where(state => state.IsActive)
+            .Where(state => state.IsInCustody)
             .OrderByDescending(state => state.escapeRisk)
             .ThenBy(state => state.displayName, StringComparer.Ordinal)
             .ToArray();
-        if (active.Length == 0)
+        CaptiveState[] minions = captivity.Captives
+            .Where(state => state.IsMinion)
+            .OrderBy(state => state.displayName, StringComparer.Ordinal)
+            .ToArray();
+        if (active.Length == 0 && minions.Length == 0)
         {
             selectedCaptiveId = string.Empty;
             view.AddSection(
                 "포로·노역",
                 "수용 중인 포로가 없습니다. 쓰러진 침입자의 건강 탭에서 포획을 명령할 수 있습니다.");
+            return;
+        }
+
+        AddMinionManagement(view, minions);
+        if (active.Length == 0)
+        {
+            selectedCaptiveId = string.Empty;
+            view.AddSection(
+                "포로·노역",
+                "수용 중인 포로가 없습니다. 하수인은 위 관리 구역에서 확인합니다.");
             return;
         }
 
@@ -172,17 +191,17 @@ public sealed class CaptivityFeatureSectionPresenter :
             view,
             "Captivity_Recruit",
             "정식 영입",
-            "신뢰 70 이상, 원한 30 이하, 타락 60 미만일 때 직원으로 영입합니다.",
+            "포획 10일, 신뢰 70 이상, 원한 30 이하, 타락 60 미만일 때 정식 주민으로 영입합니다.",
             () => commands.TryRecruit(selected.captiveId, out string reason)
-                ? Success("정식 직원으로 영입했습니다.")
+                ? Success("정식 주민으로 영입했습니다.")
                 : Failure(reason));
         AddCommand(
             view,
             "Captivity_Minion",
             "하수인 전환",
-            "타락 80 이상인 포로를 하수인으로 전환합니다.",
+            "포획 3일과 타락 80 이상을 충족한 포로를 하수인으로 전환합니다.",
             () => commands.TryConvertToMinion(selected.captiveId, out string reason)
-                ? Success("타락한 하수인으로 전환했습니다.")
+                ? Success("하수인으로 전환했습니다.")
                 : Failure(reason));
         AddCommand(
             view,
@@ -202,6 +221,88 @@ public sealed class CaptivityFeatureSectionPresenter :
             "구속을 풀고 던전 밖으로 내보냅니다. 원한과 기억은 남습니다.",
             () => commands.TryRelease(selected.captiveId, out string reason)
                 ? Success("포로를 석방했습니다.")
+                : Failure(reason));
+    }
+
+    private void AddMinionManagement(
+        IFeatureSurfaceView view,
+        IReadOnlyList<CaptiveState> minions)
+    {
+        if (minions == null || minions.Count == 0)
+        {
+            selectedMinionId = string.Empty;
+            return;
+        }
+
+        CaptiveState selected = minions.FirstOrDefault(state =>
+            string.Equals(
+                state.captiveId,
+                selectedMinionId,
+                StringComparison.Ordinal)) ?? minions[0];
+        selectedMinionId = selected.captiveId;
+        view.AddSection(
+            "하수인 관리",
+            $"하수인 {minions.Count}명 · 허용 업무 23/31 · 임금 0 · 생활 자원 100% · 업무 XP 50% · 경비 가능 · 원정 불가");
+        for (int index = 0; index < minions.Count; index++)
+        {
+            CaptiveState row = minions[index];
+            int capturedIndex = index;
+            view.AddDataCard(
+                $"Minion_Select_{capturedIndex}",
+                row.displayName,
+                $"통제 안정도 {MinionIntegrationRules.ResolveControlStability(row.corruption, row.trust, row.grudge):0.#}"
+                + $" · 재사회화 {row.rehabilitationDays}/{MinionIntegrationRules.RequiredRehabilitationDays}일"
+                + $" · {row.completedRehabilitationWork:0.#}/{MinionIntegrationRules.RehabilitationRequiredWork:0.#} WU",
+                string.Equals(
+                    row.captiveId,
+                    selectedMinionId,
+                    StringComparison.Ordinal)
+                        ? "선택됨"
+                        : "관리",
+                () =>
+                {
+                    selectedMinionId = row.captiveId;
+                    view.ShowFeedback($"{row.displayName} 하수인 관리 항목을 열었습니다.");
+                    view.RequestRefresh();
+                },
+                CardHeight);
+        }
+
+        float breakChance = MinionIntegrationRules
+            .ResolveControlBreakChancePercent(
+                selected.corruption,
+                selected.trust,
+                selected.grudge,
+                captivity.TryGetActor(selected.captiveId, out CharacterActor actor)
+                    ? actor.Mood.Value
+                    : 50f);
+        view.AddSection(
+            $"{selected.displayName} 하수인 상태",
+            $"신분 하수인 · 허용 업무 23/31 · 숙련 성장률 50% · 임금 없음\n"
+            + $"신뢰 {selected.trust:0} · 원한 {selected.grudge:0} · 타락 {selected.corruption:0}"
+            + $" · 통제 이탈 {breakChance:0.#}%/일\n"
+            + $"재사회화 {selected.rehabilitationDays}/{MinionIntegrationRules.RequiredRehabilitationDays}일"
+            + $" · 오늘 작업 {selected.completedRehabilitationWork:0.#}/{MinionIntegrationRules.RehabilitationRequiredWork:0.#} WU"
+            + " · 완료할 때 음식 1개"
+            + (selected.rehabilitationInProgress
+                ? " · 담당 주민이 작업 중"
+                : string.Empty));
+        if (!selected.rehabilitationInProgress)
+        {
+            AddCommand(
+                view,
+                "Minion_StartRehabilitation",
+                "재사회화 시작",
+                "정식 주민 한 명이 수용 시설에서 18 WU를 수행합니다. 완료할 때 음식 1개를 사용하며 하루 한 번만 진행합니다.",
+                () => TryStartRehabilitation(selected));
+        }
+        AddCommand(
+            view,
+            "Minion_Recruit",
+            "정식 영입",
+            "재사회화 15일, 신뢰 70 이상, 원한 30 이하, 타락 30 이하를 모두 충족하면 정식 주민으로 전환합니다.",
+            () => commands.TryRecruit(selected.captiveId, out string reason)
+                ? Success("정식 주민으로 영입했습니다.")
                 : Failure(reason));
     }
 
@@ -453,7 +554,47 @@ public sealed class CaptivityFeatureSectionPresenter :
                 : Failure(failureReason);
     }
 
-    private static bool IsAvailableWarden(
+    private OperationsFeatureCommandResult TryStartRehabilitation(
+        CaptiveState selected)
+    {
+        if (!captivity.TryGetActor(selected.captiveId, out CharacterActor subject))
+        {
+            return Failure("하수인의 월드 개체를 찾지 못했습니다.");
+        }
+
+        CharacterActor warden = world.AllCharacters
+            .Where(actor => IsAvailableWarden(actor, selected.captiveId))
+            .OrderBy(actor => Manhattan(actor.GetNowXY(), subject.GetNowXY()))
+            .FirstOrDefault();
+        if (warden == null)
+        {
+            return Failure("재사회화를 맡을 수 있는 정식 주민이 없습니다.");
+        }
+
+        BuildableObject facility = world.Buildings
+            .Where(building => building != null
+                && !building.isDestroy
+                && building.BuildingData.GetCaptiveHousingAbility()?.IsValid == true)
+            .OrderBy(building => Manhattan(subject.GetNowXY(), building.centerPos))
+            .ThenBy(
+                building => building.RequirePersistentInstanceId().Value,
+                StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (facility == null)
+        {
+            return Failure("재사회화를 진행할 수용 시설이 없습니다.");
+        }
+
+        return commands.TryStartRehabilitation(
+            selected.captiveId,
+            warden,
+            facility,
+            out string failureReason)
+                ? Success($"{warden.Identity?.DisplayName ?? warden.name}에게 재사회화 작업을 배정했습니다.")
+                : Failure(failureReason);
+    }
+
+    private bool IsAvailableWarden(
         CharacterActor actor,
         string captiveId)
     {
@@ -467,6 +608,7 @@ public sealed class CaptivityFeatureSectionPresenter :
 
         string actorId = actor.Identity?.PersistentId ?? string.Empty;
         return !string.Equals(actorId, captiveId, StringComparison.Ordinal)
+            && standings.IsFormalResident(actor)
             && actor.TryGetAbility(out AbilityWork _);
     }
 

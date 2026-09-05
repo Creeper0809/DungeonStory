@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-young-wine",
+    "spoiler_tier": "none",
+    "title": "어린 포도주 발효"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-young-wine",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-young-wine",
+      "target_spoiler_tier": "none",
+      "target_title": "어린 포도주",
+      "to": "item/material-young-wine",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-young-wine",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-grape-juice",
+      "target_spoiler_tier": "none",
+      "target_title": "포도즙",
+      "to": "item/material-grape-juice",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-young-wine",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

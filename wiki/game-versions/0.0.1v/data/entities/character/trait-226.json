@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "일반"
+    },
+    {
+      "label": "성향",
+      "value": "상충"
+    },
+    {
+      "label": "효과",
+      "value": "2개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-226",
+  "spoiler_tier": "none",
+  "summary": "혼자 빨리 끝내기보다 옆 사람에게 과정을 설명하려 한다.",
+  "title": "가르치는 버릇"
+}

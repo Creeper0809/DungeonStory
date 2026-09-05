@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "20"
+    },
+    {
+      "label": "필요 연구",
+      "value": "차단기와 산업 정비"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-maintenance-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 키트",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-breakers",
+      "target_spoiler_tier": "none",
+      "target_title": "차단기와 산업 정비",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-tool-maintenance-kit",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 정비 키트을(를) 생산한다.",
+  "title": "정비 키트"
+}

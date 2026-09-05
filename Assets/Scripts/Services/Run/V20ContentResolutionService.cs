@@ -120,9 +120,19 @@ public sealed class FacilityCapabilityQuery : IFacilityCapabilityQuery
 
     private static bool IsOperational(BuildableObject building)
     {
+        if (building?.BuildingData == null)
+        {
+            return false;
+        }
+
+        if (!building.BuildingData.RequiresRoomRole())
+        {
+            return true;
+        }
+
         BuildingRoomOperationalSnapshot profile =
             building.GetRoomOperationalProfile();
-        return profile != null && (!profile.HasRoom || profile.IsUsableRoom);
+        return profile?.IsUsableRoom == true;
     }
 
     private static string BuildingDefinitionId(BuildingSO building) =>
@@ -803,11 +813,13 @@ public sealed class V20ContentResolutionService : IContentResolutionService
     private readonly IItemReservationService reservations;
     private readonly IAtomicItemConsumptionService atomicItems;
     private readonly IWorldItemStackRuntime items;
-    private readonly IItemTransferService transfers;
+    private readonly IPhysicalItemExactSourcePublicationService exactSources;
     private readonly IWorldDropZoneQuery dropZones;
     private readonly IGameMoneyAccount money;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IPhysicalItemBatchDispositionService physicalDispositions;
+    private readonly RunAdministrativeSealDurableEquipmentRuntime
+        administrativeSealEquipment;
 
     public V20ContentResolutionService(
         V20CampaignRuntime live,
@@ -825,11 +837,13 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         IItemReservationService reservations,
         IAtomicItemConsumptionService atomicItems,
         IWorldItemStackRuntime items,
-        IItemTransferService transfers,
+        IPhysicalItemExactSourcePublicationService exactSources,
         IWorldDropZoneQuery dropZones,
         IGameMoneyAccount money,
         IFacilityCapabilityQuery facilities,
-        IPhysicalItemBatchDispositionService physicalDispositions)
+        IPhysicalItemBatchDispositionService physicalDispositions,
+        RunAdministrativeSealDurableEquipmentRuntime
+            administrativeSealEquipment)
     {
         this.live = live ?? throw new ArgumentNullException(nameof(live));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -849,11 +863,14 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         this.reservations = reservations ?? throw new ArgumentNullException(nameof(reservations));
         this.atomicItems = atomicItems ?? throw new ArgumentNullException(nameof(atomicItems));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
-        this.transfers = transfers ?? throw new ArgumentNullException(nameof(transfers));
+        this.exactSources = exactSources
+            ?? throw new ArgumentNullException(nameof(exactSources));
         this.dropZones = dropZones ?? throw new ArgumentNullException(nameof(dropZones));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
+        this.administrativeSealEquipment = administrativeSealEquipment
+            ?? throw new ArgumentNullException(nameof(administrativeSealEquipment));
     }
 
     public bool TryExecute(
@@ -917,13 +934,20 @@ public sealed class V20ContentResolutionService : IContentResolutionService
             return false;
         }
 
-        if (!TryPrepareAdministrativeSeal(
-                request,
-                out WorldItemStackSnapshot administrativeSeal,
-                out failure))
+        BuildableObject administrationOffice = null;
+        if (RequiresAdministrativeSeal(request.Kind))
         {
-            plan.Release(reservations);
-            return false;
+            administrationOffice = facilities
+                .FindOperational(FacilityCapabilityKind.Administration)
+                .FirstOrDefault();
+            if (administrationOffice == null)
+            {
+                plan.Release(reservations);
+                failure = new DomainFailure(
+                    FailureCode.ServiceFeatureMissing,
+                    FacilityCapabilityKind.Administration.ToString());
+                return false;
+            }
         }
 
         SeasonalEventAggregateState seasonal = live.PrepareSeasonal(
@@ -935,37 +959,35 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         RunMilestoneAggregateState milestones = live.PrepareMilestones(
             candidate.CaptureMilestones());
 
-        ItemInstanceComponentSaveData previousSealDurability = null;
-        if (administrativeSeal != null)
+        DomainFailure effectFailure = DomainFailure.None;
+        bool effectsCommitted;
+        if (administrationOffice != null)
         {
-            float current = DurableToolItemRules.ReadCurrentDurability(
-                administrativeSeal.ItemId,
-                administrativeSeal.Components);
-            previousSealDurability = DurableToolItemRules.CreateDurability(
-                administrativeSeal.ItemId,
-                current);
-            if (!items.TrySetInstanceComponent(
-                    administrativeSeal.StackId,
-                    DurableToolItemRules.CreateDurability(
-                        administrativeSeal.ItemId,
-                        current - 1f)))
-            {
-                plan.Release(reservations);
-                failure = new DomainFailure(
-                    FailureCode.ItemTransferConsumptionFailed,
-                    DurableToolItemRules.AdministrativeSeal);
-                return false;
-            }
+            effectsCommitted = administrativeSealEquipment.TryCommitResolution(
+                administrationOffice.RequirePersistentInstanceId(),
+                administrationOffice.centerPos,
+                () => TryCommitEffects(
+                    request,
+                    resolved,
+                    plan,
+                    out effectFailure),
+                out _);
         }
-
-        if (!TryCommitEffects(request, resolved, plan, out failure))
+        else
         {
-            if (administrativeSeal != null && previousSealDurability != null)
-            {
-                items.TrySetInstanceComponent(
-                    administrativeSeal.StackId,
-                    previousSealDurability);
-            }
+            effectsCommitted = TryCommitEffects(
+                request,
+                resolved,
+                plan,
+                out effectFailure);
+        }
+        if (!effectsCommitted)
+        {
+            failure = effectFailure.IsFailure
+                ? effectFailure
+                : new DomainFailure(
+                    FailureCode.ServiceFeatureMissing,
+                    DurableToolItemRules.AdministrativeSeal);
             plan.Release(reservations);
             return false;
         }
@@ -982,78 +1004,11 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         return true;
     }
 
-    private bool TryPrepareAdministrativeSeal(
-        ContentResolutionRequest request,
-        out WorldItemStackSnapshot seal,
-        out DomainFailure failure)
-    {
-        seal = null;
-        failure = DomainFailure.None;
-        if (request.Kind is not (
-                ContentResolutionRequestKind.FactionChapterChoice
-                or ContentResolutionRequestKind.FactionContractAccept
-                or ContentResolutionRequestKind.FactionContractOutcome))
-        {
-            return true;
-        }
-
-        BuildableObject office = facilities
-            .FindOperational(FacilityCapabilityKind.Administration)
-            .FirstOrDefault();
-        if (office == null)
-        {
-            failure = new DomainFailure(
-                FailureCode.ServiceFeatureMissing,
-                FacilityCapabilityKind.Administration.ToString());
-            return false;
-        }
-
-        string destinationId = office.PersistentInstanceId.Value;
-        seal = items.GetAllStacks()
-            .Where(stack => stack != null
-                && stack.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(
-                    stack.DestinationId,
-                    destinationId,
-                    StringComparison.Ordinal)
-                && string.Equals(
-                    stack.ItemId,
-                    DurableToolItemRules.AdministrativeSeal,
-                    StringComparison.Ordinal)
-                && DurableToolItemRules.ReadCurrentDurability(
-                    stack.ItemId,
-                    stack.Components) > 0f)
-            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        if (seal != null)
-        {
-            return true;
-        }
-
-        if (!items.GetAllStacks().Any(stack => stack != null
-                && string.Equals(
-                    stack.ItemId,
-                    DurableToolItemRules.AdministrativeSeal,
-                    StringComparison.Ordinal)
-                && string.Equals(
-                    stack.DestinationId,
-                    destinationId,
-                    StringComparison.Ordinal)))
-        {
-            items.TryRequestItemDelivery(
-                DurableToolItemRules.AdministrativeSeal,
-                1,
-                office.centerPos,
-                destinationId,
-                out _,
-                out _);
-        }
-
-        failure = new DomainFailure(
-            FailureCode.ServiceFeatureMissing,
-            DurableToolItemRules.AdministrativeSeal);
-        return false;
-    }
+    private static bool RequiresAdministrativeSeal(
+        ContentResolutionRequestKind kind) =>
+        kind is ContentResolutionRequestKind.FactionChapterChoice
+            or ContentResolutionRequestKind.FactionContractAccept
+            or ContentResolutionRequestKind.FactionContractOutcome;
 
     private V20CampaignRuntime CreateCampaignCandidate()
     {
@@ -1468,9 +1423,16 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
-        if (!TrySpawnGrants(plan, out failure))
+        PhysicalItemExactSourcePublicationTransaction grantTransaction = default;
+        bool hasPreparedGrants = plan.Grants.Count > 0;
+        if (hasPreparedGrants
+            && !exactSources.TryPrepare(
+                plan.CreateGrantPublicationPlan(),
+                out grantTransaction,
+                out _))
         {
             plan.Release(reservations);
+            failure = new DomainFailure(FailureCode.ProductionOutputUnavailable);
             return false;
         }
         EconomyTransactionContext transaction = new(
@@ -1483,7 +1445,10 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         else if (plan.MoneyDelta < 0
             && !money.TrySpend(-plan.MoneyDelta, transaction, out _))
         {
-            RollbackGrants(plan);
+            RollbackPreparedGrantsOrThrow(
+                grantTransaction,
+                hasPreparedGrants,
+                "money-commit-failed");
             plan.Release(reservations);
             failure = new DomainFailure(
                 FailureCode.InsufficientGold,
@@ -1504,49 +1469,44 @@ public sealed class V20ContentResolutionService : IContentResolutionService
             {
                 money.Add(-plan.MoneyDelta, transaction);
             }
-            RollbackGrants(plan);
+            RollbackPreparedGrantsOrThrow(
+                grantTransaction,
+                hasPreparedGrants,
+                "item-consumption-failed");
             plan.Release(reservations);
             return false;
         }
+        if (hasPreparedGrants
+            && !exactSources.TryCommitReleased(
+                grantTransaction,
+                plan.Dropoff,
+                "content-resolution-grant",
+                out _,
+                out string grantCommitFailure))
+        {
+            throw new InvalidOperationException(
+                "Content item costs committed but exact grant publication could not finalize: "
+                + grantCommitFailure);
+        }
         ApplyTypedDomainEffects(request.AbsoluteDay, resolutions);
-        if (plan.Grants.Count > 0)
-        {
-            transfers.ReleaseDestination(plan.GrantDestinationId, plan.Dropoff);
-        }
         return true;
     }
 
-    private bool TrySpawnGrants(
-        EffectCommitPlan plan,
-        out DomainFailure failure)
+    private void RollbackPreparedGrantsOrThrow(
+        PhysicalItemExactSourcePublicationTransaction transaction,
+        bool prepared,
+        string reasonCode)
     {
-        failure = DomainFailure.None;
-        foreach (V20ContentEffect grant in plan.Grants)
+        if (!prepared)
+            return;
+        if (!exactSources.TryRollback(
+                transaction,
+                reasonCode,
+                out string failureReason))
         {
-            int amount = Math.Max(0, Mathf.RoundToInt(grant.amount));
-            if (!transfers.TrySpawnItem(
-                    grant.targetId,
-                    amount,
-                    plan.Dropoff,
-                    WorldItemStackState.FacilityBuffer,
-                    plan.GrantDestinationId,
-                    out int spawned)
-                || spawned != amount)
-            {
-                RollbackGrants(plan);
-                failure = new DomainFailure(FailureCode.ProductionOutputUnavailable);
-                return false;
-            }
+            throw new InvalidOperationException(
+                "Prepared content grant rollback failed: " + failureReason);
         }
-        return true;
-    }
-
-    private void RollbackGrants(EffectCommitPlan plan)
-    {
-        if (plan.Grants.Count == 0) return;
-        transfers.RemoveDestination(
-            plan.GrantDestinationId,
-            WorldItemStackState.FacilityBuffer);
     }
 
     private void ApplyTypedDomainEffects(
@@ -1756,15 +1716,38 @@ public sealed class V20ContentResolutionService : IContentResolutionService
         {
             string normalized = actionId?.Trim() ?? string.Empty;
             ReservationOwnerId = "content-resolution:" + normalized;
-            GrantDestinationId = ReservationOwnerId + ":grants";
         }
 
         public string ReservationOwnerId { get; }
-        public string GrantDestinationId { get; }
         public int MoneyDelta { get; set; }
         public Vector2Int Dropoff { get; set; }
         public List<ReservedItemConsumption> ItemCosts { get; } = new();
         public List<V20ContentEffect> Grants { get; } = new();
+
+        public PhysicalItemExactSourcePublicationPlan CreateGrantPublicationPlan()
+        {
+            FacilityBufferPlannedOutputSlice[] outputs = Grants
+                .Where(value => value != null
+                    && value.kind == V20ContentEffectKind.ItemGrant)
+                .GroupBy(value => value.targetId, StringComparer.Ordinal)
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .Select((group, index) =>
+                {
+                    int quantity = group.Sum(value =>
+                        Math.Max(0, Mathf.RoundToInt(value.amount)));
+                    ItemDefinitionId itemId = (ItemDefinitionId)group.Key;
+                    return new FacilityBufferPlannedOutputSlice(
+                        $"grant:{index:D4}:{group.Key}",
+                        PhysicalItemMassSubject.ForDefinition(itemId),
+                        quantity);
+                })
+                .ToArray();
+            return new PhysicalItemExactSourcePublicationPlan(
+                "run.v20-grant",
+                ReservationOwnerId,
+                Dropoff,
+                outputs);
+        }
 
         public void Release(IItemReservationService service)
         {

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "tool-banquet-cart",
+    "spoiler_tier": "none",
+    "title": "연회 운반 수레"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-banquet-cart",
+      "label": "생산·해금",
+      "to": "item/tool-banquet-cart",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

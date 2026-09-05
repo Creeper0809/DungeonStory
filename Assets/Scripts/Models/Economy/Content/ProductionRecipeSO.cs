@@ -50,7 +50,11 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     [Min(0f), SerializeField] private float wastewaterPerCycle;
     [SerializeField] private ProcessWastewaterComposition wastewaterComposition;
     [SerializeField] private bool allowsManualWaterFallback;
-    [SerializeField] private string spoilageItemId = "waste:mixed-rot";
+    [SerializeField] private string spoilageItemId = string.Empty;
+    [SerializeField] private ProductionMassExplanationAuthoring
+        massExplanation;
+    [SerializeField] private ProductionOutputCostAllocationAuthoring
+        outputCostAllocation;
     [SerializeField] private List<ItemAmountDefinition> inputs = new List<ItemAmountDefinition>();
     [SerializeField] private List<ProductionOutputDefinition> outputs =
         new List<ProductionOutputDefinition>();
@@ -101,9 +105,13 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     public ProcessWastewaterComposition WastewaterComposition =>
         wastewaterComposition;
     public bool AllowsManualWaterFallback => allowsManualWaterFallback;
-    public string SpoilageItemId => string.IsNullOrWhiteSpace(spoilageItemId)
-        ? "waste:mixed-rot"
-        : spoilageItemId.Trim();
+    public string SpoilageItemId => spoilageItemId ?? string.Empty;
+    public ProductionMassExplanationAuthoringSnapshot MassExplanation =>
+        massExplanation?.Capture()
+        ?? ProductionMassExplanationAuthoringSnapshot.Empty;
+    public ProductionOutputCostAllocationAuthoringSnapshot OutputCostAllocation =>
+        outputCostAllocation?.Capture()
+        ?? ProductionOutputCostAllocationAuthoringSnapshot.Empty;
     public IReadOnlyList<ItemAmountDefinition> Inputs => inputs ??= new List<ItemAmountDefinition>();
     public IReadOnlyList<ProductionOutputDefinition> Outputs =>
         outputs ??= new List<ProductionOutputDefinition>();
@@ -202,7 +210,7 @@ public sealed class ProductionRecipeSO : DataScriptableObject
         float cleanWater = 0f,
         float wastewater = 0f,
         bool allowManualWater = false,
-        string failedBatchItemId = "waste:mixed-rot",
+        string failedBatchItemId = null,
         ProcessWastewaterComposition wastewaterKind =
             ProcessWastewaterComposition.None)
     {
@@ -228,7 +236,18 @@ public sealed class ProductionRecipeSO : DataScriptableObject
         wastewaterPerCycle = Mathf.Max(0f, wastewater);
         wastewaterComposition = wastewaterKind;
         allowsManualWaterFallback = allowManualWater;
-        spoilageItemId = failedBatchItemId?.Trim() ?? "waste:mixed-rot";
+        if (kind == ProductionProcessKind.PassiveBatch)
+        {
+            string authoredSpoilageItemId = failedBatchItemId ?? string.Empty;
+            RequireCanonicalSpoilageItemId(authoredSpoilageItemId);
+            spoilageItemId = authoredSpoilageItemId;
+        }
+        else if (failedBatchItemId != null)
+        {
+            if (failedBatchItemId.Length > 0)
+                RequireCanonicalSpoilageItemId(failedBatchItemId);
+            spoilageItemId = failedBatchItemId;
+        }
     }
 
     public void ConfigureProficiency(
@@ -258,6 +277,100 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     {
         processClass = value;
         processClassAuthored = true;
+    }
+
+    public void ConfigureMassExplanation(
+        string capabilityId,
+        int contractVersion,
+        string canonicalPayload)
+    {
+        ProductionMassExplanationAuthoringSnapshot expected =
+            string.IsNullOrEmpty(capabilityId)
+            && contractVersion == 0
+            && string.IsNullOrEmpty(canonicalPayload)
+                ? ProductionMassExplanationAuthoringSnapshot.Empty
+                : new ProductionMassExplanationAuthoringSnapshot(
+                    capabilityId,
+                    contractVersion,
+                    canonicalPayload);
+        ProductionMassExplanationAuthoringSnapshot current = MassExplanation;
+        if (expected.IsEmpty)
+        {
+            massExplanation = null;
+            return;
+        }
+        if (Same(current, expected))
+            return;
+        (massExplanation ??= new ProductionMassExplanationAuthoring()).Configure(
+            expected.CapabilityId,
+            expected.ContractVersion,
+            expected.CanonicalPayload);
+    }
+
+    public void ConfigureOutputCostAllocation(
+        string capabilityId,
+        int contractVersion,
+        string canonicalPayload)
+    {
+        ProductionOutputCostAllocationAuthoringSnapshot expected =
+            string.IsNullOrEmpty(capabilityId)
+            && contractVersion == 0
+            && string.IsNullOrEmpty(canonicalPayload)
+                ? ProductionOutputCostAllocationAuthoringSnapshot.Empty
+                : new ProductionOutputCostAllocationAuthoringSnapshot(
+                    capabilityId,
+                    contractVersion,
+                    canonicalPayload);
+        ProductionOutputCostAllocationAuthoringSnapshot current =
+            OutputCostAllocation;
+        if (expected.IsEmpty)
+        {
+            outputCostAllocation = null;
+            return;
+        }
+        if (Same(current, expected))
+            return;
+        (outputCostAllocation ??=
+            new ProductionOutputCostAllocationAuthoring()).Configure(
+            expected.CapabilityId,
+            expected.ContractVersion,
+            expected.CanonicalPayload);
+    }
+
+    public void NormalizeEmptyOptionalAuthoringContracts()
+    {
+        if (massExplanation?.IsEmpty == true)
+            massExplanation = null;
+        if (outputCostAllocation?.IsEmpty == true)
+            outputCostAllocation = null;
+    }
+
+    private static bool Same(
+        ProductionMassExplanationAuthoringSnapshot left,
+        ProductionMassExplanationAuthoringSnapshot right) =>
+        string.Equals(left.CapabilityId, right.CapabilityId,
+            StringComparison.Ordinal)
+        && left.ContractVersion == right.ContractVersion
+        && string.Equals(left.CanonicalPayload, right.CanonicalPayload,
+            StringComparison.Ordinal);
+
+    private static bool Same(
+        ProductionOutputCostAllocationAuthoringSnapshot left,
+        ProductionOutputCostAllocationAuthoringSnapshot right) =>
+        string.Equals(left.CapabilityId, right.CapabilityId,
+            StringComparison.Ordinal)
+        && left.ContractVersion == right.ContractVersion
+        && string.Equals(left.CanonicalPayload, right.CanonicalPayload,
+            StringComparison.Ordinal);
+
+    private static void RequireCanonicalSpoilageItemId(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Passive production requires an explicitly authored canonical spoilage item ID.");
+        }
     }
 #endif
 }

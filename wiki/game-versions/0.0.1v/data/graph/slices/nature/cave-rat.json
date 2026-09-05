@@ -1,0 +1,118 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "cave-rat",
+    "spoiler_tier": "none",
+    "title": "동굴쥐"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "nature/cave-rat",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "to": "item/resource-meat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-rat",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-cave-flu",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 독감",
+      "to": "medical/disease-cave-flu",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-rat",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-rat",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "to": "nature/shadow-wolf",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/anatomy-quadruped",
+      "label": "관련",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/carrion-drake",
+      "label": "관련",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-hound",
+      "label": "관련",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-rat",
+      "label": "관련",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/glow-moth",
+      "label": "관련",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/moss-boar",
+      "label": "관련",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/rune-deer",
+      "label": "관련",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/shadow-hare",
+      "label": "관련",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/silk-spider",
+      "label": "관련",
+      "to": "nature/cave-rat",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

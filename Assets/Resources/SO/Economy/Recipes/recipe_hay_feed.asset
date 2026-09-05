@@ -53,13 +53,17 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=FiberProcessingWaste|reason=hay-feed-screening-and-blending-residue|physicalByproduct=false
   inputs:
   - itemId: resource:grass-straw
     amount: 3
   - itemId: resource:twilight-grain
     amount: 1
   outputs:
-  - outputLineId: output:main
+  - outputLineId: output:recipe:hay-feed/000/main/feed:hay
     role: 0
     itemId: feed:hay
     amount: 3

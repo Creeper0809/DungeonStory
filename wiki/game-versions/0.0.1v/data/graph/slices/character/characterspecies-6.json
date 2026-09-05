@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "characterspecies-6",
+    "spoiler_tier": "none",
+    "title": "코볼트"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-6",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-kobold",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Kobold",
+      "to": "character/funeral-culture-kobold",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-6",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-kobold",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Kobold",
+      "to": "character/life-history-kobold",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-6",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-kobold",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Kobold",
+      "to": "character/reproduction-kobold",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-9006",
+      "label": "관련",
+      "to": "character/characterspecies-6",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

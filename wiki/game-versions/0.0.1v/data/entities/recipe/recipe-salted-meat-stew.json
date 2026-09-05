@@ -1,0 +1,62 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "24"
+    },
+    {
+      "label": "필요 연구",
+      "value": "축산 조리"
+    },
+    {
+      "label": "사이클당 깨끗한 물",
+      "value": "1.2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-salted-meat-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "염장육 스튜",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-salted-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "염지 고기",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-ember-root",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불뿌리",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-salted-meat-stew",
+  "spoiler_tier": "none",
+  "summary": "같은 방의 연결 시설을 사용하는 수동 생산 단계.",
+  "title": "염장육 스튜"
+}

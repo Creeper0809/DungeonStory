@@ -500,6 +500,240 @@ public sealed class AbilityHaul : MonoBehaviour
 
         return TryStopHauling(reason, disposition, out failureReason);
     }
+
+    [GameplayInternalOnly(
+        "Stops a live haul plan or conservatively drops a detached-restore carried slice whose exact operation IDs were frozen by a custody drain.",
+        "Owner-neutral FacilityBuffer destination custody drain only")]
+    public bool TryStopHaulingOrReleaseRestoredCarryIfOperationsSubsetOf(
+        IReadOnlyCollection<string> allowedOperationIds,
+        string reason,
+        HaulInterruptionDisposition disposition,
+        out string failureReason)
+    {
+        CacheReferences();
+        if (activePlan != null)
+        {
+            return TryStopHaulingIfActiveOperationsSubsetOf(
+                allowedOperationIds,
+                reason,
+                disposition,
+                out failureReason);
+        }
+
+        failureReason = string.Empty;
+        HashSet<string> allowed = new HashSet<string>(
+            (allowedOperationIds ?? Array.Empty<string>())
+            .Select(value => value ?? string.Empty)
+            .Where(value => value.Length > 0
+                && string.Equals(value, value.Trim(),
+                    StringComparison.Ordinal)),
+            StringComparer.Ordinal);
+        CharacterCarryInventory carry = actor?.CarryInventory;
+        if (actor == null || carry == null)
+        {
+            failureReason = "restored-carry-actor-or-inventory-missing";
+            return false;
+        }
+        CharacterCarriedItemSaveData[] carried = carry.Items
+            .Where(value => value != null && value.quantity > 0)
+            .ToArray();
+        if (carried.Length == 0)
+        {
+            return true;
+        }
+        string foreign = carried
+            .Select(value => value.ownerOperationId ?? string.Empty)
+            .FirstOrDefault(value => value.Length == 0
+                || !allowed.Contains(value));
+        if (foreign != null)
+        {
+            failureReason = "mixed-or-unowned-restored-carry:"
+                + foreign;
+            return false;
+        }
+        string[] ownerOperationIds = carried
+            .Select(value => value.ownerOperationId)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (!TryValidateDetachedRestoredCarryAuthority(
+                carried,
+                ownerOperationIds,
+                out failureReason))
+        {
+            return false;
+        }
+        if (ItemRuntime is not IWorldItemCarryRecoveryRuntime recovery)
+        {
+            failureReason = "restored-carry-recovery-unavailable";
+            return false;
+        }
+
+        WorldItemCarryInterruptionKind interruptionKind =
+            ResolvePhysicalInterruptionKind();
+        bool dropped;
+        if (interruptionKind is WorldItemCarryInterruptionKind.Downed
+            or WorldItemCarryInterruptionKind.Dead)
+        {
+            double droppedAt = actor.GameClock?.Time ?? 0d;
+            HaulCarryDropContext context = new(
+                actor.BuildingCharacterId.Value,
+                interruptionKind,
+                droppedAt,
+                droppedAt + TransientRecoveryDeadlineSeconds);
+            dropped = recovery.TryDropCarriedItems(
+                actor,
+                carry,
+                ownerOperationIds,
+                context,
+                out failureReason);
+        }
+        else
+        {
+            dropped = recovery.TryDropCarriedItems(
+                actor,
+                carry,
+                ownerOperationIds,
+                out failureReason);
+        }
+        if (!dropped)
+        {
+            failureReason = "restored-carry-drop-failed:" + failureReason;
+            return false;
+        }
+
+        foreach (string operationId in ownerOperationIds)
+        {
+            if (!ItemRuntime.ReleaseHaulDeliveryIntent(operationId))
+            {
+                failureReason =
+                    "restored-carry-intent-release-failed:" + operationId;
+                return false;
+            }
+        }
+
+        actor.CarryInventory.CompleteHaulingHarness(
+            haulingHarnessEquippedForCurrentRun,
+            applyWear: false);
+        haulingHarnessEquippedForCurrentRun = false;
+        restoredDeliveryPending = false;
+        haulExecutionActive = false;
+        executionStage = "복원 운반 화물 회수 완료";
+        return true;
+    }
+
+    private bool TryValidateDetachedRestoredCarryAuthority(
+        IReadOnlyList<CharacterCarriedItemSaveData> carried,
+        IReadOnlyList<string> ownerOperationIds,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string actorId = actor?.BuildingCharacterId.Value ?? string.Empty;
+        if (ItemRuntime == null || actorId.Length == 0)
+        {
+            failureReason = "restored-carry-authority-runtime-missing";
+            return false;
+        }
+
+        Dictionary<string, WorldItemStackSnapshot> physicalById = ItemRuntime
+            .GetAllStacks()
+            .Where(value => value != null && value.Quantity > 0)
+            .ToDictionary(value => value.StackId, StringComparer.Ordinal);
+        foreach (string operationId in ownerOperationIds)
+        {
+            if (!ItemRuntime.TryCaptureHaulDeliveryIntent(
+                    operationId,
+                    out HaulDeliveryIntentSaveData intent)
+                || intent == null
+                || !intent.HasCommittedPickup
+                || !string.Equals(
+                    intent.ownerCharacterId,
+                    actorId,
+                    StringComparison.Ordinal))
+            {
+                failureReason =
+                    "restored-carry-intent-authority-missing:" + operationId;
+                return false;
+            }
+
+            CharacterCarriedItemSaveData[] operationCargo = carried
+                .Where(value => string.Equals(
+                    value.ownerOperationId,
+                    operationId,
+                    StringComparison.Ordinal))
+                .OrderBy(value => value.carriedStackId, StringComparer.Ordinal)
+                .ToArray();
+            HaulDeliveryItemCommitmentSaveData[] commitments =
+                (intent.commitments
+                    ?? new List<HaulDeliveryItemCommitmentSaveData>())
+                .Where(value => value != null)
+                .OrderBy(value => value.carriedStackId, StringComparer.Ordinal)
+                .ToArray();
+            if (operationCargo.Length == 0
+                || operationCargo.Length != commitments.Length)
+            {
+                failureReason =
+                    "restored-carry-intent-commitment-count-mismatch:"
+                    + operationId;
+                return false;
+            }
+
+            for (int index = 0; index < operationCargo.Length; index++)
+            {
+                CharacterCarriedItemSaveData item = operationCargo[index];
+                HaulDeliveryItemCommitmentSaveData commitment =
+                    commitments[index];
+                string signature = ItemReservationSignature.Create(
+                    item.itemId,
+                    item.components);
+                if (!string.Equals(
+                        commitment.carriedStackId,
+                        item.carriedStackId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        commitment.sourceStackId,
+                        item.sourceStackId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        commitment.itemId,
+                        item.itemId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        commitment.expectedStackSignature,
+                        signature,
+                        StringComparison.Ordinal)
+                    || commitment.quantity != item.quantity
+                    || !physicalById.TryGetValue(
+                        item.carriedStackId,
+                        out WorldItemStackSnapshot physical)
+                    || physical.State != WorldItemStackState.Carried
+                    || !string.Equals(
+                        physical.DestinationId,
+                        actorId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        physical.ItemInstanceId ?? string.Empty,
+                        item.itemInstanceId ?? string.Empty,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        physical.ItemId,
+                        item.itemId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        physical.ReservationSignature,
+                        signature,
+                        StringComparison.Ordinal)
+                    || physical.Quantity != item.quantity)
+                {
+                    failureReason =
+                        "restored-carry-physical-intent-mismatch:"
+                        + operationId + ":" + item.carriedStackId;
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 #if UNITY_EDITOR
     public bool HasHaulingRoutineForDiagnostics => haulingRoutine != null;
     public int UpdateHeartbeatForDiagnostics => diagnosticUpdateHeartbeat;
@@ -513,9 +747,12 @@ public sealed class AbilityHaul : MonoBehaviour
 #if UNITY_EDITOR
         diagnosticUpdateHeartbeat++;
 #endif
-        if (!restoredDeliveryPending
-            || activePlan?.IsDeliveryOnlyResume != true
-            || haulExecutionActive
+        bool activeExecutionHeartbeat = haulExecutionActive
+            && activePlan != null;
+        bool suspendedDeliveryHeartbeat = restoredDeliveryPending
+            && activePlan?.IsDeliveryOnlyResume == true
+            && !haulExecutionActive;
+        if ((!activeExecutionHeartbeat && !suspendedDeliveryHeartbeat)
             || actor?.GameClock == null
             || actor.GameClock.Time < nextLeaseHeartbeatAt)
         {
@@ -524,6 +761,20 @@ public sealed class AbilityHaul : MonoBehaviour
 
         if (TryHeartbeatActivePlanLeases(out string failureReason))
         {
+            return;
+        }
+
+        if (activeExecutionHeartbeat)
+        {
+            // Warehouse admissions have a shorter lease than quantity slices.
+            // Movement can legitimately spend more than one heartbeat interval
+            // inside a single grid step, so a step-completion callback is not a
+            // sufficient renewal clock.  Keep the active route alive from the
+            // frame clock and let the running coroutine retire or retain its
+            // exact cargo through the normal typed terminal path on failure.
+            lastFailureReason = "active-haul-lease-invalid:" + failureReason;
+            unloadReason = WorldItemHaulPlanUnloadReason.PickupReservationLost;
+            move?.CancelActiveMovement(lastFailureReason);
             return;
         }
 
@@ -804,7 +1055,29 @@ public sealed class AbilityHaul : MonoBehaviour
         restoredDeliveryPending = false;
         haulExecutionActive = true;
 #if UNITY_EDITOR
-        DebugBeforeHaulRoutineStart?.Invoke(activePlan);
+        try
+        {
+            DebugBeforeHaulRoutineStart?.Invoke(activePlan);
+        }
+        catch (Exception)
+        {
+            if (!TryStopHauling(
+                    "editor-before-haul-routine-hook-failed",
+                    HaulInterruptionDisposition
+                        .ReleaseUnpickedAndDropCarriedAtActor,
+                    out string cleanupFailure))
+            {
+                Debug.LogError(
+                    "[AbilityHaul] Editor pre-routine hook failed and haul "
+                    + "authority cleanup also failed: " + cleanupFailure);
+            }
+            throw;
+        }
+        // Editor verification hooks may synchronously exercise the real
+        // cancellation boundary after reservation but before the coroutine.
+        // Never resurrect a plan the hook has already terminated.
+        if (!haulExecutionActive || activePlan == null)
+            return;
 #endif
         Coroutine started = StartCoroutine(HaulRoutine(activePlan));
         // StartCoroutine may complete before returning. Preserve the terminal
@@ -834,6 +1107,11 @@ public sealed class AbilityHaul : MonoBehaviour
         {
             if (string.IsNullOrWhiteSpace(reservation.LeaseId)
                 || releasedLeaseIds.Contains(reservation.LeaseId)
+                // Pickup consumes the source quantity lease. From that point on,
+                // the physical carry commitment and destination admission own
+                // the delivery; trying to renew the consumed source lease turns
+                // a valid carried load into a timing-dependent reservation loss.
+                || pickedLeaseIds.Contains(reservation.LeaseId)
                 || !renewed.Add(reservation.LeaseId))
             {
                 continue;
@@ -851,6 +1129,7 @@ public sealed class AbilityHaul : MonoBehaviour
             }
         }
 
+        bool renewedOperationAuthority = false;
         foreach (string operationId in GetActivePlanOwnerOperationIds())
         {
             if (!leaseRuntime.TryRenewWarehouseAdmissionsForHaul(
@@ -859,9 +1138,10 @@ public sealed class AbilityHaul : MonoBehaviour
             {
                 return false;
             }
+            renewedOperationAuthority = true;
         }
 
-        return renewed.Count > 0;
+        return renewed.Count > 0 || renewedOperationAuthority;
     }
 
     public void StopHauling(string reason)
@@ -1406,6 +1686,12 @@ public sealed class AbilityHaul : MonoBehaviour
                 unloadReason = WorldItemHaulPlanUnloadReason.PickupReservationLost;
                 break;
             }
+            // The explicit pre-pickup renewal establishes a fresh heartbeat
+            // window. Without rebasing this deadline, Update can immediately
+            // perform a second renewal after a long path-search frame and race
+            // the shorter destination admission window.
+            nextLeaseHeartbeatAt = actor.GameClock.Time
+                + LeaseHeartbeatIntervalSeconds;
 
             actor.Brain?.SetActionPhase(
                 "물건 줍는 중",
@@ -1684,9 +1970,18 @@ public sealed class AbilityHaul : MonoBehaviour
 
             executionStage = $"경로 이동 중 {path.Count}단계";
             routineHeartbeat++;
-            nextLeaseHeartbeatAt = actor.GameClock != null
-                ? actor.GameClock.Time + LeaseHeartbeatIntervalSeconds
-                : double.PositiveInfinity;
+            // Do not postpone the existing heartbeat merely because path
+            // search completed.  The warehouse admission may be closer to its
+            // 15-second expiry than a new 10-second interval.  Renew when due,
+            // otherwise preserve the already scheduled deadline.
+            if (!TryHeartbeatActivePlanLeases(out string movementLeaseFailure))
+            {
+                lastFailureReason =
+                    "movement-start-lease-expired:" + movementLeaseFailure;
+                unloadReason =
+                    WorldItemHaulPlanUnloadReason.PickupReservationLost;
+                yield break;
+            }
             haulMovementProgressCallback ??= OnHaulMovementProgress;
             haulMovementWorkStartedAt = actor.GameClock != null
                 ? actor.GameClock.Time

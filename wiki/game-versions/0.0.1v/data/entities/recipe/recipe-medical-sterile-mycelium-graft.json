@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "필요 연구",
+      "value": "균사 접목학"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-sterile-mycelium-graft",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 균사 이식편",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-mycelial-grafting",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 접목학",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-sterile-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 천",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-medical-sterile-mycelium-graft",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 무균 균사 이식편을(를) 생산한다.",
+  "title": "무균 균사 이식편"
+}

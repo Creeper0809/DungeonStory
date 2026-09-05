@@ -1,0 +1,3 @@
+﻿source_path,code_system,layer,domain,scope,namespace,declared_symbol_count,declared_symbols,symbol_kinds,architectural_roles,optimization_techniques,architecture_system_ids
+Assets/Scripts/Models/World/GridOccupantCapabilities.cs,models:world,Models,World,runtime,,2,IGridBuildingOccupantCapability; IGridBuildAreaCapability,interface,runtime-support,,
+Assets/Scripts/Models/World/WorldGridPrimitives.cs,models:world,Models,World,runtime,,9,GridLayer; GridCellAreaType; GridCellTerrainType; ExteriorIncidentKind; GridMoveType; IGridOccupant; IGridMovementOccupant; GridTraversalLink; GridMoveStep,class; enum; interface; struct,ai-decision,,

@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-golem-crisis",
+    "spoiler_tier": "none",
+    "title": "돌맥 주조소 위기 대응 계약"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/faction-contract-golem-crisis",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-maintenance-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 키트",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-golem",
+      "label": "관련",
+      "to": "event/faction-contract-golem-crisis",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

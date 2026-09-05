@@ -79,7 +79,14 @@ public static class PhysicalItemMassSubjectAdapter
             {
                 return CreatePackagedLotSubject(itemId, packagedLot);
             }
-            return PhysicalItemMassSubject.ForDefinition(itemId);
+            return string.IsNullOrEmpty(itemInstanceId)
+                ? PhysicalItemMassSubject.ForDefinition(itemId)
+                : new PhysicalItemMassSubject(
+                    itemId,
+                    itemInstanceId,
+                    PhysicalItemMassSubjectKind.GenericDefinition,
+                    Array.Empty<PhysicalItemComponentSnapshot>(),
+                    string.Empty);
         }
         if (equipmentComponents.Length != 1 || !equipmentItem)
         {

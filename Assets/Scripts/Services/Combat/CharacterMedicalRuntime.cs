@@ -25,6 +25,11 @@ public sealed partial class CharacterMedicalRuntime :
     private readonly ICharacterCarePriorityQuery carePriorityQuery;
     private readonly IResourceEconomyContentCatalog resourceCatalog;
     private readonly CharacterMedicalSupplyCoordinator supplyCoordinator;
+    private readonly ICharacterMedicalSupplyDestinationRuntime supplyDestinations;
+    private readonly ICharacterMedicalSupplyDestinationDrainRuntime
+        supplyDestinationDrains;
+    private readonly IFacilityBufferDestinationCustodyDrainRestoreCandidateQuery
+        supplyDestinationDrainRestoreCandidates;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly ICharacterPerformanceQuery performance;
     private readonly CharacterMedicalRestoreCoordinator restoreCoordinator;
@@ -65,7 +70,11 @@ public sealed partial class CharacterMedicalRuntime :
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         ICharacterPerformanceQuery performance,
         IPhysicalFacilityItemSinkGateway physicalSinks,
-        IPackagedLotTareDispositionService packagedTare)
+        IPackagedLotTareDispositionService packagedTare,
+        ICharacterMedicalSupplyDestinationRuntime supplyDestinations,
+        ICharacterMedicalSupplyDestinationDrainRuntime supplyDestinationDrains,
+        IFacilityBufferDestinationCustodyDrainRestoreCandidateQuery
+            supplyDestinationDrainRestoreCandidates)
     {
         this.bodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
@@ -77,11 +86,20 @@ public sealed partial class CharacterMedicalRuntime :
             ?? throw new ArgumentNullException(nameof(carePriorityQuery));
         this.resourceCatalog = resourceCatalog
             ?? throw new ArgumentNullException(nameof(resourceCatalog));
+        this.supplyDestinations = supplyDestinations
+            ?? throw new ArgumentNullException(nameof(supplyDestinations));
+        this.supplyDestinationDrains = supplyDestinationDrains
+            ?? throw new ArgumentNullException(nameof(supplyDestinationDrains));
+        this.supplyDestinationDrainRestoreCandidates =
+            supplyDestinationDrainRestoreCandidates
+            ?? throw new ArgumentNullException(
+                nameof(supplyDestinationDrainRestoreCandidates));
         supplyCoordinator = new CharacterMedicalSupplyCoordinator(
             new CharacterMedicalSupplyStockPort(this.world.ItemStacks),
             this.resourceCatalog,
             physicalSinks,
-            packagedTare);
+            packagedTare,
+            this.supplyDestinations);
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.performance = performance
@@ -111,11 +129,54 @@ public sealed partial class CharacterMedicalRuntime :
     }
 
     public string ParticipantId => restoreCoordinator.ParticipantId;
+    public void ValidatePayload(DungeonCharacterMedicalSaveData saveData) =>
+        restoreCoordinator.ValidatePayload(saveData);
+
     public CharacterMedicalRestoreCandidate PrepareRestore(
-        DungeonCharacterMedicalSaveData saveData) =>
-        restoreCoordinator.PrepareRestore(saveData);
-    public void PublishRestore(CharacterMedicalRestoreCandidate candidate) =>
+        DungeonCharacterMedicalSaveData saveData)
+    {
+        CharacterMedicalRestoreCandidate candidate =
+            restoreCoordinator.PrepareRestore(saveData);
+        if (!supplyDestinationDrainRestoreCandidates.IsCandidateAvailable)
+        {
+            throw new InvalidOperationException(
+                "character-medical-supply-drain-restore-candidate-missing");
+        }
+        CharacterMedicalSupplyDestinationDrainCrossAggregateJoin.Validate(
+            candidate.State.Orders,
+            supplyDestinationDrainRestoreCandidates.Drains);
+        return candidate;
+    }
+    public void PublishRestore(CharacterMedicalRestoreCandidate candidate)
+    {
+        if (candidate == null)
+        {
+            throw new ArgumentNullException(nameof(candidate));
+        }
+        Dictionary<string, Vector2Int> facilityPositions = world.WorldRegistry
+            .Buildings
+            .Where(building => building != null
+                && !building.isDestroy
+                && building.PersistentInstanceId.IsValid)
+            .ToDictionary(
+                building => building.PersistentInstanceId.Value,
+                building => building.centerPos,
+                StringComparer.Ordinal);
+        if (!supplyDestinations.TryReplace(
+                candidate.State.Orders,
+                facilityPositions,
+                out string replacementFailure))
+        {
+            throw new InvalidOperationException(
+                "character-medical-supply-authority-restore-failed:"
+                + replacementFailure);
+        }
+        RecoverCandidateMedicalSuppliesOrThrow(candidate.State.Orders);
+        RecoverCandidateMedicalDestinationDrainsOrThrow(
+            candidate.State.Orders);
+        restoreCoordinator.RefreshCandidateProjection(candidate);
         restoreCoordinator.PublishRestore(candidate);
+    }
     public void BeginRestoreCandidate() => restoreCoordinator.BeginRestoreCandidate();
     public void PublishRestoreCandidate() => restoreCoordinator.PublishRestoreCandidate();
     public void RollbackPublishedRestoreCandidate() =>
@@ -123,7 +184,6 @@ public sealed partial class CharacterMedicalRuntime :
     public void CompleteRestoreCandidate()
     {
         restoreCoordinator.CompleteRestoreCandidate();
-        RecoverPendingMedicalSuppliesOrThrow();
     }
     public void DiscardRestoreCandidate() => restoreCoordinator.DiscardRestoreCandidate();
 
@@ -145,6 +205,7 @@ public sealed partial class CharacterMedicalRuntime :
     public void Initialize()
     {
         RecoverPendingMedicalSuppliesOrThrow();
+        RecoverPendingMedicalDestinationDrainsOrThrow();
         downedSubscription = gameEventBus.Subscribe<CharacterBodyHealthDownedEvent>(
             gameEvent => NotifyCharacterDowned(gameEvent.Actor));
         recoveredSubscription = gameEventBus.Subscribe<CharacterBodyHealthRecoveredEvent>(
@@ -154,7 +215,15 @@ public sealed partial class CharacterMedicalRuntime :
 
     private void RecoverPendingMedicalSuppliesOrThrow()
     {
-        foreach (CharacterMedicalOrder order in orders
+        RecoverCandidateMedicalSuppliesOrThrow(orders);
+    }
+
+    private void RecoverCandidateMedicalSuppliesOrThrow(
+        IEnumerable<CharacterMedicalOrder> source)
+    {
+        foreach (CharacterMedicalOrder order in (source
+                     ?? Enumerable.Empty<CharacterMedicalOrder>())
+                     .Where(value => value != null)
                      .OrderBy(value => value.orderId, StringComparer.Ordinal))
         {
             if (!supplyCoordinator.TryRecoverPendingSupply(
@@ -164,6 +233,29 @@ public sealed partial class CharacterMedicalRuntime :
                 throw new InvalidOperationException(
                     $"Medical supply recovery failed for '{order.orderId}': "
                     + recoveryFailure);
+            }
+        }
+    }
+
+    private void RecoverCandidateMedicalDestinationDrainsOrThrow(
+        IEnumerable<CharacterMedicalOrder> source)
+    {
+        foreach (CharacterMedicalOrder order in (source
+                     ?? Enumerable.Empty<CharacterMedicalOrder>())
+                     .Where(value => value != null
+                         && value.state == CharacterMedicalOrderState
+                             .MaterialDestinationDraining)
+                     .OrderBy(value => value.orderId, StringComparer.Ordinal))
+        {
+            CharacterMedicalSupplyDestinationDrainAdvanceResult resumed =
+                supplyDestinationDrains.TryResume(order);
+            if (resumed.Status !=
+                CharacterMedicalSupplyDestinationDrainAdvanceStatus.Closed)
+            {
+                throw new InvalidOperationException(
+                    "character-medical-supply-drain-restore-recovery-failed:"
+                    + order.orderId + ":" + resumed.Status + ":"
+                    + resumed.FailureReason);
             }
         }
     }
@@ -203,9 +295,45 @@ public sealed partial class CharacterMedicalRuntime :
                 continue;
             }
 
+            if (order.state ==
+                CharacterMedicalOrderState.MaterialDestinationDraining)
+            {
+                if (!supplyCoordinator.TryRecoverPendingSupply(
+                        order,
+                        out string supplyRecoveryFailure))
+                {
+                    throw new InvalidOperationException(
+                        "character-medical-supply-drain-sink-recovery-failed:"
+                        + order.orderId + ":" + supplyRecoveryFailure);
+                }
+                CharacterMedicalSupplyDestinationDrainAdvanceResult resumed =
+                    supplyDestinationDrains.TryResume(order);
+                if (resumed.Status ==
+                    CharacterMedicalSupplyDestinationDrainAdvanceStatus
+                        .Conflict)
+                {
+                    throw new InvalidOperationException(
+                        "character-medical-supply-drain-resume-conflict:"
+                        + resumed.FailureReason);
+                }
+                if (resumed.IsClosed)
+                {
+                    FinalizeClosedDestinationDrain(
+                        order,
+                        resumed.ClosedFacilityId);
+                }
+                continue;
+            }
+
             if (!TryGetPatient(order, out CharacterActor patient) || patient.IsDead)
             {
                 CancelOrder(order, CharacterMedicalStatusCode.PatientMissing);
+                continue;
+            }
+
+            if (!bodyHealthQuery.GetSnapshot(patient).Downed)
+            {
+                CompleteRecoveredOrder(order, patient);
                 continue;
             }
 
@@ -296,7 +424,6 @@ public sealed partial class CharacterMedicalRuntime :
                 FailureCode.CharacterMedicalPatientUnavailable);
             return false;
         }
-
         order.rescuerId = GetId(rescuer);
         order.state = order.stabilized
             ? CharacterMedicalOrderState.AwaitingRescue
@@ -336,6 +463,14 @@ public sealed partial class CharacterMedicalRuntime :
         {
             failure = new DomainFailure(
                 FailureCode.CharacterMedicalOrderUnavailable,
+                patientId);
+            return false;
+        }
+        if (order.state ==
+            CharacterMedicalOrderState.MaterialDestinationDraining)
+        {
+            failure = new DomainFailure(
+                FailureCode.CharacterMedicalDestinationUnavailable,
                 patientId);
             return false;
         }
@@ -398,6 +533,14 @@ public sealed partial class CharacterMedicalRuntime :
                 patientId);
             return false;
         }
+        if (order.state ==
+            CharacterMedicalOrderState.MaterialDestinationDraining)
+        {
+            failure = new DomainFailure(
+                FailureCode.CharacterMedicalDestinationUnavailable,
+                patientId);
+            return false;
+        }
 
         order.SetStatus(CharacterMedicalStatusCode.TreatmentRequested);
         return true;
@@ -450,6 +593,14 @@ public sealed partial class CharacterMedicalRuntime :
                 orderId ?? string.Empty);
             return false;
         }
+        if (order.state ==
+            CharacterMedicalOrderState.MaterialDestinationDraining)
+        {
+            failure = new DomainFailure(
+                FailureCode.CharacterMedicalDestinationUnavailable,
+                orderId ?? string.Empty);
+            return false;
+        }
 
         bool isSurgicalFacility = facility?.BuildingData?.Abilities?
             .OfType<ISurgicalFacilityAbility>()
@@ -480,6 +631,40 @@ public sealed partial class CharacterMedicalRuntime :
                 facilityId,
                 reservedPatient);
             return false;
+        }
+
+        if (!string.IsNullOrEmpty(order.treatmentFacilityId)
+            && string.Equals(
+                order.treatmentFacilityId,
+                facilityId,
+                StringComparison.Ordinal))
+        {
+            order.BedPosition = facility.centerPos;
+            treatmentFacilityReservations[facilityId] = order.patientId;
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(order.treatmentMaterialDestinationId))
+        {
+            CharacterMedicalOrderState target = order.stabilized
+                ? CharacterMedicalOrderState.AwaitingBed
+                : CharacterMedicalOrderState.AwaitingStabilization;
+            CharacterMedicalStatusCode targetStatus = order.stabilized
+                ? CharacterMedicalStatusCode.AwaitingBed
+                : CharacterMedicalStatusCode.AwaitingStabilization;
+            CharacterMedicalSupplyDestinationDrainAdvanceResult drained =
+                TryDrainTreatmentDestination(
+                order,
+                target,
+                targetStatus,
+                Array.Empty<string>());
+            if (!drained.IsClosed)
+            {
+                failure = new DomainFailure(
+                    FailureCode.CharacterMedicalDestinationUnavailable,
+                    orderId ?? string.Empty);
+                return false;
+            }
         }
 
         ReleaseFacilityReservation(order);
@@ -542,8 +727,12 @@ public sealed partial class CharacterMedicalRuntime :
 
         if (!TryAssignTreatmentFacility(order))
         {
-            order.state = CharacterMedicalOrderState.AwaitingBed;
-            order.SetStatus(CharacterMedicalStatusCode.AwaitingBed);
+            if (order.state !=
+                CharacterMedicalOrderState.MaterialDestinationDraining)
+            {
+                order.state = CharacterMedicalOrderState.AwaitingBed;
+                order.SetStatus(CharacterMedicalStatusCode.AwaitingBed);
+            }
             failure = new DomainFailure(
                 FailureCode.CharacterMedicalBedUnavailable,
                 orderId ?? string.Empty);
@@ -580,12 +769,16 @@ public sealed partial class CharacterMedicalRuntime :
                 orderId ?? string.Empty);
             if (order != null && patient != null)
             {
-                ReleaseTreatmentMaterials(order);
-                ReleaseFacilityReservation(order);
-                DropPatientAtCurrentPosition(
+                PreparePatientForUnassignedState(order, patient);
+                TryDrainTreatmentDestination(
                     order,
-                    patient,
-                    CharacterMedicalStatusCode.AwaitingBed);
+                    order.stabilized
+                        ? CharacterMedicalOrderState.AwaitingRescue
+                        : CharacterMedicalOrderState.AwaitingStabilization,
+                    order.stabilized
+                        ? CharacterMedicalStatusCode.AwaitingBed
+                        : CharacterMedicalStatusCode.AwaitingStabilization,
+                    Array.Empty<string>());
             }
 
             return false;
@@ -615,12 +808,13 @@ public sealed partial class CharacterMedicalRuntime :
 
         if (!TryGetTreatmentFacility(order, out BuildableObject facility))
         {
-            ReleaseTreatmentMaterials(order);
-            ReleaseFacilityReservation(order);
             order.rescuerId = string.Empty;
-            order.state = CharacterMedicalOrderState.AwaitingBed;
-            order.SetStatus(CharacterMedicalStatusCode.AwaitingBed);
             RegisterDownedOccupant(patient);
+            TryDrainTreatmentDestination(
+                order,
+                CharacterMedicalOrderState.AwaitingBed,
+                CharacterMedicalStatusCode.AwaitingBed,
+                Array.Empty<string>());
             return 0f;
         }
 
@@ -764,11 +958,21 @@ public sealed partial class CharacterMedicalRuntime :
 
         if (order.carried && TryGetPatient(order, out CharacterActor patient))
         {
-            DropPatientAtCurrentPosition(order, patient, releaseStatus);
+            if (order.state ==
+                CharacterMedicalOrderState.MaterialDestinationDraining)
+            {
+                PreparePatientForUnassignedState(order, patient);
+            }
+            else
+            {
+                DropPatientAtCurrentPosition(order, patient, releaseStatus);
+            }
         }
 
         order.rescuerId = string.Empty;
-        if (order.IsActive)
+        if (order.IsActive
+            && order.state !=
+                CharacterMedicalOrderState.MaterialDestinationDraining)
         {
             order.state = order.stabilized
                 ? CharacterMedicalOrderState.AwaitingRescue
@@ -836,6 +1040,21 @@ public sealed partial class CharacterMedicalRuntime :
             8f + bodyHealthQuery.GetTotalBleeding(actor) * 40f);
         order.requiredTreatmentWork = CalculateTreatmentWork(actor);
         order.stabilized = bodyHealthQuery.GetTotalBleeding(actor) <= 0.001f;
+        if (order.state ==
+            CharacterMedicalOrderState.MaterialDestinationDraining)
+        {
+            TryDrainTreatmentDestination(
+                order,
+                order.stabilized
+                    ? CharacterMedicalOrderState.AwaitingRescue
+                    : CharacterMedicalOrderState.AwaitingStabilization,
+                order.stabilized
+                    ? CharacterMedicalStatusCode.AwaitingRescue
+                    : CharacterMedicalStatusCode.AwaitingStabilization,
+                Array.Empty<string>());
+            RequestRescueReplans(actor);
+            return;
+        }
         order.state = order.stabilized
             ? CharacterMedicalOrderState.AwaitingRescue
             : CharacterMedicalOrderState.AwaitingStabilization;
@@ -873,12 +1092,7 @@ public sealed partial class CharacterMedicalRuntime :
             item.IsActive
             && string.Equals(item.patientId, patientId, StringComparison.Ordinal)))
         {
-            RestorePatientParent(order.patientId, actor);
-            order.carried = false;
-            order.state = CharacterMedicalOrderState.Completed;
-            order.SetStatus(CharacterMedicalStatusCode.TreatmentCompleted);
-            ReleaseTreatmentMaterials(order);
-            ReleaseFacilityReservation(order);
+            CompleteRecoveredOrder(order, actor);
         }
 
         RemoveDownedOccupant(patientId);
@@ -897,7 +1111,11 @@ public sealed partial class CharacterMedicalRuntime :
 
     private bool IsOrderAvailableTo(CharacterMedicalOrder order, CharacterActor rescuer)
     {
-        if (order == null || !order.IsActive || order.carried)
+        if (order == null
+            || !order.IsActive
+            || order.carried
+            || order.state ==
+                CharacterMedicalOrderState.MaterialDestinationDraining)
         {
             return false;
         }
@@ -926,6 +1144,8 @@ public sealed partial class CharacterMedicalRuntime :
     {
         return TryGetOrder(orderId, out order)
             && order.IsActive
+            && order.state !=
+                CharacterMedicalOrderState.MaterialDestinationDraining
             && rescuer != null
             && !rescuer.IsDead
             && string.Equals(order.rescuerId, GetId(rescuer), StringComparison.Ordinal);
@@ -937,6 +1157,11 @@ public sealed partial class CharacterMedicalRuntime :
         {
             return false;
         }
+        if (order.state ==
+            CharacterMedicalOrderState.MaterialDestinationDraining)
+        {
+            return false;
+        }
 
         if (TryGetTreatmentFacility(order, out BuildableObject current)
             && IsFacilityAvailable(current, order.patientId))
@@ -944,6 +1169,20 @@ public sealed partial class CharacterMedicalRuntime :
             treatmentFacilityReservations[GetFacilityId(current)] = order.patientId;
             order.BedPosition = current.centerPos;
             return true;
+        }
+
+        if (!string.IsNullOrEmpty(order.treatmentMaterialDestinationId))
+        {
+            TryDrainTreatmentDestination(
+                order,
+                order.stabilized
+                    ? CharacterMedicalOrderState.AwaitingBed
+                    : CharacterMedicalOrderState.AwaitingStabilization,
+                order.stabilized
+                    ? CharacterMedicalStatusCode.AwaitingBed
+                    : CharacterMedicalStatusCode.AwaitingStabilization,
+                Array.Empty<string>());
+            return false;
         }
 
         ReleaseFacilityReservation(order);
@@ -1065,13 +1304,14 @@ public sealed partial class CharacterMedicalRuntime :
         }
 
         order.carried = false;
-        order.state = CharacterMedicalOrderState.Cancelled;
-        order.SetStatus(
+        order.rescuerId = string.Empty;
+        TryDrainTreatmentDestination(
+            order,
+            CharacterMedicalOrderState.Cancelled,
             statusCode == CharacterMedicalStatusCode.Unknown
                 ? CharacterMedicalStatusCode.Cancelled
-                : statusCode);
-        ReleaseTreatmentMaterials(order);
-        ReleaseFacilityReservation(order);
+                : statusCode,
+            Array.Empty<string>());
         RemoveDownedOccupant(order.patientId);
     }
 
@@ -1191,40 +1431,155 @@ public sealed partial class CharacterMedicalRuntime :
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
 
-    private void ReleaseTreatmentMaterials(CharacterMedicalOrder order)
+    private void RecoverPendingMedicalDestinationDrainsOrThrow()
     {
-        if (order == null
-            || string.IsNullOrWhiteSpace(order.treatmentMaterialDestinationId))
+        foreach (CharacterMedicalOrder order in orders
+                     .Where(value => value != null
+                         && value.state == CharacterMedicalOrderState
+                             .MaterialDestinationDraining)
+                     .OrderBy(value => value.orderId, StringComparer.Ordinal))
         {
-            return;
+            if (!supplyCoordinator.TryRecoverPendingSupply(
+                    order,
+                    out string supplyRecoveryFailure))
+            {
+                throw new InvalidOperationException(
+                    "character-medical-supply-drain-sink-recovery-failed:"
+                    + order.orderId + ":" + supplyRecoveryFailure);
+            }
+            CharacterMedicalSupplyDestinationDrainAdvanceResult resumed =
+                supplyDestinationDrains.TryResume(order);
+            if (resumed.Status ==
+                CharacterMedicalSupplyDestinationDrainAdvanceStatus.Conflict)
+            {
+                throw new InvalidOperationException(
+                    "character-medical-supply-drain-recovery-conflict:"
+                    + order.orderId + ":" + resumed.FailureReason);
+            }
+            if (resumed.IsClosed)
+            {
+                FinalizeClosedDestinationDrain(
+                    order,
+                    resumed.ClosedFacilityId);
+            }
         }
+    }
 
+    private CharacterMedicalSupplyDestinationDrainAdvanceResult
+        TryDrainTreatmentDestination(
+            CharacterMedicalOrder order,
+            CharacterMedicalOrderState targetState,
+            CharacterMedicalStatusCode targetStatus,
+            IReadOnlyList<string> targetStatusParameters)
+    {
         if (!supplyCoordinator.TryRecoverPendingSupply(
                 order,
-                out _))
+                out string supplyRecoveryFailure))
         {
-            // A committed physical Sink must retain its order provenance until
-            // package output and acknowledgement succeed. Releasing the
-            // destination here would orphan that receipt or teleport stock.
+            throw new InvalidOperationException(
+                "character-medical-supply-drain-sink-recovery-failed:"
+                + (order?.orderId ?? string.Empty) + ":"
+                + supplyRecoveryFailure);
+        }
+        CharacterMedicalSupplyDestinationDrainAdvanceResult result =
+            supplyDestinationDrains.TryBeginOrResume(
+                order,
+                targetState,
+                targetStatus,
+                targetStatusParameters);
+        if (result.Status ==
+            CharacterMedicalSupplyDestinationDrainAdvanceStatus.Conflict)
+        {
+            throw new InvalidOperationException(
+                "character-medical-supply-destination-drain-conflict:"
+                + (order?.orderId ?? string.Empty) + ":"
+                + result.FailureReason);
+        }
+        if (result.IsClosed)
+        {
+            FinalizeClosedDestinationDrain(order, result.ClosedFacilityId);
+        }
+        return result;
+    }
+
+    private void FinalizeClosedDestinationDrain(
+        CharacterMedicalOrder order,
+        string closedFacilityId)
+    {
+        ReleaseFacilityReservationById(order, closedFacilityId);
+        if (order == null)
+        {
             return;
         }
-
-        Vector2Int releasePosition = order.BedPosition;
-        if (TryGetTreatmentFacility(order, out BuildableObject facility))
+        if (order.state is CharacterMedicalOrderState.Completed
+            or CharacterMedicalOrderState.Cancelled)
         {
-            releasePosition = facility.centerPos;
+            RemoveDownedOccupant(order.patientId);
+            return;
         }
+        if (TryGetPatient(order, out CharacterActor patient))
+        {
+            RequestRescueReplans(patient);
+        }
+    }
 
-        world.ItemStacks.ReleaseStacksByDestination(
-            order.treatmentMaterialDestinationId,
-            releasePosition);
-        order.treatmentMaterialDestinationId = string.Empty;
-        order.treatmentSupply = CharacterMedicalSupplyKind.None;
-        order.treatmentSupplyConsumed = false;
-        order.treatmentSupplyDeliveryRequested = false;
-        order.treatmentItemId = string.Empty;
-        order.treatmentPotency = 1f;
-        order.treatmentInfectionReduction = 0f;
-        order.treatmentPainReduction = 0f;
+    private void CompleteRecoveredOrder(
+        CharacterMedicalOrder order,
+        CharacterActor actor)
+    {
+        if (order == null || actor == null)
+        {
+            return;
+        }
+        RestorePatientParent(order.patientId, actor);
+        order.carried = false;
+        order.rescuerId = string.Empty;
+        RemoveDownedOccupant(order.patientId);
+        actor.SetLifecycleState(CharacterLifecycleState.Active);
+        TryDrainTreatmentDestination(
+            order,
+            CharacterMedicalOrderState.Completed,
+            CharacterMedicalStatusCode.TreatmentCompleted,
+            Array.Empty<string>());
+    }
+
+    private void PreparePatientForUnassignedState(
+        CharacterMedicalOrder order,
+        CharacterActor patient)
+    {
+        if (order == null || patient == null)
+        {
+            return;
+        }
+        order.carried = false;
+        CharacterActor rescuer = FindCharacter(order.rescuerId);
+        RestorePatientParent(order.patientId, patient);
+        if (rescuer != null)
+        {
+            patient.transform.position = rescuer.transform.position;
+            order.PatientPosition = rescuer.GetNowXY();
+        }
+        order.rescuerId = string.Empty;
+        RegisterDownedOccupant(patient);
+    }
+
+    private void ReleaseFacilityReservationById(
+        CharacterMedicalOrder order,
+        string facilityId)
+    {
+        if (order == null || string.IsNullOrWhiteSpace(facilityId))
+        {
+            return;
+        }
+        if (treatmentFacilityReservations.TryGetValue(
+                facilityId,
+                out string patientId)
+            && string.Equals(
+                patientId,
+                order.patientId,
+                StringComparison.Ordinal))
+        {
+            treatmentFacilityReservations.Remove(facilityId);
+        }
     }
 }

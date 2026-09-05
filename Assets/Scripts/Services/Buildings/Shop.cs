@@ -6,7 +6,13 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
 
-public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRetailStockStateOwner, IRetailRestockOperationOwner, IWorkableFacility
+public class Shop : BuildableObject,
+    IRetailFacility,
+    IRestockableFacility,
+    IRetailStockStateOwner,
+    IRetailRestockOperationOwner,
+    IWorkableFacility,
+    IAllocatedWorkerOccupancyQuery
 {
     private const float WaitingCheckoutOperateUrgency = 160f;
     private const float WaitingCheckoutOperateUrgencyPerCustomer = 40f;
@@ -138,6 +144,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         // authored stock is therefore activated lazily at the first stock
         // query, after placement/restore has established BuildingInstanceId.
     }
+    public bool HasAllocatedWorker => HasServingWorker;
 
     public IEnumerator Interact(IBuildingVisitorPort actor) =>
         CustomerInteraction.Interact(actor);

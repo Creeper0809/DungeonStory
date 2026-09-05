@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-miner-workwear",
+    "spoiler_tier": "none",
+    "title": "광부 작업복"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-miner-workwear",
+      "label": "생산·해금",
+      "to": "item/apparel-miner-workwear",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

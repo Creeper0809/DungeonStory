@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -163,6 +164,207 @@ public static class ProductionPhysicalCustodyDrainOutboxDebugScenarios
                 ProductionPhysicalCustodyDrainStatus.Applied
             && !outbox.TryCapture(StepOperationId, out _),
             "Acknowledged physical custody drain was not garbage-collected.");
+
+        VerifyCheckpointGcTransaction();
+    }
+
+    private static void VerifyCheckpointGcTransaction()
+    {
+        WorldItemRepository repository = new(
+            new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        ProductionPhysicalCustodyDrainOutbox outbox = new(repository);
+        IProductionPhysicalCustodyDrainCheckpointGcPort gc = outbox;
+        ProductionPhysicalCustodyDrainSaveData rowA =
+            CreateTerminalCheckpointRow(outbox, "a");
+        ProductionPhysicalCustodyDrainSaveData rowB =
+            CreateTerminalCheckpointRow(outbox, "b");
+        ProductionPhysicalCustodyDrainSaveData rowC =
+            CreateTerminalCheckpointRow(outbox, "c");
+        string rowAJson = JsonUtility.ToJson(rowA);
+        string rowCJson = JsonUtility.ToJson(rowC);
+        int preparedItemRevision = repository.ItemStackVersion;
+        int preparedHaulRevision = repository.HaulJobVersion;
+
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { rowB, rowA },
+                    out IProductionPhysicalCustodyDrainCheckpointGcCandidate
+                        partialCandidate,
+                    out string prepareFailure)
+                && outbox.TryCapture(rowA.stepOperationId, out var preparedA)
+                && string.Equals(
+                    JsonUtility.ToJson(preparedA),
+                    rowAJson,
+                    StringComparison.Ordinal)
+                && repository.ItemStackVersion == preparedItemRevision
+                && repository.HaulJobVersion == preparedHaulRevision,
+            "V27_PHYSICAL_CHECKPOINT_GC_PREPARE_MUTATED:" + prepareFailure);
+        Require(!gc.TryPrepareCheckpointGarbageCollection(
+                new[] { rowC }, out _, out _),
+            "V27_PHYSICAL_CHECKPOINT_GC_ACCEPTED_SECOND_ACTIVE_CANDIDATE");
+        Require(outbox.TryGarbageCollect(
+                    rowA.stepOperationId,
+                    rowA.receiptFingerprint).Status ==
+                ProductionPhysicalCustodyDrainStatus.Deferred,
+            "V27_PHYSICAL_CHECKPOINT_GC_DID_NOT_FENCE_LEGACY_GC");
+
+        Require(RemovePendingForFault(
+                repository,
+                "RemovePendingProductionCustodyDrain",
+                rowB.stepOperationId),
+            "V27_PHYSICAL_CHECKPOINT_GC_FAULT_INJECTION_FAILED");
+        int faultItemRevision = repository.ItemStackVersion;
+        int faultHaulRevision = repository.HaulJobVersion;
+        Require(!gc.TryPublishCheckpointGarbageCollection(
+                    partialCandidate,
+                    out _)
+                && outbox.TryCapture(
+                    rowA.stepOperationId,
+                    out ProductionPhysicalCustodyDrainSaveData autoRestoredA)
+                && string.Equals(
+                    JsonUtility.ToJson(autoRestoredA),
+                    rowAJson,
+                    StringComparison.Ordinal),
+            "V27_PHYSICAL_CHECKPOINT_GC_MIDDLE_FAILURE_NOT_OBSERVED");
+        gc.RollbackCheckpointGarbageCollection(partialCandidate);
+        bool hasRestoredA = outbox.TryCapture(
+            rowA.stepOperationId,
+            out ProductionPhysicalCustodyDrainSaveData restoredA);
+        bool hasPreservedC = outbox.TryCapture(
+            rowC.stepOperationId,
+            out ProductionPhysicalCustodyDrainSaveData preservedC);
+        Require(hasRestoredA
+                && string.Equals(
+                    JsonUtility.ToJson(restoredA),
+                    rowAJson,
+                    StringComparison.Ordinal)
+                && !outbox.TryCapture(rowB.stepOperationId, out _)
+                && hasPreservedC
+                && string.Equals(
+                    JsonUtility.ToJson(preservedC),
+                    rowCJson,
+                    StringComparison.Ordinal)
+                && repository.ItemStackVersion == faultItemRevision
+                && repository.HaulJobVersion == faultHaulRevision,
+            "V27_PHYSICAL_CHECKPOINT_GC_PARTIAL_ROLLBACK_NOT_EXACT");
+        gc.CompleteCheckpointGarbageCollection(partialCandidate);
+        RequireThrows(() => gc.TryPublishCheckpointGarbageCollection(
+                partialCandidate,
+                out _),
+            "V27_PHYSICAL_CHECKPOINT_GC_COMPLETED_CANDIDATE_REUSED");
+
+        int exactItemRevision = repository.ItemStackVersion;
+        int exactHaulRevision = repository.HaulJobVersion;
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { restoredA },
+                    out IProductionPhysicalCustodyDrainCheckpointGcCandidate
+                        exactCandidate,
+                    out _)
+                && gc.TryPublishCheckpointGarbageCollection(
+                    exactCandidate,
+                    out _)
+                && !outbox.TryCapture(rowA.stepOperationId, out _)
+                && repository.ItemStackVersion == exactItemRevision
+                && repository.HaulJobVersion == exactHaulRevision,
+            "V27_PHYSICAL_CHECKPOINT_GC_PUBLISH_NOT_EXACT");
+        gc.RollbackCheckpointGarbageCollection(exactCandidate);
+        Require(outbox.TryCapture(rowA.stepOperationId, out var exactRestored)
+                && string.Equals(
+                    JsonUtility.ToJson(exactRestored),
+                    rowAJson,
+                    StringComparison.Ordinal)
+                && repository.ItemStackVersion == exactItemRevision
+                && repository.HaulJobVersion == exactHaulRevision,
+            "V27_PHYSICAL_CHECKPOINT_GC_ROLLBACK_CHANGED_REVISIONS");
+        gc.CompleteCheckpointGarbageCollection(exactCandidate);
+
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { preservedC },
+                    out IProductionPhysicalCustodyDrainCheckpointGcCandidate
+                        completedCandidate,
+                    out _)
+                && gc.TryPublishCheckpointGarbageCollection(
+                    completedCandidate,
+                    out _),
+            "V27_PHYSICAL_CHECKPOINT_GC_FINAL_PUBLISH_FAILED");
+        gc.CompleteCheckpointGarbageCollection(completedCandidate);
+        Require(!outbox.TryCapture(rowC.stepOperationId, out _),
+            "V27_PHYSICAL_CHECKPOINT_GC_COMPLETE_RETAINED_ROW");
+    }
+
+    private static ProductionPhysicalCustodyDrainSaveData
+        CreateTerminalCheckpointRow(
+            ProductionPhysicalCustodyDrainOutbox outbox,
+            string suffix)
+    {
+        string step = StepOperationId + ":checkpoint:" + suffix;
+        string destination = DestinationId + ":checkpoint:" + suffix;
+        string stack = "stack:qa:checkpoint:" + suffix;
+        ProductionPhysicalCustodyDrainRequest request = CreateRequest(
+            step,
+            "physical-destination:" + destination,
+            destination,
+            7,
+            9,
+            new string('8', 64),
+            new[] { stack },
+            Array.Empty<string>(),
+            Array.Empty<string>(),
+            1,
+            1_000L);
+        Require(outbox.TryPrepare(request).Status ==
+                ProductionPhysicalCustodyDrainStatus.Applied
+            && outbox.TryBeginDraining(step, request.RequestFingerprint).Status ==
+                ProductionPhysicalCustodyDrainStatus.Applied
+            && outbox.TryBeginReleasingIntents(step).Status ==
+                ProductionPhysicalCustodyDrainStatus.Applied
+            && outbox.TryBeginReleasingDestination(step).Status ==
+                ProductionPhysicalCustodyDrainStatus.Applied,
+            "V27_PHYSICAL_CHECKPOINT_GC_TERMINAL_SETUP_FAILED:" + suffix);
+        ProductionPhysicalCustodyDrainResult committed = outbox.TryCommitEffect(
+            step,
+            new[] { stack },
+            1,
+            1_000L,
+            new string('9', 64));
+        ProductionPhysicalCustodyDrainResult acknowledged =
+            outbox.TryAcknowledge(step, committed.ReceiptFingerprint);
+        bool hasTerminal = outbox.TryCapture(
+            step,
+            out ProductionPhysicalCustodyDrainSaveData terminal);
+        Require(committed.Status == ProductionPhysicalCustodyDrainStatus.Applied
+            && acknowledged.Status ==
+                ProductionPhysicalCustodyDrainStatus.Applied
+            && hasTerminal,
+            "V27_PHYSICAL_CHECKPOINT_GC_ACK_SETUP_FAILED:" + suffix);
+        return terminal;
+    }
+
+    private static bool RemovePendingForFault(
+        WorldItemRepository repository,
+        string methodName,
+        string stepOperationId)
+    {
+        MethodInfo method = typeof(WorldItemRepository).GetMethod(
+            methodName,
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(
+                typeof(WorldItemRepository).FullName,
+                methodName);
+        return (bool)method.Invoke(repository, new object[] { stepOperationId });
+    }
+
+    private static void RequireThrows(Action action, string message)
+    {
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        throw new InvalidOperationException(message);
     }
 
     private static ProductionPhysicalCustodyDrainRequest Request() =>

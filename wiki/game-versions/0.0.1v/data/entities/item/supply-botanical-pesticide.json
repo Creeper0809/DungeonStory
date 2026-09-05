@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "29"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "재배 작물에 붙은 해충을 줄이도록 식물 성분을 우려 만든 살충제다. 므네실라에서는 식물성 살충제 병에 대상 해충과 희석 비율을 잎 모양 눈금으로 표시한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-botanical-pesticide",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 식물성 살충제.",
+  "title": "식물성 살충제"
+}

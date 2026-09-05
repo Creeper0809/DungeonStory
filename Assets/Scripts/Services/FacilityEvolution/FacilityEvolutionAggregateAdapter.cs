@@ -39,6 +39,7 @@ public static class FacilityEvolutionAggregateAdapter
             snapshot.instanceEvolution?.modificationOrder);
         ValidateRelocationPackageTransfer(snapshot.instanceEvolution?.relocationOrder);
         ValidateRecalibrationMaterialTransfer(snapshot.instanceEvolution?.recalibrationOrder);
+        ValidateInputOwnerProjection(snapshot.instanceEvolution);
 
         Domain.FacilityEvolutionAggregateSnapshot domain = ToDomain(snapshot);
         return new FacilityEvolutionPreparedState(
@@ -285,6 +286,53 @@ public static class FacilityEvolutionAggregateAdapter
         }
     }
 
+    private static void ValidateInputOwnerProjection(
+        FacilityEvolutionState state)
+    {
+        if (state?.modificationOrder != null
+            && HasOrderId(state.modificationOrder.orderId))
+        {
+            FacilityModificationOrder order = state.modificationOrder;
+            ValidateProjection(order.orderId, order.destinationId,
+                FacilityEvolutionInputKind.Modification,
+                order.inputCapacityGrams, order.inputMassAuthorityRevision,
+                order.inputCapacityFingerprint);
+        }
+        if (state?.recalibrationOrder != null
+            && HasOrderId(state.recalibrationOrder.orderId))
+        {
+            FacilityRecalibrationOrder order = state.recalibrationOrder;
+            ValidateProjection(order.orderId, order.destinationId,
+                FacilityEvolutionInputKind.Recalibration,
+                order.inputCapacityGrams, order.inputMassAuthorityRevision,
+                order.inputCapacityFingerprint);
+        }
+        if (state?.relocationOrder != null
+            && HasOrderId(state.relocationOrder.orderId))
+        {
+            FacilityRelocationOrder order = state.relocationOrder;
+            ValidateProjection(order.orderId, order.destinationId,
+                FacilityEvolutionInputKind.Relocation,
+                order.inputCapacityGrams, order.inputMassAuthorityRevision,
+                order.inputCapacityFingerprint);
+        }
+    }
+
+    private static void ValidateProjection(string orderId,
+        string destinationId, FacilityEvolutionInputKind kind,
+        long capacityGrams, long massRevision, string fingerprint)
+    {
+        Require(string.Equals(destinationId,
+                FacilityEvolutionInputOwnerAuthority.DestinationFor(kind, orderId),
+                StringComparison.Ordinal),
+            "Facility evolution input destination is not canonical.");
+        Require(capacityGrams > 0L && massRevision > 0L
+                && !string.IsNullOrWhiteSpace(fingerprint)
+                && string.Equals(fingerprint, fingerprint.Trim(),
+                    StringComparison.Ordinal),
+            "Facility evolution input projection is not positive and canonical.");
+    }
+
     private static void Require(bool condition, string message)
     {
         if (!condition)
@@ -492,6 +540,9 @@ public static class FacilityEvolutionAggregateAdapter
             || !string.IsNullOrWhiteSpace(order.destinationId)
             || order.destinationX != 0
             || order.destinationY != 0
+            || order.inputCapacityGrams != 0L
+            || order.inputMassAuthorityRevision != 0L
+            || !string.IsNullOrWhiteSpace(order.inputCapacityFingerprint)
             || order.materialsConsumed
             || !string.IsNullOrWhiteSpace(order.materialTransferOperationId)
             || !string.IsNullOrWhiteSpace(order.materialTransferCommitId)
@@ -527,6 +578,9 @@ public static class FacilityEvolutionAggregateAdapter
             || !string.IsNullOrWhiteSpace(order.destinationId)
             || order.destinationX != 0
             || order.destinationY != 0
+            || order.inputCapacityGrams != 0L
+            || order.inputMassAuthorityRevision != 0L
+            || !string.IsNullOrWhiteSpace(order.inputCapacityFingerprint)
             || order.materialsConsumed
             || !string.IsNullOrWhiteSpace(order.materialTransferOperationId)
             || !string.IsNullOrWhiteSpace(order.materialTransferCommitId)
@@ -557,6 +611,9 @@ public static class FacilityEvolutionAggregateAdapter
             || order.sourceY != 0
             || order.destinationX != 0
             || order.destinationY != 0
+            || order.inputCapacityGrams != 0L
+            || order.inputMassAuthorityRevision != 0L
+            || !string.IsNullOrWhiteSpace(order.inputCapacityFingerprint)
             || order.dismantleRequiredWork != 0f
             || order.dismantleCompletedWork != 0f
             || order.reinstallRequiredWork != 0f

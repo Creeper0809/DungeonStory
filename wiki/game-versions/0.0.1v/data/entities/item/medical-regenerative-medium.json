@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "10개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "132"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "재생 배양액은 심한 조직 손상과 장기 회복을 지원하는 고급 의료 재료다. 므네실라에서는 재생 배양액을 건네기 전 환자가 직접 초록 매듭을 묶는다. 치료를 멈춰 달라는 뜻이면 풀어 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medical-regenerative-medium",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 재생 배양액.",
+  "title": "재생 배양액"
+}

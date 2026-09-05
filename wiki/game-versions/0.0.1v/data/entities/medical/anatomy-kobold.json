@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "anatomy-kobold",
+  "spoiler_tier": "none",
+  "summary": "종족 1종의 신체를 해부 노드 12개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+  "title": "코볼트 해부 구조"
+}

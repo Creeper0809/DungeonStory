@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-bloodleaf-heat",
+  "spoiler_tier": "none",
+  "summary": "고온에서도 잎이 타지 않지만 병해 저항이 낮다.",
+  "title": "genome_bloodleaf_heat"
+}

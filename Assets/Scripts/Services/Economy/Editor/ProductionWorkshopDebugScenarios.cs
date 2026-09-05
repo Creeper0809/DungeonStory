@@ -37,6 +37,17 @@ public static class ProductionWorkshopDebugScenarios
         ResearchProjectSO[] research = LoadAll<ResearchProjectSO>(
             "Assets/Resources/SO/Research/Projects");
         List<string> failures = new List<string>();
+        ResourceGameContentCatalog content = new(
+            new UnityGameContentRootLoader());
+        ResourceEconomyContentCatalog economy = new(content);
+        StandardDefinitionProductionOutputCapability standardOutput = new(
+            economy,
+            new ProductionPreparedOutputComponentCodec());
+        CombatAmmunitionCraftOutputCapability ammunitionOutput = new(
+            new ResourceItemDefinitionCatalog(content));
+        ResourceApparelDefinitionCatalog apparel = new(content);
+        SurgicalPartProductionOutputMaximumMassCapability surgicalOutput =
+            new();
 
         foreach (ProductionRecipeSO recipe in recipes.Where(value => value != null))
         {
@@ -50,6 +61,34 @@ public static class ProductionWorkshopDebugScenarios
         }
         foreach (BuildingSO building in buildings.Where(value => value != null))
         {
+            BuildingProductionWorkstationAbility rawWorkstation =
+                building.GetAbility<BuildingProductionWorkstationAbility>();
+            if (rawWorkstation != null && !rawWorkstation.IsValid)
+            {
+                failures.Add(
+                    $"{building.name}: production workstation lane authority is invalid.");
+            }
+            if (rawWorkstation != null)
+            {
+                BuildingAutomationAbility automation =
+                    building.GetAbility<BuildingAutomationAbility>();
+                bool expectsAutomaticLane = automation != null
+                    && automation.maximumMode == AutomationMode.Automatic;
+                ProductionWorkstationLanePolicy expectedPolicy =
+                    expectsAutomaticLane
+                        ? ProductionWorkstationLanePolicy
+                            .ModeExclusiveManualOrAutomaticWithDetachedBatchProcessors
+                        : ProductionWorkstationLanePolicy
+                            .ManualWithDetachedBatchProcessors;
+                if (rawWorkstation.lanePolicy != expectedPolicy
+                    || rawWorkstation.ManualWorkLaneCount != 1
+                    || rawWorkstation.AutomaticWorkLaneCount
+                        != (expectsAutomaticLane ? 1 : 0))
+                {
+                    failures.Add(
+                        $"{building.name}: authored production lane policy does not match its automation capability.");
+                }
+            }
             BuildingProcessFluidAbility facilityFluid =
                 building.GetAbility<BuildingProcessFluidAbility>();
             if (facilityFluid != null
@@ -95,6 +134,23 @@ public static class ProductionWorkshopDebugScenarios
                 .GetProductionWorkstationAbility()?.WorkstationTag)
             .Where(tag => !string.IsNullOrWhiteSpace(tag))
             .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> facilityTags = buildings
+            .Where(building => building != null)
+            .SelectMany(building => building.GetSemanticTags())
+            .Where(tag => !string.IsNullOrWhiteSpace(tag))
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (BuildingSO building in buildings.Where(building =>
+                     building?.GetProductionWorkstationAbility() != null))
+        {
+            BuildingProductionBufferAbility buffer =
+                building.GetProductionBufferAbility();
+            if (buffer == null
+                || buffer.physicalOutputBufferCycleCapacity is < 2 or > 4)
+            {
+                failures.Add(
+                    $"{building.name}: production workstation has no exact [2,4] physical output-buffer cycle capacity.");
+            }
+        }
         HashSet<string> itemIds = items
             .Where(item => item != null)
             .Select(item => item.ItemId)
@@ -105,15 +161,23 @@ public static class ProductionWorkshopDebugScenarios
                          "recipe:",
                          StringComparison.Ordinal)))
         {
-            bool workshopOwned = recipe.WorkstationTag.StartsWith(
-                "workstation:",
-                StringComparison.Ordinal);
-            if (!workshopOwned)
+            bool isPhysicalSink = recipe.Outputs.Count == 0;
+            if (isPhysicalSink)
             {
-                continue;
+                if (recipe.FlowRole != ProductionFlowRole.Sink)
+                {
+                    failures.Add(
+                        $"{recipe.RecipeId}: output-free recipe is not an explicit sink.");
+                }
+                if (string.IsNullOrWhiteSpace(recipe.FacilityTag)
+                    || !facilityTags.Contains(recipe.FacilityTag))
+                {
+                    failures.Add(
+                        $"{recipe.RecipeId}: sink facility '{recipe.FacilityTag}' "
+                        + "has no semantic building definition.");
+                }
             }
-
-            if (string.IsNullOrWhiteSpace(recipe.WorkstationTag))
+            else if (string.IsNullOrWhiteSpace(recipe.WorkstationTag))
             {
                 failures.Add($"{recipe.RecipeId}: no exact workstation tag.");
             }
@@ -138,10 +202,17 @@ public static class ProductionWorkshopDebugScenarios
             }
             foreach (ProductionOutputDefinition output in recipe.Outputs)
             {
-                if (output != null && !itemIds.Contains(output.ItemId))
+                if (output != null
+                    && !IsSupportedPhysicalOutput(
+                        output.ItemId,
+                        standardOutput,
+                        ammunitionOutput,
+                        apparel,
+                        surgicalOutput))
                 {
                     failures.Add(
-                        $"{recipe.RecipeId}: missing output item {output.ItemId}.");
+                        $"{recipe.RecipeId}: output {output.ItemId} has no "
+                        + "registered physical capability.");
                 }
             }
         }
@@ -274,7 +345,22 @@ public static class ProductionWorkshopDebugScenarios
         }
 
         ValidateDeterministicRoomLinks(failures);
+        ValidateFiniteSupportLinkCaps(failures);
         return failures;
+    }
+
+    private static bool IsSupportedPhysicalOutput(
+        string itemId,
+        StandardDefinitionProductionOutputCapability standard,
+        CombatAmmunitionCraftOutputCapability ammunition,
+        IApparelDefinitionCatalog apparel,
+        SurgicalPartProductionOutputMaximumMassCapability surgical)
+    {
+        int specialMatches = (ammunition.CanHandle(itemId) ? 1 : 0)
+            + (apparel.TryGetByItemId(itemId, out _) ? 1 : 0)
+            + (surgical.CanHandle(itemId) ? 1 : 0);
+        return specialMatches <= 1
+            && (specialMatches == 1 || standard.CanHandle(itemId));
     }
 
     private static void ValidateDeterministicRoomLinks(
@@ -301,9 +387,10 @@ public static class ProductionWorkshopDebugScenarios
             {
                 supportId = "support:test-room-instance",
                 featureTags = new[] { "support:test-room" },
-                compatibleWorkstationTags =
-                    new[] { "workstation:test-room" },
-                kind = ProductionSupportKind.Passive
+                 compatibleWorkstationTags =
+                     new[] { "workstation:test-room" },
+                 kind = ProductionSupportKind.Passive,
+                 maximumLinkedInstancesPerWorkstation = 1
             });
             supportData.ReplaceAbilities(supportAbilities);
 
@@ -384,11 +471,98 @@ public static class ProductionWorkshopDebugScenarios
     private static BuildingAbilityCollection WorkstationAbilities(string tag)
     {
         BuildingAbilityCollection abilities = new BuildingAbilityCollection();
-        abilities.Add(new BuildingProductionWorkstationAbility
-        {
-            workstationTag = tag
-        });
+         abilities.Add(new BuildingProductionWorkstationAbility
+         {
+             workstationTag = tag,
+             lanePolicy = ProductionWorkstationLanePolicy
+                 .ManualWithDetachedBatchProcessors,
+             manualWorkLaneCount = 1,
+             automaticWorkLaneCount = 0
+         });
         return abilities;
+    }
+
+    private static void ValidateFiniteSupportLinkCaps(
+        ICollection<string> failures)
+    {
+        BuildingSO workstationData = ScriptableObject.CreateInstance<BuildingSO>();
+        BuildingSO supportData = ScriptableObject.CreateInstance<BuildingSO>();
+        GameObject[] objects = Enumerable.Range(0, 5)
+            .Select(index => new GameObject($"Finite Link Fixture {index}"))
+            .ToArray();
+        try
+        {
+            workstationData.id = 99111;
+            workstationData.ReplaceAbilities(WorkstationAbilities(
+                "workstation:finite-link"));
+            BuildingAbilityCollection supportAbilities = new();
+            supportAbilities.Add(new BuildingProductionSupportAbility
+            {
+                supportId = "support:finite-link",
+                featureTags = new[] { "support:finite-link" },
+                compatibleWorkstationTags =
+                    new[] { "workstation:finite-link" },
+                kind = ProductionSupportKind.BatchProcessor,
+                batchCapacity = 1,
+                maximumLinkedInstancesPerWorkstation = 1
+            });
+            supportData.id = 99112;
+            supportData.ReplaceAbilities(supportAbilities);
+
+            BuildableObject[] runtime = objects
+                .Select(value => value.AddComponent<BuildableObject>())
+                .ToArray();
+            string[] identities =
+            {
+                "building:finite-link-workstation-a",
+                "building:finite-link-workstation-b",
+                "building:finite-link-support-a",
+                "building:finite-link-support-b",
+                "building:finite-link-support-c"
+            };
+            Vector2Int[] cells =
+            {
+                new(1, 0), new(8, 0), new(2, 0), new(3, 0), new(4, 0)
+            };
+            Grid grid = new(10, 1);
+            for (int index = 0; index < runtime.Length; index++)
+            {
+                runtime[index].RestorePersistentIdentity(
+                    (BuildingInstanceId)identities[index]);
+                CharacterAiEditorTestDependencies.Inject(runtime[index]);
+                runtime[index].Initialization(
+                    index < 2 ? workstationData : supportData,
+                    cells[index]);
+                runtime[index].SetGrid(grid);
+            }
+
+            MutableBuildingWorldQuery world = new(runtime);
+            MutableRoomLayoutCache rooms = new();
+            RoomInstance room = ClosedRoom(11, runtime);
+            rooms.Assign(room, runtime);
+            ProductionWorkshopRuntime workshop = new(world, rooms);
+
+            IReadOnlyList<ProductionSupportLinkSnapshot> first =
+                workshop.GetLinks(runtime[0]);
+            IReadOnlyList<ProductionSupportLinkSnapshot> second =
+                workshop.GetLinks(runtime[1]);
+            if (first.Count != 1
+                || second.Count != 1
+                || !ReferenceEquals(first[0].Support, runtime[2])
+                || !ReferenceEquals(second[0].Support, runtime[3])
+                || workshop.TryGetLinkForSupport(runtime[4], out _))
+            {
+                failures.Add(
+                    "Per-workstation support-instance cap did not spill deterministically or left an over-cap link.");
+            }
+        }
+        finally
+        {
+            foreach (GameObject value in objects)
+                UnityEngine.Object.DestroyImmediate(value);
+            UnityEngine.Object.DestroyImmediate(workstationData);
+            UnityEngine.Object.DestroyImmediate(supportData);
+        }
     }
 
     private static RoomInstance ClosedRoom(

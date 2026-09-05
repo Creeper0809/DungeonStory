@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "목재, 숯, 활과 가구의 원료이다. 밀로세아 가도를 건넌 원목 묶음은 우르단 관문의 폭에 맞춰 한 번 더 짧게 잘려 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-log",
+  "spoiler_tier": "none",
+  "summary": "목재, 숯, 활과 가구의 원료.",
+  "title": "원목"
+}

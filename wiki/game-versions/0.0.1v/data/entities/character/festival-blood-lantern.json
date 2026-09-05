@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": "8",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "craft-candle",
+      "target_spoiler_tier": "none",
+      "target_title": "양초",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "festival-blood-lantern",
+  "spoiler_tier": "none",
+  "summary": "뱀파이어가 동의받은 혈향 촛불로 생존자와 사망자의 이름을 밝힌다.",
+  "title": "혈향 등불제"
+}

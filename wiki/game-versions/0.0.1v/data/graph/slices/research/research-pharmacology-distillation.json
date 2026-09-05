@@ -1,0 +1,200 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-pharmacology-distillation",
+    "spoiler_tier": "none",
+    "title": "증류"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "to": "research/research-arcane-alchemy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "to": "research/research-arcane-alchemy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "to": "research/research-arcane-alchemy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독·붕대",
+      "to": "research/research-pharmacology-antiseptic",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독·붕대",
+      "to": "research/research-pharmacology-antiseptic",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독·붕대",
+      "to": "research/research-pharmacology-antiseptic",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-distillation",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1086",
+      "target_spoiler_tier": "none",
+      "target_title": "증류기",
+      "to": "facility/building-1086",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-hallucinogenic-distillate",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-distillation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-solvent",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-distillation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-standard-medicine",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-distillation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-vitality-tonic",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-distillation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-black-powder",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-black-powder",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-black-powder",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-anesthesia",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-anesthesia",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-anesthesia",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

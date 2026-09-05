@@ -74,6 +74,10 @@ public static class WildlifeDebugScenarios
         Run("habitat_decoration_consumption_visual", VerifyHabitatDecorationConsumptionVisual, lines, errors);
         Run("ecosystem_target_selection", VerifyEcosystemTargetSelection, lines, errors);
         Run("ecosystem_respawn_pressure", VerifyEcosystemRespawnPressure, lines, errors);
+        Run("ecosystem_respawn_save_canonical_roundtrip",
+            VerifyEcosystemRespawnSaveCanonicalRoundTrip,
+            lines,
+            errors);
 
         File.WriteAllLines(ReportPath, lines);
         if (errors.Count > 0)
@@ -367,6 +371,28 @@ public static class WildlifeDebugScenarios
             && captured.herdAnchorX == source.herdAnchorX
             && captured.lastThreatX == source.lastThreatX,
             "natural condition identity state failed save roundtrip");
+
+        WildlifeSaveData dormantThreatSource = new WildlifeSaveData
+        {
+            hasLastThreat = false,
+            lastThreatX = 17,
+            lastThreatY = 6
+        };
+        WildlifeNaturalCondition dormantThreat = new WildlifeNaturalCondition();
+        dormantThreat.Initialize(
+            dormantThreatSource,
+            new Vector2Int(3, 1),
+            40f,
+            0f,
+            0f);
+        WildlifeSaveData dormantThreatCaptured = new WildlifeSaveData();
+        dormantThreat.CaptureInto(dormantThreatCaptured);
+        Require(!dormantThreatCaptured.hasLastThreat
+            && dormantThreatCaptured.lastThreatX
+                == dormantThreatSource.lastThreatX
+            && dormantThreatCaptured.lastThreatY
+                == dormantThreatSource.lastThreatY,
+            "inactive threat coordinates failed exact save roundtrip");
 
         return "visual and natural state owned by plain C# collaborators";
     }
@@ -823,6 +849,44 @@ public static class WildlifeDebugScenarios
         {
             UnityEngine.Object.DestroyImmediate(actorObject);
         }
+    }
+
+    private static string VerifyEcosystemRespawnSaveCanonicalRoundTrip()
+    {
+        const float checkpointTime = 0.2702917f;
+        const float rawRemaining = 73.83031463623047f;
+        MethodInfo canonicalizer = typeof(WildlifeEcosystemRuntime).GetMethod(
+            "CanonicalizeRespawnRemainingSeconds",
+            BindingFlags.Static | BindingFlags.NonPublic);
+        Require(canonicalizer != null,
+            "wildlife respawn save canonicalizer is missing");
+        float Canonicalize(double value) =>
+            (float)canonicalizer.Invoke(null, new object[] { value });
+
+        float canonical = Canonicalize(rawRemaining);
+        double reconstructedDeadline = (double)checkpointTime + canonical;
+        float recaptured = Canonicalize(
+            reconstructedDeadline - (double)checkpointTime);
+
+        Require(canonical == recaptured,
+            $"respawn timer canonical roundtrip drifted {canonical:R}->{recaptured:R}");
+        Require(canonical == rawRemaining,
+            $"unexpected canonical respawn timer {canonical:R}");
+        Require(Canonicalize(-1f) == 0f,
+            "negative respawn timer was not clamped to zero");
+
+        const float longSessionTime = 1_000_000f;
+        float repeated = canonical;
+        for (int cycle = 0; cycle < 100; cycle++)
+        {
+            double deadline = (double)longSessionTime + repeated;
+            repeated = Canonicalize(deadline - (double)longSessionTime);
+        }
+        Require(repeated == canonical,
+            $"long-session repeated roundtrip drifted {canonical:R}->{repeated:R}");
+
+        return $"raw={rawRemaining:R}; canonical={canonical:R}; "
+            + $"recaptured={recaptured:R}; repeated={repeated:R}";
     }
 
     private static bool VerifyPlayModeRuntimeServices()

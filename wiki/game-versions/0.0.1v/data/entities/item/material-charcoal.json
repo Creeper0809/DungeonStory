@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.45kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "7"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "제강과 고온 가공에 적합한 정제 연료이다. 오르데나의 붉은 봉랍이 없는 숯 묶음은 밀로세아 검문소를 통과하지 못한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-charcoal",
+  "spoiler_tier": "none",
+  "summary": "제강과 고온 가공에 적합한 정제 연료.",
+  "title": "숯"
+}

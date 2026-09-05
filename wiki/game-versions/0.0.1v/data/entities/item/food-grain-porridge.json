@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.6kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "황혼곡을 물에 오래 끓여 재료가 부족한 날에도 속 편하게 먹는 묽은 죽이다. 사르베니아 내해에서 황혼곡죽은 수확일 아침에 밭일꾼과 가도 짐꾼이 함께 먹는 첫 끼다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-grain-porridge",
+  "spoiler_tier": "none",
+  "summary": "값싸고 속이 편한 비건 단순식.",
+  "title": "황혼곡죽"
+}

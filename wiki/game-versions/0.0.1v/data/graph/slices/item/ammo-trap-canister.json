@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-trap-canister",
+    "spoiler_tier": "none",
+    "title": "함정 산탄통"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-ammo-trap-canister",
+      "label": "생산·해금",
+      "to": "item/ammo-trap-canister",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

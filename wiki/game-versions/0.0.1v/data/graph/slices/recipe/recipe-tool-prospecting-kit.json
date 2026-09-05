@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-prospecting-kit",
+    "spoiler_tier": "none",
+    "title": "탐광 키트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-prospecting-kit",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-prospecting-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "탐광 키트",
+      "to": "item/tool-prospecting-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-prospecting-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "to": "item/material-rope",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-prospecting-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-treated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "처리 목재",
+      "to": "item/material-treated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-prospecting-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-prospecting-kit",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-mining-surface",
+      "target_spoiler_tier": "none",
+      "target_title": "노천 채석",
+      "to": "research/research-mining-surface",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

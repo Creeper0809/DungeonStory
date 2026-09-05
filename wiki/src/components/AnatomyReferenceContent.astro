@@ -1,0 +1,55 @@
+---
+import { anatomyHref, getAnatomyReference, needHref, type AnatomyReference } from '../lib/wiki-data';
+
+interface Props {
+  reference: AnatomyReference;
+  version: string;
+  historical?: boolean;
+}
+
+const { reference, version, historical = false } = Astro.props;
+const archiveVersion = historical ? version : undefined;
+const directoryHref = historical ? `/game-versions/${version}/` : '/directory/';
+const relatedReferences = reference.related_ids
+  .map((id) => getAnatomyReference(version, id))
+  .filter((item): item is AnatomyReference => Boolean(item));
+const anatomyProfileLabel = reference.group === '특수 부위' ? '종족별 신체 구조' : '인간형 기본 구조';
+---
+
+<article class="anatomy-reference-page" data-pagefind-body={historical ? undefined : 'true'}>
+  <nav class="breadcrumbs" aria-label="현재 위치"><a href={directoryHref}>둘러보기</a><span>/</span><a href={needHref('health', archiveVersion)}>건강</a><span>/</span><a href={anatomyHref(undefined, archiveVersion)}>신체 구조</a><span>/</span><span aria-current="page">{reference.title}</span></nav>
+  <header class="page-header">
+    <p class="eyebrow">신체 구조 · {reference.group}</p>
+    <h1>{reference.title}</h1>
+    <p>{reference.summary}</p>
+  </header>
+
+  <div class="anatomy-reference-page__layout">
+    <div class="anatomy-reference-page__main">
+      <section aria-labelledby="anatomy-metric-title">
+        <h2 id="anatomy-metric-title">기본 수치</h2>
+        <div class="table-wrap"><table><thead><tr><th scope="col">항목</th><th scope="col">수치</th><th scope="col">설명</th></tr></thead><tbody>{reference.metrics.map((metric) => <tr><th scope="row">{metric.label}</th><td>{metric.value}</td><td>{metric.detail}</td></tr>)}</tbody></table></div>
+      </section>
+      <section aria-labelledby="anatomy-function-title">
+        <h2 id="anatomy-function-title">기능과 연결</h2>
+        <ul>{reference.functions.map((item) => <li>{item}</li>)}</ul>
+      </section>
+      <section aria-labelledby="anatomy-injury-title">
+        <h2 id="anatomy-injury-title">부상 시</h2>
+        <div class="anatomy-reference-page__injury"><p>{reference.injury}</p></div>
+      </section>
+      <section aria-labelledby="anatomy-care-title">
+        <h2 id="anatomy-care-title">치료와 관리</h2>
+        <ul>{reference.care.map((item) => <li>{item}</li>)}</ul>
+      </section>
+    </div>
+    <aside class="anatomy-reference-page__rail">
+      <section class="fact-box">
+        <h2>문서 정보</h2>
+        <dl><div><dt>분류</dt><dd>{reference.group}</dd></div><div><dt>신체 구조</dt><dd>{anatomyProfileLabel}</dd></div><div><dt>연결 부위</dt><dd>{relatedReferences.length}개</dd></div></dl>
+      </section>
+      <section class="version-card"><h2>함께 볼 부위</h2><p>{relatedReferences.map((item, index) => <>{index > 0 && ' · '}<a href={anatomyHref(item.id, archiveVersion)}>{item.title}</a></>)}</p></section>
+      <section class="version-card"><h2>건강 문서</h2><p><a href={needHref('health', archiveVersion)}>건강 수치와 위기 상태</a> · <a href={anatomyHref(undefined, archiveVersion)}>신체 구조 전체 보기</a></p></section>
+    </aside>
+  </div>
+</article>

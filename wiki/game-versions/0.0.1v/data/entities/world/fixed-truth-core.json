@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "최소 강도",
+      "value": "8"
+    },
+    {
+      "label": "최대 강도",
+      "value": "8"
+    },
+    {
+      "label": "최소 유지 기간",
+      "value": "2일"
+    },
+    {
+      "label": "최대 유지 기간",
+      "value": "7일"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "fixed-truth-core",
+  "spoiler_tier": "none",
+  "summary": "모든 원정 기록이 가리키는 봉인 지대의 심장부이다.",
+  "title": "봉인 기록 심장부"
+}

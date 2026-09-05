@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "career-position-foreman",
+    "spoiler_tier": "none",
+    "title": "작업반장"
+  },
+  "edges": [],
+  "schema_version": 1
+}

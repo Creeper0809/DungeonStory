@@ -369,6 +369,15 @@ internal sealed class EditorWarehouseStockRuntime : IWorldItemStackRuntime
 
     public bool TrySetInstanceComponent(string stackId,
         ItemInstanceComponentSaveData component) => false;
+    public bool TrySetFoodFreshness(
+        string stackId,
+        double remainingSeconds,
+        bool preserved,
+        out string failureReason)
+    {
+        failureReason = "not supported by warehouse fixture";
+        return false;
+    }
     public bool SetEmergencyButcheryAllowed(string stackId, bool allowed) => false;
     public int RemoveStacksByStateAndDestination(
         WorldItemStackState state, string destinationId) => 0;

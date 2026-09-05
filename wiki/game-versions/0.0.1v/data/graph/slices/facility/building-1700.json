@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1700",
+    "spoiler_tier": "none",
+    "title": "숙박 접수대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-hospitality-operations",
+      "label": "시설 해금",
+      "to": "facility/building-1700",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

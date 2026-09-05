@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "40"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "브리간딘 안감을 장비 안쪽에 덧대 충격과 마찰이 착용자에게 바로 닿지 않게 한다. 크릭 제7굴에서 만든 브리간딘 안감에는 수선할 면과 교체할 방향을 가리키는 짧은 색실이 달려 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-brigandine-padding",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 브리간딘 안감.",
+  "title": "브리간딘 안감"
+}

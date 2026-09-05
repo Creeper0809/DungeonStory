@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.45kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "18"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "고기를 얇게 저며 말리고 간을 해 원정 중에도 오래 보관할 수 있게 만든 육포다. 하르나크의 귀환자의 식탁에는 육포 묶음도 놓인다. 빈 포장 하나가 돌아오지 못한 한 끼를 뜻한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-jerky",
+  "spoiler_tier": "none",
+  "summary": "오래 보관 가능한 육식 보존식.",
+  "title": "육포"
+}

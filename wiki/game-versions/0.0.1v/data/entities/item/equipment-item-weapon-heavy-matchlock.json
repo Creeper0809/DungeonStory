@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1793"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무거운 총신과 큰 화약량으로 단단한 표적을 노리는 화승총이다. 오르데나 군영에서 풀린 중화승총에는 붉은 봉랍과 지워진 지급 번호가 나란히 남아 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-heavy-matchlock",
+  "spoiler_tier": "none",
+  "summary": "중화승총 전투 장비",
+  "title": "중화승총"
+}

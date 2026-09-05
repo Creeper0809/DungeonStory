@@ -1,0 +1,45 @@
+{
+  "facts": [
+    {
+      "label": "성공 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "-2",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-slime-clear-water",
+      "target_spoiler_tier": "none",
+      "target_title": "맑은물 합류",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-slime-clear-water",
+      "target_spoiler_tier": "none",
+      "target_title": "맑은물 합류",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "practice-slime-clear-water",
+  "spoiler_tier": "none",
+  "summary": "서로 다른 가구의 슬라임이 깨끗한 수조 가장자리에서 기억을 나눈다.",
+  "title": "맑은물 합류"
+}

@@ -121,6 +121,28 @@ public static class EquipmentItemStateCodec
 
             restored.equipment.loadedAmmunition ??=
                 new LoadedAmmunitionBatch();
+            if (!Enum.IsDefined(
+                    typeof(CombatEquipmentWorldState),
+                    restored.equipment.worldState)
+                || (restored.equipment.worldState
+                        == CombatEquipmentWorldState.MarketSalePending
+                    && (!string.IsNullOrEmpty(
+                            restored.equipment.ownerCharacterId)
+                        || string.IsNullOrWhiteSpace(
+                            restored.equipment.sourceStackId)
+                        || !string.Equals(
+                            restored.equipment.sourceStackId,
+                            restored.equipment.sourceStackId.Trim(),
+                            StringComparison.Ordinal)
+                        || (restored.equipment.moduleSlots
+                                ?? new List<EquipmentModuleSlotState>())
+                            .Any(slot => slot != null
+                                && !string.IsNullOrWhiteSpace(
+                                    slot.moduleInstanceId)))))
+            {
+                error = "Equipment market-sale custody is invalid.";
+                return false;
+            }
             restored.equipment.powerCharge = Mathf.Clamp(
                 restored.equipment.powerCharge,
                 0f,

@@ -62,7 +62,7 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
     {
         foreach (CaptiveState state in actors.States.Where(candidate =>
                      candidate != null
-                     && candidate.IsActive
+                     && candidate.IsInCustody
                      && candidate.falseCompliance).ToArray())
         {
             if (state.status is CaptivityStatus.Labor
@@ -78,7 +78,7 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
 
         foreach (CaptiveState state in actors.States.Where(candidate =>
                      candidate != null
-                     && candidate.IsActive
+                     && candidate.IsInCustody
                      && candidate.falseCompliance
                      && candidate.status == CaptivityStatus.Confined))
         {
@@ -108,7 +108,7 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
 
             CaptiveState state = actors.FindState(captiveId);
             if (state == null
-                || !state.IsActive
+                || !state.IsInCustody
                 || !state.falseCompliance
                 || state.status != CaptivityStatus.Confined
                 || gameClock.FrameCount > pending.ExpiresAtFrame)
@@ -153,7 +153,7 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
             : null;
         if (state == null
             || actor == null
-            || !state.IsActive
+            || !state.IsInCustody
             || state.status is CaptivityStatus.Escorting
                 or CaptivityStatus.Interaction
                 or CaptivityStatus.Performer

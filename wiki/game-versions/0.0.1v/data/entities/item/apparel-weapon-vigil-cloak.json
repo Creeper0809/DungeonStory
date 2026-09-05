@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "25"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "오크의 무기 철야 동안 등에 걸치며, 무기를 쥔 팔은 자유롭게 남기는 망토다. 하르나크의 무기 철야에서 이 망토를 두른 사람은 자기 무기의 첫 주인과 마지막 수리자를 차례로 부른다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-weapon-vigil-cloak",
+  "spoiler_tier": "none",
+  "summary": "무기 철야 망토 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "무기 철야 망토"
+}

@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Defense And Tactics"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-corridor-mechanisms",
+      "target_spoiler_tier": "none",
+      "target_title": "복도 기구학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-corridor-mechanisms",
+      "target_spoiler_tier": "none",
+      "target_title": "복도 기구학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-corridor-mechanisms",
+      "target_spoiler_tier": "none",
+      "target_title": "복도 기구학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1800",
+      "target_spoiler_tier": "none",
+      "target_title": "복도 침입 감지기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-defense-rune-identification",
+  "spoiler_tier": "none",
+  "summary": "감지 장치가 허용 대상과 적대 대상을 더 정확하게 구분하도록 룬 식별 규칙을 새긴다.",
+  "title": "룬 식별"
+}

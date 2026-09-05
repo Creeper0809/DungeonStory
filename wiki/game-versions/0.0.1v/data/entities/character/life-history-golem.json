@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "life-history-golem",
+  "spoiler_tier": "none",
+  "summary": "Golem의 성년 0세, 노년 90세, 무치료 기대수명 122.2년을 규정해 성장·노화·세대교체의 시간축을 제공한다.",
+  "title": "Life_Golem"
+}

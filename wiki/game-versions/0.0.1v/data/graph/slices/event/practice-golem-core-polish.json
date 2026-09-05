@@ -1,0 +1,65 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "practice-golem-core-polish",
+    "spoiler_tier": "none",
+    "title": "핵 광택일"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/practice-golem-core-polish",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-golem-core-polish",
+      "target_spoiler_tier": "none",
+      "target_title": "핵 광택일",
+      "to": "event/practice-golem-core-polish",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "1",
+      "from": "event/practice-golem-core-polish",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-maintenance-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 키트",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-golem-core-polish",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-golem-core-polish",
+      "target_spoiler_tier": "none",
+      "target_title": "핵 광택일",
+      "to": "event/practice-golem-core-polish",
+      "type": "changes-health"
+    },
+    {
+      "amount": "-2",
+      "from": "event/practice-golem-core-polish",
+      "label": "연결",
+      "to": "event/practice-golem-core-polish",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-golem-core-polish",
+      "label": "연결",
+      "to": "event/practice-golem-core-polish",
+      "type": "changes-health"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-golem-core",
+      "label": "관련",
+      "to": "event/practice-golem-core-polish",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

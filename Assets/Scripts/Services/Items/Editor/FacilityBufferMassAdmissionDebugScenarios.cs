@@ -2,12 +2,20 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using UnityEditor;
 using UnityEngine;
 
 public static class FacilityBufferMassAdmissionDebugScenarios
 {
     private const string DefaultProductionCapacitySourceDigest =
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    [MenuItem("Tools/DungeonStory/Validation/Run Facility Buffer Mass Admission Scenarios")]
+    public static void RunFromMenu()
+    {
+        RunAll();
+        Debug.Log("Facility-buffer mass admission scenarios passed.");
+    }
 
     public static void RunAll()
     {
@@ -137,11 +145,19 @@ public static class FacilityBufferMassAdmissionDebugScenarios
         VerifyRestorePublishRevisionPreflight();
         VerifySemanticNoOpReplacementPreservesLiveRevisions();
         VerifyReserveRevalidatesClaim();
+        VerifyReservedTargetNullableOwnerAdmission();
         VerifyPlannedOutputAdmission();
         VerifyProductionCapacitySourceBinding();
         VerifyPreparedOutputMaximumBranchOneGramBoundary();
         VerifyCustodyOwnedExactAdmission();
         VerifyPreparedOutputDestinationAdmissionArchitecture();
+    }
+
+    internal static string RunOneGramClearanceFocused()
+    {
+        VerifyPreparedOutputMaximumBranchOneGramBoundary();
+        return "typedReject=1049/1050g; exactAdmit=1050/1050g; "
+            + "rawTypedReject=1/2g; rawExactAdmit=2/2g";
     }
 
     private static void VerifySemanticNoOpReplacementPreservesLiveRevisions()
@@ -919,6 +935,56 @@ public static class FacilityBufferMassAdmissionDebugScenarios
             "Source-lot fixture did not release after shared-capacity verification.");
         occupancy.NonCarriedMassGrams = committed.CommittedMassGrams;
 
+        const string unrelatedDestination =
+            "production-output:building:qa:planned-unrelated";
+        Vector2Int unrelatedPosition = new(32, 9);
+        FacilityBufferDestinationClaim unrelatedClaim = new(
+            unrelatedDestination,
+            unrelatedPosition,
+            owner,
+            unrelatedDestination,
+            "building:qa:planned-unrelated",
+            FacilityBufferDestinationAnchorKind.LiveBuilding);
+        FacilityBufferCapacityProfile unrelatedProfile = new(
+            unrelatedDestination,
+            unrelatedPosition,
+            owner,
+            unrelatedDestination,
+            "building:qa:planned-unrelated",
+            new PhysicalMassGrams(8_000L),
+            capacityRevision: 1L);
+        FacilityBufferPlannedOutputRequest unrelatedRevisionRequest =
+            CreatePlannedRequest(
+                profile,
+                "qa:facility-buffer-source-vs-planned:unrelated-revision",
+                "production-output-batch:qa:unrelated-revision",
+                "outcome:qa:unrelated-revision",
+                "output:main",
+                "qa:item:planned",
+                quantity: 1);
+        Require(admission.TryReservePlannedOutput(
+                unrelatedRevisionRequest,
+                out FacilityBufferPlannedOutputToken unrelatedRevisionToken,
+                out _,
+                out _)
+            && claims.TryClaim(unrelatedClaim, out _, out _)
+            && admission.TryReplaceOwnedProfiles(
+                owner,
+                new[] { profile, unrelatedProfile },
+                out _,
+                out _)
+            && admission.TryCommitPlannedOutput(
+                unrelatedRevisionToken,
+                CreatePublication(
+                    unrelatedRevisionToken,
+                    "stack:planned-output:unrelated-revision",
+                    unrelatedRevisionToken.ReservedMassGrams),
+                out _,
+                out _,
+                out _),
+            "An unrelated capacity-profile revision invalidated an exact "
+            + "unchanged-destination planned-output token.");
+
         FacilityBufferPlannedOutputRequest staleRequest = CreatePlannedRequest(
             profile,
             "qa:facility-buffer-source-vs-planned:stale-profile",
@@ -941,12 +1007,12 @@ public static class FacilityBufferMassAdmissionDebugScenarios
             "building:qa:planned",
             new PhysicalMassGrams(8_000L),
             capacityRevision: 2L);
-        Require(admission.TryReplaceOwnedProfiles(
-                owner,
-                new[] { revisedProfile },
-                out _,
-                out _)
-            && !admission.TryCommitPlannedOutput(
+        bool staleProfilePublished = admission.TryReplaceOwnedProfiles(
+            owner,
+            new[] { revisedProfile, unrelatedProfile },
+            out FacilityBufferMassAdmissionFailureCode stalePublishCode,
+            out string stalePublishReason);
+        bool staleCommitted = admission.TryCommitPlannedOutput(
                 staleToken,
                 CreatePublication(
                     staleToken,
@@ -954,14 +1020,20 @@ public static class FacilityBufferMassAdmissionDebugScenarios
                     staleToken.ReservedMassGrams),
                 out _,
                 out FacilityBufferMassAdmissionFailureCode staleFailure,
-                out _)
+                out string staleCommitReason);
+        bool staleReleased = admission.TryReleasePlannedOutput(
+            staleToken,
+            FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
+            out FacilityBufferMassAdmissionFailureCode staleReleaseCode,
+            out string staleReleaseReason);
+        Require(staleProfilePublished
+            && !staleCommitted
             && staleFailure == FacilityBufferMassAdmissionFailureCode.TokenMismatch
-            && admission.TryReleasePlannedOutput(
-                staleToken,
-                FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
-                out _,
-                out _),
-            "Planned-output commit did not fail loudly after profile revision drift.");
+            && staleReleased,
+            "Planned-output commit did not fail loudly after profile revision drift. "
+            + $"publish={staleProfilePublished}:{stalePublishCode}:{stalePublishReason};"
+            + $"commit={staleCommitted}:{staleFailure}:{staleCommitReason};"
+            + $"release={staleReleased}:{staleReleaseCode}:{staleReleaseReason}");
 
         FacilityBufferPlannedOutputRequest massStaleRequest = CreatePlannedRequest(
             revisedProfile,
@@ -1177,6 +1249,172 @@ public static class FacilityBufferMassAdmissionDebugScenarios
             && failure
                 == FacilityBufferMassAdmissionFailureCode.ClaimMissingOrMismatched,
             "Admission accepted a stale profile after its exact claim was revoked.");
+    }
+
+    private static void VerifyReservedTargetNullableOwnerAdmission()
+    {
+        const string destination = "expedition:qa:nullable-owner";
+        const string owner = "offense.expedition-supply";
+        const string operation = "qa:expedition-package";
+        Vector2Int position = new(18, 4);
+        FacilityBufferDestinationClaimRegistry claims = new();
+        FakeOccupancyQuery occupancy = new();
+        FacilityBufferMassAdmissionService admission = new(
+            claims,
+            occupancy,
+            new FakeMassQuery());
+        FacilityBufferDestinationLifecycleService lifecycle = new(
+            claims,
+            claims,
+            admission,
+            admission);
+        FacilityBufferDestinationClaim claim = new(
+            destination,
+            position,
+            owner,
+            operation,
+            ownerFacilityId: null,
+            FacilityBufferDestinationAnchorKind.ReservedTarget);
+        FacilityBufferCapacityProfile profile = new(
+            destination,
+            position,
+            owner,
+            operation,
+            ownerFacilityId: null,
+            new PhysicalMassGrams(4_000L),
+            capacityRevision: 1L);
+        Require(lifecycle.TryReplaceOwnedAuthorities(
+                owner,
+                new[] { claim },
+                new[] { profile },
+                out _),
+            "ReservedTarget nullable-owner claim/profile pair did not publish.");
+
+        FacilityBufferMassAdmissionRequest request = CreateRequest(
+            "qa:facility-buffer-transfer:reserved-target-null",
+            profile,
+            "stack:reserved-target-null",
+            quantity: 2);
+        Require(admission.TryReserveExactLot(
+                request,
+                out FacilityBufferMassAdmissionToken token,
+                out _,
+                out _)
+            && token.ReservedMassGrams == 4_000L
+            && admission.TryRelease(
+                token,
+                FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
+                out _,
+                out _),
+            "ReservedTarget nullable-owner exact input admission failed.");
+
+        Require(!claims.TryClaim(
+                new FacilityBufferDestinationClaim(
+                    "qa:live-facility-null-owner",
+                    position,
+                    owner,
+                    operation,
+                    ownerFacilityId: null,
+                    FacilityBufferDestinationAnchorKind.LiveFacility),
+                out FacilityBufferDestinationClaimFailureCode liveFailure,
+                out _)
+            && liveFailure
+                == FacilityBufferDestinationClaimFailureCode.InvalidOwnerFacilityId,
+            "LiveFacility claim accepted a null owner facility id.");
+        Require(!claims.TryClaim(
+                new FacilityBufferDestinationClaim(
+                    "qa:live-building-null-owner",
+                    position,
+                    owner,
+                    operation,
+                    ownerFacilityId: null,
+                    FacilityBufferDestinationAnchorKind.LiveBuilding),
+                out FacilityBufferDestinationClaimFailureCode buildingFailure,
+                out _)
+            && buildingFailure
+                == FacilityBufferDestinationClaimFailureCode.InvalidOwnerFacilityId,
+            "LiveBuilding claim accepted a null owner facility id.");
+        Require(!claims.TryClaim(
+                new FacilityBufferDestinationClaim(
+                    "qa:reserved-target-empty-owner",
+                    position,
+                    owner,
+                    operation,
+                    ownerFacilityId: string.Empty,
+                    FacilityBufferDestinationAnchorKind.ReservedTarget),
+                out FacilityBufferDestinationClaimFailureCode emptyFailure,
+                out _)
+            && emptyFailure
+                == FacilityBufferDestinationClaimFailureCode.InvalidOwnerFacilityId,
+            "ReservedTarget claim accepted an empty owner facility id.");
+
+        FacilityBufferCapacityProfile wrongOwnerProfile = new(
+            destination,
+            position,
+            owner,
+            operation + ":wrong",
+            ownerFacilityId: null,
+            new PhysicalMassGrams(4_000L),
+            capacityRevision: 1L);
+        Require(!admission.TryReplaceOwnedProfiles(
+                owner,
+                new[] { wrongOwnerProfile },
+                out FacilityBufferMassAdmissionFailureCode profileFailure,
+                out _)
+            && profileFailure
+                == FacilityBufferMassAdmissionFailureCode.ClaimMissingOrMismatched
+            && admission.TryGetCapacity(
+                destination,
+                position,
+                out FacilityBufferMassCapacitySnapshot unchanged)
+            && unchanged.Profile.OwnerOperationId == operation
+            && unchanged.ReservedMassGrams == 0L,
+            "ReservedTarget profile mismatch changed live authority.");
+
+        FacilityBufferMassAdmissionRequest wrongRequest = new(
+            "qa:facility-buffer-transfer:reserved-target-wrong-owner",
+            destination,
+            position,
+            owner,
+            operation + ":wrong",
+            expectedOwnerFacilityId: null,
+            expectedCapacityRevision: 1L,
+            exactLotSlices: new[]
+            {
+                new FacilityBufferMassLotSlice(
+                    "stack:reserved-target-wrong-owner",
+                    quantity: 1,
+                    expectedReservationRevision: 1L)
+            });
+        Require(!admission.TryReserveExactLot(
+                wrongRequest,
+                out _,
+                out FacilityBufferMassAdmissionFailureCode requestFailure,
+                out _)
+            && requestFailure
+                == FacilityBufferMassAdmissionFailureCode.ProfileConflict
+            && admission.TryGetCapacity(destination, position, out unchanged)
+            && unchanged.ReservedMassGrams == 0L,
+            "ReservedTarget request mismatch reserved grams or changed authority.");
+
+        FacilityBufferPlannedOutputRequest planned = CreatePlannedRequest(
+            profile,
+            "qa:planned-output:reserved-target-null",
+            "qa:planned-output-batch:reserved-target-null",
+            "qa:outcome:reserved-target-null",
+            "output:main",
+            "qa:item:planned",
+            quantity: 1,
+            capacitySourceDigest: string.Empty,
+            expectedMinimumCapacityGrams: 0L);
+        Require(!admission.TryReservePlannedOutput(
+                planned,
+                out _,
+                out FacilityBufferMassAdmissionFailureCode plannedFailure,
+                out _)
+            && plannedFailure
+                == FacilityBufferMassAdmissionFailureCode.InvalidRequest,
+            "Planned-output admission inherited the ReservedTarget nullable-owner exception.");
     }
 
     private static void VerifyRestorePublishRevisionPreflight()

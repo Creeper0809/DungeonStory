@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "오염된 물에서 번식해 가축과 직원을 흡혈한다. 죽은 진흙거머리의 사체는 도축 시설로 옮겨 식량과 부산물로 나눈다. 므네실라의 정원지기는 진흙거머리 사체에서 건진 포자를 죽이지 않고 검은 흙독에 따로 재운다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-carcass-mire-leech",
+  "spoiler_tier": "none",
+  "summary": "도축 시설로 옮기면 식량과 부산물을 얻는다.",
+  "title": "진흙거머리 사체"
+}

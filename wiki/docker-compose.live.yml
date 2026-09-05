@@ -1,0 +1,22 @@
+services:
+  dungeonstory-wiki:
+    image: dungeonstory-wiki:local
+    build:
+      context: ..
+      dockerfile: wiki/Dockerfile
+      args:
+        DUNGEONSTORY_WIKI_SITE_URL: ${DUNGEONSTORY_WIKI_SITE_URL:?set DUNGEONSTORY_WIKI_SITE_URL to the canonical HTTPS origin}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 384m
+    ports:
+      - "127.0.0.1:4321:4321"
+    volumes:
+      - /volume1/wiki-content/game-versions:/app/game-versions:ro
+    tmpfs:
+      - /tmp

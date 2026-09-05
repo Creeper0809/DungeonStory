@@ -1,0 +1,2794 @@
+{
+  "authoredRootItemIdCount": 1148,
+  "matchedComparableCount": 1075,
+  "checkedFieldCount": 3225,
+  "changedCount": 198,
+  "missingWikiCount": 0,
+  "deltaFields": [
+    {
+      "Name": "unitPrice",
+      "Count": 198
+    }
+  ],
+  "changes": [
+    {
+      "id": "ammo:armor-piercing-cartridge",
+      "title": "철갑 탄약",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I129_철갑_탄약.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-armor-piercing-cartridge.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 17,
+          "wiki": 16
+        }
+      ]
+    },
+    {
+      "id": "ammo:blacksteel-bolt",
+      "title": "흑강 볼트",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I132_흑강_볼트.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-blacksteel-bolt.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 121,
+          "wiki": 119
+        }
+      ]
+    },
+    {
+      "id": "ammo:blasting-charge",
+      "title": "발파 장약",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I20_발파_장약.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-blasting-charge.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 46,
+          "wiki": 32
+        }
+      ]
+    },
+    {
+      "id": "ammo:incendiary-arrow",
+      "title": "소이 화살",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I126_소이_화살.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-incendiary-arrow.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 27,
+          "wiki": 26
+        }
+      ]
+    },
+    {
+      "id": "ammo:incendiary-bolt",
+      "title": "소이 볼트",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I127_소이_볼트.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-incendiary-bolt.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 27,
+          "wiki": 26
+        }
+      ]
+    },
+    {
+      "id": "ammo:mana-disruptor-bolt",
+      "title": "마나 차단 볼트",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I135_마나_차단_볼트.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-mana-disruptor-bolt.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 100,
+          "wiki": 63
+        }
+      ]
+    },
+    {
+      "id": "ammo:paper-cartridge",
+      "title": "종이 탄약통",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I23_종이_탄약통.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-paper-cartridge.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 12,
+          "wiki": 11
+        }
+      ]
+    },
+    {
+      "id": "ammo:rune-cartridge",
+      "title": "룬 탄약통",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I133_룬_탄약통.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-rune-cartridge.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 90,
+          "wiki": 53
+        }
+      ]
+    },
+    {
+      "id": "ammo:signal-flare",
+      "title": "신호탄",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I131_신호탄.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-signal-flare.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 19,
+          "wiki": 18
+        }
+      ]
+    },
+    {
+      "id": "ammo:smoke-cartridge",
+      "title": "연막 탄약",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I128_연막_탄약.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-smoke-cartridge.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 12,
+          "wiki": 11
+        }
+      ]
+    },
+    {
+      "id": "ammo:tranquilizer-dart",
+      "title": "진정 다트",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I134_진정_다트.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-tranquilizer-dart.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 15,
+          "wiki": 14
+        }
+      ]
+    },
+    {
+      "id": "ammo:trap-canister",
+      "title": "함정 산탄통",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I21_함정_산탄통.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/ammo-trap-canister.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 48,
+          "wiki": 44
+        }
+      ]
+    },
+    {
+      "id": "apparel:apron",
+      "title": "앞치마",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_apron.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-apron.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 26,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:boots",
+      "title": "장화",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_boots.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-boots.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 39,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:ceremonial-dress",
+      "title": "예복 드레스",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_ceremonial_dress.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-ceremonial-dress.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 51,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:cloak",
+      "title": "망토",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_cloak.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-cloak.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 46,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:daily-robe",
+      "title": "일상 로브",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_daily_robe.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-daily-robe.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 45,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:envoy-coat",
+      "title": "사절 외투",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_envoy_coat.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-envoy-coat.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 52,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:farmer-workwear",
+      "title": "농부 작업복",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_farmer_workwear.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-farmer-workwear.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 44,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:festival-vest",
+      "title": "축제 조끼",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_festival_vest.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-festival-vest.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 33,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:formal-coat",
+      "title": "정장 외투",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_formal_coat.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-formal-coat.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 38,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:golem-functional-lining",
+      "title": "골렘 기능성 내피",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_golem_functional_lining.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-golem-functional-lining.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 46,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:heat-work-suit",
+      "title": "내열 작업복",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_heat_work_suit.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-heat-work-suit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 71,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:hooded-robe",
+      "title": "후드 로브",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_hooded_robe.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-hooded-robe.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 44,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:keeper-coat",
+      "title": "사육사 외투",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_keeper_coat.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-keeper-coat.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 65,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:miner-workwear",
+      "title": "광부 작업복",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_miner_workwear.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-miner-workwear.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 57,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:mourning-clothes",
+      "title": "상복",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_mourning_clothes.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-mourning-clothes.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 45,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:raincoat",
+      "title": "우비",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_raincoat.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-raincoat.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 58,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:ritual-robe",
+      "title": "의식 로브",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_ritual_robe.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-ritual-robe.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 59,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:skirt",
+      "title": "치마",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_skirt.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-skirt.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 26,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:smith-apron",
+      "title": "대장장이 앞치마",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_smith_apron.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-smith-apron.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 52,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:spore-garden-cloak",
+      "title": "포자 정원 망토",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_spore_garden_cloak.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-spore-garden-cloak.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 52,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:sterile-gown",
+      "title": "무균 가운",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_sterile_gown.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sterile-gown.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 40,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:surgical-apron",
+      "title": "외과 앞치마",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_surgical_apron.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-surgical-apron.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 32,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:trousers",
+      "title": "바지",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_trousers.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-trousers.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 40,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:tunic",
+      "title": "튜닉",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_tunic.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tunic.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 33,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:waterproof-work-suit",
+      "title": "방수 작업복",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_waterproof_work_suit.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-waterproof-work-suit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 71,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:weapon-vigil-cloak",
+      "title": "무기 철야 망토",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_weapon_vigil_cloak.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-weapon-vigil-cloak.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 38,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "apparel:wing-cloak",
+      "title": "날개 망토",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_wing_cloak.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-wing-cloak.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 32,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:wing-harness",
+      "title": "날개 멜빵",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_wing_harness.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-wing-harness.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 40,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "apparel:work-shirt",
+      "title": "작업 셔츠",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/apparel_work_shirt.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/apparel-work-shirt.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 33,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "book:seasonal-almanac",
+      "title": "계절력 책자",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I89_계절력_책자.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/book-seasonal-almanac.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 25,
+          "wiki": 22
+        }
+      ]
+    },
+    {
+      "id": "component:blacksteel-defense-plate",
+      "title": "흑강 방어 장갑판",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I44_흑강_방어_장갑판.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-blacksteel-defense-plate.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1277,
+          "wiki": 653
+        }
+      ]
+    },
+    {
+      "id": "component:blast-coat-shell",
+      "title": "방폭 외투 내피",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I38_방폭_외투_내피.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-blast-coat-shell.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 61,
+          "wiki": 46
+        }
+      ]
+    },
+    {
+      "id": "component:brigandine-padding",
+      "title": "브리간딘 안감",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I39_브리간딘_안감.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-brigandine-padding.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 46,
+          "wiki": 40
+        }
+      ]
+    },
+    {
+      "id": "component:climate-control-manifold",
+      "title": "기후 제어 매니폴드",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I87_기후_제어_매니폴드.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-climate-control-manifold.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 186,
+          "wiki": 130
+        }
+      ]
+    },
+    {
+      "id": "component:corridor-detonator",
+      "title": "복도식 기폭 장치",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I105_복도식_기폭_장치.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-corridor-detonator.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 286,
+          "wiki": 161
+        }
+      ]
+    },
+    {
+      "id": "component:dreamweave-rune-lining",
+      "title": "몽직물 룬 안감",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I46_몽직물_룬_안감.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-dreamweave-rune-lining.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 734,
+          "wiki": 378
+        }
+      ]
+    },
+    {
+      "id": "component:engineering-drawing",
+      "title": "공학 도면",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I17_공학_도면.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-engineering-drawing.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 25,
+          "wiki": 22
+        }
+      ]
+    },
+    {
+      "id": "component:factory-installation-plan",
+      "title": "공장 설치 도면",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I30_공장_설치_도면.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-factory-installation-plan.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 64,
+          "wiki": 59
+        }
+      ]
+    },
+    {
+      "id": "component:golem-core-case",
+      "title": "골렘 핵 케이스",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I119_골렘_핵_케이스.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-golem-core-case.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 838,
+          "wiki": 476
+        }
+      ]
+    },
+    {
+      "id": "component:growth-frame",
+      "title": "성장형 장비 골격",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I15_성장형_장비_골격.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-growth-frame.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 696,
+          "wiki": 654
+        }
+      ]
+    },
+    {
+      "id": "component:insulated-wiring",
+      "title": "절연 배선 묶음",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I111_절연_배선_묶음.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-insulated-wiring.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 201,
+          "wiki": 93
+        }
+      ]
+    },
+    {
+      "id": "component:machine-parts",
+      "title": "기계 부품",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I09_기계_부품.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-machine-parts.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 131,
+          "wiki": 91
+        }
+      ]
+    },
+    {
+      "id": "component:mana-shield-plate",
+      "title": "마나 차폐판",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I19_마나_차폐판.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-mana-shield-plate.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 227,
+          "wiki": 52
+        }
+      ]
+    },
+    {
+      "id": "component:material-test-coupon",
+      "title": "재료 시험편",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I109_재료_시험편.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-material-test-coupon.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 375,
+          "wiki": 132
+        }
+      ]
+    },
+    {
+      "id": "component:paper-paste",
+      "title": "종이 풀칠",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I51_종이_풀칠.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-paper-paste.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 14,
+          "wiki": 13
+        }
+      ]
+    },
+    {
+      "id": "component:powered-armor-joint",
+      "title": "동력 갑주 관절",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I45_동력_갑주_관절.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-powered-armor-joint.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 765,
+          "wiki": 723
+        }
+      ]
+    },
+    {
+      "id": "component:precision-optics",
+      "title": "정밀 광학계",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I82_정밀_광학계.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-precision-optics.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 676,
+          "wiki": 327
+        }
+      ]
+    },
+    {
+      "id": "component:price-board",
+      "title": "가격표 게시판",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I98_가격표_게시판.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-price-board.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 30,
+          "wiki": 27
+        }
+      ]
+    },
+    {
+      "id": "component:prototype-package",
+      "title": "시제품 설계 묶음",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I29_시제품_설계_묶음.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-prototype-package.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 173,
+          "wiki": 129
+        }
+      ]
+    },
+    {
+      "id": "component:reclaimed-water-filter",
+      "title": "재생수 필터 카트리지",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I113_재생수_필터_카트리지.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-reclaimed-water-filter.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 38,
+          "wiki": 20
+        }
+      ]
+    },
+    {
+      "id": "component:rune-bus-coupler",
+      "title": "룬 버스 결합기",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I35_룬_버스_결합기.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-rune-bus-coupler.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 865,
+          "wiki": 509
+        }
+      ]
+    },
+    {
+      "id": "component:rune-conductor",
+      "title": "룬 도체",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I11_룬_도체.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-rune-conductor.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 694,
+          "wiki": 345
+        }
+      ]
+    },
+    {
+      "id": "component:rune-control-panel",
+      "title": "룬 제어반",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I34_룬_제어반.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-rune-control-panel.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1023,
+          "wiki": 667
+        }
+      ]
+    },
+    {
+      "id": "component:rune-leather-lining",
+      "title": "룬가죽 장비 안감",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I48_룬가죽_장비_안감.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-rune-leather-lining.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 635,
+          "wiki": 234
+        }
+      ]
+    },
+    {
+      "id": "component:rune-leather-strap",
+      "title": "룬가죽 조율 끈",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I49_룬가죽_조율_끈.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-rune-leather-strap.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 943,
+          "wiki": 587
+        }
+      ]
+    },
+    {
+      "id": "component:rune-purification-crystal",
+      "title": "룬 정화 결정",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I114_룬_정화_결정.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-rune-purification-crystal.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 647,
+          "wiki": 429
+        }
+      ]
+    },
+    {
+      "id": "component:rune-tuning-shield",
+      "title": "룬 조율 차폐판",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I32_룬_조율_차폐판.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-rune-tuning-shield.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 955,
+          "wiki": 421
+        }
+      ]
+    },
+    {
+      "id": "component:sealed-seasonal-container",
+      "title": "밀폐형 계절 보관함",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I103_밀폐형_계절_보관함.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-sealed-seasonal-container.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 118,
+          "wiki": 75
+        }
+      ]
+    },
+    {
+      "id": "component:siege-counterweight",
+      "title": "공성 균형추 조립품",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I31_공성_균형추_조립품.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-siege-counterweight.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 203,
+          "wiki": 161
+        }
+      ]
+    },
+    {
+      "id": "component:siege-reinforcement-kit",
+      "title": "공성 보강 키트",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I107_공성_보강_키트.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-siege-reinforcement-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 754,
+          "wiki": 354
+        }
+      ]
+    },
+    {
+      "id": "component:stock-sensor-panel",
+      "title": "재고 감지반",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I24_재고_감지반.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-stock-sensor-panel.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 443,
+          "wiki": 402
+        }
+      ]
+    },
+    {
+      "id": "component:temporal-stasis-seal",
+      "title": "시간 고정 인장",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I55_시간_고정_인장.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-temporal-stasis-seal.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 2605,
+          "wiki": 1715
+        }
+      ]
+    },
+    {
+      "id": "component:textile-hardener",
+      "title": "직물 경화제",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I52_직물_경화제.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-textile-hardener.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 15,
+          "wiki": 12
+        }
+      ]
+    },
+    {
+      "id": "component:waterwheel-drive-shaft",
+      "title": "수차 구동축",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I112_수차_구동축.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/component-waterwheel-drive-shaft.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 345,
+          "wiki": 190
+        }
+      ]
+    },
+    {
+      "id": "craft:toxic-trap-coating",
+      "title": "독성 함정 도포제",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I50_독성_함정_도포제.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/craft-toxic-trap-coating.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 69,
+          "wiki": 22
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:articulated-plate",
+      "title": "관절식 판금갑",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_articulated_plate.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-articulated-plate.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1966,
+          "wiki": 1563
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:blacksteel-carapace",
+      "title": "흑강 갑각",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_blacksteel_carapace.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-blacksteel-carapace.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 4034,
+          "wiki": 2721
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:blast-coat",
+      "title": "방폭 외투",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_blast_coat.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-blast-coat.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 576,
+          "wiki": 539
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:brigandine",
+      "title": "브리간딘",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_brigandine.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-brigandine.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 444,
+          "wiki": 428
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:gambeson",
+      "title": "누비옷",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_gambeson.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-gambeson.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 849,
+          "wiki": 801
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:hardened-leather-coat",
+      "title": "경화 가죽 외투",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_hardened_leather_coat.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-hardened-leather-coat.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 355,
+          "wiki": 334
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:jack-of-plates",
+      "title": "잭 오브 플레이트",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_jack_of_plates.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-jack-of-plates.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 717,
+          "wiki": 521
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:mail-coif",
+      "title": "사슬 두건",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_mail_coif.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-mail-coif.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 274,
+          "wiki": 212
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:mail-shirt",
+      "title": "사슬 갑옷",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_mail_shirt.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-mail-shirt.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 490,
+          "wiki": 428
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:padded-hood",
+      "title": "누비 두건",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_padded_hood.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-padded-hood.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 143,
+          "wiki": 137
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:powder-cuirass",
+      "title": "화약수 흉갑",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_powder_cuirass.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-powder-cuirass.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 857,
+          "wiki": 664
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:powered-harness",
+      "title": "동력 보조 갑주",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_powered_harness.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-powered-harness.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 4077,
+          "wiki": 3823
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:rune-ward-mail",
+      "title": "룬 수호 사슬갑옷",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_rune_ward_mail.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-rune-ward-mail.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 3987,
+          "wiki": 2536
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:scale-coat",
+      "title": "비늘 외투",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_scale_coat.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-scale-coat.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1286,
+          "wiki": 1182
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:armor:smoke-hood",
+      "title": "연기 두건",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_armor_smoke_hood.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-armor-smoke-hood.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 233,
+          "wiki": 209
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:shield:buckler",
+      "title": "버클러",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_shield_buckler.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-shield-buckler.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 880,
+          "wiki": 838
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:shield:iron",
+      "title": "철 방패",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_shield_iron.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-shield-iron.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1073,
+          "wiki": 1031
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:shield:mana-buckler",
+      "title": "마나 버클러",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_shield_mana_buckler.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-shield-mana-buckler.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1483,
+          "wiki": 908
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:shield:pavise",
+      "title": "파비스",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_shield_pavise.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-shield-pavise.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 957,
+          "wiki": 746
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:shield:powered",
+      "title": "동력 방패",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_shield_powered.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-shield-powered.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 2331,
+          "wiki": 1847
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:shield:rune",
+      "title": "룬 방패",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_shield_rune.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-shield-rune.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 4899,
+          "wiki": 3229
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:arquebus",
+      "title": "아쿼버스",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_arquebus.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-arquebus.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 821,
+          "wiki": 777
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:blacksteel-poleaxe",
+      "title": "흑강 폴액스",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_blacksteel_poleaxe.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-blacksteel-poleaxe.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 2746,
+          "wiki": 2581
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:composite-bow",
+      "title": "복합궁",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_composite_bow.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-composite-bow.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 260,
+          "wiki": 232
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:crossbow",
+      "title": "석궁",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_crossbow.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-crossbow.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 423,
+          "wiki": 366
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:greatsword",
+      "title": "대검",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_greatsword.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-greatsword.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 976,
+          "wiki": 933
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:halberd",
+      "title": "할버드",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_halberd.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-halberd.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 976,
+          "wiki": 933
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:handgonne",
+      "title": "수총",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_handgonne.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-handgonne.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 773,
+          "wiki": 729
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:heavy-matchlock",
+      "title": "중화승총",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_heavy_matchlock.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-heavy-matchlock.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 2001,
+          "wiki": 1793
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:longbow",
+      "title": "장궁",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_longbow.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-longbow.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 133,
+          "wiki": 122
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:longsword",
+      "title": "장검",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_longsword.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-longsword.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 859,
+          "wiki": 816
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:mana-lance",
+      "title": "마나 랜스",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_mana_lance.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-mana-lance.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1115,
+          "wiki": 759
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:matchlock-long-gun",
+      "title": "화승 장총",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_matchlock_long_gun.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-matchlock-long-gun.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1148,
+          "wiki": 982
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:matchlock-pistol",
+      "title": "화승 권총",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_matchlock_pistol.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-matchlock-pistol.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1397,
+          "wiki": 1311
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:powered-striking-gauntlet",
+      "title": "동력 타격장갑",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_powered_striking_gauntlet.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-powered-striking-gauntlet.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1100,
+          "wiki": 838
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:repeating-crossbow",
+      "title": "반복 석궁",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_repeating_crossbow.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-repeating-crossbow.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1458,
+          "wiki": 1235
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:rune-blade",
+      "title": "룬검",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_rune_blade.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-rune-blade.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 2795,
+          "wiki": 2033
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:rune-bow",
+      "title": "룬 활",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_rune_bow.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-rune-bow.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1557,
+          "wiki": 1281
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:shortbow",
+      "title": "단궁",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_shortbow.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-shortbow.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 133,
+          "wiki": 122
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:shotgun",
+      "title": "산탄총",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_shotgun.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-shotgun.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1184,
+          "wiki": 1018
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:siege-arbalest",
+      "title": "공성 쇠뇌",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_siege_arbalest.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-siege-arbalest.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1650,
+          "wiki": 1518
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:sniper-arquebus",
+      "title": "저격 아쿼버스",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_sniper_arquebus.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-sniper-arquebus.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 2617,
+          "wiki": 2053
+        }
+      ]
+    },
+    {
+      "id": "equipment-item:weapon:windlass-crossbow",
+      "title": "권양 석궁",
+      "source": "Assets/Resources/SO/Items/Definitions/equipment_item_weapon_windlass_crossbow.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-item-weapon-windlass-crossbow.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1261,
+          "wiki": 1162
+        }
+      ]
+    },
+    {
+      "id": "equipment:cold-work-suit",
+      "title": "방한 작업복",
+      "source": "Assets/Resources/SO/Economy/Items/equipment_cold_work_suit.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-cold-work-suit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 40,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "equipment:rune-cold-suit",
+      "title": "룬 방한복",
+      "source": "Assets/Resources/SO/Economy/Items/equipment_rune_cold_suit.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/equipment-rune-cold-suit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 38,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "feed:dog-food",
+      "title": "개밥",
+      "source": "Assets/Resources/SO/Economy/Items/feed_dog_food.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/feed-dog-food.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 7,
+          "wiki": 6
+        }
+      ]
+    },
+    {
+      "id": "food:expedition-ration-pack",
+      "title": "원정 배급 꾸러미",
+      "source": "Assets/Resources/SO/Economy/Items/Workshop/food_expedition_ration_pack.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/food-expedition-ration-pack.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 25,
+          "wiki": 20
+        }
+      ]
+    },
+    {
+      "id": "food:garden-meal",
+      "title": "정원 요리",
+      "source": "Assets/Resources/SO/Economy/Items/food_garden_meal.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/food-garden-meal.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 13,
+          "wiki": 12
+        }
+      ]
+    },
+    {
+      "id": "food:mushroom-soup",
+      "title": "동굴버섯국",
+      "source": "Assets/Resources/SO/Economy/Items/food_mushroom_soup.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/food-mushroom-soup.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 9,
+          "wiki": 8
+        }
+      ]
+    },
+    {
+      "id": "food:preserved-ration",
+      "title": "보존 배급식",
+      "source": "Assets/Resources/SO/Economy/Items/food_preserved_ration.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/food-preserved-ration.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 18,
+          "wiki": 15
+        }
+      ]
+    },
+    {
+      "id": "food:roasted-meat",
+      "title": "고기구이",
+      "source": "Assets/Resources/SO/Economy/Items/food_roasted_meat.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/food-roasted-meat.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 7,
+          "wiki": 6
+        }
+      ]
+    },
+    {
+      "id": "food:salted-meat-stew",
+      "title": "염장육 스튜",
+      "source": "Assets/Resources/SO/Economy/Items/Workshop/food_salted_meat_stew.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/food-salted-meat-stew.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 14,
+          "wiki": 13
+        }
+      ]
+    },
+    {
+      "id": "husbandry:bedding",
+      "title": "깔짚",
+      "source": "Assets/Resources/SO/Economy/Items/husbandry_bedding.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/husbandry-bedding.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 9,
+          "wiki": 7
+        }
+      ]
+    },
+    {
+      "id": "material:barrel-steel",
+      "title": "총열강",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I78_총열강.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-barrel-steel.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 314,
+          "wiki": 194
+        }
+      ]
+    },
+    {
+      "id": "material:black-powder",
+      "title": "흑색화약",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I13_흑색화약.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-black-powder.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 20,
+          "wiki": 13
+        }
+      ]
+    },
+    {
+      "id": "material:chain-mesh",
+      "title": "사슬 망",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I75_사슬_망.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-chain-mesh.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 108,
+          "wiki": 48
+        }
+      ]
+    },
+    {
+      "id": "material:common-wool",
+      "title": "일반 모직",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_common_wool.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-common-wool.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 26,
+          "wiki": 13
+        }
+      ]
+    },
+    {
+      "id": "material:deep-goat-wool",
+      "title": "심층 염소모직",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_deep_goat_wool.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-deep-goat-wool.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 53,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "material:ember-cotton",
+      "title": "잿불 면직물",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_ember_cotton.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-ember-cotton.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 24,
+          "wiki": 16
+        }
+      ]
+    },
+    {
+      "id": "material:frost-linen",
+      "title": "서리 린넨",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_frost_linen.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-frost-linen.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 24,
+          "wiki": 16
+        }
+      ]
+    },
+    {
+      "id": "material:frost-wool",
+      "title": "서리 양모직",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_frost_wool.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-frost-wool.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 53,
+          "wiki": 25
+        }
+      ]
+    },
+    {
+      "id": "material:granulated-powder",
+      "title": "과립 화약",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I79_과립_화약.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-granulated-powder.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 16,
+          "wiki": 13
+        }
+      ]
+    },
+    {
+      "id": "material:hardened-leather",
+      "title": "경화 가죽",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I74_경화_가죽.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-hardened-leather.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 30,
+          "wiki": 20
+        }
+      ]
+    },
+    {
+      "id": "material:laminated-lumber",
+      "title": "적층 목재",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I73_적층_목재.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-laminated-lumber.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 39,
+          "wiki": 23
+        }
+      ]
+    },
+    {
+      "id": "material:mana-alloy",
+      "title": "마나 합금",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I83_마나_합금.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-mana-alloy.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 444,
+          "wiki": 230
+        }
+      ]
+    },
+    {
+      "id": "material:mire-canvas",
+      "title": "습지 캔버스",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_mire_canvas.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-mire-canvas.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 33,
+          "wiki": 17
+        }
+      ]
+    },
+    {
+      "id": "material:niter",
+      "title": "초석",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I04_초석.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-niter.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 16,
+          "wiki": 12
+        }
+      ]
+    },
+    {
+      "id": "material:paper",
+      "title": "종이",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I05_종이.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-paper.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 11,
+          "wiki": 9
+        }
+      ]
+    },
+    {
+      "id": "material:plate-blank",
+      "title": "판금 소재판",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I76_판금_소재판.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-plate-blank.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 300,
+          "wiki": 124
+        }
+      ]
+    },
+    {
+      "id": "material:rope",
+      "title": "밧줄",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I08_밧줄.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-rope.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 18,
+          "wiki": 7
+        }
+      ]
+    },
+    {
+      "id": "material:sewing-thread",
+      "title": "재봉실",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_sewing_thread.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-sewing-thread.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 7,
+          "wiki": 5
+        }
+      ]
+    },
+    {
+      "id": "material:spore-hemp",
+      "title": "포자 삼베",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_spore_hemp.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-spore-hemp.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 30,
+          "wiki": 17
+        }
+      ]
+    },
+    {
+      "id": "material:spring-steel",
+      "title": "용수철강",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I77_용수철강.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-spring-steel.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 251,
+          "wiki": 131
+        }
+      ]
+    },
+    {
+      "id": "material:sterile-composite",
+      "title": "무균 복합재",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I84_무균_복합재.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/material-sterile-composite.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 113,
+          "wiki": 106
+        }
+      ]
+    },
+    {
+      "id": "medical:cross-lineage-medium",
+      "title": "교차계통 안정화 배지",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I116_교차계통_안정화_배지.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-cross-lineage-medium.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 838,
+          "wiki": 476
+        }
+      ]
+    },
+    {
+      "id": "medical:fertility-treatment",
+      "title": "생식 치료제",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I123_생식_치료제.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-fertility-treatment.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 166,
+          "wiki": 159
+        }
+      ]
+    },
+    {
+      "id": "medical:isolation-care-kit",
+      "title": "격리 치료 꾸러미",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I117_격리_치료_꾸러미.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-isolation-care-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 63,
+          "wiki": 58
+        }
+      ]
+    },
+    {
+      "id": "medical:mana-core-case",
+      "title": "마핵 케이스",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I33_마핵_케이스.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-mana-core-case.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1018,
+          "wiki": 662
+        }
+      ]
+    },
+    {
+      "id": "medical:organ-preservation-canister",
+      "title": "장기 보존 용기",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I120_장기_보존_용기.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-organ-preservation-canister.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 263,
+          "wiki": 215
+        }
+      ]
+    },
+    {
+      "id": "medical:organ-regeneration-scaffold",
+      "title": "장기 재생 골격",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I121_장기_재생_골격.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-organ-regeneration-scaffold.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 270,
+          "wiki": 256
+        }
+      ]
+    },
+    {
+      "id": "medical:rejuvenation-serum",
+      "title": "회춘 혈청",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I118_회춘_혈청.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-rejuvenation-serum.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 376,
+          "wiki": 370
+        }
+      ]
+    },
+    {
+      "id": "medical:rune-hibernation-catalyst",
+      "title": "룬 동면 촉매",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I124_룬_동면_촉매.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-rune-hibernation-catalyst.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 838,
+          "wiki": 476
+        }
+      ]
+    },
+    {
+      "id": "medical:slime-coagulation-frame",
+      "title": "점액 응고틀",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I37_점액_응고틀.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-slime-coagulation-frame.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 79,
+          "wiki": 70
+        }
+      ]
+    },
+    {
+      "id": "medical:sterile-bandage",
+      "title": "무균 붕대",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I22_무균_붕대.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-sterile-bandage.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 31,
+          "wiki": 26
+        }
+      ]
+    },
+    {
+      "id": "medical:sterile-mycelium-graft",
+      "title": "무균 균사 이식편",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I36_무균_균사_이식편.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-sterile-mycelium-graft.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 42,
+          "wiki": 33
+        }
+      ]
+    },
+    {
+      "id": "medical:trait-analysis-kit",
+      "title": "형질 검사 키트",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I115_형질_검사_키트.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-trait-analysis-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 141,
+          "wiki": 132
+        }
+      ]
+    },
+    {
+      "id": "medical:trauma-care-kit",
+      "title": "트라우마 치료 꾸러미",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I125_트라우마_치료_꾸러미.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-trauma-care-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 267,
+          "wiki": 264
+        }
+      ]
+    },
+    {
+      "id": "medical:whole-body-regeneration-medium",
+      "title": "전신 재생 배지",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I54_전신_재생_배지.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/medical-whole-body-regeneration-medium.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 1481,
+          "wiki": 1443
+        }
+      ]
+    },
+    {
+      "id": "record:arcane-index",
+      "title": "비전 색인철",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I91_비전_색인철.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/record-arcane-index.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 49,
+          "wiki": 44
+        }
+      ]
+    },
+    {
+      "id": "record:breeding-ledger",
+      "title": "번식 장부",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I95_번식_장부.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/record-breeding-ledger.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 57,
+          "wiki": 50
+        }
+      ]
+    },
+    {
+      "id": "record:career-ledger",
+      "title": "경력 장부",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I94_경력_장부.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/record-career-ledger.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 57,
+          "wiki": 50
+        }
+      ]
+    },
+    {
+      "id": "supply:alliance-signal-kit",
+      "title": "동맹 신호 키트",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I104_동맹_신호_키트.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/supply-alliance-signal-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 42,
+          "wiki": 39
+        }
+      ]
+    },
+    {
+      "id": "supply:botanical-pesticide",
+      "title": "식물성 살충제",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I57_식물성_살충제.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/supply-botanical-pesticide.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 30,
+          "wiki": 29
+        }
+      ]
+    },
+    {
+      "id": "supply:certified-seed-kit",
+      "title": "인증 품종 종자 꾸러미",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I85_인증_품종_종자_꾸러미.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/supply-certified-seed-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 28,
+          "wiki": 18
+        }
+      ]
+    },
+    {
+      "id": "supply:defense-mixed-ammo-box",
+      "title": "방어시설용 혼합 탄약 상자",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I136_방어시설용_혼합_탄약_상자.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/supply-defense-mixed-ammo-box.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 125,
+          "wiki": 118
+        }
+      ]
+    },
+    {
+      "id": "supply:funeral-preparation-kit",
+      "title": "종족 장례 준비품",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I96_종족_장례_준비품.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/supply-funeral-preparation-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 51,
+          "wiki": 49
+        }
+      ]
+    },
+    {
+      "id": "supply:fungicide",
+      "title": "살균제",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I58_살균제.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/supply-fungicide.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 29,
+          "wiki": 21
+        }
+      ]
+    },
+    {
+      "id": "supply:greenhouse-nutrient",
+      "title": "온실 영양액",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I86_온실_영양액.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/supply-greenhouse-nutrient.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 21,
+          "wiki": 12
+        }
+      ]
+    },
+    {
+      "id": "supply:mushroom-substrate",
+      "title": "균사 재배 배지",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I53_균사_재배_배지.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/supply-mushroom-substrate.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 22,
+          "wiki": 11
+        }
+      ]
+    },
+    {
+      "id": "supply:nitrate-fertilizer",
+      "title": "질산 비료",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I16_질산_비료.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/supply-nitrate-fertilizer.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 17,
+          "wiki": 15
+        }
+      ]
+    },
+    {
+      "id": "supply:pest-lure",
+      "title": "해충 유인제",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I56_해충_유인제.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/supply-pest-lure.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 32,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "textile:insulating-cloth",
+      "title": "절연 직물",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I81_절연_직물.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/textile-insulating-cloth.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 31,
+          "wiki": 17
+        }
+      ]
+    },
+    {
+      "id": "textile:quilted-liner",
+      "title": "층상 충전재",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I14_층상_충전재.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/textile-quilted-liner.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 27,
+          "wiki": 21
+        }
+      ]
+    },
+    {
+      "id": "textile:sterile-cloth",
+      "title": "무균 천",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I12_무균_천.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/textile-sterile-cloth.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 25,
+          "wiki": 16
+        }
+      ]
+    },
+    {
+      "id": "tool:administrative-seal",
+      "title": "행정 인장",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I92_행정_인장.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-administrative-seal.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 90,
+          "wiki": 64
+        }
+      ]
+    },
+    {
+      "id": "tool:banquet-cart",
+      "title": "연회 운반 수레",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I102_연회_운반_수레.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-banquet-cart.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 221,
+          "wiki": 147
+        }
+      ]
+    },
+    {
+      "id": "tool:deep-shaft-hoist",
+      "title": "심부 승강기",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I40_심부_승강기.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-deep-shaft-hoist.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 240,
+          "wiki": 177
+        }
+      ]
+    },
+    {
+      "id": "tool:field-repair-kit",
+      "title": "야전 수리 키트",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I43_야전_수리_키트.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-field-repair-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 156,
+          "wiki": 108
+        }
+      ]
+    },
+    {
+      "id": "tool:hauling-harness",
+      "title": "운반 멜빵",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I97_운반_멜빵.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-hauling-harness.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 47,
+          "wiki": 19
+        }
+      ]
+    },
+    {
+      "id": "tool:inspection-gauge",
+      "title": "검사 게이지",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I110_검사_게이지.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-inspection-gauge.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 566,
+          "wiki": 443
+        }
+      ]
+    },
+    {
+      "id": "tool:maintenance-kit",
+      "title": "정비 키트",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I25_정비_키트.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-maintenance-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 156,
+          "wiki": 108
+        }
+      ]
+    },
+    {
+      "id": "tool:mana-probe",
+      "title": "마나 탐침",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I27_마나_탐침.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-mana-probe.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 542,
+          "wiki": 364
+        }
+      ]
+    },
+    {
+      "id": "tool:powered-tool-head",
+      "title": "동력 공구날",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I26_동력_공구날.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-powered-tool-head.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 273,
+          "wiki": 231
+        }
+      ]
+    },
+    {
+      "id": "tool:precision-gauge",
+      "title": "정밀 게이지",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I28_정밀_게이지.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-precision-gauge.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 335,
+          "wiki": 332
+        }
+      ]
+    },
+    {
+      "id": "tool:prisoner-work-kit",
+      "title": "포로 작업 도구",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I99_포로_작업_도구.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-prisoner-work-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 71,
+          "wiki": 56
+        }
+      ]
+    },
+    {
+      "id": "tool:prospecting-kit",
+      "title": "탐광 키트",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I41_탐광_키트.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-prospecting-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 62,
+          "wiki": 35
+        }
+      ]
+    },
+    {
+      "id": "tool:reinforced-restraint",
+      "title": "강화 구속구",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I100_강화_구속구.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-reinforced-restraint.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 151,
+          "wiki": 78
+        }
+      ]
+    },
+    {
+      "id": "tool:rune-identification-lens",
+      "title": "룬 식별 렌즈",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I106_룬_식별_렌즈.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-rune-identification-lens.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 717,
+          "wiki": 361
+        }
+      ]
+    },
+    {
+      "id": "tool:sewing-kit",
+      "title": "재봉 도구",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/tool_sewing_kit.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-sewing-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 140,
+          "wiki": 99
+        }
+      ]
+    },
+    {
+      "id": "tool:watch-signal-horn",
+      "title": "경계 신호 나팔",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I108_경계_신호_나팔.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-watch-signal-horn.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 131,
+          "wiki": 65
+        }
+      ]
+    },
+    {
+      "id": "tool:weather-observation-kit",
+      "title": "기상 관측 도구함",
+      "source": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I88_기상_관측_도구함.asset",
+      "wiki": "wiki/game-versions/0.0.1v/data/entities/item/tool-weather-observation-kit.json",
+      "fields": 3,
+      "deltas": [
+        {
+          "field": "unitPrice",
+          "source": 718,
+          "wiki": 362
+        }
+      ]
+    }
+  ],
+  "missingWiki": [],
+  "status": "basic-fields-audited; full item effects/relations/narrative audit pending",
+  "scope": "Root authored unitPrice/unitWeight/maxStack fields versus current 0.0.1v item entity facts; no source or public data mutation.",
+  "mapping": "Tools/Wiki/generate_wiki_model.py slugify and fact_rows: stable ID -> lowercase, colon/underscore -> hyphen, normalize unsafe characters; direct authored field projection.",
+  "uniqueComparableIds": 1075,
+  "rootItemIdAssetsWithoutComparableRootFields": 73,
+  "exclusions": "The other 73 root itemId assets have no compared root field set (e.g. equipment definitions). Their domain-specific stats are not covered by this check."
+}

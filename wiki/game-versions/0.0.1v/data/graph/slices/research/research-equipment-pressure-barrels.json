@@ -1,0 +1,213 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-pressure-barrels",
+    "spoiler_tier": "none",
+    "title": "내압 화기와 방폭"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-environment-cold-work",
+      "target_spoiler_tier": "none",
+      "target_title": "저온 작업 보호",
+      "to": "research/research-environment-cold-work",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-environment-cold-work",
+      "target_spoiler_tier": "none",
+      "target_title": "저온 작업 보호",
+      "to": "research/research-environment-cold-work",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-environment-cold-work",
+      "target_spoiler_tier": "none",
+      "target_title": "저온 작업 보호",
+      "to": "research/research-environment-cold-work",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-ballistics",
+      "target_spoiler_tier": "none",
+      "target_title": "탄도학",
+      "to": "research/research-equipment-ballistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-ballistics",
+      "target_spoiler_tier": "none",
+      "target_title": "탄도학",
+      "to": "research/research-equipment-ballistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-ballistics",
+      "target_spoiler_tier": "none",
+      "target_title": "탄도학",
+      "to": "research/research-equipment-ballistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-blast-coat",
+      "label": "필요 조건",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-powder-cuirass",
+      "label": "필요 조건",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-smoke-hood",
+      "label": "필요 조건",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-heavy-matchlock",
+      "label": "필요 조건",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "필요 조건",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-siege-arbalest",
+      "label": "필요 조건",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-armor-piercing-cartridge",
+      "label": "필요 조건",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-smoke-cartridge",
+      "label": "필요 조건",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-blast-coat-shell",
+      "label": "필요 조건",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-barrel-steel",
+      "label": "필요 조건",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

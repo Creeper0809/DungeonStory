@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "-3",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-brawl",
+      "target_spoiler_tier": "warning",
+      "target_title": "난투",
+      "type": "changes-health"
+    },
+    {
+      "amount": "4",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-brawl",
+      "target_spoiler_tier": "warning",
+      "target_title": "난투",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "service-incident-brawl",
+  "spoiler_tier": "warning",
+  "summary": "술자리의 모욕이 무장 난투로 번졌다.",
+  "title": "난투"
+}

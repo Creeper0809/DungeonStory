@@ -1,0 +1,12 @@
+{
+  "current_game_version": "0.0.1v",
+  "schema_version": 1,
+  "versions": [
+    {
+      "content_digest": "5a0678c26f73c41dd294755a6927dc5edcfa60d2196dbacf693a8d968910eddc",
+      "game_version": "0.0.1v",
+      "parent_game_version": null,
+      "status": "planned"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.475kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "21"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "황혼곡 맥아를 발효해 일과 뒤에 가볍게 나눠 마시는 맥주다. 사르베니아 내해에서 황혼 맥주는 내해의 곡물값과 가도 사정을 전하는 장터 술이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-twilight-beer",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "황혼 맥주"
+}

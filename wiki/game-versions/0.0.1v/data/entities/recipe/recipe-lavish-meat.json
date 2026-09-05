@@ -1,0 +1,71 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "54"
+    },
+    {
+      "label": "필요 연구",
+      "value": "호화·보존식"
+    },
+    {
+      "label": "사이클당 깨끗한 물",
+      "value": "0.3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-lavish-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "핏빛 호화식",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-night-grape",
+      "target_spoiler_tier": "none",
+      "target_title": "밤포도",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cheese",
+      "target_spoiler_tier": "none",
+      "target_title": "치즈",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-lavish",
+      "target_spoiler_tier": "none",
+      "target_title": "호화·보존식",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-lavish-meat",
+  "spoiler_tier": "none",
+  "summary": "핏빛 호화식 생산 주문",
+  "title": "핏빛 호화식"
+}

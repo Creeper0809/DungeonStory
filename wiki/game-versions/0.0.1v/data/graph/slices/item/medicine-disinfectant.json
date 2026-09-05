@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medicine-disinfectant",
+    "spoiler_tier": "none",
+    "title": "소독제"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-corpse-organ-extraction",
+      "label": "관련",
+      "to": "item/medicine-disinfectant",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-foreign-body-removal",
+      "label": "관련",
+      "to": "item/medicine-disinfectant",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-repair",
+      "label": "관련",
+      "to": "item/medicine-disinfectant",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

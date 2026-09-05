@@ -12,6 +12,11 @@ public sealed class ProductionPreparedOutputRoutingLineSaveData
     public string itemId = string.Empty;
     public string destinationId = string.Empty;
     public string componentFingerprint = string.Empty;
+    public string outputCapabilityId = string.Empty;
+    public int outputCapabilityVersion;
+    public string outputComponentCodecId = string.Empty;
+    public int outputComponentCodecVersion;
+    public string outputCapabilityFingerprint = string.Empty;
     public int originalQuantity;
     public int remainingQuantity;
     public long originalMassGrams;
@@ -30,6 +35,11 @@ public sealed class ProductionPreparedOutputRoutingLineSaveData
         itemId = itemId,
         destinationId = destinationId,
         componentFingerprint = componentFingerprint,
+        outputCapabilityId = outputCapabilityId,
+        outputCapabilityVersion = outputCapabilityVersion,
+        outputComponentCodecId = outputComponentCodecId,
+        outputComponentCodecVersion = outputComponentCodecVersion,
+        outputCapabilityFingerprint = outputCapabilityFingerprint,
         originalQuantity = originalQuantity,
         remainingQuantity = remainingQuantity,
         originalMassGrams = originalMassGrams,
@@ -40,6 +50,30 @@ public sealed class ProductionPreparedOutputRoutingLineSaveData
                 ?? new List<ProductionPreparedOutputRouteOperationSaveData>())
             .ConvertAll(value => value?.Clone())
     };
+}
+
+[Serializable]
+public sealed class ProductionPreparedOutputNonPhysicalDispositionSaveData
+{
+    public string batchCommitId = string.Empty;
+    public string lineCommitId = string.Empty;
+    public string outputLineId = string.Empty;
+    public ProductionOutputRole role;
+    public string canonicalPayload = string.Empty;
+    public string dispositionFingerprint = string.Empty;
+    public long exactMassGrams;
+
+    public ProductionPreparedOutputNonPhysicalDispositionSaveData Clone() =>
+        new()
+        {
+            batchCommitId = batchCommitId,
+            lineCommitId = lineCommitId,
+            outputLineId = outputLineId,
+            role = role,
+            canonicalPayload = canonicalPayload,
+            dispositionFingerprint = dispositionFingerprint,
+            exactMassGrams = exactMassGrams
+        };
 }
 
 public enum ProductionPreparedOutputRoutePhase
@@ -170,6 +204,17 @@ public sealed class ProductionPreparedOutputRoutingBatchSaveData
     public string outcomeFingerprint = string.Empty;
     public string routingFingerprint = string.Empty;
     public string destinationId = string.Empty;
+    public string capacitySourceDigest = string.Empty;
+    public int outputBufferCycleCapacity;
+    public long projectedPortfolioCapacityGrams;
+    public long requiredMinimumCapacityGrams;
+    public string maximumMassProofDigest = string.Empty;
+    public long maximumBatchMassGrams;
+    public string capacityClaimDigest = string.Empty;
+    public long totalDeclaredLossMassGrams;
+    public long totalDeclaredExternalInputMassGrams;
+    public List<ProductionPreparedOutputNonPhysicalDispositionSaveData>
+        nonPhysicalDispositions = new();
     public List<ProductionPreparedOutputRoutingLineSaveData> lines = new();
 
     public ProductionPreparedOutputRoutingBatchSaveData Clone() => new()
@@ -182,6 +227,20 @@ public sealed class ProductionPreparedOutputRoutingBatchSaveData
         outcomeFingerprint = outcomeFingerprint,
         routingFingerprint = routingFingerprint,
         destinationId = destinationId,
+        capacitySourceDigest = capacitySourceDigest,
+        outputBufferCycleCapacity = outputBufferCycleCapacity,
+        projectedPortfolioCapacityGrams = projectedPortfolioCapacityGrams,
+        requiredMinimumCapacityGrams = requiredMinimumCapacityGrams,
+        maximumMassProofDigest = maximumMassProofDigest,
+        maximumBatchMassGrams = maximumBatchMassGrams,
+        capacityClaimDigest = capacityClaimDigest,
+        totalDeclaredLossMassGrams = totalDeclaredLossMassGrams,
+        totalDeclaredExternalInputMassGrams =
+            totalDeclaredExternalInputMassGrams,
+        nonPhysicalDispositions = (nonPhysicalDispositions
+                ?? new List<
+                    ProductionPreparedOutputNonPhysicalDispositionSaveData>())
+            .ConvertAll(value => value?.Clone()),
         lines = (lines ?? new List<ProductionPreparedOutputRoutingLineSaveData>())
             .ConvertAll(value => value?.Clone())
     };
@@ -190,7 +249,7 @@ public sealed class ProductionPreparedOutputRoutingBatchSaveData
 [Serializable]
 public sealed class ProductionPreparedOutputRoutingSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 9;
 
     public int version = CurrentVersion;
     public long lastConfirmedCheckpointSequence;
@@ -212,6 +271,11 @@ public readonly struct ProductionPreparedOutputRoutingLineSnapshot
         string itemId,
         string destinationId,
         string componentFingerprint,
+        string outputCapabilityId,
+        int outputCapabilityVersion,
+        string outputComponentCodecId,
+        int outputComponentCodecVersion,
+        string outputCapabilityFingerprint,
         int originalQuantity,
         long originalMassGrams,
         int remainingQuantity,
@@ -230,6 +294,11 @@ public readonly struct ProductionPreparedOutputRoutingLineSnapshot
         ItemId = itemId;
         DestinationId = destinationId;
         ComponentFingerprint = componentFingerprint;
+        OutputCapabilityId = outputCapabilityId;
+        OutputCapabilityVersion = outputCapabilityVersion;
+        OutputComponentCodecId = outputComponentCodecId;
+        OutputComponentCodecVersion = outputComponentCodecVersion;
+        OutputCapabilityFingerprint = outputCapabilityFingerprint;
         OriginalQuantity = originalQuantity;
         OriginalMassGrams = originalMassGrams;
         RemainingQuantity = remainingQuantity;
@@ -249,12 +318,46 @@ public readonly struct ProductionPreparedOutputRoutingLineSnapshot
     public string ItemId { get; }
     public string DestinationId { get; }
     public string ComponentFingerprint { get; }
+    public string OutputCapabilityId { get; }
+    public int OutputCapabilityVersion { get; }
+    public string OutputComponentCodecId { get; }
+    public int OutputComponentCodecVersion { get; }
+    public string OutputCapabilityFingerprint { get; }
     public int OriginalQuantity { get; }
     public long OriginalMassGrams { get; }
     public int RemainingQuantity { get; }
     public long RemainingMassGrams { get; }
     public int RoutedQuantity { get; }
     public long RoutedMassGrams { get; }
+}
+
+public readonly struct ProductionPreparedOutputNonPhysicalDispositionSnapshot
+{
+    public ProductionPreparedOutputNonPhysicalDispositionSnapshot(
+        string batchCommitId,
+        string lineCommitId,
+        string outputLineId,
+        ProductionOutputRole role,
+        string canonicalPayload,
+        string dispositionFingerprint,
+        long exactMassGrams)
+    {
+        BatchCommitId = batchCommitId ?? string.Empty;
+        LineCommitId = lineCommitId ?? string.Empty;
+        OutputLineId = outputLineId ?? string.Empty;
+        Role = role;
+        CanonicalPayload = canonicalPayload ?? string.Empty;
+        DispositionFingerprint = dispositionFingerprint ?? string.Empty;
+        ExactMassGrams = exactMassGrams;
+    }
+
+    public string BatchCommitId { get; }
+    public string LineCommitId { get; }
+    public string OutputLineId { get; }
+    public ProductionOutputRole Role { get; }
+    public string CanonicalPayload { get; }
+    public string DispositionFingerprint { get; }
+    public long ExactMassGrams { get; }
 }
 
 /// <summary>
@@ -270,6 +373,9 @@ public sealed class ProductionPreparedOutputRoutingBatchSnapshot
         routeOperations;
     private readonly IReadOnlyList<ProductionPreparedOutputPhysicalRouteReceipt>
         physicalReceipts;
+    private readonly IReadOnlyList<
+        ProductionPreparedOutputNonPhysicalDispositionSnapshot>
+        nonPhysicalDispositions;
 
     public ProductionPreparedOutputRoutingBatchSnapshot(
         string batchCommitId,
@@ -285,7 +391,9 @@ public sealed class ProductionPreparedOutputRoutingBatchSnapshot
             routeOperations,
         IReadOnlyList<ProductionPreparedOutputPhysicalRouteReceipt>
             physicalReceipts,
-        bool isDrainAcknowledged)
+        bool isDrainAcknowledged,
+        IReadOnlyList<ProductionPreparedOutputNonPhysicalDispositionSnapshot>
+            nonPhysicalDispositions = null)
     {
         BatchCommitId = batchCommitId ?? string.Empty;
         OwnerBillId = ownerBillId ?? string.Empty;
@@ -303,6 +411,11 @@ public sealed class ProductionPreparedOutputRoutingBatchSnapshot
             .ToArray());
         this.physicalReceipts = Array.AsReadOnly((physicalReceipts
                 ?? Array.Empty<ProductionPreparedOutputPhysicalRouteReceipt>())
+            .ToArray());
+        this.nonPhysicalDispositions = Array.AsReadOnly((
+                nonPhysicalDispositions
+                ?? Array.Empty<
+                    ProductionPreparedOutputNonPhysicalDispositionSnapshot>())
             .ToArray());
         IsDrainAcknowledged = isDrainAcknowledged;
     }
@@ -323,6 +436,19 @@ public sealed class ProductionPreparedOutputRoutingBatchSnapshot
     public IReadOnlyList<ProductionPreparedOutputPhysicalRouteReceipt>
         PhysicalReceipts => physicalReceipts
             ?? Array.Empty<ProductionPreparedOutputPhysicalRouteReceipt>();
+    public IReadOnlyList<ProductionPreparedOutputNonPhysicalDispositionSnapshot>
+        NonPhysicalDispositions => nonPhysicalDispositions
+            ?? Array.Empty<
+                ProductionPreparedOutputNonPhysicalDispositionSnapshot>();
+    public long TotalDeclaredLossMassGrams => NonPhysicalDispositions.Sum(
+        value => value.Role == ProductionOutputRole.DeclaredLoss
+            ? value.ExactMassGrams
+            : 0L);
+    public long TotalDeclaredExternalInputMassGrams =>
+        NonPhysicalDispositions.Sum(
+            value => value.Role == ProductionOutputRole.DeclaredExternalInput
+                ? value.ExactMassGrams
+                : 0L);
     public bool IsDrainAcknowledged { get; }
     public int RemainingQuantity => Lines.Sum(value => value.RemainingQuantity);
     public long RemainingMassGrams => Lines.Sum(

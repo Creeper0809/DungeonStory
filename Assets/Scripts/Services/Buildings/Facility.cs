@@ -5,7 +5,11 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
 
-public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWarehouseFacility
+public class Facility : BuildableObject,
+    IInteractable,
+    IWorkableFacility,
+    IAllocatedWorkerOccupancyQuery,
+    IWarehouseFacility
 {
     private IBuildingVisitorPort worker;
     private CharacterId workerCharacterId;
@@ -29,6 +33,14 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     public WarehouseInventory Inventory => warehouseInventory;
     public IWarehouseInventoryPort InventoryPort => warehouseInventory;
     public bool HasWarehouseInventory => warehouseInventory != null;
+    public bool HasAllocatedWorker
+    {
+        get
+        {
+            PruneInvalidWorker();
+            return worker != null;
+        }
+    }
 
     public bool HasMealAvailableFor(
         CharacterActor actor,
@@ -73,24 +85,18 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     {
         base.Initialization(buildingSO, buildPos);
 
-        int storageCapacity = this.GetStorageCapacity();
-        if (storageCapacity > 0)
+        long storageMassCapacityGrams = this.GetStorageMassCapacityGrams();
+        if (storageMassCapacityGrams > 0L)
         {
             bool restrictCategory = !this.StoresAllCategories();
             warehouseInventory = new WarehouseInventory(
-                storageCapacity,
-                this.GetStorageMassCapacityGrams(),
+                storageMassCapacityGrams,
                 this.GetStorageCategory(),
                 restrictCategory);
         }
         else
         {
-            int internalStockCapacity = BuildingData.GetInternalStockCapacity();
-            warehouseInventory = Facility != null
-                && Facility.SupportsRole(FacilityRole.Logistics)
-                && internalStockCapacity > 0
-                    ? new WarehouseInventory(internalStockCapacity)
-                    : null;
+            warehouseInventory = null;
         }
 
         if (warehouseInventory != null)

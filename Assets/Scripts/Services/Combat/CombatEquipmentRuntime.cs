@@ -208,7 +208,8 @@ public sealed class CombatEquipmentRuntime :
         if (instance.worldState is CombatEquipmentWorldState.Equipped
             or CombatEquipmentWorldState.ExpeditionPacked
             or CombatEquipmentWorldState.MaintenanceBuffer
-            or CombatEquipmentWorldState.RetailStock)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             failureReason = "장착·출정·수리 중인 장비는 해체할 수 없습니다.";
             return false;
@@ -282,7 +283,8 @@ public sealed class CombatEquipmentRuntime :
         if (instance.worldState is CombatEquipmentWorldState.Equipped
             or CombatEquipmentWorldState.ExpeditionPacked
             or CombatEquipmentWorldState.MaintenanceBuffer
-            or CombatEquipmentWorldState.RetailStock)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             failureReason = "장착·출정·수리 중인 장비는 폐기할 수 없습니다.";
             return false;
@@ -296,80 +298,6 @@ public sealed class CombatEquipmentRuntime :
         }
         loadoutRuntime.RemoveEquipment(instance.instanceId);
         instances.Remove(instance.instanceId);
-        return true;
-    }
-
-    public bool TryConsumeForMarketSale(
-        string sourceStackId,
-        out CombatEquipmentInstance soldInstance,
-        out string failureReason)
-    {
-        soldInstance = null;
-        failureReason = string.Empty;
-        string normalizedStackId = sourceStackId?.Trim() ?? string.Empty;
-        WorldItemStackSnapshot saleStack = itemStackRuntime.GetAllStacks()
-            .FirstOrDefault(stack => stack != null
-                && string.Equals(
-                    stack.StackId,
-                    normalizedStackId,
-                    StringComparison.Ordinal));
-        if (saleStack == null
-            || saleStack.Quantity != 1
-            || saleStack.State != WorldItemStackState.FacilityBuffer
-            || !string.Equals(
-                saleStack.DestinationId,
-                QualityRejectedOutputRules.MarketDestinationId,
-                StringComparison.Ordinal))
-        {
-            failureReason = "판매 집결점에 도착한 품질 미달 장비만 판매할 수 있습니다.";
-            return false;
-        }
-        CombatEquipmentInstance instance = instances.Values.FirstOrDefault(candidate =>
-            candidate != null
-            && string.Equals(
-                candidate.sourceStackId,
-                normalizedStackId,
-                StringComparison.Ordinal));
-        if (instance == null)
-        {
-            failureReason = "판매할 전투 장비 인스턴스를 찾을 수 없습니다.";
-            return false;
-        }
-        if (!string.Equals(
-                saleStack.ItemInstanceId,
-                instance.instanceId,
-                StringComparison.Ordinal))
-        {
-            failureReason = "전투 장비의 물리 인스턴스 ID가 일치하지 않습니다.";
-            return false;
-        }
-        if (!string.IsNullOrWhiteSpace(instance.ownerCharacterId)
-            || instance.worldState is CombatEquipmentWorldState.Equipped
-                or CombatEquipmentWorldState.ExpeditionPacked
-                or CombatEquipmentWorldState.MaintenanceBuffer
-                or CombatEquipmentWorldState.Carried)
-        {
-            failureReason = "장착·운반·출정·수리 중인 장비는 판매할 수 없습니다.";
-            return false;
-        }
-        if ((instance.moduleSlots ?? new List<EquipmentModuleSlotState>())
-            .Any(slot => slot != null
-                && !string.IsNullOrWhiteSpace(slot.moduleInstanceId)))
-        {
-            failureReason = "부품이 장착된 장비는 자동 판매할 수 없습니다.";
-            return false;
-        }
-        if (!itemStackRuntime.TryAbsorbUniqueItemStack(
-                normalizedStackId,
-                new ItemInstanceId(instance.instanceId)))
-        {
-            failureReason = "판매할 전투 장비의 물리 스택을 소비하지 못했습니다.";
-            return false;
-        }
-
-        loadoutRuntime.RemoveEquipment(instance.instanceId);
-        instances.Remove(instance.instanceId);
-        soldInstance = instance.Clone();
         return true;
     }
 
@@ -562,7 +490,9 @@ public sealed class CombatEquipmentRuntime :
     {
         if (!instances.TryGetValue(
                 instanceId?.Trim() ?? string.Empty,
-                out CombatEquipmentInstance instance))
+                out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             return false;
         }
@@ -600,7 +530,9 @@ public sealed class CombatEquipmentRuntime :
         CombatEquipmentWorldState worldState)
     {
         if (!instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
-            || string.IsNullOrWhiteSpace(sourceStackId))
+            || string.IsNullOrWhiteSpace(sourceStackId)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(instance.worldState)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(worldState))
         {
             return false;
         }
@@ -655,6 +587,11 @@ public sealed class CombatEquipmentRuntime :
         {
             return false;
         }
+        if (CombatEquipmentWorldStateRules.IsExternalCustody(instance.worldState)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(worldState))
+        {
+            return false;
+        }
 
         instance.worldState = worldState;
         PersistPhysicalState(instance);
@@ -664,8 +601,10 @@ public sealed class CombatEquipmentRuntime :
     public bool TryMarkLost(string instanceId)
     {
         if (!instances.TryGetValue(
-            instanceId?.Trim() ?? string.Empty,
-            out CombatEquipmentInstance instance))
+                instanceId?.Trim() ?? string.Empty,
+                out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             return false;
         }
@@ -686,6 +625,193 @@ public sealed class CombatEquipmentRuntime :
                 module.condition = 0f;
             }
         }
+        return true;
+    }
+
+    public bool TryBeginMarketSale(
+        string sourceStackId,
+        string operationId,
+        out CombatEquipmentInstance pendingInstance,
+        out string failureReason)
+    {
+        pendingInstance = null;
+        failureReason = string.Empty;
+        string stackId = sourceStackId ?? string.Empty;
+        string operation = operationId ?? string.Empty;
+        if (stackId.Length == 0
+            || operation.Length == 0
+            || !string.Equals(stackId, stackId.Trim(), StringComparison.Ordinal)
+            || !string.Equals(operation, operation.Trim(), StringComparison.Ordinal))
+        {
+            failureReason = "market-sale-custody-invalid";
+            return false;
+        }
+
+        CombatEquipmentInstance instance = instances.Values.FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(candidate.sourceStackId, stackId, StringComparison.Ordinal));
+        if (instance == null)
+        {
+            failureReason = "market-sale-equipment-missing";
+            return false;
+        }
+        if (instance.worldState == CombatEquipmentWorldState.MarketSalePending)
+        {
+            if (!string.Equals(
+                    instance.sourceStackId,
+                    operation,
+                    StringComparison.Ordinal))
+            {
+                failureReason = "market-sale-equipment-operation-conflict";
+                return false;
+            }
+            pendingInstance = instance.Clone();
+            return true;
+        }
+
+        WorldItemStackSnapshot saleStack = itemStackRuntime.GetAllStacks()
+            .FirstOrDefault(stack => stack != null
+                && string.Equals(stack.StackId, stackId, StringComparison.Ordinal));
+        if (saleStack == null
+            || saleStack.Quantity != 1
+            || saleStack.State != WorldItemStackState.FacilityBuffer
+            || !string.Equals(
+                saleStack.DestinationId,
+                QualityRejectedOutputRules.MarketDestinationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                saleStack.ItemInstanceId,
+                instance.instanceId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "market-sale-physical-custody-mismatch";
+            return false;
+        }
+        if (!string.IsNullOrWhiteSpace(instance.ownerCharacterId)
+            || instance.worldState is CombatEquipmentWorldState.Equipped
+                or CombatEquipmentWorldState.ExpeditionPacked
+                or CombatEquipmentWorldState.MaintenanceBuffer
+                or CombatEquipmentWorldState.Carried
+                or CombatEquipmentWorldState.RetailStock
+            || (instance.moduleSlots ?? new List<EquipmentModuleSlotState>())
+                .Any(slot => slot != null
+                    && !string.IsNullOrWhiteSpace(slot.moduleInstanceId)))
+        {
+            failureReason = "market-sale-equipment-unavailable";
+            return false;
+        }
+
+        ItemInstanceComponentSaveData physicalComponent =
+            (saleStack.Components ?? Array.Empty<ItemInstanceComponentSaveData>())
+            .SingleOrDefault(component => component != null
+                && string.Equals(
+                    component.componentTypeId,
+                    ItemInstanceComponentIds.Equipment,
+                    StringComparison.Ordinal));
+        ItemInstanceComponentSaveData expectedComponent =
+            EquipmentItemStateCodec.Encode(
+                instance,
+                (instance.moduleSlots ?? new List<EquipmentModuleSlotState>())
+                .Where(slot => slot != null
+                    && !string.IsNullOrWhiteSpace(slot.moduleInstanceId)
+                    && moduleInstances.ContainsKey(slot.moduleInstanceId))
+                .Select(slot => moduleInstances[slot.moduleInstanceId]));
+        if (physicalComponent == null
+            || !string.Equals(
+                physicalComponent.ToCanonicalString(),
+                expectedComponent.ToCanonicalString(),
+                StringComparison.Ordinal))
+        {
+            failureReason = "market-sale-equipment-component-drift";
+            return false;
+        }
+
+        CombatEquipmentInstance frozen = instance.Clone();
+        frozen.ownerCharacterId = string.Empty;
+        frozen.sourceStackId = operation;
+        frozen.worldState = CombatEquipmentWorldState.MarketSalePending;
+        if (!itemStackRuntime.TrySetInstanceComponent(
+                stackId,
+                EquipmentItemStateCodec.Encode(frozen)))
+        {
+            failureReason = "market-sale-custody-persist-failed";
+            return false;
+        }
+        instance.ownerCharacterId = string.Empty;
+        instance.sourceStackId = operation;
+        instance.worldState = CombatEquipmentWorldState.MarketSalePending;
+        pendingInstance = instance.Clone();
+        return true;
+    }
+
+    public bool TryFinalizeMarketSale(
+        string itemInstanceId,
+        string operationId,
+        out CombatEquipmentInstance soldInstance,
+        out string failureReason)
+    {
+        soldInstance = null;
+        failureReason = string.Empty;
+        string instanceId = itemInstanceId ?? string.Empty;
+        string operation = operationId ?? string.Empty;
+        if (!instances.TryGetValue(instanceId, out CombatEquipmentInstance instance))
+        {
+            failureReason = "market-sale-equipment-release-authority-missing";
+            return false;
+        }
+        if (instance.worldState != CombatEquipmentWorldState.MarketSalePending
+            || !string.Equals(
+                instance.sourceStackId,
+                operation,
+                StringComparison.Ordinal))
+        {
+            failureReason = "market-sale-equipment-custody-mismatch";
+            return false;
+        }
+        loadoutRuntime.RemoveEquipment(instance.instanceId);
+        instances.Remove(instance.instanceId);
+        soldInstance = instance.Clone();
+        return true;
+    }
+
+    public bool TryRestoreMarketSalePendingToPhysical(
+        string itemInstanceId,
+        string operationId,
+        string sourceStackId,
+        CombatEquipmentWorldState restoredWorldState,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string instanceId = itemInstanceId ?? string.Empty;
+        string operation = operationId ?? string.Empty;
+        string stackId = sourceStackId ?? string.Empty;
+        if (restoredWorldState is not (
+                CombatEquipmentWorldState.Stored
+                or CombatEquipmentWorldState.Loose)
+            || !instances.TryGetValue(instanceId, out CombatEquipmentInstance instance)
+            || instance.worldState != CombatEquipmentWorldState.MarketSalePending
+            || !string.Equals(instance.sourceStackId, operation, StringComparison.Ordinal))
+        {
+            failureReason = "market-sale-physical-restore-authority-mismatch";
+            return false;
+        }
+        WorldItemStackSnapshot physicalStack = itemStackRuntime.GetAllStacks()
+            .FirstOrDefault(stack => stack != null
+                && string.Equals(stack.StackId, stackId, StringComparison.Ordinal)
+                && string.Equals(
+                    stack.ItemInstanceId,
+                    instanceId,
+                    StringComparison.Ordinal));
+        if (physicalStack == null)
+        {
+            failureReason = "market-sale-physical-restore-stack-missing";
+            return false;
+        }
+
+        instance.sourceStackId = stackId;
+        instance.ownerCharacterId = string.Empty;
+        instance.worldState = restoredWorldState;
+        PersistPhysicalState(instance);
         return true;
     }
 
@@ -718,7 +844,9 @@ public sealed class CombatEquipmentRuntime :
         if (!string.IsNullOrWhiteSpace(instance.ownerCharacterId)
             || instance.worldState is CombatEquipmentWorldState.ExpeditionPacked
                 or CombatEquipmentWorldState.MaintenanceBuffer
-                or CombatEquipmentWorldState.Carried)
+                or CombatEquipmentWorldState.Carried
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             failureReason = "retail-stock-equipment-owned-by-active-domain";
             return false;
@@ -1032,6 +1160,8 @@ public sealed class CombatEquipmentRuntime :
         consumedAmmo = 0;
         if (inventory == null
             || !instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
             || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
             || definition is not CombatWeaponSO weapon
             || weapon.MagazineCapacity <= 0)
@@ -1117,6 +1247,8 @@ public sealed class CombatEquipmentRuntime :
     {
         int requested = Mathf.Max(1, amount);
         if (!instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
             || instance.loadedAmmunition == null
             || instance.loadedAmmunition.remaining < requested
             || string.IsNullOrWhiteSpace(
@@ -1141,6 +1273,8 @@ public sealed class CombatEquipmentRuntime :
             || !instances.TryGetValue(
                 instanceId?.Trim() ?? string.Empty,
                 out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
             || (CombatEquipmentRoleRules.For(instance.definitionId)
                 & CombatEquipmentRoleFlags.Powered) == 0
             || instance.powerCharge <= 0f)
@@ -1163,6 +1297,8 @@ public sealed class CombatEquipmentRuntime :
             || !instances.TryGetValue(
                 instanceId?.Trim() ?? string.Empty,
                 out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
             || (CombatEquipmentRoleRules.For(instance.definitionId)
                 & CombatEquipmentRoleFlags.Powered) == 0)
         {
@@ -1187,6 +1323,8 @@ public sealed class CombatEquipmentRuntime :
             || !instances.TryGetValue(
                 instanceId?.Trim() ?? string.Empty,
                 out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
             || !catalog.TryGet(
                 instance.definitionId,
                 out CombatEquipmentDefinitionSO definition)
@@ -1211,6 +1349,8 @@ public sealed class CombatEquipmentRuntime :
     {
         if (damage <= 0f
             || !instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
             || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
             || definition.Kind is CombatEquipmentKind.MeleeWeapon
                 or CombatEquipmentKind.RangedWeapon
@@ -1237,6 +1377,8 @@ public sealed class CombatEquipmentRuntime :
         if (!instances.TryGetValue(
                 instanceId?.Trim() ?? string.Empty,
                 out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
             || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
             || definition.Kind is not CombatEquipmentKind.Armor
                 and not CombatEquipmentKind.Shield)
@@ -1266,7 +1408,9 @@ public sealed class CombatEquipmentRuntime :
         failureReason = string.Empty;
         if (!instances.TryGetValue(
                 instanceId?.Trim() ?? string.Empty,
-                out CombatEquipmentInstance instance))
+                out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             failureReason = "recovered equipment instance is missing";
             return false;
@@ -1294,7 +1438,9 @@ public sealed class CombatEquipmentRuntime :
         failureReason = string.Empty;
         if (!instances.TryGetValue(
                 instanceId?.Trim() ?? string.Empty,
-                out CombatEquipmentInstance instance))
+                out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState))
         {
             failureReason = "equipment instance is missing";
             return false;
@@ -1377,6 +1523,8 @@ public sealed class CombatEquipmentRuntime :
         if (!instances.TryGetValue(
                 instanceId?.Trim() ?? string.Empty,
                 out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
             || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
             || definition.Kind is not CombatEquipmentKind.Armor
                 and not CombatEquipmentKind.Shield)
@@ -1508,6 +1656,7 @@ public sealed class CombatEquipmentRuntime :
 
     public DungeonCombatEquipmentSaveData Capture()
     {
+        crafting.ValidateInputDestinationsBeforeCapture();
         return new DungeonCombatEquipmentSaveData
         {
             nextCraftSequence = stateStore.Current.NextCraftSequence,
@@ -1537,9 +1686,18 @@ public sealed class CombatEquipmentRuntime :
     public void PublishRestoreCandidate(
         CombatEquipmentRestoreCandidate candidate)
     {
-        stateStore.Replace(
+        CombatEquipmentRuntimeState restored =
             (candidate ?? throw new ArgumentNullException(nameof(candidate)))
-            .State);
+            .State;
+        if (!crafting.TryReplaceInputDestinations(
+                restored.CraftOrders,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Combat craft input restore publication failed: "
+                + failureReason);
+        }
+        stateStore.Replace(restored);
     }
 
 }

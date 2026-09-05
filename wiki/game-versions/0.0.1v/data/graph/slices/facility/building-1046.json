@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1046",
+    "spoiler_tier": "none",
+    "title": "순찰상황판"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-banner-2",
+      "label": "관련",
+      "to": "facility/building-1046",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-patrol-1",
+      "label": "관련",
+      "to": "facility/building-1046",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-fortification",
+      "label": "시설 해금",
+      "to": "facility/building-1046",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

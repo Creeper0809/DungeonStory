@@ -17,6 +17,10 @@ public static class CombatEquipmentCraftTransactionFixture
     public static bool Run()
     {
         LastFailureReason = string.Empty;
+        if (!VerifyCommonOutputTransaction())
+        {
+            return Fail("common output transaction");
+        }
         IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
         if (!VerifyMissingInputAtomic(catalog))
         {
@@ -182,20 +186,47 @@ public static class CombatEquipmentCraftTransactionFixture
             FailNextAcknowledgement = true
         };
         CombatEquipmentCraftOrderSaveData order = CreateOrder("dismantle");
+        order.definitionId = "weapon:dagger";
         order.dismantlingRejectedOutput = true;
         order.materialsReady = true;
         order.rejectedInstanceId = "equipment:rejected:qa";
+        CombatEquipmentInstance rejectedEquipment = new()
+        {
+            instanceId = order.rejectedInstanceId,
+            definitionId = order.definitionId,
+            materialId = "material:iron",
+            quality = CombatEquipmentQuality.Normal,
+            durabilityRatio = 1f,
+            powerCharge = 100f,
+            loadedAmmunition = new LoadedAmmunitionBatch(),
+            worldState = CombatEquipmentWorldState.Loose,
+            ownerCharacterId = string.Empty,
+            sourceStackId = string.Empty,
+            evolution = new EquipmentEvolutionState(),
+            moduleSlots = new List<EquipmentModuleSlotState>()
+        };
         order.rejectedStackId = gateway.AddUnique(
-            "material:iron-ingot",
+            PhysicalItemIds.ForEquipment(order.definitionId),
             order.rejectedInstanceId,
             WorldItemStackState.FacilityOutputBuffer,
-            "production-output:building:qa");
+            "production-output:building:qa",
+            new[] { EquipmentItemStateCodec.Encode(rejectedEquipment) });
         order.recoveryOutputs.Add(new CombatCraftRecoveryOutputSaveData
         {
-            itemId = "material:lumber",
+            itemId = "material:iron-ingot",
             amount = 1
         });
         order.spawnedRecoveryAmounts.Add(0);
+        long recoveryMass = new PhysicalItemMassQuery(catalog)
+            .GetDefinitionUnitMass((ItemDefinitionId)"material:iron-ingot")
+            .Value;
+        order.rejectedRecoveryFactorsCaptured = true;
+        order.rejectedRecoveryWorkerSkill = 0f;
+        order.rejectedRecoverySalvageMultiplier = 1f;
+        order.rejectedRecoveryProjected = true;
+        order.rejectedRecoveryDesiredMassGrams = recoveryMass;
+        order.rejectedRecoveryOutputMassGrams = recoveryMass;
+        order.rejectedRecoverySourceDigest = "fixture:rejected-recovery";
         if (!CombatEquipmentRejectedDismantleOutbox.TryCommitOrResume(
                 order,
                 gateway,
@@ -210,7 +241,7 @@ public static class CombatEquipmentCraftTransactionFixture
         string recoveryOperation = CombatEquipmentRejectedDismantleOutbox
             .FormatRecoveryOperationId(order.orderId, 0, 0);
         if (!CombatEquipmentCraftOutputOutbox.TryEnsureGenericOutput(
-                "material:lumber",
+                "material:iron-ingot",
                 1,
                 recoveryOperation,
                 gateway,
@@ -247,7 +278,7 @@ public static class CombatEquipmentCraftTransactionFixture
                 gateway,
                 out _)
             || !CombatEquipmentCraftOutputOutbox.TryEnsureGenericOutput(
-                "material:lumber",
+                "material:iron-ingot",
                 1,
                 recoveryOperation,
                 gateway,
@@ -268,12 +299,200 @@ public static class CombatEquipmentCraftTransactionFixture
         {
             return false;
         }
-        Validate(new[] { order }, candidate);
-        Validate(new[] { restored });
+        CandidateOutputQuery outputCandidate = CandidateOutputQuery.Capture(
+            gateway,
+            recoveryCommit,
+            recoveryMass);
+        CombatEquipmentCraftMaterialRestoreGuard.ValidateOwnerSet(
+            new[] { order },
+            GetRequirements,
+            new CandidateQuery(new[] { candidate }),
+            outputCandidate);
+        CombatEquipmentCraftMaterialRestoreGuard.ValidateOwnerSet(
+            new[] { restored },
+            GetRequirements,
+            new CandidateQuery(Array.Empty<
+                PhysicalItemRestoreCandidateDispositionSnapshot>()),
+            outputCandidate);
         return Reject(new[] { order })
             && Reject(Array.Empty<CombatEquipmentCraftOrderSaveData>(), candidate)
             && Reject(new[] { restored }, candidate);
     }
+
+    private static bool VerifyCommonOutputTransaction()
+    {
+        GameObject facilityObject = new("CombatCommonOutputFixture");
+        try
+        {
+            Facility facility = facilityObject.AddComponent<Facility>();
+            facility.RestorePersistentIdentity(
+                (BuildingInstanceId)"building:qa:combat-common-output");
+            string facilityId = facility.RequirePersistentInstanceId().Value;
+
+            ProductionDomainOutputPublicationDebugScenarios.DomainFixture unique =
+                new(runtimeObject: facility);
+            CombatEquipmentCraftOutputTransaction uniqueTransaction = new(
+                new CombatEquipmentRuntimeStateStore(
+                    new DungeonRuntimeAggregateRootStore()),
+                new FixedBuildingWorld(facility),
+                ProductionDomainOutputPublicationDebugScenarios.Service(unique),
+                new FixedRejectedSaleDestination(
+                    new Vector2Int(14, 6),
+                    unique.Claims),
+                UnavailableEquipmentPhysicalItemGateway.Instance);
+            const string InstanceId =
+                "item-instance:combat-common-output:dagger:001";
+            CombatEquipmentInstance prepared = new()
+            {
+                instanceId = InstanceId,
+                definitionId = "weapon:dagger",
+                materialId = "material:iron",
+                quality = CombatEquipmentQuality.Normal,
+                durabilityRatio = 1f,
+                worldState = CombatEquipmentWorldState.Loose,
+                ownerCharacterId = string.Empty,
+                sourceStackId = string.Empty,
+                evolution = new EquipmentEvolutionState(),
+                moduleSlots = new List<EquipmentModuleSlotState>()
+            };
+            CombatEquipmentCraftOrderSaveData equipmentOrder = new()
+            {
+                orderId = "combat-craft:common-equipment",
+                definitionId = "weapon:dagger",
+                facilityPersistentId = facilityId,
+                qualityAttemptIndex = 0,
+                attemptOutcomeResolved = true,
+                resolvedQuality = CombatEquipmentQuality.Normal,
+                minimumQuality = CraftsmanshipQualityTier.Good,
+                rejectedDisposition = RejectedOutputDisposition.MarkForSale,
+                outputItemId = PhysicalItemIds.ForEquipment("weapon:dagger"),
+                outputQuantity = 1,
+                outputCapability = FreezeCapability(
+                    CombatEquipmentCraftOutputCapability.OutputLineId,
+                    PhysicalItemIds.ForEquipment("weapon:dagger"),
+                    ProductionOutputCapabilityIds.CombatEquipmentCraft,
+                    ProductionOutputCapabilityIds.CombatEquipmentCraftVersion,
+                    ProductionOutputCapabilityIds.CombatEquipmentStateCodec,
+                    ProductionOutputCapabilityIds
+                        .CombatEquipmentStateCodecVersion),
+                outputInstanceId = InstanceId,
+                outputPreparedComponent = EquipmentItemStateCodec.Encode(prepared),
+                outputPhase = CombatEquipmentCraftOutputPhase
+                    .ResolvedWaitingForPublication
+            };
+            ProductionDomainOutputPublicationResult equipmentCommit =
+                uniqueTransaction.EnsureCommitted(equipmentOrder);
+            if (!equipmentCommit.IsCommitted
+                || equipmentOrder.outputPhase != CombatEquipmentCraftOutputPhase
+                    .PublishedAwaitingInputAcknowledgement
+                || equipmentOrder.outputPublication.stacks.Count != 1
+                || equipmentOrder.outputPublication.stacks[0].itemInstanceId
+                    != InstanceId
+                || !equipmentOrder.outputPublication.releaseHasDestination
+                || equipmentOrder.outputPublication.releaseDestinationId
+                    != QualityRejectedOutputRules.MarketDestinationId
+                || equipmentOrder.outputPublication.releaseDestinationX != 14
+                || equipmentOrder.outputPublication.releaseDestinationY != 6
+                || unique.Repository.EquipmentInstances.Count != 1
+                || !uniqueTransaction.TryAcknowledgeAndRoute(
+                    equipmentOrder,
+                    markForSale: true,
+                    out _)
+                || !uniqueTransaction.TryAcknowledgeAndRoute(
+                    equipmentOrder,
+                    markForSale: true,
+                    out _)
+                || !equipmentOrder.outputPublication.outputAcknowledged
+                || !equipmentOrder.outputMarketRouted
+                || unique.Repository.EquipmentInstances.Count != 1
+                || unique.Query.GetAllStacks().Any(stack =>
+                    stack.State != WorldItemStackState.Loose
+                    || stack.DestinationId
+                        != QualityRejectedOutputRules.MarketDestinationId
+                    || !stack.HasDestinationPosition
+                    || stack.DestinationPosition != new Vector2Int(14, 6)))
+            {
+                return false;
+            }
+
+            ProductionDomainOutputPublicationDebugScenarios.DomainFixture ammo =
+                new(runtimeObject: facility);
+            CombatEquipmentCraftOutputTransaction ammoTransaction = new(
+                new CombatEquipmentRuntimeStateStore(
+                    new DungeonRuntimeAggregateRootStore()),
+                new FixedBuildingWorld(facility),
+                ProductionDomainOutputPublicationDebugScenarios.Service(ammo),
+                new FixedRejectedSaleDestination(
+                    new Vector2Int(14, 6),
+                    ammo.Claims),
+                UnavailableEquipmentPhysicalItemGateway.Instance);
+            CombatEquipmentCraftOrderSaveData ammoOrder = new()
+            {
+                orderId = "combat-craft:common-ammunition",
+                definitionId = CombatItemDefinitions.ArrowBundleRecipeId,
+                facilityPersistentId = facilityId,
+                qualityAttemptIndex = 0,
+                attemptOutcomeResolved = true,
+                resolvedQuality = CombatEquipmentQuality.Normal,
+                outputItemId = "item:qa:a",
+                outputQuantity = 5,
+                outputCapability = FreezeCapability(
+                    CombatAmmunitionCraftOutputCapability.OutputLineId,
+                    "item:qa:a",
+                    ProductionOutputCapabilityIds.CombatAmmunitionCraft,
+                    ProductionOutputCapabilityIds.CombatAmmunitionCraftVersion,
+                    ProductionOutputCapabilityIds.CombatAmmunitionStateCodec,
+                    ProductionOutputCapabilityIds
+                        .CombatAmmunitionStateCodecVersion),
+                outputPhase = CombatEquipmentCraftOutputPhase
+                    .ResolvedWaitingForPublication
+            };
+            ProductionDomainOutputPublicationResult ammoCommit =
+                ammoTransaction.EnsureCommitted(ammoOrder);
+            return ammoCommit.IsCommitted
+                && ammoOrder.outputPublication.stacks.Count == 3
+                && !ammoOrder.outputPublication.releaseHasDestination
+                && ammoOrder.outputPublication.stacks.All(value =>
+                    string.IsNullOrEmpty(value.itemInstanceId))
+                && ammo.Repository.EquipmentInstances.Count == 0
+                && ammoTransaction.TryAcknowledgeAndRoute(
+                    ammoOrder,
+                    markForSale: false,
+                    out _)
+                && ammoOrder.outputPublication.outputAcknowledged
+                && !ammoOrder.outputMarketRouted
+                && ammo.Query.GetAllStacks().All(stack =>
+                    stack.State == WorldItemStackState.Loose
+                    && string.IsNullOrEmpty(stack.DestinationId)
+                    && !stack.HasDestinationPosition);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+        }
+    }
+
+    private static ProductionOutputCapabilitySaveData FreezeCapability(
+        string outputLineId,
+        string itemId,
+        string capabilityId,
+        int capabilityVersion,
+        string codecId,
+        int codecVersion) => ProductionOutputCapabilitySaveData.Freeze(
+        new ProductionOutputCapabilityDescriptor(
+            outputLineId,
+            itemId,
+            capabilityId,
+            capabilityVersion,
+            codecId,
+            codecVersion,
+            ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                outputLineId,
+                itemId,
+                capabilityId,
+                capabilityVersion,
+                codecId,
+                codecVersion)));
 
     private static CombatEquipmentCraftOrderSaveData CreateOrder(string suffix) =>
         new()
@@ -364,6 +583,113 @@ public static class CombatEquipmentCraftTransactionFixture
         }
     }
 
+    private sealed class CandidateOutputQuery :
+        IPhysicalItemRestoreCandidateOutputQuery
+    {
+        private readonly IReadOnlyList<
+            PhysicalItemRestoreCandidateOutputSnapshot> values;
+
+        private CandidateOutputQuery(
+            IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot> values)
+        {
+            this.values = values;
+        }
+
+        public bool IsCandidateAvailable => true;
+        public IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot>
+            CommittedOutputs => values;
+
+        public bool TryGetCommittedOutput(
+            string commitId,
+            out IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot> outputs)
+        {
+            PhysicalItemRestoreCandidateOutputSnapshot[] matches = values
+                .Where(value => value != null && string.Equals(
+                    value.CommitId,
+                    commitId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            outputs = Array.AsReadOnly(matches);
+            return matches.Length > 0;
+        }
+
+        internal static CandidateOutputQuery Capture(
+            FixtureGateway gateway,
+            string commitId,
+            long massGrams)
+        {
+            WorldItemStackSnapshot[] stacks = gateway.GetAllStacks()
+                .Where(value => value != null
+                    && ProductionOutputCommitComponentCodec.Matches(
+                        value.Components,
+                        commitId))
+                .OrderBy(value => value.StackId, StringComparer.Ordinal)
+                .ToArray();
+            return new CandidateOutputQuery(Array.AsReadOnly(stacks
+                .Select(value => new PhysicalItemRestoreCandidateOutputSnapshot(
+                    commitId,
+                    value.StackId,
+                    value.ItemId,
+                    value.Quantity,
+                    massGrams,
+                    value.State,
+                    value.Position,
+                    value.DestinationId))
+                .ToArray()));
+        }
+    }
+
+    private sealed class FixedRejectedSaleDestination :
+        IQualityRejectedSaleDestinationAuthority
+    {
+        private readonly Vector2Int position;
+        private readonly IFacilityBufferDestinationClaimCommand claims;
+
+        internal FixedRejectedSaleDestination(
+            Vector2Int position,
+            IFacilityBufferDestinationClaimCommand claims)
+        {
+            this.position = position;
+            this.claims = claims;
+        }
+
+        public bool TryEnsureTarget(
+            out FacilityBufferAcknowledgedOutputReleaseTarget target,
+            out string failureReason)
+        {
+            FacilityBufferDestinationClaim claim = new(
+                QualityRejectedOutputRules.MarketDestinationId,
+                position,
+                QualityRejectedSaleDestinationAuthority.OwnerDomain,
+                QualityRejectedSaleDestinationAuthority.OwnerOperationId,
+                null,
+                FacilityBufferDestinationAnchorKind.ReservedTarget);
+            if (!claims.TryReplaceOwnedClaims(
+                    QualityRejectedSaleDestinationAuthority.OwnerDomain,
+                    new[] { claim },
+                    out _,
+                    out failureReason))
+            {
+                target = default;
+                return false;
+            }
+            target = new FacilityBufferAcknowledgedOutputReleaseTarget(
+                QualityRejectedOutputRules.MarketDestinationId,
+                position);
+            failureReason = string.Empty;
+            return true;
+        }
+    }
+
+    private sealed class FixedBuildingWorld : IBuildingWorldQuery
+    {
+        internal FixedBuildingWorld(params BuildableObject[] buildings) =>
+            Buildings = buildings ?? Array.Empty<BuildableObject>();
+
+        public int BuildingVersion => 1;
+        public IReadOnlyList<BuildableObject> Buildings { get; }
+    }
+
     private sealed class FixtureGateway : IEquipmentPhysicalItemGateway
     {
         private readonly WorldItemRepository repository;
@@ -401,14 +727,16 @@ public static class CombatEquipmentCraftTransactionFixture
             string itemId,
             string itemInstanceId,
             WorldItemStackState state,
-            string destinationId) =>
+            string destinationId,
+            IReadOnlyList<ItemInstanceComponentSaveData> components) =>
             WorldItemRepositoryEditorAccess.AddStack(
                 repository,
                 itemId,
                 1,
                 state,
                 destinationId: destinationId,
-                itemInstanceId: itemInstanceId);
+                itemInstanceId: itemInstanceId,
+                components: components);
 
         internal int Quantity(string stackId) =>
             repository.GetEditorTestQuantity(stackId);

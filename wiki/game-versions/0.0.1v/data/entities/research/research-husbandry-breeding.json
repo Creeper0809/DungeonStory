@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Husbandry"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-taming",
+      "target_spoiler_tier": "none",
+      "target_title": "길들이기",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-taming",
+      "target_spoiler_tier": "none",
+      "target_title": "길들이기",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-taming",
+      "target_spoiler_tier": "none",
+      "target_title": "길들이기",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8817",
+      "target_spoiler_tier": "none",
+      "target_title": "번식 장부대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-husbandry-breeding",
+  "spoiler_tier": "none",
+  "summary": "성별, 성장 단계와 임신을 고려해 개체 수를 관리한다.",
+  "title": "번식 관리"
+}

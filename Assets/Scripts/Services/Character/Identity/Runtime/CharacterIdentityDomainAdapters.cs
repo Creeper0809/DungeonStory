@@ -355,14 +355,24 @@ public sealed class CharacterDeathIdentityEventAdapter :
     CharacterIdentityEventAdapterBase
 {
     private readonly CharacterIdentityStateStore states;
+    private readonly ICharacterIdentityDeathStateRetentionPolicy[]
+        retentionPolicies;
 
     public CharacterDeathIdentityEventAdapter(
         IGameEventBus events,
         ICharacterWorldQuery world,
         CharacterMoodPolicyService moods,
-        CharacterIdentityStateStore states)
-        : base(events, world, moods) => this.states = states
-            ?? throw new ArgumentNullException(nameof(states));
+        CharacterIdentityStateStore states,
+        IEnumerable<ICharacterIdentityDeathStateRetentionPolicy>
+            retentionPolicies)
+        : base(events, world, moods)
+    {
+        this.states = states ?? throw new ArgumentNullException(nameof(states));
+        this.retentionPolicies = (retentionPolicies
+                ?? Array.Empty<ICharacterIdentityDeathStateRetentionPolicy>())
+            .Where(value => value != null)
+            .ToArray();
+    }
 
     [GameplayInternalOnly(
         "The runtime entry-point container starts this registered identity adapter exactly once.",
@@ -371,15 +381,19 @@ public sealed class CharacterDeathIdentityEventAdapter :
         Subscribe<CharacterDiedEvent>(OnDied);
 
     private void OnDied(CharacterDiedEvent e) =>
-        states.RemoveCharacter(e.Character.Value);
+        states.RemoveCharacter(e.Character.Value, retentionPolicies);
 }
 
-public sealed class WorkIdentityEventAdapter : CharacterIdentityEventAdapterBase
+public sealed class WorkIdentityEventAdapter :
+    CharacterIdentityEventAdapterBase,
+    IWorkCompletionIdentityDeliveryCommand
 {
     private readonly CharacterDirectOrderCostPreviewService directOrders;
     private readonly CharacterIdentityStateStore states;
     private readonly ICharacterEnvironmentStatusQuery environment;
     private readonly CharacterPersistentNeedRuntime persistentNeeds;
+    private readonly WorkCompletionIdentityDeliveryLedger completionDeliveries;
+    private readonly ICharacterLifetimeQuery characterLifetime;
 
     [Serializable]
     private sealed class WorkEventHistoryState
@@ -395,7 +409,9 @@ public sealed class WorkIdentityEventAdapter : CharacterIdentityEventAdapterBase
         CharacterDirectOrderCostPreviewService directOrders,
         CharacterIdentityStateStore states,
         ICharacterEnvironmentStatusQuery environment,
-        CharacterPersistentNeedRuntime persistentNeeds)
+        CharacterPersistentNeedRuntime persistentNeeds,
+        WorkCompletionIdentityDeliveryLedger completionDeliveries,
+        ICharacterLifetimeQuery characterLifetime)
         : base(events, world, moods)
     {
         this.directOrders = directOrders
@@ -405,6 +421,10 @@ public sealed class WorkIdentityEventAdapter : CharacterIdentityEventAdapterBase
             ?? throw new ArgumentNullException(nameof(environment));
         this.persistentNeeds = persistentNeeds
             ?? throw new ArgumentNullException(nameof(persistentNeeds));
+        this.completionDeliveries = completionDeliveries
+            ?? throw new ArgumentNullException(nameof(completionDeliveries));
+        this.characterLifetime = characterLifetime
+            ?? throw new ArgumentNullException(nameof(characterLifetime));
     }
 
     [GameplayInternalOnly(
@@ -458,10 +478,127 @@ public sealed class WorkIdentityEventAdapter : CharacterIdentityEventAdapterBase
             Moods.Apply(actor, "shift:forced-day", 0f, 1, "주간 강제 교대");
     }
 
+    public WorkCompletionIdentityDeliveryResult EnsureApplied(
+        WorkCompletionIdentityDeliveryRequest request)
+    {
+        if (request.Origin != CharacterCommandOrigin.Autonomous
+            || !string.Equals(
+                request.WorkId,
+                BuiltInWorkTypeIds.Harvest.Value,
+                StringComparison.Ordinal))
+            return new(
+                WorkCompletionIdentityDeliveryStatus.Conflict,
+                "Durable work completion currently supports autonomous harvest only.");
+        WorkCompletionIdentityDeliveryStatus status = completionDeliveries
+            .Inspect(request, out string failureReason);
+        if (status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied)
+            return new(status);
+        if (status == WorkCompletionIdentityDeliveryStatus.Conflict)
+            return new(status, failureReason);
+        CharacterActor actor = Find(request.Character);
+        if (actor == null)
+        {
+            CharacterActor lifetimeActor = characterLifetime.AllCharacters
+                .FirstOrDefault(candidate => candidate != null
+                    && candidate.Identity != null
+                    && candidate.Identity.TypedPersistentId.Equals(
+                        request.Character));
+            bool terminal = lifetimeActor == null
+                || lifetimeActor.IsDead
+                || lifetimeActor.CurrentLifecycleState ==
+                    CharacterLifecycleState.Despawned;
+            if (!terminal)
+                return new(
+                    WorkCompletionIdentityDeliveryStatus.Deferred,
+                    "The completion character is temporarily unavailable in the live world.");
+            WorkCompletionIdentityDeliveryStatus terminalCommit =
+                completionDeliveries.Commit(
+                    request,
+                    out failureReason,
+                    WorkCompletionIdentityDeliveryDisposition
+                        .TerminalRecipientUnavailable);
+            if (terminalCommit == WorkCompletionIdentityDeliveryStatus.Conflict)
+                return new(terminalCommit, failureReason);
+            return new(terminalCommit);
+        }
+
+        completionDeliveries.BeginApply(request);
+        IReadOnlyList<CharacterIdentityRuntimeStateSaveData> identityBefore = null;
+        CharacterMoodDeliveryTransactionSnapshot moodBefore = null;
+        CharacterProgressionSnapshot progressionBefore = null;
+        try
+        {
+            identityBefore = states.Capture();
+            moodBefore = actor.Stats?.CaptureMoodDeliveryTransactionState();
+            progressionBefore = actor.Progression?.CapturePersistentState();
+            ApplyCompleted(request.ToEvent(), actor);
+            WorkCompletionIdentityDeliveryStatus committed =
+                completionDeliveries.Commit(request, out failureReason);
+            if (committed == WorkCompletionIdentityDeliveryStatus.Conflict)
+                throw new InvalidOperationException(
+                    "Work-completion delivery changed during synchronous apply: "
+                    + failureReason);
+            return new(committed);
+        }
+        catch (Exception error)
+        {
+            List<Exception> rollbackFailures = new();
+            try
+            {
+                if (identityBefore != null)
+                    states.RestoreTrustedTransactionSnapshot(identityBefore);
+            }
+            catch (Exception rollbackError)
+            {
+                rollbackFailures.Add(rollbackError);
+            }
+            try
+            {
+                if (progressionBefore != null)
+                    actor.Progression?.RestorePersistentState(progressionBefore);
+            }
+            catch (Exception rollbackError)
+            {
+                rollbackFailures.Add(rollbackError);
+            }
+            try
+            {
+                if (moodBefore != null)
+                    actor.Stats?.RestoreMoodDeliveryTransactionState(moodBefore);
+            }
+            catch (Exception rollbackError)
+            {
+                rollbackFailures.Add(rollbackError);
+            }
+            if (rollbackFailures.Count != 0)
+            {
+                rollbackFailures.Insert(0, error);
+                throw new AggregateException(
+                    "Work-completion delivery apply and rollback failed.",
+                    rollbackFailures);
+            }
+            throw;
+        }
+        finally
+        {
+            completionDeliveries.EndApply(request);
+        }
+    }
+
+    public bool RetireProducerStream(string producerStreamId) =>
+        completionDeliveries.RetireProducerStream(producerStreamId);
+
     private void OnCompleted(WorkCompletedIdentityEvent e)
     {
         CharacterActor actor = Find(e.Character);
         if (actor == null) return;
+        ApplyCompleted(e, actor);
+    }
+
+    private void ApplyCompleted(
+        WorkCompletedIdentityEvent e,
+        CharacterActor actor)
+    {
         if (e.Origin == CharacterCommandOrigin.DirectPlayerOrder)
             directOrders.Apply(actor, e.WorkId);
 

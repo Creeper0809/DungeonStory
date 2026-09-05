@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-weapon-mana-lance",
+    "spoiler_tier": "none",
+    "title": "마나 랜스"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-mana-lance",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-mana-lance",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-rune-module-tuning",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 부품 조율",
+      "to": "research/research-equipment-rune-module-tuning",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

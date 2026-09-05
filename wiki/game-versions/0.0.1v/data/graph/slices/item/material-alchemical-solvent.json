@@ -1,0 +1,67 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-alchemical-solvent",
+    "spoiler_tier": "none",
+    "title": "연금 용매"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-antidote",
+      "label": "필요 조건",
+      "to": "item/material-alchemical-solvent",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-blood-stimulant",
+      "label": "필요 조건",
+      "to": "item/material-alchemical-solvent",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dreamleaf-analgesic",
+      "label": "필요 조건",
+      "to": "item/material-alchemical-solvent",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-fang-poison",
+      "label": "필요 조건",
+      "to": "item/material-alchemical-solvent",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-mana-awakener",
+      "label": "필요 조건",
+      "to": "item/material-alchemical-solvent",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-slime-coagulation-frame",
+      "label": "필요 조건",
+      "to": "item/material-alchemical-solvent",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-solvent",
+      "label": "생산·해금",
+      "to": "item/material-alchemical-solvent",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-standard-medicine",
+      "label": "필요 조건",
+      "to": "item/material-alchemical-solvent",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

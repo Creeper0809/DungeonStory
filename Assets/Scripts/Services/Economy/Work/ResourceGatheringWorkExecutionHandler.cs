@@ -76,7 +76,9 @@ public sealed class ResourceGatheringWorkExecutionHandler :
             return cropWork.Available;
         }
 
-        if (workTypeId == BuiltInWorkTypeIds.Quarry)
+        if (workTypeId == BuiltInWorkTypeIds.Quarry
+            && ProductionFacilityDefinitionIdentity
+                .IsProductionWorkstation(target))
         {
             ProductionWorkAvailabilityResult availability =
                 productionBills.CheckWorkAvailability(target, workTypeId);
@@ -127,6 +129,8 @@ public sealed class ResourceGatheringWorkExecutionHandler :
         }
 
         return workTypeId == BuiltInWorkTypeIds.Quarry
+            && ProductionFacilityDefinitionIdentity
+                .IsProductionWorkstation(target)
             && productionBills.CheckWorkAvailability(target, workTypeId).Available
                 ? 32f
                 : 0f;
@@ -146,6 +150,17 @@ public sealed class ResourceGatheringWorkExecutionHandler :
                 out WorldResourceWorkSnapshot snapshot)
             && snapshot.Available)
         {
+            if (snapshot.PendingOutputReady)
+            {
+                bool finalized = worldResources.TryFinalizePendingOutput(
+                    resourceNode,
+                    context.WorkTypeId,
+                    out bool cycleCompleted);
+                result.CompletedSuccessfully = finalized && cycleCompleted;
+                result.CompletionEffectsAlreadyApplied = cycleCompleted;
+                yield break;
+            }
+
             bool progressApplied = true;
             bool completed = false;
             yield return context.ExecutePersistentWorkAmount(
@@ -198,7 +213,9 @@ public sealed class ResourceGatheringWorkExecutionHandler :
             yield break;
         }
 
-        if (context.WorkTypeId == BuiltInWorkTypeIds.Quarry)
+        if (context.WorkTypeId == BuiltInWorkTypeIds.Quarry
+            && ProductionFacilityDefinitionIdentity
+                .IsProductionWorkstation(context.Target))
         {
             ProductionWorkBeginResult begin = productionBills.BeginWork(
                 context.Actor,

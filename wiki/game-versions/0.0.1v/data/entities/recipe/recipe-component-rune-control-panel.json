@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "필요 연구",
+      "value": "룬 자동화"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-rune-control-panel",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 제어반",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-rune-automation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 자동화",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-component-rune-control-panel",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 룬 제어반을(를) 생산한다.",
+  "title": "룬 제어반"
+}

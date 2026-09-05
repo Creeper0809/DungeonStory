@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-supply-pest-lure",
+    "spoiler_tier": "none",
+    "title": "해충 유인제"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-pest-lure",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-pest-lure",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "to": "item/resource-meat",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-pest-lure",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "supply-pest-lure",
+      "target_spoiler_tier": "none",
+      "target_title": "해충 유인제",
+      "to": "item/supply-pest-lure",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-supply-pest-lure",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-pest-lure",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-soil-cycles",
+      "target_spoiler_tier": "none",
+      "target_title": "토양 순환과 작물 보호",
+      "to": "research/research-agriculture-soil-cycles",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

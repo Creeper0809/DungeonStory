@@ -128,7 +128,7 @@ public static class ProductionApparelOrderTerminalDrainOutboxDebugScenarios
                     .RejectedOutputDismantle
             && subject.PendingEffect.sourceAlreadyConsumed
             && subject.PendingEffect.quantity == 5
-            && subject.PendingEffect.completedQuantity == 2
+            && subject.PendingEffect.completedQuantity == 0
             && subject.PendingEffect.sourceStackIds.SequenceEqual(
                 new[] { "stack:rejected-output" }, StringComparer.Ordinal),
             "Rejected dismantle progress was not frozen exactly.");
@@ -139,7 +139,7 @@ public static class ProductionApparelOrderTerminalDrainOutboxDebugScenarios
             && saved.sourceOrder.dismantlingRejectedOutput
             && saved.sourceOrder.rejectedOutputConsumed
             && saved.sourceOrder.rejectedMaterialAmount == 5
-            && saved.sourceOrder.rejectedMaterialSpawned == 2,
+            && saved.sourceOrder.rejectedMaterialSpawned == 0,
             "Rejected dismantle source phase was not preserved by the producer.");
     }
 
@@ -171,11 +171,15 @@ public static class ProductionApparelOrderTerminalDrainOutboxDebugScenarios
             "Exact work-loss and pending-effect receipt was not recorded.");
         ProductionApparelOrderTerminalDrainResult terminal = fixture.Outbox
             .TryProgress(subject.StepOperationId);
+        bool capturedAfterTerminal = fixture.Outbox.TryCapture(
+            subject.StepOperationId,
+            out ProductionApparelOrderTerminalDrainSaveData afterTerminal);
         Require(terminal.Status ==
                 ProductionApparelOrderTerminalDrainStatus.Applied
             && terminal.Phase == ProductionApparelOrderTerminalDrainPhase
                 .SourceOrderTerminalCommittedAwaitingOwnerAcknowledgement
-            && !fixture.Source.HasLive(order.orderId),
+            && !fixture.Source.HasLive(order.orderId)
+            && capturedAfterTerminal,
             "The exact source-order terminal receipt was not committed.");
         Require(fixture.Outbox.TryProgress(subject.StepOperationId).Status ==
                 ProductionApparelOrderTerminalDrainStatus.Replay,
@@ -195,7 +199,7 @@ public static class ProductionApparelOrderTerminalDrainOutboxDebugScenarios
                 ProductionApparelOrderTerminalDrainStatus.Deferred,
             "Producer GC ran before its child receipts were collected.");
         fixture.Effects.Collect(afterEffect.terminalEffectReceipt.commitId);
-        fixture.Source.Collect(afterEffect.sourceTerminalReceipt.commitId);
+        fixture.Source.Collect(afterTerminal.sourceTerminalReceipt.commitId);
         Require(fixture.Outbox.TryGarbageCollect(
                     subject.StepOperationId,
                     terminal.ReceiptFingerprint).Status ==
@@ -374,8 +378,9 @@ public static class ProductionApparelOrderTerminalDrainOutboxDebugScenarios
             repairResolvedStatePayload = "{\"durability\":70}"
         };
 
-    private static ApparelWorkOrderSaveData CreateRejectedOrder(string suffix) =>
-        new()
+    private static ApparelWorkOrderSaveData CreateRejectedOrder(string suffix)
+    {
+        ApparelWorkOrderSaveData order = new()
         {
             orderId = "apparel:craft:" + suffix,
             kind = ApparelWorkOrderKind.Craft,
@@ -389,9 +394,21 @@ public static class ProductionApparelOrderTerminalDrainOutboxDebugScenarios
             dismantlingRejectedOutput = true,
             rejectedOutputConsumed = true,
             rejectedOutputStackId = "stack:rejected-output",
+            rejectedOutputInstanceId = "item:rejected-output:" + suffix,
             rejectedMaterialAmount = 5,
-            rejectedMaterialSpawned = 2
+            rejectedMaterialSpawned = 0,
+            rejectedRecoveryItemId = "material:rejected-recovery",
+            rejectedDismantleInputMassGrams = 5_000L
         };
+        order.rejectedDismantleOperationId = ApparelRejectedDismantleOutbox
+            .FormatOperationId(order.orderId, order.qualityAttemptIndex);
+        order.rejectedDismantleCommitId =
+            "physical-disposition:apparel-rejected:" + suffix;
+        order.rejectedDismantleRequestFingerprint =
+            ApparelRejectedDismantleOutbox.CreateRequestFingerprint(
+                order.rejectedOutputStackId);
+        return order;
+    }
 
     private static void Require(bool condition, string message)
     {

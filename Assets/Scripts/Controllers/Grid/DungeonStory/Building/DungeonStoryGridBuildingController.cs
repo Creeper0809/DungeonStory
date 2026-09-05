@@ -34,6 +34,28 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
     private bool initialized;
     private bool resetGridModeAtEndOfFrame;
     private int lastPlacementInputFrame = -1;
+    private readonly Dictionary<string, PendingDestroyObservation>
+        pendingDestroyObservations = new(StringComparer.Ordinal);
+
+    private sealed class PendingDestroyObservation
+    {
+        internal PendingDestroyObservation(
+            BuildableObject building,
+            BuildingSO buildingData,
+            Action handler,
+            bool showCompletionNotice)
+        {
+            Building = building;
+            BuildingData = buildingData;
+            Handler = handler;
+            ShowCompletionNotice = showCompletionNotice;
+        }
+
+        internal BuildableObject Building { get; }
+        internal BuildingSO BuildingData { get; }
+        internal Action Handler { get; }
+        internal bool ShowCompletionNotice { get; set; }
+    }
 
     public event Action<BuildingSO> OnSelectedBuildingChanged;
 
@@ -139,7 +161,7 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
             workOrderRuntime,
             ConfigurePlacedBuilding,
             ResolveWarehouseLifecycleOccupancy(),
-            ResolveProductionFacilityMutationFence());
+            ResolveBuildingDestructiveLossRuntime());
         if (!HasAnyPlacedStructures(gridSystem.grid))
         {
             placementService.PlaceInitialBuildings(NormalizeInitialPlacementForCurrentGrid(
@@ -170,20 +192,20 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
             + $"{nameof(IWarehouseLifecycleOccupancyQuery)}.");
     }
 
-    private IProductionFacilityMutationFence ResolveProductionFacilityMutationFence()
+    private IBuildingDestructiveLossRuntime ResolveBuildingDestructiveLossRuntime()
     {
         if (objectResolver != null
             && objectResolver.TryResolve(
-                typeof(IProductionFacilityMutationFence),
+                typeof(IBuildingDestructiveLossRuntime),
                 out object resolved)
-            && resolved is IProductionFacilityMutationFence fence)
+            && resolved is IBuildingDestructiveLossRuntime runtime)
         {
-            return fence;
+            return runtime;
         }
 
         throw new InvalidOperationException(
             $"{nameof(DungeonStoryGridBuildingController)} requires "
-            + $"{nameof(IProductionFacilityMutationFence)}.");
+            + $"{nameof(IBuildingDestructiveLossRuntime)}.");
     }
 
     private void Update()
@@ -259,16 +281,47 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
         BuildableObject building = GetBuildingByMousePos();
         if (!building) return;
 
-        if (!placementService.TryDestroyBuilding(building, out BuildingSO buildingData, out string errorMessage))
+        BuildingSO buildingData = FindBuildingDataById(building.id);
+        if (buildingData == null || !building.PersistentInstanceId.IsValid)
         {
-            gameEventBus.ShowNotice(errorMessage, NoticeFeedEvent.Grade.DANGER);
+            gameEventBus.ShowNotice(
+                "철거할 건물의 정의나 영속 ID를 찾을 수 없습니다.",
+                NoticeFeedEvent.Grade.DANGER);
             return;
         }
 
-        int refund = FacilityProgression.GetRefund(buildingData);
-        string refundText = refund > 0 ? $" · {refund} 환급" : string.Empty;
-        gameEventBus.ShowNotice($"{buildingData.objectName} 철거 완료{refundText}", NoticeFeedEvent.Grade.NONE);
-        gridSystem.NotifyGridObjectChanged();
+        ProductionFacilityDestructiveDrainOperationId operationId =
+            ProductionFacilityDestructiveDrainOperationId.FromFacility(
+                building.PersistentInstanceId);
+        if (!TryEnsureDestroyObservation(
+                building,
+                buildingData,
+                operationId,
+                showCompletionNotice: true,
+                out string observationFailure))
+        {
+            gameEventBus.ShowNotice(
+                observationFailure,
+                NoticeFeedEvent.Grade.DANGER);
+            return;
+        }
+
+        GridBuildingDestroyRequestResult result =
+            placementService.RequestDestroyBuilding(building);
+        if (!result.Accepted)
+        {
+            RemoveDestroyObservation(operationId);
+            gameEventBus.ShowNotice(
+                result.FailureReason,
+                NoticeFeedEvent.Grade.DANGER);
+            return;
+        }
+        if (!result.Removed)
+        {
+            gameEventBus.ShowNotice(
+                result.FailureReason,
+                NoticeFeedEvent.Grade.NONE);
+        }
     }
 
     private void OnEnable()
@@ -283,6 +336,7 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
 
     private void OnDisable()
     {
+        ClearDestroyObservations();
         if (buildingPlaceAction == null || expandGridAction == null) return;
 
         buildingPlaceAction.performed -= OnBuildingPlaceInput;
@@ -391,16 +445,114 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
             return false;
         }
 
-        if (!placementService.TryDestroyBuilding(
+        BuildingSO buildingData = FindBuildingDataById(building.id);
+        if (buildingData == null || !building.PersistentInstanceId.IsValid)
+        {
+            message = "Building destruction requires canonical definition and persistent identity.";
+            return false;
+        }
+
+        ProductionFacilityDestructiveDrainOperationId operationId =
+            ProductionFacilityDestructiveDrainOperationId.FromFacility(
+                building.PersistentInstanceId);
+        if (!TryEnsureDestroyObservation(
                 building,
-                out _,
+                buildingData,
+                operationId,
+                showCompletionNotice: false,
                 out message))
         {
             return false;
         }
-
-        gridSystem.NotifyGridObjectChanged();
+        GridBuildingDestroyRequestResult result =
+            placementService.RequestDestroyBuilding(building);
+        message = result.FailureReason;
+        if (!result.Accepted)
+        {
+            RemoveDestroyObservation(operationId);
+            return false;
+        }
         return true;
+    }
+
+    private bool TryEnsureDestroyObservation(
+        BuildableObject building,
+        BuildingSO buildingData,
+        ProductionFacilityDestructiveDrainOperationId operationId,
+        bool showCompletionNotice,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (pendingDestroyObservations.TryGetValue(
+                operationId.Value,
+                out PendingDestroyObservation existing))
+        {
+            if (!ReferenceEquals(existing.Building, building)
+                || !ReferenceEquals(existing.BuildingData, buildingData))
+            {
+                failureReason =
+                    "동일한 철거 작업 ID가 다른 건물에 이미 연결되어 있습니다.";
+                return false;
+            }
+            existing.ShowCompletionNotice |= showCompletionNotice;
+            return true;
+        }
+
+        Action handler = null;
+        handler = () => CompleteDestroyObservation(operationId);
+        pendingDestroyObservations.Add(
+            operationId.Value,
+            new PendingDestroyObservation(
+                building,
+                buildingData,
+                handler,
+                showCompletionNotice));
+        building.OnBuildingDestroyed += handler;
+        return true;
+    }
+
+    private void CompleteDestroyObservation(
+        ProductionFacilityDestructiveDrainOperationId operationId)
+    {
+        if (!pendingDestroyObservations.Remove(
+                operationId.Value,
+                out PendingDestroyObservation pending))
+        {
+            return;
+        }
+        if (pending.Building != null)
+            pending.Building.OnBuildingDestroyed -= pending.Handler;
+        gridSystem?.NotifyGridObjectChanged();
+        if (pending.ShowCompletionNotice)
+        {
+            gameEventBus?.ShowNotice(
+                $"{pending.BuildingData.objectName} 철거 완료",
+                NoticeFeedEvent.Grade.NONE);
+        }
+    }
+
+    private void RemoveDestroyObservation(
+        ProductionFacilityDestructiveDrainOperationId operationId)
+    {
+        if (!pendingDestroyObservations.Remove(
+                operationId.Value,
+                out PendingDestroyObservation pending))
+        {
+            return;
+        }
+        if (pending.Building != null)
+            pending.Building.OnBuildingDestroyed -= pending.Handler;
+    }
+
+    private void ClearDestroyObservations()
+    {
+        foreach (PendingDestroyObservation pending in
+                 pendingDestroyObservations.Values)
+        {
+            if (pending?.Building != null)
+                pending.Building.OnBuildingDestroyed -= pending.Handler;
+        }
+        pendingDestroyObservations.Clear();
     }
 
     public Vector3 GetMouseWorldPosSnapped()

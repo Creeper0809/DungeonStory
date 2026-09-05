@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medical-regenerative-medium",
+    "spoiler_tier": "none",
+    "title": "재생 배양액"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-regenerative-medium",
+      "label": "생산·해금",
+      "to": "item/medical-regenerative-medium",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-regeneration",
+      "label": "관련",
+      "to": "item/medical-regenerative-medium",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

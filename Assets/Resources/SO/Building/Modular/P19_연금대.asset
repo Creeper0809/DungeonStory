@@ -113,11 +113,15 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:alchemy
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 2
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 1
     - rid: 1007
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
         defaultBatchCapacity: 4
+        physicalOutputBufferCycleCapacity: 4
         outputCapacities:
         - itemId: material:lead-ingot
           capacity: 24

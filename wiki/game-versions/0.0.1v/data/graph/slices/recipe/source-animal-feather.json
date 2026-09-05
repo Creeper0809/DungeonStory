@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "source-animal-feather",
+    "spoiler_tier": "none",
+    "title": "가축 깃털"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "recipe/source-animal-feather",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-feather",
+      "target_spoiler_tier": "none",
+      "target_title": "깃털",
+      "to": "item/resource-feather",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-animal-feather",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "to": "research/research-husbandry-selective",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

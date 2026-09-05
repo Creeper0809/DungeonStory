@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "653"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "흑강 방어 장갑판을 장비와 설비의 바깥쪽에 덧대 충격과 마나 간섭을 받아 낸다. 특히 제4주조도시제 흑강 방어 장갑판은 몸과 기계를 가리지 않고 맞도록 양쪽에 같은 수리 눈금이 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-blacksteel-defense-plate",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 흑강 방어 장갑판.",
+  "title": "흑강 방어 장갑판"
+}

@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-rune-ward",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 보호막",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-summon-minion",
+      "target_spoiler_tier": "none",
+      "target_title": "지원체 소환",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "enemy-rival-pactbinder",
+  "spoiler_tier": "none",
+  "summary": "소환체와 보호막으로 시간을 번다.",
+  "title": "경쟁 던전 계약결속사"
+}

@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "life-event-story-compressed",
+    "spoiler_tier": "warning",
+    "title": "이름으로 남은 생애"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/life-event-story-compressed",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-story-compressed",
+      "target_spoiler_tier": "warning",
+      "target_title": "이름으로 남은 생애",
+      "to": "event/life-event-story-compressed",
+      "type": "sets-world-flag"
+    },
+    {
+      "amount": "1",
+      "from": "event/life-event-story-compressed",
+      "label": "연결",
+      "to": "event/life-event-story-compressed",
+      "type": "sets-world-flag"
+    }
+  ],
+  "schema_version": 1
+}

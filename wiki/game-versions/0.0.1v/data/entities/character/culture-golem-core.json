@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-golem-memory-plaque",
+      "target_spoiler_tier": "none",
+      "target_title": "기억판 안치",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "tool-maintenance-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 키트",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-golem-core-polish",
+      "target_spoiler_tier": "none",
+      "target_title": "핵 광택일",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "culture-golem-core",
+  "spoiler_tier": "none",
+  "summary": "침묵의 정비와 기억 기록을 휴식으로 여기며 핵의 이력을 존중한다.",
+  "title": "핵 공명 문화"
+}

@@ -1,0 +1,181 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+GameplayEffectConditionDefinitionSO|accident:fall-slip,accident:fall-slip,m_Name,accident_fall-slip,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|accident:fall-slip,accident:fall-slip,numericId,1171627407,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|accident:fall-slip,accident:fall-slip,conditionId,accident:fall-slip,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|accident:fall-slip,accident:fall-slip,description,V26 trait effect condition 'accident:fall-slip'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|event:hostile-execution,event:hostile-execution,m_Name,event_hostile-execution,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|event:hostile-execution,event:hostile-execution,numericId,77651635,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|event:hostile-execution,event:hostile-execution,conditionId,event:hostile-execution,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|event:hostile-execution,event:hostile-execution,description,V26 trait effect condition 'event:hostile-execution'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|relationship:first-apology,relationship:first-apology,m_Name,relationship_first-apology,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|relationship:first-apology,relationship:first-apology,numericId,357374960,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|relationship:first-apology,relationship:first-apology,conditionId,relationship:first-apology,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|relationship:first-apology,relationship:first-apology,description,V26 trait effect condition 'relationship:first-apology'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|relationship:negative,relationship:negative,m_Name,relationship_negative,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|relationship:negative,relationship:negative,numericId,632715895,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|relationship:negative,relationship:negative,conditionId,relationship:negative,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|relationship:negative,relationship:negative,description,V26 trait effect condition 'relationship:negative'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|room:noise,room:noise,m_Name,room_noise,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|room:noise,room:noise,numericId,927940349,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|room:noise,room:noise,conditionId,room:noise,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|room:noise,room:noise,description,V26 trait effect condition 'room:noise'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|shift:day,shift:day,m_Name,shift_day,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|shift:day,shift:day,numericId,1338041020,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|shift:day,shift:day,conditionId,shift:day,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|shift:day,shift:day,description,V26 trait effect condition 'shift:day'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|shift:night,shift:night,m_Name,shift_night,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|shift:night,shift:night,numericId,1580040360,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|shift:night,shift:night,conditionId,shift:night,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|shift:night,shift:night,description,V26 trait effect condition 'shift:night'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:arcane-overcharge,state:arcane-overcharge,m_Name,state_arcane-overcharge,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:arcane-overcharge,state:arcane-overcharge,numericId,86068988,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:arcane-overcharge,state:arcane-overcharge,conditionId,state:arcane-overcharge,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:arcane-overcharge,state:arcane-overcharge,description,V26 trait effect condition 'state:arcane-overcharge'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:arcane-overcharge-aftermath,state:arcane-overcharge-aftermath,m_Name,state_arcane-overcharge-aftermath,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:arcane-overcharge-aftermath,state:arcane-overcharge-aftermath,numericId,401215619,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:arcane-overcharge-aftermath,state:arcane-overcharge-aftermath,conditionId,state:arcane-overcharge-aftermath,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:arcane-overcharge-aftermath,state:arcane-overcharge-aftermath,description,V26 trait effect condition 'state:arcane-overcharge-aftermath'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:emergency-stocked,state:emergency-stocked,m_Name,state_emergency-stocked,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:emergency-stocked,state:emergency-stocked,numericId,1136768896,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:emergency-stocked,state:emergency-stocked,conditionId,state:emergency-stocked,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:emergency-stocked,state:emergency-stocked,description,V26 trait effect condition 'state:emergency-stocked'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:forbidden-leap-aftermath,state:forbidden-leap-aftermath,m_Name,state_forbidden-leap-aftermath,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:forbidden-leap-aftermath,state:forbidden-leap-aftermath,numericId,1204881926,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:forbidden-leap-aftermath,state:forbidden-leap-aftermath,conditionId,state:forbidden-leap-aftermath,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:forbidden-leap-aftermath,state:forbidden-leap-aftermath,description,V26 trait effect condition 'state:forbidden-leap-aftermath'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:formal-status,state:formal-status,m_Name,state_formal-status,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:formal-status,state:formal-status,numericId,1717678675,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:formal-status,state:formal-status,conditionId,state:formal-status,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:formal-status,state:formal-status,description,V26 trait effect condition 'state:formal-status'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:golden-harvest-jackpot,state:golden-harvest-jackpot,m_Name,state_golden-harvest-jackpot,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:golden-harvest-jackpot,state:golden-harvest-jackpot,numericId,1684466351,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:golden-harvest-jackpot,state:golden-harvest-jackpot,conditionId,state:golden-harvest-jackpot,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:golden-harvest-jackpot,state:golden-harvest-jackpot,description,V26 trait effect condition 'state:golden-harvest-jackpot'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:insulted,state:insulted,m_Name,state_insulted,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:insulted,state:insulted,numericId,1948202245,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:insulted,state:insulted,conditionId,state:insulted,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:insulted,state:insulted,description,V26 trait effect condition 'state:insulted'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:last-stand,state:last-stand,m_Name,state_last-stand,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:last-stand,state:last-stand,numericId,534284232,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:last-stand,state:last-stand,conditionId,state:last-stand,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:last-stand,state:last-stand,description,V26 trait effect condition 'state:last-stand'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:last-stand-aftermath,state:last-stand-aftermath,m_Name,state_last-stand-aftermath,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:last-stand-aftermath,state:last-stand-aftermath,numericId,147260295,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:last-stand-aftermath,state:last-stand-aftermath,conditionId,state:last-stand-aftermath,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:last-stand-aftermath,state:last-stand-aftermath,description,V26 trait effect condition 'state:last-stand-aftermath'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:miracle-surgery-aftermath,state:miracle-surgery-aftermath,m_Name,state_miracle-surgery-aftermath,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:miracle-surgery-aftermath,state:miracle-surgery-aftermath,numericId,1307764615,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:miracle-surgery-aftermath,state:miracle-surgery-aftermath,conditionId,state:miracle-surgery-aftermath,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:miracle-surgery-aftermath,state:miracle-surgery-aftermath,description,V26 trait effect condition 'state:miracle-surgery-aftermath'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:pain,state:pain,m_Name,state_pain,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:pain,state:pain,numericId,13433287,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:pain,state:pain,conditionId,state:pain,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:pain,state:pain,description,V26 trait effect condition 'state:pain'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:production-limit-break,state:production-limit-break,m_Name,state_production-limit-break,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:production-limit-break,state:production-limit-break,numericId,1063420890,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:production-limit-break,state:production-limit-break,conditionId,state:production-limit-break,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:production-limit-break,state:production-limit-break,description,V26 trait effect condition 'state:production-limit-break'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:production-limit-break-aftermath,state:production-limit-break-aftermath,m_Name,state_production-limit-break-aftermath,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:production-limit-break-aftermath,state:production-limit-break-aftermath,numericId,531753517,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:production-limit-break-aftermath,state:production-limit-break-aftermath,conditionId,state:production-limit-break-aftermath,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:production-limit-break-aftermath,state:production-limit-break-aftermath,description,V26 trait effect condition 'state:production-limit-break-aftermath'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:ritual-fast-ended,state:ritual-fast-ended,m_Name,state_ritual-fast-ended,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:ritual-fast-ended,state:ritual-fast-ended,numericId,1381737186,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:ritual-fast-ended,state:ritual-fast-ended,conditionId,state:ritual-fast-ended,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:ritual-fast-ended,state:ritual-fast-ended,description,V26 trait effect condition 'state:ritual-fast-ended'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:ritual-fasting,state:ritual-fasting,m_Name,state_ritual-fasting,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:ritual-fasting,state:ritual-fasting,numericId,1047848179,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:ritual-fasting,state:ritual-fasting,conditionId,state:ritual-fasting,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:ritual-fasting,state:ritual-fasting,description,V26 trait effect condition 'state:ritual-fasting'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:sated,state:sated,m_Name,state_sated,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:sated,state:sated,numericId,1263594366,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:sated,state:sated,conditionId,state:sated,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:sated,state:sated,description,V26 trait effect condition 'state:sated'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:sweet-fed,state:sweet-fed,m_Name,state_sweet-fed,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:sweet-fed,state:sweet-fed,numericId,942752677,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:sweet-fed,state:sweet-fed,conditionId,state:sweet-fed,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|state:sweet-fed,state:sweet-fed,description,V26 trait effect condition 'state:sweet-fed'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:cold,temperature:cold,m_Name,temperature_cold,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:cold,temperature:cold,numericId,1425011222,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:cold,temperature:cold,conditionId,temperature:cold,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:cold,temperature:cold,description,V26 trait effect condition 'temperature:cold'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:comfortable,temperature:comfortable,m_Name,temperature_comfortable,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:comfortable,temperature:comfortable,numericId,1868874944,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:comfortable,temperature:comfortable,conditionId,temperature:comfortable,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:comfortable,temperature:comfortable,description,V26 trait effect condition 'temperature:comfortable'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:hot,temperature:hot,m_Name,temperature_hot,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:hot,temperature:hot,numericId,1101533631,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:hot,temperature:hot,conditionId,temperature:hot,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:hot,temperature:hot,description,V26 trait effect condition 'temperature:hot'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:uncomfortable,temperature:uncomfortable,m_Name,temperature_uncomfortable,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:uncomfortable,temperature:uncomfortable,numericId,213947397,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:uncomfortable,temperature:uncomfortable,conditionId,temperature:uncomfortable,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|temperature:uncomfortable,temperature:uncomfortable,description,V26 trait effect condition 'temperature:uncomfortable'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|terrain:rough,terrain:rough,m_Name,terrain_rough,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|terrain:rough,terrain:rough,numericId,1638064222,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|terrain:rough,terrain:rough,conditionId,terrain:rough,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|terrain:rough,terrain:rough,description,V26 trait effect condition 'terrain:rough'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:clean,work:clean,m_Name,work_clean,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:clean,work:clean,numericId,1681160942,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:clean,work:clean,conditionId,work:clean,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:clean,work:clean,description,V26 trait effect condition 'work:clean'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:clean-maintenance,work:clean-maintenance,m_Name,work_clean-maintenance,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:clean-maintenance,work:clean-maintenance,numericId,1990871288,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:clean-maintenance,work:clean-maintenance,conditionId,work:clean-maintenance,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:clean-maintenance,work:clean-maintenance,description,V26 trait effect condition 'work:clean-maintenance'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:contaminated-food,work:contaminated-food,m_Name,work_contaminated-food,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:contaminated-food,work:contaminated-food,numericId,1828929703,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:contaminated-food,work:contaminated-food,conditionId,work:contaminated-food,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:contaminated-food,work:contaminated-food,description,V26 trait effect condition 'work:contaminated-food'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:contamination,work:contamination,m_Name,work_contamination,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:contamination,work:contamination,numericId,362601505,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:contamination,work:contamination,conditionId,work:contamination,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:contamination,work:contamination,description,V26 trait effect condition 'work:contamination'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:craft-finished,work:craft-finished,m_Name,work_craft-finished,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:craft-finished,work:craft-finished,numericId,1952279506,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:craft-finished,work:craft-finished,conditionId,work:craft-finished,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:craft-finished,work:craft-finished,description,V26 trait effect condition 'work:craft-finished'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:dangerous,work:dangerous,m_Name,work_dangerous,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:dangerous,work:dangerous,numericId,569253329,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:dangerous,work:dangerous,conditionId,work:dangerous,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:dangerous,work:dangerous,description,V26 trait effect condition 'work:dangerous'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:emergency,work:emergency,m_Name,work_emergency,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:emergency,work:emergency,numericId,651793214,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:emergency,work:emergency,conditionId,work:emergency,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:emergency,work:emergency,description,V26 trait effect condition 'work:emergency'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:long-shift,work:long-shift,m_Name,work_long-shift,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:long-shift,work:long-shift,numericId,2110680018,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:long-shift,work:long-shift,conditionId,work:long-shift,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:long-shift,work:long-shift,description,V26 trait effect condition 'work:long-shift'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:mentoring,work:mentoring,m_Name,work_mentoring,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:mentoring,work:mentoring,numericId,1032246592,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:mentoring,work:mentoring,conditionId,work:mentoring,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:mentoring,work:mentoring,description,V26 trait effect condition 'work:mentoring'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:not-clean,work:not-clean,m_Name,work_not-clean,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:not-clean,work:not-clean,numericId,948524846,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:not-clean,work:not-clean,conditionId,work:not-clean,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:not-clean,work:not-clean,description,V26 trait effect condition 'work:not-clean'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:not-research,work:not-research,m_Name,work_not-research,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:not-research,work:not-research,numericId,1353265440,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:not-research,work:not-research,conditionId,work:not-research,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:not-research,work:not-research,description,V26 trait effect condition 'work:not-research'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:on-schedule,work:on-schedule,m_Name,work_on-schedule,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:on-schedule,work:on-schedule,numericId,1703192978,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:on-schedule,work:on-schedule,conditionId,work:on-schedule,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:on-schedule,work:on-schedule,description,V26 trait effect condition 'work:on-schedule'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:precision,work:precision,m_Name,work_precision,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:precision,work:precision,numericId,1291190235,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:precision,work:precision,conditionId,work:precision,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:precision,work:precision,description,V26 trait effect condition 'work:precision'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:research,work:research,m_Name,work_research,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:research,work:research,numericId,7313632,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:research,work:research,conditionId,work:research,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:research,work:research,description,V26 trait effect condition 'work:research'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:retry-after-failure,work:retry-after-failure,m_Name,work_retry-after-failure,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:retry-after-failure,work:retry-after-failure,numericId,1308007705,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:retry-after-failure,work:retry-after-failure,conditionId,work:retry-after-failure,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:retry-after-failure,work:retry-after-failure,description,V26 trait effect condition 'work:retry-after-failure'.,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:substitute-material,work:substitute-material,m_Name,work_substitute-material,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:substitute-material,work:substitute-material,numericId,1309904257,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:substitute-material,work:substitute-material,conditionId,work:substitute-material,,,explicit-serialized
+GameplayEffectConditionDefinitionSO|work:substitute-material,work:substitute-material,description,V26 trait effect condition 'work:substitute-material'.,,,explicit-serialized

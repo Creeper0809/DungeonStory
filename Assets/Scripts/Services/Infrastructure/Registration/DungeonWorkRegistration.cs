@@ -92,7 +92,8 @@ public static class DungeonWorkRegistration
             .As<IWorkExecutionHandlerRegistry>()
             .As<IWorkPolicyRegistry>();
         builder.Register<WorkStatPolicyRegistry>(Lifetime.Singleton)
-            .As<IWorkStatPolicyRegistry>();
+            .As<IWorkStatPolicyRegistry>()
+            .As<IWorkStatPolicyDefinitionMaximumQuery>();
         builder.Register<WorkAmountCalculator>(Lifetime.Singleton)
             .As<IWorkAmountCalculator>();
         builder.Register<EligibleWorkerQuery>(Lifetime.Singleton)
@@ -132,6 +133,9 @@ public static class DungeonWorkRegistration
             .As<IBuildingAbilityWorkCompletedHandler>();
         builder.Register<BuildingAbilityRuntimeDispatcher>(Lifetime.Singleton)
             .As<IBuildingAbilityRuntimeDispatcher>();
+        builder.RegisterFactory<IBuildingAbilityRuntimeDispatcher>(
+            resolver => () => resolver.Resolve<IBuildingAbilityRuntimeDispatcher>(),
+            Lifetime.Singleton);
     }
 
     private static void RegisterWorkStatPolicies(IContainerBuilder builder)

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "10개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "50"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "파손된 날개와 꼬리깃을 운반 가능한 상태로 고정한다. 아일라세라의 치료사는 날개 고정 키트를 댄 뒤 걷는 자세와 비행 때의 장력을 따로 검사한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-wing-splint-kit",
+  "spoiler_tier": "none",
+  "summary": "파손된 날개와 꼬리깃을 운반 가능한 상태로 고정한다.",
+  "title": "날개 고정 키트"
+}

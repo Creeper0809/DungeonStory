@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "필요 연구",
+      "value": "각성제"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "drug-mana-awakener",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 각성제",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-stimulants",
+      "target_spoiler_tier": "none",
+      "target_title": "각성제",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-alchemical-solvent",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 용매",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-moonflower",
+      "target_spoiler_tier": "none",
+      "target_title": "월화",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-mana-awakener",
+  "spoiler_tier": "none",
+  "summary": "마나 각성제 생산 주문",
+  "title": "마나 각성제"
+}

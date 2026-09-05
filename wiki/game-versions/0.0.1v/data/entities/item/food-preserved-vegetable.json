@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.55kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "27"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "채소를 씻고 절여 수확철이 지나도 꺼내 먹을 수 있게 저장한 채식이다. 라카쉬 세갈래길의 무리 한솥에서는 보존 채식을 어린 주민과 먼 길을 온 손님에게 먼저 건넨다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-preserved-vegetable",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "보존 채식"
+}

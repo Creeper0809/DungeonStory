@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "fiber-spore-hemp",
+    "spoiler_tier": "none",
+    "title": "포자 삼 원섬유"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-powered-spore-hemp",
+      "label": "필요 조건",
+      "to": "item/fiber-spore-hemp",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-spore-hemp",
+      "label": "필요 조건",
+      "to": "item/fiber-spore-hemp",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

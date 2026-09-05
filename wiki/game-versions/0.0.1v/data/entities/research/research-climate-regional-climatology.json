@@ -1,0 +1,121 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "3819"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Records And Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-climate-environment-control",
+      "target_spoiler_tier": "none",
+      "target_title": "기후 제어",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-climate-environment-control",
+      "target_spoiler_tier": "none",
+      "target_title": "기후 제어",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-climate-environment-control",
+      "target_spoiler_tier": "none",
+      "target_title": "기후 제어",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-industrial-metrology",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 계측학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-industrial-metrology",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 계측학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-industrial-metrology",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 계측학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8888",
+      "target_spoiler_tier": "none",
+      "target_title": "기후 지도실",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8889",
+      "target_spoiler_tier": "none",
+      "target_title": "원정 천문시계실",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-climate-regional-climatology",
+  "spoiler_tier": "none",
+  "summary": "지역 기후학과 시각 항법에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "지역 기후학과 시각 항법"
+}

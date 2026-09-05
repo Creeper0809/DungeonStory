@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-medical-trait-analysis-kit",
+    "spoiler_tier": "none",
+    "title": "형질 검사 키트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-trait-analysis-kit",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-trait-analysis-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "형질 검사 키트",
+      "to": "item/medical-trait-analysis-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-trait-analysis-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-trait-analysis-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-sterile-composite",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 복합재",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-trait-analysis-kit",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-genetics-hereditary-records",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록과 형질 분석",
+      "to": "research/research-genetics-hereditary-records",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

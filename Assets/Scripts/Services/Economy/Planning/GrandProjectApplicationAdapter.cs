@@ -132,11 +132,6 @@ public sealed class GrandProjectApplicationAdapter :
         out string failureReason) =>
         physicalSinks.Acknowledge(commitId, out failureReason);
 
-    public int ReleaseDestination(
-        string destinationId,
-        Vector2Int releasePosition) =>
-        items.ReleaseDestination(destinationId, releasePosition);
-
     public void PrioritizeDestination(string destinationId) =>
         items.PrioritizeDestination(destinationId);
 

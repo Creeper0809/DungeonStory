@@ -12,10 +12,11 @@ public sealed class CareerApplicationAdapter :
     private readonly IGameCalendar calendar;
     private readonly IGameClock clock;
     private readonly IBuildingWorldQuery buildings;
-    private readonly IWorldItemStackRuntime items;
+    private readonly CareerDurableEquipmentAwardRuntime careerEquipment;
     private readonly ICharacterProficiencyQuery proficiencyQuery;
     private readonly ICharacterProficiencyCommand proficiencyCommands;
     private readonly CharacterMoodPolicyService moods;
+    private readonly ICharacterSettlementStandingQuery settlementStandings;
     private readonly Dictionary<CharacterId, float> nextAssignmentAttemptAt = new();
 
     public CareerApplicationAdapter(
@@ -24,22 +25,29 @@ public sealed class CareerApplicationAdapter :
         IGameCalendar calendar,
         IGameClock clock,
         IBuildingWorldQuery buildings,
-        IWorldItemStackRuntime items,
         ICharacterProficiencyQuery proficiencyQuery,
         ICharacterProficiencyCommand proficiencyCommands,
-        CharacterMoodPolicyService moods = null)
+        IDurableFacilityEquipmentPolicyQuery equipmentPolicies,
+        IDurableFacilityEquipmentSlotCommand equipmentSlots,
+        IDurableFacilityEquipmentUseCommand equipmentUse,
+        CharacterMoodPolicyService moods = null,
+        ICharacterSettlementStandingQuery settlementStandings = null)
     {
         this.careers = careers ?? throw new ArgumentNullException(nameof(careers));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
-        this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.proficiencyQuery = proficiencyQuery
             ?? throw new ArgumentNullException(nameof(proficiencyQuery));
         this.proficiencyCommands = proficiencyCommands
             ?? throw new ArgumentNullException(nameof(proficiencyCommands));
+        careerEquipment = new CareerDurableEquipmentAwardRuntime(
+            equipmentPolicies,
+            equipmentSlots,
+            equipmentUse);
         this.moods = moods;
+        this.settlementStandings = settlementStandings;
     }
 
     public void Tick()
@@ -76,6 +84,13 @@ public sealed class CareerApplicationAdapter :
                 && building.BuildingData?.ResearchFacilityCommand ==
                     ResearchFacilityCommandKind.MentorAcademy);
             if (mentor == null || student == null || academy == null
+                || settlementStandings != null
+                    && (!settlementStandings.CanParticipateInMentoring(
+                            mentor,
+                            out _)
+                        || !settlementStandings.CanParticipateInMentoring(
+                            student,
+                            out _))
                 || !assignment.ProficiencyId.IsValid
                 || !proficiencyQuery.TryGetProficiency(
                     assignment.MentorCharacterId,
@@ -135,10 +150,12 @@ public sealed class CareerApplicationAdapter :
 
             if (!progress.HasCompletedPhysicalLesson
                 || progress.LastAwardAbsoluteDay >= lessonDay
-                || !TryUseCareerLedger(academy)
-                || !careers.TryMarkMentoringAwarded(
-                    assignment.StudentCharacterId,
-                    lessonDay))
+                || !careerEquipment.TryCommitAward(
+                    academy.RequirePersistentInstanceId(),
+                    academy.centerPos,
+                    () => careers.TryMarkMentoringAwarded(
+                        assignment.StudentCharacterId,
+                        lessonDay)))
             {
                 continue;
             }
@@ -241,56 +258,139 @@ public sealed class CareerApplicationAdapter :
         return 1.1f;
     }
 
-    private bool TryUseCareerLedger(BuildableObject academy)
-    {
-        string destinationId = academy.PersistentInstanceId.Value;
-        WorldItemStackSnapshot ledger = items.GetAllStacks()
-            .Where(stack => stack != null
-                && stack.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
-                && string.Equals(
-                    stack.ItemId,
-                    DurableToolItemRules.CareerLedger,
-                    StringComparison.Ordinal)
-                && DurableToolItemRules.ReadCurrentDurability(
-                    stack.ItemId,
-                    stack.Components) > 0f)
-            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        if (ledger == null)
-        {
-            if (!items.GetAllStacks().Any(stack => stack != null
-                    && string.Equals(
-                        stack.ItemId,
-                        DurableToolItemRules.CareerLedger,
-                        StringComparison.Ordinal)
-                    && string.Equals(
-                        stack.DestinationId,
-                        destinationId,
-                        StringComparison.Ordinal)))
-            {
-                items.TryRequestItemDelivery(
-                    DurableToolItemRules.CareerLedger,
-                    1,
-                    academy.centerPos,
-                    destinationId,
-                    out _,
-                    out _);
-            }
-            return false;
-        }
-
-        float current = DurableToolItemRules.ReadCurrentDurability(
-            ledger.ItemId,
-            ledger.Components);
-        return items.TrySetInstanceComponent(
-            ledger.StackId,
-            DurableToolItemRules.CreateDurability(ledger.ItemId, current - 0.5f));
-    }
-
     private CharacterActor FindLivingActor(CharacterId characterId) =>
         world.Characters.FirstOrDefault(actor => actor != null
             && !actor.IsDead
             && CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
             && id.Equals(characterId));
+}
+
+/// <summary>
+/// Career-owned adapter over the common durable facility-equipment authority.
+/// The common slot owns exact delivery, positive gram capacity, persistence and
+/// terminal custody. The career aggregate mutation is committed as the effect
+/// of the same wear transaction so a rejected award restores ledger wear.
+/// </summary>
+public sealed class CareerDurableEquipmentAwardRuntime
+{
+    public const string AwardEffectKind = "career-mentorship-award";
+    public const double LedgerWearPerAward = 0.5d;
+
+    private readonly IDurableFacilityEquipmentPolicyQuery policies;
+    private readonly IDurableFacilityEquipmentSlotCommand slots;
+    private readonly IDurableFacilityEquipmentUseCommand use;
+
+    public CareerDurableEquipmentAwardRuntime(
+        IDurableFacilityEquipmentPolicyQuery policies,
+        IDurableFacilityEquipmentSlotCommand slots,
+        IDurableFacilityEquipmentUseCommand use)
+    {
+        this.policies = policies
+            ?? throw new ArgumentNullException(nameof(policies));
+        this.slots = slots ?? throw new ArgumentNullException(nameof(slots));
+        this.use = use ?? throw new ArgumentNullException(nameof(use));
+    }
+
+    [GameplayInternalOnly(
+        "Commits one mentorship award through the registered career-ledger slot.",
+        "CareerApplicationAdapter only")]
+    public bool TryCommitAward(
+        BuildingInstanceId academyId,
+        UnityEngine.Vector2Int academyPosition,
+        Func<bool> commitAward)
+    {
+        if (!academyId.IsValid || commitAward == null)
+            throw new ArgumentException("Career equipment award input is invalid.");
+        if (!policies.TryGetPolicy(
+                CareerDurableEquipmentPolicySource.PolicyId,
+                out DurableFacilityEquipmentPolicy policy))
+        {
+            throw new InvalidOperationException(
+                "The career-ledger durable-equipment policy is not registered.");
+        }
+
+        DurableFacilityEquipmentAssignment assignment = policy.CreateAssignment(
+            academyId.Value,
+            academyId,
+            academyPosition);
+        DurableFacilityEquipmentSlotResult reconciled = slots.TryReconcile(
+            assignment);
+        if (reconciled.Status == DurableFacilityEquipmentSlotStatus.Conflict)
+        {
+            throw new InvalidOperationException(
+                "Career-ledger slot reconciliation conflicted: "
+                + reconciled.FailureReason);
+        }
+        if (!reconciled.Succeeded)
+            return false;
+
+        DurableFacilityEquipmentSlotResult supplied = slots.TryEnsureSupply(
+            assignment.Key);
+        if (supplied.Status == DurableFacilityEquipmentSlotStatus.Conflict)
+        {
+            throw new InvalidOperationException(
+                "Career-ledger supply reconciliation conflicted: "
+                + supplied.FailureReason);
+        }
+
+        DurableFacilityEquipmentUseResult result = use.TryApplyWearAndEffect(
+            assignment.Key,
+            CareerDurableEquipmentPolicySource.RequirementId,
+            LedgerWearPerAward,
+            new CareerMentorshipAwardEffect(commitAward));
+        return result.Succeeded;
+    }
+
+    private sealed class CareerMentorshipAwardEffect :
+        IDurableFacilityEquipmentEffectCommit
+    {
+        private readonly Func<bool> commit;
+
+        internal CareerMentorshipAwardEffect(Func<bool> commit)
+        {
+            this.commit = commit ?? throw new ArgumentNullException(nameof(commit));
+        }
+
+        public string EffectKind => AwardEffectKind;
+
+        public bool TryPreflight(
+            DurableFacilityEquipmentSlotSnapshot slot,
+            DurableFacilityEquipmentRequirement requirement,
+            DurableFacilityEquipmentUseSubject subject,
+            double wearAmount,
+            out string failureReason)
+        {
+            bool valid = slot != null
+                && requirement != null
+                && subject != null
+                && string.Equals(
+                    slot.PolicyId,
+                    CareerDurableEquipmentPolicySource.PolicyId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    requirement.RequirementId,
+                    CareerDurableEquipmentPolicySource.RequirementId,
+                    StringComparison.Ordinal)
+                && requirement.ItemId.Equals(
+                    (ItemDefinitionId)DurableToolItemRules.CareerLedger)
+                && Math.Abs(wearAmount - LedgerWearPerAward) <= 0.000001d;
+            failureReason = valid
+                ? string.Empty
+                : "career-mentorship-award-preflight-mismatch";
+            return valid;
+        }
+
+        public bool TryCommit(
+            DurableFacilityEquipmentUseContext context,
+            out string failureReason)
+        {
+            if (!commit())
+            {
+                failureReason = "career-mentorship-award-rejected";
+                return false;
+            }
+            failureReason = string.Empty;
+            return true;
+        }
+    }
 }

@@ -24,7 +24,7 @@ public static class PrimitiveStartSurvivalPlayModeVerifier
         "Artifacts/QA/v27-six-adult-service-outage-playmode.txt";
     public const string PopulationStageReportPath =
         "Artifacts/QA/v27-balance-population-stage-playmode.txt";
-    private const string PopulationStageRequestPath =
+    internal const string PopulationStageRequestPath =
         "Temp/v27-balance-population-stage.flag";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
 
@@ -56,44 +56,23 @@ public static class PrimitiveStartSurvivalPlayModeVerifier
     [MenuItem("DungeonStory/Debug/QA/Run Primitive Survival Focused Verification")]
     public static void RunFocusedFromMenu()
     {
-        if (!EditorApplication.isPlaying)
-        {
-            Debug.LogError("Primitive survival focused verification requires PlayMode.");
-            return;
-        }
-        if (UnityEngine.Object.FindFirstObjectByType<PrimitiveStartSurvivalPlayModeRunner>()
-            != null)
-        {
-            Debug.LogWarning("Primitive survival verification is already running.");
-            return;
-        }
-        CreateRunner(focusedOnly: true);
+        PrimitiveStartSurvivalPlayModeRequestRunner.QueueFocused();
     }
 
     [MenuItem("DungeonStory/V27/Run Six-Adult Service Outage Verification")]
     public static void RunSixAdultOutageFromMenu()
     {
-        if (!EditorApplication.isPlaying)
-        {
-            Debug.LogError("Six-adult service outage verification requires PlayMode.");
-            return;
-        }
-        if (UnityEngine.Object.FindFirstObjectByType<PrimitiveStartSurvivalPlayModeRunner>()
-            != null)
-        {
-            Debug.LogWarning("Primitive survival verification is already running.");
-            return;
-        }
-
-        PrimitiveStartSurvivalPlayModeRunner runner =
-            new GameObject("V27 Six-Adult Service Outage Verification")
-                .AddComponent<PrimitiveStartSurvivalPlayModeRunner>();
-        runner.SixAdultOutage = true;
+        PrimitiveStartSurvivalPlayModeRequestRunner.QueueSixAdultOutage();
     }
 
     [MenuItem("DungeonStory/V27/Run Population-Stage Physical Capacity Verification")]
     public static void RunPopulationStagesFromMenu()
     {
+        if (PrimitiveStartSurvivalPlayModeRequestRunner.HasPendingDurableRun)
+        {
+            throw new InvalidOperationException(
+                "A focused or six-adult primitive-survival verification is already pending.");
+        }
         Directory.CreateDirectory("Temp");
         File.WriteAllText(PopulationStageRequestPath, "run");
         if (!EditorApplication.isPlaying)
@@ -191,6 +170,7 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
     public bool FocusedOnly { get; set; }
     public bool SixAdultOutage { get; set; }
     public bool PopulationStageCapacity { get; set; }
+    public string DurableRequestMode { get; set; } = string.Empty;
     private string ActiveReportPath => PopulationStageCapacity
         ? PrimitiveStartSurvivalPlayModeVerifier.PopulationStageReportPath
         : SixAdultOutage
@@ -205,8 +185,63 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         Directory.CreateDirectory("Artifacts/QA");
         originalTimeScale = Time.timeScale;
         yield return new WaitForSecondsRealtime(1f);
-        yield return RunVerification();
+        yield return RunVerificationGuarded();
         CompleteVerification();
+    }
+
+    private IEnumerator RunVerificationGuarded()
+    {
+        Stack<IEnumerator> pending = new();
+        pending.Push(RunVerification());
+        Exception failure = null;
+        while (pending.Count > 0 && failure == null)
+        {
+            IEnumerator currentRoutine = pending.Peek();
+            bool moved = false;
+            object yielded = null;
+            try
+            {
+                moved = currentRoutine.MoveNext();
+                if (moved)
+                {
+                    yielded = currentRoutine.Current;
+                }
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+
+            if (failure != null)
+            {
+                break;
+            }
+            if (!moved)
+            {
+                pending.Pop();
+                (currentRoutine as IDisposable)?.Dispose();
+                continue;
+            }
+            if (yielded is IEnumerator nested)
+            {
+                pending.Push(nested);
+                continue;
+            }
+
+            yield return yielded;
+        }
+
+        while (pending.Count > 0)
+        {
+            (pending.Pop() as IDisposable)?.Dispose();
+        }
+        if (failure != null)
+        {
+            failures.Add(
+                "UNHANDLED_VERIFIER_EXCEPTION: "
+                + failure.GetType().Name + ": " + failure.Message);
+            Debug.LogException(failure);
+        }
     }
 
     private IEnumerator RunVerification()
@@ -261,6 +296,19 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                 ? $"scene={scope.gameObject.scene.name}; party={party.Length}"
                 : $"missing gameplay scope; party={party.Length}");
         if (scope?.Container == null)
+        {
+            yield break;
+        }
+
+        bool tierZeroReady = StartPartyPreparationPlayModeVerifier
+            .TryReconcileTierZeroForDirectGameplayFixture(
+                scope,
+                out string tierZeroDetail);
+        Check(
+            tierZeroReady,
+            "DIRECT_ENTRY_TIER_ZERO_READY",
+            tierZeroDetail);
+        if (!tierZeroReady)
         {
             yield break;
         }
@@ -774,9 +822,9 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         BuildingSO storageAsset = Resources.LoadAll<BuildingSO>("SO/Building")
             .Where(value => value != null
                 && !value.IsDeprecatedCompatibilityAsset
-                && value.GetStorageCapacity() > 0
+                && value.GetStorageMassCapacityGrams() > 0L
                 && value.StoresAllCategories())
-            .OrderByDescending(value => (decimal)value.GetStorageCapacity()
+            .OrderByDescending(value => (decimal)value.GetStorageMassCapacityGrams()
                 / Math.Max(1, value.width * value.height))
             .ThenBy(value => value.GetFacilityCode(), StringComparer.Ordinal)
             .FirstOrDefault();
@@ -784,7 +832,7 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
             prefix + "_STORAGE_AUTHORITY",
             storageAsset == null
                 ? "missing"
-                : $"asset={storageAsset.name};capacity={storageAsset.GetStorageCapacity()}");
+                : $"asset={storageAsset.name};capacityGrams={storageAsset.GetStorageMassCapacityGrams()}");
         if (storageAsset == null)
             yield break;
 
@@ -848,14 +896,20 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                 Grid grid = null;
                 DungeonInteriorLayoutSnapshot interior = default;
                 string gridFailure = "grid unavailable";
+                int minimumRequiredColumns =
+                    PopulationStagePortfolioCatalog.InteriorColumnsForPopulation(
+                        population);
+                int expectedAuthoredColumns = tier == 0
+                    ? DungeonSpaceExpansionCatalog.InitialInteriorColumns
+                    : DungeonSpaceExpansionCatalog.All[tier - 1]
+                        .TargetInteriorColumns;
                 bool gridReady = grids.TryGetGrid(out grid)
                     && DungeonSpaceGridLayout.TryCapture(
                         grid,
                         out interior,
                         out gridFailure)
-                    && interior.ColumnCount
-                        == PopulationStagePortfolioCatalog.InteriorColumnsForPopulation(
-                            population);
+                    && interior.ColumnCount == expectedAuthoredColumns
+                    && interior.ColumnCount >= minimumRequiredColumns;
                 Check(gridReady,
                     prefix + "_RESEARCH_SPACE_" + population,
                     gridReady
@@ -927,7 +981,7 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                     yield break;
 
                 bool mealSpawned = items.SpawnItemAt(
-                    "food:preserved-ration",
+                    "food:grain-porridge",
                     stage.ImmediateMealUnits,
                     reserveCells[0],
                     WorldItemStackState.Loose,
@@ -956,7 +1010,7 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                     && grain == stage.SevenDayGrainUnits
                     && water == stage.SevenDayWaterUnits
                     && stageStacks.Where(value => string.Equals(
-                            value.ItemId, "food:preserved-ration", StringComparison.Ordinal))
+                            value.ItemId, "food:grain-porridge", StringComparison.Ordinal))
                         .Sum(value => value.Quantity) == stage.ImmediateMealUnits
                     && stageStacks.Where(value => string.Equals(
                             value.ItemId, "resource:twilight-grain", StringComparison.Ordinal))
@@ -971,23 +1025,37 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                     + $"water={water}/{stage.SevenDayWaterUnits};"
                     + $"stacks={stageStacks.Length}");
 
-                int normalUnits = checked(
-                    stage.ImmediateMealUnits
-                    + stage.SevenDayGrainUnits
-                    + stage.SevenDayWaterUnits);
-                int requiredCapacity = (normalUnits * 1000 + 699) / 700;
-                int storageCount = (requiredCapacity
-                    + storageAsset.GetStorageCapacity() - 1)
-                    / storageAsset.GetStorageCapacity();
-                int authoredCapacity = checked(
-                    storageCount * storageAsset.GetStorageCapacity());
-                int normalStoragePermille =
-                    (normalUnits * 1000 + authoredCapacity - 1) / authoredCapacity;
-                int burstUnits = Math.Max(
-                    75,
+                long liveReserveMassGrams = checked(
+                    items.MassQuery.GetDefinitionUnitMass(
+                        (ItemDefinitionId)"food:grain-porridge").Value
+                        * stage.ImmediateMealUnits
+                    + items.MassQuery.GetDefinitionUnitMass(
+                        (ItemDefinitionId)"resource:twilight-grain").Value
+                        * stage.SevenDayGrainUnits
+                    + items.MassQuery.GetDefinitionUnitMass(
+                        (ItemDefinitionId)"resource:clean-water").Value
+                        * stage.SevenDayWaterUnits);
+                Check(liveReserveMassGrams == stage.RequiredStorageMassGrams,
+                    prefix + "_RESERVE_MASS_AUTHORITY_" + population,
+                    $"live={liveReserveMassGrams};static={stage.RequiredStorageMassGrams}");
+                long requiredCapacityGrams = checked(
+                    (stage.RequiredStorageMassGrams * 1000L + 699L) / 700L);
+                long unitStorageCapacityGrams =
+                    storageAsset.GetStorageMassCapacityGrams();
+                int storageCount = checked((int)(
+                    (requiredCapacityGrams + unitStorageCapacityGrams - 1L)
+                    / unitStorageCapacityGrams));
+                long authoredCapacityGrams = checked(
+                    storageCount * unitStorageCapacityGrams);
+                int normalStoragePermille = checked((int)(
+                    (stage.RequiredStorageMassGrams * 1000L
+                        + authoredCapacityGrams - 1L)
+                    / authoredCapacityGrams));
+                long burstMassGrams = Math.Max(
+                    stage.MaximumRelevantStackMassGrams,
                     Math.Max(
-                        (int)((stage.GrossGrainMilliUnitsPerDay + 999) / 1000),
-                        (int)((stage.GrossMealMilliUnitsPerDay + 999) / 1000)));
+                        stage.GrossGrainMassGramsPerDay,
+                        stage.GrossMealMassGramsPerDay));
                 int overflowCells = population switch
                 {
                     1 or 3 => 1,
@@ -997,14 +1065,18 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                     24 => 6,
                     _ => throw new ArgumentOutOfRangeException(nameof(population))
                 };
-                int faultStoragePermille = ((normalUnits + burstUnits) * 1000
-                    + authoredCapacity + overflowCells * 75 - 1)
-                    / (authoredCapacity + overflowCells * 75);
+                long overflowCapacityGrams = checked(
+                    overflowCells * stage.MaximumRelevantStackMassGrams);
+                int faultStoragePermille = checked((int)(
+                    ((stage.RequiredStorageMassGrams + burstMassGrams) * 1000L
+                        + authoredCapacityGrams + overflowCapacityGrams - 1L)
+                    / (authoredCapacityGrams + overflowCapacityGrams)));
                 Check(normalStoragePermille <= 700 && faultStoragePermille <= 900,
                     prefix + "_AUTHORED_STORAGE_" + population,
                     $"asset={storageAsset.name};count={storageCount};"
-                    + $"capacity={authoredCapacity};normal={normalStoragePermille};"
-                    + $"fault={faultStoragePermille};overflowCells={overflowCells}");
+                    + $"capacityGrams={authoredCapacityGrams};reserveMassGrams={stage.RequiredStorageMassGrams};"
+                    + $"normal={normalStoragePermille};fault={faultStoragePermille};"
+                    + $"overflowMassGrams={overflowCapacityGrams};overflowCells={overflowCells}");
 
                 List<KeyValuePair<Vector2Int, SpatialCellRole>> roles = items
                     .GetAllStacks()
@@ -1079,8 +1151,8 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                     + $"disposition={(minimumPlotGranularityWarning ? "minimum-plot-warning" : "normal")}");
 
                 report.Add($"population-stage={population};tier={tier};"
-                    + $"actors={cohort.Count};reserveUnits={normalUnits};"
-                    + $"storageCapacity={authoredCapacity};"
+                    + $"actors={cohort.Count};reserveMassGrams={stage.RequiredStorageMassGrams};"
+                    + $"storageCapacityGrams={authoredCapacityGrams};"
                     + $"fixedWorldFeatures={fixedResourceCells.Length};"
                     + $"runtimeHeadroomPermille={runtimeHeadroom}");
                 DestroyOutageTemporaryObjects();
@@ -1209,9 +1281,10 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                     && items.GetAllStacks().Any(stack => stack != null
                         && stack.Quantity > 0
                         && !string.IsNullOrWhiteSpace(stack.DestinationId)
-                        && stack.DestinationId.StartsWith(
-                            "facility-input:meal:",
-                            StringComparison.Ordinal)))
+                        && CharacterConsumablesInputDestinationIdentity
+                            .IsDestinationForKind(
+                                stack.DestinationId,
+                                CharacterConsumablesInputKind.Meal)))
                 {
                     provisioningActorFenced = true;
                     provisioningActor.SetAiPaused(true);
@@ -1754,9 +1827,10 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                             && stack.State == WorldItemStackState.FacilityBuffer
                             && stack.Quantity > 0
                             && !string.IsNullOrWhiteSpace(stack.DestinationId)
-                            && stack.DestinationId.StartsWith(
-                                "facility-input:meal:",
-                                StringComparison.Ordinal)))
+                            && CharacterConsumablesInputDestinationIdentity
+                                .IsDestinationForKind(
+                                    stack.DestinationId,
+                                    CharacterConsumablesInputKind.Meal)))
                     {
                         // Isolate the delivery SLA from the fallback whose
                         // dominance is measured immediately afterwards.  The
@@ -1790,9 +1864,10 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                             && items.GetAllStacks().Any(stack => stack != null
                                 && stack.Quantity > 0
                                 && !string.IsNullOrWhiteSpace(stack.DestinationId)
-                                && stack.DestinationId.StartsWith(
-                                    "facility-input:meal:",
-                                    StringComparison.Ordinal)))
+                                && CharacterConsumablesInputDestinationIdentity
+                                    .IsDestinationForKind(
+                                        stack.DestinationId,
+                                        CharacterConsumablesInputKind.Meal)))
                         {
                             targetActor.SetAiPaused(true);
                             targetActor.Brain?.StopCurrentActionForReplan(
@@ -1806,9 +1881,10 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                         && stack.State == WorldItemStackState.FacilityBuffer
                         && stack.Quantity > 0
                         && !string.IsNullOrWhiteSpace(stack.DestinationId)
-                            && stack.DestinationId.StartsWith(
-                                "facility-input:meal:",
-                                StringComparison.Ordinal));
+                            && CharacterConsumablesInputDestinationIdentity
+                                .IsDestinationForKind(
+                                    stack.DestinationId,
+                                    CharacterConsumablesInputKind.Meal));
                     mealDeliveryDetail = DescribeMealDeliveryState(
                         scope.Container,
                         items,
@@ -2209,9 +2285,10 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         string stacks = string.Join(",", items.GetAllStacks()
             .Where(stack => stack != null
                 && !string.IsNullOrWhiteSpace(stack.DestinationId)
-                && stack.DestinationId.StartsWith(
-                    "facility-input:meal:",
-                    StringComparison.Ordinal))
+                && CharacterConsumablesInputDestinationIdentity
+                    .IsDestinationForKind(
+                        stack.DestinationId,
+                        CharacterConsumablesInputKind.Meal))
             .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
             .Select(stack => $"{stack.StackId}:{stack.ItemId}:q{stack.Quantity}:"
                 + $"r{stack.ReservedQuantity}:{stack.State}@{stack.Position}->"
@@ -2984,7 +3061,25 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         mealSubscription?.Dispose();
         deathSubscription?.Dispose();
         Time.timeScale = originalTimeScale;
+        string sourceDigest = string.Empty;
+        string sceneDigest = string.Empty;
+        if (!string.IsNullOrEmpty(DurableRequestMode)
+            && !PrimitiveStartSurvivalPlayModeRequestRunner
+                .TryValidateCompletion(
+                    DurableRequestMode,
+                    out sourceDigest,
+                    out sceneDigest,
+                    out string requestFailure))
+        {
+            failures.Add("DURABLE_REQUEST_INVALID: " + requestFailure);
+        }
         report.Insert(0, failures.Count == 0 ? "PASS" : "FAIL");
+        if (!string.IsNullOrEmpty(DurableRequestMode))
+        {
+            report.Add("durableRequestMode=" + DurableRequestMode);
+            report.Add("currentSourceDigest=" + sourceDigest);
+            report.Add("gameplaySceneSha256=" + sceneDigest);
+        }
         report.Add("primitive-counts=" + string.Join(", ", primitiveCounts
             .OrderBy(pair => pair.Key, StringComparer.Ordinal)
             .Select(pair => $"{pair.Key}:{pair.Value}")));
@@ -3001,6 +3096,12 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
         {
             Debug.LogError("[PrimitiveStartSurvivalPlayModeVerifier] FAIL "
                 + string.Join(" | ", failures));
+        }
+        if (!string.IsNullOrEmpty(DurableRequestMode))
+        {
+            PrimitiveStartSurvivalPlayModeRequestRunner.CompleteRun(
+                DurableRequestMode,
+                ActiveReportPath);
         }
         Destroy(gameObject);
     }

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "disease-deep-parasitosis",
+  "spoiler_tier": "none",
+  "summary": "오염된 고기와 물의 기생충이 영양을 빼앗고 빈혈을 만든다.",
+  "title": "심층 기생충증"
+}

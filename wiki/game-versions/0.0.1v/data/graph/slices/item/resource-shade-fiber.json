@@ -1,0 +1,67 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-shade-fiber",
+    "spoiler_tier": "none",
+    "title": "그늘섬유"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-candle",
+      "label": "필요 조건",
+      "to": "item/resource-shade-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-herbal-poultice",
+      "label": "필요 조건",
+      "to": "item/resource-shade-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": "15",
+      "from": "recipe/recipe-material-rope",
+      "label": "필요 조건",
+      "to": "item/resource-shade-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-bedding-straw",
+      "label": "필요 조건",
+      "to": "item/resource-shade-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-bowstring-fiber",
+      "label": "필요 조건",
+      "to": "item/resource-shade-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-powered-shade-cloth",
+      "label": "필요 조건",
+      "to": "item/resource-shade-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-shade-cloth",
+      "label": "필요 조건",
+      "to": "item/resource-shade-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-cloth",
+      "label": "필요 조건",
+      "to": "item/resource-shade-fiber",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

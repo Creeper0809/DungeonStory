@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-shotgun",
+    "spoiler_tier": "none",
+    "title": "산탄총"
+  },
+  "edges": [],
+  "schema_version": 1
+}

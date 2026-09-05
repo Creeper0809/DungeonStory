@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1205",
+    "spoiler_tier": "none",
+    "title": "서커스 도박 창구"
+  },
+  "edges": [],
+  "schema_version": 1
+}

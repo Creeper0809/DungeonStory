@@ -146,6 +146,21 @@ public enum CircusShowSupplyCommitPhase
     OutcomesPublished = 2
 }
 
+/// <summary>
+/// Cross-assembly physical contract for one circus preparation commit. These
+/// are validation constants, not authored balance writers; the corresponding
+/// item assets remain the mass authority and focused tests detect drift.
+/// </summary>
+public static class CircusPerformanceSupplyContracts
+{
+    public const string PerformancePropBoxItemId =
+        "supply:performance-prop-box";
+    public const string BanquetCartItemId = "tool:banquet-cart";
+    public const long PerformancePropBoxMassGrams = 1_950L;
+    public const long BanquetCartMassGrams = 3_150L;
+    public const double BanquetCartWearPerShow = 4d;
+}
+
 public enum CapturedWildlifeFeedCommitPhase
 {
     None = 0,

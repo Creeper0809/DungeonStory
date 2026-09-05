@@ -1,0 +1,7 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+OffenseEncounterSO,content-type,,type-reference,models:offense,runtime,structural-type-consumer,Assets/Scripts/Models/Offense/Core/OffenseAuthoredContentPort.cs
+OffenseEncounterSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/GameContentCatalog.cs
+OffenseEncounterSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs
+OffenseEncounterSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs
+OffenseEncounterSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs
+OffenseEncounterSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs

@@ -11,19 +11,28 @@ public interface IStaffDiscontentRuntimeService
 public sealed class StaffDiscontentRuntimeService : IStaffDiscontentRuntimeService
 {
     private readonly StaffDiscontentRuntime runtime;
+    private readonly ICharacterSettlementStandingQuery settlementStandings;
 
     public StaffDiscontentRuntimeService(
-        CharacterSceneRuntimeReferences runtimeReferences)
+        CharacterSceneRuntimeReferences runtimeReferences,
+        ICharacterSettlementStandingQuery settlementStandings)
     {
         runtime = (runtimeReferences
                 ?? throw new ArgumentNullException(nameof(runtimeReferences)))
             .StaffDiscontent
             ?? throw new InvalidOperationException(
                 $"{nameof(StaffDiscontentRuntimeService)} requires a loaded {nameof(StaffDiscontentRuntime)}.");
+        this.settlementStandings = settlementStandings
+            ?? throw new ArgumentNullException(nameof(settlementStandings));
     }
 
     public float GetWorkEfficiencyMultiplier(CharacterActor staff)
     {
+        if (settlementStandings.IsMinion(staff))
+        {
+            return 1f;
+        }
+
         return staff != null
             ? runtime.GetWorkEfficiencyMultiplier(staff)
             : 1f;
@@ -32,12 +41,22 @@ public sealed class StaffDiscontentRuntimeService : IStaffDiscontentRuntimeServi
     public bool ShouldBlockWork(CharacterActor staff, out string reason)
     {
         reason = string.Empty;
+        if (settlementStandings.IsMinion(staff))
+        {
+            return false;
+        }
+
         return staff != null
             && runtime.ShouldBlockWork(staff, out reason);
     }
 
     public bool IsRebellionTarget(CharacterActor target)
     {
+        if (settlementStandings.IsMinion(target))
+        {
+            return false;
+        }
+
         return target != null
             && runtime.IsRebellionTarget(target);
     }

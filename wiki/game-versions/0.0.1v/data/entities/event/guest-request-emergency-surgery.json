@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "성공 효과",
+      "value": "2개"
+    },
+    {
+      "label": "실패 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "guest-request-emergency-surgery",
+  "spoiler_tier": "none",
+  "summary": "중상 사절이 무균 수술실과 고급 약품을 즉시 요구한다.",
+  "title": "사절의 응급 수술"
+}

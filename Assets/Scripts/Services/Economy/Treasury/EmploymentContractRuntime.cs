@@ -27,7 +27,33 @@ public interface IEmploymentContractRuntime
     EmploymentContractSaveData Capture();
 }
 
-public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
+public readonly struct EmploymentStandingState
+{
+    public EmploymentStandingState(
+        string characterId,
+        EmployeeWageState wage,
+        MercenaryContract mercenary)
+    {
+        CharacterId = characterId ?? string.Empty;
+        Wage = wage?.Clone();
+        Mercenary = mercenary?.Clone();
+    }
+
+    public string CharacterId { get; }
+    public EmployeeWageState Wage { get; }
+    public MercenaryContract Mercenary { get; }
+}
+
+public interface IEmploymentStandingCommand
+{
+    EmploymentStandingState CaptureStandingState(string characterId);
+    void ApplyStanding(string characterId, CharacterSettlementStanding standing);
+    void RestoreStandingState(EmploymentStandingState snapshot);
+}
+
+public sealed class EmploymentContractRuntime :
+    IEmploymentContractRuntime,
+    IEmploymentStandingCommand
 {
     private const int EmployeeBaseWage = 30;
     private const int EmployeeLevelWage = 2;
@@ -40,6 +66,7 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
     private readonly IGameMoneyAccount money;
     private readonly IGameEventBus eventBus;
     private readonly TreasuryEconomyAggregateStateStore stateStore;
+    private readonly ICharacterSettlementStandingQuery settlementStandings;
 
     private Dictionary<string, EmployeeWageState> wageByCharacterId =>
         stateStore.Current.Wages;
@@ -52,7 +79,8 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
         ICombatEquipmentRuntime equipmentRuntime,
         IGameMoneyAccount money,
         IGameEventBus eventBus,
-        TreasuryEconomyAggregateStateStore stateStore)
+        TreasuryEconomyAggregateStateStore stateStore,
+        ICharacterSettlementStandingQuery settlementStandings = null)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
@@ -66,6 +94,7 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
             ?? throw new ArgumentNullException(nameof(eventBus));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
+        this.settlementStandings = settlementStandings;
     }
 
     public IReadOnlyList<EmployeeWageState> WageStates =>
@@ -101,6 +130,12 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
     public int GetDailyCost(string characterId)
     {
         string normalizedId = NormalizeId(characterId);
+        if (settlementStandings?.GetStanding(normalizedId)
+            == CharacterSettlementStanding.Minion)
+        {
+            return 0;
+        }
+
         if (!wageByCharacterId.TryGetValue(
                 normalizedId,
                 out EmployeeWageState state)
@@ -311,6 +346,62 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
         };
     }
 
+    public EmploymentStandingState CaptureStandingState(string characterId)
+    {
+        string normalizedId = NormalizeId(characterId);
+        wageByCharacterId.TryGetValue(normalizedId, out EmployeeWageState wage);
+        mercenaryByCharacterId.TryGetValue(normalizedId, out MercenaryContract mercenary);
+        return new EmploymentStandingState(normalizedId, wage, mercenary);
+    }
+
+    public void ApplyStanding(
+        string characterId,
+        CharacterSettlementStanding standing)
+    {
+        string normalizedId = NormalizeId(characterId);
+        if (normalizedId.Length == 0)
+        {
+            throw new ArgumentException("Character ID is required.", nameof(characterId));
+        }
+
+        if (standing == CharacterSettlementStanding.Minion)
+        {
+            wageByCharacterId.Remove(normalizedId);
+            mercenaryByCharacterId.Remove(normalizedId);
+            return;
+        }
+
+        if (standing == CharacterSettlementStanding.Resident)
+        {
+            CharacterActor actor = FindActor(normalizedId);
+            GetOrCreateState(
+                normalizedId,
+                IsFounder(normalizedId, actor)
+                    ? EmploymentContractKind.Founder
+                    : EmploymentContractKind.Employee);
+        }
+    }
+
+    public void RestoreStandingState(EmploymentStandingState snapshot)
+    {
+        string characterId = NormalizeId(snapshot.CharacterId);
+        if (characterId.Length == 0)
+        {
+            return;
+        }
+
+        wageByCharacterId.Remove(characterId);
+        mercenaryByCharacterId.Remove(characterId);
+        if (snapshot.Wage != null)
+        {
+            wageByCharacterId[characterId] = snapshot.Wage.Clone();
+        }
+        if (snapshot.Mercenary != null)
+        {
+            mercenaryByCharacterId[characterId] = snapshot.Mercenary.Clone();
+        }
+    }
+
     internal void PopulateRestoreState(
         TreasuryEconomyAggregateState target,
         EmploymentContractSaveData saveData)
@@ -357,6 +448,14 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
             .Select(id => id.Value)
             .Where(id => id.Length > 0),
             StringComparer.Ordinal);
+        foreach (string minionId in target.Wages.Keys
+                     .Where(id => settlementStandings?.GetStanding(id)
+                         == CharacterSettlementStanding.Minion)
+                     .ToArray())
+        {
+            target.Wages.Remove(minionId);
+            target.Mercenaries.Remove(minionId);
+        }
         foreach (string staleId in target.Wages.Keys
                      .Where(id => !persistentIds.Contains(id))
                      .ToArray())
@@ -384,7 +483,9 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
             string characterId = NormalizeId(identity.PersistentId);
             if (characterId.Length == 0
                 || !persistentIds.Contains(characterId)
-                || target.Wages.ContainsKey(characterId))
+                || target.Wages.ContainsKey(characterId)
+                || settlementStandings?.GetStanding(characterId)
+                    == CharacterSettlementStanding.Minion)
             {
                 continue;
             }

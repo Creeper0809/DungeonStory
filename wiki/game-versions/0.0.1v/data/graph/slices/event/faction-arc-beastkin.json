@@ -1,0 +1,143 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-arc-beastkin",
+    "spoiler_tier": "warning",
+    "title": "붉은발톱 교역소"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-1",
+      "target_spoiler_tier": "warning",
+      "target_title": "피 묻은 사냥깃",
+      "to": "event/faction-chapter-beastkin-1",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-2",
+      "target_spoiler_tier": "warning",
+      "target_title": "비어 가는 사냥터",
+      "to": "event/faction-chapter-beastkin-2",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-3",
+      "target_spoiler_tier": "warning",
+      "target_title": "재의 계약 사냥꾼",
+      "to": "event/faction-chapter-beastkin-3",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-4",
+      "target_spoiler_tier": "warning",
+      "target_title": "누구의 무리인가",
+      "to": "event/faction-chapter-beastkin-4",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-5",
+      "target_spoiler_tier": "warning",
+      "target_title": "우두머리의 실종",
+      "to": "event/faction-chapter-beastkin-5",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-beastkin-6",
+      "target_spoiler_tier": "warning",
+      "target_title": "새로운 사냥 경계",
+      "to": "event/faction-chapter-beastkin-6",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-beastkin-crisis",
+      "target_spoiler_tier": "none",
+      "target_title": "붉은발톱 교역소 위기 대응 계약",
+      "to": "event/faction-contract-beastkin-crisis",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-beastkin-strategic",
+      "target_spoiler_tier": "none",
+      "target_title": "붉은발톱 교역소 장기 전략 계약",
+      "to": "event/faction-contract-beastkin-strategic",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-beastkin-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "붉은발톱 교역소 정기 물자 계약",
+      "to": "event/faction-contract-beastkin-supply",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-beastkin-1",
+      "target_spoiler_tier": "none",
+      "target_title": "첫발톱 인장",
+      "to": "item/relic-faction-beastkin-1",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-beastkin-2",
+      "target_spoiler_tier": "none",
+      "target_title": "무리뼈 호각",
+      "to": "item/relic-faction-beastkin-2",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-beastkin",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-beastkin-3",
+      "target_spoiler_tier": "none",
+      "target_title": "붉은사냥 망토핀",
+      "to": "item/relic-faction-beastkin-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

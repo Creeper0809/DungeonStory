@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "50"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "주민의 업무 경력과 숙련 변화를 적어 배치와 교육에 참고하는 장부다. 오르데나의 경력 장부는 하르나크에서 익힌 숙련을 인정하지 않아 돌아온 기술자를 무경력자로 기록한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "record-career-ledger",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 경력 장부.",
+  "title": "경력 장부"
+}

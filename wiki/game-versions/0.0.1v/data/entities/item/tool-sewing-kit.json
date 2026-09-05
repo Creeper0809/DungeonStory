@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "99"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "재봉 도구에는 의복을 만들고 찢어진 솔기를 고칠 바늘과 실, 가위가 들어 있다. 밀로세아 가도의 공동 재봉 도구에는 검문소를 지날 때마다 다른 색실이 손잡이에 묶인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-sewing-kit",
+  "spoiler_tier": "none",
+  "summary": "V22 의복 제작과 수선 작업에서 예약·운반·소비하는 물리 물품.",
+  "title": "재봉 도구"
+}

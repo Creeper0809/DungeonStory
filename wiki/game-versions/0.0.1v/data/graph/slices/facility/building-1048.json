@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1048",
+    "spoiler_tier": "none",
+    "title": "전투깃발"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-banner-2",
+      "label": "관련",
+      "to": "facility/building-1048",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

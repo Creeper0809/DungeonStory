@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8868",
+    "spoiler_tier": "none",
+    "title": "장기 재생 수술실"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-organ-regeneration",
+      "label": "시설 해금",
+      "to": "facility/building-8868",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

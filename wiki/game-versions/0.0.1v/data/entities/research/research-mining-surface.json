@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "17"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Mining"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "research-mining-surface",
+  "spoiler_tier": "none",
+  "summary": "외부 암석에서 석재와 얕은 광석을 채취한다.",
+  "title": "노천 채석"
+}

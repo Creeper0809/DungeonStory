@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1620",
+    "spoiler_tier": "none",
+    "title": "도가니 선반"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-iron",
+      "label": "시설 해금",
+      "to": "facility/building-1620",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

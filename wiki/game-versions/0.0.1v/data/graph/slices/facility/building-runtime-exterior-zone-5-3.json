@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-runtime-exterior-zone-5-3",
+    "spoiler_tier": "none",
+    "title": "외부 휴식처"
+  },
+  "edges": [],
+  "schema_version": 1
+}

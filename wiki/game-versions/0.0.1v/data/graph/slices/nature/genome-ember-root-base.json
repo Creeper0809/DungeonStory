@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "genome-ember-root-base",
+    "spoiler_tier": "none",
+    "title": "Genome_ember-root"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-ember-root",
+      "label": "관련",
+      "to": "nature/genome-ember-root-base",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

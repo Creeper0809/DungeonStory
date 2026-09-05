@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using UnityEngine;
 
 /// <summary>
 /// Items-owned durable progress authority for a production destination drain.
@@ -11,11 +12,13 @@ using System.Text;
 /// completed sub-effect here and may then publish one immutable receipt.
 /// </summary>
 public sealed class ProductionPhysicalCustodyDrainOutbox :
-    IProductionPhysicalCustodyDrainOutbox
+    IProductionPhysicalCustodyDrainOutbox,
+    IProductionPhysicalCustodyDrainCheckpointGcPort
 {
     private const string CommitPrefix =
         "production-physical-custody-drain-commit:";
     private readonly WorldItemRepository repository;
+    private CheckpointGcCandidate activeCheckpointGcCandidate;
 
     public ProductionPhysicalCustodyDrainOutbox(WorldItemRepository repository)
     {
@@ -206,6 +209,11 @@ public sealed class ProductionPhysicalCustodyDrainOutbox :
         string stepOperationId,
         string receiptFingerprint)
     {
+        if (activeCheckpointGcCandidate != null)
+        {
+            return Deferred(
+                "production-physical-custody-checkpoint-gc-transaction-active");
+        }
         if (!TryGet(stepOperationId, out ProductionPhysicalCustodyDrainSaveData value))
             return new ProductionPhysicalCustodyDrainResult(
                 ProductionPhysicalCustodyDrainStatus.Replay,
@@ -224,6 +232,133 @@ public sealed class ProductionPhysicalCustodyDrainOutbox :
         }
         repository.RemovePendingProductionCustodyDrain(stepOperationId);
         return Current(value, ProductionPhysicalCustodyDrainStatus.Applied);
+    }
+
+    public bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionPhysicalCustodyDrainSaveData> records,
+        out IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        candidate = null;
+        failureReason = string.Empty;
+        if (activeCheckpointGcCandidate != null)
+        {
+            failureReason =
+                "production-physical-custody-checkpoint-gc-already-prepared";
+            return false;
+        }
+        ProductionPhysicalCustodyDrainSaveData[] expected = (records
+                ?? Array.Empty<ProductionPhysicalCustodyDrainSaveData>())
+            .Select(value => value?.Clone())
+            .OrderBy(value => value?.stepOperationId, StringComparer.Ordinal)
+            .ToArray();
+        if (expected.Any(value => value == null)
+            || expected.Select(value => value.stepOperationId)
+                .Distinct(StringComparer.Ordinal).Count() != expected.Length)
+        {
+            failureReason =
+                "production-physical-custody-checkpoint-gc-records-invalid";
+            return false;
+        }
+        foreach (ProductionPhysicalCustodyDrainSaveData row in expected)
+        {
+            if (row.phase != ProductionPhysicalCustodyDrainPhase
+                    .OwnerAcknowledgedAwaitingCheckpointGc
+                || !IsDigest(row.receiptFingerprint)
+                || !TryGet(row.stepOperationId,
+                    out ProductionPhysicalCustodyDrainSaveData current)
+                || !RowsEqual(current, row))
+            {
+                failureReason =
+                    "production-physical-custody-checkpoint-gc-row-conflict";
+                return false;
+            }
+        }
+        activeCheckpointGcCandidate = new CheckpointGcCandidate(expected);
+        candidate = activeCheckpointGcCandidate;
+        return true;
+    }
+
+    public bool TryPublishCheckpointGarbageCollection(
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.Published)
+            return true;
+        foreach (ProductionPhysicalCustodyDrainSaveData row in exact.ExpectedRows)
+        {
+            if (!repository
+                    .TryRemoveExactPendingProductionCustodyDrainForCheckpointGc(
+                        row,
+                        out ProductionPhysicalCustodyDrainSaveData removed))
+            {
+                if (exact.RemovedRows.Any(value => !repository
+                        .CanRestoreExactPendingProductionCustodyDrainForCheckpointGc(
+                            value)))
+                {
+                    throw new InvalidOperationException(
+                        "production-physical-custody-checkpoint-gc-publish-rollback-conflict");
+                }
+                for (int index = exact.RemovedRows.Count - 1; index >= 0; index--)
+                {
+                    if (!repository
+                            .TryRestoreExactPendingProductionCustodyDrainForCheckpointGc(
+                                exact.RemovedRows[index]))
+                    {
+                        throw new InvalidOperationException(
+                            "production-physical-custody-checkpoint-gc-publish-rollback-conflict");
+                    }
+                }
+                exact.RemovedRows.Clear();
+                failureReason =
+                    "production-physical-custody-checkpoint-gc-publish-conflict";
+                return false;
+            }
+            exact.RemovedRows.Add(removed);
+        }
+        exact.Published = true;
+        return true;
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.RemovedRows.Any(value => !repository
+                .CanRestoreExactPendingProductionCustodyDrainForCheckpointGc(
+                    value)))
+        {
+            throw new InvalidOperationException(
+                "production-physical-custody-checkpoint-gc-rollback-conflict");
+        }
+        for (int index = exact.RemovedRows.Count - 1; index >= 0; index--)
+        {
+            if (!repository
+                    .TryRestoreExactPendingProductionCustodyDrainForCheckpointGc(
+                        exact.RemovedRows[index]))
+            {
+                throw new InvalidOperationException(
+                    "production-physical-custody-checkpoint-gc-rollback-conflict");
+            }
+        }
+        exact.RemovedRows.Clear();
+        exact.Published = false;
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (!exact.Published && exact.RemovedRows.Count != 0)
+        {
+            throw new InvalidOperationException(
+                "production-physical-custody-checkpoint-gc-not-rolled-back");
+        }
+        exact.Completed = true;
+        exact.RemovedRows.Clear();
+        activeCheckpointGcCandidate = null;
     }
 
     public bool TryCapture(
@@ -351,6 +486,46 @@ public sealed class ProductionPhysicalCustodyDrainOutbox :
             return false;
         }
         return true;
+    }
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || exact.Completed
+            || !ReferenceEquals(exact, activeCheckpointGcCandidate))
+        {
+            throw new InvalidOperationException(
+                "production-physical-custody-checkpoint-gc-candidate-conflict");
+        }
+        return exact;
+    }
+
+    private static bool RowsEqual(
+        ProductionPhysicalCustodyDrainSaveData left,
+        ProductionPhysicalCustodyDrainSaveData right) => left != null
+        && right != null
+        && string.Equals(
+            JsonUtility.ToJson(left),
+            JsonUtility.ToJson(right),
+            StringComparison.Ordinal);
+
+    private sealed class CheckpointGcCandidate :
+        IProductionPhysicalCustodyDrainCheckpointGcCandidate
+    {
+        internal CheckpointGcCandidate(
+            IReadOnlyList<ProductionPhysicalCustodyDrainSaveData> expectedRows)
+        {
+            ExpectedRows = expectedRows
+                ?? throw new ArgumentNullException(nameof(expectedRows));
+        }
+
+        internal IReadOnlyList<ProductionPhysicalCustodyDrainSaveData>
+            ExpectedRows { get; }
+        internal List<ProductionPhysicalCustodyDrainSaveData> RemovedRows { get; } =
+            new();
+        internal bool Published { get; set; }
+        internal bool Completed { get; set; }
     }
 
     private static bool Matches(

@@ -1,0 +1,14 @@
+﻿source_path,code_system,layer,domain,scope,namespace,declared_symbol_count,declared_symbols,symbol_kinds,architectural_roles,optimization_techniques,architecture_system_ids
+Assets/Scripts/Models/Grid/Core/ChildSafetyTraversalContracts.cs,models:grid,Models,Grid,runtime,,6,WorldHazardFlags; WorldHazardLevel; WorldHazardSnapshot; IWorldHazardZoneQuery; IWorldHazardOverlayCommand; IChildSafetyPolicy,enum; interface; struct,mutation-boundary-or-orchestration; player-observation; read-projection,,
+Assets/Scripts/Models/Grid/Core/Grid.cs,models:grid,Models,Grid,runtime,,1,Grid,class,runtime-support,dictionary-index; hash-membership,architecture-system:02
+Assets/Scripts/Models/Grid/Core/GridCell.cs,models:grid,Models,Grid,runtime,,1,GridCell,class,runtime-support,dictionary-index,
+Assets/Scripts/Models/Grid/Core/GridCellAreaRules.cs,models:grid,Models,Grid,runtime,,1,GridCellAreaRules,class,runtime-support,,
+Assets/Scripts/Models/Grid/Core/GridDomainContracts.cs,models:grid,Models,Grid,runtime,,7,DoorAccessOverrideKind; GridTraversalSubjectKind; GridMovementIntent; ChildSafetyAuthorizationToken; GridTraversalContext; IGridTraversalAccessQuery; IGridPathPerformanceRecorder,enum; interface; struct,read-projection,,
+Assets/Scripts/Models/Grid/Core/GridGhostObject.cs,models:grid,Models,Grid,runtime,,1,GridGhostObject,class,runtime-support,,
+Assets/Scripts/Models/Grid/Core/GridGhostObjectResolver.cs,models:grid,Models,Grid,runtime,,2,IGridGhostObjectResolver; GridGhostObjectResolver,class; interface,runtime-support,,
+Assets/Scripts/Models/Grid/Core/GridNavigationCost.cs,models:grid,Models,Grid,runtime,,6,IGridTraversalCostPolicy; IGridTraversalCostProvider; DefaultGridTraversalCostPolicy; GridTraversalStepData; GridSearchQueueNode; GridSearchPriorityQueue,class; interface; struct,runtime-support,,architecture-system:02
+Assets/Scripts/Models/Grid/Core/GridPathSearchBroker.cs,models:grid,Models,Grid,runtime,,7,GridPathSearchPriority; GridPathRequestStatus; IGridPathSearchBroker; GridPathSearchBroker; CacheEntry; IncrementalExactSearch; PathKey,class; enum; interface; struct,runtime-support,dictionary-index; hash-membership,architecture-system:02
+Assets/Scripts/Models/Grid/Core/GridPathSearchResult.cs,models:grid,Models,Grid,runtime,,2,GridPathSearchResult; GridVisitableOccupantAccess,class; struct,runtime-support,dictionary-index,
+Assets/Scripts/Models/Grid/Core/GridSearchWorkspaces.cs,models:grid,Models,Grid,runtime,,4,GridSearchWorkspace; SparseGridSearchWorkspace; GridSearchScratch; GridOccupantReferenceComparer,class,runtime-support,hash-membership,architecture-system:02
+Assets/Scripts/Models/Grid/Core/GridTraversalHeuristicIndex.cs,models:grid,Models,Grid,runtime,,1,GridTraversalHeuristicIndex,class,runtime-support,,architecture-system:02
+Assets/Scripts/Models/Grid/Core/UIGridTab.cs,models:grid,Models,Grid,runtime,,1,UIGridTab,class,runtime-support,,

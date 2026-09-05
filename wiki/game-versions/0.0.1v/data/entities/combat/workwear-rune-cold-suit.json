@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "룬 단열학"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "equipment-rune-cold-suit",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 방한복",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-environment-rune-insulation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 단열학",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "workwear-rune-cold-suit",
+  "spoiler_tier": "none",
+  "summary": "후기 2°C 냉장 근무용 룬 단열 작업복. 치명선은 바꾸지 않는다.",
+  "title": "룬 방한복"
+}

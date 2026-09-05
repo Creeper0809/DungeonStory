@@ -2,7 +2,7 @@
 
 ## 0. 문서 상태와 목적
 
-사양 상태: `Revision v5 / 수직 배치·병렬 안전 레인·계열 자동 authoring·이상치 검토 방식으로 실행 모델 전면 교정 / 과거 save migration 제외`
+사양 상태: `Revision v6 / 미래 콘텐츠 확장 폐쇄·다형적 capability registry·수직 배치·계열 자동 authoring / 과거 save migration 제외`
 
 구현 상태 스냅샷: `Foundation/Items gram 권위·공용 mass query·25kg nominal carry·L01 gram warehouse·warehouse-local admission·restore/lifecycle·equipment/apparel/carcass mass·conveyor ingress·packaged anesthetic/vial·typed disposition/WIP 기반의 다수 도메인 경계까지 structural evidence 확보 / current source inventory는 414 ledger items·355 recipes·356 active facilities·21 deprecated compatibility facilities·377 generated facility kits·1,074 serialized physical weight sites / semantic current-source expectation 363/414, unresolved 51 / exact recipe mass contract 42/355 / 실제 표준 생산→FacilityBuffer→AIHaul→warehouse 증거는 P17 hay-feed 한 경로 / 전수 authoring·비창고 경계·live fault matrix·EWU/가격·6인 폐쇄 루프·최종 다중 seed는 미완료`
 
@@ -10,16 +10,179 @@
 
 이 문서는 **사양 완전성**과 **구현 완료**를 분리한다. 아래 계약이 결정됐다는 이유로 runtime migration이나 밸런스 적용이 끝났다고 보고하지 않는다. 현재 worktree에 존재하는 구조 변경도 각 slice의 모든 exit gate를 통과하기 전에는 `structural-partial`이다.
 
-### 0.1 Revision v5 실행 권위
+### 0.0 Ship-first 범위 교정
 
-이 절과 `16.1~16.8`이 앞으로의 작업 순서·병렬화·완료 보고에 대한 최상위 실행 권위다. 뒤의 Phase 0~9와 구현 체크포인트 22~98은 세부 계약과 당시 증거를 보존하는 append-only 역사이며, Revision v5의 배치 순서를 다시 직렬화하는 근거로 사용하지 않는다. 서로 충돌하면 다음 우선순위를 적용한다.
+V27의 현재 목표는 게임 출시를 위한 **플레이 가능한 물리 중량·운반·경제 밸런스**를 먼저 완성하는 것이다. 기존 문서에 포함된 모든 전수 증명과 미래-content certification을 한 번에 완료하려 하지 않는다.
+
+이 절은 현재 실행 우선순위와 Ship P0 완료 범위에서 §0.1 및 Batch A~H의 exhaustive exit gate보다 우선한다. 기존 gate는 삭제하지 않고 P1/P2 backlog의 권위로 유지한다.
+
+`Ship P0` 완료선:
+
+1. 모든 현재 gameplay item이 positive canonical gram을 가지며 carry·warehouse·FacilityBuffer가 같은 질량 권위를 사용한다.
+2. 일반 운반이 목표 묶음 범위에서 동작하고, cancel·Downed·대표 restore에서 삭제·복제·순간이동이 없다.
+3. Trade/Supply 외부 유입의 무료 현금화 악용을 막고 unresolved market Critical을 0으로 만든다.
+4. 6인 음식·물·저장·성장 노동 폐쇄 루프와 대표 공간 배치가 통상 플레이에서 성립한다.
+5. current-source compile, 핵심 focused PlayMode, 최종 3-seed와 Console `0/0`을 통과한다.
+
+다음은 `Hardening P1/P2`로 이동하며 Ship P0를 막지 않는다.
+
+- 모든 261 open Transform의 현실 질량 설명을 개별적으로 완성하는 작업.
+- 모든 92 producer에 대한 `32 seed` 자연 clearance 전수 계측.
+- 가능한 모든 fault 조합의 완전 교차행렬.
+- 64 paired clutter와 256 layout seed의 반복 인증.
+- 모든 미래 콘텐츠 family의 synthetic canary와 형식적 확장 폐쇄 증명.
+- p95 2ms·0B 같은 비출시 hot path의 미세 성능 증명.
+
+P0 구현에서도 콘텐츠 ID 분기, 이중 권위, silent fallback과 상태 손상은 허용하지 않는다. 단, 현재 출시 경로와 관계없는 전수 인증을 끝낼 때까지 기능 완료를 보류하지 않는다. 남은 P1/P2는 별도 backlog와 증거 상태로 기록한다.
+
+### 0.1 Revision v6 실행·확장 권위
+
+이 절과 `16.1~16.8`이 앞으로의 작업 순서·병렬화·확장 설계·완료 보고에 대한 최상위 실행 권위다. 단, §16.3의 과거 binary `>4 cycle = Critical` 판정은 §156의 current schema `Accepted / BackpressureExpected / Critical` 교정이 supersede하며 아래 §16.3 본문도 같은 의미로 갱신한다. Revision v6는 Revision v5의 Batch A~H critical path를 유지하면서, 각 배치가 현재 콘텐츠만 통과하는 전용 구현으로 끝나는 것을 금지한다. 뒤의 Phase 0~9와 구현 체크포인트 22~98은 세부 계약과 당시 증거를 보존하는 append-only 역사이며, 과거 배치 순서를 다시 직렬화하거나 콘텐츠별 분기를 정당화하는 근거로 사용하지 않는다. 서로 충돌하면 다음 우선순위를 적용한다.
 
 ```text
 현재 source 재캡처
-> Revision v5 실행 배치와 exit gate
+> Revision v6 capability 확장 계약
+> Revision v5에서 승계한 Batch A~H와 exit gate
 > 불변식·원자성·save/restore 계약
 > 과거 Phase 순서와 당시 분모
 ```
+
+#### 미래 콘텐츠 확장 폐쇄의 완료 정의
+
+V27의 목표는 현재 414개 item과 355개 recipe를 한 번 통과시키는 데 그치지 않는다. **미래 콘텐츠가 이미 정의된 capability 범위에 속하면 코어 코드의 추가 설계·분기·저장 DTO 변경 없이 authoring data와 선언적 등록만으로 실제 생산·물류·저장·경제·UI/AI 경로에 참여해야 한다.** 완전히 새로운 행위도 기존 공용 인터페이스의 새 구현과 descriptor 추가로 연결하며, 기존 코어의 콘텐츠 ID 분기나 도메인별 재설계는 허용하지 않는다.
+
+확장 등급:
+
+| 등급 | 예 | 허용 변경 | 완료 조건 |
+|---|---|---|---|
+| `ParameterContent` | 같은 물리·생산 의미의 새 원료, 식사, 시설, 레시피 | SO/builder authoring과 stable ID | runtime/save/UI/AI/core diff 0 |
+| `ComposedContent` | 기존 Source/Transform/Sink, 저장, 운반, output capability의 새 조합 | authoring + capability descriptor | 기존 registry와 projector가 자동 수집 |
+| `NewCapabilityImplementation` | 기존 인터페이스로 표현되는 새 output policy, mass projector, sink disposition | 새 Strategy/Policy/Handler + 선언적 등록 + 공용 contract fixture | 기존 Aggregate/codec/composition의 콘텐츠별 분기 0 |
+| `InvariantChange` | 새로운 소유권 차원, 기존 gram 보존식으로 표현되지 않는 물리 법칙 | 명시적 Revision 개정 | 사용자 설계 결정과 영향 그래프 승인 전 구현 금지 |
+
+다형성·추상화 불변식:
+
+1. item/recipe/facility stable ID, 이름 prefix, 에셋 경로, catalog index를 검사하는 `if`/`switch`를 생산·운반·저장·EWU 코어에 추가하지 않는다.
+2. 변화 축은 typed capability interface로 표현한다. content definition은 capability ID와 canonical parameters를 선언하고, runtime은 registry에서 Strategy/Policy/Handler를 해석한다.
+3. registry는 build/Editor 단계에서 결정론적으로 생성하거나 명시적 descriptor를 읽는다. gameplay runtime reflection, 이름 추론, optional null handler와 유사 콘텐츠 fallback은 금지한다.
+4. 저장은 상위 DTO에 콘텐츠별 필드를 추가하지 않는다. 가변 capability는 stable implementation ID, schema version, canonical state envelope와 codec을 사용하며 누락·중복·unknown 구현은 publish 전에 거부한다.
+5. 새 콘텐츠는 mass query, warehouse admission, FacilityBuffer capacity, haul planner, recipe conservation, EWU/price dependency graph, UI와 AI 목록에 catalog enumeration으로 자동 진입한다.
+6. 새 capability 구현은 동일한 공용 contract suite를 자동 실행한다. 구현마다 새로운 테스트 구조를 설계하거나 core fixture에 ID allowlist를 추가하면 extension-closed가 아니다.
+7. 추상화는 실제 도메인 불변식과 변화 축을 소유해야 한다. 미래를 추측한 빈 interface, one-method forwarding wrapper와 manager 증식은 확장성으로 세지 않는다.
+8. capability 계약이 바뀌면 source digest와 dependency graph가 영향받는 정의만 자동 재검증한다. 무관한 시스템 전체 재설계 또는 수동 목록 갱신은 금지한다.
+
+필수 확장 증거:
+
+```text
+synthetic canary authoring
+→ generated registry/manifest 포함
+→ 실제 producer/consumer
+→ gram capacity와 custody
+→ current-format save/restore
+→ UI/AI와 EWU projection
+→ 기존 공용 fault fixture
+```
+
+- 각 capability family마다 최소 하나의 synthetic canary를 기존 계약만으로 추가한다.
+- canary 추가에서 production core source diff는 `0`이어야 한다. 허용 diff는 authoring, 선언적 descriptor, generated registry/manifest와 canary evidence뿐이다.
+- canary를 제거한 두 번째 생성도 고아 registry/state/asset을 남기지 않아야 한다.
+- semantic analyzer는 콘텐츠 ID별 신규 분기, unregistered capability, manual allowlist, orphan producer/consumer와 codec 누락을 fail-loud한다.
+- 신규 콘텐츠가 기존 분모에 조용히 제외되면 현재 콘텐츠의 테스트가 통과해도 해당 Batch exit gate는 실패다.
+
+V27 물리 경제 capability 매트릭스:
+
+| 변화 축 | 현재 공용 경계 | Revision v6 폐쇄 조건 |
+|---|---|---|
+| item/instance 질량 | `IPhysicalItemMassProjector`, `IPhysicalItemDefinitionMassProjector`, `IPhysicalItemMassQuery` | 새 definition/state component가 projector registry에서 자동 발견되고 warehouse/carry/equipped 질량이 같은 subject를 사용 |
+| 물리 입력·제거 | `IPhysicalItemBatchDispositionService`, `IReservedPhysicalItemBatchDispositionService` | Source/Transfer/Transform/Sink descriptor만으로 exact lot·gram·receipt 경로 선택, 도메인별 raw consume 분기 0 |
+| 포장 tare | `IPackagedLotTareDispositionService` | reusable return/waste/declared destruction/transfer policy 구현을 descriptor로 선택, packaged item ID 분기 0 |
+| 생산 output | `IProductionOutputHandler`, `IProductionOutputPlanningService`, `IProductionPreparedOutputComponentCodec` | 표준·stateful·packaged·domain output이 capability 조합으로 준비되고 custom handler ID allowlist 0 |
+| output publication·routing | `IProductionPreparedOutputExecutionPort`, `IFacilityBufferPlannedOutputPublicationService`, `IFacilityOutputExactRoutePort` | 새 output line이 operation/commit/custody를 자동 획득하고 direct spawn 0 |
+| buffer·warehouse capacity | `IFacilityBufferMassCapacityAuthorityQuery`, `IFacilityBufferMassAdmissionService`, `IWarehouseMassAdmissionService` | 새 recipe/facility가 maximum reachable branch와 2~4 cycle profile에 자동 포함되고 count admission 0 |
+| 운반 | 기존 exact-lot haul lease/intent/carry inventory 경계 | 새 item은 mass subject만으로 mixed tour·partial pickup·Downed recovery에 참여하고 item별 planner 분기 0 |
+| living entity transport | `ISurgicalPatientTransportRuntime`, `IWildlifeCaptureTransportRuntime` 계열 | item kg와 분리된 공용 entity custody capability로 통합하고 species/medical-case ID 분기 0 |
+| EWU·가격 | `IRecipeBalanceWorkCalculator`와 V27 dependency ledger | 새 item/recipe/source/sink가 graph contributor로 자동 수집되고 수동 원장 행·가격 allowlist 0 |
+| 저장 상태 | current-format section/receipt/outbox 계약 | capability state codec registry와 canonical envelope를 사용하고 상위 DTO의 콘텐츠별 필드 증식 0 |
+| UI·AI | 공용 catalog/query/read model | 새 정의가 목록·capacity·운반 후보·작업 후보에 자동 등장하며 개별 ID presenter/action 분기 0 |
+
+이 표의 “현재 공용 경계”가 존재한다는 사실만으로 폐쇄된 것은 아니다. Batch A~F는 각 경계의 production callsite를 registry 기반으로 이관하고, Batch G는 canary의 실제 AI/fault 경로를, Batch H는 canary가 EWU·가격·6인망 artifact 분모에 자동 포함되는 것을 증명해야 한다.
+
+이 정의는 미래의 모든 새로운 게임 규칙이 코드 없이 구현된다는 뜻이 아니다. **기존 capability를 사용하는 콘텐츠에는 새 코드 설계가 없어야 하고, 새로운 capability에는 격리된 구현만 추가하며 코어 구조를 다시 설계하지 않아야 한다**는 계약이다. 물리·소유권 불변식 자체가 달라지는 기능만 명시적 Revision 개정을 요구한다.
+
+### 0.2 물리 질량의 최상위 판정: 불변 강제가 아니라 설명 가능한 폐쇄
+
+V27은 모든 레시피에서 `입력 gram == 출력 gram`을 현실 물리 법칙처럼 강제하지 않는다. 게임의 단위는 현실 물체를 축약하며, 수분 증발·절삭 분진·연소 배기·비가시 폐기·일회용 포장·환경에서의 유입을 물리 아이템으로 모두 생성하면 물류와 저장만 불필요하게 복잡해진다. 질량 감사의 목적은 현실 시뮬레이션이 아니라 **삭제·복제·숨은 무료 유입·취소 재시도 악용을 구분할 수 있게 만드는 것**이다.
+
+여기서 강제하는 것은 열역학적 `엔트로피 불변`도, 모든 화면상 단위의 현실 질량 보존도 아니다. 엔트로피는 애초에 불변량이 아니며 V27의 게임 규칙으로 모델링하지 않는다. 게임이 반드시 지켜야 하는 것은 이미 존재하는 물리 lot의 **소유권·수량·재시도 원자성**, 반복 가능한 경제 순환의 **비차익성**, 그리고 공정에서 생기거나 사라진 값의 **설명 가능한 귀속**이다. 따라서 재미를 위해 축약된 수율은 허용하지만, 그 축약을 취소 복제나 무료 판매 가치 생성의 핑계로 사용할 수 없다.
+
+```text
+physicalInputMass
++ declaredExternalInputMass
+= physicalOutputMass
++ physicalByproductMass
++ terminalSinkMass
++ declaredAbstractLossMass
+```
+
+판정 계층을 다음처럼 분리한다.
+
+| 계층 | 엄격도 | 허용 범위 |
+|---|---|---|
+| 수량·소유권·WIP | exact, tolerance 0 | 취소·Downed·저장·복원에서 삭제/복제/순간이동 금지 |
+| EWU·가격 순환 | SCC tolerance 0 | 반복 가능한 순환의 양의 차익 금지 |
+| 레시피 질량 | 설명 가능성 필수 | 명시적 외부 유입, terminal Sink, 물리 부산물, 추상 손실 허용 |
+| 현실 표현 | 디자인 선택 | 플레이에 의미 없는 증기·분진·배기·일회용 포장을 별도 item으로 만들 필요 없음 |
+
+규칙:
+
+1. 질량 차이 자체는 Critical이 아니다. 차이를 소유하는 typed source/sink/loss disposition이 없을 때만 `MASS_BALANCE_EXPLANATION_MISSING`이다.
+2. 출력이 입력보다 커도 clean/process water, world source, air, biological growth, magic 등 선언된 외부 입력이 있으면 합법이다. 외부 입력 ID·gram·operation은 재시도 가능한 receipt에 결속한다.
+3. 출력이 입력보다 작아도 증발·절삭·발효·연소·오염 폐기·추상 일회용 포장 등 선언된 손실이면 합법이다. 범용 퍼센트 tolerance로 덮지 않고 recipe/family policy가 reason과 계산식을 제공한다.
+4. 부산물은 경제·운반·저장·재활용에 의미가 있을 때만 물리 item으로 만든다. 의미 없는 미세 부산물을 강제로 생성하지 않는다.
+5. `packageTareGrams`는 항상 반환되는 자본이라는 뜻이 아니다. `ReusableContainerReturn`, `DisposableWasteByproduct`, `DestroyedDuringUse`, `TransferredWithOutput`, `BulkInfrastructureNotInUnit` 중 하나로 닫는다.
+6. 동일 입력·동일 operation의 결과와 선언 손실은 저장·복원 후 재결정하지 않는다. 질량 추상화를 허용해도 exact-once와 idempotency는 완화하지 않는다.
+7. 이 표시/설명 계약은 EWU SCC의 비대칭 Ceil/Floor와 별개다. 질량 손실을 이유로 EWU 양의 순환을 승인하지 않는다.
+
+#### 게임적 비보존 허용 계약
+
+게임플레이를 위해 질량을 단순화하는 것은 정상적인 authoring 선택이다. 다만 구현자가 현실 물리와 경제 무결성을 혼동하지 않도록 다음 세 등급으로 판정한다.
+
+| 판정 | 예 | 요구 증거 |
+|---|---|---|
+| `GameplayAbstractionAllowed` | 증기·분진·연소 배기·발효 손실·소모되는 일회용 포장 | typed reason, deterministic gram 계산식, 같은 operation 재시도 시 동일 결과 |
+| `ExternalSourceAllowed` | 작물 생장, 채굴 노드, 공기·물·마력 유입 | source owner, 생산 속도·WU·토지/시설/자원 비용, 재생·고갈 규칙 |
+| `PhysicalByproductRequired` | 회수 가능한 빈 병, 재활용 금속 스크랩, 실제 운반·저장 가치가 있는 폐기물 | exact physical output lot, destination capacity, 가격·재투입 순환 감사 |
+
+- 손실률 자체에 전역 상한을 두지 않는다. 5%든 80%든 해당 item의 `1개` 의미, BOM과 공정 설명이 맞고 경제·처리량 검증을 통과하면 허용한다.
+- 반대로 1g 차이라도 typed 귀속이 없거나 취소·복원·재시도로 달라지면 버그다.
+- 재미를 위한 간소화 때문에 보이지 않는 부산물을 전부 item으로 만들지 않는다. 물리화 여부는 회수·운반·저장·오염·재사용 중 실제 플레이 선택을 만드는지로 결정한다.
+- “불변”이라는 용어는 이후 체크리스트에서 `lot 수량·소유권·commit exactness` 또는 `EWU SCC 무차익`에만 사용한다. 레시피 입력 gram과 출력 gram의 동일성에는 사용하지 않는다.
+- 따라서 Batch C의 목표는 모든 공정을 닫힌계로 개조하는 것이 아니라, 각 공정을 `external source / physical byproduct / terminal sink / abstract loss` 중 하나로 완전 분류하고 미분류 경로를 0으로 만드는 것이다.
+
+#### 외부 유입의 경제 폐쇄
+
+물리 `Source`가 합법이라는 사실은 무료 경제 가치도 합법이라는 뜻이 아니다. 채집·농업·세력 배송·계약 보상·원정 보상처럼 외부에서 들어오는 물자는 질량 회계와 별도로 노동·시간·토지·관계·통화·위험·쿨다운 가운데 하나 이상의 실제 비용을 가져야 한다.
+
+- `Trade`는 route 생성 전에 canonical quote와 동일한 금액을 한 번만 선결제한다. 출발 뒤 매복으로 화물이 줄어도 기본 정책은 환불 없음이며, 이 위험을 견적 UI에 표시한다.
+- `Supply`는 무료 판매 금지 provenance로 아이템을 오염시키지 않는다. 동일 아이템은 동일한 시장 규칙을 유지하고, 대신 지급 EWU를 세력별 쿨다운과 모든 세력 합산 `alliance-benefit` 예산에서 exact debit한다.
+- Trade 구매액은 동일 화물의 즉시 판매 회수액보다 커야 한다. Supply의 일일 기대 가치는 authored 관계 보상 예산 이하이어야 한다.
+- 화물은 `Ready → Publishing → Delivered` exact-source publication으로 처리하고, 다중 line 일부 spawn·드롭존 부재·재시도에서 부분 완료나 복제를 허용하지 않는다.
+- 가격·지급 정책은 item/faction ID 분기가 아니라 versioned economic-policy capability registry로 선택한다. 신규 팩션과 일반 아이템은 authoring만으로 quote·debit·delivery·save·audit에 들어와야 한다.
+- route policy가 없는 외부 유입과 연결된 가격 후보는 수학적으로 SCC가 안전해도 `rework`로 유지한다. 낮은 가격으로 무료 유입 결함을 숨기지 않는다.
+
+권장 초기 정책은 `Trade = V27 authored unit price × 수량의 1.00배 선결제`, `출발 후 손실 환불 없음`, `Supply = 통화 debit 0 + 전역 alliance-benefit EWU 예산 debit`이다. 구체적인 전역 예산 수치는 현재 faction 수·cargo·cooldown의 일일 기대값을 전수 산출한 뒤 승인하며, 계산 전 임의 상수를 넣지 않는다.
+
+구현 순서는 결제·경로·배송을 한 번에 섞지 않고 다음 수직 슬라이스로 고정한다.
+
+1. `IIdempotentGameMoneyAccount.TrySpendOnce`가 positive cost, stable source, target과 exact receipt를 소유한다. 동일 source·동일 값 재시도는 같은 receipt를 반환하고 추가 차감하지 않으며, 다른 값·target 재사용은 실패한다.
+2. Faction economic-policy registry가 authored cargo의 canonical quote와 digest를 만든다. item/faction ID switch, UI 독자 계산, float 합산은 금지한다.
+3. Trade 요청은 settlement operation sequence를 할당하고 exact debit receipt를 route V4 DTO에 동결한 뒤에만 route를 게시한다. debit과 route 게시 사이에는 save capture를 차단한다.
+4. Supply 요청은 동일 quote 구조를 사용하되 currency receipt 대신 global alliance-benefit budget reservation을 동결한다.
+5. 도착 화물은 frozen output vector를 exact-source publication으로 원자 게시하고, 모든 line receipt가 확인된 뒤에만 Delivered가 된다.
+
+2026-08-31 첫 두 슬라이스 증거: 공용 exact-once debit과 `FactionTradePurchase/FactionTradePurchaseRefund` transaction kind를 추가했다. focused fixture는 최초 `9 gold` 차감 `100→91`, 동일 source replay 추가 차감 `0`, 다른 금액 충돌 거부, 잔액 `8<9` 실패 시 balance 불변과 failure receipt, ledger 예외 시 `100` 복원을 통과했다. 이어 6개 실제 세력의 Trade/Supply policy descriptor를 authored asset에 기록하고, capability registry가 cargo를 item ID ordinal로 정렬해 deterministic quote/source digest를 만들도록 연결했다. 실제 quote는 Trade `62~228 gold`, Supply authored cargo value `304~2,087 gold` 범위이며, 등록 순서 역전 동일성·중복 policy·누락 policy fail-loud를 통과했다. `QUALITY_REJECTED_SALE_OUTBOX_PASS`, `FACTION_ROUTE_ECONOMIC_POLICY_PASS`, Unity compile PASS, Console Warning/Error `0/0`이다. 이 증거는 경제-policy descriptor·canonical quote·공용 debit의 `3/7`만 닫으며 route request 결제 transaction, V4 settlement receipt, Supply budget, physical cargo publication과 남은 99 Critical은 OPEN이다.
+
+이 절은 뒤의 과거 체크포인트에서 사용한 “질량 보존” 표현보다 우선한다. 과거 `mass-creation-critical`은 자동 실패가 아니라 `외부 유입 권위 누락 여부`를 재판정하고, `disposition-contract-missing`은 입력·출력의 동일화를 요구하는 대신 위 폐쇄식의 누락된 항을 작성하게 한다.
 
 #### 현재 작업 분모
 
@@ -35,8 +198,9 @@
 | deprecated compatibility facility | 21 | 별도 집합 | production 소비 0 또는 명시적 compatibility disposition |
 | generated facility kit | 377 | 동일 8,000g 계열 식별 | packed-unit family policy·BOM coupling 검토 |
 | FacilityBuffer input owner | 39 | exact migrated 3 | remaining 36 및 bypass 5·orphan 1 폐쇄 |
+| FacilityOutputBuffer/direct output owner | 6 | exact migrated 6 | synthetic full-path canary·Batch A normal/fault PlayMode 검증 |
 
-단일 `% 완료`는 사용하지 않는다. raw Markdown checkbox `626/712`는 작업 색인일 뿐이며 작은 정적 항목과 전수 PlayMode gate의 무게가 같지 않다. 현재의 정직한 가중 잔여량은 약 `35~45%`이고, 다음 네 축을 별도로 보고한다.
+단일 `% 완료`는 사용하지 않는다. raw Markdown checkbox는 작업 색인일 뿐이며 작은 정적 항목과 전수 PlayMode gate의 무게가 같지 않다. 2026-08-27 fresh owner manifest와 current-source compile 기준 정직한 가중 잔여량은 약 `32~42%`이고, 다음 다섯 축을 별도로 보고한다.
 
 | 축 | 현재 판정 | 완료 판정 |
 |---|---|---|
@@ -44,6 +208,7 @@
 | 콘텐츠 이관 | partial | current 분모 전체 semantic·mass·capacity·disposition closure |
 | live 실행 증거 | early partial | 대표 정상·중단·복원·용량 실패 경로의 actual AI/PlayMode 증거 |
 | 최종 밸런스 | open | EWU·가격·6인 생존망·공간·다중 seed·no-op artifact 모두 green |
+| 미래 콘텐츠 확장 폐쇄 | open | 기존 capability canary의 core diff 0, 신규 Strategy 공용 contract 자동 통과, content-ID branch·manual allowlist·unregistered capability 0 |
 
 #### 완료 가능한 작업 단위
 
@@ -51,11 +216,13 @@
 
 ```text
 definition/authoring
+→ capability descriptor와 다형적 registry
 → runtime authority
 → 실제 producer/consumer
 → destination capacity와 custody
 → current-format save/restore
 → cancel/Downed/destroyed/output-space fault
+→ synthetic future-content canary의 core diff 0
 → deterministic artifact와 baseline evidence
 ```
 
@@ -75,7 +242,7 @@ definition/authoring
 
 #### 자동 authoring 원칙
 
-414개 item과 355개 recipe를 사람이 한 행씩 수정하지 않는다. 다음 파이프라인을 사용한다.
+414개 item과 355개 recipe를 사람이 한 행씩 수정하지 않는다. 같은 파이프라인은 미래에 추가되는 item/recipe/facility를 코드 수정 없이 자동 수집해야 한다.
 
 ```text
 current authority capture
@@ -113,7 +280,7 @@ current authority capture
 - 모든 canonical 물리 아이템의 `1개` 의미와 kg 전수 확정
 - 원료·식품·중간재·장비별 기준 중량표 작성
 - BOM·재료 밀도·포장 질량을 이용한 파생 중량 계산
-- 수분 증발·절삭·제련 부산물·폐기물 등 명시적 질량 손실만 허용
+- 명시적 외부 유입·물리 부산물·terminal Sink·추상 공정 손실로 질량 차이를 설명하고, 입력=출력 자체는 강제하지 않음
 - 전투 장비의 전투 중량과 물리 아이템 운반 중량을 단일 규칙으로 연결
 - 일반 레시피 1회 투입 묶음 `6~11kg`, 실제 혼합 운반 계획 `8~14kg` 검증
 - 물류 EWU·가격 재생성
@@ -121,9 +288,9 @@ current authority capture
 
 이 문서만 작성된 상태는 중량 적용이나 밸런스 완료가 아니다. 실제 에셋 적용, 전수 감사, PlayMode, 다중 seed와 실전 보정 전에는 `밸런스 기준 배정`보다 높은 상태로 보고하지 않는다.
 
-이 계획의 “완전” 판정은 미래 결함이 절대 없다는 뜻이 아니다. 현재 compilation에서 발견 가능한 production symbol·save edge·reader·writer가 semantic manifest에 100% 포함되고, 신규 호출부 drift가 CI에서 fail-loud하며, 각 fault matrix 행이 실행 증거를 가진다는 뜻으로만 사용한다. manifest가 아직 생성되지 않은 상태에서는 계획이 decision-complete여도 시스템 연계 완료라고 부르지 않는다.
+이 계획의 “완전” 판정은 미래 결함이 절대 없다는 뜻이 아니다. 현재 compilation에서 발견 가능한 production symbol·save edge·reader·writer가 semantic manifest에 100% 포함되고, 기존 capability 범위의 신규 콘텐츠가 코어 재설계 없이 자동 연결되며, 계약 밖 콘텐츠와 신규 호출부 drift가 CI에서 fail-loud하고, 각 fault matrix 행이 실행 증거를 가진다는 뜻으로만 사용한다. manifest와 synthetic canary 증거가 없으면 계획이 decision-complete여도 시스템 연계 또는 확장 폐쇄 완료라고 부르지 않는다.
 
-현재 focused 질량 보존 과정에서 실제 `unitWeight`가 변경된 12개 항목은 `물리 질량 보존 잠정 적용값`이다. 단위 효능, 반복 WU, EWU, maxStack, 저장 밀도와 live 운반을 함께 검증하기 전에는 최종 밸런스 값으로 승인하지 않는다. 이 결합 감사가 끝날 때까지 신규 kg의 연속 적용을 중단한다.
+현재 focused 질량 회계 과정에서 실제 `unitWeight`가 변경된 12개 항목은 `물리 질량 잠정 적용값`이다. 이 명칭은 입력과 출력의 gram 동일성을 뜻하지 않는다. 단위 효능, 반복 WU, EWU, maxStack, 저장 밀도, live 운반과 typed source/sink/loss 귀속을 함께 검증하기 전에는 최종 밸런스 값으로 승인하지 않는다. 이 결합 감사가 끝날 때까지 신규 kg의 연속 적용을 중단한다.
 
 ---
 
@@ -239,7 +406,7 @@ maxCarryKg
 
 ### 2.4 kg 단독 교정의 구조적 위험
 
-질량 보존은 필요조건이지 밸런스 완료조건이 아니다. `unitWeight`를 바꾸고 효능·출력·WU·stack·storage를 그대로 두면 다음 비율이 동시에 변한다.
+설명 가능한 질량 회계도 필요조건일 뿐 밸런스 완료조건은 아니다. `unitWeight`를 바꾸고 효능·출력·WU·stack·storage를 그대로 두면 다음 비율이 동시에 변한다.
 
 ```text
 nutritionPerKg
@@ -299,7 +466,7 @@ kg·효능 결합만으로도 충분하지 않다. 현재 런타임 권위와 �
 | P0 | 출력 공간 원자성 | 입력을 먼저 소비한 뒤 output spawn/capacity가 실패하면 WIP가 소실되거나 반복 재시도로 복제될 수 있다. | cycle 시작 전 또는 commit 직전 exact output capacity를 예약한다. output 실패 시 WIP를 유지하고 재시도하며 입력을 다시 소비하지 않는다. 시설 파괴 시 typed salvage/loss로만 종료한다. |
 | P0 | 유체의 질량과 처리량 | clean water·wastewater unit이 현재 경제상 추상 수량이면 `1 unit = 500g` 같은 질량 가정이 배관 L/day·하수 처리량과 일치하지 않을 수 있다. 유청·염수·세척수도 같은 wastewater 수량으로 합쳐질 수 있다. | fluid별 `gramsPerUnit`, `millilitersPerUnit`, 조성/disposition, clean-water 수요, wastewater·sludge·off-gas 출력을 하나의 fluid authority에서 읽는다. 질량과 hydraulic volume을 별도 검증한다. |
 | P1 | freshness·quality stack 병합 | maxStack 변경이나 생산량 변경은 서로 다른 신선도·품질 item의 병합 빈도를 바꾼다. 잘못 병합하면 식품 수명이 갱신되거나 품질이 사라진다. | 병합 signature에 모든 비신선도 상태를 보존하고 freshness는 보수적 최소값을 사용한다. incompatible state는 병합하지 않는다. split/merge 전후 mass·quality·freshness를 exact 검증한다. |
-| P1 | Source 경제 폐쇄 | 농업·채집·축산은 합법적인 Source라서 질량 보존만 보면 통과하지만, 토지·시간·물·사료 없이 고효율 kg가 생길 수 있다. | source마다 node/plot/animal/day yield, land, water, feed, labor, season/failure를 기록한다. Transform 질량식과 별도로 경제·처리량 폐쇄를 요구한다. |
+| P1 | Source 경제 폐쇄 | 농업·채집·축산은 합법적인 Source라서 질량 귀속만 보면 통과하지만, 토지·시간·물·사료 없이 고효율 kg가 생길 수 있다. | source마다 node/plot/animal/day yield, land, water, feed, labor, season/failure를 기록한다. Transform 질량식과 별도로 경제·처리량 폐쇄를 요구한다. |
 | P1 | AI 운반 공정성 | 가벼운 item은 같은 kg 안에 더 많은 stack/leg를 넣을 수 있어 planner가 작은 일반 주문으로 tour를 채우고 무거운 긴급 주문을 굶길 수 있다. | kg·거리 효율 외에 urgency, order age, destination priority, last-deficit를 기록한다. 긴급 소량의 preemption, heavy-order bounded wait, item-count-per-tour 상한을 live 검증한다. |
 | P1 | 시장·계약·원정의 kg당 가치 | unit price와 unit reward가 고정된 상태에서 kg가 줄면 같은 계약·원정 보상을 훨씬 적은 물류비로 운반한다. | buy/sell/reward per kg, contract WU/kg, expedition supply-days/kg를 ledger에 포함하고 unit-count 수요와 함께 재산정한다. |
 | P1 | 동적 상태 질량 | 젖음·오염·충전·탄약·모듈·내구·품질이 실제 질량을 바꾸는지 정의하지 않으면 world/carry/equipped 표시가 갈라진다. | 질량을 바꾸는 component만 공용 instance mass projector에 포함한다. freshness·quality·내구는 기본적으로 질량 불변이며 예외는 exact component grams를 가져야 한다. |
@@ -342,7 +509,7 @@ kg·효능 결합만으로도 충분하지 않다. 현재 런타임 권위와 �
 - P0 행의 권위·생산자·소비자·저장·실패 정책 중 하나라도 `unknown`이면 새 `unitWeight` 적용 금지
 - P1 행은 대표 샘플이 아니라 변경 item의 실제 연결 경로 전수 목록이 있어야 `coupled-pass`
 - kg를 고치기 위해 output count, maxStack, capacity, 효능을 바꾸는 순간 해당 값의 원래 밸런스 도메인 테스트를 다시 실행
-- 질량 보존 PASS와 게임 밸런스 PASS를 같은 marker로 합치지 않음
+- 질량 귀속·소유권 PASS와 게임 밸런스 PASS를 같은 marker로 합치지 않음
 
 ### 2.7 Phase 23 최종 문서 감사에서 닫은 설계 결함
 
@@ -1089,7 +1256,7 @@ public readonly struct PhysicalMassGrams
 - float 누적 합산 금지
 - canonical capture 시 `kg × 1000`이 exact gram이 아니면 `NON_CANONICAL_ITEM_MASS`
 - UI만 kg 소수 둘째 자리로 반올림
-- 질량 보존 감사에는 UI 반올림을 사용하지 않음
+- 질량 회계·소유권 감사에는 UI 반올림을 사용하지 않음
 - EWU의 input Ceil/output Floor 규칙을 kg 자체에 오용하지 않음
 - 질량 residual을 허용 오차로 버리지 않고 explicit loss 또는 byproduct로 귀속
 - unit/lot/capacity는 positive grams만 생성한다. remaining/reserved 합계의 0은 별도 `long` query 결과 또는 명시적 `Zero` capable nonnegative aggregate type으로 표현한다.
@@ -1184,7 +1351,7 @@ massBalanceSourceId
 | 처리 목재 | 판재 bundle 1개 | 1.50~6.00 | 원목 입력 - 톱밥/수분 |
 | 광석 | 광석 chunk/basket 1개 | 2.00~6.00 | 부피 × bulk density |
 | 석재·벽돌 | block 1개 | 2.00~8.00 | 규격 부피 × 밀도 |
-| 잉곳 | 규격 ingot 1개 | 0.50~3.00 | 금속 질량 보존 |
+| 잉곳 | 규격 ingot 1개 | 0.50~3.00 | 금속 BOM + 회수 가능한 슬래그 + typed 제련 손실 |
 | 소형 부품 | fastener, gear, fitting의 1봉/1개 | 0.05~1.50 | BOM - 절삭 손실 |
 | 대형 부품 | frame, mechanism, power unit | 2.00~10.00 | BOM - 공정 손실 |
 | 폐기물 | bag, slag chunk, scrap bundle | 0.10~8.00 | 실제 부산물 질량 |
@@ -1558,6 +1725,9 @@ consumedProcessFuelMass
 totalPhysicalInputMass
 = productBoundInputMass + consumedProcessFluidMass + consumedProcessFuelMass
 
+declaredExternalInputMass
+= worldSourceMass + ambientOrBiologicalMass + magicIntroducedMass
+
 declaredOutputMass
 = Σ(outputQuantity × canonicalOutputUnitMass)
 + physicalByproductMass
@@ -1571,8 +1741,15 @@ declaredLossMass
 + consumedFuelExhaust
 + biologicalDiscard
 
+terminalSinkMass
+= consumedNeedMass + soldOffMapMass + hazardDestroyedMass
+
 transformInvariant
-= totalPhysicalInputMass - declaredOutputMass - declaredLossMass
+= totalPhysicalInputMass
++ declaredExternalInputMass
+- declaredOutputMass
+- declaredLossMass
+- terminalSinkMass
 ```
 
 `incorporatedFluidMass`는 완성품에 실제 남은 유체만 뜻한다. 세척·냉각·공정용으로 공급됐지만 제품에 남지 않은 유체는 `consumedProcessFluidMass`로 분리해 wastewater/byproduct/loss로 닫는다. 같은 clean water gram을 두 항에 중복 계상하지 않는다.
@@ -1580,24 +1757,24 @@ transformInvariant
 
 연료는 제품 질량에 편입하지 않는다. 연료의 물리 질량은 ash·slag 같은 physical byproduct 또는 `CombustionExhaust` 등 명시적 loss로 전부 닫는다. WIP에는 아직 연소되지 않은 committed fuel과 이미 실현된 byproduct/loss만 단계별로 기록한다.
 
-Transform 레시피는 `transformInvariant == 0g`가 원칙이다.
+Transform 레시피는 `transformInvariant == 0g`를 요구한다. 이는 입력과 출력이 같다는 뜻이 아니라 모든 차이가 외부 유입·물리 출력·terminal Sink·추상 손실 중 정확히 한 항에 귀속된다는 뜻이다.
 
-### 6.3 다중 출력 배분
+### 6.3 다중 출력·손실 귀속
 
-- output마다 `massAllocationPermille` 또는 exact grams를 둔다.
-- allocation 합은 1000이어야 한다.
-- waste/slag/sawdust도 가능한 한 물리 output으로 만든다.
-- 게임플레이상 추적하지 않는 vapor/off-gas만 explicit sink로 둔다.
-- 주산물 하나에 모든 질량을 몰아넣고 부산물을 0으로 두지 않는다.
+- 제품·부산물·terminal Sink·abstract loss마다 `massAllocationPermille` 또는 exact grams를 둔다.
+- 동일 회계식의 귀속 allocation 합은 1000이어야 한다. 이는 모든 항을 물리 item으로 만들거나 제품 output 합만 1000으로 만들라는 뜻이 아니다.
+- waste/slag/sawdust는 회수·저장·운반·재사용의 gameplay 가치가 있을 때 물리 output으로 만든다.
+- gameplay상 추적 가치가 없는 vapor/off-gas/미세 분진은 typed terminal Sink 또는 abstract loss로 둘 수 있다.
+- 주산물 하나에 모든 질량을 몰아넣거나, 가치 있는 부산물을 0으로 숨기거나, BOM 오류를 큰 추상 손실로 덮지 않는다.
 
 ### 6.4 확률 출력
 
-경제 기대값과 물리 질량 보존을 분리한다.
+경제 기대값과 branch별 질량 귀속을 분리한다.
 
 - EWU/가격은 확률 가중 expected output을 사용할 수 있다.
-- 질량 무결성은 실제로 발생 가능한 각 output branch를 검사한다.
-- bonus output 성공 시 입력보다 질량이 커지면 Source flow가 아닌 이상 실패한다.
-- bonus가 나오지 않은 branch에서 사라지는 질량은 explicit loss로 기록한다.
+- 질량 회계는 실제로 발생 가능한 각 output branch를 검사한다.
+- bonus output 성공 시 출력이 입력보다 커지면 declared external input 또는 Source 권위가 없을 때 실패한다.
+- bonus가 나오지 않은 branch에서 제품으로 가지 않는 질량은 물리 부산물, terminal Sink 또는 typed abstract loss로 귀속한다.
 - 독립 확률 output 조합이 여러 개면 reachable branch의 min/max mass를 모두 검사한다.
 - 각 authored output line은 recipe 안에서 영구적인 `outputLineId`를 가진다. list index나 표시명은 identity가 아니다.
 - completion roll key는 `(rootSeed, billId, cycleSequence, recipeId, outputLineId, rollKind)`이며 output list 순서·재시도·복원에 독립적이다.
@@ -1618,7 +1795,7 @@ Transform 레시피는 `transformInvariant == 0g`가 원칙이다.
 | Flow role | 질량 규칙 |
 |---|---|
 | Source | 채집·채굴·성장·번식 등 세계에서 질량을 도입. source amount와 unit meaning 필수 |
-| Transform | 입력 = 출력 + 부산물 + 명시적 손실, exact gram |
+| Transform | 입력 + 명시적 외부 유입 = 출력 + 부산물 + terminal Sink + 명시적 추상 손실, exact gram |
 | Sink | 섭취·연소·폐기처럼 내용물을 world physical inventory에서 제거. 제거 사유와 양, tare disposition 필수 |
 
 Source 레시피를 질량 생성 버그로 오판하지 않고, Transform을 Source로 표기해 무료 질량 생성을 숨기지도 않는다. Sink는 내용물의 종착을 뜻할 뿐 재사용 용기까지 자동으로 소멸시킬 권한이 아니다.
@@ -1661,9 +1838,9 @@ public readonly struct PhysicalItemDispositionReceipt
 ```
 
 - `Transferred`는 world 총질량을 줄이지 않으며 input/output lot ownership만 바꾼다.
-- `SourceIntroduced`는 input 0을 허용하지만 source authority와 exact created grams를 요구한다.
+- `SourceIntroduced`는 input 0을 허용하지만 source authority와 exact created grams를 요구한다. Transform 내부의 물·공기·생물 성장·마력 유입도 별도 declared external-input line으로 같은 규칙을 따른다.
 - Transform/Sink 계열은 command의 exact input slice와 예상 output/loss를 모두 prepare한 뒤 commit한다.
-- receipt는 `input = output+byproduct+terminalSink+declaredProcessLoss` 또는 Source의 명시적 introduction equation을 증명한다. 섭취처럼 의도적으로 physical inventory를 떠나는 질량을 공정 손실로 위장하지 않는다.
+- receipt는 `input+declaredExternalInput = output+byproduct+terminalSink+declaredProcessLoss` 또는 Source의 명시적 introduction equation을 증명한다. 섭취처럼 의도적으로 physical inventory를 떠나는 질량을 공정 손실로 위장하지 않는다.
 - 같은 commit ID는 idempotent하고 다른 payload fingerprint로 재사용하면 fail-loud한다.
 - low-level repository remove/quantity mutation은 이 transaction 내부 구현으로만 남기며 production direct caller를 manifest 0으로 만든다.
 - commit receipt의 save owner는 command를 시작한 domain aggregate다. active/terminal operation의 commit ID와 result fingerprint를 domain state와 physical mutation의 같은 publication 경계에 기록한다.
@@ -1671,7 +1848,7 @@ public readonly struct PhysicalItemDispositionReceipt
 
 ### 6.7 Sink의 포장 회수 불변식
 
-포장된 item을 소비하는 모든 action/recipe branch에 대해 다음을 계산한다.
+포장된 item을 소비하는 모든 action/recipe branch에 대해 다음을 계산한다. 다만 `packageTareGrams > 0`이 곧 빈 용기 item 생성 의무를 뜻하지는 않는다. authoring에서 reusable/physical-waste/destroyed/transfer/bulk-infrastructure 중 하나를 먼저 선택한다.
 
 ```text
 consumedPackedMass
@@ -1690,13 +1867,16 @@ sinkInvariant
 
 추가 계약:
 
-- 반환 용기 수량은 소비된 packed unit 수량과 exact하게 연결한다.
+- `ReusableContainerReturn`을 선택한 경우에만 반환 용기 수량을 소비된 packed unit 수량과 exact하게 연결한다.
+- `DisposableWasteByproduct`는 물리 waste가 물류·처리 gameplay에 의미가 있을 때만 사용한다.
+- `DestroyedDuringUse`는 일회용 포장·소각·파손을 parent Sink에 결속된 declared packaging loss로 닫으며 빈 용기 item을 생성하지 않는다.
+- `BulkInfrastructureNotInUnit`는 병·탱크·그릇이 시설 인프라에 속하므로 unit tare에 포함하지 않는다.
 - partial stack 소비는 실제 소비 수량만큼만 빈 용기를 만든다.
 - cancel-before-commit은 내용물·용기·waste 모두 변화 0이다.
 - commit 재호출은 empty container 또는 waste를 중복 생성하지 않는다.
 - 내용물 Sink와 용기 반환은 같은 transaction/operation ID 아래 exact-once로 처리한다.
 - output 공간이 없으면 내용물만 먼저 소비하지 않고 `OutputCapacityUnavailable`로 fail-loud한다.
-- inventory에 반환 가능한 용기는 우선 소비자 inventory로 들어가고, 불가능하면 현재 cell의 typed physical byproduct로 생성한다.
+- 물리 반환으로 authoring된 용기만 우선 소비자 inventory로 들어가고, 불가능하면 현재 cell의 typed physical byproduct로 생성한다.
 - emergency egress·유일 접근칸에 byproduct를 조용히 drop하지 않는다. 합법 output destination 또는 capacity가 없으면 action을 시작하지 않는다.
 
 ### 6.8 재공품·촉매·출력 원자성
@@ -1774,12 +1954,14 @@ public enum RecipeInputMassDisposition
 시설 output은 생산자가 직접 창고로 운반하지 않는다. 별도 AIHaul이 시설의 물리 `FacilityBuffer`에서 회수한다.
 
 ```text
-facilityOutputCapacityGrams
-= clamp(
-    max(2 × maximumCycleCompletionFootprintGrams,
-        ceil(p95HaulClearanceHours × peakOutputMassPerHour)),
-    2 × maximumCycleCompletionFootprintGrams,
-    4 × maximumCycleCompletionFootprintGrams)
+rawRequiredOutputCapacityGrams
+= max(2 × maximumCycleCompletionFootprintGrams,
+      ceil(p95HaulClearanceHours × peakOutputMassPerHour))
+
+publishedOutputCapacityGrams
+= clamp(rawRequiredOutputCapacityGrams,
+        2 × maximumCycleCompletionFootprintGrams,
+        4 × maximumCycleCompletionFootprintGrams)
 ```
 
 ```text
@@ -1788,12 +1970,12 @@ maximumCycleCompletionFootprintGrams
   (main outputs + physical byproducts + returned packaging + recoverable waste)
 
 remainingOutputCapacityGrams
-= facilityOutputCapacityGrams
+= publishedOutputCapacityGrams
  - physicalFacilityBufferMassGrams
  - reservedResolvedOutputMassGrams
 ```
 
-- 산정 요구량이 4회분을 넘으면 버퍼를 더 키우지 않고 물류·시설 처리량 Critical로 판정한다.
+- 산정 요구량이 4회분을 넘으면 원시 요구량을 보존하고 실제 버퍼는 4회분에 고정한 채 `BackpressureExpected`로 기록한다. authored capacity가 bounded target보다 작거나 원자성·liveness·실제 수요 충족이 실패할 때만 Critical이다.
 - buffer가 차기 전까지 생산자는 다음 cycle을 계속할 수 있다.
 - FacilityBuffer는 warehouse capacity를 빌려 쓰지 않으며 exact owner·operation·mass reservation을 가진다.
 - Sink의 empty container/waste도 실제 생성 전 같은 output-capacity token을 reserve한다. 단순 query preflight 후 내용물부터 소비하지 않는다.
@@ -1832,6 +2014,8 @@ physicalByproductItemId(optional)
 evidenceSource
 ```
 
+`physicalByproductItemId`는 선택 사항이다. 해당 부산물이 재활용·오염·운반·저장·가격에 실제 선택을 만들 때만 물리 item을 요구한다. 그렇지 않은 증기·분진·배기·미량 폐기는 exact gram과 reason이 receipt에 남는 추상 손실로 끝낼 수 있다. 전역 `5%` 같은 tolerance는 두지 않지만, family policy가 계산한 큰 손실도 설명과 재현성이 있으면 합법이다.
+
 ### 7.2 공정별 정책
 
 - 수분 증발: 입력 수분과 조리/건조 조건에서 계산
@@ -1850,12 +2034,12 @@ evidenceSource
 - `입력과 출력이 안 맞지만 5% tolerance` 같은 포괄 허용
 - EWU 반올림 epsilon을 질량에 재사용
 - output mass를 맞추기 위한 임의 hidden water 추가
-- waste를 값 없는 추상 숫자로만 차감하고 물리 경로는 생략
+- reason·gram·operation 결속 없이 waste를 값 없는 추상 숫자로만 차감
 - 레시피가 없다는 이유로 기본 1kg 적용
 - unknown item을 0.01kg로 clamp해 통과
 - builder에서 asset 값과 다른 runtime mass 생성
 - 에셋 재생성 후 kg가 되돌아가는 이중 authoring
-- `packageTareGrams > 0`인데 tare disposition 또는 반환/waste/loss 경로가 없음
+- `packageTareGrams > 0`인데 reusable/waste/destroyed/transfer/bulk-infrastructure disposition이 없음
 - 재사용 용기를 내용물과 함께 Sink 처리
 - 내용물 소비 commit과 용기 반환 commit이 분리되어 복제·누락 가능
 
@@ -2229,7 +2413,16 @@ kg만 바꾸고 가격을 유지하지 않는다. 현재 V27 계산기는 item w
 - kg 변경으로 source digest와 dependency fingerprint가 바뀐 행의 기존 approval은 자동 만료
 - inherited-only 가격 변화는 root-cause tree 아래 접을 수 있음
 - item 자체 kg가 바뀐 행은 local change로 남김
-- SCC와 질량 보존 감사에는 2 mEWU presentation epsilon을 적용하지 않음
+- 하나의 approval 행은 하나의 판단만 소유한다. 반복 레시피의 `direct-wu` 승인과 `labor-density-ratio` 파생 경고를 같은 행에 합치지 않는다.
+- `direct-wu`의 source digest는 대상 레시피 ID·공정 종류·실제 런타임 작업 계산기 버전만 결속한다. 질량 설명, 출력 원가 배분, 표시 문자열처럼 직접 WU를 바꾸지 않는 메타데이터 변경은 노동 승인 자체를 무효화하지 않는다.
+- BOM EWU가 바뀌어 노동 밀도가 변하면 별도 `labor-density-ratio` 행을 만든다. 이 행의 로컬 delta는 `0`이고, 변경된 입력 아이템의 선택 생산 경로를 재귀 추적해 Source·Crop·Recipe·External item 근본 원인 아래로 접는다.
+- 이전 approval을 새 digest로 재검증할 때는 `exact Before/After`, dependency fingerprint, reasonCode, baseline record ID가 모두 같고 현재 에셋이 exact After를 이미 보유한 경우만 허용한다. 신규 After나 미적용 후보는 이 경로로 승인할 수 없다.
+- 재검증 중 현재 원장에 더 이상 대응하지 않는 키는 “승인”이 아니라 만료 이력이다. 이미 적용된 값이 다음 재계산 후보와 다르면 이를 임의 drift로 실패시키지 말고 `previous-applied authority → recalibration candidate` 두 상태로 분리해 명시적 rebase review를 생성한다.
+- `previous-applied authority`는 기존 metric을 그대로 유지하고 `historical Before → exact current` 행으로 캡처한다. 현재 에셋이 exact After와 같은 경우에만 `assetApplied=true`로 기존 approval을 소비한다.
+- `recalibration candidate`는 별도 metric에 `exact current → newly calculated candidate`를 기록하고 `assetApplied=false`, `root-critical`, `approvalKey=""`로 남긴다. semantic revalidation, labor/facility 일괄 승인, approved-patch 생성기가 이 행을 자동 소비하면 안 된다.
+- WU 후보 metric은 `construction-recalibration-candidate-wu`, BOM 수량 후보는 `construction-recalibration-candidate-material:<itemId>`로 고정한다. 기존 적용 행과 후보 행은 같은 SerializedProperty를 가리킬 수 있지만, 후보 행은 승인키가 없으므로 동시 patch 충돌에 참여하지 않는다.
+- exact current가 기존 approval After와도 다르고 새 candidate와도 다르면 여전히 미승인 authority drift로 fail-loud한다. 새 후보를 적용하는 명시적 review/rebase 명령은 기존 approval을 만료하고 기존 metric의 새 exact Before/After approval로 교체한 뒤에만 에셋을 수정해야 한다.
+- SCC에는 2 mEWU presentation epsilon을 적용하지 않는다. 질량 회계도 gram 차이를 epsilon으로 숨기지 않되, typed external input/byproduct/Sink/loss 항으로 비보존 공정을 합법적으로 닫는다.
 - 승인 없는 After를 asset에 적용하지 않음
 
 ---
@@ -2569,9 +2762,11 @@ builder 산출물과 수동 asset을 별도로 패치하면 다음 rebuild에서
 
 ## 16. 구현 단계
 
-### 16.1 Revision v5 실행 배치 개요
+### 16.1 Revision v6 실행 배치 개요
 
 아래 Batch A~H가 current-source 구현의 실제 critical path다. 기존 Phase 0~9는 계약 색인으로 유지하되, 더 이상 Phase 2의 414개 semantic을 모두 수동 완료한 뒤 Phase 3으로 이동하는 식으로 해석하지 않는다. 자동 proposal과 독립 구조 batch는 병렬로 준비하고, Unity integration과 SO 적용만 의존 순서대로 직렬화한다.
+
+Revision v6는 이 Batch 순서를 바꾸지 않고 모든 exit gate에 **확장 폐쇄 공통 조건**을 추가한다. 한 batch가 현재 정의만 대상으로 한 ID 분기·수동 allowlist·전용 save 필드로 통과하면 실패다. 해당 batch의 대표 synthetic canary가 기존 capability 조합만으로 자동 수집·실행·저장·감사되고 production core source diff가 `0`이어야 한다. 완전히 새 capability가 필요한 경우에도 새 구현·descriptor·공용 contract fixture만 추가하고 기존 코어 분기를 수정하지 않아야 한다.
 
 ```text
 Batch A exact output closure ─→ Batch B output capacity ─────────────┐
@@ -2592,6 +2787,18 @@ Batch D authoring proposal ─────→ Batch E anomaly review/apply ─�
 | G | 실제 AI·fault matrix | hay-feed normal live만 확보 | partial pickup, cancel, Downed, Dead, destroyed, output full, mid-haul restore, Floor Clutter evidence | 수량·gram·lease·WIP 보존, teleport/duplication/orphan 0, Console 0/0 |
 | H | 최종 밸런스·결정론 | 아직 open | EWU·가격·6인 생존·공간·32/64 paired·256 layout·3 final seeds·artifacts | unresolved Critical 0, no-op diff 0, 최종 완료조건 전부 green |
 
+Batch 공통 확장 지표:
+
+```text
+coreContentSpecificBranchCount = 0
+manualCapabilityAllowlistCount = 0
+unregisteredCapabilityCount = 0
+syntheticCanaryCoreSourceDiff = 0
+syntheticCanaryExecutionOrphanCount = 0
+```
+
+이 지표는 새 콘텐츠가 생길 때 분모를 수동으로 유지하라는 뜻이 아니다. catalog/semantic symbol/generator가 새 정의를 자동 발견하고, capability registry·dependency graph·원장·테스트 fixture의 입력 집합이 함께 증가해야 한다.
+
 ### 16.2 Batch A — exact prepared-output closure
 
 목적은 “생산 결과가 생겼다”와 “물리 output이 destination custody에 exact하게 들어갔다” 사이의 모든 우회를 제거하는 것이다.
@@ -2611,23 +2818,63 @@ Batch D authoring proposal ─────→ Batch E anomaly review/apply ─�
 - [x] `355 recipes / 357 physical output lines / canonical 4 / missing 353`을 AuditOnly로 캡처하고 byte-identical 두 번째 capture와 SO mutation 0을 증명했다.
 - [x] reviewed proposal의 `outputLineId 353개`와 source recipe의 probabilistic secondary output `Main→Byproduct 6개`만 적용했다. `347`개 changed asset, `SaveAssets 1`, 두 번째 Apply 변경/SaveAssets `0/0`, empty line ID `0`이다.
 - [x] 출력 ID 적용 뒤 `ProductionEconomyDebugScenarios`와 `SurgeryDebugScenarios`가 PASS하고 Unity full compile 및 Console Warning/Error `0/0`을 확인했다.
-- [x] 355 recipes / 357 physical output lines를 component 초기화 권위로 전수 분류했다. 현 generic codec positive exact 호환은 `11 reviewed item authorities`, 정의 전용이지만 positive allowlist 미승인은 자동 승격하지 않으며 freshness·packaged tare·apparel·surgical·durable state 전용 output은 별도 handler를 요구한다. prefix/negative blacklist 기반 자동 승격을 금지했다.
-- [x] current migrated recipe 11개(feedbench 4개 + sawmill 1개 + charcoal/mill/steelworks/treated-lumber whole-workstation 6개)에 positive exact profile gate를 추가했다. recipe ID만이 아니라 process kind, facility tag, spoilage item과 모든 output의 line ID·role·item ID·quantity·probability가 exact 일치해야 standard prepared-output 실행과 최대 buffer projection에 들어간다. 같은 generic codec allowlist 안의 다른 item으로 바꾼 drift fixture도 fail-loud한다.
+- [x] 355 recipes / 357 physical output lines를 component 초기화 권위로 전수 분류했다. generic codec은 item ID allowlist가 아니라 `ProductionItemFeature / MarketItemFeature / ResearchGateItemFeature / FacilitySupplyItemFeature`로만 구성된 definition-only capability를 판정한다. freshness·packaged tare·apparel·surgical·durable state feature가 하나라도 있으면 별도 codec/handler 없이는 fail-loud하며, ID prefix만으로 state를 추측하지 않는 후속 교정은 계속 OPEN이다.
+- [x] current migrated recipe 11개(feedbench 4개 + sawmill 1개 + charcoal/mill/steelworks/treated-lumber whole-workstation 6개)에 positive exact profile gate를 추가했다. recipe ID만이 아니라 process kind, facility tag, spoilage item과 모든 output의 line ID·role·item ID·quantity·probability가 exact 일치해야 standard prepared-output 실행과 최대 buffer projection에 들어간다. 같은 definition-only capability의 다른 item으로 바꾼 drift fixture도 fail-loud한다.
 - [x] `production-recipe-semantic@2` 공용 digest를 추가했다. process/flow/class, facility/workstation/support/research, WU·숙련, passive timing·온도, 물·폐수·manual fallback, spoilage, exact input/output/probability를 명시적 순서와 UTF-8 byte-length prefix·IEEE754 bit token으로 SHA-256에 묶는다. 표시명·설명·asset path·Unity object ID는 제외하고 collection insertion 순서는 ordinal 정렬한다. current 11개의 digest ratchet, display-only 불변, input shuffle 불변, WU drift 변경, duplicate input fail-loud를 focused 회귀로 증명했다.
 - [x] resolved prepared-output 복원 시 저장된 `recipeDefinitionDigest`를 current `production-recipe-semantic@2`와 publication 전에 exact 비교한다. mismatch는 재계산·재굴림·legacy fallback 없이 `prepared-output-source-revision-stale`로 거부하며 정상·digest 변조·동일 ID WU drift fixture가 PASS했다.
 - [x] `resource-item-semantic@1`과 `production-prepared-output-component-profile@1`을 추가했다. current reviewed definition-only item 11개는 item ID·stock category·canonical grams·maxStack·unit price와 production/market/research/facility-supply feature를 명시적 토큰으로 묶고, component profile은 exact item digest와 canonical empty-component payload를 합성한다. restore는 live item kg·stack·price·feature drift를 `prepared-output-item-revision-stale`로 participant publication 전에 거부한다.
-- [x] `production-prepared-output-migration-profile@1`/`registry@1`을 추가하고 current 11개 positive profile의 process/facility/spoilage/output topology를 SHA-256으로 고정했다. prepared-output save schema를 `v3`로 올려 각 resolved batch에 `migrationProfileDigest`, `capacitySourceDigest`, output-buffer cycle 수, projected portfolio grams, required minimum grams를 필수 저장하며 profile/code/source drift는 각각 typed stale failure로 거부한다. 과거 schema v1/v2 fallback 또는 migration은 추가하지 않는다.
+- [x] `production-prepared-output-migration-profile@2`/`registry@1`을 사용해 current profile의 recipe semantic topology를 SHA-256으로 고정한다. 최초 `@1` allowlist 기반 profile은 폐기됐고, `@2`는 current `ProductionRecipeSemanticDigest`를 직접 포함해 신규 capable recipe도 같은 source contract에 들어간다. prepared-output save는 `migrationProfileDigest`, `capacitySourceDigest`, output-buffer cycle 수, projected portfolio grams, required minimum grams를 필수 저장하며 profile/code/source drift는 typed stale failure로 거부한다. 과거 schema fallback 또는 migration은 추가하지 않는다.
 - [x] `production-output-buffer-capacity-source@1` digest로 authored support maximum catalog·Grand Project exact factor·mass authority·recipe/item/component/migration digest·facility definition/instance/position·destination·cycle 수·projected/exact minimum grams를 batch/restore/reserve/publication에 결속했다. production owner request는 lowercase SHA-256과 positive minimum을 강제하고 profile이 minimum보다 작으면 거부한다. pure stale guard를 실제 adapter restore/resume 경로가 공유하며 시설 identity drift를 `prepared-output-capacity-source-stale`로 batch mutation 없이 거부한다. P17은 `4,200g`, P03 sawmill은 `14,400g`, charcoal kiln은 `3,600g`, mill은 reachable malt를 포함해 `2,800g`, steelworks는 `3,400g`, treated-lumber는 `9,200g`으로 결정론적 검증했고 schema-v3 tamper, admission fingerprint, isolated publication, restore join, Production Economy와 Console `0/0`을 fresh Unity compile에서 통과했다.
-- [ ] standard migration scope를 current positive 11개에서 component codec이 실제 지원 가능한 나머지 whole-workstation family와 custom handler family로 확장한다. food freshness, packaged tare, equipment/unique 등 stateful output은 generic payload로 가장하지 않는다.
+- [x] standard migration scope를 current positive 11개에서 component codec이 실제 지원 가능한 나머지 whole-workstation family와 custom handler family로 확장했다. current 355 recipes는 `standard prepared 267 + ammunition prepared 21 + workwear exact 60 + surgical exact 3 + no-physical-output sink 4`로 전수 분류되며 unsupported/mixed family는 `0/0`이다. ammunition은 `AmmunitionItemFeature` 기반 자동 capability와 전용 materializer를 사용하고 standard definition-only codec은 이를 거부한다. food freshness, packaged tare, apparel, surgical unique 등 stateful output을 generic payload로 가장하지 않는다.
 - [x] `recipe:sawmill-lumber`의 real `ProductionPreparedOutputExecutionAdapter` focused 종단 fixture를 추가했다. 실제 P03/recipe/item/catalog/bridge/Items repository/admission/publication/routing을 조립해 `3 × 1,200g` resolve, schema-v3 batch JSON round-trip, `14,400g` current-source authority restore, physical FacilityOutputBuffer stack, non-stacking durable marker, routing/ack exact-once를 검증했다. canonical하지만 stale한 digest와 산술 일관된 `cycle=3 / 10,800g` payload는 `prepared-output-capacity-source-stale`로 거부되고 claim/profile/reservation/occupancy/physical stack revision이 모두 불변이었다. fresh Unity compile과 전체 Production Economy, Console `0/0`을 통과했다.
 - [x] charcoal-kiln·mill·steelworks·treated-lumber의 reachable recipe family를 원자적으로 승격했다. mill은 처음 후보에서 빠졌던 `recipe:malt`와 `support:fine-sieve` reachable branch를 감사로 찾아 포함해 legacy bypass를 `0`으로 만들었고, 최대 batch를 flour `600g`가 아니라 malt `700g`으로 계산한다. six recipe의 canonical output/profile/component/recipe/item digest와 family membership을 current-source ratchet으로 고정했다.
 - [x] P01/P03/P04/P08/RF16의 `physicalOutputBufferCycleCapacity: 4`를 C# initializer/fallback이 아닌 BuildingSO YAML에 명시했다. 다섯 asset의 두 번째 Unity import 전후 SHA-256 변화가 `0`이며 GUID/FileID/meta와 gameplay 수치는 바꾸지 않았다.
 - [x] sawmill의 completed-unrouted current-format Production/Physical/Routing save graph를 public section registry로 새 aggregate에 재조립했다. Physical→Production→Routing dependency-ordered detached stage에서 stack/component/commit ID·source digest·`3,600g` route·`14,400g` capacity와 section JSON recapture identity를 증명했고 Completed replay의 추가 physical stack은 0이다.
-- [ ] 정상 부트 주문→작업 완료→FacilityOutputBuffer→AIHaul→kg warehouse와 cancel/Downed/mid-haul restore까지 통과한다. routed exact-outbox lifecycle과 live fault가 끝나기 전에는 sawmill live closure라고 보고하지 않는다.
-- [ ] combat/apparel/workwear/certified-seed custom handler를 common prepared gram reservation/publication/acknowledgement로 이관한다.
+- [x] special output handler 선택을 capability ID ordinal registry로 감쌌다. DI 열거 순서와 locale에 무관한 fingerprint를 생성하고 null·비canonical ID·중복 capability ID·비멱등 handler·동일 item 다중 claim을 fail-loud한다. `material:qa-definition-only-canary`는 기존 definition-only feature 조합만으로 codec create/decode를 통과하며 과거 11-item allowlist를 요구하지 않는다. Roslyn Economy/Main/Editor compile과 Unity registry/codec focused command, Console Warning/Error `0/0`을 확인했다.
+- [x] legacy resolved-output owner를 Production current-format `V17→V18`로 올렸다. `outputLineId`를 item ID와 별도 영구 key로 보존하고 capability ID/version, component codec ID/version, per-output descriptor fingerprint를 resolve 시점에 동결한다. 일반 출력도 `production-output:standard-definition@1` 실제 handler로 등록했으며 produce→mass→ack와 restore validation은 저장된 exact descriptor만 조회한다. capability version 변조는 live aggregate publish 전에 원자 거부되고, post-commit crash 복원은 재생성 없이 ack만 재개한다. Production/Economy/Main/Editor compile, registry/표준 실제 생산/수술 handler focused bundle, Console `0/0`을 통과했다.
+- [x] prepared output의 물리 line에도 capability ID/version, component codec ID/version, descriptor fingerprint를 동결했다. prepared schema `v4`가 resolve/ruin 시 descriptor를 캡처하고 restore 전에 exact registry validation을 수행하며, routing current-format `v5`와 Physical current-format `v18` capacity-routing destructive drain까지 같은 다섯 필드를 clone·fingerprint·교차 검증한다. production/routing/items 각 저장 경계는 공용 Foundation fingerprint 권위로 독립 재계산하고 version/codec/fingerprint drift를 live publication 전에 거부한다.
+- [x] generic recipe의 item 기반 자동 handler 선택과 domain owner의 명시 capability 선택을 분리했다. `IProductionOutputCapability`가 stable capability/codec metadata와 item 계약을 소유하고 `IProductionOutputHandler`는 generic bill exact-once 실행 specialization으로 한정된다. Apparel Work Order, Combat Equipment, Combat Ammunition, Certified Seed를 명시 capability로 등록했으며 동일 apparel item claim은 자동 선택 overlap을 만들지 않는다. 명시 capability를 generic bill handler로 실행하려는 시도는 fail-loud한다.
+- [x] Apparel Work Order owner를 공용 frozen descriptor envelope에 연결했다. `output:apparel-crafted-item`의 line/item/capability/version/codec/fingerprint는 component·unit mass·capacity source와 같은 physical adoption에서 동결되고, CharacterEnvironment V10·terminal V2·drain V2 복원과 replay에서 exact 검증된다.
+- [x] CertifiedSeed owner를 current-format V4 공용 envelope와 common gram publication에 연결했다. exact input Transfer와 certified seed-lot state가 확정되는 전이에서 `output:certified-seed` descriptor를 동결하고, exact component/gram·capacity reservation·FacilityOutputBuffer planned publication·input/output acknowledgement를 공용 service로 실행한다. restore는 pending physical marker를 section stage에서 exact 채택해 `OutputRestoredAwaitingInputAcknowledgement`로 정규화한 뒤 marker를 한 번만 acknowledgement하며, 다음 tick은 소실된 transient admission token을 다시 요구하지 않고 input receipt만 idempotent하게 끝낸다. 시설 파괴에서는 Planned 배송을 실제 destination 위치에서 해제하고 InputCommitted WIP를 `DestroyedWithFacilityLoss` quantity/gram receipt로 종결하며, OutputPublished는 시설 가동 여부와 무관하게 acknowledgement 후 제거되어 destructive preflight가 무기한 Deferred되지 않는다.
+- [x] Combat Equipment current format V9가 장비·탄약 outcome의 exact line/item/capability/version/codec/fingerprint를 `attemptOutcomeResolved` 전에 동결한다. finalize와 restore는 exact registry 검증을 요구한다. 기본 화살이 `GenericItemDefinitionSO`인 실제 권위에 맞춰 탄약 capability는 통합 `IItemDefinitionCatalog`와 전용 ammunition-state codec을 사용한다.
+- [x] prepared batch의 component 생성·복원을 등록형 `IProductionPreparedOutputMaterializer`로 분리했다. capability가 `IProductionPreparedOutputParticipantCapability`로 참여를 선언하면 registry가 capability/version/codec과 materializer를 1:1 exact join하고, normal·ruined·restore가 같은 dispatch를 사용한다. 비표준 synthetic capability가 코어 ID 분기 없이 `PreparedBatch` 선택과 create/decode round-trip을 통과했다. 참여자 누락·중복·metadata drift·비참여 materializer·prepared/per-line 이중 실행 권위는 구성 시 fail-loud한다. handler/maximum registry schema는 각각 `@3/@2`, migration profile은 `@2`이며, participation 의미를 바꾸는 capability는 반드시 contract version도 올린다.
+- [x] 실제 생산→FacilityBuffer→AIHaul→warehouse→save/restore→UI/AI→audit synthetic full-path canary를 통과한다. definition-only synthetic item/recipe가 기존 capability만으로 발견되어 `1 × 80g` 입력 WIP, `20 × 1,000g` 출력, exact `80,000g` FacilityOutputBuffer, `60,001g` blocker와 `1g` 부족 대기, 동일 prepared outcome 재개, AI pre-pickup cancel/replan, active cancel carried custody, mid-carry save/restore, exact `20,000g` warehouse admission, Brain 재개 배송, UI `20kg/25kg`, terminal bill retirement, 두 번째 restore 무복제를 모두 실제 Title→Preparation→임시 sanitized Gameplay 경로에서 통과했다. 변조된 carried/admission join은 whole-root mutation 없이 원자 거부됐고, transient visitor lease의 문서화된 restore-release만 semantic fingerprint에서 정규화했다. 보고서 `RESULT=PASS; failures=0`, 런타임 캡처 Warning/Error `0/0`, 공식 Gameplay scene SHA-256 유지, synthetic asset/scene cleanup 0을 확인했다. 이 행만 닫으며 normal sawmill fault, 실제 M06 surgical PlayMode, manifest/fault-matrix zero gate는 계속 OPEN이다. Batch A는 `28/31`이다.
+
+#### Batch A frozen output capability 구조 계약
+
+| 항목 | 단일 권위와 전환 계약 |
+|---|---|
+| 콘텐츠 정의 | `ProductionRecipeSO.Outputs`와 item catalog가 출력 item/수량의 불변 원본이고, 특수 출력 구현은 canonical capability ID와 positive contract version을 선언한다. |
+| 런타임 상태 | `ProductionResolvedOutputSaveData`가 `outputLineId`를 영구 key로 보존하고 결과 resolve 시점의 capability ID/version, component codec ID/version, descriptor fingerprint를 소유한다. 같은 item을 내는 서로 다른 line을 item ID로 합치지 않는다. 일반 출력도 암묵적 handler 부재가 아니라 `production-output:standard-definition@1`과 `production-output-codec:definition-only@1`로 동결한다. |
+| 명령 | `ProductionOutputExecutionService.ResolveAll`만 output line→capability 선택을 수행한다. produce/mass/ack는 저장된 exact descriptor만 bridge에 전달하며 item 전체 handler scan을 다시 수행하지 않는다. commit ID도 item이 아니라 canonical output line을 포함한다. |
+| 조회 | `ProductionOutputHandlerRegistry`는 output line의 최초 선택과 exact `(capabilityId, version, codecId, codecVersion)` 조회를 분리한다. prepared 참여 여부는 contract snapshot에 포함되고, `ProductionPreparedOutputMaterializerRegistry`가 참여 capability와 materializer를 1:1 결합한다. exact 조회는 누락·version drift·codec drift·item claim drift·descriptor fingerprint drift를 typed fail-loud한다. |
+| 식별자 | capability ID는 lowercase canonical stable ID, version은 positive integer다. 콘텐츠 item ID와 capability ID를 서로 대체하거나 prefix로 추론하지 않는다. |
+| 저장 | Production current-format `V18` legacy resolved row와 prepared-output schema `v4`, routing current-format `v5`, Physical current-format `v18` destructive-drain source line이 같은 frozen dispatch 다섯 필드와 영구 `outputLineId`를 필수 저장·clone·검증한다. 과거 schema/필드 누락 fallback과 migration은 추가하지 않는다. |
+| 의존성 | Production aggregate는 문자열 ID/version만 저장하고 handler/materializer 인스턴스를 저장하지 않는다. Economy composition root가 deterministic capability/materializer/maximum-mass registry와 표준 FacilityBuffer gateway를 조합한다. 신규 동일 의미 output은 capability·materializer·maximum-mass 구현과 등록만 추가하며 coordinator 분기를 수정하지 않는다. |
+| 실패 정책 | 중복/비canonical capability, non-idempotent handler, prepared/per-line 이중 실행 권위, materializer 누락·중복·metadata drift, overlap, unknown ID, version mismatch, 저장 item claim drift는 물리 publication 전에 실패하며 다른 handler나 표준 출력으로 fallback하지 않는다. participation 의미 변경은 capability contract version 변경 없이 허용하지 않는다. |
+| 전환 범위 | legacy 및 prepared standard/surgical/workwear 경로의 item-only 재탐색을 frozen descriptor exact lookup으로 교체했고 routing·destructive drain까지 provenance를 전파했다. Apparel Work Order·CertifiedSeed·Combat owner의 공용 publication과 저장·복원 연결은 완료됐다. full-path canary와 전수 remaining/bypass/orphan 0은 별도 OPEN 행으로 유지한다. |
+| 검증 | save JSON round-trip, missing/version/item drift 원자 거부, registry insertion order/locale 결정론, standard/special exact dispatch와 crash replay를 focused fixture로 증명한다. |
+
+2026-08-27 prepared/routing provenance fresh 증거: Unity current-source compile 뒤 `ProductionPreparedOutputContractDebugScenarios`, `ProductionPreparedOutputRoutingAuthorityDebugScenarios`, `ProductionCapacityRoutingDrainOutboxDebugScenarios`, `ProductionPreparedOutputRoutingRestoreJoinDebugScenarios`, `ProductionPreparedOutputFullPersistenceDebugScenarios`, `ProductionEconomyDebugScenarios.RunFrozenStandardOutputFocused`를 같은 clean-console 구간에서 실행해 모두 PASS했고 최종 Console Warning/Error는 `0/0`이다. exact descriptor fingerprint·capability version·codec version 변조, declared-loss provenance 오염, routing restore drift, destructive-drain request drift를 모두 원자 거부한다. 검증 강화 중 기존 capacity-drain fixture의 `sourceStackId`와 carried stack signature가 실제 exact-route custody component를 반영하지 않던 두 잠복 오류가 드러났으며, runtime validator를 완화하지 않고 실제 physical row와 동일한 source/signature로 fixture를 교정했다. world-removed full-persistence fixture도 acknowledged generic bill owner의 terminal producer·0/0 Items child·exact WIP terminal receipt를 추가해 upper owner와 하위 receipt를 양방향 증명한다. 전수 `RuntimeAuthorityV18Validator.ValidateOrThrow`는 생산 V7·save-section 68 등 이미 폐기된 과거 ratchet을 계속 강제해 별도 stale-validator 부채로 실패했으며, 이 결과를 Batch A 실패나 PASS로 재해석하지 않는다.
+
+2026-08-27 declared domain capability fresh 증거: Unity clean-cache compile 뒤 `ProductionOutputHandlerRegistryDebugScenarios.RunAll`과 `ProductionEconomyDebugScenarios.RunFrozenStandardOutputFocused`가 PASS했고 clean-console Warning/Error는 `0/0`이다. registry는 자동/명시 capability overlap 격리, declared descriptor exact validation, generic bill 실행 거부, 순서·locale 결정론을 검증한다. 정상 scene boot는 새 capability 타입을 포함하지 않는 기존 `EquipmentMaintenancePolicyRuntime → Defense → BuildingDestructiveLossRuntime → ProductionOutputDestinationLifecycleQuery → CombatEquipmentCraftLifecycleContributor → EquipmentMaintenancePolicyRuntime` VContainer 순환에서 실패했으며 이 P0에 편입하지 않는다. Apparel owner는 이후 공용 envelope 저장·복원까지 닫혔다. Combat/CertifiedSeed의 frozen descriptor와 공용 gram admission/publication/acknowledgement는 계속 OPEN이다.
+
+2026-08-27 Apparel frozen owner fresh 증거: `ApparelPhysicalTransactionDebugScenarios.RunAll`, `ApparelTerminalAuthorityDebugScenarios.RunFocused`, `ProductionOutputHandlerRegistryDebugScenarios.RunAll`을 clean-cache compile 뒤 같은 clean-console 구간에서 실행해 모두 PASS했고 Warning/Error는 `0/0`이다. capability version drift는 input/output mutation 전에 conflict로 거부되며 valid V10 JSON terminal authority는 exact round-trip한다. Unity `JsonUtility`가 선택적 null 영수증을 빈 객체로 복원하는 특성은 DTO clone의 all-default canonical-null 처리로 격리했다. 이 slice는 kg·BOM·WU·EWU·가격·SO·prefab·scene 값을 바꾸지 않았고 Combat/CertifiedSeed와 full-path canary를 대신하지 않는다.
+
+2026-08-27 CertifiedSeed common publication fresh 증거: CertifiedSeed current format V4와 domain-output schema V2가 `output:certified-seed`의 frozen descriptor, exact seed component, output grams, capacity source, admission/publication identity, physical stack receipt와 durable acknowledgement 상태를 저장한다. `ProductionDomainOutputPublicationDebugScenarios`, `ProductionDomainOutputRestoreGuardDebugScenarios`, `ProductionFacilityDestructiveDrainStartPreflightDebugScenarios`, `CropPhysicalTransactionFixture.Run`을 같은 post-compile clean-console 구간에서 실행해 모두 PASS했다. exact restore adoption→marker acknowledgement→시설 없는 다음 tick input acknowledgement, duplicate acknowledgement, capacity wait, publication rollback, owner/batch 양방향 drift, InputCommitted 시설 파괴 typed gram loss를 검증했고 최종 Unity Console Warning/Error는 `0/0`이다. 이 증거는 CertifiedSeed family만 닫으며 Combat publication과 실제 AIHaul full-path canary를 대신하지 않는다.
+
+- [x] 정상 부트 주문→작업 완료→FacilityOutputBuffer→AIHaul→kg warehouse와 cancel/Downed/mid-haul restore까지 통과한다. routed exact-outbox lifecycle과 live fault가 끝나기 전에는 sawmill live closure라고 보고하지 않는다.
+- [x] Combat/Apparel/CertifiedSeed owner를 common prepared gram reservation/publication/acknowledgement와 exact restore join으로 이관한다.
+- [x] Environmental workwear의 direct `SpawnItemAtWithComponents` 출력을 제거하고 공용 gram admission·planned publication·durable acknowledgement 경로로 이관한다. 실제 apparel component를 publication 전에 생성하고, 출력 단위마다 unique instance/slice를 동결하며, 같은 commit replay는 exact provenance를 재검증해 중복 생성 없이 성공한다.
 - [x] surgical-part crafted output의 direct Loose 경로를 제거했다. exact unique component·gram reservation·planned publication·physical join·rollback/replay/ack를 전용 focused scenario로 검증했고 Unity full compile과 Console Warning/Error `0/0`을 통과했다.
-- [ ] surgical-part crafted output의 실제 주문→작업 완료→FacilityOutputBuffer→AIHaul→kg warehouse PlayMode 경로를 닫는다. focused 검증만으로 live 증거를 대신하지 않는다.
-- [ ] output owner manifest의 remaining/bypass/orphan을 모두 0으로 만들고 partial/cancel/Downed/restore/fault matrix를 통과한다. 현재 분리는 input `migrated 3 / remaining 36`, output `migrated 1 / remaining 5`, bypass `5`, orphan `1`이다.
+- [x] surgical-part crafted output의 실제 주문→작업 완료→FacilityOutputBuffer→AIHaul→kg warehouse PlayMode 경로를 닫는다. focused 검증만으로 live 증거를 대신하지 않는다.
+- [x] Batch A output owner manifest의 output remaining/bypass/orphan을 모두 0으로 유지하고 partial/cancel/Downed/restore output fault matrix를 통과한다. 2026-08-29 WorldResource exact-source owner를 포함한 fresh 분모는 output `10/10 migrated`, remaining/bypass/orphan/unclassified `0/0/0/0`이다. 공용 partial/split/rollback/replay와 기존 synthetic/sawmill/M06 live 증거에 WorldResource source debit 1회, released acknowledgement→authority retirement forward retry, topology rebuild 실패 원자성, frozen root-seed restore cross-join, transient save-block, same-outcome retry와 0-output exact cycle을 결합했다. closure/manifest/fault artifact를 두 번 실행해 hash·length·mtime 변화 0과 Console Warning/Error `0/0`을 확인했다. input `8/39`, remaining `31`은 Batch C 분모다. 이 행으로 strict Batch A는 다시 `31/31`이다.
+
+2026-08-27 Environmental workwear fresh 증거: `EnvironmentalWorkwearPlannedOutputDebugScenarios`와 공용 `FacilityBufferPlannedOutputPublicationDebugScenarios`를 source보다 최신인 `Assembly-CSharp-Editor.dll`에서 실행해 PASS했다. `2 × 1,150g` exact mass, 두 unique apparel instance의 component-at-creation, gram capacity reservation, batch atomic publication, publication 직후 durable acknowledgement, 9일 뒤 동일 commit replay 무복제, outcome fingerprint drift 거부, destination mismatch 무변경, 1,000g capacity 부족 무publication을 검증했고 Console Warning/Error는 `0/0`이다. owner manifest는 output `5/6 migrated`, remaining `1`로 재생성됐으며 CSV `33F10F9D2E65BCA9979E9DC96252C4E515144C251A2A969CA1054B0C548FB0B5`, report `D6EA3359C2B1FBFFFB286274AA5C90D182F422740BFB6BC1F48CFC9051F52FEF`가 두 번째 실행에서 byte hash와 mtime 모두 변하지 않았다. 이 증거는 작업복 output family만 닫으며 generic recipe family, 실제 AIHaul full-path, input/bypass/orphan과 Batch A 전체를 대신하지 않는다.
+
+2026-08-28 whole output family closure fresh 증거: current catalog의 355 recipe를 매 실행 전수 분류하는 durable ratchet을 추가했다. 결과는 `standard prepared 267 / ammunition prepared 21 / workwear exact 60 / surgical exact 3 / no-physical-output sink 4 / unsupported 0 / mixed 0`이며 합계는 exact `355`다. 21개 탄약 recipe와 7개 workstation은 `CombatAmmunitionCraftOutputCapability@2`와 `CombatAmmunitionPreparedOutputMaterializer`를 통해 frozen descriptor, `ammunitionKindId` semantic digest, component payload와 definition mass를 동일한 prepared route로 round-trip한다. standard codec의 탄약 수용, 중복 family claim, 미지원 family, prepared/exact mixed recipe는 fail-loud한다. current-source Unity refresh 뒤 `ProductionAmmunitionPreparedOutputDebugScenarios.RunAll`과 전체 `ProductionEconomyDebugScenarios.RunAll`이 PASS했고 Console Warning/Error는 `0/0`이다. owner manifest를 두 번 재생성한 CSV/TXT의 SHA-256은 각각 `6A30E70615BAA771F75726DBDE52AC6D2C3892BA89509CAC65D51358D8431C07` / `DDCFC78245E630C8DAFE4C7E866717FFF5F234B51365B5CDAB2ECDCB0B02DC25`이며 byte length와 mtime도 두 번째 실행에서 변하지 않았다. 이 증거로 구조 범위 행만 닫고 실제 Gameplay AIHaul canary, normal/fault PlayMode와 manifest input remaining/bypass gate는 OPEN으로 유지한다. Batch A 현재 체크리스트는 `27 closed / 4 open / 31 total`이다.
+
+2026-08-28 input/transport manifest accounting fresh 증거: `research.arcane-index`는 `ResearchWorkExecutionAdapter`의 legacy delivery 호출 0, durable slot reconcile/ensure/use, 정책 등록과 current-format lifecycle 검증이 이미 연결된 current source에 맞춰 `migrated`로 승격했다. conveyor는 `ConveyorItemGateway`가 직접 FacilityBuffer를 쓰는 owner가 아니라 `ItemTransferService.TryCompleteTransitToFacilityBuffer`의 arrival-time exact claim/profile/admission을 위임하고 실패 시 InTransit custody를 보존하므로 `transport-delegated-exact`로 별도 분류했다. fresh Unity compile 뒤 `ResearchArcaneIndexEquipmentDebugScenarios`, `ResearchDurableEquipmentLifecycleDebugScenarios`, `PhysicalStockQueryV18DebugScenarios`, `IndustrialInfrastructureDebugScenarios`, manifest capture가 모두 PASS했고 Console Warning/Error는 `0/0`이다. 새 CSV/TXT SHA-256은 각각 `7385D7C509E6F26ACAA6253B947A88B479662E43AF4E518D4EF4911581A9063C` / `B6CD04B8B7F78827CB25CBFA8AFB5D550FA2605D75500B9CF8FE215D583BBFE5`다. 이 교정은 remaining을 `32→31`, bypass를 `4→3`으로 줄였지만 checklist 2745의 zero gate를 닫지는 않는다.
 
 ### 16.3 Batch B — max-branch FacilityBuffer capacity
 
@@ -2639,13 +2886,15 @@ maxCycleOutputGrams(facility)
     Σ branch output quantity × exact projected unit grams
     for every reachable recipe and branch)
 
-physicalOutputBufferCapacityGrams
+rawRequiredOutputCapacityGrams
 = max(
     2 × maxCycleOutputGrams,
     p95 haul-clearance 동안의 생산량)
 
-physicalOutputBufferCapacityGrams
-<= 4 × maxCycleOutputGrams
+publishedOutputBufferCapacityGrams
+= clamp(rawRequiredOutputCapacityGrams,
+        2 × maxCycleOutputGrams,
+        4 × maxCycleOutputGrams)
 ```
 
 - `physicalOutputBufferCycleCapacity`를 legacy count batch와 별도 필드로 둔다.
@@ -2653,49 +2902,178 @@ physicalOutputBufferCapacityGrams
 - recipe/facility/source digest가 바뀌면 capacity revision을 갱신하고 stale reservation을 typed reject한다.
 - 시설 철거·변환·기능 상실은 실제 production `TryRevoke`를 호출하며 reserved/committed output이 있으면 종료하지 않는다.
 - P17은 hay-feed current bill의 `588g × 4 = 2,352g`이 아니라 reachable dog-feed branch `1,050g × 4 = 4,200g`을 요구한다.
-- 4회분을 넘겨야만 통과하는 시설은 capacity를 계속 늘리지 않고 물류·처리량 Critical로 올린다.
+- raw 요구량이 4회분을 넘는 시설은 capacity를 계속 늘리지 않고 `BackpressureExpected`로 공개한다. authored cycle이 bounded 4회분보다 작거나 출력 삭제·복제·spill·livelock·실제 수요 미충족이 발생할 때만 Critical로 올린다.
 
 현재 구현 체크리스트 (2026-08-26 current source):
 
 - [x] legacy count와 별도인 `physicalOutputBufferCycleCapacity [2,4]` 권위를 추가하고 P17, V22 14개와 P01/P03/P04/P08/RF16 asset, 4개 builder에 `4`를 명시했다.
+- [x] production workstation의 live capture와 current-format restore가 같은 명시적 buffer ability를 요구한다. buffer authoring이 빠진 workstation을 live에서 묵시적으로 `4`회분 취급하던 fallback을 제거했고, non-workstation support handle만 production facility 계약의 최소 표현값을 유지한다. 기존 Economy fixture의 세 누락 workstation은 명시적 `4`회분 권위로 교정했으며 전체 `ProductionEconomyDebugScenarios`와 focused output-authority bundle, Console Warning/Error `0/0`을 통과했다.
 - [x] P17 migrated recipe 4개의 base branch를 전수 투영해 `1,050/1,050/588/690g`, ruin `600g`, exact `4,200g`을 산출했다.
 - [x] restore가 occupancy/current bill을 이유로 4회분보다 capacity를 키우지 않으며, non-capable physical output과 `occupancy > exact projection`을 fail-loud한다.
 - [x] focused admission에서 `3,151+1,050=4,201g`과 `4,199+2=4,201g`을 차단하고 각각 정확한 1g clearance 후 성공을 증명했다.
 - [x] active bill을 만들기 전 신규 P17 placement/topology에서 `4,200g` profile이 즉시 게시되고, 이후 actual hay cycle에서도 exact `588g` publication, Loose custody, AIHaul, kg warehouse `3/3`, inbound `0g`, Console `0/0`을 증명했다. 당시 fresh live report SHA-256은 `B32C1ABF3FF0D6C9BD6D6A96A863F25AD2668131ADA875F0EDDB57AB08C8413B`였다. 이후 직접 GameplayScene을 연 재실행이 부트스트랩 DI 누락으로 같은 보고서를 FAIL로 덮어썼으므로, 이 해시는 과거 통과 증거로만 보존하고 current-revision live 증거로 재사용하지 않는다.
-- [ ] 현재 live support가 아닌 authored/research/grand-project 전체의 maximum reachable output multiplier envelope를 projector 권위로 만든다.
-- [ ] migration scope 4개를 넘어 모든 capable production facility/recipe에 preprojection한다.
-- [x] `production-output-buffer-capacity-source@1`로 recipe/facility/mass/component/migration/support/factor/destination/cycle/projected minimum을 exact digest에 결속하고 schema-v3 restore/resume에서 stale profile/token을 publication 전 거부한다.
+- [x] 현재 설치 상태와 무관한 authored support/Grand Project maximum multiplier 권위를 만든다. required support는 canonical provider/tag bitset DP로 계산해 한 provider가 여러 tag를 덮어도 multiplier를 한 번만 적용하고, 서로 다른 provider 조합의 exact rational 최대를 선택한다. batch support는 종류·도달성만 검증하고 output multiplier에는 넣지 않는다. 63 tag/65,536 state 상한을 넘으면 fail-loud한다.
+- [x] 과거 4-recipe migration allowlist를 제거하고 current generic physical-output `329 recipe / 88 workstation facility`를 workstation tag와 capability-owned maximum projection으로 전수 preprojection한다. `recipe:surgery:*` 3개는 Surgical capability, `source:*` 19개는 facility가 아닌 Source authority이므로 generic 분모와 분리한다.
+- [x] 실행 handler와 분리된 정렬형 `IProductionFacilityOutputCapacityContributor` registry를 추가하고 CertifiedSeed를 첫 소비자로 연결했다. numeric `building:8893` 복제 대신 `workstation:v19:cultivar-breeding + valid [2,4] cycle buffer` predicate를 command/presentation/contributor가 공유한다. actual RF93의 current 12 crop branch 최대는 `50g/cycle`, contributor 4-cycle `200g`; recipe와 contributor 중 큰 상한을 선택한다.
+- [x] Apparel/Combat/Surgical/Crop domain의 all-capable no-bill facility preprojection을 같은 contributor registry로 연결하고, 현재 producer-capable 시설 union `92`와 capability-shaped nonproducer `54`를 전수 분류해 unclassified/orphan `0`을 만든다. current-source census는 `146/92/54`, unclassified/orphan `0/0`, 명시적 content gap `6`을 분리해 PASS했다. 이전 `146/90/56`은 crop contributor 연결 전의 superseded 증거다.
+  - [x] ApparelTailoring command·exact workstation tag·`[2,4]` cycle buffer 적격성을 UI/command/restore/contributor가 공유한다. current apparel `56`, textile material `12`, tag-compatible pair `598` 중 실제 질량보존을 만족하는 recovery `493`과 craft `56`, 총 `549` alternative branch를 사전 투영한다. maximum은 `1,380g/cycle`, authored 4-cycle `5,520g`이다.
+  - [x] Surgical M06은 별도 no-bill producer가 아니라 일반 recipe-backed preprojection임을 전수 확인했다. 실제 reachable recipe는 arm/leg/eye 3개뿐이며 generic projector가 active bill 없이 `1,800g/cycle × 3 = 5,400g`을 이미 투영한다. capability가 해석할 수 있지만 recipe가 없는 14개 보철을 허위 contributor branch로 추가하지 않는다.
+  - [x] Combat primary craft, rejected recovery와 facility allowlist를 공용 catalog/eligibility로 연결한다.
+    - [x] S08 canonical nonempty exact allowlist, 61 equipment + 2 ammunition craft definition, arrow/bolt output·BOM과 primary contributor를 하나의 immutable catalog/eligibility로 연결했다. primary maximum은 powered harness `18,000g/cycle`, 4-cycle `72,000g`이다. queue는 facility allowlist 밖 definition을 input reservation 전에 거부하고 worker/UI는 malformed/empty wildcard를 허용하지 않는다.
+    - [x] quality-rejected auto-dismantle의 다중 recovery output을 shared pure maximum projector로 연결하고 ammo 2종을 UI에서 실제 queue 가능하게 만든다.
+      - 구현 전 구조 계약: 콘텐츠 정의 권위는 `ICombatEquipmentCatalog + IResourceEconomyContentCatalog.Materials + IMaterialEconomicProfileCatalog + GameplayEffectResultBoundsCatalog + IPhysicalItemMassQuery`이고, 가변 상태 권위는 기존 `CombatEquipmentCraftOrderSaveData`의 frozen rejected instance/stack와 recovery vector다. 상태 변경 명령은 기존 `TryResolveRejectedEquipmentDismantle`만 유지하며 contributor는 definition-only 조회만 수행한다.
+      - 실제 projection은 rejected unique stack의 exact item/component subject와 weighted skill·실제 salvage multiplier를 사용하고, definition maximum은 fresh equipment definition mass·skill 100·authored finite effect maximum을 사용한다. 두 경로는 동일한 정수 vector clamp를 공유하며 `Σ recovery grams <= consumed equipment grams`를 강제한다.
+      - recovery output line ID는 canonical item ID에서 결정론적으로 만들고 output은 item ID ordinal로 동결한다. unknown/zero mass, noncanonical ID, duplicate input/output, overflow, source fingerprint drift와 disposition receipt mass 불일치는 fallback 없이 publication 전에 실패한다.
+      - 저장 DTO를 질량 Query 입력으로 사용하지 않는다. 처음 생성된 exact vector와 source digest를 current order에 저장하고 restore/retry는 재계산·재굴림하지 않는다. 기존 순차 exact outbox는 각 line의 idempotent commit과 `spawnedRecoveryAmounts`를 유지하며, 중간 실패 뒤 동일 vector를 resume한다.
+      - dependency 방향은 Combat runtime/contributor → pure recovery projector → existing Economy/Items read authorities다. ScriptableObject, scene, prefab, item kg, BOM, WU, EWU와 가격은 이 구조 교정에서 변경하지 않는다.
+      - 전환 완료 증거는 actual `61 equipment / 252 recovery policy branch`, synthetic canary, current effect maximum `10`, powered-harness raw/clamped vector, shuffle/digest identity, runtime frozen-vector restore/retry, primary/recovery alternative parity, `18,000g` primary winner와 `72,000g` S08 profile, Unity compile·focused/full Production Economy·Console `0/0`이다.
+  - [x] `146 facility / 92 producer / 54 nonproducer`, unclassified/orphan `0/0` 전수 집계를 fresh source에서 닫았다. crop contributor가 recipe 없이 실제 harvest를 수행하는 기본 밭과 수경재배 시설 2개를 producer로 연결했기 때문에 이전 `90/56`에서 정확히 `+2/-2`가 됐다. 결정론적 report/CSV SHA-256은 각각 `1914B1ACBB7947F319384D601130C04B055D6B1E49901313C5D1F7A5A1034666` / `B5CBFA90F6F1A270C223BC60F362E05E33EE1BC3A1F861259381E87B88264DB3`이고, 연속 두 실행의 hash·length·mtime 변화는 `0`이다. content gap `6`은 `unclassified`가 아니라 typed `DeclaredNoOutput`으로 별도 보존한다.
+- [x] `production-output-buffer-capacity-source@4`로 recipe/facility/mass/component/migration/support/factor/destination/cycle/contributor registry와 branch winner/projected minimum을 exact digest에 결속하고 schema-v3 restore/resume에서 stale profile/token을 publication 전 거부한다.
 - [x] active bill 없는 신규 placement/topology change에서도 즉시 profile을 게시·재조정한다. `BuildingVersion` 변화가 no-bill capable facility 전체의 exact projected set replacement를 유발하며 stale pair는 원자적으로 retire한다.
-- [ ] destroy/structural loss/evolution/relocation에 reserved·committed·physical-aware revoke/retarget preflight를 연결한다.
-- [ ] no-bill restore, recipe order shuffle, support attach/detach, p95 haul-clearance, 4-cycle 초과 Critical을 focused/PlayMode로 닫는다. 신규 placement no-bill live 행만 닫혔으며 restore/fault/performance는 아직 열려 있다.
+- [x] demolition·structural loss·cover loss에 reserved·committed·physical-aware 6-participant durable terminal drain, journal, mutation admission fence와 save registration을 연결한다.
+- [ ] evolution·relocation·synthesis에 persistent facility ID 보존과 reserved·committed·physical-aware reversible retarget transaction을 연결한다.
+- [x] generic no-bill restore와 recipe/provider 입력 역순 shuffle이 같은 source digest·capacity를 만드는 focused 증거를 닫고, current P17 live에서 no-bill `4,200g`과 save/second restore를 확인했다.
+- [ ] support attach/detach의 원자적 재투영과 p95 haul-clearance 입력을 focused/PlayMode로 닫는다. required cycle `4.000`은 `Accepted`, `4.001` 이상은 raw 요구량을 보존한 `BackpressureExpected`와 bounded 4회분 publication이어야 한다. authored capacity가 bounded target 미달이거나 원자성·liveness·실제 수요 충족 실패일 때만 typed Critical이며, 4회를 넘는 경우 capacity를 자동 확대하지 않는다.
+
+다음 2026-08-29 두 문단은 당시 binary schema의 historical evidence이며 §156 schema `@3/@2`가 판정 의미를 supersede한다. 당시 hash와 `4.001 Critical` 결과를 current acceptance에 재사용하지 않는다.
+
+2026-08-29 clearance 순수 경계 구현 증거: content-ID와 Unity 오브젝트에 의존하지 않는 `IProductionOutputClearanceProfileSource`, fixed-point `ProductionOutputClearanceProfileSnapshot`과 `ProductionOutputClearanceRequirementProjector`를 추가했다. 계산은 `ceil(p95 milli-hours × peak grams/hour ÷ 1000)`, 최소 `2.000`회분, 절대 상한 `4.000`회분이며, 요구량 `4.001`회분은 published capacity를 `4.000`에 유지한 채 exact typed Critical `PRODUCTION_OUTPUT_CLEARANCE_EXCEEDS_FOUR_CYCLES`을 반환한다. p95 또는 peak rate `0`, 비canonical SHA-256은 fail-loud한다. Runtime/Editor direct compile과 current `Assembly-CSharp.dll`을 직접 호출한 focused harness는 `4.000 accepted / 4.001 critical / ceil / zero measurement reject / lowercase digest`를 PASS했다. 결정론적 evidence는 `Artifacts/QA/v27-production-output-clearance-requirement-focused.txt`, SHA-256 `F4CF2976CFBE5E3AB46A8F21B18B2E7643A5E7B726BA8ECC5F711922522B8528`이다. 실제 profile source 구현·DI, `ProductionOutputBufferCapacityProjector` 결합, Critical consumer, support link/profile 동시 transaction과 PlayMode는 계속 OPEN이므로 이 행은 닫지 않는다.
+
+2026-08-29 clearance raw 계측 경계 구현 증거: 실제 `FacilityBufferPlannedOutputPublicationService.TryPublishFullBatch`의 신규 물리 publication과 `WorldItemStackRuntime.TryCommitHaulPickup`의 성공한 committed pickup을 `batchCommitId`와 exact gram으로 연결하는 diagnostics-only telemetry를 추가했다. 부분 pickup은 원래 publication gram 전량이 인수된 시점에만 한 표본으로 닫히며 physical publication rollback은 candidate를 제거한다. raw 시각은 `GameCalendarRules.SecondsPerDay/HoursPerDay`에서 파생한 micro-game-hour로 보존하고, 두 절대 시각을 각각 milli-hour로 자르지 않으며 elapsed에 정확히 한 번 conservative Ceil을 적용한다. player runtime은 기본 no-op이고 명시적 audit session에서만 bounded `active 4,096 / completed 16,384` 표본을 수집한다. 측정 중 save capture는 fail-loud하며 restore 개입, conflicting publication, orphan pickup, over-pickup, 미완료 active batch는 session을 unclean으로 만든다. `DungeonStory.Items`/Runtime/Editor focused direct compile과 harness가 `fixed-clock / disabled-no-op / partial exact / rollback / conflict / orphan / over-pickup / save-restore invalidation`을 PASS했고 evidence는 `Artifacts/QA/v27-production-output-clearance-telemetry-focused.txt`다. 하지만 자연 `AIBrain→AIHaul` clean 다중-seed 측정, 결정론적 CSV와 nearest-rank p95, support work-speed를 포함한 throughput envelope, immutable profile catalog/DI, whole-cycle capacity·restore digest, support transaction과 full PlayMode는 아직 OPEN이므로 상위 체크박스는 닫지 않는다.
+
+2026-08-29 clearance 불변 profile 기반 구현 증거: raw micro-hour 표본을 `(facilityDefinitionId, workstationTag)`별로 ordinal 정렬하고 `rank = ceil(95 × N ÷ 100)` nearest-rank p95를 선택한 뒤 선택된 단일 표본에만 milli-hour Ceil을 적용하는 `ProductionOutputClearanceProfileAggregator`와 fail-loud `ProductionOutputClearanceProfileCatalog`를 추가했다. 기본 자격은 서로 다른 deterministic seed `32`개이며 duplicate sample/profile/throughput, missing/orphan throughput, seed 부족은 모두 거부한다. profile key에는 instance ID·좌표·현재 연결 support를 넣지 않고 authored-reachable support/work-speed throughput digest를 별도 provenance로 결속하여 미래 시설 인스턴스나 배치 추가에 코드 분기 없이 데이터 행만 추가하도록 했다. 또한 기존 순수 경계의 부분 회차 결함을 교정해 `2.001회분`은 2,001g이 아니라 `3회분` 전체를 게시하고, `4.001회분`은 required whole cycles `5`, published whole cycles `4`인 typed Critical로 유지한다. 순수 authored gate는 실제 권위가 2회인데 측정 요구가 3회면 `PRODUCTION_OUTPUT_CLEARANCE_AUTHORED_CAPACITY_UNDERSIZED` Critical을 반환하고, 실제 권위가 4회인데 요구가 2회인 경우 4회를 축소하지 않는다. Runtime/Editor direct compile과 독립 실행이 `nearest-rank p95 / input shuffle / missing·duplicate·orphan / 32-seed gate / digest drift / 2.001→3 / 4.001→Critical+4 / authored undersize / preserve larger`를 PASS했고 evidence는 `Artifacts/QA/v27-production-output-clearance-profile-catalog-focused.txt`다. 다만 이는 합성 표본으로 순수 집계·lookup·산술을 증명한 것이며 실제 p95 수치 권위가 아니다. 자연 `AIBrain→AIHaul` 32-seed raw/profile/report, capture-start topology attribution, 모든 producer의 authored-reachable peak envelope, 완전한 row provider/DI, capacity source `@5`, authored undersize·restore drift 및 원자적 support attach/detach가 통과하기 전에는 상위 체크박스를 닫지 않는다.
+
+2026-08-30 자연 `AIBrain→AIHaul` 32-seed 하위 경계 완료 증거: 정상 부트의 임시 sanitized GameplayScene에서 P17 hay-feed의 실제 `588g` FacilityBuffer publication부터 scheduler-owned AIHaul committed pickup까지 seed `157181..157212`를 공통 체크포인트 복원→reseed로 측정했다. 32개 행은 distinct seed, exact owner/facility/batch, stable authored topology, clean telemetry, checkpoint whole-root recapture를 모두 통과했고 body-health provisional key 생성은 `none`이다. CSV를 메모리에서 두 번 직렬화한 결과 `15,922` bytes가 byte-identical했으며 captured Console Warning/Error는 `0/0`이다. report SHA-256은 `DA1A37AD321CC2CC852CC17FB1F884036174730728FFA03352E23951C11B64A6`, CSV SHA-256은 `484A22F63B68262CC87B2055A923DF87731B868F2F1F57EA0DF95B987E72DC26`이고 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 불변이다. 복원 중 발견된 야생동물 respawn float ULP 단차는 내부 deadline/restore candidate를 `double`, 저장 DTO를 기존 `float`로 유지해 손실 없이 닫았으며 종별 save 행을 ordinal 정렬했다. 이로써 자연 raw/report 하위 경계만 닫는다. 모든 producer의 authored-reachable throughput envelope, 실제 profile aggregation/row provider/DI, capacity source `@5`, support attach/detach 원자 재투영과 `4.000/4.001` live gate가 남아 있으므로 2808의 상위 체크박스는 계속 OPEN이다.
+
+2026-08-30 finite lane/support 작성 권위 하위 경계 완료 증거: 모든 raw workstation definition `146`개에 명시적 lane policy를 기록했다. 현재 authored topology는 `manual-only + detached BatchProcessor 123`, `AutomationMode` 상호 배타 manual/automatic `23`, 수동 lane `1` 전수, 자동 lane `0/1 = 123/23`이다. support `28`개는 동일 support definition 기준 workstation당 최대 연결 인스턴스 `1`, BatchProcessor `5`개는 각 batch capacity `1`을 가진다. `ProductionWorkshopRuntime`은 support instance를 stable ID 순서로 처리하고 거리·stable ID 순으로 capacity가 남은 workstation에만 연결하며 초과 인스턴스는 unlinked로 둔다. maximum factor catalog를 `@4`, recipe source를 `@4`, support profile/assignment를 `@2`로 올리고 kind·batch capacity·maximum linked instances·work-speed/output factor를 digest에 동결했다. 첫 deterministic asset patch는 정확히 `174`개 SO만 변경했고 두 번째 실행은 `changed=0`; changed path의 두 번째 ForceReserialize byte 변화도 `0`이다. Unity compile, Production Workshop/Maximum Factor focused suites, Console Warning/Error `0/0`, 공식 GameplayScene SHA-256 불변을 확인했다. 증거는 `Artifacts/QA/v27-production-finite-lane-authority-focused.txt`, SHA-256 `A716E4D741D2F35D72A9E4B68FEC81B8959B65FD24AD8A06E3D05230D79F04BE`다. kg·BOM·WU·EWU·가격 변경은 `0`이다. 다만 producer `92`개 전체 throughput envelope, profile row provider/DI, capacity source `@5`, capacity claim/profile 원자 재투영 및 live `4.000/4.001` gate는 계속 OPEN이므로 2808의 상위 체크박스는 닫지 않는다.
+
+2026-08-30 lane provenance census 하위 경계 완료 증거: `ProductionFacilityWorkstationLaneCapacityProfile@1`을 live `ProductionFacilityHandle`, save-side `ProductionFacilityCapacitySubject`, `ProductionOutputBufferCapacityProjector`와 census `@2`까지 전달하고, Capture 이후에는 raw `BuildingSO` lane 필드를 다시 읽지 않도록 immutable provenance를 동결했다. 현재 시설 `146`개는 `manual-only 123 / mode-exclusive manual-or-automatic 23`, unclassified `0`, execution orphan `0`이며 census source digest는 `1f3cf6e5d8153a5fd43186071cd4839ba16788020d39bf3ddd6a87fe86c7c0a6`이다. Unity compile, census/contributor/maximum-factor/clearance-profile focused suites와 Console Warning/Error `0/0`을 통과했고, report/CSV 두 번째 생성의 길이·mtime·byte가 모두 불변이었다. report SHA-256은 `B8D720F222919D0094A644A23E8E20CA465E9BC3D87D5FE7853D04E37417ED34`, CSV SHA-256은 `1F66C0C36A5DD6D961806AFFF7A9B67F947CFD53286FEF93F4AE8373D20F1E50`, 통합 증거는 `Artifacts/QA/v27-production-lane-provenance-census-focused.txt`다. 공식 GameplayScene SHA-256은 불변이며 kg·BOM·WU·EWU·가격 변경은 `0`이다. 이 하위 경계는 작성값 전달만 증명하고 수동/자동 실행 배타성이나 peak gram/hour를 증명하지 않으므로 parent support 행과 Batch B는 `36/40`으로 유지한다.
+
+finite lane/support 구조 계약:
+
+| 항목 | 권위·계약 |
+|---|---|
+| 콘텐츠 정의 | `BuildingProductionWorkstationAbility`가 lane policy와 manual/automatic count를, `BuildingProductionSupportAbility`가 batch capacity와 workstation당 동일 support definition 연결 상한을 소유한다. |
+| 런타임 상태 | `ProductionWorkshopRuntime`의 link projection만 가변 파생 상태다. authored 수치를 복제하거나 수정하지 않는다. |
+| 명령 | 건물 배치·철거·이전·방/grid revision이 기존 world mutation 명령을 통해 link 재계산을 유발한다. lane 전용 gameplay setter는 만들지 않는다. |
+| 조회 | 생산 실행기와 capacity projector는 유효 ability 및 immutable maximum-factor/throughput snapshot만 읽는다. Editor·UI가 raw 필드를 별도 권위로 캐시하지 않는다. |
+| 식별자 | workstation tag, support ID, feature tag와 building persistent ID는 canonical ordinal 비교를 사용한다. content numeric ID·경로·이름 분기는 금지한다. |
+| 저장 | lane/link cap은 SO 원본이고 runtime link는 저장하지 않는다. 복원 뒤 building/room/grid authority에서 동일 순서로 재계산한다. |
+| 의존성 | Building authoring → Workshop runtime → Production cycle/output consumers → maximum catalog → throughput/capacity projection 단방향이다. Items·save DTO가 authoring을 역참조하지 않는다. |
+| 실패 정책 | unspecified policy, invalid lane/link/batch 수, nonfinite multiplier, duplicate support ID와 missing provider는 fallback 없이 typed/exception fail-loud한다. 초과 support instance는 unlinked 상태로 남고 처리량에 포함되지 않는다. |
+| 전환 범위 | 모든 current workstation/support asset과 재생성 builder를 같은 변경에서 갱신한다. `FacilityData.capacity`, `requiredWorkers`, raw hash enumeration을 lane 대체 권위로 사용하지 않는다. |
+| 검증 | 전수 raw/valid census, duplicate support spill, asset second-run no-op, catalog digest drift, runtime compile/focused suite를 요구한다. parent row는 throughput/profile/DI/live gate까지 통과해야 닫힌다. |
+
+runtime manual/automatic mode-exclusion 구조 계약:
+
+| 항목 | 권위·계약 |
+|---|---|
+| 콘텐츠 정의 | `ProductionFacilityWorkstationLaneCapacityProfile`의 policy와 manual/automatic lane count가 실행 가능 lane의 불변 정의다. 신규 SO 필드나 content-ID 분기를 추가하지 않는다. |
+| 런타임 상태 | `DungeonRuntimeAggregateRootStore` 안의 기존 `AutomationAggregateState`와 `AutomationStateSession`이 facility별 현재 `AutomationMode`의 유일한 쓰기 권위다. |
+| 명령 | 기존 `IAutomationInfrastructureCommand.SetMode`만 mode를 변경한다. 생산 작업 시작/진행은 mode를 변경하지 않고 현재 mode와 authored lane을 검증한다. |
+| 조회 | `IAutomationExecutionModeQuery`가 `BuildingInstanceId`로 현재 mode를 읽으며, 기존 `AutomationPowerDemandRegistry`가 같은 root state에서 구현한다. 별도 cache나 복제 dictionary를 만들지 않는다. |
+| 실행 배타성 | `Manual`·`PoweredAssist`에서는 actor가 있는 manual 실행만 허용하고 automatic executor를 거부한다. `Automatic`에서는 authored automatic lane이 있는 mode-exclusive 시설의 null-worker automatic 실행만 허용하고 manual actor를 거부한다. manual-only profile은 모든 automatic 실행을 거부한다. |
+| 식별자 | runtime object·이름·좌표가 아니라 canonical `BuildingInstanceId`와 frozen lane profile을 사용한다. |
+| 저장 | 신규 저장 필드는 없다. 기존 automation save/restore가 aggregate root를 교체하면 query가 즉시 같은 mode를 읽는다. 파생 admission 결과는 저장하지 않는다. |
+| 의존성 | Automation state/model → root-backed mode query → Economy scene facade → existing production core 순서다. `AutomationRuntime`은 facade를 소비하지만 facade는 runtime이 아니라 root-only query 구현을 소비하므로 DI cycle이 없다. |
+| 실패 정책 | missing/unspecified lane, 실행 주체와 mode 불일치, authored automatic lane 부재는 `ProductionBillUnavailable`과 stable reason으로 fail-loud한다. 다른 bill·manual/automatic 경로로 fallback하지 않는다. |
+| 전환 범위 | live production work의 public facade `CheckWorkAvailability`, `BeginWork`, `ExecuteWork` 세 경로를 같은 gate로 묶는다. core 내부의 passive-processing completion은 worker lane 실행이 아니므로 기존 private/internal progression으로 유지한다. |
+| 검증 | pure policy matrix, root state mode query, facade compile/DI, Manual·PoweredAssist manual 허용, Automatic manual 거부, Automatic null-worker 허용, manual-only null-worker 거부, restore 후 동일 판정을 focused 및 가능한 live 경로로 증명한다. |
+
+2026-08-30 P15 live 실행 경계 구현 증거: 실제 `Brain -> AIWork -> AbilityWork -> WorkTaskExecutor`를 사용하는 Manual·PoweredAssist, 실제 Automation executor, allocated-worker 전환 거부를 하나의 집중 PlayMode matrix로 연결했다. 성공 fixture는 authored I02 전력과 I09/U04 폐수 수용력을 실제 배치하며 P15의 유틸리티 요구를 완화하지 않는다. `CheckWorkAvailability`가 cycle utility를 비변이 preflight하고, 선택된 production bill 또는 authored production workstation의 `BeginWork` 실패는 legacy Cook로 fallback하지 않는다. full-I09 실패 arm은 typed utility rejection 뒤 bill·physical stack·clean water·sludge가 모두 불변이고 delegated work가 `0`임을 증명한다. 최종 결과는 `5/5 PASS`, Console Warning/Error `0/0`이며 `Artifacts/QA/v27-p15-production-execution-modes-playmode.txt` SHA-256은 `69180B3CCEE72B23D8BAA9478721E63279746C007753DB9A243D7C8FF4B42A94`다. 동일 조건 두 번째 실행은 hash·length `1379`·UTC write ticks `639236281536916771`이 모두 불변이고 공식 GameplayScene SHA-256도 유지됐다. 이 증거는 실행 배타성과 utility 원자 경계만 닫으며 producer 전수 throughput/profile, capacity source `@5`, atomic support publication과 live `4.000/4.001`이 끝나기 전에는 Batch B parent 행을 닫지 않는다.
+
+#### I17/I18 장비 진행 시설 output 귀속·지속 작업 구조 계약
+
+`building:9826` 룬 조율실과 `building:9827` 계보 기록실은 recipe/capacity producer가 아니라 장비 상태를 변경하는 domain operation 시설이다. I17은 UI 명령이 즉시 물리 장비 component를 변경하지만 census 귀속이 없고, I18은 주문·저장·완료 API는 있으나 production Craft 작업자가 완료 API를 호출하지 않는 P0 고아다. 이를 `DeclaredNoOutput`으로 숨기거나 건물 ID 분기로 연결하지 않는다.
+
+| 항목 | 확정 계약 |
+|---|---|
+| 콘텐츠 정의 | 기존 `BuildingProductionWorkstationAbility.WorkstationTag`가 immutable typed capability key다. I17은 `workstation:v3:rune-tuning`, I18은 `workstation:v3:lineage-archive`를 사용하며 신규 mutable SO 필드나 건물 ID allowlist를 추가하지 않는다. |
+| 런타임 상태 | I17 장비/module component와 I18 `CombatEquipmentRuntimeState.HistoryTransferOrders`가 기존 단일 쓰기 권위다. Craft adapter·census·UI는 별도 상태를 저장하지 않는다. |
+| 명령 | I17은 기존 tune command, I18은 기존 `TryQueueHistoryTransfer`와 `EquipmentHistoryTransferRuntime.ApplyWork`만 상태를 변경한다. 공용 Craft 코어는 등록된 contributor에 진행량을 위임할 뿐 장비·계보 의미를 알지 않는다. |
+| 조회 | canonical capability ID의 ordinal registry가 즉시 명령, 지속 Craft 작업, output disposition을 해석한다. I18 contributor는 같은 facility ID의 미완료 주문을 order ID ordinal로 선택한다. 누락·중복·비canonical contributor는 composition에서 fail-loud한다. |
+| 식별자 | capability/contributor/order/facility ID를 서로 대체하지 않는다. `CraftWorkExecutionPlan`은 generic registered-operation kind와 exact contributor ID·operation ID를 함께 동결한다. |
+| 저장 | 신규 DTO/schema는 없다. I17은 기존 component codec, I18은 기존 history-transfer order와 physical equipment state를 저장한다. Craft plan과 registry instance는 저장하지 않고 복원된 주문에서 재계산한다. |
+| 의존성 | Models의 owner-neutral Craft contributor 계약 ← Infrastructure의 deterministic registry/adapter ← Combat의 lineage strategy 순서다. Craft 코어가 Combat 타입·workstation tag·건물 ID를 분기하지 않는다. |
+| 실패 | 잘못된 facility capability, unknown contributor, operation mismatch, 완료 주문, missing physical source/target/seal, progress 실패는 다른 production bill이나 legacy craft로 fallback하지 않고 typed failure로 끝낸다. partial progress는 기존 order authority에만 남는다. |
+| 전환 | I18의 실제 시설에 Craft work type을 추가하되 Repair는 보존한다. Editor/PlayMode가 직접 완료 API를 호출해 worker 경로를 우회하는 증거는 제거하고 실제 candidate→Craft adapter→contributor→history runtime 경로로 교체한다. |
+| 검증 | I17/I18 census 귀속, registry 순서·중복·synthetic canary, I18 partial/completion/exact-once/save-resume, 잘못된 capability 거부, 실제 UI queue→AI Craft completion, source+seal exact Transfer와 target history 보존을 current-source Unity에서 증명한다. |
+
+이 연결은 item kg·BOM·WU·EWU·가격을 바꾸지 않는다. I18의 기존 authored `requiredWork=120`도 유지한다. 변경의 밸런스 영향은 새 수치 배정이 아니라 이미 존재하던 주문을 실제 작업 AI가 수행하게 만드는 실행 경로 복구이며, 전수 census·실제 작업 시간·저장 복원 증거 전에는 `밸런스 완료`로 세지 않는다.
+
+현재 증거(2026-08-29): I17/I18은 `equipment-progression:facility-output-disposition`의 typed state-mutation 행으로 census에 연결됐고, I18은 등록형 `equipment-progression:lineage-transfer-work` Craft contributor를 통해 `120 WU`를 `60+60`으로 진행하여 source와 seal을 정확히 한 번 소비하고 target history를 보존했다. focused TSV SHA-256은 `48DBF064A51D82B23DD11B477214860F98133964648ACB3846771CABC282FB30`이며 두 번째 실행의 byte/hash/mtime 변화는 `0`이다. 전체 Physical Item, V22 Apparel, 180 ResearchOverhaul, Production Economy 회귀와 Unity Console Warning/Error `0/0`은 PASS했다. 실제 UI queue→자율 AI Craft 완료 PlayMode는 아직 OPEN이므로 위 구조 계약 전체를 완료로 확대하지 않는다.
+
+Grand Project maximum 전수 증거(2026-08-29): current 355개 recipe 중 exact affected ID 집합 `21`개를 고정하고, 각 행의 `factor numerator/denominator`, 모든 `probability>0` physical output의 authored/max quantity와 unit grams, base/scaled batch grams, 실제 시설의 4-cycle capacity를 `Artifacts/QA/v27-grand-project-affected-recipe-envelope.csv`에 기록했다. P14/P18/P19/P22 winner는 각각 `1,500/750/800/15,300g per cycle`, `6,000/3,000/3,200/61,200g per four cycles`다. CSV는 header 포함 `22`행, `6,210 bytes`, SHA-256 `382BFFF9133BEE49CACA9F671636AE252814CB30069F14C454770BB41859159A`이며 두 번째 실행의 byte/hash/length/mtime 변화는 `0`이다. Unity compile은 `Tundra build success (7.61 seconds)`, focused 실행 PASS, Console Warning/Error `0/0`이다. 이 증거는 standard recipe/Grand Project branch만 닫으며 별도 Loose world-resource/crop output authority를 대신하지 않는다.
+
+Crop maximum 전수 증거(2026-08-29): 실제 `BuildingCropPlotAbility`가 있는 4개 시설과 current catalog 12개 작물의 exact Cartesian set `48`행을 `Artifacts/QA/v27-crop-harvest-maximum-envelope.csv`에 기록했다. 각 행은 facility/workstation/indoor, base yield, definition-only worker capacity·proficiency·effect maximum, seed effect maximum, Grand Project·ecology·soil 유리수, harvest/seed quantity와 exact unit gram, maximum batch, authored 2~4 cycle portfolio, contributor/source digest를 결속한다. CSV는 header 포함 `49`행, `18,225 bytes`, SHA-256 `E95D931717C75E828A79572F9A9A0034E37CC2BCAEE1BB23494C73B1ACDD3963`이며 두 번째 실행의 byte/hash/length/mtime 변화는 `0`이다. 같은 fresh 실행에서 `V27CharacterPerformanceDebugScenarios.RunDefinitionMaximumAudit`, contributor registry, `146/92/54` facility census가 PASS했고 Console Warning/Error는 `0/0`이다. 이 증거는 pure maximum projection을 닫지만 실제 `CropPlotRuntime`의 frozen two-line atomic publication과 save/restore를 대신하지 않는다.
+
+2026-08-30 reachable 권위 교정: 위 `2026-08-29` definition-only 값은 서로 동시에 도달할 수 없는 효과 상한을 조합한 미래 안전 진단 envelope이므로 실행·저장 capacity 권위에서 제외했다. 새 `ICropHarvestReachableMaximumWitnessContributor`는 실제 content로 만들 수 있는 하나의 actor/context를 immutable witness로 캡처하고, Crop capacity와 integrated-cycle contributor가 같은 witness ID와 SHA-256 source digest를 사용한다. 현재 natural witness는 healthy Beastkin + trait `304` + FoodProduction/Fieldwork 각 Master cap `3060 XP` + Golden Harvest jackpot이다. 실제 GameplayScene의 `ICharacterPerformanceQuery`와 offline contributor가 capacity `1.1125`, proficiency `1.7241379`, harvest effect `2.5`, worker multiplier `4.79525852`, outdoor `28`, indoor `33`, returned seeds `7`로 exact 일치했다. `4 facilities × 12 crops = 48` rows를 schema `v27-crop-harvest-reachable-envelope@2`로 재생성했으며 header 포함 `49`행, `20,756 bytes`, SHA-256 `240DA8AEF36F638A201D480B500FF7761121759E4CDC6040A15E6FCEF92CECF3`이다. Ember Root maximum single completion은 outdoor `12,950g`, indoor `15,200g`이고, focused reachable witness·special throughput·capacity contributor 검증이 모두 PASS했다. Console Warning/Error는 `0/0`, GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 불변이다. 이 교정은 reachable capacity/cycle 하위 경계를 닫지만 Crop executable descriptor/receipt와 publication→natural `AIHaul` handler를 대신하지 않는다.
+
+2026-08-30 Crop executable descriptor 증거: capability-keyed contributor가 current source에서 선택된 Crop branch를 shared cycle/input/mass 권위에 재결합하며, `CropHarvestCycleMaximumSnapshot.CropId`를 직접 전달해 composite ID 역파싱을 금지한다. 네 Crop 시설 payload는 exact sow/harvest/growth 조건, 입력 선택 digest와 physical inputs, harvest+returned-seed 두 output capability를 동결한다. 실제 GameplayScene product boot는 `92/92 descriptors`, typed gap `0`, payload split `85 recipe / 4 crop / 1 combat / 1 apparel / 1 certified-seed`, 전체 `23/23 PASS`다. report SHA-256 `852F4BBED72EB11C617A7B34DFB6AE88EA95B6148DD56374EEF7855254EB3FB9`, plan SHA-256 `9D82A23CBCF970748198BB44EF735EE428F10E9EF1A97E95C275123B344CA6F8`, portfolio SHA-256 `D1EF74504D3A82C8ADBC91C02D55B9DD8EBD973846358EA052C39C7A82620B0E`이고, 두 번째 실제 실행에서 hash·length·mtime 변화가 `0`이다. Console Warning/Error `0/0`, GameplayScene byte 불변이다. 이 경계는 실행 descriptor만 닫으며 실제 Crop operation/output commit을 묶는 execution receipt와 publication→natural `AIHaul` handler는 계속 OPEN이다.
+
+#### WorldResource exact-source output 구조 계약
+
+현재 source recipe asset은 `20 recipes / 26 output lines`지만 실제 WorldResource topology가 생산하는 것은 `source:grass`, `source:logging`, `source:saltstone` 3개뿐이다. `source:quarry`는 P22 generic ProductionBill 경로이고, animal 12개와 spoilage 4개는 별도 husbandry/waste runtime 소유자이므로 `source:` prefix만으로 WorldResource에 편입하지 않는다.
+
+| 항목 | 확정 계약 |
+|---|---|
+| 콘텐츠 정의 | `IResourceEconomyContentCatalog`의 canonical `ProductionRecipeSO`와 등록형 `IWorldResourceSourceBindingCatalog`가 source definition·topology capability의 단일 불변 권위다. Tree/Rock/renewable patch 분류와 recipe/work type 결합은 registry row로 옮기며 runtime core에 recipe ID switch를 추가하지 않는다. |
+| 런타임 상태 | `WorldResourceSourceState`가 progress, finite/renewable source reference, completed cycle sequence와 한 frozen pending outcome의 단일 권위다. Wildlife patch는 renewable quantity, Physical Items는 published Loose stack의 기존 권위를 유지한다. |
+| 명령 | `ApplyWork` 완료 시 canonical key-addressed resolver로 outcome을 정확히 한 번 동결한다. `PhysicalItemExactSourcePublicationService.TryPrepare → exact source debit → TryCommitReleased`만 물리 output을 생성한다. line별 `SpawnOutput`은 제거한다. |
+| 조회 | work availability는 current resource/research와 frozen pending 상태를 읽는다. output capacity는 authored 첫 line이 아니라 frozen whole-vector exact gram prepare 결과를 사용한다. |
+| 식별자 | operation identity는 `{persistent nodeId, workTypeId, completedCycleSequence+1}`이다. synthetic bill ID, output line ID, factor numerator/denominator와 recipe semantic digest를 frozen fingerprint에 포함한다. frame·GameObject instance ID·shared sequential RNG state는 사용하지 않는다. |
+| 저장 | WorldResource current format을 V3로 올리고 completed sequence와 frozen pending root seed/recipe digest/factor/output vector/fingerprint만 저장한다. transient admission token·stack ID는 저장하지 않는다. save capture는 exact-source prepare 이후 commit/rollback 전의 transient transaction을 fail-loud한다. |
+| 의존성 | Economy model은 canonical resolver와 owner-neutral exact-source port만 의존하고, Items publication 구현과 Wildlife exact debit adapter는 composition에서 주입한다. `AuthorizedLooseSource` 공간 role을 소유권으로 재사용하지 않는다. |
+| 실패 | renewable debit은 all-or-none이다. prepare 실패는 source·WU outcome을 보존해 같은 frozen 결과로 retry한다. debit 뒤 commit 실패는 source debit과 prepared publication을 모두 exact rollback하며, 어느 rollback도 실패하면 save를 허용하지 않고 typed fatal로 중단한다. zero-output 확률 branch는 fake item 없이 source debit·cycle sequence만 정확히 한 번 commit한다. |
+| 전환 | `WorldResourceRuntime → IWorldResourceOutputPort.SpawnOutput → ProductionItemGateway.SpawnOutput(Loose)` production 호출을 0으로 만들고 owner manifest에 `economy.world-resource-output`을 추가한다. 기존 manifest의 output remaining `0`은 이 누락을 반영할 때까지 false-negative로 취급한다. |
+| 검증 | live binding 3행 maximum artifact(`320/9,200/5,300g`), source 20행 typed classification, multi-line second-fault rollback, renewable insufficient no-debit, key-addressed shuffle/retry, frozen save/restore no-reroll, zero-output cycle, exact-source provenance, static direct-Loose 0, owner manifest fresh zero gate를 통과한다. |
+
+이 구조 교정은 item kg·BOM·WU·EWU·가격과 scene/asset 수치를 바꾸지 않는다. crop의 별도 atomic publication과 WorldResource 3행이 모두 proof-bound output 경로에 연결되기 전에는 full maximum envelope 체크를 닫지 않는다.
 
 추가 current-source P0 발견 사항과 선행 조건:
 
 - [x] 355개 레시피와 363개 `ResourceItemDefinitionSO`의 연구 ID를 current 180개 `ResearchProjectSO` 그래프와 exact join했다. V21 흡수 ID를 쓰던 recipe/item 각 11개를 canonical ID로 함께 교정해 orphan `0/0`을 증명했으며 runtime fallback은 추가하지 않았다.
 - [x] 28개 production support의 unlock reachability를 증명했다. WS08 hearth는 `research:cuisine:crops`, WS10 electric oven은 `research:industry:assisted-processing`의 building unlock으로 귀속했고, BuildingSO `unlocked=0`을 유지하면서 unreachable support를 `0`으로 만들었다.
 - [x] 실제 standard production output과 FacilityBuffer Grand Project 최대 projection이 같은 `ProductionOutputFactor` 유리수 권위를 사용한다. authored `1.25/1.20/1.15`는 각각 exact `5/4`, `6/5`, `23/20`으로 canonicalize되고, 실제 출력은 exact decimal scale, 최대 용량은 exact Ceil quantity를 사용한다. prepared outcome fingerprint도 float 표시값이 아니라 exact numerator/denominator를 기록한다. cross-GCD 곱셈·overflow·비canonical multiplier·경계 Ceil·fingerprint focused 회귀와 Unity Console Warning/Error `0/0`을 통과했다.
-- [x] authored production support 28개를 immutable maximum catalog로 캡처하고, required/batch support tag의 실제 provider 존재를 current installed 상태와 무관하게 검증한다. 현재 28개 support의 output multiplier는 모두 exact `1/1`이며, 하나라도 non-unit으로 바뀌면 복수 조합 상한을 추측하지 않고 `NON_UNIT_SUPPORT_MAXIMUM_REQUIRES_DP`로 fail-loud한다. current prepared-output 11개는 이 catalog와 Grand Project exact factor를 함께 사용하며 P17 `4,200g`, sawmill `14,400g`, charcoal `3,600g`, mill `2,800g`, steelworks `3,400g`, treated-lumber `9,200g`이다. Unity focused 회귀와 Console Warning/Error `0/0`을 통과했다.
-- [ ] 전체 maximum envelope를 닫는다. authored support 28개의 현행 `1/1` 상한과 current prepared-output 11개 연결은 닫혔지만, 향후 non-unit 복수 support 조합은 stable bitset/DP로 계산하고 21개 Grand Project 영향 레시피, world-resource/crop 별도 출력 권위, ruined/probabilistic 모든 branch를 같은 exact projector로 전수 검증해야 한다.
-- [ ] current-revision P17 live 회귀를 정상 부트 경로에서 다시 생성한다. 직접 GameplayScene을 연 시도는 `DungeonRuntimeLifetimeScope`의 재귀 resolve와 owner/start-party DI 누락으로 verifier 자체가 실패했으므로 output-factor 실패로 분류하지 않되, fresh live report를 재생성하기 전까지 live 체크를 닫지 않는다.
+- [x] authored production support 28개를 immutable maximum catalog로 캡처하고, required/batch support tag의 실제 provider 존재를 current installed 상태와 무관하게 검증한다. 현행 28개 support는 exact `1/1`이지만 future non-unit 조합도 stable bitset DP로 계산한다. synthetic `1.4/1.25/1.25` overlapping-provider 조합은 exact `7/4`, 입력 순서 shuffle은 동일 digest/value, batch-provider multiplier 제외와 잘못된 provider 종류 fail-loud를 증명했다. current prepared-output family에는 P17 `4,200g`, sawmill `14,400g`, charcoal `3,600g`, mill `2,800g`, steelworks `3,400g`, treated-lumber `9,200g`가 포함된다. 실제 P22 quarry는 모든 확률 부산물과 Grand Project `5/4`를 포함해 exact `15,300g/cycle`, `61,200g/4 cycles`를 current asset에서 검증했다. Unity focused 회귀와 Console Warning/Error `0/0`을 통과했다.
+- [x] 실행 handler와 분리된 `IProductionOutputMaximumMassCapability`/registry를 추가했다. registry는 capability ID/version, component codec ID/version, automatic-selection 정책과 mass-authority revision을 frozen SHA-256 projection에 결속하고, insertion-order 결정론·중복/누락/모호성·descriptor drift·overflow를 fail-loud한다. runtime projector 생성 시 execution registry와 projection registry의 정렬된 계약이 exact parity가 아니면 시작하지 않는다.
+- [x] generic recipe capacity 열거에서 standard-only 필터를 제거하고 capability-owned projection으로 모든 matching recipe output line을 해석한다. 현재 재단대 58개 레시피는 stateful Apparel을 누락하지 않으며, 방수 작업복 `1,380g/cycle`, authored 4회 `5,520g`와 멜빵 actual minimum `4,600g`을 current asset에서 검증했다. source digest는 `production-output-buffer-capacity-source@2`로 올리고 각 line의 descriptor/projection digest를 포함한다.
+- [x] 전체 maximum envelope를 닫는다. generic Apparel maximum, Apparel command/rejected-recovery no-bill contributor, ruined output의 frozen WIP/input/fluid claim, M06 surgical actual asset 및 recipe-backed no-bill 회귀, active Apparel/Combat/CertifiedSeed frozen maximum proof, CertifiedSeed no-bill contributor, current `146 facility / 92 producer / 54 nonproducer` typed 분류, Grand Project 영향 레시피 exact `21`행과 WorldResource 4-binding/3-recipe maximum proof·exact-source publication 결속은 닫혔다. WorldResource는 `320/9,200/5,300g` line별 capability proof와 aggregate maximum을 frozen outcome/save restore에 결속한다. 마지막 우회였던 crop harvest도 harvest/returned-seed의 frozen two-line outcome, proof-bound aggregate maximum, actual≤maximum, whole-vector atomic publication, capacity wait, save/restore no-reroll, acknowledgement 재시도 exact-once와 GoldenHarvest·ecology 결속을 공용 publication 경계에서 닫았다.
+- [x] capability-owned maximum projection은 executable handler 집합을 projector에 직접 주입하지 않는다. `Standard/Workwear/Surgical/Apparel/Combat craft/CertifiedSeed`가 frozen descriptor에 결속된 definition-only upper-bound proof를 제공하고, pure projection registry와 execution registry의 capability ID/version parity를 composition audit에서 강제한다. active domain batch는 proof 없이는 시작할 수 없다. CertifiedSeed·Apparel의 no-bill contributor, Surgical generic preprojection, Combat facility eligibility·craft catalog·rejected-recovery contributor가 모두 공용 pure registry에 연결됐고 runtime projector 생성 시 execution/projection capability ID·version·codec parity를 exact 강제한다. raw exact batch caller와 content-ID별 core branch는 0이며 insertion-order/locale/canary focused 증거가 이미 current-source PASS다.
+- [x] CertifiedSeed 시설 eligibility를 단일 권위로 만들고 numeric `building:8893` 복제를 production source에서 제거했다. 다른 numeric ID라도 exact workstation tag와 valid buffer가 있으면 동일 계약으로 편입되고, legacy ID라도 capability가 다르면 거부된다.
+- [x] Combat은 `BuildingEquipmentCraftingAbility`의 canonical nonempty exact allowlist를 command/UI/worker/contributor가 공유하고, 빈 목록 wildcard와 silent Trim/Distinct를 제거한다. primary command/worker/contributor, UI의 malformed-list 거부와 ammo 2종 실제 queue, output/BOM catalog, quality-rejected multi-output recovery maximum을 동일 catalog/eligibility/projector에 결속했다.
+- [x] current-revision P17 live 회귀를 정상 부트 경로에서 다시 생성했다. contributor schema-v4 적용 뒤에도 no-bill `4,200g`, 실제 hay `588g`, AIHaul, kg warehouse `3/3`, save recapture identity와 second restore no-duplicate를 모두 증명했다. fresh report SHA-256은 `90AF89B6538A45992160C9C6CA00537BBB9D44F62BF5F7A2CCFEF60E73DCEE14`, Console Warning/Error `0/0`이다.
 - [x] Physical logistics verifier의 부트 경로를 direct Gameplay + debug fast commit에서 `Title → production navigator → StartPreparation owner UI → PreparedNewRun → Gameplay`로 교정했다. runner는 scene 전환 중 유지되고, 단계별 bounded readiness와 typed report를 남기며, 실행 전 영속 데이터 snapshot/restore와 미저장 scene fail-loud guard를 적용한다. Unity compile과 focused production 회귀는 Console `0/0`으로 통과했다.
-- [ ] 교정된 정상 부트 verifier로 current-revision P17 live report를 재생성한다. 현재 열려 있는 GameplayScene에 실제 미저장 변경이 있어 guard가 의도대로 scene 전환을 거부하므로, 사용자 scene을 저장·폐기하지 않고 live 실행은 OPEN으로 유지한다.
+- [x] 교정된 정상 부트 verifier로 current-revision P17 live report를 재생성했다. 임시 scene lease는 종료 시 제거됐고 request/backup 잔여는 `0`, 공식 `Assets/Scenes/GameplayScene.unity` SHA-256은 실행 전후 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 동일하다. 이 행은 P17 live 증거만 닫으며 full maximum-envelope·no-bill contributor·destructive lifecycle 완료로 확대하지 않는다.
 - [x] 공통 `IProductionOutputDestinationLifecycleQuery`로 bill/WIP/reserved/origin physical/routing/outbox/custody/recovery를 한 snapshot에 집계한다. generic bill뿐 아니라 combat equipment craft와 apparel work order도 독립 contributor로 포함하고, contributor stable ID 순서·중복 거부·결합 SHA-256 fingerprint를 focused contract로 증명했다. gameplay query는 save DTO를 읽지 않으며 local buffer가 비었다는 사실만으로 revoke를 허용하지 않는다.
+- [x] output destination lifecycle이 capacity profile뿐 아니라 exact claim도 같은 destination별 1:1 권위로 결합한다. claim-only/partial/conflicting authority는 lifecycle capture와 `TryRevoke` preflight에서 mutation 없이 fail-loud하며, owner/domain/operation/facility/drop/schema join과 claim revision을 semantic fingerprint에 포함한다. 정상 revoke 뒤 claim/profile 모두 0이라는 postcondition을 focused Unity에서 증명했다.
+- [x] 합성 full-path canary의 정적 gate를 `batch >= 1회`에서 exact `20,000g/cycle × 4 = 80,000g`으로 강화하고 P17 buffer cycle authority가 정확히 `4`인지 요구한다. 생산 전·후 profile은 동일한 exact 80,000g이고 reservation 0이어야 한다. 이는 verifier 계약 compile 증거이며, F: volume health와 dirty GameplayScene 때문에 asset-backed PlayMode 실행 자체는 여전히 OPEN이다.
 - [ ] 철거·structural/cover loss·evolution·relocation·synthesis가 공통 mutation fence와 reversible candidate를 통과하게 한다. relocation/evolution은 가능한 경우 persistent facility ID와 `production-output:{sameId}`를 유지하며, preflight 뒤 새 reservation이 생기지 않게 cycle start/reserve도 같은 fence를 확인한다.
 - [x] 직접 demolition에 한해 `prepare → mutation epoch → exact lifecycle fingerprint 재검증 → empty-only authority revoke → grid removal → complete`를 연결했다. grid removal 실패 주입에서는 기존 positive capacity/profile과 grid occupancy를 복구하고 epoch를 종료하며, 성공 경로는 revoke 뒤 authority 부재 postcondition을 확인한다.
 - [x] relocation·synthesis·evolution은 retarget/동일 persistent ID transaction이 생기기 전까지 production-output authority가 하나라도 있으면 첫 world mutation 전에 fail-closed한다. 이는 해당 기능의 최종 지원 완료가 아니며 위 복합 행은 계속 OPEN이다.
 - [x] mutation epoch가 활성인 동안 generic production의 bill 추가·작업 시작·output 실행·passive progress를 차단한다. epoch owner/current 검증과 prepare 뒤 lifecycle fingerprint stale 주입 거부를 focused scenario로 증명했다.
 - [x] structural integrity와 combat cover의 lethal 제거를 공통 `BuildingDestructiveLossRuntime`으로 전환했다. strict-empty mutation candidate가 준비된 뒤에만 output authority revoke·실제 registered grid layer 제거·visual 제거·epoch complete·`DestroySelf()`를 실행하며, 차단 또는 grid removal 실패에서는 HP·grid·authority를 변경하지 않는다. 전투 철거에는 건설비 환급·salvage를 호출하지 않고, HP 0 cover restore는 registry에 재등록하지 않는다.
 - [x] current-format world aggregate 교체는 구 object를 gameplay destruction event가 없는 `RetireForWorldReplacement()`로 retire한다. 동일 restore fixture에서 old object 제거, destruction subscriber 호출 `0`, 새 candidate publication과 두 번째 report SHA-256 identity `EA0C49DFEC716CC1CE19817ADEC366714465B9D5ED40AF355C6D14294281DE40`을 증명했다.
-- [ ] active WIP/equipment craft/apparel/routing/outbox/carried/recovery가 남은 production-capable 시설의 destructive loss는 contributor별 durable terminal/transfer plan이 필요하다. 현재는 fail-closed하며 실제 침입 PlayMode, save/restore lifecycle fingerprint와 notification-failure fault를 추가하기 전에는 destructive-loss 전체 완료가 아니다.
+- [x] active WIP/equipment craft/apparel/routing/outbox/carried/recovery의 6-participant durable terminal/transfer plan, journal-last checkpoint GC와 production DI/save registration을 실제 P03 구조 파괴 PlayMode로 닫았다. active carried cargo가 있는 sawmill 제거에서 6-participant drain, throwing notification subscriber의 `CommittedWithNotificationFailure`, authority pair `Absent/Absent`, lifecycle `0/0`, world removal, checkpoint GC, terminal restore 무복제와 두 번째 checkpoint no-op를 같은 current-source run에서 증명했다.
 - [ ] relocation·synthesis·evolution의 active production retarget, persistent facility ID 보존, reversible multi-facility commit을 구현한다. 현재 증거는 no-authority fail-closed뿐이다.
 
 검증 증거(2026-08-26): `ProductionOutputDestinationLifecycleDebugScenarios`, `ProductionOutputDestinationAuthorityDebugScenarios`, 전체 `ProductionEconomyDebugScenarios`, `FacilitySynthesisDebugScenarios`, `FacilityEvolutionDebugScenarios`를 같은 post-compile focused run에서 실행해 PASS했다. Unity Console Warning/Error는 `0/0`이다. 마지막 관련 runtime/editor DLL은 각각 `8,414,208 bytes @ 2026-08-26 07:04:06 +09:00`, `8,525,824 bytes @ 2026-08-26 07:04:08 +09:00`이며 이후 import/compile 구간도 `Tundra build success`, current Editor.log compile error `0`이다. 이 증거는 source/focused contract 수준이며 실제 repository PlayMode나 destructive-loss 완료 증거로 확대 해석하지 않는다.
+
+2026-08-29 Apparel/Surgical no-bill fresh 증거: `ProductionFacilityOutputCapacityContributorRegistryDebugScenarios.RunAll`, `ApparelPhysicalTransactionDebugScenarios.RunAll`, `ApparelRejectedDismantlePhysicalTransactionDebugScenarios.RunAll`, 전체 `ProductionEconomyDebugScenarios.RunAll`이 current Unity assembly에서 PASS했고 Console Warning/Error는 `0/0`이다. Apparel contributor는 effect definition의 finite maximum과 exact item gram으로 recovery 상한을 계산하며, `output:apparel-rejected-recovery` 단일 line 권위와 549 executable alternatives를 고정한다. M06은 3개 실제 recipe와 5,400g generic preprojection parity를 고정한다. 이 증거는 Combat과 전수 `146/90/56` 집계를 대신하지 않으므로 상위 결합 행은 계속 OPEN이다.
+
+2026-08-29 Combat primary no-bill fresh 증거: actual S08의 63-entry allowlist가 61 equipment + arrow/bolt 2개와 exact join되고, powered harness `18,000g/cycle`, 4-cycle `72,000g` primary profile을 투영한다. `ProductionFacilityOutputCapacityContributorRegistryDebugScenarios`, `CombatEquipmentMaterialDebugScenarios`, `CombatEquipmentCraftTerminalAuthorityDebugScenarios`, 전체 `ProductionEconomyDebugScenarios`가 PASS했고 마지막 clean Console Warning/Error는 `0/0`이다. 더 넓은 `CombatSystemDebugScenarios`는 이번 변경과 무관한 기존 `건설형 엄폐물` 행에서 실패했으므로 green 증거에 포함하지 않는다.
+
+2026-08-29 Combat rejected-recovery fresh 증거: 동일 pure projector가 current `61 equipment × material policy = 252` definition projection을 캡처하고, 합법적 zero-output `20`개를 별도 census로 보존한 채 실제 물리 branch `232`개만 contributor에 게시한다. primary `63`과 recovery `232`는 합산하지 않는 alternative `295`개이며 S08 winner/profile은 계속 `18,000g/72,000g`이다. 실제 S08 `weapon:greatsword`의 품질 거절→별도 해체 작업자 skill `73`→exact input Transfer `4,600g`→회수 commit 1개→ack 실패→Physical/Combat detached restore join→동일 commit 재사용→attempt `+1`과 recovery state clear를 통과했고, 물리 commit을 삭제한 후보는 publication 전에 거부됐다. focused TSV SHA-256 `474AA3C192C51B8B86B5CE73ADE6C33418E8216AE8EED2F197BB35513EFB141B`; contributor/transaction, Combat material/terminal, 전체 Production Economy가 fresh PASS했으며 Console Warning/Error는 `0/0`이다. ammo 2종 UI queue도 current source/focused evidence로 닫혔다. Combat 결합 하위 행은 완료지만 전수 `146/90/56` census가 남아 상위 domain 행과 Batch B 전체는 OPEN이다.
+
+2026-08-29 crop whole-vector maximum fresh 증거: crop completion은 harvest와 returned seed를 하나의 frozen two-line outcome으로 확정하고, 공용 `ProductionDomainOutputPublicationService`가 aggregate maximum proof와 actual vector를 publication 전에 대조한다. 출력 공간 부족은 `WaitingForOutputSpace`로 보존되고 current-format save/restore 뒤에도 동일 outcome을 재사용하며, acknowledgement 재시도에서 물리 출력 증분은 `0`이다. 실제 `crop:twilight-grain` PlayMode는 harvest `0→6`, exact SeedLot semantic component와 production provenance, capacity wait, frozen restore, replay delta `0`을 통과했다. sow receipt가 이미 소비한 cycle input 외의 over-delivery seed는 `RemoveDestination` sink로 삭제하지 않고 material destination release로 반환하며, Unity JSON이 빈 output을 all-default object로 물질화하는 경우에는 exact empty sentinel만 canonical null로 허용한다. `CropPhysicalTransactionFixture`, `V21CropGenomeDebugScenarios`, `V26FounderTraitAuditScenario`, `DungeonSaveSectionDebugScenarios`와 isolated paused PlayMode crop verifier가 PASS했고 최종 report SHA-256은 `E0F6787F7CDE53492BB1AFF7D62AADADAAE536832CAD82125865B8140B6A2785`, Console Warning/Error는 `0/0`이다. current assembly는 `Assembly-CSharp.dll 9,918,976 bytes @ 2026-08-29T06:51:15.5013996Z`, `Assembly-CSharp-Editor.dll 9,886,720 bytes @ 2026-08-29T06:42:24.6684648Z`; 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 유지됐다. 이 증거로 전체 maximum-envelope 한 행만 닫고, retarget transaction, support/p95/>4-cycle gate, unified mutation fence, destructive live integration, active multi-facility retarget의 Batch B 5개 행은 계속 OPEN이다. 전체 Batch B aggregate는 별도 wildlife save-version/player-fairness 실패가 남아 있으므로 green으로 보고하지 않는다.
+
+2026-08-29 P03 destructive live fresh 증거: 실제 `recipe:sawmill-lumber` output을 AIHaul이 pickup한 상태에서 P03 구조 파괴를 요청해 capacity-routing durable stage와 중간 checkpoint를 먼저 만들고, 6-participant terminal drain을 bounded `6/32` 전이로 완료했다. 알림 subscriber의 의도적 예외는 world mutation rollback이나 raw exception이 아니라 `CommittedWithNotificationFailure`로 귀속됐고, 제거 뒤 output/sensor authority pair는 `Absent/Absent`, lifecycle은 authority/record/mass `0/0/0`, bill과 world facility는 제거 상태였다. 물리 전체는 quantity `18→18`, mass `21,600g→21,600g`, carried `0`, lease/intent/admission released, inbound `0`을 유지했다. Unity JSON all-default haul intent는 exact sentinel일 때만 absent로 정규화하고, 제거된 power node aggregate는 pending fuel이 없을 때만 retire한다. authority revoke와 world removal은 각각 모든 owner acknowledged·exact contributor set·empty lifecycle을 요구한 뒤 동일 snapshot의 aggregate와 participant current fingerprint vector를 한 revision으로 재기준화하며 prepared/plan/receipt provenance는 바꾸지 않는다. terminal checkpoint GC 뒤 open journal `0`, 저장 복원은 동일 `WorldRemovedAwaitingCheckpointGc`와 quantity/mass를 무복제로 재구성했고 두 번째 checkpoint도 open `0`/quantity `18`/mass `21,600g` no-op였다. 보고서 `Artifacts/QA/prepared-output-destructive-drain-live-playmode-report.txt` SHA-256은 `71614C1CC65F30F0187438F25770F503914CC2A325006821AEB33DE2A26370C9`, `RESULT=PASS; failures=0`, 런타임 캡처 Warning/Error `0/0`, 공식 GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8` 불변이다. 이 증거로 destructive live integration 한 행만 닫으며 Batch B는 `36/40`이다. 남은 네 행은 retarget transaction, support/p95/>4-cycle gate, unified mutation fence, active multi-facility retarget이고 Batch C–H 및 전체 밸런스 완료는 계속 OPEN이다.
 
 ### 16.4 Batch C — 비창고·entity transport P0
 
 다음 경계는 mass query가 있다는 이유만으로 닫힌 것으로 간주하지 않는다.
 
-- FacilityBuffer input owner 39개: migrated 3, remaining 36, bypass 5, orphan 1을 current-source recapture 기준으로 0까지 폐쇄한다.
+- FacilityBuffer input owner 39개: current-source 기준 migrated `11`, remaining `28`, bypass/orphan `0/0`, transport-delegated-exact `1`이다. research, `character.career`, `character.reproduction`, `infrastructure.climate`의 장기 사용 도구를 공통 durable-equipment slot으로 이관했다. `28` remaining을 공통 capability·durable slot·entity care·external dropoff·fluid/waste·construction BOM 경계로 이관하고 `fullStoredDestinationCoverage=true`까지 폐쇄한다. Batch A output gate가 이 input 분모를 대신하거나 중복 소유하지 않는다.
 - shop: exact retail lot과 내부 capacity 차원을 맞추고 count-only display/internal stock을 physical mass와 혼합하지 않는다.
 - expedition: staging supply custody, abstract transition, loot materialization, cancel/return을 Source/Transfer/Transform/Sink로 닫는다.
 - rescue/captive wildlife: item kg와 hard cap·속도 페널티에서는 제외하되 actor custody, path, disable, Downed, Dead, save/restore를 공통 entity transport authority에 둔다.
@@ -3154,7 +3532,7 @@ Gate S0에서 다음을 전수 감사한다. Phase 3~5가 발견하는 recipe/in
 - ordinary/harness quantity floor
 - material/equipment/apparel projection
 - input disposition별 mass 포함/제외
-- WIP stage별 mass conservation
+- WIP stage별 exact lot ownership과 설명 가능한 gram 귀속
 - output reservation 실패 후 input 재소비 0
 - Sink package return capacity token 실패 시 내용물 소비 0
 - output buffer footprint에 main output·byproduct·returned package를 포함하고, 동시 completed WIP의 resolved-output reservation을 remaining capacity에서 별도 차감
@@ -3566,7 +3944,7 @@ balance:v27:physical-mass-and-hauling-capacity
 
 ---
 
-## 21. Revision v5 결정 폐쇄·잔여 위험·GO/NO-GO
+## 21. Revision v6 결정 폐쇄·잔여 위험·GO/NO-GO
 
 ### 21.1 구조 결정 폐쇄표
 
@@ -3583,7 +3961,7 @@ balance:v27:physical-mass-and-hauling-capacity
 | 포장 tare | reusable return, physical waste, declared destruction, transferred tare 중 정확히 하나 | current-source 414 item semantic 중 packaged family에서 disposition 선택 필요 |
 | 생산 입력 | consumed/product fuel/catalyst/tool/container/infrastructure/packaging closed set | 새 input role이 실제 콘텐츠에 생기면 schema+전수 감사 |
 | 확률 출력 | completion 시 key-addressed 1회 결정·WIP 저장·동일 outcome exact commit | 없음 |
-| 생산 출력 | 2~4회분 bounded physical FacilityBuffer, 별도 AIHaul | 실제 clearance p95가 4회분을 초과하면 buffer 확대가 아니라 Critical 리뷰 |
+| 생산 출력 | 2~4회분 bounded physical FacilityBuffer, 별도 AIHaul | 실제 clearance p95 raw 요구가 4회분을 초과하면 `BackpressureExpected` 비차단 리뷰. authored bounded target 미달 또는 원자성·liveness·수요 충족 실패일 때만 Critical |
 | 물리 제거 | typed Source/Transfer/Transform/Sink command+receipt | production raw remove 호출은 허용하지 않음 |
 | save | current-format strict join, pre-pick token 재계획, committed receipt/outbox 보존, old migration 없음 | source version drift 시 표부터 갱신 |
 | living entity transport | item kg/hard cap/speed penalty 밖, 전용 단일 ownership·path·interruption | 신규 entity burden gameplay를 별도 승인할 때 |
@@ -3606,18 +3984,21 @@ balance:v27:physical-mass-and-hauling-capacity
 | transaction/index 성능 악화 | warehouse-local revision, derived cache, fixed 10,000-op benchmark | query/admission p95<=2ms 0B, planner<=10% regression |
 | 수치상 보존되지만 플레이 경험 악화 | 6인 loop, 256-seed layout/clutter, urgent/heavy fairness, 3-seed live | throughput/storage/Wait WU/carry bands 모두 통과 |
 | 문서와 구현의 재드리프트 | canonical plan hash + baseline v4 + plan-conformance CI | source symbol/contract/hash match |
+| 미래 콘텐츠 추가 시 콘텐츠별 분기·저장 필드 증식 | typed capability interface + deterministic generated registry + canonical state envelope + synthetic canary | core-content-specific branch/manual allowlist/unregistered capability 0, canary core diff 0 |
 
 이 표는 위험이 “없다”는 선언이 아니라 각 위험을 자동 실패로 바꾸는 계약이다. 새로운 시스템이 생기면 semantic manifest drift가 계획을 다시 열어야 하며, 기존 분모에 조용히 제외해서는 안 된다.
 
 ### 21.3 현재 GO/NO-GO
 
-- **GO:** Revision v5 Batch A~D를 dependency graph대로 진행한다. Batch A exact output closure와 Batch C의 read-only manifest, Batch D AuditOnly proposal은 병렬 준비할 수 있고, 공통 contract·save schema·Unity integration은 root가 직렬 통합한다.
+- **GO:** Revision v6 Batch A~D를 dependency graph대로 진행한다. Batch A exact output closure와 Batch C의 read-only manifest, Batch D AuditOnly proposal은 병렬 준비할 수 있고, 공통 contract·save schema·Unity integration은 root가 직렬 통합한다. 각 batch는 capability registry와 synthetic canary를 같은 exit gate에 포함한다.
 - **NO-GO:** 현재 global repository revision 기반 admission 초안을 그대로 production ingress에 연결하는 것.
 - **NO-GO:** slice 2 전체 exit gate 전에 slice 3~8을 병렬로 production cutover하는 것.
 - **NO-GO:** Gate S0 전체, Phase 5.5 결합 감사 전에 신규 item kg·효능·WU·EWU·가격을 추가 ApplyApproved하는 것.
 - **NO-GO:** compile 또는 단일 focused PASS를 다른 시스템 연계 완료·밸런스 완료로 보고하는 것.
+- **NO-GO:** 새 item/recipe/facility/effect를 지원하기 위해 production core에 stable ID별 `if`/`switch`, prefix 추론, 수동 allowlist, 콘텐츠별 save 필드를 추가하는 것.
+- **NO-GO:** 실제 변화 축이 없는 speculative interface/wrapper를 늘린 뒤 이를 미래 확장성 증거로 보고하는 것.
 
-따라서 Revision v5는 구현 순서·병렬 소유권·자동 authoring·실패 정책까지 결정된 **near-complete implementation specification**으로 판정할 수 있다. 그러나 unresolved semantic 51, 전수 disposition/capacity closure, fault evidence와 최종 밸런스 증거가 남아 있으므로 **verified-complete system** 또는 **밸런스 완료**로 판정할 수는 없다.
+따라서 Revision v6는 구현 순서·병렬 소유권·자동 authoring·capability 확장 계약·실패 정책까지 결정된 **extension-oriented implementation specification**으로 판정할 수 있다. 그러나 unresolved semantic 51, 전수 disposition/capacity closure, synthetic canary, content-ID branch ratchet, fault evidence와 최종 밸런스 증거가 남아 있으므로 **extension-closed verified system** 또는 **밸런스 완료**로 판정할 수는 없다.
 
 ---
 
@@ -4067,13 +4448,13 @@ balance:v27:physical-mass-and-hauling-capacity
 - `PhysicalItemDebugScenarios`, `EquipmentItemStateV18DebugScenarios`, `CombatEquipmentMaterialDebugScenarios`, `V22ApparelDebugScenarios`를 같은 Unity session에서 실행했다. base item+module+loaded ammunition, equipment instance revision, apparel material projection, 멜빵 physical `1,150g` 단일 계상과 질량 불변 상태가 모두 PASS했다.
 - 전투 장비·의복 경로는 runtime mass query, world/carry/warehouse/equipped read model이 같은 prepared subject를 사용한다. 품질·내구·신선도·오염·젖음·충전량은 별도 물리 성분이 없는 V27 범위에서 질량 불변이다.
 - 위 focused/full 실행 직후 Unity Editor Console Warning/Error는 `0/0`이었다.
-- 이 재인증은 Phase 4를 닫지만 363개 unit semantic 작성, 355 recipe 전수 질량 보존, 다른 packaged Transform/container/waste, 전수 kg After와 파생 EWU·가격을 완료한 것으로 간주하지 않는다.
+- 이 재인증은 Phase 4를 닫지만 363개 unit semantic 작성, 355 recipe 전수 질량 귀속 회계, 다른 packaged Transform/container/waste, 전수 kg After와 파생 EWU·가격을 완료한 것으로 간주하지 않는다.
 
 ---
 
 ## 43. 구현 체크포인트: Unity MCP 전수 재검증·32-seed 물류와 경제 소스 리비전 게이트
 
-상태: **물리/공간/N+1/32-seed paired clutter current-revision PASS / output-capacity PlayMode 증거 fresh / 후속 방어시설 BOM 변경으로 노동·시설 재승인 재기준화 필요 / 전체 kg 재조정은 계속 진행 중**.
+상태: **물리/공간/N+1 증거 유지 / 과거 32-seed paired 증거는 이후 source 변경으로 재개방 / current-source focused facility·crop·mining paired PASS / output-capacity PlayMode 증거 fresh / 전체 kg 재조정은 계속 진행 중**.
 
 ### 43.1 이번 Unity MCP 세션에서 닫힌 체크리스트
 
@@ -4087,7 +4468,7 @@ balance:v27:physical-mass-and-hauling-capacity
 - [x] 실제 asset 공간 검증: `1,536/1,536 PASS`, 최소 headroom `30.7%`, 정상/장애 이용률 `60%/84%`, 폭 `27/49/65/81`.
 - [x] 서비스 연속성: 24시간 장애, 실제 primitive fallback `10`개, 중복 조리대/펌프 강제 `0`, redundancy capital `0` PASS.
 - [x] 출력 버퍼 saturation/typed recovery `2/2 PASS`.
-- [x] Floor Clutter 4-arm PlayMode를 32 seed로 fresh 실행: `512` window, floor row `640`, failure `0`, clean A/B exact, RNG cross-talk `0`, 외생 사건 divergence `0`, persistent/access/egress clutter `0`, runtime headroom 최저 `30.6%`, Wait WU median/p95/max `0%`, Console `0/0`.
+- [ ] Floor Clutter 4-arm PlayMode 32-seed 최종 재인증. 과거 실행은 `512` window/failure `0`이었으나 이후 haul/admission source가 변경되어 current-source 완료 증거로 재사용하지 않는다. Ship P0 대표 focused seed `1/2/3`은 current source에서 각각 facility output/crop harvest/mining burst, 16 windows, 수량 보존, physical pickup 후 Downed, 회수, 최소 runtime headroom `30.6%/31.2%/30.6%`, Console `0/0`으로 PASS했다.
 
 ### 43.2 current authority 전수 수집 결과
 
@@ -4152,13 +4533,13 @@ balance:v27:physical-mass-and-hauling-capacity
 - [x] `feed:dog-food`를 동물 급식 한 회에 사용하는 feed ration 한 단위로 정의했다. 이미 명시된 hay/silage와 중복하지 않는다.
 - [x] 총 추가 수는 `21+4+4+4+7+10+3+1=54`로 fail-loud 고정했다. 누락·추가 stable ID는 Phase 0 source revision 재개방 사유다.
 - [x] 모든 항목은 package tare `0`, container ID 없음으로 명시했다. 용기 판단이 필요한 medicine/drug/sample은 이 묶음에서 제외했다.
-- [x] current item gram을 semantic의 Before와 provisional After로 동일하게 캡처한다. recipe-derived/byproduct derivation 표시는 Phase 5 감사 라우팅용이며 질량 보존 통과를 선취하지 않는다.
+- [x] current item gram을 semantic의 Before와 provisional After로 동일하게 캡처한다. recipe-derived/byproduct derivation 표시는 Phase 5 감사 라우팅용이며 질량 귀속 회계 통과를 선취하지 않는다.
 - [x] Ordinary 품목은 current maxStack 안에서 실제 6–11kg 묶음을 구성할 수 있어야 한다. 기록물은 MicroUrgent 단품 규칙을 사용한다.
 - [x] `DungeonStory.Economy`와 `Assembly-CSharp-Editor` current Bee/Roslyn 컴파일 exit `0`.
 - [x] Unity MCP에서 두 번 recapture하여 전체 semantic `363/414`, missing `51`, asset mutation `0`, 12개 artifact byte-identical을 확인했다.
 - [x] recapture 뒤 ordinary haul-band 실패 `0`, duplicate semantic `0`, out-of-ledger semantic `0`, Console Warning/Error `0/0`을 확인했다.
 
-이 체크포인트는 단위 의미만 닫는다. 탄약·금속괴·섬유·폐기물의 최종 After gram, BOM 질량 보존, 부산물, 손실, WU/kg, EWU/kg, 가격/kg은 Phase 5와 5.5를 통과하기 전에는 승인하지 않는다.
+이 체크포인트는 단위 의미만 닫는다. 탄약·금속괴·섬유·폐기물의 최종 After gram, BOM과 typed 외부 유입·부산물·Sink·손실의 귀속, WU/kg, EWU/kg, 가격/kg은 Phase 5와 5.5를 통과하기 전에는 승인하지 않는다.
 
 ---
 
@@ -4174,7 +4555,7 @@ balance:v27:physical-mass-and-hauling-capacity
   - `guaranteedOutputGrams`: probability `1`인 출력만 포함
   - `maximumOutputGrams`: probability `>0`인 모든 출력이 발생한 분기
   - `expectedOutputGrams`: decimal probability 기대값
-  - 최대 분기의 disposition이 input+clean water를 넘으면 `mass-creation-critical`
+  - 최대 분기의 disposition이 input+declared external input을 넘으면 당시 schema의 `mass-creation-critical`, 현행 schema의 `external-input-authority-missing`
 - [x] `Source`, `Transform`, `Sink`의 authored flow role과 input/output shape를 대조한다. 불일치는 `flow-role-shape-critical`이며 source/sink 외부 질량을 transform conservation에 섞지 않는다.
 - [x] 기존 reviewed transform `39`개를 recipe ID로 exact join한다. physical input, infrastructure water, physical output, wastewater 이하 byproduct 관계가 drift하면 capture 자체를 실패시킨다.
 - [x] reviewed contract가 없는 Transform은 질량 생성이 없더라도 `disposition-contract-missing`으로 남긴다. residual gram을 임의 손실로 자동 승인하지 않는다.
@@ -4184,7 +4565,7 @@ balance:v27:physical-mass-and-hauling-capacity
 - [x] `DungeonStory.Economy`와 `Assembly-CSharp-Editor` current Bee/Roslyn 컴파일 exit `0`.
 - [x] Unity MCP에서 전수 capture를 실행해 source `23`, transform `328`, sink `4`, mass-creation Critical `83`, missing-disposition `159`, missing-semantic recipe `47`을 current artifact로 확정했다.
 - [x] `material:granulated-powder`의 단위를 `2,150g→850g`으로 교정하고 builder no-clobber 권위를 추가했다. `black-powder×2 + paper×1 = 5,300g` 입력은 `850g×6 = 5,100g` 출력과 명시적 milling/screening dust `200g`으로 닫혀 `mass-creation-critical` 한 건을 제거했다. ordinary 8~12개 묶음은 `6.8~10.2kg`이며 transform/recipe/authority/packaging artifact 두 번째 실행 byte diff는 `0`이다.
-- [ ] `mass-creation-critical`을 우선 0으로 만들고, 나머지 Transform마다 byproduct/loss 또는 exact conservation 계약을 작성한다.
+- [ ] 현행 `external-input-authority-missing`을 우선 0으로 만들고, 나머지 Transform마다 physical byproduct, terminal Sink, abstract loss 또는 exact equality 계약을 작성한다.
 - [ ] probabilistic recipe는 저장된 WIP 결과의 실제 분기마다 output+byproduct+loss가 input과 exact 일치하는지 PlayMode로 증명한다.
 
 이 원장은 Phase 5의 **누락을 전수 가시화하는 기반**이다. `RESULT=IN_PROGRESS`로 출력하며 reviewed exact 수가 355가 되거나 Source/Sink의 별도 계약까지 모두 닫히기 전에는 Phase 5 PASS를 선언하지 않는다.
@@ -4257,6 +4638,7 @@ balance:v27:physical-mass-and-hauling-capacity
 - [x] 생산 출력의 창고 가능성 API를 `HasCompatibleWarehouse(StockCategory)`에서 `HasCompatibleWarehouse(itemId, StockCategory)`로 바꿨다. category만으로는 실제 출력 한 단위의 gram을 알 수 없으므로 kg admission을 증명할 수 없다.
 - [x] 생산 분배는 출력 `itemId`를 bridge까지 전달한다. bridge는 canonical item ID, category acceptance, `WarehouseInventory.CanStoreItem(itemId, 1)`을 모두 만족하는 창고만 후보로 인정한다.
 - [x] 일반 운반 계획의 빠른 destination 탐색은 `CanStore(category, 1)`을 제거했다. stock item은 category acceptance를 별도로 확인하고, stock·equipment 모두 exact item ID 기반 `CanStoreItem` 질량 판정을 통과해야 한다.
+- [x] 운반 가능 수량·후보 총중량·opportunistic 누적중량이 definition kg가 아니라 exact `WorldItemStackRecord`의 instance/component subject를 `PhysicalItemMassSubjectAdapter → IPhysicalItemMassQuery.GetStackUnitMass`로 계산한다. 동일 subject가 warehouse admission과 실제 carry에도 사용되며 equipment focused fixture가 `plan.TotalWeight == exact stack mass`를 검증한다. Roslyn Main/Editor compile, Haul Plan 전체 focused suite와 equipment exact assertion, Console Warning/Error `0/0`을 통과했다.
 - [x] Gameplay Flow 진단의 `CanAcceptLooseStack`도 loose stack의 exact `ItemId`로 판단한다. UI/진단이 실제 물류보다 낙관적으로 표시되는 count/kg 괴리를 제거했다.
 - [x] `CanStoreItem`은 production mass authority가 있는 창고에서는 `RemainingMassGrams / definitionUnitMassGrams`, legacy/editor fixture에서는 기존 count capacity를 사용한다. 이번 변경은 창고 capacity asset이나 item kg를 바꾸지 않는다.
 - [x] production `CanStore(category, 1)` callsite를 다시 검색해 `0`임을 확인했다.
@@ -4939,7 +5321,7 @@ Unity PlayMode 저장 왕복에서 `JsonUtility`가 null `SeedLotState`를 빈 �
 
 ## 83. 구현 체크포인트: 파종·인증 종자 입력 WIP와 생태/출력 exact-once 경계
 
-상태: **파종/인증 입력 exact Transfer·Crop Plot V5·Certified Seed V1·생태 envelope·인증 출력 commit·시설 파괴 WIP terminal loss·incoming receipt/output preflight·focused fixture·정적 컴파일 완료 / Unity live·최종 종자/농업 질량 경제 대기**.
+상태: **파종/인증 입력 exact Transfer·Crop Plot V5·Certified Seed V2 frozen output capability·생태 envelope·인증 출력 commit·시설 파괴 WIP terminal loss·incoming receipt/output preflight·focused fixture·정적 컴파일 완료 / common gram publication·Unity live·최종 종자/농업 질량 경제 대기**.
 
 - [x] `PhysicalSeedLotGateway.TryConsumeSowingInputs`의 두 live caller를 감사했다. 작물 파종은 count debit 뒤 비멱등 `ecology.Sow/ApplyCompost`를 호출했고, 인증 종자는 destination stack 자체를 주문으로 추론해 input debit과 output spawn 사이 저장에서 주문·종자 결과를 잃을 수 있었다.
 - [x] `CropPhysicalTransactionOutbox`를 추가해 seed lot·물·퇴비·연료·cycle supply와 인증 키트를 exact destination·item ID·`FacilityBuffer`·reservation 0·stable stack ID 순으로 선택하고 한 batch `PhysicalItemDispositionKind.Transfer`로 WIP custody에 이전한다. 요구 재료 하나라도 부족하면 어떤 source도 차감하지 않는다.
@@ -5176,7 +5558,7 @@ Unity PlayMode 저장 왕복에서 `JsonUtility`가 null `SeedLotState`를 빈 �
 - [x] 5개 content builder·7,219파일 no-clobber를 재실행해 `changes=0`을 확인했다. L02 mass authority는 builder 재생성 뒤에도 유지된다.
 - [x] 전역 census에서 L01/L02를 제외한 positive-count `BuildingStorageAbility` 19개를 체크포인트 94의 exact authority 표대로 positive gram으로 전환했다. M08 장기보관함과 P1 방어 창고 두 개를 포함하며, Q03 category 의미는 mass와 분리해 변경하지 않았다.
 - [ ] `FacilityBuffer`와 `FacilityOutputBuffer`는 warehouse token을 재사용하지 않고 각각 처리량 기반 `2~4회분` gram capacity, exact reservation·save/restore·output-space 대기를 구현한다.
-- [ ] 기존 broad `physical-item-logistics-playmode-report.txt`의 제작 출력·원정·construction-order 공식 restore 실패 18건을 별도 회귀 결함으로 닫는다. focused L02 PASS로 전역 물류 PASS를 대신하지 않는다.
+- [x] 기존 broad `physical-item-logistics-playmode-report.txt`의 제작 출력·원정·construction-order 공식 restore 실패를 닫았다. committed destination이 generic priority보다 우선하도록 planner를 교정했고, L02는 `17×700g=11,900/12,500g` 입고·복원과 target overfill pickup 전 거절을 통과했다. construction fixture는 delivered material을 exact restitution하는 `CancelOrder(..., refundDeliveredMaterials:true)` 성공 뒤에만 synthetic authority를 제거한다. craft fixture는 queue terminal, owner `outputAcknowledged`, frozen `outputStackId`, acknowledged provenance의 batch/outcome/planned fingerprint·line/item/quantity/mass를 exact 대조하고, 동일 스택이 `Loose 700g → Stored 700g`으로 운반된 뒤에도 provenance를 보존한 상태에서 official whole-root round-trip을 통과했다. 최종 broad report는 `RESULT=PASS; failures=0`, captured Console Warning/Error `0/0`이며 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 불변이다. 이 행은 broad 물류 회귀만 닫으며 Batch G의 Downed/Dead/drop-failure/Floor-Clutter/RNG 통합 행렬을 대신하지 않는다.
 
 이 체크포인트는 일반 저장시설 하나의 **authored gram 용량→실제 production 입고→물리 복원→planner pickup 전 거절**을 닫는다. 나머지 19개 저장시설의 authored gram 배치는 체크포인트 94에서 닫았지만, 대형 사체 전용 운반·시설 입력/출력 버퍼·전체 item kg·물류·EWU·가격·6인 폐쇄 루프와 broad 물류 실패가 열려 있으므로 전체 창고·운반·밸런스 완료로 보고하지 않는다.
 
@@ -5256,7 +5638,7 @@ pendingMassGrams
 - [x] pickup 전 world commitment와 pickup 후 carried commitment가 같은 gram을 한 번만 점유하는지 검증한다.
 - [x] input consume, bill cancel/release, save/restore 뒤 reservation·mass leak 0을 검증한다.
 - [x] current-source Unity compile, FacilityBuffer Mass Admission·Physical Stock·Production Economy·Industrial Infrastructure static suite와 실제 AIHaul PlayMode를 통과했다. `Artifacts/QA/production-input-buffer-mass-playmode-report.txt` SHA-256은 `A3902852796480CA6F6F253CF64E415E0904915913D3AFE22148B450B993466A`, Console Warning/Error는 `0/0`이다.
-- [x] 다른 FacilityBuffer owner 전수 manifest를 생성해 migrated/remaining/orphan/bypass를 기록한다. 장비 수리 이관까지 반영한 current-source 분류는 input owner `39`(`migrated=3`, `remaining=36`), output owner `5`(`remaining=5`), direct bypass `5`, orphan API `1`, generic delivery invocation `59/39 files`, unclassified `0`이다. 두 번 생성한 CSV SHA-256 `4578FAA4E4D1310484E2CB966E4FCD7BCECC17A99E1BB322E765DA74421B55EE`, TXT SHA-256 `CAAC0A58031E9C50926161A0A6F5858BAFBB018C63D14374E26006B7CBB56A31`은 byte·mtime 변화가 없고 classification gate와 Console Warning/Error `0/0`을 통과했다.
+- [x] 다른 FacilityBuffer owner 전수 manifest를 생성해 migrated/remaining/orphan/bypass를 기록한다. Combat/Apparel 공용 output과 current handler registry를 반영한 fresh 분류는 input owner `39`(`migrated=3`, `remaining=36`), output owner `6`(`migrated=4`, `remaining=2`), direct bypass `5`, orphan API `1`, generic delivery invocation `59/39 files`, unclassified `0`이다. 두 번째 생성의 byte·mtime 변화는 `0`; CSV SHA-256은 `92BCD44BE2EE9278BFA1241A9164D644A54A6F53F0E41EE3AD2D3CCEDBF3EE43`, TXT SHA-256은 `7ADF8A780757D3F70B4CB8F1623391F90AA85B8BEBE7228139D66C317095D9FA`다. fresh Unity compile, classification gate와 Console Warning/Error `0/0`을 통과했다.
 
 이 체크포인트는 production 입력 한 경로의 capacity admission만 닫는다. FacilityOutputBuffer, 비-production FacilityBuffer, 대형 사체 dedicated transport, 전체 item kg·EWU·가격·6인 생존망을 완료한 것으로 간주하지 않는다.
 
@@ -5307,7 +5689,7 @@ pendingMassGrams
 | 식별자 | authored recipe 안의 canonical `outputLineId`가 필수다. runtime 배열 index, display name, GameObject ID와 시간 fallback을 금지한다. |
 | 확률 | `rootSeed + billId + cycleSequence + recipeId + outputLineId + rollKind` key-addressed sequence를 사용한다. 공유 순차 `economy:production` stream 소비량에 결과가 의존하지 않는다. |
 | 역할 | `Main`, `Byproduct`, `ReturnedPackaging`, `RecoverableWaste`, `DeclaredLoss`를 분리한다. 앞의 네 역할만 물리 output gram reservation에 포함하고 loss는 receipt에만 남긴다. |
-| 용량 권위 | facility output destination 하나가 positive `FacilityBufferCapacityProfile`을 소유한다. reachable standard recipe의 최대 physical branch를 기준으로 최소 2회분, p95 clearance 필요량, 최대 4회분 사이에서 authored revision을 확정한다. active bill 변화로 profile을 축소하지 않는다. |
+| 용량 권위 | facility output destination 하나가 positive `FacilityBufferCapacityProfile`을 소유한다. reachable standard recipe의 최대 physical branch와 p95 clearance로 제한 없는 raw 요구량을 보존하고, authored/published capacity만 2~4회분으로 확정한다. raw가 4회분을 넘으면 `BackpressureExpected`이며 active bill 변화로 profile을 축소하지 않는다. |
 | 예약 | 존재하지 않는 출력을 existing-stack exact-lot token에 가장하지 않는다. 별도 planned-output request/token을 사용하되 source-lot token과 같은 destination reserved-gram ledger에서 경쟁한다. trusted planner의 immutable output subject를 공용 mass query가 재계산한다. |
 | 대기 | 용량 부족은 authoritative `ResolvedWaitingForOutputSpace`다. 물리 output은 0, input 재소비·RNG 재굴림·일반 바닥 drop은 0이며 공간 신호 또는 tick에서 fresh transient token만 다시 요청한다. |
 | publication | full batch를 preflight하고 한 repository transaction으로 0개 또는 exact full stack 집합만 게시한다. stack limit에 따른 여러 stack은 허용하되 일부 line/unit만 게시된 save 상태는 금지한다. |
@@ -5499,3 +5881,3516 @@ RoutingSelectionPrepared
 - 2026-08-26 Prepared owner/source bijection 추가 뒤 fresh `Assembly-CSharp.dll 8,505,856 bytes @ 11:33:07 +09:00`, `Assembly-CSharp-Editor.dll 8,586,752 bytes @ 11:33:09 +09:00`을 확인했다. generic bill, combat craft, noncompleted apparel, routing batch와 origin/custody physical stack을 typed key로 projection하고 source-only/journal-only owner를 모두 거부했다. world-removed fixture는 모든 실제 owner를 acknowledged로 유지한다. focused 8개 suite PASS, 최근 Editor.log compiler failure pattern `0`, Console Warning/Error `0/0`이다.
 - 2026-08-26 physical producer outbox 추가 뒤 current-format Physical V14, destination 단일 physical owner, stable actor/intent progress, effect receipt, ack/GC와 journal phase matrix를 연결했다. `ProductionPhysicalCustodyDrainOutboxDebugScenarios`, full persistence, Physical Items, Dungeon Save Section, Production Economy 회귀가 PASS했고 1g/순서/request/receipt/orphan 변조를 거부했다. fresh `Assembly-CSharp.dll 8,521,216 bytes @ 12:08:03 +09:00`, `Assembly-CSharp-Editor.dll 8,595,968 bytes @ 12:17:38 +09:00`; 최근 Editor.log compiler failure pattern `0`, Console Warning/Error `0/0`이다.
 - 이 증거는 journal 자체, 전체 5-contributor save-stable fingerprint, capacity/occupancy 복원, 첫 raw-envelope 교차 preflight, normalized 7-section candidate 수명주기와 participant registry/DAG/fingerprint를 닫는다. journal owner↔source/receipt 양방향 조인, destructive drain participant, 실제 침입 PlayMode는 아직 없고 journal도 gameplay/save registry에 등록되지 않았으므로 §16.3의 active-authority destructive-loss 행과 전체 Batch B를 완료로 세지 않는다.
+
+## 101. 구현 체크포인트: generic recipe output의 capability 기반 선택 전환
+
+상태: **구조·legacy fallback ratchet·focused evidence 완료 / asset-mutating synthetic full-path canary 미완료 / Batch A 진행 중**.
+
+### 101.1 닫은 범위
+
+- [x] 표준 prepared-output 선택에서 recipe ID·prefix·11개 migration allowlist를 제거했다. 각 물리 output line의 frozen descriptor가 `standard-definition@1 + definition-only-codec@1`인지 확인해 공통 prepared batch를 선택한다.
+- [x] Production bill 생성·분배·수요·capacity projection·save/restore가 같은 capability 판정을 사용한다. 새 definition-only item/recipe는 별도 코어 분기 없이 이 경로에 진입한다.
+- [x] item feature가 production output instance state를 요구하는지 fail-closed 선언한다. Food·Medicine·PackagedLot·Vaccine·PathogenSample·MedicalProcedureSupply·CropTreatment·Substance·FacilitySupply·EvolutionCatalyst 등 definition-only feature는 공통 codec에서 허용하고 Equipment·Ammunition·Installation·Blueprint 등 stateful 계열은 전용 capability 없이는 거부한다.
+- [x] profile digest를 고정 recipe registry가 아니라 current recipe semantic digest에서 결정론적으로 생성하고, resolved batch restore에서 live recipe와 exact 비교한다.
+- [x] 전수 profile 감사가 발견한 유일한 authored 결함 `recipe:medical-vial`의 빈 primary proficiency를 같은 `forge/work:craft` 계열 권위인 `proficiency:crafting`으로 교정했다. kg·BOM·수량·WU·EWU·가격은 변경하지 않았다.
+- [x] Unity current-source에서 component codec, handler registry, prepared-output contract, 351개 physical-output recipe dynamic profile, 실제 sawmill prepared adapter focused bundle이 PASS했고 최종 Console Warning/Error는 `0/0`이다.
+
+### 101.2 아직 열린 exit gate
+
+- [ ] temporary synthetic definition-only item/recipe가 공통 catalog에 들어와 실제 bill→FacilityOutputBuffer→route→AIHaul→gram warehouse→current-format save/restore→UI/audit까지 통과하고 제거 뒤 고아 권위 0인지 증명한다.
+- [x] `standard-definition`을 descriptor-only capability로 분리하고 `ProductionOutputExecutionService`의 exact legacy 실행을 거부한다. 전체 output vector를 RNG·publication 전에 분류해 all-standard는 prepared, all-special은 exact capability, mixed standard/special은 원자 composite capability가 없으면 fail-loud한다.
+- [x] silage ruined-output의 recipe-ID 전용 분기를 제거하고 typed spoilage/disposition capability로 교체했다. capability가 없는 custom passive recipe는 WIP와 입력을 보존한 채 `ruined-output-capability-unsupported`로 실패한다.
+- [x] owner manifest의 마지막 generic output owner를 `migrated`로 바꾸고 두 번 생성해 byte/hash/mtime diff 0을 증명했다. output owner는 `6/6 migrated`, remaining `0`이다.
+- [ ] Batch A의 actual normal·capacity wait·cancel·destroyed·restore fault matrix와 synthetic canary까지 모두 green이 되기 전에는 Batch A 체크를 닫지 않는다.
+
+### 101.3 작업량 해석
+
+- 이 전환으로 기존 capability 범위의 일반 item/recipe 추가는 handler·save DTO·capacity 분기 코드를 매번 작성하는 작업에서 벗어나 authoring data, anomaly review와 공용 회귀 실행 중심으로 축소된다.
+- 이번 checkpoint 자체는 큰 Batch A~H를 닫지 않으므로 `0/8`을 유지한다. legacy fallback ratchet은 닫혔지만 focused 기반만으로 가중 잔여량을 낮추지 않고 약 `31~41%`를 유지하며, synthetic full-path canary와 normal/fault PlayMode 통과 뒤 다시 산정한다.
+
+### 101.4 6/6 owner current-source 증거와 남은 blocker — 2026-08-27
+
+- `StandardDefinitionProductionOutputCapability`는 metadata-only이며 `IProductionOutputHandler`가 아니다. registry exact validation은 descriptor를 검증하지만 executable resolution은 이를 거부한다.
+- capability vector는 물리 output 전부를 먼저 캡처한다. `StandardPrepared`와 `ExactCapability`만 허용하며 혼합 vector는 `mixed-standard-output-capability-route-unsupported`로 RNG draw와 물리 mutation 전에 실패한다.
+- static diagnostic은 generic ruined batch의 직접 spawn과 `recipe:silage` 분기, 표준 direct execution, non-Editor orphan buffered-output writer를 모두 ratchet한다.
+- current-source Unity에서 `ProductionEconomyDebugScenarios.RunAll`, output registry, ruined batch, migration profile, full current-format persistence, static bypass, owner manifest가 PASS했고 Console Warning/Error는 `0/0`이다.
+- 추가 non-PlayMode fault aggregate가 Combat/Apparel Editor fixture의 오래된 executable standard fake를 검출했다. fixture도 metadata-only 표준 capability로 교정한 뒤 exact-route lifecycle, routing authority rollback, restore join, multi-stack/priority/partial-heavy/transit/raw-food haul safety, Apparel physical output·rejected dismantle가 current-source에서 PASS했고 Console Warning/Error는 `0/0`이다.
+- owner manifest 두 번째 생성은 byte/hash/mtime 변화가 0이다. output owner는 `6/6 migrated`, output remaining `0`이다.
+- definition-only synthetic canary의 isolated contract는 request round-trip, re-entry ownership, scene/asset mutation `0`으로 PASS했다. 그러나 이는 bill→FacilityOutputBuffer→AIHaul→gram warehouse→RestoreAll의 asset-mutating full-path 증거가 아니다.
+- full-path canary는 F: 볼륨의 Win32 I/O error 55와 Windows `HealthStatus=Warning / OperationalStatus=Full Repair Needed` 때문에 중단했다. 사용자 소유의 dirty `GameplayScene.unity`도 live PlayMode verifier 진입을 차단한다. 복구·명시적 위험 승인 또는 깨끗한 별도 검증 환경 없이 이 gate를 우회하지 않는다.
+- current-source 비 PlayMode fault bundle은 추가로 닫혔다. `ProductionDomainOutputPublicationDebugScenarios`, `ProductionDomainOutputRestoreGuardDebugScenarios`, destructive-drain preflight/participant/outbox, `ProductionCapacityRoutingActorTransitionDebugScenarios`, `ProductionPreparedOutputFullPersistenceDebugScenarios`가 한 clean-console 구간에서 PASS했고 Warning/Error는 `0/0`이다. 두 actor current-cell quiescence, actor-B authority release 직전 fault, partial phase save 거부, replay completion, stable capture와 no-op replay를 검증한다. 이를 위해 오래된 Editor fixture의 Routable custody에 delivery revision `0`과 current target을 추가하고, custody 포함 carried signature와 custody 제외 business component fingerprint를 분리했다. production validator와 authored 밸런스 수치는 변경하지 않았다.
+- 따라서 Batch A~H는 `0/8`, weighted remaining은 약 `31~41%`로 유지한다. owner closure를 Batch A 완료나 밸런스 완료로 과대 보고하지 않는다.
+
+### 101.5 capability-owned domain 최대 질량 증명 — 2026-08-27
+
+- [x] `ProductionOutputBatchMaximumMassProof`를 추가했다. 출력 line별 frozen capability descriptor를 실행 없는 `IProductionOutputMaximumMassRegistry`로 투영하고, stable line 순서·중복 line 거부·checked gram 합계·SHA-256 proof digest를 하나의 immutable 증명으로 만든다.
+- [x] 공용 capacity projector에 proof 입력 경계를 추가했다. 시설의 authored recipe portfolio 최대치와 domain capability proof의 최대치를 같은 cycle 권위로 비교해 더 큰 값을 profile에 반영하므로, 실제 batch가 뒤늦게 profile을 자기 확장하는 경로를 Combat·CertifiedSeed에서 제거했다.
+- [x] `ProductionDomainOutputLine`이 capability descriptor를 필수로 가지며, 실제 prepared component 질량이 선언된 capability 최대 질량을 1g이라도 넘으면 `domain-output-line-mass-exceeds-capability-maximum`으로 batch 전체를 mutation 전에 거부한다.
+- [x] domain publication current format을 schema V5로 올리고 `maximumMassProofDigest`와 `maximumBatchMassGrams`를 저장했다. committed/frozen owner는 두 필드를 필수로 검증하며 adoption·retry에서 exact 일치를 요구한다.
+- [x] Combat equipment/ammunition과 CertifiedSeed의 실제 두 domain publication caller가 frozen descriptor를 전달한다. 외부 저장 형식은 과거 세이브 마이그레이션 제외 정책에 따라 Combat V11, CertifiedSeed V5로 올렸다.
+- [x] restore owner가 capability descriptor와 maximum quantity claim을 저장 권위에서 재구성하고 registry로 proof를 다시 계산한다. saved proof digest, maximum gram, unit-mass authority 또는 capability fingerprint drift는 live owner publication 전에 실패한다.
+- [x] proof 입력 순서 shuffle은 같은 digest를 만들고, duplicate line·underreported maximum·uppercase/noncanonical digest·1g mass-authority drift를 모두 원자 거부하는 focused fixture를 추가했다.
+- [x] fresh Unity DLL 기준 domain publication, domain restore guard, Combat craft, Crop physical transaction focused bundle과 maximum-mass registry/factor/handler/full-persistence/full Production Economy 비-PlayMode 회귀가 PASS했다. 최종 Console Warning/Error는 `0/0`이다.
+
+이 체크포인트가 줄이는 미래 작업은 domain 출력마다 별도 최대 질량 계산기·저장 필드·복원 분기를 새로 설계하는 부분이다. 새 출력은 capability descriptor와 maximum claim을 제공하면 공용 proof/publication/restore 경로를 재사용한다. 다만 다음 항목은 아직 열려 있으므로 전체 raw escape 제거 또는 Batch B 완료로 세지 않는다.
+
+- [x] Apparel craft와 rejected dismantle의 raw exact capacity 호출 2곳을 capability proof로 전환한다. craft는 frozen declared descriptor를, rejected recovery는 첫 automatic 선택 descriptor를 동결하고 이후 declared 재투영을 사용한다.
+- [x] Environmental workwear의 raw exact capacity 호출 1곳을 공용 capability proof/projector로 전환하고, proof·capacity source를 outcome fingerprint에 결속해 physical marker/retry에서 재검증한다.
+- [x] Surgical part의 별도 profile-max digest를 공용 capability proof/projector로 통합하고, replay의 persisted outcome을 현재 proof와 대조한다.
+- [ ] 위 경로가 모두 green인 뒤 generic raw exact-batch overload의 production 호출을 0으로 ratchet한다.
+- [ ] domain restore의 capability proof뿐 아니라 catalog·workstation·cycle·현재 facility subject를 포함한 전체 detached capacity source도 live와 exact 재투영한다.
+
+authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값은 변경하지 않았다. Batch A~H는 계속 `0/8`, output owner는 구조상 `6/6`, input owner는 `3/39`(remaining `36`, bypass `5`, orphan `1`)이며 weighted remaining은 약 `31~41%`다.
+
+### 101.6 Apparel craft·rejected recovery 최대 질량 증명 — 2026-08-27
+
+- [x] craft output은 기존 `craftOutputCapability`에서 maximum projection을 만들고, 실제 dynamic component 질량이 proof maximum을 넘기면 재료 debit·admission 전에 실패한다.
+- [x] rejected recovery는 첫 시도의 automatic capability descriptor를 `rejectedRecoveryOutputCapability`에 동결한다. 재시도·복원은 automatic selection을 다시 하지 않고 frozen descriptor를 declared 방식으로 재투영한다.
+- [x] craft/rejected 각각 proof digest와 maximum batch grams를 current-format owner에 저장하고 capacity source digest·required minimum·exact output mass와 frozen tuple로 검증한다.
+- [x] 새 proof 필드는 clone에서 Trim이나 음수 보정을 하지 않고 exact 복제한다. noncanonical digest·음수·maximum 초과는 validator가 fail-loud한다.
+- [x] Character Environment V11, Apparel terminal state schema V3, terminal-drain row schema V3, terminal-drain outer V3, source-order fingerprint schema `@3`으로 current-format 경계를 명시했다. 과거 세이브 마이그레이션은 하지 않는다.
+- [x] `PrepareRestoreOrders`와 terminal-state restore validation이 current maximum registry에서 proof를 다시 계산해 descriptor·quantity·unit mass·authority revision·digest/max drift를 live publication 전에 거부한다.
+- [x] focused fixture는 실제 craft output `2,000g`, declared maximum `4,000g`, four-cycle capacity `16,000g`을 분리해 raw exact self-sizing 회귀를 검출한다. rejected recovery는 `1,500g` maximum과 `6,000g` four-cycle capacity를 검증한다.
+- [x] proof digest tamper는 craft/rejected 모두 물리 mutation 0으로 실패하고, rejected JSON round-trip은 frozen descriptor/proof를 보존한다.
+- [x] fresh Unity compile 후 Apparel craft/rejected/terminal/repair focused bundle과 maximum registry/factor/handler/lifecycle/full persistence/full Production Economy aggregate가 PASS했다. 최종 Console Warning/Error는 `0/0`이다.
+
+이 전환으로 의복 종류와 회수 재료가 추가돼도 별도 capacity 분기나 저장 필드를 다시 설계하지 않는다. 새 capability의 선언 최대치와 descriptor만 공용 registry에 제공한다. Workwear와 Surgical의 공용 proof 전환은 아래 후속 체크포인트에서 닫혔고, 전체 detached facility-source 재투영과 generic raw overload 제거는 계속 열려 있다.
+
+### 101.7 Environmental workwear 최대 질량 증명 — 2026-08-27
+
+- [x] 자동 선택된 Workwear capability descriptor와 definition-only 최대 질량을 실행 전에 캡처하고 handler capability/version/codec parity를 강제한다.
+- [x] proof-aware capacity projector 결과를 destination minimum과 planned-output request에 사용하며 raw exact-batch self-sizing 호출을 제거했다.
+- [x] proof digest/max와 capacity source digest/required minimum을 outcome fingerprint에 결속해 pending·acknowledged replay가 같은 의미 권위를 검증한다.
+- [x] 실제 prepared unique apparel component 질량이 선언 maximum을 넘으면 reservation·publication 전에 실패한다.
+- [x] fresh Unity compile, Workwear focused, maximum registry, handler registry, full persistence와 full Production Economy 비-PlayMode 회귀가 PASS했다.
+
+### 101.8 Surgical part 최대 질량 증명 — 2026-08-27
+
+- [x] 기존 `SurgicalPartOutputCapacitySource` profile-max 전용 digest를 제거하고 automatic Surgical capability → `ProductionOutputBatchMaximumMassProof` → 공용 capacity projector 경로로 교체했다.
+- [x] authored `context.OutputLineId`를 proof descriptor, physical slice, outcome fingerprint와 replay join의 단일 line 권위로 사용한다. 별도 item 기반 line 재합성을 제거했다.
+- [x] proof digest/max와 capacity digest/minimum을 persisted physical outcome fingerprint에 결속한다. replay는 facility와 현재 maximum/capacity를 다시 계산하고 pending·acknowledged batch의 commit/line/item/quantity/mass/outcome을 exact 검증한다.
+- [x] proof projection은 Surgical handler capability/version/codec과 정확히 일치해야 하며, actual reserved mass가 maximum을 1g이라도 넘으면 publication 전에 reservation을 해제하고 실패한다. 해제 자체가 실패하면 별도 typed detail로 fail-loud한다.
+- [x] direct fixture도 one-line proof, maximum quantity, proof×cycle batch minimum, capacity/profile minimum pairing을 검사해 무관한 proof와 capacity source 혼합을 mutation 전에 거부한다.
+- [x] maximum 초과·release 실패·proof/capacity mismatch focused 회귀와 maximum registry, handler registry, maximum factor, full persistence, full Production Economy aggregate가 fresh Unity compile에서 PASS했다. 최종 Console Warning/Error는 `0/0`이다.
+
+이 두 전환은 authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값을 바꾸지 않는다. 미래의 Workwear/Surgical 콘텐츠는 기존 capability/codec/maximum projection 계약으로 자동 연결되며 코어 item-ID 분기를 추가하지 않는다. 다만 전체 detached facility-source restore 재투영, production raw overload ratchet, ruined output, fault/performance와 asset-backed full-path canary가 남아 Batch A~H는 계속 `0/8`, weighted remaining은 `31~41%`다.
+
+### 101.9 raw exact-capacity API 1차 ratchet — 2026-08-27
+
+- [x] non-Editor raw 호출을 전수 분류했다. 1차 ratchet 당시 6곳이었으나 ruined-output bypass, portfolio-only 호출, generic prepared actual, normal detached restore를 모두 proof/claim 또는 명시적 portfolio API로 전환했다. 현재 public raw overload `0`, production·Editor raw caller `0`이며 Domain/Apparel/Workwear/Surgical raw 호출도 `0`이다.
+- [x] `IProductionOutputBufferCapacityProjector`에서 `(facility, long exactBatchMassGrams)` overload를 제거했다. capability handler는 proof overload밖에 호출할 수 없어 새 특수 콘텐츠가 exact result로 자기 profile을 확장하면 컴파일되지 않는다.
+- [x] Apparel transaction도 concrete projector 대신 proof-only interface에 의존하도록 좁혔다.
+- [x] 정적 진단은 concrete projector의 non-Editor 소유자를 projector 본체, generic prepared execution, detached/destructive save validation과 composition root로 한정하고 신규 owner를 실패시킨다.
+- [x] fresh Unity compile, static bypass ratchet, Surgical/Workwear focused와 full Production Economy 회귀가 PASS했고 Console Warning/Error는 `0/0`이다.
+- [x] concrete raw overload와 호출자를 완전히 제거했다. `CaptureSourceCore(subject, long)`은 projector 내부 private 계산 경계로만 남고, 정적 진단이 public raw overload `0`, raw caller `0`, 허용된 concrete owner 집합을 ratchet한다. 이 기계적 제거는 완료됐지만 저장값 위조를 authored 상한과 대조하는 공통 restore guard 완료를 의미하지 않는다.
+
+따라서 raw 우회 차단과 generic/restore caller 제거 자체는 완료됐다. Batch B가 계속 열려 있는 이유는 raw API가 아니라 normal authored-upper-bound restore guard, domain 전체 detached source 재투영, no-bill contributor, fault/performance와 full-path 증거가 남았기 때문이다.
+
+### 101.10 ruined generic output의 최대 질량·종료 라우팅 권위 — 2026-08-27
+
+- [x] ruined batch의 WIP 입력, clean-water 입력, wastewater·manual-water provenance, frozen 폐기물 capability descriptor와 disposition을 하나의 `ProductionRuinedOutputCapacityClaim` SHA-256에 결속했다.
+- [x] 실제 폐기물 수량을 먼저 만들어 raw 질량으로 profile을 자기 확장하던 경로를 제거했다. frozen descriptor의 1개 최대 질량으로 공용 disposition을 계산하고, 그 최대 폐기물 수량을 다시 `CaptureDeclared`하여 `ProductionOutputBatchMaximumMassProof`를 만든다.
+- [x] prepared-output current format을 V6, Production root를 V20으로 올리고 `maximumMassProofDigest`, `maximumBatchMassGrams`, `capacityClaimDigest`를 저장한다. 세 필드는 all-or-none이며 모든 resolved normal/ruined prepared batch에 필수다.
+- [x] live retry와 detached active-bill restore가 current recipe·WIP·fluid provenance·frozen descriptor로 claim을 재계산하고 proof/claim/capacity source를 exact 비교한다. 1g·digest·WIP drift는 live publication 전에 실패한다.
+- [x] terminal routing batch에도 capacity source, cycle, portfolio, required minimum과 normal/ruined proof/claim을 복제했다. Routing current format은 V7이고 routing fingerprint token도 `prepared-output-routing-v7`이다.
+- [x] 생산 bill이 종료된 뒤 routing batch만 남아도 save-only capacity projector가 저장된 proof-sized minimum을 유지하며, 현행 silage terminal fixture는 proof/claim 축소와 capacity authority drift를 거부한다. 다중 폐기물 QA recipe의 bill-retirement 후 `2,400g → 9,600g` terminal 증거는 별도 체크로 열어 둔다.
+- [x] `2,400g WIP + 600g clean water - 300g wastewater` QA-authored fixture가 `600g × 4 = 2,400g recoverable waste + 300g declared loss`를 만들고, live claim/source digest 일치, active restore, proof/claim tamper 거부를 통과했다.
+- [ ] 같은 다중 폐기물 QA recipe를 detached catalog와 terminal routing까지 전달해 bill retirement 뒤에도 exact `9,600g` minimum과 claim/source가 재현되는지 별도 회귀로 증명한다.
+- [x] stale Editor DLL에서 나온 최초 PASS는 증거에서 폐기했다. AssetDatabase refresh/domain reload로 현재 Main·Editor assembly를 다시 만든 뒤 recipe semantic digest, prepared contract, ruined execution, maximum-factor, routing authority/restore join, destination lifecycle, full persistence, destructive-drain participant/preflight와 full Production Economy를 한 묶음으로 재실행해 PASS했다. 최종 Console Warning/Error는 `0/0`이다.
+
+이번 체크포인트는 폐기 출력의 capacity self-sizing과 bill-retire shrink를 닫았을 뿐, 미래 ruined capability 전부가 자동 편입된 상태는 아니다. 다음 항목은 완료로 세지 않는다.
+
+- [x] `ProductionRecipeSO`의 암묵 `waste:mixed-rot` 기본값·getter fallback을 제거했다. `PassiveBatch`는 raw authored spoilage ID가 non-empty canonical이고 현재 item catalog에 존재해야 하며, 누락·공백 보정 필요·orphan은 catalog capture에서 fail-loud한다. `WorkOnly`은 empty를 허용하되 값이 있으면 canonical이어야 한다.
+  - 현재 355 recipes 전수 census에서 `PassiveBatch 8/8`은 명시적 canonical spoilage를 가지며 orphan `0`이다. `WorkOnly 347`의 기존 직렬화된 무의미 `waste:mixed-rot` 값은 런타임 fallback 권위가 아니며, 이번 체크포인트에서는 대규모 YAML noise를 피하려고 재직렬화하지 않았다.
+  - recipe semantic digest schema는 `production-recipe-semantic@3`으로 올렸고, WorkOnly-empty 허용과 Passive empty/noncanonical/orphan 거부를 current-source focused test로 고정했다.
+- [x] `StandardDefinition + DefinitionOnlyCodec` 값 비교를 제거하고 등록형 `IProductionPreparedOutputMaterializer`와 participation flag로 normal/ruined component 생성·복원을 dispatch한다. `ProductionBillStateCodec`은 DTO 구조·authority만 검사하고, capability별 payload 의미 검증은 restore transaction이 live materializer로 publication 전에 수행한다. adapter에서 Standard/DefinitionOnly 상수 분기를 금지하는 static ratchet도 통과했다.
+- [x] facility portfolio의 ruined 상한은 고정 수량 1이 아니라 recipe inputs, facility process fluid, feasible support assignment의 fluid/fuel을 합친 authored WIP maximum envelope로 동일 `ProductionRuinedBatchDispositionPlan.Create` 공식을 호출한다. synthetic `3,000g` envelope와 `3,600g` oversized active claim 거부, QA `2,400+600-300 → 4×600+300`을 focused 회귀로 증명했다.
+- [ ] temporary passive ruined recipe와 등록형 non-standard materializer가 코어 수정 없이 bill→ruin→FacilityBuffer→route→AIHaul→gram warehouse→save/restore를 통과하는 synthetic canary를 추가한다.
+- [x] generic normal prepared batch의 live actual-mass 경로와 normal detached 재투영을 `ProductionPreparedOutputCapacityClaim`으로 전환하고 concrete raw overload·caller를 0으로 제거했다.
+- [x] generic normal Main/Byproduct restore claim을 저장된 실제 line 수량으로만 자기 재생성하지 않는다. current recipe의 authored output line ID·role·item과 maximum output factor를 대조해 line별 수량이 authored maximum을 넘으면 claim 생성 전에 거부한다. quantity·grams·proof·claim·capacity를 산술적으로 함께 고친 forged fixture도 `exceeds its authored output maximum`으로 실패했고 current-source maximum-factor/full Production Economy/static ratchet와 Console Warning/Error `0/0`을 통과했다. ReturnedPackaging은 recipe output이 아니라 container 회수 계약이므로 이 상한에 섞지 않고 별도 tare 보존 불변식으로 검증한다.
+- [ ] Domain/Apparel/Workwear/Surgical의 detached capacity source가 proof뿐 아니라 facility definition·position·workstation·cycle·catalog portfolio까지 live와 exact 재투영되도록 공용 restore claim에 연결한다.
+
+이 미완료 범위를 capability 등록·materializer·maximum claim·restore claim이라는 네 공용 계약으로 닫으면, 이후 같은 범주의 신규 콘텐츠는 코어 분기·새 저장 DTO·별도 capacity 계산기를 추가하지 않고 데이터와 capability 구현만으로 편입된다. 이것이 미래 작업량을 줄이는 기준이며, 아직 지원하지 않는 새로운 의미까지 선구현하는 기준은 아니다.
+
+2026-08-27 registered materializer fresh 증거: AssetDatabase refresh/domain reload 뒤 현재 Main·Editor assembly가 오류 없이 컴파일됐다. `ProductionPreparedOutputComponentCodecDebugScenarios`는 비표준 prepared capability의 등록 순서·locale 독립 fingerprint, create/decode exact round-trip과 누락·중복·version drift·비참여 materializer 거부를 통과했다. `ProductionOutputHandlerRegistryDebugScenarios`는 prepared participant가 per-line handler까지 동시에 소유하는 이중 실행 권위를 거부했고, `PreparedOutputLegacyBypassStaticDiagnostics`는 adapter의 Standard/DefinitionOnly 상수 분기 0을 확인했다. 이어 recipe digest, prepared contract, ruined execution, maximum-factor, routing/restore join, destination lifecycle, full persistence, destructive drain participant/preflight와 full Production Economy 11개 회귀가 한 번에 PASS했으며 최종 Console Warning/Error는 `0/0`이다. 이후 authored ruined WIP envelope와 generic/restore raw 제거도 별도 current-source 회귀로 닫혔다. 이 증거로 아직 닫지 않는 범위는 authored-upper-bound restore guard, 전체 detached source 재투영과 asset-backed AIHaul full-path canary다.
+
+### 101.11 authored normal ceiling·공용 detached facility capacity guard — 2026-08-27
+
+- [x] generic normal Main/Byproduct line은 current recipe의 canonical line ID·role·item과 maximum output factor를 대조한다. saved quantity가 authored maximum을 넘으면 exact grams·proof·claim·capacity digest를 함께 다시 만든 경우에도 claim 생성 전에 실패한다.
+- [x] ReturnedPackaging은 recipe output ceiling으로 오분류하지 않고 input container의 exact tare-return 계약에 남겼다.
+- [x] `IProductionOutputDetachedFacilityCapacityRestoreGuard`를 추가했다. restore-world candidate 외의 live fallback 없이 persistent facility ID가 정확히 하나인지 확인하고 current proof로 facility definition·position·workstation·cycle·process-fluid·catalog source를 재투영한다.
+- [x] saved capacity source digest와 required minimum은 exact 비교하며 epsilon·Trim·자동 교정은 없다. candidate 없음, facility 0/duplicate, digest drift와 1g minimum drift focused 회귀가 mutation 없이 실패한다.
+- [x] CertifiedSeed V5는 `BuildRestoreCandidate`에서 common proof와 owner facility를 재구성하고 physical `AdoptPending` 전에 공용 detached guard를 호출한다. 새 DTO나 schema bump는 없다.
+- [x] Combat V11도 `BuildRestoreCandidate`에서 descriptor×output quantity proof, `ownerFacilityId == facilityPersistentId`, saved outcome fingerprint를 검증한 뒤 공용 detached guard와 physical adoption을 순서대로 실행한다. 새 DTO나 schema bump는 없다.
+- [x] 공용 가드를 composition root에 singleton interface로 등록했다. 콘텐츠 ID 분기와 owner별 capacity calculator를 추가하지 않았다.
+- [x] current Main/Editor assembly를 강제 refresh해 재컴파일하고 generic maximum-factor/full Production Economy/static raw ratchet, detached guard, domain restore adoption과 Combat craft 회귀를 통과했다. 최종 Console Warning/Error는 `0/0`이다.
+- [x] Apparel craft/rejected와 open terminal source order를 CharacterEnvironment detached build에 연결하고 ModularFacility dependency를 명시한다. `ApparelOutputDetachedCapacityRestoreGuard`가 live order와 아직 source-terminal receipt가 없는 terminal source만 검사하고, 현재 capability proof와 detached facility source를 exact 재투영한다. 이미 닫힌 역사적 receipt는 현재 capacity owner로 다시 잡지 않는다.
+- [ ] Workwear/Surgical의 exact pending owner와 terminal drain을 같은 guard에 연결한다. 현행 unregistered Apparel terminal-drain save section은 production 등록 여부를 먼저 결정·검증한다.
+- [x] Combat save payload의 facility ID·outcome·proof digest/max·capacity digest/minimum tamper가 runtime mutation과 physical acknowledgement 전에 실패하는 전용 회귀를 추가했다. production constructor는 `[Inject]` 5-arg로 고정하고 필수 의존성의 optional default를 제거했다. 모든 owner를 먼저 전수 preflight한 뒤에만 2차 pass에서 `AdoptPending/RequireNoPending`을 호출하므로 뒤쪽 row 변조도 앞쪽 partial adoption을 만들지 않는다. missing/duplicate/destroyed detached facility는 같은 실제 common guard matrix가 보완한다.
+- [ ] multi-unit ruined QA recipe의 bill-retirement terminal `9,600g` detached 회귀와 asset-backed AIHaul full-path canary를 추가한다.
+
+이 체크포인트로 common validator와 CertifiedSeed/Combat hook은 닫혔다. 상위 `Domain/Apparel/Workwear/Surgical detached source` 체크는 나머지 owner adapter와 전용 fault matrix가 끝날 때까지 OPEN이다. Batch A~H는 `0/8`, weighted remaining은 약 `29~39%`다.
+
+authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값은 변경하지 않았다. Batch A~H는 `0/8`, output owner는 구조상 `6/6`, input owner는 다음 fresh manifest 전까지 `3/39`(remaining `36`, orphan `1`)이며 raw capacity bypass는 `0`이다. weighted remaining은 `29~39%`다.
+
+2026-08-27 Apparel detached-source 추가 증거: `CharacterEnvironmentSaveSection`은 `world.facilities`를 명시적으로 선행하고, persistence candidate 생성 전 Apparel output-capacity guard를 실행한다. 공용 guard focused matrix와 Apparel physical/rejected/terminal/repair 4개 회귀가 현재 Unity assembly에서 PASS했다. 더 넓은 EnvironmentalField aggregate는 이번 변경과 무관한 구형 `wildlife.population` V5 fixture 때문에 별도 FAIL로 남겼으며 이를 Apparel 통과 증거에 포함하지 않았다. clean focused 재실행 후 Console Warning/Error는 `0/0`이다. Workwear/Surgical detached-source adapter는 계속 OPEN이다. Combat 전용 tamper matrix는 후속 current-source 체크포인트에서 닫혔다.
+
+### 101.12 generic ExactCapability pending-output durable envelope — semantic registry·Workwear/Surgical·downstream lifecycle 구현
+
+Workwear와 Surgical은 domain owner가 아니라 generic bill의 `resolvedOutputs`/`ExactCapability` 경로다. 현재 bill은 frozen capability·quality·`pendingCommitId/pendingCommitApplied`와 누적 mass만 저장하며, pending 한 단위가 publication 당시 사용한 proof·capacity·exact stack 집합을 독립적으로 소유하지 않는다. incoming physical batch도 outcome/planned fingerprint와 stack shape는 제공하지만 proof와 capacity source의 구성 필드를 제공하지 않는다. 따라서 handler replay가 나중에 우연히 실패하는 것만으로 detached restore 원자성을 증명했다고 보지 않는다.
+
+- [x] `ProductionResolvedOutputSaveData`에 공용 `pendingOutputPublication` envelope를 추가하고 Production current format을 V20→V21로 올린다. 도메인별 Workwear/Surgical 필드는 추가하지 않는다.
+- [x] envelope 선행 조건으로 Workwear의 publication과 acknowledgement를 분리했다. handler는 physical batch/admission commit까지만 성공시키고 generic bill이 owner를 freeze한 뒤 호출하는 `TryAcknowledge`만 marker를 닫는다. Surgical은 이미 같은 2단계 순서를 사용한다.
+- [x] envelope는 pending unit 하나의 owner stable ID, facility ID, frozen capability, maximum proof digest/max grams, capacity source digest/required minimum, exact output mass, outcome/planned fingerprint, destination/position/capacity revision, publication/admission/ack phase와 exact stack IDs를 가진다.
+- [x] `IIdempotentProductionOutputHandler`의 mass-only 조회를 registered committed-output snapshot 조회로 확장했다. handler가 공용 snapshot을 반환하고 generic bill이 그대로 freeze하며, coordinator에 capability/content ID 분기를 추가하지 않는다.
+- [x] 실행 순서를 `BeginResolvedOutputUnit → handler publication → pending envelope freeze → MarkResolvedOutputUnitCommitted → handler acknowledgement → ClearResolvedOutputPendingCommit`으로 고정했다. clear는 envelope와 pending unit을 한 transaction으로 함께 비운다.
+- [x] crash state는 정확히 둘만 허용한다. A: unacknowledged planned batch가 존재, B: planned marker는 ack됐고 commit-tagged physical output이 존재하지만 bill clear 전이다. 둘 다 존재하거나 둘 다 없으면 실패한다.
+- [x] `ProductionExactCapabilityOutputRestoreJoin`은 `ProductionBillsSaveSection.BuildCandidate`에서 physical·facility dependency가 staged된 뒤 persistence/live publication 전에 실행한다. 모든 owner의 proof·detached facility capacity·physical batch/output을 먼저 전수 preflight하고 전체 성공 뒤 acknowledgement plan을 만든다.
+- [x] pending `production-output:*` marker는 reverse scan하여 정확히 하나의 active Production owner가 없으면 거부한다. prepared-output owner와 domain-output owner는 각 기존 join의 단일 권위를 유지한다.
+- [x] acknowledged marker는 active producer lease가 아니라 durable provenance receipt이므로 `Production owner 없음`만으로 orphan 처리하지 않는다. 등록된 save/registry preflight는 generic acknowledged ownerless terminal receipt와 unknown domain delegation을 허용하고, prepared `production-output-batch:*`에는 정확히 하나의 routing batch owner를 요구하며 provenance와 exact-route outbox의 dual custody, routing orphan, malformed/partial marker를 mutation 없이 거부한다. `FacilityOutputBuffer/Loose/Stored/FacilityBuffer/Carried`의 세부 상태 불변식은 기존 Physical/Character/routing join의 단일 권위를 재사용한다.
+- [x] stable capability ID로 dispatch하는 `IProductionResolvedOutputRestoreCapabilityValidator` registry를 두었다. production composition에서 모든 `IIdempotentProductionOutputHandler`와 validator의 capability/version/codec이 정확히 1:1인지 강제하므로 신규 같은 의미 capability는 validator/descriptor 등록만으로 연결되고 generic coordinator 수정은 0이다.
+- [x] Workwear validator는 current recipe/material/quality/facility와 frozen envelope로 outcome, proof, capacity, unique instance/component signature, qty/mass/destination을 exact 재계산한다. 신규 의복 ID 분기는 없으며, raw business component와 prepared fingerprint를 restore snapshot에 보존하고 동일 admission projector의 순수 projection을 재사용한다.
+- [x] Surgical cross-aggregate preflight validator는 saved prepared-part commit과 physical surgical component의 partId/node/kind/quality/worldStack을 exact join한다. `SurgicalPartInstance.storedFacilityId`는 생산 facility owner로 재사용하지 않는다. 공용 capability registry 편입 여부와 무관하게 restore publish 전 원자 preflight로 등록되어 있다.
+- [x] focused 실패 행렬은 proof digest/max, capacity digest/min ±1g, missing/duplicate/destroyed facility, outcome/planned fingerprint의 개별·paired 변조, item/qty/mass/destination/stack/component, owner-without-physical, pending physical-without-owner, A/B crash phase와 late-row read-only preflight를 포함한다.
+- [x] acknowledged downstream lifecycle preflight의 save/registry 양 경로는 generic ownerless terminal PASS, pending generic delegation PASS, prepared routing/provenance와 prepared exact-route PASS, malformed/partial, prepared owner 누락, provenance+exact-route dual custody와 routing orphan FAIL, 입력 JSON mutation `0`을 통과했다. preflight는 non-failing participant publish에 넣지 않고 restore publish 전 registry preflight로 등록했다. 기존 Physical item report에서도 `reservation_carried_grandfather_restore`, `reservation_expired_committed_carry_restore`, `equipment_identity_across_carry_and_storage`는 PASS했다.
+- [ ] acknowledged generic marker를 실제 Carried stack·haul intent와 한 whole-root fixture에 동시에 둔 통합 canary는 asset-backed full-path canary와 함께 남긴다. 현재 broader `PhysicalItemDebugScenarios`의 유일 실패는 이 변경과 무관한 `equipment_unique_retail_transfer_commit_and_rollback`의 stale lease 충돌 1건이며, 이를 lifecycle PASS에 포함하거나 숨기지 않는다.
+
+이 envelope는 미래 ExactCapability handler를 위한 공용 다형성 경계다. 새 콘텐츠가 기존 capability의 파라미터 추가라면 데이터만 추가하고, 새 상태 의미라면 handler+validator+contract suite만 등록한다. 새 capability마다 `ProductionBillRuntime`·save section·DTO에 분기를 추가하는 방식은 실패다.
+
+2026-08-27 current-source 증거: V21 envelope/full-current-format round trip, common exact-output restore join, terminal destructive-drain lifecycle과 Surgical cross-aggregate preflight를 Unity에서 실행했다. 이어 registered semantic-validator registry, Workwear와 Surgical semantic validator를 production composition에 연결했다. Workwear는 실제 recipe/material/apparel catalog와 공용 maximum/capacity/admission projection을 사용해 Crash A/B, paired outcome/planned tamper, recipe/material/quality/component/day/hash/mass/facility/destination/capacity 변조와 late-row DTO·handler 무변경을 통과했다. Surgical은 pending/acknowledged, paired fingerprint, node/kind/quality/commit/component/prepared fingerprint/mass/facility/destination/capacity 변조와 projection/input snapshot 무변경을 통과했다. Surgical handler와 maximum capability의 3개 item ID 분기를 공용 prosthetic semantic parser로 교체해 `item:prosthetic:arm:right` 같은 같은 의미의 미래 정의가 코어 수정 없이 같은 등록 경로를 사용하는 회귀도 통과했다. acknowledged lifecycle save/registry preflight와 routing/full-current-format persistence를 추가한 current-source 10-suite 묶음이 PASS했고 최종 Console Warning/Error는 `0/0`이다. asset-backed full-path canary와 explicit acknowledged-Carried 통합 canary는 계속 OPEN이므로 Batch A~H는 `0/8`이다. authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값은 이 체크포인트에서 변경하지 않았다.
+
+2026-08-27 fresh static manifest: FacilityBuffer input owner는 `3/39` migrated, remaining `36`; output owner는 `6/6`; legacy bypass `5`, orphan `1`, unclassified/stale `0/0`; 실제 non-Editor delivery invocation은 `59회/39파일`로 generator 기대값과 일치한다. public/concrete raw-capacity API/caller는 `0/0`이고 unexpected concrete projector caller도 `0`이다. 이번 semantic/lifecycle 체크포인트는 구조적 안전성과 미래 콘텐츠 작업량을 줄였지만 input owner migration 수를 바꾸지 않았으므로 큰 Batch A~H는 계속 `0/8`이다.
+
+2026-08-27 multi-unit ruined terminal blocker: 기존 `2,400g WIP + 600g clean water - 300g wastewater → 4×600g waste`, `9,600g` capacity fixture는 private이며, bill retirement 뒤 frozen `sourceBill`은 terminal payload에 남지만 durable capacity projector가 이를 입력받지 않는다. 현재 routing fallback은 1g minimum 축소는 막아도 다른 canonical SHA-256으로 proof/claim/capacity digest를 함께 바꾼 drift를 current recipe·WIP/fluid에서 재계산하지 못한다. 따라서 가짜 독립 fixture로 체크하지 않는다. 다음 구현은 terminal frozen sourceBill↔routing ownerBillId exact join, `CaptureRuinedClaim`/`CaptureSource` 재투영과 공용 immutable QA fixture 추출을 먼저 수행해야 한다.
+
+2026-08-27 multi-unit ruined terminal 해결 증거: generic terminal payload를 durable capacity projector의 current-format 필수 입력으로 승격하고, live bill이 없는 routing owner를 terminal의 frozen `sourceBill`과 bill/recipe/facility/cycle/destination/batch/outcome/physical-line 단위로 exact join한다. join 뒤 현재 recipe와 frozen WIP/fluid에서 `CaptureRuinedClaim`과 `CaptureSource`를 다시 실행하고 maximum proof·claim·capacity source·cycle/portfolio/minimum을 exact 비교한다. 공용 fresh-object fixture가 `2,400g WIP + 600g clean water - 300g wastewater → 4×600g waste`, `9,600g`을 증명하며 WIP drift, canonical digest 동시 교체와 `+1g` minimum 변조를 입력 mutation 없이 거부한다. current-source Unity compile과 ruined-terminal/extended exact-output·restore 묶음이 PASS했고 최종 Console Warning/Error는 `0/0`이다. 이로써 terminal capacity blocker만 닫으며 asset-backed AIHaul full-path canary와 Batch A 전체는 계속 OPEN이다.
+
+## 100. 구현 체크포인트: 품질 미달 장비 판매의 durable settlement
+
+상태: **하위 P0 완료 / Batch A 전체는 진행 중**.
+
+### 100.1 닫은 범위
+
+- [x] 품질 미달 판매를 `Prepared → PhysicalCommitted → IncomePublished → UniqueAuthorityReleased`의 단조 증가 current-format outbox로 전환했다.
+- [x] source stack ID, item/instance ID, component fingerprint, 시장 destination, proceeds, Transfer commit ID, quantity와 input grams를 하나의 immutable 요청으로 결속했다.
+- [x] 물리 제거는 exact `Transfer` 영수증이 생긴 뒤에만 다음 단계로 진행한다. `Prepared`는 저장 불가 transient이며, 영수증 없는 owner와 owner 없는 영수증을 모두 거부한다.
+- [x] Combat unique aggregate는 `MarketSalePending` external custody를 사용한다. 판매가 끝나기 전 진화·장전·탄약 소비·내구·수리·정비·materialize/drop·lost·loadout과 하위 repository 변조를 거부한다.
+- [x] treasury credit은 transaction kind와 operation ID로 idempotent하다. ledger 기록 실패 시 balance를 원복하고, exact replay는 무변경이며 amount conflict는 실패한다.
+- [x] stock-policy·Physical section restore join과 whole-save preflight가 physical receipt, treasury income, Combat pending/terminal authority를 phase별로 exact 검증한다.
+- [x] 실제 `DungeonSaveSectionRegistry.RestoreAll`에서 정상 payload가 원자 복원된다. 같은 payload에서 physical receipt를 제거하면 전체 복원이 실패하고 임시 physical candidate는 남지 않는다.
+- [x] Unity current-source compile, durable outbox, 공용 domain publication/restore guard, exact unique physical sale 회귀가 통과했고 최종 Console Warning/Error는 `0/0`이다.
+
+### 100.2 해석 제한과 다음 gate
+
+- 이 체크포인트는 authored kg·quantity·capacity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값을 변경하지 않는다.
+- 이 거래 경계는 미래의 품질 판정 콘텐츠가 같은 capability/command 계약을 선언적으로 사용하도록 닫았지만, 새로운 경제 불변식이나 전혀 다른 결제 capability까지 미리 구현하지 않는다.
+- Combat/Apparel의 inspiration·mood completion-effect exact-once 계약은 별도 P0다. 판매 settlement 완료를 그 효과 계약의 완료로 세지 않는다.
+- Batch A~H는 큰 체크포인트이므로 계속 `0/8`이다. weighted remaining은 `32~42%`로 갱신하며, 다음은 generic 미이관 output family·environmental workwear remaining 2 제거와 synthetic full-path canary다.
+
+## 102. 구현 체크포인트: schema-4 synthetic full-path canary identity·mid-carry 원자성
+
+상태: **생성 에셋·요청 identity와 중간 운반 복원 코드는 current-source compile/focused PASS / 실제 PlayMode full-path는 dirty scene 때문에 OPEN / Batch A 진행 중**.
+
+### 102.1 닫은 범위
+
+- [x] canary request를 transaction nonce, 임시 item/recipe asset GUID, 증강된 item/domain catalog SHA-256, transaction/verifier source SHA-256에 exact 결속했다. request·marker·현재 project 중 하나라도 다르면 bill 생성 전에 fail-loud한다.
+- [x] schema-4 contract round trip과 catalog-focused transaction이 exact identity를 승인하고 stale nonce를 거부한다. cleanup은 임시 에셋과 marker/request를 제거하고 양 catalog byte를 원본과 exact하게 복구한다.
+- [x] AIHaul pickup 뒤 checkpoint 대상은 destination의 첫 intent가 아니라 persistent actor, destination, item, quantity가 일치하는 단 하나의 committed intent로 제한한다.
+- [x] checkpoint에서 commitment↔Carried를 carried stack ID, source stack ID, item ID, stack signature, quantity로 exact join하고, warehouse admission을 warehouse/source/item/quantity/grams로 결속한다.
+- [x] `RestoreAll` 실패 원자성은 특정 다섯 section만이 아니라 캡처된 모든 non-null envelope를 `sectionId` ordinal 정렬하고 version·restore phase·optional·payload까지 결속한 whole-root fingerprint로 비교한다. 별도의 다섯 section fingerprint는 정상 mid-carry semantic round-trip 비교에만 사용한다.
+- [x] 저장된 warehouse admission을 `+1g` 변조한 negative arm은 `RestoreAll=false`여야 하며, 실패 뒤 live fingerprint·Carried cargo·haul intent·warehouse reserved inbound grams가 모두 prior-world와 exact 동일해야 한다.
+- [x] 정상 arm은 같은 untampered checkpoint를 복원하고 restored actor를 AI-paused 상태로 고정하되 movement는 취소하지 않은 채 Brain·AbilityHaul·AbilityMove가 inert인지 먼저 증명한다. 이후 restored actor가 이미 가진 authored `AIHaul` action만 격리하고 `PreferActionOnNextDecision`·unpause·`RequestImmediateDecision`으로 production Brain 경로를 깨워 동일 deposit을 재개한다. `new AIHaul().Execute`와 generic quiescence의 `StopHauling`은 이 경로에서 사용하지 않는다.
+- [x] current Unity project assembly가 재빌드됐고 schema-4 contract/catalog, acknowledged-output lifecycle, prepared routing restore focused suite가 PASS했다. 최종 Console Warning/Error는 `0/0`이다.
+
+### 102.2 아직 열린 exit gate
+
+- [ ] active `GameplayScene`이 사용자 소유 dirty 상태가 아니게 된 뒤 full transaction을 실행한다. 검증기는 dirty scene을 저장하거나 unload하지 않고 사전 거부해야 한다.
+- [ ] 실제 report에서 bill→FacilityOutputBuffer→exact route→committed Carried checkpoint→tamper atomic reject→valid RestoreAll→resumed AIHaul→gram warehouse→post-deposit save/restore→UI/audit를 전부 current transaction/source digest로 PASS한다.
+- [ ] transaction 전후 GameplayScene asset/meta, 두 catalog, persistent save root가 exact 복구되고 임시 asset/meta/marker/request가 0인지 확인한다.
+- [ ] normal·capacity wait·cancel·destroyed와 Batch G의 partial/Downed/Dead/Floor Clutter 행은 각각 실제 PlayMode 증거가 생길 때까지 OPEN으로 둔다. 이번 mid-carry restore 코드 compile을 해당 fault matrix 전체 PASS로 세지 않는다.
+
+이번 checkpoint는 authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값을 변경하지 않았으므로 `밸런스 영향 없음`이다. Batch A~H는 `0/8`, 전체 진행은 약 `65~73%`, 잔여는 약 `27~35%`를 유지한다. 새 콘텐츠가 기존 definition-only capability를 사용하면 canary 코어 분기 추가 없이 catalog 자동 수집과 동일 identity/restore 계약을 거쳐야 하며, 새로운 상태 의미가 필요한 경우에만 새 capability·codec·validator fixture를 등록한다.
+
+2026-08-27 current-source 교정 증거: 모든 envelope whole-root fingerprint와 실제 Brain wake 경로가 컴파일됐고, inert gate 전에 movement를 취소하던 증거 오염도 제거했다. `Assembly-CSharp-Editor.dll`은 `2026-08-27T13:02:15Z`에 재빌드됐으며 그 copy 경계 뒤 compiler error는 `0`이다. schema-4 contract/catalog, acknowledged lifecycle, prepared routing restore focused bundle가 PASS했고 Console Warning/Error는 `0/0`이다. 실제 coroutine PlayMode report는 dirty GameplayScene 보호 때문에 여전히 OPEN이다.
+
+## 103. 구현 체크포인트: synthetic output-space exact retry verifier
+
+상태: **실제 권위 기반 verifier 구현·current-source compile/focused PASS / PlayMode 실행 증거 OPEN / Batch A 진행 중**.
+
+### 103.1 구현·컴파일로 닫은 범위
+
+- [x] synthetic `20,000g` batch가 사용하는 `80,000g` FacilityOutputBuffer에 필요한 blocker 질량을 `live capacity - batch mass + 1`로 계산한다. 특정 item ID·현행 kg를 고정하지 않고 current catalog의 canonical·generic-definition·선형 질량 후보를 stable ID 순으로 수집해 최소 수량 정수 DP로 exact `60,001g` 조합을 결정한다. 후보 digest와 선택 plan을 기록하고 exact 조합이 없으면 `EXACT_MASS_UNREPRESENTABLE` 의미로 fail-loud한다.
+- [x] solver가 선택한 plan을 실제 `SpawnItemAt` 경로로 생성한 뒤 새 stack의 component-aware 질량을 다시 측정한다. plan mass, runtime stack mass, occupancy, capacity와 reserved mass가 모두 일치해야 하므로 향후 item kg 조정은 verifier 코어 수정 없이 다른 exact plan으로 자동 흡수되고 runtime mass drift는 별도로 실패한다.
+- [x] blocker는 `BeginWork`가 input을 WIP로 소비한 뒤 첫 `ExecuteWork` 전에 동기적으로 생성한다. 따라서 cycle-start capacity preflight를 통과한 뒤 completion 시점에만 공간이 부족한 실제 경계를 검사한다.
+- [x] 첫 실패는 `ProductionOutputSpaceUnavailable`, bill `WaitingForOutputSpace`, prepared phase `ResolvedWaitingForOutputSpace`, `20,000g` frozen batch, non-empty batch commit/outcome fingerprint를 요구한다. material buffer는 이미 0이고 WIP commit/quantity/grams/cycle은 BeginWork 직후와 exact 동일해야 한다.
+- [x] blocker가 남은 상태에서 `ExecuteWork(..., 0f)`를 재호출하고 prepared-output JSON, WIP, item-stack version, occupancy, input buffer와 custody stack 수가 모두 무변경인지 검사한다. 이 검사는 입력 재소비·출력 spawn·결과 재굴림을 저장 권위와 물리 repository 양쪽에서 동시에 막는다.
+- [x] blocker 제거는 repository 직접 삭제가 아니라 solver가 선택한 exact stack vector를 입력으로 하는 typed `PhysicalItemDispositionKind.Sink` commit을 사용한다. receipt 수량은 선택 plan 총수량과 같고 질량은 `60,001g`이어야 하며, 제거 뒤 occupancy `0g`, capacity `80,000g`, reserved `0g`이어야 한다.
+- [x] 공간 확보 뒤 같은 bill을 `0 WU`로 재개하고 정확히 한 `20개/20,000g` publication stack이 frozen batch commit ID·outcome fingerprint를 그대로 가지는지 공개 component payload에서 확인한다. Editor verifier가 runtime `internal` codec에 의존하지 않도록 component schema를 read-only로 검증한다.
+- [x] 첫 exact Waiting 상태에서 실제 `IDungeonSaveSectionRegistry.CaptureAll → RestoreAll`을 수행한다. 복원 전 whole-root fingerprint와 frozen bill/prepared/WIP/blocker를 캡처하고, 복원 후 작업자·생산 시설·창고·bill·blocker stack을 persistent ID로 다시 조회해 stale Unity 참조를 재사용하지 않는다. 복원된 상태가 byte-identical이고 여전히 정확히 1g 부족한 경우에만 zero-WU retry·typed clear·same-batch resume를 진행한다.
+- [x] pickup 전 cancel은 exact quantity lease·warehouse admission·intent를 캡처한 뒤 lease/intent만 해제하고 admission tombstone `Released/CancelledBeforePickup`과 routable physical stack을 보존하는지 검사한다. committed pickup 뒤 active actor cancel은 coroutine·movement를 종료하되 carried stack·동일 lease·Reserved admission·delivery-only intent를 유지하는지 독립 검사한다.
+- [x] `AbilityHaul.DebugBeforeHaulRoutineStart`가 동기 cancel이나 예외를 일으킨 뒤 coroutine을 되살리지 않도록 active-plan guard와 typed cleanup을 추가했다. 예약 snapshot은 nullable value type으로 정확히 처리해 source-only false-green과 compile blocker를 제거했다.
+- [x] current-source Unity compile이 완료되어 `Assembly-CSharp-Editor.dll`이 `2026-08-27T13:56:27.1877873Z`, `9,221,120 bytes`, SHA-256 `6ADC53EB...DC94C`로 재생성됐다. schema-4 contract/catalog, acknowledged lifecycle와 routing restore focused bundle가 다시 PASS했고 Console Warning/Error는 `0/0`이다.
+
+### 103.2 아직 열린 exit gate
+
+- [ ] dirty `GameplayScene`을 저장·unload·덮어쓰지 않고 실행할 수 있는 시점에 synthetic PlayMode transaction을 수행해 위 여섯 capacity-wait check ID의 실제 PASS report를 얻는다.
+- [ ] 실제 report가 생성되기 전에는 상위 `output 공간 1g 부족 → 같은 결과 재개` 체크와 Batch A를 닫지 않는다.
+- [x] pickup 전 cancel과 committed active-actor cancel의 독립 source 행, exact lease/admission/intent assertion과 coroutine resurrection guard를 구현하고 current-source compile을 통과했다.
+- [ ] 실제 PlayMode report에서 `PREPARED_OUTPUT_CANARY_PRE_PICKUP_CANCEL_RELEASES_ONLY_LEASE`, `PREPARED_OUTPUT_CANARY_ACTIVE_CANCEL_RETAINS_CARRIED_AUTHORITY`, `PREPARED_OUTPUT_CANARY_CAPACITY_WAIT_RESTORE_EXACT`을 포함한 cancel·restore 행이 PASS해야 한다. 파괴 시도 차단은 `DESTRUCTIVE_ATTEMPT_BLOCKED_BY_LIVE_AUTHORITY`로만 보고하며 실제 `destroyed=PASS`로 오인하지 않는다.
+- [ ] 실제 active-output 시설의 durable drain 뒤 성공 제거는 Batch G/destructive-loss P0에서 exact five participant·journal·coordinator·replay/restore 증거로 별도 구현한다.
+
+이번 checkpoint는 verifier code만 바꿨고 authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값은 변경하지 않았다. Batch A~H는 `0/8`, 전체 진행은 약 `65~73%`, 잔여는 약 `27~35%`다.
+
+## 104. 구현 체크포인트: ReservedTarget exact kg admission과 원정 보급 소유권
+
+상태: **공통 계약·원정 보급 구조·current-source 집중 검증 완료 / 실제 PlayMode 원정 운반 증거 OPEN / Batch C 진행 중**.
+
+### 104.1 닫은 범위
+
+- [x] `ReservedTarget`의 exact claim/profile만 `ownerFacilityId=null`을 허용한다. `LiveFacility`, `LiveBuilding`, planned-output과 빈 문자열·비정규 ID는 계속 fail-loud한다.
+- [x] `expedition:` 목적지는 더 이상 위치·prefix만으로 FacilityBuffer 입고를 허용하지 않는다. 정확한 질량 admission profile과 token이 없으면 `WorldItemWarehouseService`가 commit 전에 거부한다.
+- [x] `offense.expedition-supply`는 package cost vector를 current immutable item mass catalog로 재투영해 exact maximum grams를 만든다. 새 gram save field나 DTO version은 추가하지 않고 기존 semantic cost authority를 사용한다.
+- [x] package 생성·restore·return·consume가 `IFacilityBufferDestinationLifecycleCommand`의 claim+capacity pair를 원자적으로 publish/retire한다. claim-only publication과 terminal profile 누수를 제거했다.
+- [x] 비용 합산은 checked arithmetic을 사용하고 exact item/quantity mass를 계산한다. 부분 delivery는 물리 staging owner를 유지한 retryable package로 남으며 결과를 재굴림하거나 기존 요청을 찢지 않는다.
+- [x] `FacilityBufferMassAdmissionDebugScenarios`에 ReservedTarget null-owner 정상, LiveFacility/LiveBuilding null 거부, 빈 owner 거부, profile/request owner mismatch 무변경을 추가했다.
+- [x] `OffenseStrategicDebugScenarios`의 11개 시나리오가 exact 2,000g profile, restore prepare→claims→capacity publish와 역순 rollback, cancel·consume terminal absence를 검증한다.
+- [x] 호출자 없는 Blueprint 직접 materialization API와 orphan Building stack-port FacilityBuffer API 두 개를 제거했다. 실제 P0 우회 경로를 지우지 않고 dead surface만 삭제했다.
+- [x] current-source Unity compile 후 공통 admission, Offense 11-scenario, owner manifest 묶음이 PASS했고 Console Warning/Error는 `0/0`이다.
+- [x] owner manifest를 두 번 생성해 byte/hash/mtime 변화 0을 확인했다. input은 `4/39 migrated`, remaining `35`; output은 `6/6`; bypass `4`, orphan `0`, unclassified `0`이다.
+
+### 104.2 결정론적 증거
+
+- CSV SHA-256: `7A5928C23A2403D0C2795BA5E836103948E8F0C240A340562CB2C93BAE1988FB`
+- report SHA-256: `989A8253C00F1F4E76921C9A225CA10350ACD74BE84D5942FF1BD69F53357788`
+- source digest: `8e1a77fc718afc783fb506977eae8d95cc557f1fa8a150ab3b5f6a19ae577d80`
+- 실제 non-Editor delivery invocation: `59회 / 39파일`; classification gate `PASS`, full migration gate `OPEN`.
+
+### 104.3 열린 exit gate
+
+- [ ] dirty `GameplayScene`을 저장·unload하지 않는 별도 안전 환경 또는 깨끗한 live scene에서 원정 주문→warehouse lease→AIHaul→ReservedTarget FacilityBuffer→consume/return의 실제 PlayMode 경로를 통과한다.
+- [ ] 남은 input owner `35`와 활성 bypass `4`를 공통 capability/lifecycle 계약으로 이관한다. 신규 콘텐츠 ID 분기나 owner별 gram 저장 필드를 추가하지 않는다.
+- [ ] Batch A full-path canary, Batch B 잔여 capacity, Batch D~H의 전수 kg 적용·EWU/가격·6인 생존망은 계속 OPEN이다.
+
+이 체크포인트는 authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값을 변경하지 않았다. 따라서 `밸런스 영향 없음`이다. 큰 Batch A~H는 `0/8`; 전체 진행은 약 `66~74%`, 잔여는 약 `26~34%`다.
+
+## 105. 구현 체크포인트: unique output identity와 컨베이어 도착 exact gram admission
+
+상태: **unique planned-output identity와 컨베이어 도착 원자성은 current-source compile/focused PASS / 컨베이어 durable route-target·두 PlayMode 경로는 OPEN / Batch C 진행 중**.
+
+### 105.1 닫은 범위
+
+- [x] planned-output publication은 item definition·quantity·component뿐 아니라 frozen `ItemInstanceId`까지 exact 비교한다. unique output의 instance ID를 바꾼 receipt는 `TokenMismatch`로 거부되며 routed token과 물리 출력을 변경하지 않는다.
+- [x] Apparel restore receipt와 Surgical prepared-output fixture가 실제 instance ID를 공용 receipt에 전달한다. 전투·의복·수술의 unique physical identity가 같은 admission 계약을 사용한다.
+- [x] `IItemTransferService.TryCompleteTransitToFacilityBuffer`를 추가하고 `ConveyorItemGateway.TryCompleteToFacility`를 이 전용 경로로 전환했다. 범용 `TryCompleteTransit`은 이제 `Loose`만 허용하며 Stored·FacilityBuffer·FacilityOutputBuffer 직접 전환을 fail-loud한다.
+- [x] 컨베이어 도착은 현재 exact destination claim/profile을 조회하고 InTransit whole lot의 current reservation revision·component-aware gram을 예약한다. 물리 상태를 FacilityBuffer로 바꾼 뒤 같은 fingerprint/mass를 commit하며, capacity 부족은 `ConveyorPortFull`, profile/owner 불일치는 `ConveyorDestinationUnavailable`이다.
+- [x] commit 이전 실패는 physical record를 stack ID·instance·item·quantity·components·position·state·destination·source storage·reservation fields까지 복구하고 transient reserved grams를 0으로 만든다. 화물은 원격 반환하지 않고 같은 InTransit payload에 남는다.
+- [x] focused real-repository 회귀는 profile 누락, `4,800g > 3,600g` 과적, 범용 API 우회, physical mutation 뒤 commit 직전 fault rollback, `2,400g` 정상 arrival, exact-once replay 거부와 destination occupancy `2,400g`을 검증한다.
+- [x] current Unity assemblies에서 Physical Stock, domain output publication, full Production Economy와 owner manifest 묶음이 PASS했고 최종 Console Warning/Error는 `0/0`이다.
+- [x] owner manifest 두 번째 생성은 byte/hash/mtime 변화 0이다. 현재 정직한 집계는 input `4/39 migrated`, remaining `35`, output `6/6`, bypass `4`, orphan `0`, unclassified `0`이다.
+
+### 105.2 과대 계상 방지와 열린 exit gate
+
+- [ ] 컨베이어 payload V3는 아직 raw `destinationId`만 저장한다. route 선택 시의 drop position, owner domain/operation/facility, anchor kind, max grams, capacity revision과 route-target fingerprint를 동결·복원 exact join하지 않으므로 `infrastructure.conveyor`는 아직 `bypass`로 유지한다.
+- [ ] `IndustrialInfrastructurePlayModeVerifier`의 synthetic `qa:industrial-output`은 자체 exact claim/profile을 publish하고 실패 시 payload·InTransit을 유지한 뒤 capacity 확보 후 동일 payload가 exactly-once 도착하는 실제 runtime 증거가 필요하다.
+- [ ] `ProductionBuildingPlayModeVerifier`의 `production-sensor:{facilityId}`는 production stock-sensor owner가 아직 capacity profile을 소유하지 않는다. 임시 무제한 QA profile로 숨기지 않고, 해당 owner의 실제 maximum gram·lifecycle·restore 계약을 이관한 뒤 PlayMode를 다시 통과한다.
+- [ ] active user-owned dirty `GameplayScene`을 저장·unload하지 않는 안전한 시점에 위 PlayMode 경로를 실행한다. focused service 호출을 live ConveyorRuntime·production sensor 실행 증거로 세지 않는다.
+- [ ] 남은 input owner `35`, bypass `4`, 전수 kg 적용, EWU·가격 재생성, 6인 생존망과 Batch A~H 최종 회귀는 계속 OPEN이다.
+
+### 105.3 결정론적 증거
+
+- owner manifest CSV SHA-256: `F27DB211652676C7945F9AF3F96912E5ED9121B6438BD761687BB0684FD3BD10`
+- owner manifest report SHA-256: `180782275D298D176741F382D4F83069586B1318584F659399E014CF46854D97`
+- owner manifest source digest: `835fdcca1a8c3f0f6b5c17125c6133e570956ca3ee6f474634b78eaca683f07d`
+- current `Assembly-CSharp.dll`: `9,300,992 bytes @ 2026-08-27T15:12:51Z`
+- current `Assembly-CSharp-Editor.dll`: `9,231,360 bytes @ 2026-08-27T15:16:39Z`
+
+이 체크포인트는 authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값을 변경하지 않았다. 따라서 `밸런스 영향 없음`이다. 미래 Parameter/Composed content는 같은 claim/profile/admission 계약으로 자동 참여하지만, 새로운 route ownership 불변식은 명시적 capability 개정 없이는 fail-loud한다. 큰 Batch A~H는 `0/8`; 전체 진행은 약 `67~75%`, 잔여는 약 `25~33%`다.
+
+## 106. 2026-08-28 컨베이어 동적 intent·양방향 custody 교정
+
+미래 콘텐츠를 모두 선구현하지 않는 새 완성 기준에 따라, 컨베이어 목적지의 owner/profile tuple을 저장 DTO에 새로 동결하지 않는다. 현재 V3 계약은 `destinationId`를 durable intent로 보존하고 복원 뒤 현재 topology와 FacilityBuffer 권위에서 경로 및 입고 승인을 다시 계산한다. 따라서 저장 버전 변경 대신 현재 capability의 실제 불변식만 닫는다.
+
+- [x] V3 payload ID, stack ID, 현재 segment ID와 선택 destination의 non-canonical whitespace를 거부한다.
+- [x] 두 payload가 같은 물리 stack을 소유하는 restore를 fail-loud한다.
+- [x] `ConveyorPayloadSaveData ↔ WorldItemStackSaveData(InTransit)`를 양방향 exact cardinality로 검증한다.
+- [x] 현재 segment가 복원 시설 집합에 존재하는지 검증한다. 합법적으로 제거될 수 있는 previous segment에는 존재 join을 강제하지 않는다.
+- [x] top-level restore와 direct registry restore 모두 같은 custody preflight를 거치게 등록한다.
+- [x] Industrial Editor 회귀에서 non-canonical ID, duplicate stack owner, missing stack, orphan InTransit, owner mismatch, missing current segment를 거부한다.
+- [x] 실제 Industrial PlayMode 검증 소스에 출력 시설별 canonical QA destination, exact 2-unit block capacity, payload 보존, 3-unit capacity 재게시 후 exact-once retry, gram occupancy, scoped payload 판정과 whole-registry byte-equivalent cleanup을 연결한다.
+- [x] 기존 QA owner rows를 보존한 owner-scoped 게시와 전체 save baseline 복원으로 terminal admission receipt 및 사용자 world state 잔존을 방지한다.
+- [x] Unity 현재 소스 컴파일과 Industrial/Physical Stock/Domain Output/Production Economy/manifest 묶음이 `V27_CONVEYOR_DYNAMIC_INTENT_BUNDLE_PASS`; Console Warning/Error `0/0`.
+- [ ] 실제 Industrial PlayMode 코루틴 실행 증거. 현재 사용자 소유의 dirty `GameplayScene`을 저장·언로드·덮어쓰지 않기 위해 실행하지 않는다.
+- [ ] 위 live 증거 전까지 conveyor owner row는 `bypass`로 유지한다. 컴파일된 검증기만으로 migrated 처리하지 않는다.
+
+이 교정은 새 save schema와 frozen route abstraction을 제거해 예상 작업량을 줄인다. kg, capacity, quantity, BOM, WU, EWU, 가격, ScriptableObject, prefab, scene authored 값은 바꾸지 않았다(`밸런스 영향 없음`). 현재 고정 체크포인트는 input `4/39`, remaining `35`, output `6/6`, bypass `4`, orphan/unclassified `0/0`, Batch A~H `0/8`, 전체 약 `68~76%` 완료 / `24~32%` 남음이다. 다음 P0는 `economy.production-sensor`의 1-panel exact gram socket 권위와 철거 rollback이다.
+
+## 107. 2026-08-28 생산 재고 감지반 1패널 exact kg 권위
+
+상태: **공용 1패널 claim/profile·exact admission·복원 재투영·시설 변이 rollback 집중 증거 완료 / 설치 센서의 실제 파괴 손실·live UI PlayMode OPEN / Batch C 진행 중**.
+
+### 107.1 닫은 범위
+
+- [x] `production-sensor:{facilityId}`를 `economy.production-sensor` 소유의 `LiveFacility` exact claim/profile로 투영한다. 용량은 시설이 작성한 `StockSensorInstallationItemId` 한 개의 current immutable grams이며 별도 gram 저장 필드나 save schema를 추가하지 않는다.
+- [x] 센서 설치 가능 시설은 설치 여부와 무관하게 영구 빈 socket을 가진다. 설치 요청 전, 건물 revision 변경과 Production restore 때 현재 시설 집합에서 결정론적으로 재투영하며 누락·부분 claim/profile·중복·비정규 시설은 fail-loud한다.
+- [x] `production-sensor:`를 공용 exact-claim·gram admission 대상에 포함한다. 일반 delivery와 per-stack transit completion은 같은 token 경계를 사용하고 저수준 `WorldItemStackRuntime` 직접 route는 거부한다.
+- [x] 첫 패널이 exact one-panel socket을 점유하면 두 번째 패널은 `ConveyorPortFull`로 실패한다. 실패한 동일 InTransit stack의 ID·수량·destination·reserved grams를 보존하고, 첫 패널 설치 Sink 뒤 같은 lot 재시도가 성공한다.
+- [x] 같은 destination ID의 anchor/profile 변경은 physical 또는 reserved mass가 1g이라도 있으면 `production-sensor-authority-update-not-empty`로 거부한다.
+- [x] 시설 mutation fence가 sensor socket과 output authority를 함께 prepare/revoke/abort한다. sensor revoke 뒤 output revoke 실패 시 sensor exact capacity를 즉시 복구하고, prepare 이후 센서 점유 race는 어느 권위도 부분 철회하지 않은 채 실패한다.
+- [x] 설치·pending install·pending removal을 가진 시설의 수동 철거·이전·합성·진화를 차단해 기존 facility ID에 aggregate 상태나 embedded mass가 고아로 남지 않게 한다.
+- [x] current Unity compile, `ProductionEconomyDebugScenarios`, `ProductionOutputDestinationLifecycleDebugScenarios`, `ProductionPreparedOutputFullPersistenceDebugScenarios`가 PASS했다. exact authority/full-retry/restore-projection/demolition-rollback 증거가 현재 source에 있다.
+- [x] owner manifest를 연속 두 번 생성해 byte hash와 mtime 변화가 0임을 확인했다. 현재 집계는 input `5/39 migrated`, remaining `34`; output `6/6`; bypass `4`; orphan/unclassified `0/0`; delivery callsite `59/39`이다.
+
+### 107.2 결정론적 증거
+
+- owner manifest CSV SHA-256: `8CA968EDA6AD09E6A3C31C819BCE29CE6859591442AA55DB6D90F37C2BCF12DA`
+- owner manifest report SHA-256: `1575E2D272B6AFC6CDD2B5350F707E1D9534B29C6C6BCE4E985B68C92A9E80E5`
+- owner manifest source digest: `d7bf53651c1e0a8b0bb1379376b5d73f2577209790b9347e9393c5b9b41bc27f`
+- classification gate `PASS`, full migration gate `OPEN`; second-run byte/hash/mtime 변화 `0`.
+
+### 107.3 열린 P0·exit gate
+
+- [ ] 설치된 센서를 가진 시설의 `DestructiveLoss`는 현재 질량 삭제를 막기 위해 fail-closed한다. 건물을 사실상 무적으로 남기지 않도록 기존 durable destructive-drain participant/journal 경계에 센서 embedded mass의 salvage 또는 typed declared loss, acknowledgement와 save/replay를 연결해야 한다. 단순 차단을 파괴 경로 완료로 세지 않는다.
+- [x] relocation은 새 건물 생성과 첫 world mutation 직전에 `TryRequireNoAuthority(..., Relocation)`를 다시 호출한다. 포장 이후 센서 배송·예약이 생긴 fixture는 생성 객체 0, packed source·Grid·좌표 보존과 typed 실패를 증명한다.
+- [ ] 실제 `ProductionBuildingPlayModeVerifier`의 UI 요청→물리 패널 운반→socket 도착→설치 Sink→목표 재고 UI 해금 경로는 사용자 소유 dirty `GameplayScene`을 저장·unload하지 않는 안전한 환경에서 실행할 때까지 OPEN이다.
+- [ ] input owner `34`, bypass `4`, Batch A full-path canary, 전수 kg 적용, EWU·가격 재생성과 6인 생존망은 계속 OPEN이다.
+
+이 checkpoint는 기존 한 패널의 current 질량을 admission 권위에 연결했을 뿐 authored kg·수량·BOM·WU·EWU·가격·시설 면적·ScriptableObject·prefab·scene 값을 변경하지 않았다. 따라서 `밸런스 영향 없음`이다. 큰 Batch A~H는 `0/8`; 현재 전체 진행은 약 `69~77%`, 잔여는 약 `23~31%`다.
+
+## 108. 2026-08-28 생산 재고 감지반 파괴 드레인 구조 계약
+
+상태: **구조 계약 확정·producer 상태기와 coordinator freeze/GC 경계 집중 증거 완료 / 여섯 번째 participant·save 양방향 join·실제 파괴 호출 경로 OPEN**.
+
+### 108.1 구현 전 구조 계약
+
+| 항목 | 권위와 불변식 |
+|---|---|
+| 콘텐츠 정의 | 시설의 `StockSensorInstallationItemId`와 immutable item mass catalog가 설치 패널의 정의·gram 권위다. 별도 파괴 전용 질량 필드나 센서 콘텐츠 ID 분기를 추가하지 않는다. |
+| 런타임 상태 | 센서 소유권은 하나의 upper owner `stock-sensor:{facilityId}`가 조정하되 상태를 복제하지 않는다. 미설치 소켓 화물·배송 lease·carried slice는 Items의 `production-sensor:{facilityId}` 물리 권위, pending install·installed mass·pending removal은 `ProductionAggregateState` 권위다. upper journal은 두 하위 권위의 실행 순서와 합성 receipt만 소유한다. |
+| 명령 | 공개 설치·제거·ack는 open-drain gate를 통과한다. 파괴 중에는 여섯 번째 `stock-sensor-embedded-salvage` participant만 deterministic child `:input-destination-custody`와 `IProductionStockSensorDestructiveDrainPort`를 조정한다. child는 upper receipt가 durable해지기 전에 acknowledge하지 않으며, upper acknowledge가 physical child와 embedded removal을 순서대로 exact acknowledge한다. |
+| 조회 | lifecycle contributor와 current save projector는 같은 composite canonical을 사용해 소켓 물리 화물·배송 intent·pending install·installed·removal을 함께 읽는다. `OutputPublished`부터 gameplay sensor 기능은 비활성이며 terminal tombstone은 active 기능으로 세지 않되 upper checkpoint 전 durable provenance로 보존한다. |
+| 식별자 | 재설치마다 persisted stock-sensor revision에서 positive installation sequence를 발급해 `production-stock-sensor-install:{facilityId}:{sequence}`를 사용한다. 같은 시설의 여러 설치 세대가 physical Sink/Source 영수증을 재사용하지 못한다. |
+| 저장 | 새 sensor-parent DTO를 추가하지 않는다. 기존 Items child outbox, installed/removal DTO와 범용 upper journal participant/owner row를 재사용한다. deterministic child step ID와 upper composite receipt로 양방향 join하고 terminal tombstone은 upper+all lower owners의 원자 checkpoint 계약 전까지 삭제하지 않는다. 과거 save migration은 범위 밖이다. |
+| 의존성 | participant DAG는 `apparel/combat/generic → capacity-routing → physical-output-custody → stock-sensor-embedded-salvage`다. 센서 participant는 runtime Query/Command만 사용하며 Items 저장 DTO를 gameplay query로 받지 않는다. 신규 Parameter/Composed 센서 콘텐츠는 기존 socket capability와 item mass catalog 등록만으로 참여하고 코어의 item ID 분기를 추가하지 않는다. |
+| 실패 정책 | claim/profile 불일치, pending install 안정화 drift, 수동 removal 경쟁, source/install provenance 불일치, child/embedded receipt 불일치, late ingress, journal/lower phase 불일치와 상·하위 orphan은 restore publication 전에 fail-loud한다. 합법 상태를 유사 상태로 치환하거나 소켓 화물을 원격 source로 반환하지 않는다. |
+| 전환 범위 | 기존 mutation fence의 영구 차단은 실제 coordinator/world-mutation gate 연결 뒤 제거한다. `production-sensor:`의 미설치·배송·carried 화물과 embedded 센서는 같은 upper owner의 서로 다른 하위 component이며, physical child는 현재 위치에 보존적으로 release하고 embedded component는 실제 Loose salvage를 exact-once publish한다. |
+| 검증 | stale plan 저널 0, 재설치 세대 영수증 충돌 0, Prepare/Publish/Ack replay, wrong ack 거부, commit-before-ack 저장복원, upper↔sensor forward/reverse phase matrix, socket cargo 회수, world removal forward retry, 두 번째 출력 0을 집중 검증한다. |
+
+### 108.2 현재 닫은 하위 경계
+
+- [x] coordinator가 participant 계획 생성 뒤 lifecycle을 다시 캡처하고 destination·durable fingerprint가 바뀌면 journal 생성 전에 `production-facility-destructive-drain-plan-freeze-drift`로 거부한다.
+- [x] lower participant tombstone과 원자 checkpoint transaction이 없는 동안 upper `TryCollectCheckpointed`를 fail-closed하고 terminal journal을 보존한다.
+- [x] 센서 producer를 `Prepared → OutputPublished → OwnerAcknowledgedAwaitingCheckpointGc`로 분리했다. publish는 exact physical Source를 먼저 확보하고 installed provenance를 유지하며, upper ack 뒤에만 active installed 상태를 제거한다.
+- [x] 파괴용 port에는 checkpoint GC 권한을 노출하지 않는다. 수동 제거만 같은 명령 안에서 private local cleanup을 수행하며 destructive terminal tombstone은 upper checkpoint 증거 전까지 보존한다.
+- [x] 같은 시설의 재설치가 이전 설치·제거 receipt를 재사용하던 operation ID 충돌을 positive persisted sequence로 분리했다.
+- [x] current Unity compile과 Production Economy 집중 회귀에서 prepare/publish/ack replay, wrong commit 거부, physical output exact-once와 terminal tombstone 보존을 확인했다.
+
+### 108.3 열린 P0·exit gate
+
+- [ ] `stock-sensor-embedded-salvage` lifecycle contributor/projector/participant를 필수 여섯 번째 registry ID로 연결하고 registry schema/fingerprint와 current save version을 갱신한다.
+- [ ] upper owner와 pending removal을 phase별 forward/reverse exact join한다. `Prepared + exact physical output` crash-cut은 동일 deterministic receipt를 adopt하고, terminal 이후 합법적으로 운반·저장·재사용된 salvage의 현재 위치를 고정하지 않는다.
+- [ ] `production-sensor:{facilityId}`의 배송 중·도착·carried 패널과 embedded 센서를 하나의 upper owner와 deterministic Items child로 연결한다. physical-only, embedded-only, combined, pending-install 상태를 모두 같은 owner로 계획하고 source storage 순간이동이나 count 삭제를 금지한다.
+- [ ] Tick·restore의 socket projection을 drain phase-aware로 만들어 `AwaitingWorldRemoval` 이후 revoke된 socket을 재생성하지 않는다. Prepared/Draining의 복구 가능한 socket과 relocation re-anchor는 유지한다.
+- [ ] coordinator·participant·journal·save sections·restore recovery runner를 live DI에 등록하고 explicit demolition, structural loss, combat cover 세 경로를 단일 world-mutation gate로 직렬화한다.
+- [ ] commit 이후 grid removal 실패는 센서/출력을 되살리지 않고 `AwaitingWorldRemoval`에서 forward retry한다. commit 전 실패만 world/fence rollback을 허용한다.
+- [ ] 실제 dirty `GameplayScene`을 건드리지 않는 안전한 환경에서 센서 배송→설치→파괴→Loose salvage→AI haul→저장/재설치와 save/restore PlayMode를 통과한다.
+
+이 체크포인트는 authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값을 바꾸지 않았다(`밸런스 영향 없음`). 큰 Batch A~H는 계속 `0/8`; 전체 진행률은 compile·save·live 경로 증거가 추가되기 전까지 약 `69~77%`, 잔여 `23~31%`로 유지한다.
+
+## 109. 2026-08-28 파괴 드레인 live 권위 수렴 체크포인트
+
+상태: **세 live 파괴 호출자·typed 복구·양 destination 권위 수렴·결정론적 manifest 집중 증거 완료 / checkpoint GC·비동기 철거 후속 효과·dirty-scene PlayMode OPEN**.
+
+### 109.1 이번 체크포인트에서 닫은 범위
+
+- [x] explicit demolition, structural integrity loss, combat cover destruction 세 production 호출자가 공용 `IBuildingDestructiveLossRuntime`의 typed destructive-drain 경계를 사용한다.
+- [x] 개발자 `building:destroy` 명령의 직접 `DestroySelf()` 우회를 제거하고 같은 typed 경계를 사용한다.
+- [x] output과 `production-sensor:{facilityId}` claim/profile을 하나의 shared authority-state query로 캡처하며 0/0·1/1 이외 cardinality, owner, anchor, facility, operation, position, schema drift를 fail-loud한다.
+- [x] sensor revoke와 output revoke가 서로 다른 lower transaction이어도 이미 commit된 도메인을 되살리지 않고 forward retry한다.
+- [x] lower revoke가 실제 commit 뒤 `false`를 반환하는 경우 target 0/0을 재확인하고, 조기 `Applied` 반환 없이 같은 호출에서 다음 도메인과 final lifecycle postcondition까지 닫는다.
+- [x] lower revoke가 commit 없이 `false`를 반환하면 `Deferred`, partial/invalid pair이면 `Conflict`로 구분한다. 영구 충돌은 매 Tick 무한 재시도하지 않는다.
+- [x] coordinator는 `RecordAuthorityRevoked`와 `RecordWorldRemoved` 직전에 shared authority와 lifecycle을 다시 캡처하고, sensor/output 잔존·partial pair·empty-block을 모두 거부한다.
+- [x] world visual 제거 실패 뒤 exact Grid occupant 복구 실패를 숨기지 않고 typed conflict와 save capture guard로 노출한다.
+- [x] Unity current-source 컴파일 후 revoker/coordinator/recovery 집중 묶음이 `DESTRUCTIVE_DRAIN_ADVERSARIAL_AUTHORITY_SUITE_PASS`; Console Error `0`이다.
+- [x] owner manifest가 live destructive callers `3`, legacy transaction callers `0`, debug bypass `0`, allowlisted direct destroy `8`을 검증한다.
+- [x] owner manifest를 연속 두 번 생성해 CSV/report의 byte hash·길이·mtime 변화가 모두 `0`임을 확인했다.
+
+### 109.2 결정론적 증거와 현재 전수 집계
+
+- manifest CSV SHA-256: `7AEED0423C1A67FB3BCBE4B3A7C6D6DA08B1CEF287F3C4BEC86B2358B60A8C8B`
+- manifest report SHA-256: `D6A0BCD9BA7E69B662D5758FD767FE71D52C6A89F13E0FE81E65EA2BEA7F86C4`
+- source digest: `446201a5dba62757dd48bff20230049479f98d39290fa163b45266333904a907`
+- input owners `5/39` migrated, `34` remaining; output owners `6/6`; bypass `4`; orphan/unclassified `0/0`; delivery invocations/files `59/39`.
+
+### 109.3 아직 열려 있는 P0와 Batch exit gate
+
+- [ ] 여섯 destructive participant의 checkpoint GC를 durable save order `200`의 prepare/publish/rollback/complete transaction으로 구현하고 upper journal을 항상 마지막에 제거한다.
+- [ ] Apparel과 stock-sensor lower terminal/tombstone에 exact checkpoint-GC candidate API를 연결하고 gameplay의 raw `TryCollectCheckpointed` 경로를 제거한다.
+- [x] explicit demolition의 deferred 완료 뒤 placement success, player refund/grid notification과 `WorkAmount`의 `facilityRemovedForRetry`를 `OnBuildingDestroyed + destructiveDrainOperationId`로 exactly-once 연결했다. world 제거 전에는 성공 효과를 선반영하지 않으며, V7 WorkOrder 저장과 upper journal의 교차 사전검증까지 §110에서 닫았다.
+- [ ] dirty user scene을 저장·unload·overwrite하지 않는 환경에서 sensor delivery→install→destructive drain→Loose salvage→AI haul→store/reinstall의 PlayMode와 save/restore를 통과한다.
+- [ ] 남은 input owner `34`, 전수 kg 적용, EWU·가격 재생성, 6인 생존망과 Batch A~H 최종 회귀를 계속 수행한다.
+
+이번 변경은 destructive ownership과 복구 원자성만 교정했다. authored kg, capacity, quantity, BOM, WU, EWU, 가격, ScriptableObject, prefab, scene 값은 바꾸지 않았으므로 `밸런스 영향 없음 / 구조 교정 검증 진행 중`이다. 큰 Batch A~H는 `0/8`; 전체 진행률은 약 `69~77%`, 잔여는 `23~31%`로 유지한다.
+
+## 110. 2026-08-28 WorkOrder 비동기 철거 완료·교차 저장 원자성
+
+상태: **deferred 철거 완료·취소 salvage-only·live/terminal restore 재결합·whole/registry 사전검증 집중 증거 완료 / checkpoint GC·dirty-scene PlayMode OPEN**.
+
+### 110.1 닫은 범위
+
+- [x] Grid 파괴 요청은 `Removed`, `DeferredAccepted`, `Conflict` typed 결과와 canonical destructive-drain operation ID를 보존한다. 기존 bool API는 즉시 제거 성공만 true로 투영한다.
+- [x] UI와 WorkOrder는 world 제거 이벤트를 요청 전에 구독하고 operation ID별 observation을 유지한다. deferred 요청을 실패로 표시하거나 성공 효과를 선반영하지 않으며 실제 `OnBuildingDestroyed` 뒤 grid/UI/WorkOrder 후속 효과를 한 번만 수행한다.
+- [x] WorkOrder V7은 `destructiveDrainOperationId`, `facilityRemovedForRetry`, `cancelRebuildAfterDestructiveDrain`을 저장한다. accepted drain 취소는 주문을 삭제하지 않고 물리 salvage의 durable owner로 유지하며, 회수품 exact publish 뒤 재건 없이 종료한다.
+- [x] restore 때 live 시설은 exact persistent ID·definition·center로 observation을 재부착한다. world가 없으면 exact `ExplicitDemolition` terminal journal만 forward acknowledgement로 인정하며 중복·불일치·누락은 fail-loud한다.
+- [x] whole-save와 registry preflight가 `work.orders → destructive journal`을 publication 전에 검증한다. operation cardinality, `Dismantle`, `ExplicitDemolition`, operation↔facility, nonterminal world definition/center, quality pipeline definition/footprint, cancel stage/status, removed↔terminal phase를 exact 비교한다.
+- [x] 한 operation의 WorkOrder 소유자가 둘이면 거부한다. WorkOrder owner가 있는데 journal이 없으면 whole/registry 모두 거부한다.
+- [x] direct player demolition도 같은 `ExplicitDemolition` journal을 사용하므로 journal→WorkOrder 역방향 의무는 두지 않는다. WorkOrder가 없는 legitimate direct demolition은 계속 허용한다.
+- [x] cross-save failure preflight는 입력 JSON을 변경하지 않는다. operation drift fixture에서 검증 전후 byte-equivalent JSON을 확인했다.
+
+### 110.2 현재 증거
+
+- Unity current-source compile: Warning/Error `0/0`.
+- `WORKORDER_DRAIN_CROSSSAVE_FULL_PERSISTENCE_PASS_V7`.
+- `WORK_AMOUNT_DEFERRED_DEMOLITION_SUITE_PASS_V7`.
+- `DESTRUCTIVE_DRAIN_ADVERSARIAL_AUTHORITY_SUITE_PASS`.
+- 정상 whole-save/registry, world target mismatch, pipeline 누락·footprint drift, operation mismatch, cause mismatch, premature removal acknowledgement, cancel-state mismatch, duplicate owner, journal 누락을 같은 current-format fixture에서 검증했다.
+- 첫 실패 `Sequence contains no matching element`는 source fixture에 없던 `work.orders`를 `ReplacePayload`로 교체하려 한 테스트 조립 오류였다. 최초 section을 `Add`, 이후 변조를 `Replace`로 분리해 해결했다.
+- 두 번째 실패는 world-target 테스트가 building definition mismatch에서 먼저 fail-loud해 목표 오류 코드를 관찰하지 못한 fixture 문제였다. WorkOrder와 pipeline 좌표를 함께 이동시켜 pipeline은 통과하고 world row만 불일치하도록 교정했다.
+
+### 110.3 확장 폐쇄·잔여 범위
+
+- 확장 유형: 기존 destructive ownership capability의 `InvariantChange` 교정.
+- core content-specific branch count: `0`.
+- unregistered capability count: `0`.
+- synthetic canary: `N/A — 콘텐츠 추가 축이 아니라 current-format 교차 Aggregate 소유권 불변식`; 대신 기존 synthetic full-persistence fixture가 정상·변조 save 경로를 사용한다.
+- [x] 여섯 lower participant와 upper journal을 한 durable checkpoint transaction으로 제거하는 journal-last atomic GC를 current-source focused gate에서 닫았다. 실제 dirty scene PlayMode 증거는 아래 별도 항목으로 계속 OPEN이다.
+- [ ] dirty 사용자 `GameplayScene`을 저장·unload·overwrite하지 않는 안전한 환경의 실제 deferred demolition PlayMode는 계속 OPEN이다.
+- [ ] 다음 input owner `medical.surgery`, 남은 input owner `34`, 전수 kg 적용, EWU·가격 재생성, 6인 생존망과 Batch A~H 최종 회귀는 계속 OPEN이다.
+
+이번 체크포인트는 저장 결합과 후속 효과의 원자성만 교정했다. authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값은 변경하지 않았으므로 `밸런스 영향 없음 / 구조 교정 검증 완료`다. 큰 Batch A~H는 `0/8`; 전체 진행률은 약 `69~77%`, 잔여는 `23~31%`로 유지한다.
+
+## 111. 2026-08-28 journal-last 원자 checkpoint GC 구현 계약
+
+상태: **journal-last 원자 checkpoint GC current-source compile·focused·cross-save gate 완료 / dirty scene 실제 PlayMode OPEN**.
+
+### 111.1 구현 전 재감사에서 확정한 위험
+
+- destructive GC는 기존 prepared-output GC와 대상·topology가 다르므로 같은 participant 계약이나 candidate ID 벡터를 재사용하지 않는다. prepared-output은 durable order `100`, destructive GC는 그 결과를 관찰한 뒤 실행되는 별도 order `200`이다.
+- 현재 하위 `TryGarbageCollect`는 generic과 combat에서 child를 먼저 삭제하고 producer를 나중에 삭제한다. apparel은 lower receipt 삭제 API가 없고 stock sensor는 destructive tombstone GC API가 없다. 이 메서드를 상위에서 단순 반복하면 중간 실패 때 부분 GC가 남는다.
+- Items의 physical/capacity/input-child가 같은 `WorldItemRepositoryState`, Production의 sensor/generic WIP가 같은 `ProductionAggregateState`를 공유한다. participant별 전체 aggregate clone rollback은 먼저 성공한 다른 participant의 변경을 덮어쓰므로 금지한다.
+- candidate는 exact operation/step/commit/receipt 행만 캡처한다. prepare는 무변경, publish는 exact compare-remove, rollback은 해당 exact 행만 compare-restore하고 unrelated revision·행을 되감지 않는다.
+- 내부 publish 순서는 registry DAG 역순인 `sensor → physical → capacity → generic → combat → apparel → journal`이다. publish 호출 전에 현재 participant를 rollback 목록에 넣어 호출 중 일부 변경 후 예외도 자기 자신부터 복구한다.
+- capacity candidate는 durable order `100` 뒤 publish 직전에 routing batch와 exact-route 권위가 모두 부재인지 다시 증명한다.
+- generic candidate는 Items child, WIP terminal receipt, producer를 함께 수거한다. combat은 optional Items child, craft/repair source receipt, producer를 함께 수거한다. apparel은 effect/source receipt가 든 같은 terminal-state row와 producer를 함께 수거한다. sensor는 Items child와 pending removal을 함께 수거한다.
+- upper journal은 항상 마지막에 제거한다. journal publish 실패 시 journal snapshot과 여섯 lower exact row를 역순으로 복구한 뒤 failure를 반환한다.
+
+### 111.2 WorkOrder 수명과 저장 replay 계약
+
+- WorkOrder를 GC mutation participant로 만들지 않는다. `IWorkOrderDestructiveDrainRetentionQuery`가 내부 전체 order authority에서 operation별 owner absence proof를 제공한다.
+- terminal journal이라도 `facilityRemovedForRetry=false`, salvage/rebuild 진행 중, cancel salvage-only 진행 중이면 WorkOrder가 남아 있으므로 해당 operation을 수거하지 않는다. exact salvage publication 뒤 order가 실제 삭제된 다음 durable checkpoint에서만 수거한다.
+- `ExplicitDemolition`에 WorkOrder 하나가 있는 것은 정상 retention이다. `StructuralIntegrity`/`CombatCover` operation에 WorkOrder가 있거나 한 operation에 owner가 둘 이상이면 corruption이다.
+- candidate prepare 때 owner `0`의 version/fingerprint를 저장하고 publish 직전에 다시 읽는다. 중간에 WorkOrder가 생기거나 authority version이 바뀌면 mutation 없이 Deferred한다.
+- journal save authority는 V3에서 `lastConfirmedCheckpointSequence`와 lowercase SHA-256 digest를 저장한다. sequence `0`은 빈 digest, positive sequence는 exact digest를 요구한다.
+- 같은 live slot/digest callback은 `AlreadyApplied`, 다른 digest는 contiguous next sequence다. callback 후 다음 save 전 crash는 이전 durable bytes의 terminal rows와 이전 marker를 복원하므로 안전하게 다시 실행한다.
+- legacy save-slot fixture가 durable order `100`만 조립하는 경로는 production에서 사용하지 않는다. production DI는 전체 `IDungeonDurableSaveCommitCoordinator`만 주입하고 order `100→200`을 보장한다.
+
+### 111.3 현재 구현 체크리스트
+
+- [x] 별도 destructive checkpoint context/result/candidate/participant/coordinator 계약을 추가했다.
+- [x] WorkOrder runtime에 operation별 read-only retention query와 zero/duplicate owner fail-loud 검증을 연결했다.
+- [x] journal 저장 계약을 V3 marker 구조로 올리고 exact candidate prepare/publish/rollback/complete 골격을 추가했다.
+- [x] durable-save participant ID `200.production-facility-destructive-drain-checkpoint-gc`, order `200`과 DI 골격을 추가했다.
+- [x] Items input-child/physical/capacity exact-row candidate와 revision-safe rollback을 완료했다. 다중 행 복원은 전체 충돌 preflight 뒤에만 시작하며, publish 중간 실패와 explicit rollback 모두 부분 복원을 남기지 않는다.
+- [x] generic/sensor의 Production exact-row, apparel terminal-state row, combat craft/repair receipt row candidate를 완료했다. 실제 generic outbox는 child→WIP→producer publish, producer→WIP→child rollback, WIP 실패, producer drift, multi-producer preflight를 직접 통과했다.
+- [x] 여섯 participant가 공통 GC capability를 구현하고 registry participant set과 exact 일치하도록 등록했다. apparel은 실제 `ApparelWorkOrderRuntime → terminal outbox → participant`, combat은 실제 terminal outbox/source authority 경계를 통과했다.
+- [x] coordinator 정상·prepare 실패·여섯 publish 경계·journal publish 실패·rollback 실패·capacity authority 잔존·WorkOrder retention·same-digest replay fixture를 통과했다. rollback 실패 candidate는 `Complete`로 증거를 지우지 않고 active 상태를 유지한다.
+- [x] journal V3 capture/restore와 full-persistence forward/reverse join을 통과했다. positive marker의 sequence/digest, row 제거+marker 동시 왕복, 불법 조합, 필수 scalar 누락과 V2 payload 거부를 포함한다.
+- [x] current-source Unity compile, focused Editor suite, Console Warning/Error `0/0` 증거를 확보하고 §109/§110의 journal-last checkpoint GC OPEN 항목을 닫았다.
+
+2026-08-28 fresh evidence: source보다 최신인 `Assembly-CSharp.dll`과 `Assembly-CSharp-Editor.dll`에서 `ProductionInputDestinationCustodyDrainOutboxDebugScenarios`, `ProductionPhysicalCustodyDrainOutboxDebugScenarios`, `ProductionCapacityRoutingDrainOutboxDebugScenarios`, `CombatEquipmentTerminalDrainOutboxDebugScenarios`, `ProductionApparelOrderTerminalDrainOutboxDebugScenarios`, `ProductionGenericBillTerminalDrainOutboxDebugScenarios`, journal과 여섯 participant, coordinator, durable-save adapter, recovery/authority revoker, `ProductionPreparedOutputFullPersistenceDebugScenarios`, `WorkAmountDebugScenarios`를 한 clean-console 구간에서 실행해 `V27_JOURNAL_LAST_CHECKPOINT_GC_FINAL_FOCUSED_PASS`를 확인했다. 최종 Console은 Warning/Error `0/0`이다. 검증 과정에서 (1) lower 다중 행 rollback의 restore-before-later-conflict 부분 복원, (2) rollback 실패 candidate를 coordinator가 `Complete`해 복구 증거를 해제하는 문제, (3) V3 checkpoint marker scalar 누락이 기본값으로 복원되는 문제를 발견했고, 런타임 계약을 완화하지 않고 atomic preflight·failed-candidate retention·strict raw payload 검증으로 교정했다. dirty 사용자 `GameplayScene`은 저장·unload·overwrite하지 않았으므로 실제 scene PlayMode 증거는 여전히 OPEN이다.
+
+이번 P0는 저장 tombstone 수명과 원자성만 다뤘으며 authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 수치를 변경하지 않았다. 따라서 분류는 `밸런스 영향 없음 / 구조 교정 focused 검증 완료 / 실제 scene PlayMode OPEN`이다. 큰 Batch A~H는 `0/8`, 전체 진행률은 약 `69~77%`, 잔여 `23~31%`를 고정한다.
+
+## 112. 2026-08-28 `medical.surgery` 입력 owner exact gram·종결 수명주기 구현 계약
+
+상태: **구조 owner migration 완료 / 실제 scene terminal fault PlayMode·신규 procedure 다형성 canary OPEN**.
+
+### 112.1 현재 권위와 실제 결함
+
+- 수술 주문은 `surgery-materials:{orderId}`의 exact `LiveFacility` claim을 발행하고 일반 재료, 수술 대상 시체, 선택 이식 부품을 같은 목적지로 운반한다. 소비는 exact physical stack을 `PhysicalItemBatchDispositionKind.Sink`로 commit하고 포장 tare를 별도 물리 부산물로 반환한다.
+- manifest상 `medical.surgery` input owner는 `migrated`다. owner-neutral exact claim/profile과 destination-custody drain child를 Surgery V12 terminal join으로 묶고, raw/captured/registry restore preflight와 durable checkpoint GC까지 연결했다.
+- `SurgeryRuntime`의 생성·복원·취소·실패·시설 소실은 같은 owner-neutral terminal 경로를 사용한다. claim/profile partial pair, pickup 전 lease, committed intent, carried cargo, FacilityBuffer stock과 pending sink receipt는 child authority의 exact phase/receipt로 결합되며, durable save 성공 뒤에만 upper/lower terminal join이 원자적으로 수거된다.
+- 같은 목적지의 합법 payload가 BOM 재료에 한정되지 않으므로 capacity를 `materials` 수량 합만으로 계산하면 안 된다. 비선택 optional 재료는 제외하고, 필수 재료와 현재 주문이 실제 요청하는 exact corpse/selected-part stack을 모두 포함한다.
+- 의사 Downed는 재료 주문의 terminal 원인이 아니다. doctor 실행권만 해제하고 destination, route, physical cargo와 수술 주문은 유지해 다른 의사가 이어받게 한다.
+
+### 112.2 확장 폐쇄 구조
+
+| 항목 | 계약 |
+|---|---|
+| authority | `SurgeryAggregateStateStore`는 수술 단계와 외부 transaction join key만 소유한다. claim registry, capacity registry, physical stack/haul, custody drain, batch disposition은 각 기존 단일 권위를 유지한다. |
+| 공용 capability | Items의 owner-neutral `FacilityBufferDestinationLifecycleService`, exact-lot admission, custody drain, batch disposition을 사용한다. `ProductionInputDestinationClaimRuntime`은 production 전용이므로 Medical이 참조하지 않는다. |
+| adapter | Surgery adapter가 active order와 exact payload에서 claim/profile/join snapshot을 만든다. procedure ID, item ID 또는 특정 BOM에 따른 코어 분기는 0이어야 한다. 신규 procedure/BOM은 기존 material collection과 optional/selected-payload 의미만으로 연결된다. |
+| command | create/restore는 claim+profile을 하나의 reversible owner-scoped transaction으로 게시한다. cancel/failure/facility loss는 terminal drain을 준비하고 physical custody가 닫힌 뒤에만 pair와 order를 종결한다. |
+| query | order별 destination, owner operation/facility, exact max grams, mass authority revision, authority fingerprint와 lifecycle phase를 immutable snapshot으로 읽는다. 저장 DTO를 gameplay 질량 query에 전달하지 않는다. |
+| save | current-format Surgery order는 외부 권위의 복제 state가 아니라 exact join key/fingerprint/revision/phase와 pending sink·drain receipt identity만 저장한다. 필수 필드 누락은 migration 없이 typed restore failure다. |
+| dependency | Foundation ← Items owner-neutral capability ← Medical adapter. Items가 Medical을 참조하거나 Medical이 Economy production adapter를 참조하지 않는다. |
+| failure | missing/duplicate/partial claim-profile, 0 이하 capacity, mass revision drift, route/admission/sink/drain join 불일치는 world mutation 전에 fail-loud한다. profile 누락을 legacy count 입고로 fallback하지 않는다. |
+| balance | 이번 slice는 authored kg·BOM·WU·위험·성공률·회복·공간·가격을 바꾸지 않는다. capacity는 기존 물리 질량에서 파생되는 안전 한도이며 새 비용이 아니다. |
+
+### 112.3 수명주기와 원자성
+
+```text
+ActiveAuthority
+→ Consuming
+→ ConsumedPendingAck
+→ TerminalDrainPrepared
+→ TerminalDrainCommitted
+→ Closed
+```
+
+- 생성은 selected-part 예약 성공 뒤 exact payload gram을 계산하고 claim/profile pair를 게시한다. pair 게시 실패 시 selected-part 예약과 order identity publication을 모두 되돌린다.
+- 배송 요청은 pair가 exact한 경우에만 source lot을 retarget하고 gram admission을 commit한다. profile capacity는 order가 합법적으로 요청할 수 있는 필수 재료+corpse+selected part 전체 질량 이상이어야 한다.
+- 소비는 exact source stack, quantity, input grams, operation/commit ID를 pending receipt로 보존한다. tare/byproduct publication과 acknowledgement 전에는 terminal로 취급하지 않는다.
+- 소비 전 취소·시설 소실은 공용 custody drain으로 미픽업 lease, routed stack, carried cargo, buffered stock을 물리적으로 회수한다. carried 화물은 순간이동시키지 않고 기존 recovery-drop 계약을 따른다.
+- 소비 후 취소·실패는 이미 소비된 재료를 환불하지 않는다. sink/tare를 exactly-once finalize한 뒤 잔여 destination custody만 drain한다.
+- claim/profile revoke는 destination occupancy, reserved grams, active route/admission, carried commitment와 drain이 모두 0/terminal인 뒤 수행한다. 하나라도 남으면 order는 terminal 대기 상태를 유지한다.
+- 시설 파괴는 drain acknowledgement 전 world removal을 완료하지 않는다. 의사 Downed는 이 terminal 수명주기를 시작하지 않는다.
+
+### 112.4 current-format restore 계약
+
+- whole-save와 registry preflight는 active/terminal-waiting order마다 claim 1개, capacity profile 1개, exact owner/facility/drop position, mass authority revision/fingerprint를 검증한다.
+- 목적지로 향하는 physical stack, haul intent, quantity lease, carried cargo, admission token, pending custody drain과 material Sink receipt를 order의 lifecycle phase와 양방향으로 join한다. owner 없는 외부 행과 외부 행 없는 owner를 모두 거부한다.
+- restore candidate는 claim과 capacity를 `FacilityBufferDestinationLifecycleService`로 함께 stage한다. publish 순서는 기존 registry DAG의 claim→capacity→surgery이고 rollback은 surgery→capacity→claim이다.
+- `materialsConsumed=false`인데 sink receipt가 있거나, `materialsConsumed=true`인데 required pending/acknowledged receipt identity가 없거나, terminal drain phase가 실제 physical custody와 맞지 않으면 publication 전 전체 restore를 실패시킨다.
+- 동일 facility의 복수 수술 주문은 destination와 owner operation이 order ID로 완전히 분리되어야 한다. profile·route·receipt를 facility ID만으로 합치지 않는다.
+
+### 112.5 구현 체크리스트
+
+- [x] Surgery owner-neutral adapter와 immutable authority snapshot/fingerprint를 추가한다.
+- [x] active order의 필수 재료·corpse·selected part 전체 exact gram을 산출하고 positive capacity profile을 만든다.
+- [x] order 생성의 direct claim mutation을 atomic claim+profile lifecycle publication으로 교체한다.
+- [x] restore의 claim-only replacement를 claim+profile pair staging과 exact cross-aggregate preflight로 교체한다.
+- [x] reserved FacilityBuffer destination의 mass-required capability를 prefix 분기 없이 선언하고 profile 없는 배송을 fail-loud한다.
+- [x] cancel/failure/facility-loss를 공용 custody drain과 sink/tare acknowledgement 뒤 terminal close로 전환한다.
+- [x] current-format 필수 join key/fingerprint/revision/phase를 저장하고 구버전·누락 payload를 거부한다.
+- [x] 생성 rollback, exact gram 경계, corpse+part+materials, source-reserved/committed-intent/carried/FacilityBuffer custody, sink pending/ack와 raw/captured/registry save 변조 focused fixture를 통과한다.
+- [ ] 실제 scene PlayMode에서 doctor Downed 비종결, facility loss 종결 재시도, tare output-space wait와 복수 주문 격리를 통과한다.
+- [ ] 가상 신규 procedure와 신규 BOM을 data fixture로 추가해 core content-specific branch `0`, unregistered capability `0`을 증명한다.
+- [x] manifest를 두 번 재생성해 `medical.surgery=migrated`, input remaining `33`, bypass `4` 유지 사유, byte·mtime 동일을 기록한다.
+- [x] Unity current-source compile과 focused Surgery static/runtime/save/GC suite를 통과하고 Console Warning/Error `0/0`을 기록한다.
+- [ ] 사용자 소유 dirty `GameplayScene`을 저장·unload·overwrite하지 않는 실제 Surgery PlayMode를 통과한다.
+
+구조 owner migration은 닫혔지만 실제 scene fault PlayMode와 확장 폐쇄 canary가 닫히기 전에는 Surgery의 최종 runtime acceptance 또는 미래 콘텐츠 확장 폐쇄 완료로 보고하지 않는다. 또한 이 owner 하나의 구조 폐쇄만으로 Batch A~H 또는 전체 진행률을 올리지 않는다.
+
+### 112.6 2026-08-28 현재 구현·검증 증거
+
+- `SurgeryMaterialDestinationRuntime`이 필수 material 행을 stable item ID로 합산하고 optional을 제외하며, 주문이 실제 요청하는 corpse/selected-part exact stack을 더해 positive gram profile과 `ExactGramRequired` claim을 한 owner-scoped lifecycle transaction으로 게시한다.
+- claim은 콘텐츠 prefix 검사 대신 공용 `FacilityBufferDestinationAdmissionPolicy.ExactGramRequired`를 선언한다. `WorldItemWarehouseService`는 live claim의 정책으로 mass profile 필수 여부를 판단하며 `SurgeryMaterialsPrefix` 분기를 포함하지 않는다.
+- `SurgeryMaterialCapacityFingerprint`는 Models의 단일 계산 권위다. runtime create/restore와 `SurgerySaveValidation`이 같은 canonical digest를 사용해 capacity, mass authority revision, subject, selected part와 필수 BOM 변조를 publication 전에 거부한다.
+- current-format은 material sink operation/commit ID, exact input grams와 acknowledgement를 저장한다. unconsumed owner의 sink join, terminal owner의 unacknowledged sink와 receipt identity/mass 불일치를 fail-loud한다. terminal destination 해제 전에 pending sink를 acknowledge한다.
+- 집중 fixture `SurgeryMaterialDestinationRuntimeDebugScenarios`는 generic 중복 재료 합산, optional 제외, corpse+selected part 포함 `8,800g`, lifecycle 실패 rollback, claim/profile pair, restore candidate 비누출, publish/revoke, capacity/revision/fingerprint 변조, profile 누락 배송의 count fallback 차단과 source 보존을 검증했다.
+- owner-neutral `FacilityBufferDestinationCustodyDrainProjection`과 `SurgeryMaterialTerminalRuntime`이 source-reserved, committed intent, carried, buffered custody를 같은 공용 phase/receipt로 동결한다. doctor loss는 주문을 유지하고 cancel/failure/facility loss만 terminal drain을 시작한다.
+- `SurgeryMaterialTerminalCrossAggregateSaveValidation`은 raw whole-save, direct registry와 `CaptureAll` 이후 outgoing canonical envelope를 같은 순수 join으로 검증한다. upper-only/lower-only, phase·identity·digest·mass drift는 live publication 또는 durable write 전에 실패한다.
+- durable order `300`의 `SurgeryMaterialTerminalCheckpointGcDurableSaveParticipant`는 save commit 성공 뒤 child를 먼저, Surgery upper join을 마지막에 수거한다. upper publish 실패 시 child를 exact rollback하며 완료·실패·취소 주문과 history는 유지한다.
+- current Unity source에서 `V27_SURGERY_TERMINAL_CUSTODY_FOCUSED_PASS`, `V27_SURGERY_TERMINAL_AND_GC_FOCUSED_PASS`, `V27_SURGERY_TERMINAL_SAVE_AND_GC_PASS`, `V27_SURGERY_SYSTEM_CONTRACTS_PASS`, `V27_INPUT_DESTINATION_DRAIN_RESERVED_CARRIED_BUFFER_PASS`, `V27_SURGERY_OWNER_FOCUSED_BUNDLE_PASS`가 PASS했고 Console Warning/Error는 `0/0`이다.
+- manifest는 두 번 생성해 CSV `5CA585F05B9E1FEA99C224350B6A0C2B1A26D1345A31D3EFE6D215639C19156D`, report `B2441967642619D4BE82878C46BDD2E93AF262CA7C14AC2C5463FF7C38CDAECD`이며 hash·length·mtime 변화가 0이다. `medical.surgery=migrated`, input `6/39`, remaining `33`, output `6/6`, bypass `4`, orphan/unclassified `0/0`이다.
+- 실제 dirty-scene terminal fault PlayMode, tare output-space와 synthetic procedure/BOM canary는 계속 OPEN이다. 이 열린 증거는 구조 owner disposition을 되돌리지 않지만 최종 runtime acceptance와 확장 폐쇄 완료를 막는다.
+- 이 slice의 authored kg·수량·BOM·WU·EWU·가격·시설 공간·SO·prefab·scene 변경은 0이다. Batch A~H는 `0/8`, 전체 진행률은 `69–77%`, 잔여는 `23–31%`로 유지한다.
+
+## 113. 2026-08-28 `medical.character-supply` 입력 owner exact gram·terminal custody 구현 계약
+
+상태: **구조 owner migration·focused evidence 완료 / actual autonomous medical PlayMode OPEN**.
+
+### 113.1 현재 결함과 범위
+
+- `facility-input:medical:{orderId}`는 치료약 또는 추출 혈액 정확히 1개를 치료 시설로 배송하고 typed Sink/tare outbox로 소비한다. physical Sink receipt의 current-format join은 이미 존재한다.
+- destination에는 positive gram claim/profile이 없다. 배송은 same-cell 추론과 legacy count admission에 의존하며 profile 없는 physical mutation을 허용할 수 있다.
+- 완료·취소는 `CharacterMedicalRuntime.ReleaseTreatmentMaterials`가 `ReleaseStacksByDestination`를 직접 호출한 뒤 destination ID와 supply state를 즉시 지운다. pickup 전 lease, routed stack, carried cargo와 FacilityBuffer stock을 구분하지 않으므로 순간이동·고아·save join 손실 위험이 있다.
+- 이 slice는 캐릭터 치료용 공급 destination만 다룬다. 환자 entity 운반, 수술 주문, 장기 보관소, 보존 용기, 의료 시설 WU·성공률·수치는 변경하지 않는다.
+
+### 113.2 구조 계약
+
+| 항목 | 계약 |
+|---|---|
+| 콘텐츠 정의 | `IResourceEconomyContentCatalog`의 `SupportsInjuryTreatment` medicine과 `CaptivityItemDefinitions.ExtractedBloodItemId`가 현재 합법 supply 집합이다. item unit gram은 `IPhysicalItemMassQuery`가 유일한 권위다. |
+| 런타임 상태 | `CharacterMedicalOrder`는 다음 destination sequence, 현재 active lifetime, 주문당 최대 1개의 미종결 drain join과 durable GC 전까지의 closed join bounded collection만 소유한다. claim/profile, world stack·lease·haul intent·carry·buffer와 custody drain child는 Items 기존 단일 권위를 유지한다. |
+| 명령 | supply를 선택·요청하기 전에 owner-scoped exact claim/profile pair를 게시한다. 시설 소실·배치 실패·수동 재배정은 현재 lifetime을 먼저 drain해 non-terminal target으로 닫고 주문을 계속한다. 완료·취소·환자 사망은 material Sink를 먼저 exactly-once 회복하고 동일 active join의 target을 terminal로 승격한 뒤 닫는다. |
+| 조회 | order ID, current destination sequence, facility ID/좌표, destination, current positive max grams, mass revision/fingerprint, active join과 closed join을 immutable projection으로 읽는다. save DTO를 gameplay 질량 query에 전달하지 않는다. |
+| 식별자 | 범용 exact prefix `facility-input:exact:`을 사용한다. destination `facility-input:exact:medical.character-supply:{orderId}:{sequence:D8}`, owner stable `character-medical-order:{orderId}`, owner operation `character-medical-supply-destination:{orderId}:{sequence:D8}`, parent `character-medical-supply-drain:{orderId}:{sequence:D8}`, step `{parent}:custody`를 canonical formatter 한 곳에서 만든다. 콘텐츠별 exact-claim 코어 분기는 추가하지 않는다. |
+| 저장 | 미배포 current-format schema에 `next/current destination sequence`, capacity/revision/fingerprint와 정렬된 bounded drain join list를 저장한다. join은 target state/status, parent/step, old facility/destination/fingerprint, request/commit/receipt, exact quantity/grams와 frozen owner coordinates를 가진다. claim/profile/child 상태는 복제하지 않는다. 과거 schema migration은 추가하지 않는다. |
+| 의존성 | Combat runtime은 Items owner-neutral lifecycle/custody capability를 참조한다. Items는 Character Medical 또는 Combat을 참조하지 않는다. production-named child DTO를 Combat이 직접 해석하지 않는다. |
+| 실패 | missing/partial claim-profile, 비양수 capacity, facility/destination/revision/fingerprint drift, upper-only/lower-only child, sink/custody phase 불일치는 physical mutation·restore publication·durable write 전에 fail-loud한다. |
+| 전환 | `ReleaseStacksByDestination` 직접 호출을 제거한다. owner가 migrated된 뒤 character-medical destination에 legacy count admission 또는 direct release를 허용하지 않는다. |
+| 검증 | exact gram 경계, medicine/혈액 후보, source-reserved/routed/carried/buffered, sink pending/ack, 완료·취소·환자 사망, raw/captured/registry restore, GC rollback/idempotence와 actual AI medical PlayMode를 분리 검증한다. |
+
+### 113.3 capacity와 확장 폐쇄
+
+- 하나의 active destination lifetime은 치료 supply 1개만 동시에 소유한다. profile max grams는 현재 카탈로그의 합법 치료 medicine과 extracted blood 중 가장 무거운 unit gram으로 계산한다. 따라서 어떤 후보를 선택해도 pair를 갈아끼우거나 candidate item ID별 코어 분기를 추가하지 않는다.
+- 합법 supply 집합은 capability query가 열거하고 stable item ID별 ordinal 순서와 canonical mass revision/fingerprint를 만든다. 새 medicine이 기존 `SupportsInjuryTreatment` capability와 물리 질량을 선언하면 코어 코드 변경 없이 profile·감사에 자동 포함된다.
+- 선택된 supply는 exact item/quantity `1`과 실제 unit gram으로 admission한다. profile은 상한 권위이며 실제 점유 gram을 대신하지 않는다.
+- synthetic medicine canary는 data fixture 등록만으로 후보 집합·profile digest·delivery/admission/Sink/tare/save join에 포함되어야 하고 production core diff는 0이어야 한다.
+
+### 113.4 destination lifetime·terminal·저장·GC
+
+```text
+ActiveAuthority(sequence N)
+→ DestinationDrainPrepared(target may be active or terminal)
+→ EffectCommittedAwaitingAck
+→ OwnerAcknowledgedAwaitingClosure
+→ ClosedAwaitingCheckpointGc(sequence N)
+→ optional ActiveAuthority(sequence N+1)
+→ durable save
+→ child GC
+→ matching closed upper join clear
+```
+
+- doctor/rescuer 해제만으로는 material destination을 종결하지 않는다. order가 active이면 다른 구조자가 이어받는다.
+- 시설 도착 실패, 치료 중 시설 소실, 수동 재배정은 주문을 terminal로 만들지 않지만 현재 destination lifetime을 drain한다. drain을 닫기 전 새 facility ID를 기존 destination에 덮어쓰거나 다음 lifetime을 열지 않는다.
+- 치료 완료, 명시 취소, 환자 사망은 active join이 있으면 새 join을 만들지 않고 그 target을 terminal로 승격한다. 이미 Sink된 supply는 환불하지 않고 잔여 destination custody만 보존적으로 회수한다.
+- carried cargo는 현재 위치 recovery-drop 계약을 사용한다. 미픽업 lease는 논리 해제하고 physical carried slice를 source로 순간이동하지 않는다.
+- sequence는 실패해도 재사용하지 않는다. current sequence는 0 또는 active join sequence와 같고, next sequence는 current와 모든 closed join보다 커야 한다. 미종결 join은 주문당 최대 1개, closed join은 bounded collection에 sequence ordinal로 보존하며 새 current와 공존할 수 있다. 상한 초과는 overwrite가 아니라 fail-loud다.
+- owner 상태 `MaterialDestinationDraining`은 enum 끝에 append하며 AI 예약·구조·치료가 선택하거나 덮어쓰지 못한다. drain closure 때 frozen target state/status/parameters를 적용한 뒤에만 current destination·capacity·revision·fingerprint·supply state를 비운다.
+- owner/child phase는 `Prepared ↔ Prepared/Releasing*`, `EffectCommittedAwaitingAck ↔ EffectCommittedAwaitingOwnerAck`, `OwnerAcknowledgedAwaitingClosure/ClosedAwaitingCheckpointGc ↔ OwnerAcknowledgedAwaitingCheckpointGc`만 허용한다. current open join 없음 상태는 exact claim/profile pair가 반드시 존재해야 한다.
+- raw whole-save/direct registry/outgoing captured preflight는 upper order의 모든 join과 Items child를 양방향 exact join한다. restore candidate도 live publication 전에 같은 phase matrix를 재검증한다. normal current는 live facility 위치, drain current는 삭제된 old facility 대신 frozen join 좌표로 pair를 재구축한다.
+- restore는 local validation → 기존 Sink join → drain upper/lower join → claim/profile candidate 재구축 → aggregate publication → Sink recovery → immediate drain recovery → gameplay tick 순서다. Character Medical save section은 facility world section에 의존한다.
+- durable participant `310.character-medical-supply-destination-drain-checkpoint-gc`는 order `310`에서 closed child-first/upper-last로 수거한다. upper clear 실패 시 child exact rollback, child 실패 시 upper 보존, empty replay idempotence, 현재 destination과 주문/history retention을 요구한다.
+
+### 113.5 구현 체크리스트
+
+- [x] canonical lifetime identity, supply-capacity fingerprint와 owner-neutral destination adapter를 추가했다. exact prefix·current/next sequence와 sequence-scoped identity를 current-format 권위로 사용한다.
+- [x] 치료 facility와 합법 supply catalog에서 positive max gram profile을 만들고 claim/profile pair를 원자 게시·복원한다. medicine/extracted-blood 최대값, replay/revoke/restore/tamper focused fixture를 통과했다.
+- [x] 선택·배송·FacilityBuffer 입고가 `ExactGramRequired`를 사용하고 profile 없는 count fallback을 fail-loud한다.
+- [x] `ReleaseStacksByDestination`을 제거하고 시설 도착 실패·시설 소실·수동 재배정·완료·취소·환자 사망을 common custody drain begin-or-resume으로 전환한다.
+- [x] Character Medical current-format schema, clone/validation/restore와 sink/custody upper join을 확장한다.
+- [x] raw whole-save, direct registry, outgoing captured save와 detached restore candidate의 양방향 preflight를 등록한다.
+- [x] durable checkpoint GC와 exact rollback/idempotence를 등록한다.
+- [x] focused medicine/혈액/gram/claim-profile/reserved-routed/carried/buffer/sink/terminal/save/GC fixture를 통과했다. 한 주문의 sequence 1·2 closed join, active-1/closed-N, terminal target의 re-Downed active target 재개방을 포함한다.
+- [x] synthetic medicine data canary에서 capability만 선언한 QA medicine이 profile·delivery/Sink/tare/save 검증에 포함되고 production core의 canary/content-ID branch `0`임을 증명했다.
+- [x] manifest를 두 번 재생성해 `medical.character-supply=migrated`, input remaining `32`, bypass `4`, orphan/unclassified `0/0`, byte/hash/mtime 동일을 기록했다.
+- [x] Unity current-source compile과 focused suites를 Console Warning/Error `0/0`으로 통과했다.
+- [ ] 사용자 소유 dirty scene을 저장·unload·overwrite하지 않는 actual autonomous medical PlayMode를 통과한다.
+
+이번 구조 slice는 authored kg·BOM·WU·치료 potency·성공률·시간·시설 공간·가격·EWU를 변경하지 않는다. 구조 owner migration이 완료되더라도 Batch A~H와 전체 진행률 범위는 final balance gate 전까지 보수적으로 유지한다.
+
+### 113.6 current evidence
+
+- current Unity source에서 `V27_CHARACTER_MEDICAL_CARRY_FOCUSED_BUNDLE_PASS`, `V27_CHARACTER_MEDICAL_LIFECYCLE_PERSISTENCE_PASS`, `V27_CHARACTER_MEDICAL_OWNER_FINAL_FOCUSED_PASS`가 PASS했고 최종 Console Warning/Error는 `0/0`이다.
+- 공용 custody outbox/service는 source-reserved·routed·carried·FacilityBuffer를 검증했고, detached restored carry는 Downed 위치의 `TransientCarryRecoveryDrop`으로 수량·gram·provenance를 보존했다. mixed/unowned/foreign operation은 cargo·lease·intent 무변경으로 fail-loud했다.
+- order `310` GC fixture는 empty replay, child-first/upper-last, child publish failure, upper drift rollback, active join 보존과 durable status mapping을 모두 통과했다.
+- manifest CSV SHA-256은 `F8FBC6644CF6CFBBBA816AA2E54E97C4FCE65A525750E956CC5DD112AE72A75A`, report는 `843D74AC3BB5F68E96AC2B38FF4CABD50E856F7EAE3B06D4A58C8C1940CC2B8D`다. 두 번째 생성에서 hash·length·mtime 변화가 0이며 input `7/39`, remaining `32`, output `6/6`, bypass `4`, orphan/unclassified `0/0`이다.
+- broad Combat suite의 기존 `건설형 엄폐물` 항목은 이 slice와 무관하게 실패했으므로 성공 증거에서 제외했다. 동일 실행에서 이미 통과한 save section/durable coordinator를 focused medical strict-save와 다시 실행해 현재 의료 저장 회귀를 독립 PASS로 확인했다.
+- actual autonomous medical PlayMode는 사용자 소유 dirty `GameplayScene.unity`를 건드리지 않는 실행 경로가 확보될 때까지 OPEN이다. 이 구조 migration은 authored kg·WU·EWU·가격 또는 Batch A~H 완료를 의미하지 않는다.
+
+## 114. 2026-08-28 등록형 내구 시설 장비 슬롯과 `research.arcane-index` 입력 owner 계약
+
+상태: **공용 policy/capacity/slot·current-format upper save·3단계 cross-preflight·동기 restore recovery는 current-source focused PASS / research live adapter·wear/effect·checkpoint-GC fixture·manifest·PlayMode OPEN**.
+
+### 114.1 전수 감사 결론과 범위
+
+- `research.arcane-index`, `infrastructure.climate`, `invasion.signal-horn`은 모두 “살아 있는 시설 한 곳이 내구성 물리 장비를 FacilityBuffer로 요청하고 사용 중 durability를 감소시키는” 동일 계열이다. 세 owner를 콘텐츠 ID 분기와 전용 claim/profile 코드로 각각 구현하지 않는다.
+- 첫 수직 슬라이스는 `research.arcane-index`다. 현재 raw 시설 persistent ID를 destination으로 쓰고, `record:arcane-index` 한 개를 count 배송하며, same-cell 추론으로 FacilityBuffer에 넣는다. exact claim/profile, positive gram admission, 시설 소실 terminal drain과 physical child 저장 join이 없다.
+- usable 도구가 있으면 현재 수치 `research WU ×1.1`, `approved WU당 durability 0.01`을 적용한다. `TrySetInstanceComponent` 실패를 무시하면 무료 보너스가 가능하므로 도구 wear commit 성공 전에는 보너스가 반영된 연구 진행을 publish하지 않는다.
+- durability 0 stack은 usable 조회에서는 제외되지만 기존 중복 방지 조회에는 남아 신규 도구 요청을 영구 차단한다. 이를 삭제하거나 Sink하지 않고 현재 위치·물리 소유권을 보존하는 terminal custody drain으로 시설 슬롯에서 퇴역시킨 뒤 다음 sequence를 연다.
+- 이번 slice는 기존 `record:arcane-index`의 `1,300g`, 연구 배율, wear, BOM, WU, 연구 진행량, 가격, 시설 면적과 저장 콘텐츠 수치를 바꾸지 않는다. `Climate`와 `Invasion`의 실제 등록·저장 어댑터는 research 수직 슬라이스가 green인 뒤 별도 owner 체크리스트로 진행한다.
+
+### 114.2 공용 확장 폐쇄 구조 계약
+
+| 항목 | 계약 |
+|---|---|
+| 콘텐츠 정의 | 도메인이 제공하는 immutable `DurableFacilityEquipmentSlotPolicy`가 owner domain, capability ID, destination namespace, 합법 장비 profile, 최대 동시 수량, 사용 효과와 wear 정책을 정의한다. 공용 런타임은 item ID를 비교하지 않는다. 같은 종류의 신규 장비는 policy/catalog 등록만으로 참여한다. |
+| 런타임 상태 | Items의 공용 slot aggregate가 `(policyId, ownerSubjectId)`별 positive sequence와 active-1/closed-N slot lifetime join만 소유한다. claim/profile, stack·lease·intent·carry·FacilityBuffer와 drain child도 Items의 각 기존 단일 권위를 유지하되 slot aggregate가 그 상태를 복제하지 않는다. durability component는 물리 item instance가 유일한 권위다. 도메인은 slot state를 저장하지 않는다. |
+| 명령 | `EnsureSlot`, `RequestEquipment`, `TryApplyWearAndEffect`, `BeginOrResumeDrain`, `AcknowledgeAndClose`만 상태를 바꾼다. 하드코딩된 item ID별 `if/switch`와 raw `ReleaseStacksByDestination` 호출은 금지한다. |
+| 조회 | 살아 있는 facility snapshot, capability가 선택한 equipment profile, current unit mass, active slot lifetime와 exact claim/profile을 immutable query로 읽는다. save DTO는 gameplay query 입력이 아니다. |
+| 식별자 | destination은 `facility-input:exact:{ownerDomain}:{facilityId}:{sequence:D8}`, owner operation은 `{ownerDomain}:slot:{facilityId}:{sequence:D8}`, drain parent/step은 canonical formatter 한 곳에서 만든다. raw 시설 ID를 destination으로 재사용하지 않는다. |
+| 저장 | 별도 공용 `DurableFacilityEquipmentSlotSaveSection`의 upper DTO가 policy ID, owner subject/facility ID·좌표, sequence, destination, capacity/revision/fingerprint, active/closed join과 frozen requirement subjects를 저장한다. Research/Climate/Invasion DTO에 같은 구조를 반복하지 않는다. claim/profile·physical child를 복제하지 않으며 current-format 필수 필드 누락·알 수 없는 policy는 migration 없이 fail-loud한다. |
+| 의존성 | Foundation의 capability/ID 계약 ← Items의 owner-neutral claim/profile/admission/custody drain ← 도메인 registration/upper save adapter 순서다. Items가 Research/Climate/Invasion을 참조하지 않는다. |
+| 실패 | unknown/duplicate policy, 비양수 mass/capacity, partial claim/profile, wrong item/capability, sequence reuse, upper/lower orphan, facility/좌표/revision/fingerprint drift, wear mutation 실패와 terminal physical custody 잔존을 world publication 전에 거부한다. |
+| 전환 | research raw destination 신규 작성과 direct release를 제거한다. 이미 존재하는 raw destination은 과거 save migration으로 흡수하지 않으며 current-format restore에서 typed failure다. |
+| 검증 | synthetic policy/item이 core diff 없이 discovery→profile→delivery→wear→drain→save/restore에 참여해야 한다. content ID branch manifest는 0, unsupported capability는 fail-loud여야 한다. |
+
+### 114.3 `research.arcane-index` 수명주기와 원자성
+
+```text
+NoSlot
+→ ActiveAuthority(sequence N, exact 1,300g socket)
+→ Requested / Routed / Carried / Buffered
+→ UsableTool
+→ WearCommitted → ResearchEffectPublished
+→ DepletedOrFacilityLostDrainPrepared
+→ ChildEffectCommittedAwaitingOwnerAck
+→ ClosedAwaitingCheckpointGc
+→ optional ActiveAuthority(sequence N+1)
+```
+
+- 연구 시설이 live/capable일 때 policy에서 한 개 장비의 exact current gram을 계산하고 claim/profile pair를 원자 게시한다. profile은 positive `long` gram이며 현재 item mass authority revision/fingerprint를 포함한다.
+- 배송 요청은 active pair와 동일 policy item만 허용한다. source-reserved/routed/carried/buffered 수량 합이 slot 수량 `1`을 넘으면 추가 요청하지 않는다. profile 없는 count fallback은 fail-loud한다.
+- 도구 사용은 선택한 exact stack ID와 component revision을 동결한다. wear mutation이 성공한 경우에만 1.1배 연구량을 publish한다. mutation 실패·stack replacement·revision drift에서는 보너스 연구 진행을 0으로 하고 typed failure를 반환한다.
+- 내구도가 0에 도달한 stack은 질량을 삭제하지 않는다. active slot을 terminal drain하고 buffered 물품은 합법 Loose/warehouse haul 경로, carried 물품은 현재 위치 recovery-drop 계약으로 보존한다. drain closure 전 다음 sequence나 신규 배송을 열지 않는다.
+- 프로젝트 취소만으로 reusable 도구를 퇴역시키지 않는다. 시설 파괴·시설 ID 소실·policy 제거·도구 고갈만 terminal 원인이다. 연구 프로젝트 전환은 같은 시설 slot을 재사용한다.
+- drain은 source lease, route intent, carried cargo, FacilityBuffer occupancy와 reserved grams가 모두 terminal인 뒤 claim/profile을 revoke한다. 실패하면 active upper owner와 child receipt를 유지하고 다음 Tick/restore에서 같은 operation을 resume한다.
+
+### 114.4 current-format 저장·복원·checkpoint 계약
+
+- 공용 slot save section은 Modular Facility World와 Physical Items에 의존하고 도메인 save section에는 의존하지 않는다. 도메인은 restore된 live facility와 등록 policy를 제공하며 별도의 slot DTO를 쓰지 않는다.
+- raw whole-save, direct registry, outgoing captured envelope와 detached restore candidate에서 모든 slot upper lifetime과 Items custody child를 양방향 exact join한다. upper-only, lower-only, duplicate destination/sequence, wrong phase/quantity/gram/fingerprint를 publication 전에 거부한다.
+- normal active lifetime은 live facility 좌표에서 claim/profile을 재투영한다. draining lifetime은 삭제될 수 있는 old facility 대신 frozen upper 좌표와 fingerprint를 사용해 child를 복원하되 신규 gameplay admission은 열지 않는다.
+- restore 순서는 local policy/upper 검증 → physical child preflight → claim/profile candidate staging → research aggregate publication → drain resume → ordinary research Tick이다.
+- durable checkpoint participant는 child-first/slot-upper-last로 closed join만 수거한다. child publish 실패 시 upper 유지, upper clear 실패 시 child exact rollback, active join과 각 도메인 진행/history는 유지한다. 현재 사용 중인 `100/200/300/310`과 충돌하지 않는 `320.durable-facility-equipment-slot-checkpoint-gc`를 사용한다.
+
+### 114.5 구현 체크리스트
+
+- [x] 공용 durable facility equipment slot policy/catalog/query와 canonical identity/fingerprint를 추가한다.
+- [ ] synthetic policy/item 등록만으로 profile·admission·wear·drain에 참여하고 unknown capability가 fail-loud하는 canary를 추가한다.
+- [ ] `research.arcane-index`를 raw facility destination과 item-ID 분기에서 등록형 policy와 sequence-scoped exact destination으로 전환한다.
+- [ ] current `1,300g × 1` claim/profile, delivery limit와 component-aware exact admission을 연결한다.
+- [ ] wear mutation 성공과 연구 보너스 publication을 원자 경계로 묶고 mutation failure/revision drift에서 연구 진행이 증가하지 않음을 검증한다.
+- [ ] 내구도 0·시설 소실을 common custody drain으로 처리하고 물리 삭제·순간이동·replacement deadlock을 0으로 만든다.
+- [x] 공용 slot current-format upper payload/save section, clone/validation/restore와 raw/captured/registry/detached cross-save preflight를 추가한다. Research DTO에는 slot 필드를 추가하지 않는다.
+- [x] durable child-first/upper-last checkpoint GC와 rollback/idempotence를 추가한다.
+- [ ] source-reserved/routed/carried/buffered, facility loss, depleted replacement, save tamper/missing/duplicate/lower-only focused fixture를 통과한다.
+- [ ] Unity current-source compile, focused Research/Items/save suites와 Console Warning/Error `0/0`을 통과한다.
+- [ ] owner manifest를 두 번 생성해 byte/hash/length/mtime 동일을 확인한 뒤에만 `research.arcane-index=migrated`, input `8/39`, remaining `31`로 변경한다.
+- [ ] 사용자 소유 dirty scene을 건드리지 않는 실제 AI research delivery→use→deplete→replacement PlayMode를 통과한다.
+
+구조 owner migration과 manifest disposition은 focused/compile/save/결정론 증거 뒤에만 닫는다. 실제 AI PlayMode가 열려 있으면 최종 runtime acceptance는 OPEN이다. 큰 Batch A~H, 전수 kg·EWU·가격·6인 생존망 진행률은 이 구조 slice 하나로 올리지 않는다.
+
+### 114.6 2026-08-28 공용 기반·저장 focused evidence
+
+- registration 기반 policy/capacity/usability canary와 owner-neutral slot runtime이 exact `1,300g`, sequence-scoped destination, delivery deduplication, admission fence, child custody drain을 통과했다. 콘텐츠 item ID 분기는 추가하지 않았다.
+- 공용 upper section `items.durable-facility-equipment`은 active-1/closed-N, 전역 단조 sequence, policy/assignment/capacity source fingerprint를 current-format으로 저장한다. Research/Climate/Invasion DTO에는 공통 slot 구조를 복제하지 않았다.
+- upper가 child의 parent/step/owner/facility/destination/source authority/request/phase/count/quantity/gram/commit/receipt를 독립 동결하고 exact 비교한다. owner/parent/step/destination 중 하나라도 durable namespace를 주장한 lower-only child는 fail-loud한다.
+- raw whole-save, direct registry envelope, outgoing captured save가 같은 `DurableFacilityEquipmentCrossAggregateJoin`을 사용한다. active facility missing, upper-only/lower-only, duplicate active key/sequence와 parent/step/source fingerprint/input mass/phase tamper fixture가 PASS했다.
+- restore participant는 기존 `219.world.offense-supply-packages`와 충돌하지 않는 `222.world.durable-facility-equipment-slots`를 사용한다. claim `220`·capacity `221` 이후 upper `222`가 publish되고 rollback은 역순이다.
+- fence replacement와 slot restore map은 완성된 replacement map의 참조 교체로 publish하며, revision/sequence overflow를 외부 mutation 전에 검사한다. 복원 완료 hook은 고정 반복 횟수 대신 sequence별 phase·remaining actor/operation의 단조 감소를 강제하고 ordinary gameplay tick 전에 pending drain을 끝낸다.
+- current Unity compile 뒤 `Durable Facility Equipment Slot Checkpoint GC`, `Durable Facility Equipment Save Contracts`, `Durable Facility Equipment Slot Runtime Contracts`, `Production Economy Contracts`가 PASS했고 Console Warning/Error는 `0/0`이다. GC fixture는 empty `AlreadyApplied`, child-first/upper-last publish·complete, second-call idempotence, upper publish 실패의 child rollback, active/draining 보존과 durable participant status mapping을 검증했다.
+- 이 증거는 authored kg·WU·EWU·가격을 바꾸지 않았고 `research.arcane-index`의 실제 delivery→wear→effect owner migration도 아직 수행하지 않았다. 따라서 manifest는 계속 input `7/39`, remaining `32`, bypass `4`, Batch A~H `0/8`로 유지한다.
+
+## 115. 2026-08-28 M06 보철조립대 공용 생산 권위 연결
+
+상태: **공용 workstation/output-buffer 구조·current-source compile·전수 생산 감사·실제 M06 주문→보철 출력→AIHaul→kg 창고→저장 왕복 PASS**.
+
+### 115.1 구현·감사로 닫은 범위
+
+- [x] `BuildingProstheticAssemblyAbility.outputCapacity`의 런타임 소비자가 0임을 확인하고 죽은 중복 권위를 제거했다. 속도·품질 보정과 내부 재고 권위는 유지했다.
+- [x] M06에 공용 `BuildingProductionWorkstationAbility`를 `workstationTag=m06`, `stockSensorInstallationItemId=component:stock-sensor-panel`로 연결했다.
+- [x] M06에 공용 `BuildingProductionBufferAbility`를 `defaultBatchCapacity=3`, `physicalOutputBufferCycleCapacity=3`, `allowOverflowDump=false`로 연결했다.
+- [x] 세 보철 레시피가 기존 `ProductionRecipeSO.WorkstationTag` fallback을 통해 모두 `m06`을 사용함을 검증했다. 레시피 에셋과 kg·BOM·WU·가격은 변경하지 않았다.
+- [x] 세 출력 정의의 현재 단위 질량 `1,800g`과 3-cycle 권위로 최대 `5,400g`을 공용 buffer 투영이 사용할 수 있게 했다.
+- [x] targeted builder는 기존 managed-reference object/ID를 보존하고 두 공용 ability만 삽입한다. exact authority가 이미 있으면 두 번째 실행은 byte no-op이다.
+- [x] 전수 생산 감사기를 355개 레시피에 적용했다. 출력 없는 소각 4개는 `ProductionFlowRole.Sink`와 semantic facility로 검증하고, 출력 레시피는 실제 workstation·`[2,4]` buffer를 요구한다.
+- [x] 출력 정의는 하드코딩된 item-ID 예외가 아니라 standard/ammunition/apparel/surgical capability family로 검증한다. 특수 capability끼리의 중복은 거부하되 definition+special 중첩은 등록된 special 우선 규칙을 따른다.
+
+### 115.2 current-source 증거와 열린 exit gate
+
+- [x] 최신 `Assembly-CSharp-Editor.dll`에서 `ProductionWorkshopDebugScenarios`, `ProductionAmmunitionPreparedOutputDebugScenarios`, `SurgeryDebugScenarios`, `ProductionEconomyDebugScenarios`를 한 clean-console 구간으로 실행해 aggregate PASS를 확인했다. Console Warning/Error는 `0/0`이다.
+- [x] M06 에셋은 `17 additions / 1 deletion`, SHA-256 `DD134761E335C83CC02B8C3089291904488C4CE140A3E711EE426B7957BF1DED`이다. 두 번째 targeted apply 뒤 byte가 같고 `.meta`와 GameplayScene은 변경되지 않았다.
+- [x] 실제 M06을 배치하고 `recipe:surgery:prosthetic-arm` bill을 정상 API로 추가했다.
+- [x] steel 2·lumber 1·cloth 1의 물리 BOM, 작업 완료, unique 보철 1회 `FacilityOutputBuffer` 생성, 공용 AIHaul, `1,800g` kg 창고 입고와 buffer drain을 PlayMode에서 증명했다.
+- [x] 사용자 소유 dirty GameplayScene을 저장·unload·overwrite하지 않는 sanitized 임시 Gameplay 검증 환경에서 위 경로와 저장/복원 무복제를 실행했다.
+
+2026-08-29 fresh live 증거: 일반 정의인 수술 부품을 resource-only 카탈로그로 조회하던 창고 호환 경계를 공용 `IDungeonItemCatalogProvider`의 `StockCategory` 권위로 교정했다. 공용 생산 회귀와 prepared-output planner gate를 통과한 뒤 실제 Title→Preparation→sanitized Gameplay에서 `recipe:surgery:prosthetic-arm`을 실행했다. 결과는 `surgery:prosthetic:arm:left ×1`, unique item instance와 `medical:surgical-part-output` component, exact `1,800g`이며 acknowledged planned-output provenance가 더 이상 in-flight publication lock으로 오인되지 않는다. AIHaul은 무감속 `19.13kg` actor로 exact 1개를 25kg warehouse에 입고했고, 완료 뒤 haul intent·admission·reserved inbound가 모두 0으로 은퇴했다. terminal bill은 즉시 제거됐고 whole-save restore, warehouse/UI `1.8kg/25kg`, recapture identity SHA-256 `56F51F8DD85BDEE2ECA6B6A763080DA61D501FFE5908DFFE4B0C6EFFFD356304`, 두 번째 restore 수량/질량 `1/1,800g` 무복제를 통과했다. 비유기 수술 부품 freshness는 current-format finite contract에 맞는 canonical `0` sentinel로 교정했다. report `RESULT=PASS; failures=0`, 런타임 및 최종 Unity Console Warning/Error `0/0`, 임시 asset/scene cleanup 0, 공식 GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8` 유지다.
+
+이 checkpoint로 실제 M06 surgical production live 행만 닫는다. Batch A는 `29/31`; normal sawmill cancel/Downed/mid-haul restore와 output manifest/fault-matrix 상위 행은 계속 OPEN이다. 전체 V27은 보수적으로 약 `72–79%` 완료 / `21–28%` 남음이며 authored kg·quantity·BOM·WU·EWU·가격·시설 공간 수치는 변경하지 않았다.
+
+### 115.3 equipment-module exact Source 우회 제거 증거 (2026-08-28)
+
+- [x] `EquipmentModuleRuntime`의 생성·교체 반환·분리 반환에서 production `SpawnExistingUniqueItemAt` 직접 호출을 `0`으로 만들고 `PhysicalItemExactSourcePublicationService`의 prepare/targeted release/rollback 경계로 이관했다.
+- [x] stack ID 할당 전 detached module 상태를 동결하는 `combat.equipment-module-stack-binding@1` capability와 `EquipmentModulePreparedOutputBinder`를 등록했다. 공용 publication 코어는 module item ID를 분기하지 않고 capability registry를 통해 stack ID를 결합한다.
+- [x] binder 검증 경계는 mutable `WorldItemStackRecord`를 공개하지 않고 immutable `FacilityBufferPublishedUniqueOutputSnapshot`만 전달한다. prepared/committed module aggregate와 physical component/source stack ID를 exact 비교한다.
+- [x] current-source Unity runtime/editor compile 뒤 공용 planned-output focused suite와 module 생성→감정→복원→장착→분리→current-format 저장 왕복 focused lifecycle이 PASS했다.
+- [x] owner manifest는 `bypass=0`, `orphan=0`, output owner `9/9 migrated`, transport-delegated exact `1`을 증명했다. input owner는 `8/39 migrated`, `31 remaining`이다. 두 번째 artifact 생성은 byte hash·length·mtime 변화가 `0`이다.
+- manifest CSV SHA-256: `43354306D869FBC60BE95DC8D3A253CC6FBF037508A114296B86DD3247BFF3FB`
+- manifest report SHA-256: `5CB6739BD038BEE79D019543C31AF01DBB6C98DDADAB8288FD592A60BAA63ECE`
+
+이 체크포인트는 manifest zero gate의 `bypass/orphan` 하위 조건만 닫는다. `inputRemaining=31`은 Batch C 분모이고 output 전체 fault matrix가 남았으므로 상위 체크리스트 행은 아직 OPEN이다. 이후 2026-08-29 M06 live 행이 닫혀 Batch A는 `29/31`이다. authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값은 변경하지 않았다.
+
+## 116. 2026-08-29 제재소 실제 운반 fault·저장 폐쇄
+
+상태: **`recipe:sawmill-lumber` 실제 생산→prepared exact route→공용 AIHaul→kg 창고와 pre-pickup cancel·active cancel·Downed current-cell recovery·mid-haul restore PASS**.
+
+- [x] 실제 `resource:log ×2 → material:lumber ×3` 주문을 완료하고 exact `3 × 1,200g = 3,600g` physical output과 `14,400g` 4-cycle FacilityOutputBuffer 권위를 유지했다.
+- [x] pickup 전 취소는 lease·intent·warehouse admission만 해제하고 같은 routed stack·custody·warehouse target을 보존했다.
+- [x] pickup 뒤 active cancel은 carried slice, source stack ID, operation ID, exact lease와 `3,600g` admission을 유지한 delivery-only replan 상태로 종료했다.
+- [x] 운반자를 source `(10,0)`·warehouse `(13,0)`과 다른 reachable cell `(23,0)`에서 Downed 처리했다. 같은 carried stack ID·수량 3·질량 3,600g이 그 현재 셀에 `TransientCarryRecoveryDrop`으로 정확히 한 번 나타났고, source/warehouse 순간이동과 수량 복제는 0이었다.
+- [x] recovery provenance의 owner operation·source stack·carrier·Downed kind·deadline, warehouse destination ID, actor 접근칸 `(12,0)`, exact-route custody의 warehouse 본체 `(13,0)`과 receipt/revision fingerprint를 각각의 의미에 맞게 검증했다.
+- [x] Downed 뒤 actor carry·haul intent·lease·admission·reserved inbound은 0으로 해제됐고, recovery stack의 route custody만 물리 권위로 남았다. V18 physical save의 recovery metadata validator도 오류 0으로 통과했다.
+- [x] fault 직전 whole-save checkpoint 복원 뒤 같은 actor·warehouse·carried/source stack·operation·admission `3,600g`·route를 재바인딩했다. documented transient visitor restore 차이 때문에 raw whole-root byte는 비교 권위로 쓰지 않고, cargo/production/route/save section semantic fingerprint와 exact join을 요구했다.
+- [x] 기존 mid-carry admission `+1g` 변조는 whole-root 무변경으로 원자 거부됐고, 정상 restore 뒤 실제 Brain이 AIHaul을 재개해 warehouse에 수량 3·질량 3,600g을 적재했다. 완료 후 active intent와 inbound reservation은 0이었다.
+- [x] terminal bill retirement, UI `3.6kg/25kg`, whole-save restore, recapture identity SHA-256 `EAB7F0D019A8B1355E426C5FFEA446D75E8AB695F8EE2757D2827B3AE40F61A1`, 두 번째 restore 무복제를 통과했다.
+- [x] 최종 report `Artifacts/QA/prepared-output-sawmill-live-playmode-report.txt`는 `62 PASS`, `RESULT=PASS; failures=0`, SHA-256 `E148D4D610235EEE9101FF8460B68F2834B0C43787A4E96CE300908718D3530E`다. 런타임 캡처와 Unity 외부 Console Warning/Error는 `0/0`; request·synthetic temp는 0; 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 유지됐다.
+
+이 체크포인트로 제재소 live/fault 행만 닫는다. Batch A는 `30/31`; 남은 한 행은 **output owner aggregate manifest zero 유지 + 전체 output partial/cancel/Downed/restore fault matrix**다. Batch C input remaining `31`은 별도 분모다. 전체 V27 진행률은 기존 보수 범위 `72–79%`를 유지하며, 이 검증에서 authored kg·capacity·quantity·BOM·WU·EWU·가격·ScriptableObject·prefab·scene 값은 변경하지 않았다.
+
+## 117. 2026-08-29 Batch A output aggregate 폐쇄
+
+상태: **Batch A `31/31` 완료 / Batch C input remaining `31` 및 B–H 수치·회귀 작업은 OPEN**.
+
+- [x] current-source manifest가 output owner `9/9 migrated`, output remaining `0`, bypass/orphan/unclassified `0/0/0`, transport-delegated-exact `1`을 유지한다.
+- [x] 9개 output owner를 exact-source 3개, standard prepared-output 1개, production-domain 2개, planned unique-output 3개의 공용 계약으로 명시적으로 매핑했다. 동일한 fault를 owner별로 복제하지 않고 manifest의 공용 인터페이스 위임과 공용 fixture를 함께 요구한다.
+- [x] 공용 exact-route suite가 partial split, multi-step partial restore, unique partial reject, rollback/replay와 carried/stored/recovery descendant 보존을 통과했다.
+- [x] synthetic live report가 `1g` 부족 output-space wait와 동일 outcome 재개, pre-pickup cancel, mid-carry admission tamper 원자 거부와 restore, 최종 `20,000g` 입고를 증명한다.
+- [x] sawmill live report가 실제 `3,600g` prepared output의 active cancel, Downed current-cell recovery, transient authority release, checkpoint 복원, Brain 재개 배송을 증명한다.
+- [x] M06 live report가 unique prosthetic `1,800g` exact capability, kg warehouse 입고, post-delivery save/restore와 두 번째 restore 무복제를 증명한다.
+- [x] `V27BatchAOutputClosureDebugScenarios`는 이전 artifact를 신뢰하지 않고 같은 실행에서 fresh manifest를 캡처·저장한 뒤 source digest와 output zero ratchet을 검증한다.
+- [x] 최종 `Artifacts/QA/v27-batch-a-output-closure.txt`는 CertifiedSeed eligibility/contributor source까지 포함해 재생성했고 `result=PASS`, SHA-256 `3AB49384785188D05FD26872E69A8B26FF043A061D294AD9E3FA109ED73E20AF`다.
+- [x] manifest TXT/CSV SHA-256은 `12100B34655AFC95360838830E814B8D776AC41B527099975A88E71F44765E9A` / `8A282F4965A5F4BDBCD94122E8C2A556A1588452568E11C5E37ACECBB2C5578E`다. 두 번째 실행에서 세 artifact 모두 length/hash/mtime 변화가 `0`이었다.
+- [x] 최종 Unity Console Warning/Error는 `0/0`; request·synthetic backup은 없고 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 유지됐다.
+
+Batch A 완료는 출력 생산·운반의 공용 구조와 fault 경계를 닫았다는 뜻이다. authored item kg 전수 적용, FacilityBuffer input owner `31`, 상태 기반 질량, WIP/Sink, EWU·가격 재생성, 6인 생존망과 최종 다중 seed는 B–H에 남아 있으므로 전체 진행률은 보수 범위 `72–79%`를 유지한다.
+
+## 118. 2026-08-29 WorldResource 포함 10-owner Batch A 재폐쇄
+
+상태: **Batch A `31/31` current-source PASS / Batch B `34/40` / Batch C input `8/39`, remaining `31` / D–H OPEN**.
+
+- [x] `economy.world-resource-output`을 current owner manifest에 추가해 output `10/10 migrated`, remaining/bypass/orphan/unclassified `0/0/0/0`을 fresh source에서 재생성했다.
+- [x] WorldResource runtime은 등록형 topology binding과 frozen output을 사용하고, detached candidate rebuild 실패가 기존 live node identity·source sequence·pending authority를 변경하지 않는다.
+- [x] finite/renewable source debit은 physical exact-source prepare와 결합되며, release acknowledgement 뒤 authority retirement만 실패한 경우 pending이 save를 차단하고 동일 mode/target 재시도만 허용한다. 4-stack acknowledgement mutation count는 최초 4회 이후 mismatch 및 exact retry에서도 4회로 유지된다.
+- [x] frozen pending output은 restored random root seed와 exact cross-join하고 authored Grand Project maximum을 넘는 factor를 거부한다. 저장된 자기 seed로만 결과를 다시 만드는 self-consistency 우회는 허용하지 않는다.
+- [x] 확률상 물리 output 0개인 cycle은 fake item·publication 없이 source debit과 completed sequence를 정확히 한 번 commit한다.
+- [x] `Artifacts/QA/v27-world-resource-transaction-fault-matrix.txt`는 `RESULT=PASS`, SHA-256 `722FEDC805CF3ED449166ED73ACF21F691DE020D6559A9A2FBDFAB749384B15D`다.
+- [x] `Artifacts/QA/v27-batch-a-output-closure.txt`는 `result=PASS`, SHA-256 `8A18E2B5F9F5EA1FCE26E29A8010DF574DDC034C0295858E0ED1ABDDCAC25200`다.
+- [x] manifest TXT/CSV SHA-256은 각각 `50C6475F89C8220384576359DC7101FA2CE694423DCA036816AC54827AD8C155` / `AC4229A0D514DCD4EF2EED7A3A60B256C034B6233F343EB8C570F849E9D22AC2`다.
+- [x] 네 artifact의 두 번째 실행은 byte hash·length·mtime 변화가 모두 0이다. Unity current-source compile과 focused aggregate는 Console Warning/Error `0/0`, 공식 GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`을 유지했다.
+
+이번 checkpoint는 출력 소유권·복원 원자성과 결정론만 교정했다. authored kg·capacity·quantity·BOM·WU·EWU·가격·시설 공간·ScriptableObject·prefab·scene 수치는 변경하지 않았으므로 `밸런스 영향 없음 / 구조 교정 검증 완료`다. Batch A 완료는 B–H 또는 전수 밸런스 완료를 의미하지 않는다.
+
+## 119. 2026-08-29 WorldResource maximum proof-bound 폐쇄
+
+상태: **WorldResource maximum 하위 경계 PASS / Batch A `31/31` 재회귀 PASS / Batch B 상위 `34/40` 유지 / crop actual publication OPEN**.
+
+- [x] `WorldResourceSourceBindingCatalog`를 단일 생성자 하드코딩 열거에서 `IWorldResourceSourceBindingContributor` 집합으로 전환했다. contributor·binding은 ordinal stable 정렬되고 duplicate contributor ID, binding ID, visual/renewable key를 fail-loud한다. built-in 4행은 한 contributor이며 신규 contributor가 들어와도 runtime/maximum projector 코드는 변경하지 않는다.
+- [x] pure `WorldResourceOutputMaximumEnvelopeAuthority`가 binding `4`개를 고유 recipe `3`개로 귀속하고, source recipe의 모든 `probability>0` non-loss line을 공용 `IProductionOutputMaximumMassRegistry`로 투영한다. `probability=0`과 `DeclaredLoss`는 물리 용량에서 제외하고 factor 적용 수량은 exact Ceil한다.
+- [x] current source maximum은 `source:grass=4×80=320g`, `source:logging=5×1,800+1×200=9,200g`, `source:saltstone=3×1,600+1×500=5,300g`이다. grass/brush 두 binding은 `source:grass` 한 envelope로 접힌다.
+- [x] frozen pending output은 recipe digest·line vector뿐 아니라 maximum aggregate gram과 maximum source digest를 함께 저장한다. actual line quantity/mass와 aggregate mass가 proof를 넘거나 item/role/probability/unit gram이 drift하면 source debit과 publication 전에 fail-loud한다.
+- [x] current-format WorldResource schema는 `V4`이며 복원은 root seed, recipe/factor, maximum mass/source digest를 모두 재구성해 exact 비교한다. maximum mass `+1g` 및 proof digest 변조가 restore publication 전에 거부됨을 focused fixture로 확인했다.
+- [x] `Artifacts/QA/v27-world-resource-maximum-envelope.csv`는 header+3행, `1,891 bytes`, SHA-256 `FCDDF691D279D74ABDB78A8A1C2B4855797BD7B39C499A00788F7FEFE476E374`다. 두 번째 실행의 hash·length·mtime 변화는 `0`이다.
+- [x] transaction fault report는 maximum tamper 두 경계를 추가해 `412 bytes`, SHA-256 `88EEB4E202650408D2640ECE19ADE51C97FF58FEE2510E5E02A179392AA3D806`이며 두 번째 실행 변화 `0`이다.
+- [x] contributor registry 전체와 `ProductionEconomyDebugScenarios.RunAll()`이 current assembly에서 PASS했다. Batch A aggregate도 fresh manifest source digest로 재생성해 closure SHA-256 `841CD9EA0E4AF78A0F31EED4B41E4A5D91C943639FEB70D82372399F7C7C0A9F`, manifest TXT/CSV `65D0EF0B572E912ECA1C9EF7E585A0006F6BE766139AA85DC29319420EBE689C` / `0DD8CFF1ECC0345D453BDC5AEA8E46604A641A6D9E2232201958218D486866B5`를 얻었다. 연속 재실행 hash·length·mtime 변화는 `0`, Console Warning/Error `0/0`, 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 유지됐다.
+
+이 checkpoint는 WorldResource output의 정의 상한과 actual exact-source publication 결속을 닫는다. crop은 여전히 GoldenHarvest/ecology state를 먼저 변경한 뒤 harvest와 seed lot을 두 독립 spawn으로 생성하므로 Batch B의 `전체 maximum envelope` 체크는 계속 OPEN이다. authored item kg·BOM·WU·EWU·가격·시설 수치·asset·scene 변경은 `0`이며 판정은 `밸런스 영향 없음 / 구조 교정 검증 완료`다.
+
+## 120. 2026-08-29 Crop whole-vector maximum 및 외부 저장 원자성 폐쇄
+
+상태: **crop maximum/actual publication PASS / Batch A `31/31` / Batch B `35/40` / Batch C input `8/39`, remaining `31` / 전체 보수 진행 `73–80%`**.
+
+- [x] harvest와 returned seed는 completion 시점에 한 번 결정된 frozen two-line outcome을 공유하며, GoldenHarvest·ecology 결과도 같은 completion owner의 publication 성공 뒤에만 live authority로 승격된다.
+- [x] `ProductionDomainOutputPublicationService`가 line별 item·quantity·unit gram과 aggregate mass를 current proof-bound maximum에 대조하고, FacilityOutputBuffer 공간 부족이면 같은 outcome으로 `WaitingForOutputSpace`를 유지한다.
+- [x] current-format save/restore는 frozen outcome을 재굴림하지 않으며, publication acknowledgement 재시도는 기존 commit을 재사용해 물리 수량 증분 `0`을 보장한다.
+- [x] sow receipt가 이미 exact cycle input을 소비한 뒤 남은 over-delivery seed는 `RemoveDestination`으로 삭제하지 않고 material destination을 release해 회수 가능한 물리 재고로 보존한다.
+- [x] Unity JSON이 null nested output을 all-default object로 복원하는 경우 exact empty sentinel만 phase None의 canonical empty로 수용하며, 필드 하나라도 채워진 stale output은 거부한다.
+- [x] `CharacterNarrativeRuntime`은 identity와 work-completion delivery cursor를 restore transaction에 stage/publish/rollback한다. 뒤 participant 실패가 외부 저장소만 앞서 적용하는 partial restore를 만들 수 없다.
+- [x] `CropPhysicalTransactionFixture`, `V21CropGenomeDebugScenarios`, `V26FounderTraitAuditScenario`, `DungeonSaveSectionDebugScenarios`와 isolated paused PlayMode `CropPlotDebugScenarios`가 PASS했다. PlayMode report는 harvest `0→6`, `capacityWait=true`, `frozenRestore=true`, `replayDelta=0`, `valid=true`; SHA-256은 `E0F6787F7CDE53492BB1AFF7D62AADADAAE536832CAD82125865B8140B6A2785`다.
+- [x] current assembly는 `Assembly-CSharp.dll 9,918,976 bytes @ 2026-08-29T06:51:15.5013996Z`, `Assembly-CSharp-Editor.dll 9,886,720 bytes @ 2026-08-29T06:42:24.6684648Z`; isolated Console Warning/Error `0/0`, 공식 GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 유지됐다.
+
+이 checkpoint가 119의 crop OPEN 상태를 supersede한다. 닫힌 것은 Batch B의 `전체 maximum envelope` 한 행뿐이다. retarget transaction, support attach/detach 및 p95/>4-cycle gate, unified mutation fence, destructive live integration, active multi-facility retarget의 5개 행은 계속 OPEN이다. broad Batch B wrapper의 별도 wildlife save-version/player-fairness 실패도 green으로 숨기지 않는다. authored item kg·BOM·WU·EWU·가격·시설·asset·scene 수치 변경은 `0`이며 판정은 `밸런스 영향 없음 / 구조 교정 검증 완료`다.
+
+## 121. 2026-08-30 생산 수동·자동 실행 권위 배타성 하위 경계
+
+상태: **current-source compile·P15 실제 자연 AI·자동 executor·utility atomic PlayMode PASS / producer 전수 throughput/profile/capacity `@5` OPEN / Batch B `36/40` 유지**.
+
+- [x] `AutomationAggregateState`를 다시 저장하거나 복제하지 않는 root-backed `IAutomationExecutionModeQuery`를 추가하고 composition root에서 같은 session 권위를 조회한다.
+- [x] `ProductionWorkstationExecutionModeRules`를 preview·Begin·Execute가 공용으로 사용한다. Manual/PoweredAssist는 manual actor만, Automatic은 authored automatic lane의 명시적 executor만 허용하며 manual+automatic lane을 합산하지 않는다.
+- [x] 자동 실행과 passive finishing은 null worker 우회가 아니라 `AutomaticExecutor`와 `PassiveProcessor`라는 서로 다른 immutable system authority를 사용한다. 기존 actor worker policy는 완화하지 않는다.
+- [x] `SetMode(Automatic)`은 facility reservation, 실제 allocated worker ownership, production bill reservation 중 하나라도 있으면 `automatic-mode-manual-worker-active`로 거부한다. `IAllocatedWorkerOccupancyQuery`는 Facility·Shop·ConstructionSite의 실제 owner를 다형적으로 노출한다.
+- [x] 일반 생산 작업대가 아닌 D01/D02 계열 legacy Cook은 Manual에서 기존 경로를 유지한다. 같은 시설이 Automatic이면 lane 누락보다 먼저 `production-manual-disabled-by-automatic-mode`를 반환하여 Cook/Craft legacy fallback이 수동 작업을 재개하지 못한다.
+- [x] current Unity compile, isolated execution-mode gate, `ProductionWorkshopDebugScenarios`, `ProductionMaximumOutputFactorCatalogDebugScenarios`가 PASS했고 Console Warning/Error는 `0/0`이다. 공식 GameplayScene SHA-256은 불변이다.
+- [x] P15 실제 fixture에서 Manual natural Cook progress, PoweredAssist natural progress와 배율, Automatic natural candidate/Begin/Execute 거부, automatic WU progress, allocate-before-Begin 전환 거부, utility-failure atomicity와 두 번째 실행 hash·length·mtime 무변경을 증명했다. 최종 matrix는 `5/5 PASS`, report SHA-256은 `69180B3CCEE72B23D8BAA9478721E63279746C007753DB9A243D7C8FF4B42A94`다.
+- [ ] producer 전수 authored-reachable throughput envelope, complete frozen profile/DI, capacity source `@5`, atomic support attach/detach 재투영과 live `4.000/4.001` gate를 닫는다.
+
+2026-08-30 producer-wide 처리량 순수 코어 하위 경계 증거: `ProductionAuthoredThroughputEnvelopeAuthority`를 추가해 `(recipe branch, exact feasible support assignment, execution mode)`를 하나의 후보로 유지한 상태에서만 gram/hour를 계산한다. 서로 다른 recipe/assignment의 최대 질량과 최대 속도를 교차 결합하지 않으며 Manual/Automatic lane은 합산하지 않고 `max`, PassiveBatch는 workstation과 해당 assignment 내부 processor capacity의 `min`을 사용한다. 리뷰 중 전체 compatible processor를 합산하던 초기 결함을 발견해 exact assignment로 교정했고, focused suite가 cross-product 금지, mode-exclusive max-not-sum, passive bottleneck, mutually-exclusive processor 비합산, special typed-gap 시 envelope 미발행, shuffle digest 동일, invalid provenance·overflow fail-loud를 PASS했다. 또한 실제 작업 실행 세 곳의 기존 `0.05–8 WU/s` clamp를 `WorkRateBoundsAuthority` 단일 권위와 source digest로 통합했으며 `WorkAmountDebugScenarios`와 Unity compile, Console Warning/Error `0/0`을 확인했다. 수치·SO·저장 형식 변경은 `0`이다. 이는 순수 계산 코어만 닫으며 actual branch/work-rate provider, 현재 census `85 complete / 7 typed gap`, 특수 contributor, 92개 producer의 32-seed profile, capacity source `@5`와 atomic publication이 남아 있으므로 위 parent 체크박스는 계속 OPEN이다.
+
+2026-08-30 처리량 provider 기반 하위 경계 증거: fail-loud `ProductionRecipeWorkRateMaximumAuthority`는 required contributor manifest, source digest, nano fixed-point upper Ceil, `BigInteger` exact product, 최종 mWU/s 단일 Ceil과 공용 `WorkRateBoundsAuthority`를 결속한다. WorkOnly branch provider는 exact assignment의 output factor를 한 번만 적용하고 canonical physical output line별 기존 maximum-mass projection을 합산하며, PassiveBatch는 공용 ruined-branch 권위가 추출되기 전까지 typed missing으로 남긴다. 특수 producer registry는 stable contributor ID/version, capacity-owner/branch 완전성, immutable candidate/gap aggregate와 existing facility-subject injection을 제공하고 CertifiedSeed를 `AuthoredCycleAuthorityMissing`으로 보류한다. 세 focused suite는 rounding/clamp, missing contributor, lane mismatch, assignment 분리, Passive typed gap, CertifiedSeed gap, shuffle digest, duplicate/orphan/collision/applicability fail-loud를 모두 PASS했고 Unity compile·Console Warning/Error `0/0`이다. 수치·SO·save·DI 변경은 `0`; 실제 stat/room/evolution/automation contributors, Passive normal/ruined 공용 branch, Crop/Apparel/Combat contributors와 current census 전수 proof가 남아 있어 parent는 OPEN이다.
+
+2026-08-30 live work-rate contributor 하위 경계 증거: 실제 `WorkAmountCalculator`의 첫 두 항을 execution-free 정의 권위로 연결했다. `WorkStatPolicyRegistry`는 현재 등록 정책의 definition maximum과 source digest를 다형적으로 조회하며 Gather `1.10`, Logging `1.08²`, AnimalCare `1.04⁴`, 나머지 명시적 neutral 경로를 제공한다. 등록된 신규 정책이 maximum source를 구현하지 않거나 unknown work type이면 fail-loud한다. `ProductionWorkStatPolicyMaximumContributor`는 recipe의 exact `WorkTypeId`와 이 권위를 결속하고 nano fixed-point로 보수적 상향한다. `ProductionCharacterPerformanceMaximumContributor`는 `CharacterPerformanceFormulaCatalog.RequireWork(workType, Speed)`와 기존 `ICharacterPerformanceDefinitionMaximumQuery`를 재사용해 base·functional capacity·proficiency·gameplay-effect maximum을 같은 formula provenance로 발행한다. formula mismatch·미작성 mapping은 typed gap이며 actor `ContextFactor`를 임의로 흡수하지 않는다. focused tests는 neutral/non-neutral 경계, 등록 순서 결정론, wrong/missing source, formula drift를 통과했고 Unity compile 및 기존 work-rate authority 회귀도 PASS, Console Warning/Error `0/0`이다. 수치·SO·save·DI 변경은 `0`이다. environment/context, evolution, powered assist, craftsmanship, automatic rate, PassiveBatch와 특수 producer가 남아 있어 상위 체크박스는 계속 OPEN이다.
+
+2026-08-30 room/craftsmanship/automation work-rate 하위 경계 증거: live 방 환경 공식의 score weight `0.6/0.4`, score clamp `0..100`, speed `0.85 + score×0.003`, clamp `0.85..1.15`와 적용 work-type 집합을 `RoomWorkEnvironmentRateAuthority`로 단일화하고 live query와 definition maximum이 같이 사용한다. Restore-valid `CraftsmanshipQualityTier` 전수를 열거하는 query는 Mythic `1.60`을 보수 상한으로 선택하며 undefined enum의 과거 neutral fallback을 fail-loud로 교정했다. `AutomationWorkRateAuthority`는 live condition/assist 공식을 공유하고, PoweredAssist contributor는 facility ability의 authored mode/multiplier를, 실제 automatic query는 mode-exclusive lane과 `automaticWorkPerSecond × conditionMaximum`을 결속한다. Manual factor와 Automatic rate를 섞지 않으며 manual-only lane은 상위 authority에서 automatic `0`이다. 공용 `ProductionFacilityDefinitionCatalog`가 canonical facility identity를 한 번만 동결한다. focused suite는 affected/non-affected room work, Mythic/invalid craftsmanship, assisted/manual ability, automatic lane mismatch와 `1.25 WU/s → 1250 mWU/s` 통합을 PASS했고 최종 Console Warning/Error `0/0`이다. Broad Industrial suite는 기존 별도 fuel-outbox ratchet에서 중단되어 증거에서 제외했다. authored 수치·SO·save·DI 변경은 `0`; actor context, facility evolution, full manifest/DI, PassiveBatch·special producer·전수 profile가 남아 상위 체크박스는 OPEN이다.
+
+2026-08-30 facility-evolution work-rate 하위 경계 증거: `FacilityEvolutionWorkSpeedDefinitionMaximumQuery`가 exact facility role/work type, canonical `IEvolutionModuleRegistry.All`, restore-valid active node 상한 `256`, 동일 module 반복 가능성과 benefit/burden 조합을 통해 `service.speed` 상한을 계산하고 live 최종 clamp `0.1..8`을 보존한다. `ProductionFacilityEvolutionWorkRateMaximumContributor`는 exact facility definition과 recipe work type을 이 snapshot에 결속하고 facility-catalog/evolution source digest를 함께 발행한다. 현재 service+Operate는 `8`, nonservice 또는 다른 work type은 `1`; missing facility, unknown work type, duplicate/null/non-finite module은 typed gap 또는 fail-loud다. Unity current-source compile 및 query/contributor focused suites PASS, Console Warning/Error `0/0`이다. 이 변경은 authored kg·BOM·WU·EWU·가격·SO·save 값을 바꾸지 않으며, actor context provenance와 complete manifest/DI, PassiveBatch, special producer, `92/92` profile, capacity `@5` 및 atomic support publication이 남아 parent Batch B는 계속 OPEN이다.
+
+증거는 `Artifacts/QA/v27-production-execution-mode-exclusion-focused.txt`다. broad `ProductionEconomyDebugScenarios`는 별도 destructive-drain topology ratchet에서 중단됐으므로 PASS로 기록하지 않는다. 이번 하위 경계는 authored kg·BOM·WU·EWU·가격·시설·asset·save schema를 변경하지 않았다. 상위 체크포인트는 Batch A `31/31`, Batch B `36/40`, Batch C `8/39`, parent remaining `35`로 유지한다.
+
+## 122. 2026-08-30 캐릭터 작업 문맥·DI 구성 및 특수 producer 소유권 census
+
+상태: **character-context factor provenance PASS / production DI actual GameplayScene container PASS / recipe-only actual projector `85/85` PASS / special owner coverage `7 facilities · 904/904 branches` PASS / Apparel `549/549`·Combat `295/295`·Crop `48/48`·CertifiedSeed `12/12` actual cycles PASS / frozen profile·atomic publication OPEN / Batch B `36/40` 유지**.
+
+- [x] 캐릭터 작업속도 문맥의 9개 factor(research shared, fatigue, discontent, transient skill, deprivation, substance, character environment, equipment burden, content delay)를 live 공식과 같은 실행 없는 definition-maximum 권위로 연결했다. 모든 authored/runtime aggregate는 finite 검증, stable 순서와 source digest를 가지며 transient skill은 `0.1..2.5`, substance는 `0.45..1.75`, 최종 work rate는 공용 `0.05..8` clamp를 유지한다.
+- [x] 장비 부담 공식의 오래된 `20kg` literal은 이미 확정된 `CharacterCarryTuning.NominalBaseCapacityKilograms = 25kg` 단일 권위를 조회하도록 교정했다. 이는 새 authored kg 변경이 아니라 동일 nominal 권위의 중복 상수 제거다.
+- [x] 실제 WorkStat와 RoomEnvironment singleton이 maximum-query interface도 함께 노출되고, facility catalog·craftsmanship·assist·automatic·character context·facility evolution 및 7개 work-rate contributor와 canonical manifest가 production composition root에 등록됐다. 실제 GameplayScene `DungeonRuntimeLifetimeScope.Container`에서 exact 7개 contributor, 두 singleton identity와 4개 special owner를 resolve해 live graph까지 증명했다.
+- [x] 첫 live container 실행은 `ProductionFacilityDefinitionCatalog`가 negative-ID runtime archetype을 authored facility로 해석해 fail-loud했다. current asset의 `377` authored definition과 `42` runtime-only exterior/world archetype을 전수 확인하고 catalog schema를 `@2`로 올렸다. non-workstation runtime archetype만 제외하며, 유효 workstation ability를 가진 identityless 정의는 계속 예외로 거부한다.
+- [x] focused catalog 경계 test와 actual PlayMode report가 PASS했다. 확장된 `Artifacts/QA/v27-production-work-rate-composition-playmode.txt`는 `2,240 bytes`, SHA-256 `683111B94D583B6649DDA71FC0EAB1E82FB26DA926518DAE266BBBEB96DB8C8C`; 2회차 hash·length·mtime 변화 `0`, Console Warning/Error `0/0`, GameplayScene SHA-256 불변이다.
+- [x] `ProductionSpecialThroughputContributorRegistry`는 applicable capacity의 owner가 없으면 branch별 `SpecialThroughputProviderUnregistered`를 발행하고, 반환 직전에 `applicable authored branch key 집합 == candidate ∪ gap key 집합`을 fail-loud 검증한다.
+- [x] capacity ID당 정확히 한 owner인 `CertifiedSeedSpecialThroughputGapContributor`, `CropHarvestSpecialThroughputGapContributor`, `ApparelSpecialThroughputGapContributor`, `CombatCraftSpecialThroughputGapContributor`를 등록했다. crop 4시설은 같은 capacity ID를 공유하므로 owner는 시설별 4개가 아니라 capacity별 1개다.
+- [x] current-source census는 `146` workstation, `92` producer를 `85 recipe-only + 7 special`로 분류한다. special 7개 중 recipe도 가진 overlap은 `4`이며, 이를 별도 수치로 보존해 중복 집계를 방지한다.
+- [x] special branch는 총 `904`: `AuthoredCycleAuthorityMissing 60`(crop `48` + certified seed `12`), `ExecutionAuthorityUnsupported 844`(combat `295` + apparel `549`), `SpecialThroughputProviderUnregistered 0`, candidate `0`이다. 따라서 소유권 누락은 닫혔지만 actual cycle 처리량은 아직 완성되지 않았다.
+- [x] Unity current-source compile, `ProductionSpecialThroughputContributorRegistryDebugScenarios.Validate()`와 `ProductionFacilityOutputCensusDebugScenarios.RunAll()`이 PASS했고 최종 Console Warning/Error는 `0/0`이다. 첫 overlap 기대치 `0`은 current source가 `4`임을 fail-loud로 드러냈고, 이 실패 실행은 증거에 포함하지 않았다.
+- [x] report는 `Artifacts/QA/v27-production-facility-output-census.txt`, SHA-256 `12CAB06AE8DA9C5FE50C249028F52EB2DC7AD4E1DD7E9C3C8F0595C49E995133`, `670 bytes`; CSV는 SHA-256 `272652EC1F158856F93DFEC4F176232EEB58B1F2B2DA92CFD63E571AE55C080F`, `175,917 bytes`다. 두 번째 생성에서 두 파일의 hash·length·UTC write ticks가 모두 동일했다.
+- [x] 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 불변이다. ScriptableObject, BOM, WU, EWU, 가격, save schema 변경은 `0`이다.
+- [x] 모든 `85` recipe-only key의 실제 branch/work-rate projector를 실행했다. production content와 actual GameplayScene container의 work-rate `7/7`, maximum-mass capability `8/8`, 공용 `7,500,000µs/game-hour` 권위로 `271` recipes와 `278` exact support assignments를 투영했다. 최초 결과의 WorkOnly `266` candidate와 PassiveBatch `12` typed gap은 공용 normal/ruined 포트폴리오 연결 후 최종 `278` candidate, gap `0`, complete envelope `85`, withheld facility key `0`으로 폐쇄됐다. 후보 source digest 중복은 `0`이다.
+- [x] 첫 actual 전수 실행이 numeric building ID를 거부하던 facility-evolution 결함을 발견했다. 공용 `BuildingDefinitionIdentity`가 명시 stable ID 또는 정상 numeric authority를 동일 canonical key로 투영하도록 production/facility-evolution을 통합했고 focused 및 actual PlayMode 재실행이 PASS했다. production·crop·automation의 중복 `7.5초` 상수도 assembly-low `GameSimulationTimeRules`로 통합했다.
+- [x] `ProductionPassiveBatchOutputPortfolioAuthority`가 exact assignment별 normal productive branch와 ruined terminal-fault branch를 한 번만 계산한다. throughput은 deterministic normal만 발행하고, capacity source `@5`는 normal/ruined 중 큰 물리 질량을 사용한다. ruined 보존식과 mass revision 일치가 fail-loud다.
+- [x] 최종 deterministic projection CSV `Artifacts/QA/v27-production-recipe-throughput-playmode.csv`는 `278`행, `52,489 bytes`, SHA-256 `0DD6C9F49A3FB2B44BF27F4198F724E21B0B8D07211D83D87B6CD799E1629225`; report는 `2,044 bytes`, SHA-256 `E9955684EA9588EC930736D06F61EBD90106741A2556402F4E968775B508092E`다. 두 번째 실행은 report와 CSV 모두 hash·length·UTC write time 변화 `0`; Console Warning/Error `0/0`, GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 불변이다.
+- [x] certified seed·crop·apparel·combat의 실제 cycle 권위를 구현하여 `904` typed gap을 candidate로 전환한다. actual GameplayScene은 `904 candidates / 0 gaps`다.
+  - [x] Apparel `549`개 branch는 실제 material/size/modification work 계산, shared branch mass, 공용 7-factor work-rate, mode-exclusive lane과 game-hour 권위로 candidate 전환했다. primary `56`, 실제 nonempty rejected-backlog recovery `493`, Apparel-local gap `0`이다. recovery는 이미 존재하는 rejected backlog의 독립 peak phase이므로 `execution:backlog-recovery`와 recovery-only `max(0.1 WU, primary WU * 0.20)`를 사용하며, 원료부터의 지속 처리량과 혼동하지 않는다.
+  - [x] Combat `295`개 branch는 primary `63`(equipment `61` + ammunition `2`)과 실제 nonempty rejected-backlog recovery `232`를 모두 candidate로 전환했다. ammunition `4 WU`와 recovery `max(0.1 WU, primary WU * 0.25)`는 live runtime과 공용 권위이며, 실제 legacy craft가 actor lane만 사용하므로 mode-exclusive forge의 automatic lane은 검증만 하고 처리량 후보로 선택하지 않는다.
+  - [x] Crop `48`개 branch는 4개 시설과 12개 crop의 실제 sow → calendar-integrated growth → harvest 직렬 cycle로 candidate 전환했다. 야외는 현재 180초 하루 중 night 65초에 `0.55`, 나머지 115초에 비야간 배율을 적용하고 실내는 야간 감속을 적용하지 않는다.
+  - [x] CertifiedSeed `12`개 branch는 current save V6의 persisted monotonic `lastProcessedOperatingDay` gate와 같은 권위를 사용한다. strictly newer positive day만 처리 기회를 열고 duplicate/stale day는 `0`; 각 branch throughput은 24 operating hours당 physical output 1개다. 과거 세이브 migration/fallback은 추가하지 않았다.
+- [ ] complete `92/92` frozen profile, capacity source `@5`, atomic support publication과 live `4.000/4.001`을 통과한다.
+
+2026-08-30 Apparel actual-cycle 추가 증거: generic operation work-rate subject/query, full immutable special facility subject, shared branch-mass query와 lane-aware `ProductionWorkCycleThroughputAuthority`를 추출해 recipe와 special producer가 동일 권위를 사용한다. actual GameplayScene census는 `904 branches / 549 candidates / 355 gaps`, 남은 gap은 authored-cycle `60`과 execution-unsupported `295`, unregistered `0`이다. PlayMode는 `17/17 PASS`; report는 `2,167 bytes`, SHA-256 `C9F9BAFDF2D675E1DF9CAB95FCC72B123E4D46FDB95C7DC20248D03E43AEBFEB`, CSV는 `52,489 bytes`, SHA-256 `1AF2DD226628285893389AC9C4A3B6449B101B4D652D0664B677CD5470CD5A08`이다. 두 번째 실행에서 두 파일의 hash·length·UTC write time 변화는 `0`, Console Warning/Error `0/0`, GameplayScene SHA-256은 불변이다.
+
+2026-08-30 Combat actual-cycle 추가 증거: branch identity, ammunition `4 WU`, rejected-backlog `25%` 규칙을 live runtime과 감사가 공유하고, equipment primary는 합법 material 전수의 실제 계산 WU를 평가한다. `CaptureManualOnly`은 S08의 authored automatic lane을 실행 가능 Combat 경로로 오인하지 않는다. actual GameplayScene census는 `904 branches / 844 candidates / 60 gaps`, remaining은 Crop+CertifiedSeed authored-cycle뿐이다. PlayMode `17/17 PASS`; report는 `2,171 bytes`, SHA-256 `59124B4C325ACAF6466C41E2C8236661A5FF0505C81F1FA96FA85BA7148C86DA`, CSV는 `52,489 bytes`, SHA-256 `DE79E9ECC5DD4B0A5988B69CE02CFACF5CA1D94370BD3D2AB33F64C832DF678F`이다. 2회차 hash·length·mtime 변화 `0`, Console Warning/Error `0/0`, GameplayScene SHA-256 불변이다.
+
+2026-08-30 Crop actual-cycle 추가 증거: shared growth multiplier와 branch identity를 runtime/capacity/throughput이 함께 사용하고, sow·calendar-integrated growth·harvest를 하나의 직렬 cycle로 계산한다. focused `48 candidates / 0 gaps`, actual GameplayScene `904 branches / 892 candidates / 12 gaps`이며 남은 gap은 CertifiedSeed뿐이다. PlayMode `17/17 PASS`; report는 `2,176 bytes`, SHA-256 `02DB67909E75552EBF47C09360CDA88612DA33586FCA936756C914AF569CBBB9`, recipe CSV는 SHA-256 `DE79E9ECC5DD4B0A5988B69CE02CFACF5CA1D94370BD3D2AB33F64C832DF678F`로 불변이다. 2회차 hash·length·mtime 변화 `0`, Console Warning/Error `0/0`, GameplayScene SHA-256 불변이다.
+
+2026-08-30 CertifiedSeed actual-cycle 추가 증거: command와 adapter는 operating-day 번호를 전달하고 runtime은 persisted monotonic gate를 주문 처리 전에 커밋한다. save V6 round-trip, duplicate/stale/new day focused 검증과 physical transaction suite가 PASS했다. actual GameplayScene special census는 `904 candidates / 0 gaps`, PlayMode `17/17 PASS`; report는 `2,157 bytes`, SHA-256 `EE46049236A606B83B1CF8CE4CDE703A26113E3D18ACB13EACA3F1F518F9A01D`, recipe CSV는 `52,489 bytes`, SHA-256 `DE79E9ECC5DD4B0A5988B69CE02CFACF5CA1D94370BD3D2AB33F64C832DF678F`다. 2회차 hash·length·mtime 변화 `0`, Console Warning/Error `0/0`, GameplayScene SHA-256 불변이다.
+
+이 checkpoint는 Apparel·Combat·Crop·CertifiedSeed actual-cycle의 실제 source/compile/PlayMode 경계를 닫았지만 생산량 밸런스나 Batch B parent를 완료하지 않는다. complete `92/92` frozen 32-seed profile과 capacity `@5` atomic publication이 남아 있다. 상위 체크포인트는 Batch A `31/31`, Batch B `36/40`, Batch C `8/39`, parent remaining `35`다.
+
+2026-08-30 P17 natural-clearance `@2` 재생성 증거: sanitized PlayMode lease로 seed `157181..157212`를 공통 checkpoint에서 실제 `AIBrain -> AIHaul` 경로로 재실행했다. CSV는 `building:1089/workstation:feedbench`의 PASS `32`행, distinct seed `32`, schema `v27-production-output-clearance-natural-seed@2`, 빈 `batchCommitId` `0`이다. report SHA-256은 `AEE55B4E189E23E6478472091274F41DF796508F8E346E040AE43FF57DEC1783`, CSV SHA-256은 `B22187E7AD86B8F438094EAD7ABA119C587AD791D8DAD1D4698D15A9E03096E7`, Console Warning/Error `0/0`, GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 불변이다. 이는 실패한 구 `@1` 산출물 교체와 P17 하위 경계만 닫는다. complete frozen profile의 엄격 분모는 `92 × 32 = 2,944`이며 현재 인증 coverage는 `32/2,944`; 따라서 `92/92` provider, capacity `@5`, atomic publication 및 Batch B parent는 계속 OPEN이다.
+
+2026-08-30 producer-wide authored envelope 증거: actual GameplayScene container에서 `85` generic recipe key와 `7` special key를 공용 envelope 권위에 결합했다. generic 경로는 `271 recipes / 278 exact support candidates`, special 경로는 실제 `904 candidates / 0 gaps`를 사용하며, 4개 recipe/special overlap의 tag-matched recipe를 generic 실행 가능 경로로 중복 투영하지 않는다. 결과는 `92/92 complete envelopes / 0 gaps`, catalog digest `2d7f7cb577e6e76e03495d232a9f547c4466cfc1fa8cce91cb3e5436e1a6dd6f`이다. 재사용 가능한 current-source scope query도 같은 정상 product-boot verifier에서 별도 검증했다. current report SHA-256은 `902ADF3229683300DCCB2CCA65885F6F2FEE982B4DBC51CE69C51690F88F8053`, 92행 envelope CSV SHA-256은 `93B58E869B745542A8CB9FBE45A454B8D3BA79AB96710714C1A299BC38EC446E`; 2회차 report/envelope/recipe artifact의 hash·length·mtime 변화 `0`, Console Warning/Error `0/0`, GameplayScene SHA 불변이다. 이로써 throughput envelope 선행조건만 닫는다. natural clearance는 여전히 `1/92 keys`, `32/2,944 observations`이므로 frozen provider와 Batch B parent는 OPEN이다.
+
+2026-08-30 frozen profile cardinality 방어 증거: `ProductionOutputClearanceProfileAggregator.BuildFrozen`은 명시적 unique seed cohort, exact profile count, exact `profileCount × seedCount` 총행과 각 `(definitionId, workstationTag, seed)`당 정확히 한 batch를 요구한다. 같은 key/seed의 다른 `batchCommitId`, 승인되지 않은 추가 seed 행, 누락 profile/envelope는 fail-loud다. Unity compile과 focused catalog suite PASS, Console Warning/Error `0/0`이다. 이는 불완전·중복 산출물의 freeze를 막는 경계이며 누락된 `2,912` natural observation을 대신하지 않는다.
+
+2026-08-30 capability 기반 measurement plan 증거: `ProductionOutputClearanceMeasurementPlanRegistry`는 facility ID별 분기 없이 recipe/Crop/Apparel/Combat/CertifiedSeed source capability를 측정 실행 capability에 결속한다. 공용 branch-mass 권위로 maximum single-completion physical footprint를 선택하고 mass-descending + ordinal tie-break로 결정론을 유지한다. unique output capability는 immutable plan에 보존되며 unregistered/unsupported payload는 typed gap으로 실패하고 generic item fallback은 금지된다. Unity compile과 focused registry suite PASS, Console Warning/Error `0/0`이다. 이 단계는 measurement plan foundation만 닫으며 runtime execution과 `2,912` remaining observation은 OPEN이다.
+
+2026-08-30 current-source `92/92` clearance measurement plan 증거: recipe branch snapshot이 maximum-mass projector가 실제 선택한 output capability ID를 immutable하게 보존하도록 확장했다. WorkOnly은 exact line projection, PassiveBatch는 productive normal portfolio projection을 사용하며 item/recipe 이름 추측과 generic-item fallback은 없다. `ProductionOutputClearanceMeasurementScopeAuthority`는 공용 92-producer scope, 278 feasible recipe assignments와 special facility의 current capacity contribution을 결합하고 special contributor ID/source digest를 census와 exact 대조한다. actual GameplayScene product boot 결과는 `92 contexts / 92 plans / 0 gaps`, recipe branch `278`, special branch `904`, candidate `1,182`이며 focused 회귀와 Console Warning/Error `0/0`을 통과했다. 92행/92키 manifest SHA-256은 `7D2F060E0C42C955A97A9E25FD18F3A4969D6608C07D75F575210F698C9CFEF2`, 20/20 통합 report SHA-256은 `C10F418D4642F7E02670FE35F328BB8D36C25E3935F4FE33C44FD6A57A9D5451`이다. 두 번째 PlayMode 실행에서 report/manifest/envelope/recipe CSV의 hash·length·UTC write ticks가 모두 불변이고 공식 GameplayScene SHA-256도 유지됐다. 이는 92-key 측정 계획과 manifest 하위 경계만 닫는다. 자연 observation은 여전히 `1/92` keys, `32/2,944` rows이므로 남은 `2,912`개 계측, frozen provider, capacity `@5`, support/profile atomic publication 전에는 상위 체크박스와 Batch B parent를 닫지 않는다.
+
+2026-08-30 exact `92×32` 실행 포트폴리오 및 natural-observation acceptance gate 증거: `ProductionOutputClearanceMeasurementPortfolio`가 current-source `92` measurement plans와 고정 seed `157181..157212`를 정확히 교차하여 unique fixture/observation ID `2,944`개를 발행한다. `ProductionOutputClearanceNaturalObservationPortfolio` schema `@3`는 각 행을 frozen fixture, runtime facility, resolved output vector, positive committed batch mass, unique batch commit, topology/owner/action 증거, exact micro→milli-hour timing, clean telemetry, scheduler/delivery completion, RNG provenance와 전체 record digest에 결속한다. 누락 행과 중복 commit은 fail-loud다. actual GameplayScene product boot는 `22/22 PASS`, portfolio `2,944`, structural gate accepted `2,944`, missing/duplicate rejection PASS, Console Warning/Error `0/0`이다. portfolio CSV는 `1,653,743 bytes`, SHA-256 `7470240809D8CFB2E308BB0AD0206DE66D946EBF8E896130D497721640347565`; integrated report는 `3,048 bytes`, SHA-256 `DA90540A8C93BC4FC4AA21F61855ABC4B3B29B791974F5468445E34BDBD9E953`이며 반복 실행에서 hash와 artifact write 상태가 유지됐다. 공식 GameplayScene SHA-256도 불변이다. 단, structural acceptance fixture는 자연 계측으로 세지 않는다. live certified coverage는 여전히 `32/2,944`, remaining `2,912`이며 generated frozen provider, capacity projection, atomic publication과 Batch B parent는 OPEN이다. 부모 체크포인트는 `A 31/31, B 36/40, C 8/39`, parent remaining `35`로 유지한다.
+
+2026-08-30 Crop/Apparel accepted-output natural-haul routing 증거: Crop harvest의 physical reserve/publication/admission은 기존 FacilityOutputBuffer atomic batch를 유지하되 acknowledgement disposition을 `ReleaseLooseOrDestination`로 교정했다. harvest와 returned SeedLot 두 line은 동일 provenance를 유지한 unassigned Loose stack으로 원자 해제되어 일반 AIHaul 후보가 된다. active/frozen/committed owner validation도 동일 disposition을 요구한다. 실제 Crop PlayMode는 capacity-full wait, frozen capture/restore, exact retry, 두 line Loose release와 replay delta `0`을 통과했고 report SHA-256은 `73767D9223B5E177D215116EB92334345A2C74A178FF5EDFAC10BAAB849D6535`, Console Warning/Error `0/0`이다. accepted Apparel은 fresh batch에 `TryAcknowledgeAndReleasePublishedBatch`, pending/restore candidate에 `TryAcknowledgeAndReleaseRestoreCandidate`를 사용한다. one-shot acknowledgement mutation failure 회귀에서 첫 실행은 committed FacilityOutputBuffer와 input receipt를 보존하고, retry는 같은 unique stack/instance/component/mass를 Loose로 원자 해제하며 재소비·복제 `0`을 증명했다. mark-for-sale 경로는 별도 market route로 유지했다. Apparel focused suite와 Unity compile은 PASS, Console Warning/Error `0/0`; integrated producer report SHA-256은 기존 `DA90540A8C93BC4FC4AA21F61855ABC4B3B29B791974F5468445E34BDBD9E953`로 byte-identical이고 GameplayScene SHA-256도 불변이다. 이 증거는 Crop 및 accepted-Apparel의 publication→natural-haul P0 하위 경계만 닫는다. executable descriptor/handler, Crop maximum-batch storage topology, live `2,912` observation과 frozen provider는 OPEN이며 부모 체크포인트는 `A 31/31, B 36/40, C 8/39`, remaining `35`로 유지한다.
+
+2026-08-30 exact winner-mass gate 및 recipe executable descriptor 증거: 자연 관측 schema를 `production-output-clearance-natural-observation@4`로 올리고 실제 batch mass가 선택된 winner의 `MaximumSingleCompletionMassGrams`와 정확히 같을 때만 생성되도록 교정했다. `winner-1g` synthetic observation은 portfolio 진입 전에 fail-loud하므로 작은 정상 배치가 최대 branch 관측으로 위장할 수 없다. `ProductionOutputClearanceRecipeExecutableDescriptorContributor`는 recipe-backed plan `85`개 전부를 exact current-source facility/recipe, feasible support assignment, selected throughput branch, process/work/research/fluid/temperature 권위, physical input, maximum output line/capability/mass에 재결속한다. quarry 같은 합법적인 zero-input Source recipe는 허용하지만 outputless/duplicate physical line과 branch drift는 거부한다. actual GameplayScene product boot 결과는 `23/23 PASS`, descriptor `85`, special typed gap `7`, reduced-winner-mass rejection `True`, Console Warning/Error `0/0`이다. descriptor digest는 `74b4b906f1753d6b269d1b8ecaa6ba952ef9cc6ddd9412a6100377a39f969666`, observation gate digest는 `31cb7601dc889218094825ba90fccbfe5b3216d51f41fe622ef64bbf8bc5bc74`, report SHA-256은 `108602D86ECB2549CA7B744B62B2D9505E8DAF78EB57A560040C37DD5B0BBAE1`이다. 두 번째 실행에서 report와 92-row plan, 2,944-row portfolio의 hash·length·mtime 변화는 모두 `0`; GameplayScene SHA-256도 불변이다. 이로써 exact-mass acceptance와 generic recipe descriptor 하위 경계만 닫는다. 4개 typed special contributor가 담당할 7시설, executable handler, Crop maximum-batch storage topology, live `2,912` observation, frozen provider 및 capacity/atomic publication은 계속 OPEN이고 부모 체크포인트는 `A 31/31, B 36/40, C 8/39`, remaining `35`로 유지한다.
+
+2026-08-30 Combat/Apparel/Certified Seed executable descriptor 증거: Combat은 실제 선택 material과 전체 physical input vector, Apparel은 apparel ID·선택 material item·size·modification·exact quantity를 current branch에 동결했다. Certified Seed는 공용 `CertifiedSeedPhysicalTransformAuthority`를 런타임과 descriptor가 함께 사용하며, authored base-genome/generation 0/pathogen 0의 exact input `SeedLotState`와 변환 후 output component를 canonical fingerprint로 동결한다. seed 1개·certification kit 1개·출력 1개와 capability/codec, winner `50g`을 모두 current capacity branch에 결속했다. 또한 `CertifiedSeedPlanExecutionReceipt`/`ICertifiedSeedExecutionReceiptQuery`를 추가해 runner가 private ID 포맷을 재구현하지 않고 action→order→destination→input operation→output owner/batch를 추적할 수 있게 했다. focused receipt 테스트와 Unity compile PASS. actual GameplayScene product boot는 `23/23 PASS`, descriptor `88/92`, Crop typed gap `4`, recipe `85`, Combat/Apparel/Certified Seed 각각 `1`, Console Warning/Error `0/0`; report SHA-256 `3D25FA67BBA45431343489F69BCAEF17190495C8137BA59977EABC72A40C99F2`, plan `5D5AB93120FF92080C69C7A7AD8169742A39C3DAA8D002B90B02DD433AF93099`, portfolio `911EA0D00DEC3410DB8E031B0AD6935281B849C5AEB23623D4C0A2A0D97D40F4`이며 반복 실행 hash·length·mtime 변화 `0`, GameplayScene SHA 불변이다. Certified descriptor 하위 경계만 닫았고 실제 single-boot handler는 OPEN이다. Crop 4개는 현재 `3.43–4.12t` execution-free upper bound가 단일 runtime state에서 도달 가능하다는 witness가 없고 현재 `12.5–27kg` 저장 topology로 전량 clearance할 수 없어 단순 contributor 등록을 금지한다. live natural coverage는 `32/2,944`, parent checkpoint는 `A 31/31, B 36/40, C 8/39`, remaining `35`다.
+
+## 123. 2026-08-30 Crop 실행 영수증·저장 수명주기 폐쇄
+
+상태: **Crop exact execution receipt·terminal save/restore·physical batch join PASS / natural `AIBrain → AIHaul` measurement handler OPEN / Batch B `36/40` 유지**.
+
+- [x] Crop Plot current-format 저장을 V10으로 올리고 `crop-cycle-execution-receipt@2` 권위를 추가했다. 전역 유일 explicit action ID가 exact sow operation, ordered input lot·quantity·gram·seed state·request digest와 terminal harvest operation/batch를 한 owner에 결속한다.
+- [x] 성공 terminal은 harvest와 returned seed의 exact two-line output, item/quantity/unit gram/instance ID, capability descriptor·fingerprint, outcome/planned fingerprint와 aggregate mass를 보존한다. restore에서는 capability fingerprint와 receipt digest를 재계산하며 duplicate line, mass drift, scalar garbage와 비정규 ID를 fail-loud한다.
+- [x] explicit terminal receipt는 measurement consumer가 동일 action을 acknowledgement하기 전까지 다음 자동 crop cycle이 덮어쓰지 못한다. save/restore 뒤에도 query 가능하고 premature/duplicate acknowledgement와 plot 간 correlation 중복은 거부한다.
+- [x] crop death, plot destruction과 destruction-before-sow는 action을 조용히 삭제하지 않고 각각 typed terminal failure를 발행한다. Unity `JsonUtility`가 null `SeedLotState`를 all-default 객체로 복원하는 경우에는 정확히 모든 필드가 기본값인 semantic-empty만 absent로 인정한다.
+- [x] `CropPhysicalTransactionFixture.Run()`은 Begin/Complete/Fail/FailBeforeSow, immutable witness, JSON digest round-trip, capability·mass tamper와 strict-empty rejection을 PASS했다.
+- [x] 실제 GameplayScene `CropPlotDebugScenarios`는 `valid=true`, `executionReceipt=true`, `physicalBatchJoin=true`, `terminalRestore=true`, `ackRetention=true`다. acknowledgement 전 실제 two-line committed batch와 receipt를 exact join했고 acknowledgement 뒤 owner가 제거되며 duplicate ack가 거부됐다. report는 `975 bytes`, SHA-256 `C165D46CE2458BBEF13D39E8C648606942CF5A0D1D7B7369B78F180D6E74FD5E`다.
+- [x] 전체 product boot는 `23/23 PASS`, descriptor `92/92`, typed gap `0`, portfolio `2,944`를 유지한다. report/plan/portfolio SHA-256은 각각 `852F4BBED72EB11C617A7B34DFB6AE88EA95B6148DD56374EEF7855254EB3FB9`, `9D82A23CBCF970748198BB44EF735EE428F10E9EF1A97E95C275123B344CA6F8`, `D1EF74504D3A82C8ADBC91C02D55B9DD8EBD973846358EA052C39C7A82620B0E`이며 두 번째 실행에서 hash·length·mtime이 모두 동일했다.
+- [x] 최종 Console Warning/Error `0/0`, GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8` 불변을 확인했다.
+- [ ] released two-line output과 exact receipt를 자연 `AIBrain → AIHaul` measurement handler에 연결하고, observation acceptance 성공 뒤에만 receipt acknowledgement를 수행한다.
+
+이번 체크포인트는 실제 코드·저장 계약·focused/PlayMode 회귀가 추가된 구현 진척이다. 다만 natural measurement handler와 `92 × 32 = 2,944` 실측 생성, frozen provider가 남아 있으므로 certified live coverage는 `32/2,944`이며 상위 체크포인트는 `A 31/31, B 36/40, C 8/39`, parent remaining `35`로 유지한다. 상위 숫자 유지가 코드 진척 없음이라는 뜻은 아니다.
+
+## 124. 2026-08-30 Unity 재시작 복구·Batch D 별도 무변경 실행·relocation 저장 토폴로지
+
+상태: **Batch D schema-v2 별도 2회차 byte/no-write PASS / relocation completion·save-topology focused PASS / 상위 Batch B·D OPEN**.
+
+- [x] 재시작된 Unity Editor가 `IsPlaying=false`, `IsCompiling=false`, `IsUpdating=false`인 상태로 MCP에 다시 연결됨을 확인했다.
+- [x] `V27PhysicalMassFamilyProposalDebugScenarios.RunFromMenu()`를 이전 실행과 분리된 새 Unity command로 다시 실행했다.
+- [x] CSV는 `421,303 bytes`, SHA-256 `BDB3E502DAA9EA9C4B110141B7EA44B82220B29E089CB83C4889602D08744066`; report는 `932 bytes`, SHA-256 `466475480671ED443C404F65A79F2D397E81772BDA7FBB9FFED20A20511EF788`을 유지했다. 두 파일의 UTC last-write time도 바뀌지 않아 기존 byte와 같을 때 writer가 파일을 건드리지 않는 별도 실행 no-op을 증명했다.
+- [x] fresh CSV는 `v27.mass.family-proposal.2`, `414`행, `19`열이다. report는 `ready=7`, `unchanged=353`, `critical=54`, `warning=0`, `assetMutations=0`, `deterministicRecapture=PASS`다.
+- [x] `FacilityRelocationCompletionFenceFixture.Run()`을 current loaded assemblies에서 실행하여 relocation completion fence와 canonical save-topology positive/negative matrix를 통과했다.
+- [x] 최종 Unity Console Warning/Error는 `0/0`; 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 불변이다.
+- [ ] 이 focused validator는 live active authority retarget이 아니다. relocation/evolution/synthesis의 persistent survivor ID, 6 participant 가역 retarget, set-level synthesis rollback, 공통 start/reserve freeze, journal save/restore와 실제 PlayMode가 통과하기 전에는 Batch B의 세 parent 행을 닫지 않는다.
+- [ ] Batch D의 54 Critical은 `missing-unit-semantic 51`과 singleton heavy-equipment haul-band 경계 `3`이다. anomaly review, warehouse/buffer gram authority, EWU/price 재생성 및 승인된 값의 ScriptableObject 적용 전에는 Batch D를 닫지 않는다.
+
+현재 고정 진행률은 Batch A `31/31`, Batch B `36/40`, Batch C `8/39`, 열거된 A-C 부분집합 `75/110`; 전체 A-H 완전 종료는 Batch A만인 `1/8`이다.
+
+## 125. 2026-08-30 질량 설명 가능성 계약과 proposal dependency gate
+
+상태: **입력=출력 강제 폐기 / typed external-input·sink·loss 설명 계약 반영 / recipe audit v2·family proposal v3 PASS / authored kg 적용 0**.
+
+- [x] 최상위 질량 판정을 `physical input + declared external input = physical output + byproduct + terminal sink + declared abstract loss`로 교정했다. 현실 질량 불변을 강제하지 않고, 소유권·수량 exactness와 EWU SCC 무차익은 별도 strict invariant로 유지한다.
+- [x] 증기·분진·배기·미량 폐기·일회용 포장은 gameplay 의미가 없으면 물리 item을 강제하지 않는다. exact gram·reason·operation에 결속된 추상 손실로 허용한다.
+- [x] 포장 tare를 `ReusableContainerReturn / DisposableWasteByproduct / DestroyedDuringUse / TransferredWithOutput / BulkInfrastructureNotInUnit`로 분리하고 reusable로 작성된 경우에만 빈 용기 반환을 강제한다.
+- [x] recipe inventory schema를 `v27.mass.recipe-inventory.2`로 올렸다. 기존 `mass-creation-critical`은 `external-input-authority-missing`, `disposition-contract-missing`은 `mass-balance-explanation-missing`으로 교정했다. 현재 `355` recipe는 Source `23`, Sink `4`, reviewed exact `42`, unit semantic missing `47`, external-input authority missing `80`, explanation missing `159`다.
+- [x] family proposal schema를 `v27.mass.family-proposal.3`으로 올리고 current recipe authority를 직접 재캡처한다. 변경되는 item의 producer/consumer 중 설명 계약이 열려 있으면 `proposal-blocked:dependency-mass-contract-open`으로 차단한다.
+- [x] singleton maxStack `1`인 12~13kg 중장비 세 개를 `intentional-single-heavy`로 분류하여 거짓 Critical을 제거했다. Critical은 unresolved semantic `51`만 남았다.
+- [x] 기존 변경 후보 `7`개는 즉시 후보 `5`, dependency-blocked `2`로 분리됐다. `material:flour`는 `recipe:ration-mixture`, `material:lumber`는 current open producer/consumer mass explanation 계약이 닫힐 때까지 적용하지 않는다.
+- [x] 두 audit를 별도 2회 실행한 뒤 CSV/TXT 4개의 hash·length·UTC write ticks가 모두 불변이었다. recipe CSV/report SHA-256은 `9BE6A576549CEEF7EDF34BE488EE5CAACE01E20AD0C4784C54E6B10BC4241D30` / `A2229624A1C5B9E81FE70300746472308E846DCC370365F9283025B9368783F3`, family CSV/report는 `E375B40A4A19E35088A053104253451A18BE96C75BA640A3D5D47AFB30041EDF` / `C0C0A6238A2BEEA45CAE0C4BC9B763DD3CB0A693F3D97071ADD99248E2890497`다.
+- [x] Unity compile/command 실행과 최종 Console Warning/Error `0/0`; asset mutation `0`, GameplayScene 변경 `0`이다.
+- [x] `PhysicalMassTransformContract`에 기존 constructor 호환을 유지하면서 `DeclaredExternalInputGrams + PhysicalMassExternalInputKind`와 `TerminalSinkGrams + PhysicalMassTerminalSinkKind`를 추가했다. 새 full constructor는 입력+외부 유입과 출력+부산물+sink+loss의 exact equality, positive gram의 typed kind, zero gram의 `None`을 검증한다.
+- [x] focused self-test는 process-water 외부 입력 `800+200→1000g`, 물리 부산물 없는 수분 손실 `1000→700+300g`, positive untyped external input 거부를 current Unity assembly에서 통과했다.
+- [x] open recipe `239`개를 proposal-only family로 분류했다: water incorporation `6`, evaporation/drying `6`, cutting dust/solid offcuts `106`, smelting/off-gas `6`, combustion `1`, biological process `4`, 안전 확정 packaging/sink `0/0`, unexplained `110`. ID 패턴은 감사 후보 생성에만 사용하고 runtime/core 분기로 사용하지 않는다.
+- [ ] 첫 구현 family는 `cutting dust/solid offcuts 106`이다.
+  - [x] synthetic canary와 `recipe:bowstring-fiber` 대표 레시피를 opaque `process-loss@1` capability로 연결했다. descriptor는 고정 gram을 복제하지 않고 `mode=residual`, `lossKind=CuttingWaste`, canonical reason, `physicalByproduct=false`만 작성한다. 완료 시 실제 `WIP input + process water - physical output - wastewater`에서 손실을 계산한다.
+  - [x] 대표 경로는 `240g input → 80g physical bowstring + 160g nonphysical CuttingWaste receipt`를 증명했다. 80g만 FacilityBuffer·capacity·routing에 들어가고, 160g은 prepared-output `DeclaredLoss` line과 outcome/recipe fingerprint에 포함된다. JSON round-trip과 frozen replay에서 재계산·물리 생성·중복 stack이 발생하지 않았다.
+  - [x] 전수 audit가 같은 recipe authority를 읽어 `recipe:bowstring-fiber`를 `process-loss@1 / reviewed-exact`로 재분류했다. audit 결과는 reviewed `42→43`, explanation missing `159→158`; 2회 실행의 byte hash·length·mtime 변화는 0이다.
+  - [x] 기존 106행 ID-pattern clustering을 입력·출력·시설·손실률 기준으로 행별 재검토했다. 즉시 안전 17, 공정은 맞지만 고손실률 22, 절삭+다른 소비 혼합 2, 섬유 카딩 22, 제분·코팅·마법 12, 조립/BOM/회수 선행 31로 분리했으며 runtime/core의 recipe-ID 분기는 추가하지 않았다.
+  - [x] 손실률 40% 이하이고 절삭·재단·고형 offcut 의미가 명확한 17행만 editor content manifest로 작성했다. 첫 실행 변경 17, 두 번째 실행 변경 0이며 audit `reviewedExact 43→60`, `explanationMissing 158→141`이다.
+  - [ ] 고손실률 22행은 descriptor 구조가 가능해도 kg/BOM 단위 오류를 손실로 덮지 않도록 수치 승인을 보류한다. 기존 `bowstring-fiber` 66.7% canary도 구조 검증은 PASS지만 밸런스 승인으로 간주하지 않는다.
+  - [x] 카딩·방적 22행 중 원섬유 240g→원사 160g으로 수동/동력 쌍이 일치하는 16행은 별도 `FiberProcessingWaste` reason으로 작성했다. 첫 실행 16, 두 번째 0이며 audit `reviewedExact 60→76`, `explanationMissing 141→125`다.
+  - [ ] 양모·그늘섬유·힘줄 계열 카딩 6행과 혼합·제분·코팅·마법 14행은 kg/BOM 또는 합성/별도 capability가 필요하고, 조립/BOM/회수 31행은 출력 질량·회수 가능한 physical scrap 정책이 선행돼야 한다.
+  - [x] routing V8 batch에 physical line과 분리된 `nonPhysicalDispositions`를 추가했다. exact loss gram·canonical payload·fingerprint·line/batch identity를 routing save/restore와 routing fingerprint에 결속하며 변조는 restore 전에 거부한다. 이 영수증은 물리 route·capacity를 차지하지 않고 batch의 durable checkpoint GC가 성공할 때까지 보존된다.
+
+이 변경은 감사 의미와 적용 게이트를 교정한 것이며 item kg·BOM·WU·EWU·가격을 바꾸지 않았다. Batch A `31/31`, B `36/40`, C `8/39`, A-C `75/110`, 전체 A-H `1/8`은 유지한다.
+
+## 126. 2026-08-30 residual process-loss capability와 실제 생산 canary
+
+상태: **공용 capability·실제 `bowstring-fiber` resolve/save/frozen-retry/audit·routing checkpoint tombstone receipt PASS / 106행 전수 authoring OPEN / 상위 체크포인트 유지**.
+
+- [x] `ProductionRecipeSO`에 `{capabilityId, contractVersion, canonicalPayload}`만 가진 opaque mass-explanation envelope를 추가하고 `ProductionRecipeSemanticDigest@4`에 포함했다. 신규 공정 유형은 생산 코어의 recipe-ID switch가 아니라 등록 capability를 추가한다.
+- [x] `ProductionMassExplanationCapabilityRegistry`는 `(ID, version)` stable key, duplicate·unknown·invalid payload fail-loud, registry fingerprint를 제공한다. 첫 capability `process-loss@1`은 exact runtime subject에서 positive residual을 계산하며 `CuttingWaste`와 canonical reason을 immutable disposition으로 만든다.
+- [x] 고정 `grams`를 RecipeSO에 중복 저장하지 않는다. kg가 후속 조정되면 실제 WIP·output gram에서 residual이 다시 계산되고 recipe digest·equation fingerprint·outcome fingerprint가 함께 바뀐다.
+- [x] 정상 prepared-output resolver는 physical output capacity claim을 먼저 계산한 뒤 nonphysical `DeclaredLoss` line을 추가한다. capacity·FacilityBuffer·publication·routing은 physical 80g만 계산하고 loss 160g은 물리 item이나 바닥 clutter로 생성하지 않는다.
+- [x] 실제 `recipe:bowstring-fiber`의 current runtime/audit 권위가 모두 `resource:shade-fiber 2 = 240g`, `material:bowstring 1 = 80g`, residual `160g`으로 일치한다. 처음 검토한 `treated-lumber`는 runtime 300g/audit 100g 권위 불일치를 발견해 canary에서 제외했고 OPEN 상태로 되돌렸다.
+- [x] pure capability fixture는 다른 recipe ID에서도 같은 descriptor 작동, input보다 output이 큰 음수 residual, unknown/duplicate capability, 비정규 payload를 검증했다.
+- [x] 실제 adapter fixture는 loom facility, WIP 240g, physical output 80g, CuttingWaste receipt 160g, 4-cycle/portfolio capacity 4,000g, JSON byte round-trip, frozen completed replay의 추가 physical stack 0을 통과했다.
+- [x] prepared-output contract와 P03 full current-format persistence 회귀가 함께 PASS했다. 최종 Unity Console Warning/Error `0/0`, GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8` 불변이다.
+- [x] audit CSV/report SHA-256은 `E404AEC60D42FC55C213DB28141C0A0008559C4081CA202C5AA5ADAB803CAD68` / `830119199A8781B0CF83D233EDF862841BED08730F11BA225CB4955C52B0AF94`; 길이 `124,466 / 745 bytes`; 두 번째 실행에서 hash·length·UTC write ticks가 모두 불변이다.
+- [x] routing save schema를 V8로 올리고 nonphysical disposition tombstone을 물리 route line과 분리했다. prepared batch가 정상 clear된 뒤에도 loss `outputLineId/lineCommitId/payload/fingerprint/exactMassGrams`는 routing batch에 남고, 저장·복원·route replay·drain 완료를 거쳐 durable checkpoint GC 성공 시 물리 route tombstone과 함께 제거된다. 1g 변조는 routing fingerprint/total 검증에서 fail-loud한다.
+- [x] 절삭/offcut 후보 106행의 의미 분류는 완료했다. 안전 17행만 authoring·전수 runtime/audit·2회 무변경을 통과했으며 상세 분류는 §126.2다.
+- [x] 카딩·방적 22행 중 33.3%로 일치하는 수동/동력 16행을 `FiberProcessingWaste`로 추가 작성하고 별도 2회 무변경을 통과했다.
+- [ ] 나머지 72행은 고손실률 21(별도 bowstring canary 1 제외), 혼합 2, 카딩 고손실 6, 다른 공정 12, BOM/회수 선행 31이다. kg/BOM 승인·합성/별도 capability·scrap 정책이 남아 family parent는 계속 OPEN이다.
+
+### 126.1 routing V8 nonphysical disposition tombstone — 2026-08-30
+
+- [x] `ProductionPreparedOutputRoutingBatchSaveData`는 `totalDeclaredLossMassGrams`와 stable-ordered `nonPhysicalDispositions`를 소유한다. disposition은 batch/line/output identity, role, canonical payload, SHA-256 fingerprint와 exact gram만 저장하고 item·quantity·destination을 만들지 않는다.
+- [x] `PublishCommittedBatch`는 completed prepared-output의 physical line만 routable line으로 만들고 DeclaredLoss는 별도 tombstone으로 투영한다. `CaptureAll/CaptureDestination/PrepareRoute`에는 nonphysical line이 나타나지 않으므로 haul·FacilityBuffer·창고 admission이 오염되지 않는다.
+- [x] routing fingerprint `prepared-output-routing-v8`은 declared-loss total과 모든 disposition 필드를 포함한다. null/unsorted/duplicate identity, noncanonical payload, nonpositive gram, wrong role, total drift와 1g 변조는 current-format restore 전에 실패한다. 과거 save migration은 범위 밖이다.
+- [x] detached terminal save 검증은 prepared DeclaredLoss line과 routing disposition의 payload/fingerprint/gram을 1:1 대조한다. durable projector도 disposition을 outputLineId/lineCommitId ordinal 순으로 canonicalize한다.
+- [x] focused routing fixture는 90g loss의 publish→save→restore→partial route→full drain→checkpoint tombstone을 검증하고 checkpoint GC 전까지 동일 영수증을 확인했다. 변조 restore 거부와 GC 후 whole-batch 제거도 통과했다.
+- [x] current Unity에서 routing authority, pure mass capability, real bowstring adapter, full current-format persistence 묶음이 `V27_PROCESS_LOSS_ROUTING_RECEIPT_FOCUSED_PASS`; 최종 Console Warning/Error `0/0`, GameplayScene hash 불변이다.
+
+이 영수증은 감사 이력을 영구 보관하는 별도 ledger가 아니다. durable save checkpoint가 해당 물리 route를 확정하기 전까지 재시작·재시도에 필요한 exact tombstone이며, 성공한 checkpoint GC 뒤 장기 분석은 결정론적 V27 ledger artifact가 담당한다.
+
+### 126.2 절삭/offcut 106행 행별 분류와 안전 17행 적용 — 2026-08-30
+
+상태: **106/106 의미 분류 완료 / 안전 17행 authoring·audit·2회 no-op PASS / 나머지 수치·별도 capability OPEN**.
+
+보수적 `40%` 손실률 선은 새 gameplay 규칙이 아니라 kg/BOM 오류를 대량 descriptor로 은폐하지 않기 위한 이번 적용의 review gate다.
+
+#### 즉시 작성 완료 17
+
+```text
+recipe:bedding-animal
+recipe:bolt-bone
+recipe:cold-work-suit
+recipe:component:brigandine-padding
+recipe:component:precision-parts
+recipe:component:price-board
+recipe:component:room-partition-kit
+recipe:tool:hauling-harness
+recipe:v22:apparel:blouse
+recipe:v22:apparel:gloves
+recipe:v22:apparel:long-underpants
+recipe:v22:apparel:shorts
+recipe:v22:apparel:sleep-bottom
+recipe:v22:apparel:sleep-top
+recipe:v22:apparel:smoke-protection-hood
+recipe:v22:apparel:tail-guard
+recipe:v22:weave:cave-silk
+```
+
+#### 절삭 의미는 맞지만 kg/BOM 검토 선행 22
+
+```text
+recipe:arrow-bone
+recipe:bone-charm
+recipe:bowstring-fiber
+recipe:component:blast-coat-shell
+recipe:stone-block
+recipe:stone-ornament
+recipe:v22:apparel:belt
+recipe:v22:apparel:chest-wrap
+recipe:v22:apparel:contract-sash
+recipe:v22:apparel:footwraps
+recipe:v22:apparel:hat
+recipe:v22:apparel:horn-ring
+recipe:v22:apparel:loincloth-underwear
+recipe:v22:apparel:lower-underwear
+recipe:v22:apparel:scarf
+recipe:v22:apparel:sky-chorus-shawl
+recipe:v22:apparel:slime-warming-pad
+recipe:v22:apparel:socks
+recipe:v22:apparel:spore-protection-hood
+recipe:v22:apparel:tail-ribbon
+recipe:v22:apparel:undershirt
+recipe:v22:mending-scrap
+```
+
+이 22행의 현재 손실률은 약 `41~86%`다. `recipe:bowstring-fiber`는 240g→80g+160g 영수증 구조를 검증하는 canary지만 66.7% 손실 자체는 kg/BOM 승인 전이다.
+
+#### 합성 설명 필요 2
+
+```text
+recipe:book:seasonal-almanac
+recipe:component:engineering-drawing
+```
+
+종이 절삭과 목탄·표식 소비가 함께 있으므로 `PaperTrim + MarkingConsumable` 합성 설명 없이는 단일 CuttingWaste로 닫지 않는다.
+
+#### FiberProcessingWaste 계열 22 — 안전 16 완료 / 고손실 6 OPEN
+
+```text
+recipe:bowstring-sinew
+recipe:wool-cloth
+recipe:v22:spin-powered:cave-silk
+recipe:v22:spin-powered:common-wool
+recipe:v22:spin-powered:deep-goat-wool
+recipe:v22:spin-powered:dreamweave
+recipe:v22:spin-powered:ember-cotton
+recipe:v22:spin-powered:frost-linen
+recipe:v22:spin-powered:frost-wool
+recipe:v22:spin-powered:mire-canvas
+recipe:v22:spin-powered:shade-cloth
+recipe:v22:spin-powered:spore-hemp
+recipe:v22:spin:cave-silk
+recipe:v22:spin:common-wool
+recipe:v22:spin:deep-goat-wool
+recipe:v22:spin:dreamweave
+recipe:v22:spin:ember-cotton
+recipe:v22:spin:frost-linen
+recipe:v22:spin:frost-wool
+recipe:v22:spin:mire-canvas
+recipe:v22:spin:shade-cloth
+recipe:v22:spin:spore-hemp
+```
+
+완료 16행은 `cave-silk/deep-goat-wool/dreamweave/ember-cotton/frost-linen/frost-wool/mire-canvas/spore-hemp`의 수동·동력 쌍이다. 각 행은 240g→160g+80g으로 손실률 33.3%가 동일하다. `bowstring-sinew` 94.1%, `wool-cloth` 61.9%, common-wool 수동/동력 84.8%, shade-cloth 수동/동력 55.6%는 kg/BOM 검토 전 OPEN이다.
+
+#### 제분·코팅·마법 등 별도 설명 12
+
+```text
+recipe:starch
+recipe:ammo:mana-disruptor-bolt
+recipe:component:dreamweave-rune-lining
+recipe:component:rune-leather-strap
+recipe:component:rune-tuning-shield
+recipe:gold-leaf
+recipe:gold-ornament
+recipe:medical:mana-core-case
+recipe:rune-cold-suit
+recipe:slime-warming-pad
+recipe:trail-charm
+recipe:treated-lumber
+```
+
+`starch`는 제분 잔여물, `slime-warming-pad/treated-lumber`는 수지 함침·경화, 나머지는 룬·마나 소비·코팅·추출·제련이 혼합된다. 특히 treated-lumber의 runtime/audit gram 불일치는 descriptor보다 권위 교정이 먼저다.
+
+#### 조립·BOM·회수 정책 선행 31
+
+탄약 단위/BOM 의심 3:
+
+```text
+recipe:ammo:armor-piercing-cartridge
+recipe:ammo:paper-cartridge
+recipe:ammo:scatter-cartridge
+```
+
+금속 가공·복합 조립 16:
+
+```text
+recipe:arrow-iron
+recipe:arrow-steel
+recipe:bolt-iron
+recipe:bolt-steel
+recipe:component:lead-counterweight
+recipe:component:powered-armor-joint
+recipe:component:siege-counterweight
+recipe:component:siege-reinforcement-kit
+recipe:component:waterwheel-drive-shaft
+recipe:surgery:prosthetic-arm
+recipe:surgery:prosthetic-leg
+recipe:tool:alloy-crucible
+recipe:tool:deep-shaft-hoist
+recipe:tool:inspection-gauge
+recipe:tool:precision-gauge
+recipe:tool:reinforced-restraint
+```
+
+완제품 조립 9:
+
+```text
+recipe:component:factory-installation-plan
+recipe:component:prototype-package
+recipe:component:sealed-seasonal-container
+recipe:component:stock-sensor-panel
+recipe:tool:banquet-cart
+recipe:tool:mana-probe
+recipe:tool:rune-identification-lens
+recipe:tool:weather-observation-kit
+recipe:v22:sewing-kit
+```
+
+기록·제본 혼합 3:
+
+```text
+recipe:record:arcane-index
+recipe:record:breeding-ledger
+recipe:record:career-ledger
+```
+
+이 31행은 회수 가능한 금속·부품 scrap을 abstract loss로 지우지 않는다. 특히 탄약 3행 손실률 약 91~94%, sewing-kit 2,100g→50g은 unit/BOM 오류 가능성을 먼저 해결한다.
+
+#### 적용·검증 증거
+
+- `V27ReviewedProductionMassExplanationCatalog`는 17개 stable ID를 ordinal 정렬·중복 0으로 보유하는 editor-only content manifest다. runtime resolver는 recipe ID를 알지 못하며 모든 행은 동일 opaque `process-loss@1` capability를 사용한다.
+- Resource, ResearchOverhaul, V22Apparel builder가 같은 manifest를 호출하므로 에셋 재생성 뒤에도 descriptor가 유실되지 않는다.
+- 첫 적용 `changed=17`, 두 번째 적용 `changed=0`; audit는 recipe `355`, reviewed exact `60`, explanation missing `141`, external input missing `80`, role mismatch `0`이다.
+- cutting 17 적용 시점 audit CSV/report SHA-256은 `9CE9BF472A1B3EAB27EF60A9BB568EE7177E8B46FBE3CE54CE4BC51AD24B513A` / `FDDC2ADB2ABA7F40C84A2579C9680479378D5B90D4C558013893A09D40283C45`다.
+- fiber-processing 16 추가 뒤 최종 audit는 reviewed exact `76`, explanation missing `125`; CSV/report SHA-256 `C2312568D2C568D95E1644AF6B75CB7387C882D77C7F6D66EDB0D57C36CBF333` / `4E523920BC6C169C09CA49002E29AB2238E907C37FE66684480C393BC5FF1254`; 별도 두 번째 실행에서 hash·length·UTC ticks 변화 `0`이다.
+- focused capability·real adapter·routing V8·full persistence PASS, Console Warning/Error `0/0`, GameplayScene SHA-256 불변이다.
+
+이 체크포인트는 17행의 **질량 차이 설명 authoring**을 닫는다. kg·BOM·WU·EWU·가격을 바꾸거나 106행 family 전체, 전수 질량 밸런스, 6인 생존망을 완료 처리하지 않는다.
+
+### 126.3 안전한 섬유 카딩·방적 16행 적용 — 2026-08-30
+
+- [x] `PhysicalMassLossKind.FiberProcessingWaste`를 기존 enum 끝에 추가했다. `process-loss@1` capability는 새 recipe 분기나 새 resolver 없이 동일 residual 계약으로 이를 처리한다.
+- [x] V22 수동/동력 방적 쌍 가운데 input 240g, output 160g, residual 80g인 8재료×2경로만 editor reviewed manifest에 추가했다.
+- [x] common-wool, shade-cloth, bowstring-sinew, wool-cloth 6행은 각각 55.6~94.1% 손실이라 descriptor로 kg/BOM 오류를 덮지 않고 OPEN으로 유지했다.
+- [x] V22 builder가 같은 manifest를 호출하므로 재생성 후에도 authoring이 보존된다. 첫 apply `changed=16`, 두 번째 `changed=0`이다.
+- [x] 전수 audit는 recipe 355, reviewed exact 76, explanation missing 125, external-input missing 80, role mismatch 0이다. CSV/report SHA-256은 `C2312568D2C568D95E1644AF6B75CB7387C882D77C7F6D66EDB0D57C36CBF333` / `4E523920BC6C169C09CA49002E29AB2238E907C37FE66684480C393BC5FF1254`; 별도 두 번째 실행은 hash·length·mtime 변화 0이다.
+- [x] capability·routing V8·full current-format persistence focused suite가 `V27_REVIEWED_FIBER_PROCESSING_FOCUSED_PASS`, Console Warning/Error `0/0`, GameplayScene SHA-256 불변이다.
+
+authored unit kg·BOM·WU·EWU·가격은 변경하지 않았다. 이 체크포인트도 물리 차이의 설명만 추가하며 고손실 6행과 전체 family parent는 닫지 않는다.
+
+authored kg·BOM·WU·EWU·가격·소비량은 변경하지 않았다. 바뀐 콘텐츠 데이터는 `bowstring-fiber`의 기존 160g 차이를 설명하는 capability 한 행뿐이다. 부모 진행률은 Batch A `31/31`, B `36/40`, C `8/39`, A-C `75/110`, 전체 A-H `1/8`로 유지한다.
+
+### 126.4 게임 공정 질량의 설명 가능성 경계와 runtime/proposed 이중 감사 — 2026-08-30
+
+상태: **정책 교정·audit schema v3·Unity compile·결정론적 2회 생성 PASS / runtime-proposed 불일치 23 recipe OPEN / authored kg·BOM 적용 없음**.
+
+게임 공정에 현실의 닫힌계 질량 보존이나 열역학적 엔트로피 불변을 그대로 강제하지 않는다. 엔트로피는 애초에 질량과 같은 보존량이 아니며, 이 계획이 증명해야 하는 것은 현실 물리학이 아니라 플레이어가 이해할 수 있는 게임 회계다. 재미와 콘텐츠 밀도를 해치면서 증기·먼지·찌꺼기 item을 무조건 생성하는 것은 목표가 아니다. 대신 서로 다른 세 불변식을 분리한다.
+
+1. **소유권·수량·WIP 불변식은 exact다.** 이미 생성된 item lot, carried slice, reservation, WIP input과 frozen output은 취소·파괴·저장복원·재시도에서 삭제·복제·순간이동하면 안 된다.
+2. **경제 불변식은 exact다.** 입력 Ceil, 산출·회수 Floor, repeatable transform 최소 `-1 mEWU`, SCC tolerance `0`을 유지한다. 추상 손실은 회수·판매·재투입 credit을 만들지 않는다.
+3. **공정 질량은 문자 그대로 동일할 필요가 없지만 차이는 전부 설명되어야 한다.** 수분 증발, 절삭 손실, 연소, 마법적 생성·소멸처럼 게임에 필요한 비보존 변환을 허용한다. 다만 그 차이를 kg/BOM 오류나 복제 버그와 구분할 수 있도록 다음 회계식이 runtime과 proposed 양쪽에서 닫혀야 한다.
+
+```text
+physical input + typed external input
+= physical product + physical byproduct
+ + typed terminal sink + typed abstract process loss
+```
+
+이 식은 `input gram == output gram`을 강제하는 물리 보존식이 아니다. `typed external input`, `terminal sink`, `abstract process loss`가 의도된 비보존량을 명시적으로 설명하는 감사식이다. 이 값들은 필요할 때 gameplay상 생성·소모될 수 있지만, 동일 operation에서 exact-once로 기록되고 EWU 회수 credit을 만들지 않아야 한다.
+
+허용되는 예:
+
+- 조리·건조·발효의 수분 증발
+- 절삭·연마의 gameplay 가치 없는 미세 분진
+- 소성·제련의 가스·슬래그 중 별도 운반 gameplay가 없는 부분
+- 마법적 변환에서 명시적으로 소비되는 typed reagent/energy-mass abstraction
+
+허용되지 않는 예:
+
+- kg 또는 BOM 오류를 큰 `process-loss`로 가리는 것
+- 회수·수리·오염·폐기 gameplay 가치가 있는 50g 이상 고형 잔여물을 추상 삭제하는 것
+- 포장 용기 tare를 Sink와 함께 사라지게 하는 것
+- 시설 파괴·취소·Downed를 공정 손실로 기록하는 것
+- 설명이 없다는 이유로 의미 없는 waste item을 대량 추가하는 것
+
+`40%` 손실률은 절대 물리 법칙이 아니라 대량 자동 승인 차단선이다. 이를 넘는 행은 unit/BOM/output batch, 물리 부산물, 외부 입력과 downstream 경제를 사람이 검토한다. 40% 이하라도 고형 잔여물에 재사용 가치가 있으면 physical byproduct가 우선이다.
+
+#### runtime/proposed 권위 분리
+
+기존 audit는 `CanonicalItemUnitSemantic.CanonicalUnitMass`가 있으면 아직 적용되지 않은 proposed gram을 우선 사용했다. 따라서 실제 `ItemDefinitionSO.UnitWeight`와 제안값이 다른 레시피를 마치 현재 gameplay 질량인 것처럼 계산할 수 있었다. schema v3는 각 레시피에 두 식을 동시에 기록한다.
+
+- `physicalInput/Output/ResidualGrams`: 제안된 canonical mass 기준
+- `runtimePhysicalInput/Output/ResidualGrams`: 현재 live `ItemDefinitionSO.UnitWeight` 기준
+- `runtimeProposedMassMismatchIds`: 두 권위가 다른 exact item ID
+- `massCreationCandidate`와 `runtimeMassCreationCandidate`: 양쪽을 별도로 판정
+
+descriptor가 작성된 recipe는 runtime과 proposed 양쪽에서 같은 capability가 exact positive residual을 설명해야 `reviewed-exact`가 된다. 둘 중 하나라도 음수·확률 branch 불일치·설명량 drift가 있으면 audit 자체가 fail-loud한다. 기존 수동 transform contract는 제안 kg 권위의 검토 기록이며, runtime/proposed mismatch를 해소하거나 명시적으로 승인하기 전에는 asset apply 증거로 사용하지 않는다.
+
+현재 전수 결과:
+
+- recipe `355`, Source `23`, Transform `328`, Sink `4`, role mismatch `0`
+- reviewed exact `67`, proposed-only/runtime-mismatch reviewed `9`, explanation missing `125`, external-input authority missing `80`
+- proposed mass-creation candidate `122`, runtime mass-creation candidate `127`
+- runtime/proposed mass mismatch recipe `23`, missing semantic recipe `47`, probabilistic recipe `3`
+- `recipe:arrow-bone`: proposed `1,550→800g`, residual `750g`; runtime `1,650→800g`, residual `850g`; mismatch `material:lumber`
+
+따라서 `arrow-bone`, `treated-lumber` 및 같은 변경 item을 쓰는 하류 recipe를 proposed 식 하나로 승인하지 않는다. 먼저 item kg의 실제 적용 묶음과 모든 producer/consumer를 결속하고, 그 직후 audit 양쪽이 같아지는지 확인한다.
+
+#### 검증 증거와 다음 경계
+
+- [x] audit CSV schema `v27.mass.recipe-inventory.3`에 runtime six-column equation, mismatch IDs와 runtime mass-creation 판정을 추가했다.
+- [x] Unity current-source compile과 audit 실행이 PASS했고 Console Warning/Error `0/0`이다.
+- [x] legacy reviewed contract가 proposed 식에는 맞지만 runtime item gram이 다르면 `reviewed-proposed-runtime-mismatch`로 강등한다. 현재 9행이며, 이 중 dough·grain-porridge·mushroom-soup·roasted-meat·root-stew 5행은 runtime 식에서 mass creation candidate다.
+- [x] 이 상태는 family proposal dependency gate로 전파된다. 현재 proposed change `7`은 ready `0`, blocked `7`이며 선행 kg 적용·재감사 전에는 SO apply 대상이 아니다.
+- [x] CSV `136,888 bytes`, SHA-256 `51C7CFB340FC0B2DA2AAF536F1FF034258EF15B4F24B4847A49471DB7C267A3A`; report `854 bytes`, SHA-256 `F7EB7BDFAD4025018D5D4439562BFF864EB086611C1B7488DDFE9F5CA6DF4211`이다.
+- [x] family CSV/report SHA-256은 `23C2AEF5007CDEC8BF288B0CFD2C567938188FFE2C4AE71B4BF503CCB74967E0` / `0FD1353CFFBDB0BE09C6A4BFF246BA4BC74904621137F20C87634800DB47BEAA`다.
+- [x] 별도 두 번째 Unity 실행에서 네 파일의 hash·length·UTC write ticks가 모두 불변이다.
+- [x] 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 유지됐다.
+- [ ] mismatch 23 recipe의 item 적용 순서와 dependency closure를 확정한다.
+- [ ] 고손실 22행은 의복 coefficient 기반 BOM 분리, mending-scrap 회수 순환, 중복 slime-warming-pad, stone/bone/lumber 물리 부산물을 먼저 닫는다.
+- [ ] 그 뒤에도 남는 gameplay 무의미 잔여만 typed abstract loss로 작성하고 EWU/SCC·6인 생존·운반 회귀를 재실행한다.
+
+이 체크포인트는 audit가 현재 gameplay와 제안 상태를 혼동하지 않게 만든 구조 교정이다. authored kg·BOM·output quantity·WU·EWU·가격·SO 수치 변경은 `0`이며, 부모 진행률은 Batch A `31/31`, B `36/40`, C `8/39`, A-C `75/110`, 전체 A-H `1/8`로 유지한다.
+
+### 126.5 mending-scrap 수율과 의복 offcut 선행 구조 — 2026-08-30
+
+상태: **전수 호출·경제·물류 감사 완료 / 단독 수치 적용 금지 / 수선 비용 정책 사용자 결정 OPEN / 구현 전 co-product 권위 필요**.
+
+#### 현재 사실
+
+- `recipe:v22:mending-scrap`은 live asset과 builder 모두 cloth `1×200g → scrap 2×50g=100g`, current authored work `16 WU`다.
+- 물리적으로 자연스러운 후보는 scrap `4×50g=200g`이다. 한 batch는 200g이고 4-cycle output buffer 요구는 800g, max stack 200 안에서 한 stack이므로 물류 모양 자체는 안전하다.
+- 실제 severe repair는 sewing thread 1 + mending scrap 1을 소비한다. alteration은 현재 scrap을 소비하지 않지만 dependency catalog에는 `apparel-alteration:patch`가 소비자로 기록돼 있어 가짜 수요를 만든다.
+- rejected apparel 해체는 mending scrap이 아니라 원래 소재를 50% 회수한다. Editor fixture의 `RecoveryItemId=mending-scrap`은 live 권위가 아니다.
+
+#### output 2→4 단독 적용 차익
+
+현재 원장:
+
+```text
+batch total cost = 40,941~40,942 mEWU
+current output 2 acquisition = 20,471 mEWU/개
+candidate output 4 acquisition = ceil(batch/4) = 10,236 mEWU/개
+current market sale credit = 12,281 mEWU/개
+candidate batch sale = 4 × 12,281 = 49,124 mEWU
+minimum arbitrage = 49,124 - 40,942 = +8,182 mEWU
+```
+
+따라서 output quantity만 바꾸지 않는다. 같은 atomic apply 묶음에서 최소 다음을 재생성한다.
+
+- acquisition `10,236 mEWU/개`
+- authored unit price 후보 `ceil(10,236/3,000)=4 gold`
+- market sale credit 상한 `floor(10,236×0.60)=6,141 mEWU/개`
+- 4 gold와 이 상한을 넘지 않는 saleRate
+- 계약 요구량·보상, 시작 scrap 6개 가치, repair 1회의 재료 EWU
+- craft→sell, repair→dismantle→sell, purchase→repair/alter→sell SCC
+- 800g FacilityBuffer admission, WaitingForOutputSpace, overflow 일반 바닥 drop 0
+
+#### 수선 비용 결정 — 구현 전 사용자 선택 1건
+
+- **권장: severe repair scrap `1→2`.** cloth 한 batch가 제공하는 repair 횟수는 Before `2/1=2회`, After `4/2=2회`로 같고, 실제 패치 질량도 50g→100g이 되어 기존 수선 경제와 물리량을 함께 보존한다.
+- 대안: scrap `1` 유지. repair 한 회의 scrap EWU가 약 절반이 되고 cloth 한 장이 4회를 수선해 의도적인 수선 완화 패치가 된다.
+
+이 선택 전에는 output4·가격을 적용하지 않는다. 선택과 무관하게 가짜 `apparel-alteration:patch` consumer는 실제 소비를 구현하지 않는 한 제거한다.
+
+#### 의복 offcut을 즉시 붙일 수 없는 구조적 이유
+
+1. builder, live CreateCraft, restore/reselection, throughput, capacity가 모두 `ceil(2×apparel.Coefficient)`를 각각 계산한다. 성능 계수와 물리 패턴/BOM이 결합돼 있다.
+2. domain `ApparelWorkOrderRuntime`은 unique garment 하나만 exact-once 게시하며 offcut sidecar output/receipt/save 권위가 없다.
+3. 같은 재단대에서 generic production panel과 apparel domain panel이 모두 live다. RecipeSO에만 byproduct를 넣으면 두 제작 경로의 BOM·출력이 달라진다.
+4. 이 감사 시점의 `V27EmbeddedWorkValueCalculator`는 Main과 Byproduct의 총 수량으로 batch cost를 나눈 뒤 모든 output item에 같은 per-unit acquisition을 줬다. 이 결함은 아래 126.6의 출력 라인별 allocation으로 교정했으며, 의복 offcut 적용은 그 계약의 전수 경제 재감사 뒤에만 진행한다.
+
+#### 다중 산출물 원가 배분 계약
+
+`V27` After 계산에서는 두 개 이상의 positive physical output을 가진 Transform에 명시적 allocation policy를 요구한다. 기존 V23 Before 재현 경로는 동결하고 조용히 의미를 바꾸지 않는다.
+
+```text
+batchInputDebit = Ceil(inputs + directWU + logistics + utility + loss)
+
+allocatedDebit[i] >= 0
+sum(allocatedDebit[i]) = batchInputDebit
+perUnitAcquisition[i] = Ceil(allocatedDebit[i] / expectedUnits[i])
+
+sum(Floor(expectedUnits[i] × recoverableValue[i]))
+<= batchInputDebit - 1mEWU
+```
+
+정책은 recipe-ID switch가 아니라 등록형 `IProductionOutputCostAllocationPolicy`와 opaque policy descriptor로 확장한다.
+
+- `single-main`: 물리 output 하나인 기존 경로.
+- `main-with-recoverable-byproduct-credit`: independently bounded byproduct recoverable credit을 먼저 배정하고 main이 exact remainder를 부담.
+- `homogeneous-mass-share`: 같은 재질의 main/offcut처럼 gram share가 경제 의미와 일치하는 경우만 사용.
+- 시장 가격 비율을 allocation input으로 쓰는 정책은 가격↔EWU 순환을 만들므로 금지.
+- policy가 없는 multi-output Transform, 음수 remainder, batch credit 비음수 margin, 역할/weight drift는 fail-loud.
+
+분할 Ceil 때문에 output별 per-unit acquisition 합이 batch debit보다 커질 수는 있지만 작아질 수는 없다. 판매·회수 credit은 별도 Floor이며 batch 전체에서 반드시 최소 1mEWU 손실을 남긴다.
+
+#### 구현 순서
+
+1. current multi-output Source/Transform 전수 census와 legacy equal-unit allocation 영향 목록을 만든다.
+2. `apparel-alteration:patch` catalog-only 가짜 consumer를 제거하거나 실제 소비 경로를 구현한다.
+3. 사용자 선택에 따라 mending-scrap output/repair quantity를 builder·asset·runtime·restore·throughput·capacity에 원자 반영한다.
+4. 같은 apply에서 EWU·unit price·saleRate·계약·시작 자본을 재생성하고 SCC 및 800g buffer 실제 생산을 통과한다.
+5. 공용 `ApparelMaterialYieldAuthority`가 input quantity, garment grams, recoverable scrap, abstract trim을 한 번 계산하게 한다.
+6. generic apparel recipe와 domain apparel command의 실행 권위를 하나로 통합하거나 generic bill이 domain command에 명시적으로 위임한다.
+7. domain craft에 garment + offcut sidecar의 exact outcome freeze, capacity reservation, publication, save/restore/retry를 추가한다.
+8. 다중 산출물 원가 allocation을 적용하고 garment·scrap·판매·수리·해체 SCC를 재생성한다.
+9. 이후에만 의복별 50g 단위 recoverable scrap과 50g 미만 abstract trim을 작성한다.
+
+현재 단계에서는 설계·읽기 전용 감사만 완료했다. item kg·BOM·output quantity·repair 소비·가격·saleRate·계약·SO 변경은 `0`이다.
+
+### 126.6 다중 산출 EWU 배분 권위 구현 — 2026-08-30
+
+상태: **공통 capability·3개 live Source authoring·계산기 연결·집중 결정론 PASS / world-resource·crop output-capacity 증거 갱신 PASS / dependency review 86,933행·SCC 297·integrity failure 0 / 건설 노동밀도 2건과 stale 노동 승인 328건 OPEN / mending-scrap·의복 수치 적용 없음**.
+
+#### 전수 범위와 기존 결함
+
+- 전체 recipe `355`, positive physical output line `357`이다.
+- positive physical output이 2개 이상인 recipe는 정확히 `3`개이며 모두 Source다. Transform multi-output은 `0`개다.
+- role은 Main `351`, Byproduct `6`, ReturnedPackaging `0`, RecoverableWaste `0`이다.
+- 해당 Source는 `source:logging`, `source:quarry`, `source:saltstone`이다.
+- 기존 equal-unit 계산은 모든 `amount×probability`를 하나의 분모로 합치고 같은 unit acquisition을 모든 output에 배정했다. 이 때문에 quarry의 `coal @20%`와 `mana-crystal @1%`가 발생 1개당 같은 `9,335 mEWU`를 받는 역할·희소성 왜곡이 있었다.
+
+#### 구현된 확장 계약
+
+- `ProductionRecipeSO`가 opaque `ProductionOutputCostAllocationAuthoring`을 소유한다. 필드는 `capabilityId`, `contractVersion`, `canonicalPayload`이며 recipe semantic digest를 `production-recipe-semantic@5`로 올려 경제 의미 변경을 source digest에 포함했다.
+- runtime calculator는 recipe ID나 item ID를 분기하지 않는다. `ProductionOutputCostAllocationCapabilityRegistry`가 capability/version으로 정책을 선택한다.
+- 첫 등록 정책은 `weighted-output-share@1`이다. payload는 ordinal 정렬된 `outputLineId=integerWeight` 목록이며 market price를 입력으로 받지 않는다.
+- 단일 physical output은 기존처럼 batch debit 전부를 부담한다. 둘 이상이면 명시적 descriptor가 없거나 line 누락·중복·미정렬·음수·overflow weight·Main 복수/누락이면 fail-loud한다.
+- 현재 Source builder의 기본 정책은 `weight=authored amount`다. 이는 Source에만 허용한다. 향후 multi-output Transform은 builder가 자동 추론하지 않고 콘텐츠가 명시적인 allocation capability를 작성해야 한다.
+- 각 non-Main line은 integer mEWU 비율의 Floor를 받고, 유일 Main이 exact remainder를 받는다. 따라서 `sum(allocatedDebit)==batchDebit`가 정확히 성립한다.
+- 각 line의 per-unit acquisition은 `Ceil(allocatedDebit/expectedUnits)`다. 같은 item을 여러 line에서 내면 line debit과 expected units를 item별로 먼저 합친 뒤 한 번 Ceil한다.
+- ReturnedPackaging은 weight `0`만 허용하며 `IsAcquisitionCandidate=false`를 끝까지 보존한다. 반환 용기를 0원 생산품으로 fixed-point에 넣어 기존 용기 acquisition을 지우는 것을 금지한다.
+- recoverable value와 판매 credit은 기존 Output Floor 경로를 유지하며 allocation input으로 사용하지 않는다. SCC tolerance도 계속 `0`이다.
+
+#### 실제 live authoring과 결과
+
+| recipe | output별 After acquisition mEWU/개 |
+|---|---|
+| `source:logging` | log `4,159`, dark-resin `23,100` |
+| `source:quarry` | stone `5,135`, coal `25,665`, iron-ore `32,082`, gold-ore `171,100`, mana-crystal `513,300` |
+| `source:saltstone` | stone `4,528`, saltstone `18,112` |
+
+이 값은 line amount weight와 발생 확률로 계산한 **감사 계산값**이다. authored item price·saleRate·계약·보상에 아직 적용한 승인값이 아니다. 특히 mana-crystal은 downstream consumer `18`개라 anomaly root tree, 시장 가격, 계약 ROI와 SCC를 함께 재생성한 뒤 적용 여부를 판단한다.
+
+#### 검증 증거
+
+- [x] 세 recipe 모두 output allocation debit 합계가 exact batch debit과 같다.
+- [x] quarry의 per-unit acquisition은 `stone < coal < iron < gold < mana`로 희소성 순서를 반영한다.
+- [x] synthetic Main+ReturnedPackaging에서 반환 용기의 allocated debit은 `0`, acquisition candidate는 `false`다.
+- [x] recipe·crop·item·equipment·material 입력 열거 순서를 역순으로 바꿔도 semantic snapshot hash가 같다.
+- [x] 집중 artifact `Artifacts/QA/v27-output-cost-allocation-focused.txt`는 `390 bytes`, SHA-256 `F08A706DF53C86FC73BD0755213446FC6473F272DCA80D23448CE53C1E81F17B`이며 두 번째 생성에서 hash·length·mtime 변화가 `0`이다.
+- [x] Unity current-source runtime/editor compile, 집중 계약, Console Warning/Error `0/0`을 통과했다.
+- [x] 256-seed의 allocation·strict-loss·snapshot determinism 구간은 통과해 통합 audit 진입까지 도달했다.
+- [x] 기존 `v27-balance-output-capacity-playmode.txt`의 오래된 source digest를 현재 world-resource exact-source marker와 crop FacilityBuffer wait/restore/retry marker로 갱신했다.
+- [x] 갱신 뒤 처음 드러난 `building:9502`의 불가능 조합을 전수 감사 중단이 아니라 `CriticalDensityUnresolved` root로 수집하도록 교정했다. 후보는 WU `1.5~2.25배`, 기존 BOM 종류, 수량 최대 `150%`, 투자오차 `±2%` 안에서 밀도 drift가 가장 작은 값을 선택하지만 자동 승인·적용하지 않는다.
+- [x] synthetic focused fixture는 `797 WU`, lumber `9`, density ratio `1.8242974074`, investment error `853mEWU`, `autoApproved=false`로 PASS했다. artifact SHA-256은 `BA67D6F863FE15ECF393DB037A97C8C6E2E1E8B1903B8132AC22BC5E21E93977`이며 2회 hash·length·mtime 변화가 `0`이다.
+- [x] dependency review는 `86,933`행 전체를 끝까지 생성했다. unresolved root `332`, collapsed descendant `39`, SCC `297`, minimum margin `-23,142,719mEWU`, integrity failure `0`이다. 건설 root는 `building:9303`, `building:9502` 두 건이며 실제 `construction-authored-wu:redistributed` approvalKey와 연결된다.
+- [x] 안정화 뒤 연속 두 실행에서 CSV·audit·anomaly graph·source inventory·manifest의 hash·length·mtime 변화가 `0`이었다. 생성기는 `v27.13.2`이며 이 절의 baseline record ID를 manifest에 포함한다.
+- [ ] 기존 source digest가 바뀌어 stale해진 recipe `direct-wu` exact approval `328`건은 현재 After·dependency·실행 경로를 검토해 재승인해야 한다. 이미 적용됐다는 사실만으로 자동 승계하지 않는다.
+- [ ] 새 부산물 가치 폭포에 대해 root-cause anomaly collapse, market/contract regeneration, 전체 SCC를 fresh artifact로 남긴다.
+
+이 체크포인트는 미래 multi-output 콘텐츠가 새 recipe/item switch 없이 descriptor와 capability 등록으로 확장되도록 **계산 구조**를 닫는다. mending-scrap output `2→4`, severe repair 소비량, 의복 offcut, kg·BOM·WU·가격·saleRate·계약 수치는 변경하지 않았다. 부모 진행률은 실제 parent row가 닫히지 않았으므로 Batch A `31/31`, B `36/40`, C `8/39`, A-C `75/110`, 전체 A-H `1/8`로 유지한다.
+
+### 126.7 비보존 공정 회계와 시장 live/candidate 권위 분리 — 2026-08-30
+
+상태: **질량·엔트로피 정책 명료화 / 시장 원장 integrity failure 0 / provenance 후보 337·파생 후보 175 검토 OPEN / exact legacy baseline 58 복구 / authored 수치 적용 없음**.
+
+#### 질량·엔트로피 정책
+
+게임은 현실의 닫힌계가 아니므로 모든 레시피에 `input gram == output gram`을 강제하지 않는다. 엔트로피 또한 질량처럼 보존되는 값이 아니며 V27의 검증 대상이 아니다. V27이 strict하게 보존하는 것은 다음 두 경계다.
+
+1. 이미 존재하는 physical lot, WIP, reservation, carried slice와 frozen outcome의 **소유권·수량·exact-once**.
+2. 구매·판매·해체·재제작을 반복해 양의 EWU를 만들 수 없다는 **경제 무차익**.
+
+공정 질량은 비보존일 수 있다. 수분 증발, 연소, 절삭 분진, 발효, 마법적 생성·소멸은 gameplay상 허용한다. 단, 차이는 `typed external input`, physical byproduct, `typed terminal sink`, `typed abstract process loss` 중 하나에 operation ID와 exact gram으로 귀속한다. 이 설명 회계는 현실 물리학을 흉내 내기 위한 것이 아니라 kg/BOM 오류, 재시도 복제, 취소 삭제와 의도된 수율을 구분하기 위한 것이다. 의미 없는 폐기물 item 생성을 강제하지 않으며, 추상 손실은 회수·판매·재투입 credit을 만들 수 없다.
+
+#### 시장 권위 분리
+
+건설과 같은 원칙으로 live authored 값과 새 재계산 후보를 한 행에 섞지 않는다.
+
+- canonical market row의 `After`는 현재 live authored 값을 그대로 나타낸다.
+- exact approval custody가 남아 있으면 `applied`; 없으면 `provenance-missing`이다. 후자는 현재 에셋을 관측했다는 뜻일 뿐 검토·승인됐다는 뜻이 아니다.
+- 새 가격·판매율·재고 구매가·소매가·보상 후보는 `market-recalibration-candidate:*` 행으로 분리한다.
+- 후보는 `assetApplied=false`, 빈 approval key, `pending-explicit-review`, `local-critical`이다.
+- generic ApplyApproved와 approval validator는 review-only metric을 거부한다.
+- 현재 가격·판매율로 계산되는 `market-sale-credit`은 live derived row다. 새 가격·판매율에서 계산되는 회수액은 `market-derived-recalibration-candidate:market-sale-credit`로 분리하고 `collapsed-inherited`, 빈 approval key, `assetApplied=false`로 고정한다. 파생 회수액을 독립 승인하거나 live로 표시하지 않는다.
+
+현재 `market-authority-provenance-missing` 직접 후보는 `337`개다. 별도로 현재 authored 값이 V23 재구성값과 정확히 같음을 증명한 `58`개(unit price 55, guest reward 3)는 `LegacyReconstructedBaseline`으로 복구했다. 이 58개는 승인 완료가 아니라 현재값을 합법적인 Before로 사용하는 일반 pending 후보이며, exact approval key가 있어야만 적용할 수 있다.
+
+| metric | 행 수 |
+|---|---:|
+| authored unit price | 151 |
+| authored market sale rate | 175 |
+| stock daily unit cost | 6 |
+| retail cost | 2 |
+| guest money reward | 3 |
+
+이 337개는 모두 `market-authority-provenance-missing`이다. 기존 승인 이력에서 정확한 현재 판매율을 증명할 수 없는 175건을 자동 승인하지 않았고, 가격·소비자 값도 현재 approval source digest가 증명하지 못하는 상태에서는 같은 실패 계약을 사용한다. 여기에 live/candidate 가격·판매율을 사용하는 파생 sale-credit 후보 `175`개가 추가되지만 독립 Critical annotation을 만들지 않고 상위 원인 아래 접힌다.
+
+민감도상 일괄 적용은 금지한다. unit-price 후보 206개 전체 기준 절대 변화율 중앙값은 `50.34%`, `100%` 초과 62개, `300%` 초과 22개다. 대표적으로 `resource:mana-crystal 4→172 gold`, `stock:mana 4.20075→230.98495 gold/item`이며, 이는 quarry의 희귀 부산물 EWU 배분이 시장까지 전파된 결과다. 현재 live sale credit은 acquisition cost를 초과하는 행이 `0`이라 즉시 양의 차익은 없지만, 60% 회수 목표를 초과하는 행은 `34`개다. 따라서 다음 검토는 희귀 Source allocation, 시장 유동성/접근성, stock procurement와 downstream 계약을 함께 보고 가격 후보를 승인·완화·재배분해야 한다.
+
+#### 검증 증거
+
+- [x] Unity current-source compile PASS.
+- [x] 남아 있던 stock V23 reconstruction 전용 precheck 6건을 공통 provenance 계약으로 통합했다.
+- [x] typed classifier는 `Implemented / LegacyReconstructedBaseline / PreviouslyApprovedApplied / MissingProvenance / UnauthorizedDrift`를 분리한다. float 1 ULP는 V23 재구성 비교에만 허용하고 approval·candidate equality는 exact다.
+- [x] focused gate는 직접 provenance 후보와 파생 후보 합계 `512`행의 exact source/property join, `candidate.Before == live.After`, approval key 부재, asset mutation 금지와 상위 귀속을 통과했다. 별도로 exact legacy baseline 58행의 metric 분포와 mutation eligibility를 검증한다.
+- [x] full AuditOnly 결과는 `87,823` rows, integrity failure `0`, Critical `378`, collapsed `189`, SCC `297`, minimum margin `-23,142,719mEWU`다. 이는 `PASS`가 아니라 `REVIEW_REQUIRED`다.
+- [x] 별도 두 번째 실행에서 CSV, audit, manifest의 SHA-256·byte length·UTC write ticks가 모두 동일했다.
+  - CSV: `17ECA843A9D724DDDDC36902B76BCFEBA76F38529E4A0DFACA7C5AA159541A9C`, `68,372,513 bytes`
+  - audit: `734CAE0F3B768606DCCBA7F4C257C40F7F4BB957478FEA63722B7CE113BD506B`, `77,705 bytes`
+  - manifest: `62FA03B4FB693DCB5169F8C499CD8B54E140FAFE67520C24B90F4CA40BCB5F94`, `5,583 bytes`
+- [x] classifier/test source 변경으로 stale해진 기존 approval key 8개는 의미가 같은 적용값만 재검증했다. 결과는 unchanged `1,363`, revalidated `8`, expired `0`, total `1,371`, 신규 값 승인 `0`이며 approval SHA-256은 `A09A1B282A568F5B2D46F3878342C3F646D608CC8720B04CAC6A57F1362E665A`다.
+- [x] 최종 Unity Console Warning/Error `0/0`.
+- [x] GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8` 불변.
+- [ ] 337개 현재값의 exact provenance를 복구하거나 명시적 baseline review를 수행한다.
+- [ ] 378개 unresolved Critical을 닫은 뒤에만 ApplyApproved와 256-seed 통합 감사를 진행한다.
+
+이번 체크포인트에서 item kg·BOM·WU·EWU·가격·saleRate·계약·보상·ScriptableObject 값 변경은 `0`이다. 부모 진행률은 Batch A `31/31`, B `36/40`, C `8/39`, A-C `75/110`, 전체 A-H `1/8`로 유지한다.
+
+### 126.8 시장 기존 적용 권위 복구와 의존성 root metric 교정 — 2026-08-30
+
+상태: **기존 적용 custody 162 exact 복구 / 판매율 provenance 175 OPEN / 잘못 승격된 sale-rate Critical 12 제거 / strict AuditOnly 결정론 PASS / authored 수치 적용 없음**.
+
+126.7의 `337개 모두 provenance-missing`, `Critical 378`, `collapsed 189`는 이 체크포인트 이전 상태다. Git 이력을 런타임 의존성으로 만들지 않고 일회성 증거 원천으로만 사용해, 현재 후보의 exact Before와 과거 approval After가 같고 stable ID·metric·dependency fingerprint가 일치하는 기존 적용 권위만 복구했다.
+
+| 복구 metric | exact 적용 custody |
+|---|---:|
+| `authored-unit-price-gold` | 151 |
+| `authored-daily-unit-cost-gold` | 6 |
+| `authored-retail-cost-gold` | 2 |
+| `authored-money-reward-gold` | 3 |
+| 합계 | 162 |
+
+복구 계약:
+
+- 현재 asset token이 과거 approval의 exact After와 같아야 한다.
+- dependency fingerprint, reasonCode, baseline record ID가 같아야 한다.
+- source digest만 바뀐 16건은 현재 asset이 exact After를 보유한 경우에만 기존 semantic revalidation 경로로 새 canonical key를 발급한다.
+- review-only `market-recalibration-candidate:*`에는 approval key를 만들지 않는다.
+- approval 파일·artifact 외 ScriptableObject, price, saleRate, reward, stock cost는 수정하지 않는다.
+- 중간 merge 또는 재검증이 실패하면 원본 approval byte로 전부 복구한다.
+
+복구 뒤 직접 후보 `337`개는 사라지지 않는다. 그 의미가 다음처럼 정확히 갈린다.
+
+| 후보 상태 | 행 수 | 의미 |
+|---|---:|---|
+| `previous-applied-market-recalibration-review-required` | 162 | 현재값의 적용 권위는 증명됐지만 새 후보로 바꿀지는 별도 판단 |
+| `market-authority-provenance-missing` | 175 | 현재 saleRate의 exact 승인 이력이 없고 신규 후보도 미승인 |
+
+#### dependency root metric 교정
+
+collapsed 노동밀도 Critical의 root ID만 보고 같은 stable ID의 첫 approval metric을 선택하던 로직은 `authored-market-sale-rate` 12개를 실제 원인처럼 승격했다. 이는 밸런스 이상이 아니라 귀속 버그다.
+
+- root 승격은 `authored-unit-price-gold → acquisition/cultivated acquisition → direct WU → authored WU → construction material`의 causal allowlist만 사용한다.
+- 기존 승인 key를 가진 causal row를 먼저 선택한다.
+- saleRate, retail, reward 같은 비원인 시장 표현 행은 fallback root로 사용할 수 없다.
+- 현재 12개 item의 이미 승인된 unit-price row가 정확한 review root로 재사용되고, 잘못된 sale-rate CI annotation은 `0`이 됐다.
+
+이 교정으로 unresolved Critical은 `378→366`, collapsed descendant는 `189→201`, approved root는 `35→47`이 됐다. 남은 `366`은 시장 review-only 후보 `337`과 건설 authored 판단 `29`의 합이다. 질량/runtime mismatch 또는 pipeline readiness Critical은 현재 `0`이다.
+
+#### 시장 검토 분할
+
+- 가격·시장 소비자 162건 중 formula-clean/downstream-zero item price `74`건은 한 검토 cohort로 묶을 수 있지만 exact property approval은 행별로 발급한다.
+- 나머지 `88`건은 downstream 연결, acquisition warning, quarry 폭포, stock/retail/reward를 dependency bundle로 검토한다.
+- saleRate 175건 중 `92`건은 price+rate 원자 묶음, `83`건은 rate 단독 검토 대상이다.
+- live sale credit이 acquisition cost 이상인 행과 직접 buy→sell 차익은 각각 `0`이다.
+- live 60% 회수 목표를 넘는 행은 `34`개이며 `resource:stone`은 `73.8074%`로 유일하게 70%도 넘는다.
+- 후보 sale credit은 `175/175`가 60% 이하이며 파생 행은 계속 독립 승인 불가다.
+- quarry/mana family, `resource:mana-crystal 4→172 gold`, `stock:mana 4.200749874→230.984954834`는 후손을 따로 승인하지 않고 하나의 upstream family로 먼저 검토한다.
+
+#### 검증 증거
+
+- [x] Unity compile과 causal-root focused 검증 PASS.
+- [x] 기존 적용 custody `162`, 신규 후보 승인 `0`, approval 총 `1,533`, SHA-256 `C896179A221C13902AD118F3C00E94B89AD7707F15D18DFF68B2619CA0D4A891`.
+- [x] strict focused 결과: previous-applied 후보 `162`, provenance-missing saleRate `175`, candidate approval/asset violation `0`.
+- [x] strict AuditOnly 2회 결과: rows `87,823`, Critical `366`, collapsed `201`, approved `47`, SCC `297`, minimum margin `-23,142,719mEWU`, integrity failure `0`.
+- [x] 두 번째 실행에서 CSV·audit·manifest hash·length·mtime 변화 `0`.
+  - CSV: `D702D1616318254714B38C783367EDCBD78822E773591EA36650F0C0FB8D5A59`, `68,373,346 bytes`
+  - audit: `89F46407A72017A8D97A72096F0495C4CDC168EF38CCFBEC709C23F87C6EF9F`, `78,793 bytes`
+  - manifest: `3CB8A93718B5DB6F6938A0863175BF513AF7C4FBA8C5CF8BCB69EB7F1E790817`, `5,583 bytes`
+- [x] 최종 Unity Console Warning/Error `0/0`.
+- [x] GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8` 불변.
+- [ ] 가격/소비자 162, saleRate 175와 건설 29를 명시적 bundle review로 승인·유지·재설계한다.
+- [ ] unresolved Critical `0` 이후에만 ApplyApproved와 256-seed 통합 감사를 실행한다.
+
+이번 체크포인트의 authored kg·BOM·WU·EWU·가격·saleRate·계약·보상·ScriptableObject mutation은 `0`이다. 부모 진행률은 Batch A `31/31`, B `36/40`, C `8/39`, A-C `75/110`, 전체 A-H `1/8`로 유지한다.
+
+### 126.9 시장 검토 묶음의 원자성·계열 귀속 — 2026-08-30
+
+상태: **직접 후보 337행을 품목 anchor 234개로 결정론적 분할 / family wildcard 승인 금지 / 두 번째 생성 무변경 PASS / authored 수치 적용 없음**.
+
+`source:quarry`나 `resource:mana-crystal` 의존성은 검토 순서를 정하는 경제 계열이지 승인 단위가 아니다. 같은 계열의 수백 행을 하나의 `bundleId`로 합치면 원초 자원 하나의 승인으로 무관한 품목·판매율·상점가까지 해제될 수 있으므로 다음 두 식별자를 분리한다.
+
+- `bundleId = market-atomic:{anchorItemId}`: exact property를 함께 검토할 최소 원자 단위.
+- `rootFamilyIds`: `source:quarry`, `resource:mana-crystal` 같은 인과 탐색 태그. 승인 키나 wildcard patch로 변환할 수 없다.
+
+item price와 sale rate는 자기 item ID를 anchor로 사용한다. stock·retail·guest reward 후보는 exact dependency item 하나를 anchor로 사용하며, 11행 모두 기존 item bundle에 연결된다. 고아 consumer, 중복 membership, 같은 `(stableId, authorityMetric)`의 이중 귀속은 모두 `0`이어야 한다. derived sale credit은 supporting evidence일 뿐 bundle의 approval member가 아니다.
+
+| 구분 | 수 |
+|---|---:|
+| 직접 후보 행 | 337 |
+| 품목별 원자 bundle | 234 |
+| price+rate | 92 |
+| rate-only | 83 |
+| price-only | 59 |
+| 시장 consumer 후보 | 11 |
+| 기존 적용 custody | 162 |
+| provenance 없는 sale rate | 175 |
+
+member shape는 `G/P/R/S/T` 순서의 canonical token을 사용한다. `P=price`, `R=sale rate`, `S=stock`, `T=retail`, `G=guest reward`다.
+
+| shape | bundle 수 |
+|---|---:|
+| `PR` | 87 |
+| `R` | 80 |
+| `P` | 58 |
+| `RS` | 3 |
+| `PRS` | 2 |
+| `PT` | 1 |
+| `GPRS` | 1 |
+| `GPR` | 1 |
+| `GPRT` | 1 |
+
+`formula-clean/downstream-zero` price 74행은 검토 cohort일 뿐 일괄 승인 집합이 아니다. 이 중 sale rate 또는 stock·retail·reward가 같은 anchor에 붙은 경우에는 동일 bundle 안에서 함께 판단하되 exact property 승인은 각각 발급한다. 나머지 price 77행은 acquisition warning, inherited 변화 또는 production downstream 연결을 포함한다.
+
+전용 경제 인과 그래프는 item의 `acquisition-cost`·`cultivated-acquisition-cost`와 recipe `direct-wu`의 물리 입력 edge만 합친다. presentation dependency나 market self-edge는 사용하지 않는다. 이 그래프에서 quarry 계열은 직접 후보 180행, 그중 mana 계열은 84행이다. family는 리뷰 정렬·영향 범위 설명에만 사용하고 승인 전파에는 사용하지 않는다.
+
+검증 증거:
+
+- [x] Unity current-source compile PASS.
+- [x] 행 분할 `74/77/92/83/11`, 총 337, bundle 234, shape 분포 exact PASS.
+- [x] market consumer orphan `0`, 후보 membership 중복 `0`.
+- [x] quarry candidate 180, mana candidate 84.
+- [x] live 회수율 60% 초과 품목은 anchor 중복 제거 뒤 34개.
+- [x] 모든 decision은 `pending-explicit-review`; asset mutation과 신규 candidate approval은 `0`.
+- [x] 모든 행의 dependency fingerprint·source digest·semantic hash와 234개 bundle digest가 비어 있지 않고, 같은 bundle의 digest 불일치가 `0`이다.
+- [x] 두 번째 생성에서 CSV·report SHA-256·byte length·UTC write ticks 변화 `0`.
+  - CSV: `83BE11C00EDF60B1398C75A2284A525F496FFA1363E7A12F8EF214343FCE5F46`, `293,481 bytes`
+  - report: `D26D7CDCB4A4A7334B5C50BF9BB1AF022F9B248BDCB61F2EC1AEFD522361339A`, `650 bytes`
+- [x] Unity Console Warning/Error `0/0`.
+- [x] GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8` 불변.
+- [ ] 각 bundle을 `retain-current / promote-candidate / rework` 중 하나로 명시 결정하고 exact approval transaction을 생성한다.
+- [ ] 시장 337과 건설 29의 unresolved Critical을 0으로 만든 뒤에만 ApplyApproved와 256-seed를 진행한다.
+
+권위 있는 결정 파일은 생성 artifact와 분리한 `docs/game-design/v27-balance-market-review-decisions.json`으로 둔다. generator는 이 파일을 만들거나 덮어쓰지 않는다. 각 결정은 `schemaVersion`, `bundleId`, `bundleDigest`, `anchorItemId`, `decisionReason`, `reviewedBaselineRecordId`와 모든 member의 `stableId`, `authorityMetric`, `sourcePropertyPath`, `beforeExactToken`, `candidateExactToken`, `dependencyFingerprint`, `sourceDigest`, `semanticHash`, `decision`을 포함한다.
+
+- `retain-current`: 현재 asset token을 새 canonical baseline receipt로 고정한다. 후보값을 승인한 것으로 취급하지 않는다.
+- `promote-candidate`: candidate exact token을 같은 transaction에서 asset patch와 canonical approval로 승격한다.
+- `rework`: candidate를 적용하지 않고 reviewer가 명시한 replacement exact token과 reason을 새 proposal로 만든다. 이 proposal도 재감사 전에는 승인·적용하지 않는다.
+- 한 bundle 안에서 member별 결정은 다를 수 있지만 검증과 적용은 bundle transaction 하나로 원자적으로 수행한다.
+- 현재 ledger의 bundle digest 또는 member identity 중 하나라도 다르면 `MARKET_REVIEW_DECISION_STALE`로 전체 bundle을 거부한다.
+- 누락 member, 중복 member, extra member, family wildcard, derived sale-credit member는 fail-loud다.
+
+현재 전수 감사 한 번은 약 3~4분이 걸린다. 검토 bundle serializer의 결정론 반복 시험은 향후 이미 생성된 `FrozenBalanceLedger`를 입력으로 받는 전용 경로를 추가해 EWU 전수 재계산과 분리한다. 이 최적화는 결과 의미나 승인 권위를 바꾸지 않는다.
+
+이번 체크포인트의 authored kg·BOM·WU·EWU·가격·saleRate·계약·보상·ScriptableObject mutation은 `0`이다. 126.10 교정 뒤 unresolved Critical은 시장 337개만 남고 integrity failure는 `0`이며 부모 진행률은 Batch A `31/31`, B `36/40`, C `8/39`, A-C `75/110`, 전체 A-H `1/8`로 유지한다.
+
+### 126.10 건설 재조정의 현재 승인 권위 우선과 밀도 경계 열거 — 2026-08-30
+
+상태: **건설 Critical 29→0 / current approved BOM·WU 보존 / 진짜 불가능 fixture 차단 유지 / authored mutation 없음**.
+
+기존 optimizer는 historical Before BOM만 기준으로 `changedRows`를 최소화했고, WU 후보도 minimum·period·target-nearest±1만 평가했다. 그 결과 이미 승인된 재료를 다시 빼면서 WU를 올리는 27개 rebase 후보와, 실제로는 허용 밀도 경계 안에 있는 2개 거짓 Critical이 발생했다.
+
+교정 계약:
+
+- historical BOM은 50% 수량 상한과 Before 투자 권위로 계속 사용한다.
+- current approved BOM·WU는 별도 preferred authority로 입력한다.
+- 후보 변경 수는 historical Before가 아니라 current approved property와 비교한다.
+- Critical과 non-Critical이 경쟁하면 non-Critical을 우선하지만, Normal/Warning 안에서는 current property 변경 수를 먼저 최소화한다.
+- WU 후보에 current approved WU와 density ratio `0.67/0.80/1.00/1.25/1.50`의 floor·ceil 인접 정수를 포함한다.
+- 재료 지배 시설도 period WU로 조기 반환하지 않고 동일 후보 비교를 거친다.
+- current 값이 투자 `±2%`, WU `1.5~2.25`, 밀도 Warning 상한 안에 있으면 새 patch를 만들지 않는다.
+
+결과:
+
+- 기존 건설 review-only 후보 27행과 density-unresolved 2행이 모두 제거됐다.
+- 이전 승인 BOM 종류·수량과 WU는 변경하지 않았다.
+- `building:9303`, `building:9502`는 경계 후보 누락이 해소되어 live audit Critical이 아니다.
+- 진짜로 불가능한 합성 fixture는 `CriticalDensityUnresolved`, WU 797, lumber 9, density ratio `1.8242974074`, 투자 오차 853mEWU로 계속 차단된다.
+
+검증 증거:
+
+- [x] Unity current-source compile PASS.
+- [x] focused impossible-density guard PASS.
+- [x] strict AuditOnly rows `87,796`, Critical `337`, integrity failure `0`; 건설 후보 `0`.
+- [x] 두 번째 실행에서 full CSV·audit·market CSV·market report hash·length·mtime 변화 `0`.
+  - full CSV: `25507F2CCABC8F163A1D35462BAAD61481C7C0C710A57706FA1DB2CC00BEF45B`, `68,336,356 bytes`
+  - audit: `1AA486FF6D072F927E9CF2226CCA7CC994F7BC8620F363D15A01159286D661A0`, `72,767 bytes`
+  - market CSV: `83BE11C00EDF60B1398C75A2284A525F496FFA1363E7A12F8EF214343FCE5F46`, `293,481 bytes`
+  - market report: `D26D7CDCB4A4A7334B5C50BF9BB1AF022F9B248BDCB61F2EC1AEFD522361339A`, `650 bytes`
+- [x] GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8` 불변.
+
+건설 29개를 승인해서 경고를 숨긴 것이 아니라, 이미 승인된 현재값을 후보 생성기가 다시 존중하도록 계산 구조를 고쳤다. 남은 unresolved Critical 337개는 모두 시장 review-only 후보이며, 전체 밸런스 완료는 아니다. 부모 진행률은 Batch A `31/31`, B `36/40`, C `8/39`, A-C `75/110`, 전체 A-H `1/8`로 유지한다.
+
+### 126.11 시장 bundle 기계 추천과 무상 외부 유입 차단 — 2026-08-30
+
+상태: **추천 178 promote / mana 무상유입 46 rework / 비-mana 2배 충격 10 rework / 실제 decision 234개 전부 pending / asset mutation 없음**.
+
+추천은 승인 결정이 아니다. 각 bundle의 exact identity를 유지한 채 다음 기계 규칙으로 검토 순서를 제안한다.
+
+1. 경제 인과 경로가 `resource:mana-crystal`을 포함하면 `rework-mana-unpriced-inflow`.
+2. 그 외 품목에서 candidate sale credit이 live sale credit의 2배 이상이면 `rework-sale-credit-double`.
+3. 나머지는 `promote-candidate` 추천.
+
+결과는 bundle 기준 `178 / 46 / 10`이다. 추천 이유는 모든 행에 기록하지만 `decision`은 계속 `pending-explicit-review`이고, 추천만으로 approval key·asset patch를 만들 수 없다.
+
+mana 계열 보류 원인은 EWU quarry 배분 오류가 아니다. quarry의 expected output과 weighted share는 batch debit exact 보존과 `stone < coal < iron < gold < mana` 희소성 순서를 통과한다. 실제 위험은 세력 경로가 Trade/Supply cargo를 결제 없이 물리 지급하는 데 있다.
+
+- demon trade: mana 6개 / 23일
+- golem trade: mana 4개 / 27일
+- golem supply: mana 8개 / 99일
+- demon supply: mana-awakener 6개 / 84일
+
+후보 판매가 적용 시 이 무상 화물을 현금화하면 약 `60.20 gold/일`이며 현재 약 `2.69 gold/일`의 22.3배다. 따라서 mana 가격을 인위적으로 낮춰 숨기지 않고, faction Trade의 실제 결제 또는 Supply의 obligation/resale/value-cap 중 하나를 generic route economic policy로 먼저 연결한 뒤 mana 46 bundle을 재생성한다. content ID별 예외 분기는 금지한다.
+
+추가로 `tool:rune-identification-lens`, `medical:cross-lineage-medium`, `drug:mana-awakener`는 producer 외 명시 물리 소비처가 없거나 무상 supply만 있으므로 동일 rework 경계 안에 남긴다. gold ore의 수학적 후보는 타당하지만 gold ingot/leaf 전이 가격과 exact multi-bundle transaction으로 적용해야 한다.
+
+검증 증거:
+
+- [x] 추천 누락·빈 이유 `0`, actual decision 변경 `0`.
+- [x] recommendation bundle count `178/46/10` exact.
+- [x] 추천 규칙은 인과 family와 credit ratio 기반이며 신규 품목 ID switch가 없다.
+- [x] v4 artifact 2회 hash·length·mtime 변화 `0`.
+  - CSV: `83BE11C00EDF60B1398C75A2284A525F496FFA1363E7A12F8EF214343FCE5F46`, `293,481 bytes`
+  - report: `D26D7CDCB4A4A7334B5C50BF9BB1AF022F9B248BDCB61F2EC1AEFD522361339A`, `650 bytes`
+- [x] Unity compile, Console Warning/Error `0/0`, GameplayScene hash 불변.
+- [ ] 추천 178개를 실제 `promote-candidate` 결정으로 승격할지 정책 승인한다.
+- [ ] mana 46개는 faction route economic policy를 구현·검증한 뒤 재분류한다.
+- [ ] 비-mana 2배 충격 10개는 availability·sink·transitive price를 검토해 promote 또는 rework replacement를 확정한다.
+
+남은 Critical은 시장 337개이며 전체 밸런스 완료가 아니다. 부모 진행률은 Batch A `31/31`, B `36/40`, C `8/39`, A-C `75/110`, 전체 A-H `1/8`로 유지한다.
+
+### 126.12 시장 안전 후보 적용과 세력 경제 폐쇄 세부 체크포인트 — 2026-08-31
+
+상태: **시장 bundle `178/234` 적용 / 직접 property `238`개 적용 / unresolved Critical `337→99` / 세력 경제 폐쇄 `7/7` / 전체 배치 완료 수 `1/8`**.
+
+`A–H 1/8`은 배치가 exit gate까지 완전히 닫힌 개수만 세는 원자 지표다. 따라서 Batch H의 일부 작업이 크게 진행돼도 H 전체의 6인 생존·공간·paired run·layout·최종 seed가 남아 있으면 `2/8`로 올리지 않는다. 하지만 이 숫자만 진행률로 보고하면 실제 감소량을 숨기므로, 이후 모든 보고는 아래 세부 checkpoint를 함께 제시한다.
+
+#### 시장 검토·적용
+
+- [x] 234개 atomic bundle의 exact identity와 recommendation을 현재 ledger에서 재검증했다.
+- [x] formula·source·dependency 검토를 통과한 `178`개 bundle을 `promote-candidate` 결정으로 승격했다.
+- [x] `183`개 ScriptableObject의 exact property `238`개만 변경하고 두 번째 Apply에서 변경 `0`, SaveAssets `0`을 확인했다.
+- [x] 적용 뒤 strict AuditOnly는 `87,438`행, integrity failure `0`, SCC `297`, minimum margin `-23,142,719mEWU`를 유지했다.
+- [x] unresolved Critical은 `337→99`, collapsed descendant는 `201`, approved root는 `47`이다.
+- [ ] 남은 `56/234` bundle을 재설계한다. 구성은 `mana-unpriced-inflow 46`, `sale-credit-double 10`이며 이들이 직접·파생 Critical `99`개를 소유한다.
+- [ ] 세력 Trade/Supply 경제 폐쇄 뒤 56개 bundle을 재생성·검토하고 unresolved Critical `0`을 만든다.
+
+시장 checkpoint:
+
+```text
+bundleDecisionApplied = 178 / 234
+bundleReworkRemaining = 56 / 234
+authoredPropertyApplied = 238
+unresolvedCritical = 99
+```
+
+#### 세력 경로 경제 폐쇄
+
+다음 7개 gate를 독립 분모로 사용한다. 부분 구현을 `Batch H 완료`로 세지 않되, 실제 완료 행은 다시 0으로 되돌리지 않는다.
+
+- [x] `1/7` Trade/Supply economic-policy descriptor를 6개 실제 Faction authority에 명시하고 capability registry로 등록한다.
+- [x] `2/7` 실제 cargo·authored price에서 canonical deterministic quote와 source digest를 생성한다.
+- [x] `3/7` stable source 기반 exact-once debit과 충돌·부족·ledger 예외 rollback을 증명한다.
+- [x] `4/7` Trade route request가 validation 뒤 exact debit을 commit하고 route publication 실패 시 exact refund/pending recovery를 수행한다. 미해결 환불은 Tick에서 forward retry하고 direct/central capture·reset·restore publication을 모두 차단하며, route list publication 실패는 route sequence를 증가시키지 않는다.
+- [x] `5/7` route V4 settlement receipt와 sequence를 current-format save/restore에서 exact 검증한다. receipt는 item·quantity·과거 unit price의 frozen line을 저장하고 strict restore가 authored total/source digest/quote digest를 자체 재계산하므로 현재 SO 가격이나 bounded Treasury ledger에 영구 join하지 않는다.
+- [x] `6/7` 도착 cargo whole-vector를 `Ready → Publishing → Delivered` exact-source publication으로 게시한다.
+- [x] `7/7` Supply 전역 alliance-benefit EWU budget을 승인된 source digest·refill/capacity·reservation과 결속한다.
+
+현재 6개 Supply의 exact 전수 후보는 refill `1079184126313/1843380 mEWU/day` (`585.437688546583 EWU/day`)와 같은 날 6개 route 한 bundle을 모두 수용하는 capacity `39,142,546mEWU`다. 이 값은 route 목록을 런타임에서 재합산해 자동 확대하지 않는다. 현재 6-route source digest에 결속된 review authority로 두고 faction/cargo/cooldown 변화 시 stale로 실패시켜 전역 혜택 예산이 콘텐츠 수에 따라 무한 선형 증가하지 않게 한다.
+
+Supply 예산 source authority의 canonical byte 계약은 다음으로 고정한다. 첫 행은 `schema|faction-alliance-benefit-budget-source|1`, route 행은 faction ID ordinal 순서의 `route|factionId|cooldownDays|debitMilliEwu`, item 행은 각 route 내부 item ID ordinal 순서의 `item|factionId|itemId|quantity|acquisitionMilliEwu|reviewStatus|anomalyDisposition|sourceDigest|semanticHash`, 마지막 두 행은 `capacity-mewu|39142546`와 `daily-refill-mewu-rational|1079184126313|1843380`이다. 인코딩은 UTF-8 without BOM, 줄바꿈은 LF, 마지막 trailing LF는 금지한다. 현재 18개 cargo occurrence/15개 unique acquisition row를 이 규칙으로 직렬화한 승인 대기 source digest는 `c539c892bb0b8355801c923c3a86da8f2a331ed459414684aa2dc60d0767fe15`다. 전체 CSV byte hash는 unrelated row 변경까지 예산을 stale시키므로 source authority에는 넣지 않고 증거로만 보존한다. `drug:mana-awakener`, `resource:mana-crystal`의 pending inherited review와 `material:blacksteel-ingot` warning이 해소되기 전에는 이 digest를 최종 밸런스 승인으로 해석하지 않으며, 구현·악용 방지 검증용 frozen review authority로만 사용한다.
+
+`4/7~5/7` focused evidence: `FactionTradeSettlementRecovery`가 두 번의 injected credit 실패를 pending으로 보존하고 capture를 차단한 뒤 세 번째 forward retry에서 exact `17 gold`를 한 번만 복구했으며, successful publication 경로는 refund `0`을 유지했다. Faction V4 fixture는 frozen unit price와 64-char digest의 valid-looking tamper를 모두 live mutation 없이 거부했다. `FACTION_ROUTE_ECONOMIC_POLICY_PASS`, `FACTION_TRADE_V4_RECOVERY_PASS`, Unity compile PASS, Console Warning/Error `0/0`이다.
+
+`6/7~7/7` focused evidence: Faction V5는 route cargo를 줄별 `Spawn`으로 만들지 않고 하나의 `PhysicalItemExactSourcePublicationPlan`에 동결한다. `Ready`는 prepare 전, `Publishing`은 동일 transaction forward retry와 save block, `Delivered`는 batch/destination/outcome/좌표/ordered stack/quantity/mass terminal receipt다. delivered restore는 이미 이동·병합·소비됐을 수 있는 live stack을 영구 join하지 않는다. Supply budget은 `FactionAllianceBenefitBudget.asset`의 fixed 6-route digest `c539c892...7fe15`, capacity `39,142,546mEWU`, refill `1079184126313/1843380mEWU/day`를 immutable authority로 사용하고, mutable balance/remainder/day/digest는 Faction aggregate/save V5만 소유한다. route request 전 whole debit, publication 실패 시 same-aggregate exact refund, cooldown/quote/debit/digest stale failure를 연결했다. `FACTION_ALLIANCE_BENEFIT_BUDGET_PASS`, `FACTION_EXACT_CARGO_PUBLICATION_PASS`, `PHYSICAL_ITEM_EXACT_PUBLICATION_REGRESSION_PASS`, `FACTION_ROUTE_ECONOMIC_POLICY_PASS`, `FACTION_V5_STRICT_RESTORE_PASS`, Unity compile PASS를 확인했다. GameplayScene PlayMode 기동은 기존 사용자 소유 `LifecycleDemolitionFixture` 두 개를 `SceneBuildableLeakValidator`가 거부하여 최종 PlayMode 증거로 사용하지 않았고, 해당 장면은 수정하지 않았다.
+
+#### A–H 전체 진행 대시보드와 보고 규칙
+
+이전 보고는 분모가 이미 있던 A–C만 반복하고 D–H의 실제 작업을 서술형으로 숨겼다. 이후에는 A–H 전체를 아래처럼 함께 보고한다. 서로 다른 의미의 분모를 억지로 더해 단일 퍼센트로 만들지 않는다.
+
+| Batch | 현재 checkpoint | 남은 핵심 |
+|---|---|---|
+| A exact output | `31/31`, 완료 | current-source 회귀 유지 |
+| B output capacity | `36/40` | retarget transaction, support/p95 `>4 cycle`, unified mutation fence, active multi-facility retarget |
+| C input/entity P0 | `8/39` input owners | remaining `31`, full stored-destination coverage |
+| D mass proposal | item coverage `414/414`, canonical semantic `363/414`, recipe role/contract closed `94/355` (`Source 23 + Sink 4 + reviewed exact Transform 67`), proposed `7/7 blocked` | semantic `51`, open Transform contract `261`, warehouse/buffer·EWU/price impact capture |
+| E anomaly/apply | current market bundle decision/application `234/234`, pending promotion member `0`, changed-only/no-op apply PASS | mass semantic decision `51`, 최종 duplicate writer/second-build gate |
+| F domain closure | output owner `10/10`, input owner `8/39`; cluster별 부분 증거 다수 | 6개 cluster의 producer→consumer+terminal fault+restore 통합 분모를 fresh manifest로 생성하고 0 gap까지 폐쇄 |
+| G live fault | sawmill/M06/crop·공용 output fault와 broad physical logistics 공식 whole-root 회귀 PASS; active-haul admission heartbeat 및 focused facility/crop/mining paired PASS | official integrated `0/19`; input/entity whole/partial/cancel/Dead/disable/drop-failure/Floor-Clutter/RNG 행렬의 남은 행 |
+| H final balance | integrity failure `0`, SCC `297`, market Critical `0`, faction economy `7/7`; current-source focused paired seed `1/2/3` PASS | kg·생존·공간·32-paired·3 final seeds와 최종 no-op 재실행 |
+
+오늘 실제로 닫은 세부 checkpoint는 일곱 개다.
+
+1. 시장 안전 후보 `178/234` bundle의 exact 결정·적용.
+2. strict audit Critical `337→99`, integrity failure `0` 유지.
+3. 6개 실제 Faction의 versioned economic-policy descriptor authoring.
+4. 실제 cargo의 canonical deterministic quote와 source digest.
+5. exact-once debit의 replay/conflict/insufficient/ledger-exception rollback.
+6. Faction V5 whole-vector exact cargo publication과 terminal receipt/save guard.
+7. fixed-source-digest Supply alliance-benefit budget의 exact refill/reservation/refund/restore.
+
+`A–H complete 1/8`은 여덟 batch 중 exit gate 전체가 닫힌 수만 나타내는 release 지표다. 하루 진행률로 사용하지 않는다. 이후 checkpoint 보고는 최소한 다음 여덟 줄을 포함한다.
+
+```text
+A 31/31
+B 36/40
+C 8/39
+D items 414/414; semantics 363/414; recipe contracts 94/355
+E market 234/234 decision/application; pending promotion members 0
+F output 10/10; input 8/39; official integrated clusters 0/6
+G output fault, broad whole-root logistics and active-haul focused paired evidence green; official integrated rows 0/19
+H Critical 0; faction economy 7/7; focused paired seeds 1/2/3 green; final kg/survival/space/32-paired/three-seed/no-op regeneration pending
+```
+
+F와 G의 통합 분모가 아직 없다는 사실 자체를 OPEN 결함으로 기록한다. 다음 구조 작업 전에 source-derived F cluster manifest와 G fault-row manifest를 생성해 이후에는 이 두 Batch도 정량적으로 증감하게 한다. 실제 세부 진척이 있는 턴을 `진척 없음`으로 보고하지 않는다.
+
+---
+
+## 99. Ship P0 체크포인트: 활성 운반 admission heartbeat와 대표 paired-clutter 회귀
+
+상태: **production P0 liveness 결함 수정 / current-source focused 3경로 PASS / 32-seed 최종 재인증과 G 통합 행렬은 OPEN**.
+
+- [x] 활성 AIHaul 실행도 quantity lease와 warehouse admission을 frame-clock heartbeat로 갱신한다. 복원 대기만 갱신하던 이전 경로를 제거했다.
+- [x] path search 완료 시 실제 갱신 없이 `nextLeaseHeartbeatAt = now + 10`으로 미루던 재예약을 제거했다. 이동 시작은 기존 due를 보존하고 due 시 실제 `TryRenew`를 통과해야 한다.
+- [x] paired evidence source digest에 `AIHaul`, `AbilityHaul`, `WarehouseMassAdmissionService`, `WorldItemWarehouseService`를 포함해 동일 verifier source만 바뀌지 않은 false-fresh를 차단했다.
+- [x] focused seed `1` facility output: `RESULT=PASS`, `16` windows, `20` floor rows, 수량 보존·실제 물리 pickup 후 Downed·회수, minimum headroom `306‰`, Console `0/0`.
+- [x] focused seed `2` crop harvest: `RESULT=PASS`, `16` windows, `20` floor rows, minimum headroom `312‰`, Console `0/0`.
+- [x] focused seed `3` mining burst: `RESULT=PASS`, `16` windows, `20` floor rows, minimum headroom `306‰`, Console `0/0`.
+- [x] 세 실행의 source digest는 `b0d2ad58f68c6a8e51c0ec332a97429b5ed9e93ecaabced9093a44a2685b5d48`로 동일하며 official GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 불변이다.
+- [ ] source가 동결된 최종 후보에서 32-seed paired run을 다시 실행한다. 64 paired와 256 layout 반복 인증은 §0.0에 따라 P1/P2다.
+- [ ] G official integrated `19`행 manifest를 생성하고 remaining/FAIL/STALE/MISSING/CONTRACT_GAP을 `0`으로 만든다.
+
+밸런스 영향 판정: **밸런스 영향 없음**. authored kg·WU·BOM·가격·생산량은 변경하지 않았고, 의도된 10초 heartbeat가 실제 활성 운반에서 누락되어 15초 warehouse admission이 만료되던 liveness 결함만 교정했다.
+
+---
+
+## 127. 2026-08-31 Ship-first P0 최종 폐쇄
+
+상태: **`V27 Ship P0 5/5 PASS` / 전체 exhaustive Batch A–H는 `1/8` / 남은 B–H 전수 증명은 P1/P2**.
+
+이 체크포인트는 §0.0의 출시 범위만 닫는다. 261개 Transform 설명, input owner 31개 전수 이관, F 6-cluster와 G 19-row 공식 통합 행렬, 32/64 paired 반복 인증을 완료했다고 주장하지 않는다.
+
+### 실제로 닫은 P0 게이트
+
+- [x] current `414/414` item에 positive canonical gram authority를 유지하고 일반 운반 nominal `25kg`, 대표 실효 밴드 약 `19.1/28.65kg`, 멜빵 약 `23.88/35.81kg`를 연결했다.
+- [x] 일반 warehouse `21`개는 count가 아니라 positive `maxStoredMassGrams`를 입고·예약·복원 권위로 사용하고, FacilityBuffer exact output과 일반 AIHaul·cancel·Downed representative recovery가 current-source focused/broad evidence에서 PASS했다.
+- [x] Trade/Supply 외부 Source는 exact settlement 또는 fixed-source EWU budget을 요구하고, market bundle `234/234` 결정·적용과 44개 최종 approved property의 changed-only 적용 뒤 두 번째 Apply `0/0`을 확인했다.
+- [x] 최종 원장은 `87,286`행, item `414`, live recipe `351`, crop `12`, SCC `297`, Critical `0`, integrity failure `0`이다. 256-seed는 transform `92,928`개와 partition `16,384`개를 검사했고 최소 margin `-4,326,042mEWU`로 PASS했다.
+- [x] 6인 폐쇄 루프는 음식 수요/총생산/순생산 `300/420/399 nutrition/day`, 반복 노동 `78.538WU/day` (`29.1%`), 7일 물리 비축 `57,700g`, 최대 관련 stack `30,000g`을 사용한다. 4×25kg warehouse의 정상 점유 `57.7%`, 장애+overflow 점유 `54.9%`, runtime headroom `30.8%`를 PASS했다.
+- [x] asset-backed 공간은 인구 `1/3/6/12/18/24 × 256 = 1,536/1,536` PASS, 최소 headroom `30.7%`, 정상/장애 shared-cell utilization `60%/84%`, 폭 `27/27/27/49/65/81`이다. `E` 확장은 developer-only이며 연구 확장은 필요한 수용력 폭을 계산해 적용한다.
+- [x] focused paired facility/crop/mining 대표 경로는 clean repeatability, 외생 사건 identity, 실제 pickup 뒤 Downed, access/egress clutter `0`, recovery persistent clutter `0`, RNG cross-talk `0`을 current source digest에 결속했다.
+- [x] 최종 5일×3 seed는 모두 `RESULT=PASS`, failures/captured issues `0/0`이다. actual은 `65.878/63.522/67.734`, effective는 `59.764/57.910/61.464 WU/성인·일`, 평균 `65.711/59.713`, CV `3.21%/2.98%`다. `50/45`는 중립 authored 일정 권위로 유지하며 실제 Slime·숙련·장비·시설 성능이 반영된 상회분을 원가에 다시 곱하지 않는다.
+- [x] portable verifier는 `RESULT=PASS; rows=87286; critical=0; scc=297; combat=36x1000; dailySeeds=3; finalAcceptance=33/33`, Unity Console Warning/Error `0/0`, 공식 GameplayScene SHA-256 불변을 확인했다.
+
+### A–H 보고 기준
+
+```text
+Ship P0 5/5 PASS
+A 31/31
+B 36/40 (P1/P2 4)
+C 8/39 (P1/P2 31)
+D items 414/414; semantics 363/414; recipe contracts 94/355 (P1/P2 semantics 51, Transform 261)
+E market 234/234; final approved patch 44/44; no-op 0/0
+F output 10/10; input 8/39; official integrated clusters 0/6 (P1/P2)
+G representative focused+broad PASS; official integrated rows 0/19 (P1/P2)
+H Ship P0 final gates PASS; exhaustive 32/64 paired and full matrices P1/P2
+```
+
+현재 판정은 **`V27 Ship P0 밸런스 완료`**다. 이는 현재 출시 차단선의 완료이며 미래 콘텐츠까지 영구 무결함이거나 exhaustive Batch A–H 전체 완료라는 뜻이 아니다. 신규 P0 회귀가 아닌 추가 보완은 이 체크포인트를 다시 열지 않고 P1/P2 backlog에 추가한다.
+
+---
+
+## 128. 2026-08-31 exhaustive P1/P2 Transform 계약 1차 폐쇄
+
+상태: **recipe contract `94→116/355` / open Transform `261→239` / D parent OPEN**.
+
+이번 구현은 남은 51개 item semantic을 숫자만 채워 닫지 않았다. 전수 감사 결과 이들은 coating target-transfer 4, medicine/dose 18, ration package 2, medical kit 9, antigen specimen 7, supply package 11로 나뉘며, reusable container 반환·disposable waste·integral destruction·output 승계 중 실제 runtime 정책이 먼저 필요하다. 특히 live consumer가 없는 terminal item은 semantic 선언만으로 package lifecycle을 증명할 수 없다.
+
+안전하게 닫은 recipe 묶음은 다음 22개다.
+
+- [x] positive-residual V22 apparel cutting recipe 15개에 기존 recipe-agnostic `process-loss@1 / CuttingWaste` 계약을 적용했다.
+- [x] common-wool/shade-cloth의 powered/non-powered spinning 4개에 `process-loss@1 / FiberProcessingWaste` 계약을 적용했다.
+- [x] `recipe:loot-appraisal`, `recipe:v22:apparel:vest`, `recipe:v22:weave:dreamweave`는 deterministic current/runtime residual이 정확히 `0g`일 때만 audit가 `balanced-exact@1`로 증명한다. 가짜 손실 descriptor나 tolerance는 사용하지 않는다.
+- [x] Unity 1차 적용은 정확히 19개 recipe asset을 변경했고, 2차 적용은 cutting/fiber 각각 `changed=0`, exact `32/20`이었다.
+- [x] fresh double-capture 결과는 recipe `355`, Source `23`, Transform `328`, Sink `4`, reviewed exact `86`, balanced exact `3`, closed recipe `116`, explanation missing `103`, external-input missing `80`, missing-semantic recipe `47`이다.
+- [x] broad `ProductionEconomyDebugScenarios.RunAll`은 production과 동일한 declared-loss/nonphysical routing join을 fixture에 복원하고 current DI registration ratchet을 갱신한 뒤 PASS했다.
+- [x] owner manifest는 current-source digest로 재생성했으며 input `8/39`, remaining `31`, output `10/10`, bypass/orphan/unclassified `0/0/0`을 그대로 보고한다. 이 재생성은 C 진척을 과장하지 않는다.
+- [x] Unity Console Warning/Error `0/0`, 공식 GameplayScene SHA-256 불변.
+
+결정론적 증거:
+
+```text
+recipe CSV  F85530519DA0C21AD6E1895E18F305DEE47E01C5996131532ACBC94777D8731D
+recipe TXT  D2479512E88FF4FA7A51939FAFE47A64CDBE143D4AEDB7C3DCCBAA440EE8A34D
+owner CSV   4815F81C620D7B24C8260D57C0011CC17F3A203C8075010C2591D001E407AE41
+owner TXT   C4E7AB80A8C1DCD6915CF5CF13346C62030C7B213C191D6AAA2A7D3BE9493236
+scene SHA   B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8
+```
+
+현재 전체 체크포인트:
+
+```text
+A 31/31
+B 36/40
+C 8/39
+D items 414/414; semantics 363/414; recipe contracts 116/355 (remaining semantics 51, Transform 239)
+E market 234/234; final approved patch 44/44; no-op 0/0
+F output 10/10; input 8/39; official integrated clusters 0/6
+G representative focused+broad PASS; official integrated rows 0/19
+H Ship P0 PASS; exhaustive 92×32 natural, 32/64 paired, full F/G matrices and future-family canary OPEN
+```
+
+다음 Transform 묶음은 residual 값을 무조건 손실로 승인하지 않는다. 80개 external-input 행은 typed source authority를 먼저 요구하고, 51개 package-policy item은 runtime tare 경로를 먼저 구현한다. 남은 103개 explanation-missing 행만 공정 family와 실제 잔여 질량에 따라 bounded review 묶음으로 계속 닫는다.
+
+---
+
+## 129. 2026-08-31 exhaustive P1/P2 Transform 계약 2차 폐쇄와 F/G 공식 분모
+
+상태: **recipe contract `116→132/355` / open Transform `239→223` / F `0/6`·G `0/19` 공식 분모 생성 / D·F·G parent OPEN**.
+
+두 번째 bounded review는 kg·BOM·WU·가격을 변경하지 않고, current/runtime residual이 일치하며 기존 `process-loss@1`으로 실행·저장 receipt까지 설명 가능한 deterministic Transform 16개만 닫는다.
+
+- [x] Smelting 6: `blacksteel`, `gold-ingot`, `iron-ingot`, `iron-slag-block`, `material:lead-ingot`, `steel-ingot`.
+- [x] Combustion 1: `charcoal`.
+- [x] Moisture 3: `boar-stew`, `jerky`, `salted-meat`. 조리·손질, 훈연·건조, 염장 손실을 서로 다른 reason으로 기록한다.
+- [x] Milling 1: `starch`.
+- [x] Extraction 4: `leather`, `rot-toxin`, `solvent`, `tallow`. tanning/brine, spent feedstock, distillation residue, rendering tissue/water를 서로 구분한다.
+- [x] Weaving 1: `wool-cloth`. 기존 승인된 고손실 fiber family와 동일한 `FiberProcessingWaste` 정책을 재사용한다.
+- [x] `ProductionWorkshopContentAssetBuilder.ApplyRecipeBalanceAuthority`가 reviewed catalog를 재적용하여 재생성 뒤 descriptor 유실을 막는다.
+- [x] Unity 1차 적용 `changed=16 exact=68`, 독립 2차 적용 `changed=0 exact=68`.
+- [x] broad ProductionEconomy PASS, compile PASS, Console Warning/Error `0/0`, 공식 GameplayScene SHA-256 불변.
+
+fresh inventory:
+
+```text
+recipes=355; sources=23; transforms=328; sinks=4
+reviewedExact=102; balancedExact=3
+closedTransformRecipes=105; closedRecipes=132
+explanationMissing=87; externalInputAuthorityMissing=80
+missingSemanticRecipes=47; reviewedProposedRuntimeMismatch=9
+```
+
+결정론적 증거:
+
+```text
+recipe CSV  60FC9AF0456E1538FF07894FB2E8B0EBFD619F3E2E1BDF203B25160BB7BDBD81
+recipe TXT  E9CA9799AC1E3E601FC91700163C3B09B6C266603CF001309F03A540D3253D72
+F CSV       28DD9121A861EE7F33BFD448C8302C5C221A2309F74E2F4628743AB29BC791B4
+F TXT       2857F695450353577C98E3D3FD09A6472C8512B0F939ABE557BE498B963731C6
+G CSV       0383A3FBF7E8D8FEE5DFCDA85842EC1B6B87B2EFDE57D1F506027EF0516BBE6B
+G TXT       A03D01417E246304D26731B443F88B1A9E6D872F7B1846E0EFC7E72E43DB3503
+scene SHA   B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8
+```
+
+F/G는 이제 숨은 분모가 아니라 stable row registry를 가진다. 다만 artifact는 각각 `missingRunner=v27-domain-cluster-integrated-runner`, `missingRunner=v27-live-fault-integrated-runner`를 명시하며, 실제 current-source 통합 evidence token 전에는 어떤 행도 자동 PASS하지 않는다.
+
+현재 전체 체크포인트:
+
+```text
+A 31/31
+B 36/40
+C 8/39
+D items 414/414; semantics 363/414; recipe contracts 132/355 (remaining semantics 51, Transform 223)
+E market 234/234; final approved patch 44/44; no-op 0/0
+F output 10/10; input 8/39; official integrated clusters 0/6
+G representative focused+broad PASS; official integrated rows 0/19
+H Ship P0 PASS; exhaustive 92×32 natural, 32/64 paired, full F/G matrices and future-family canary OPEN
+```
+
+남은 `87` explanation-missing과 `80` external-input 행은 별도다. 특히 external-input `80`은 authored source authority가 없는 현재 상태에서 일괄 승인하지 않는다. 누락 수치를 무료 외부 질량으로 포장하지 않고, kg/BOM/output-unit 권위 교정 또는 실제 typed Source가 생긴 뒤에만 닫는다.
+
+---
+
+## 130. 2026-08-31 exhaustive P1/P2 Transform 계약 3차 폐쇄
+
+상태: **recipe contract `132→201/355` / open Transform `223→154` / D parent OPEN**.
+
+세 번째 review는 처음 제안된 78개를 그대로 승인하지 않았다. 첫 Unity recapture가 `recipe:ration-mixture`의 runtime residual `0g`을 fail-loud했고, 감사기는 capability 해석 실패에 exact recipe ID를 포함하도록 보강했다. authored와 runtime gram 방정식을 다시 대조한 결과 다음 9개는 재현 불가능하므로 임시 descriptor를 즉시 제거했다.
+
+```text
+arrow-bone, arrow-iron, arrow-steel
+bolt-iron, bolt-steel
+ration-mixture
+prosthetic-arm, prosthetic-leg
+treated-lumber
+```
+
+또 다른 9개는 residual이 재현되더라도 67–98% 손실이어서 일반 공정 폐기로 승인하지 않는다.
+
+```text
+armor-piercing-cartridge, blasting-charge, paper-cartridge
+rune-cartridge, scatter-cartridge, signal-flare
+smoke-cartridge, trap-canister, v22:sewing-kit
+```
+
+따라서 실제 승인 집합은 정확히 69개다. projectile/rune projectile, coating/infusion, textile/paper/mechanical/rune component, compost, low-fuel, craft/decoration/gold/stone/textile, record binding, medical component, tool family에 기존 `process-loss@1`을 적용했다. 각 family는 typed loss kind와 canonical reason을 가지며 kg·BOM·output quantity·WU·EWU·가격은 바꾸지 않았다. 향후 실제 scrap/byproduct 콘텐츠가 생기면 source digest drift로 재검토한다.
+
+검증 결과:
+
+```text
+recipes=355; Source=23; Transform=328; Sink=4
+reviewedExact=171; balancedExact=3
+closedTransformRecipes=174; closedRecipes=201
+explanationMissing=18; externalInputAuthorityMissing=80
+reviewedProposedRuntimeMismatch=9; missingSemanticRecipes=47
+first correction clear=9, reviewed exact=137
+second clear/apply=0/0
+recipe CSV=DAEF7F140257ACD95FA675767777CDC23A73247833B6F9839631829D34BBEFD6
+recipe TXT=4B784BA9596E373AC5E3387BE7B6781848DC5267607C9C88B41A340312704CBC
+ProductionEconomy broad=PASS
+Console Warning/Error=0/0
+scene SHA=B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8
+```
+
+현재 전체 체크포인트:
+
+```text
+A 31/31
+B 36/40
+C 8/39
+D items 414/414; semantics 363/414; recipe contracts 201/355 (remaining semantics 51, Transform 154)
+E market 234/234; final approved patch 44/44; no-op 0/0
+F output 10/10; input 8/39; official integrated clusters 0/6
+G representative focused+broad PASS; official integrated rows 0/19
+H Ship P0 PASS; exhaustive matrices OPEN
+```
+
+---
+
+## 131. 2026-08-31 Batch B detached one-to-one replacement primitive
+
+상태: **공용 detached create/publish/discard focused PASS / atomic identity handoff OPEN / B `36/40` 유지**.
+
+- [x] `IGridBuildingFactory`와 `GridBuildingFactory`에 detached 생성·게시·폐기 경계를 추가했다.
+- [x] 생성 단계는 object를 inactive로 유지하고 dependency injection만 수행하며 visual을 그리지 않는다.
+- [x] 게시 단계는 candidate를 활성화하고 detached lifecycle을 publish한 뒤 visual을 정확히 한 번 그린다. publish 예외 시 active 상태를 되돌린다.
+- [x] 폐기 단계는 detached candidate를 제거하며 visual을 게시하지 않는다.
+- [x] focused factory regression과 기존 Grid foundation broad suite, Unity compile, Console Warning/Error `0/0`, 공식 scene hash 불변을 확인했다.
+
+이 primitive만으로 relocation/evolution을 연결하지 않는다. source가 world registry에 남아 있는 동안 동일 persistent ID candidate를 publish하면 duplicate ID가 노출되며, source를 먼저 파괴하면 publish 실패 rollback이 불가능하다. 다음 단계는 registry의 source→candidate 원자 handoff와 역방향 rollback이며, 그 뒤에만 relocation/evolution이 이 경계를 소비한다. 따라서 B parent 진행률은 `36/40` 그대로다.
+
+2026-08-31 추가 하위 경계: `ISceneRuntimeRegistry.TryReplace(expected, replacement)`가 기존 ordered slot에서 source를 candidate로 바꾸고 version을 정확히 한 번만 증가시킨다. missing source, replay, self-replacement는 mutation `0`이다. focused registry+detached factory 실행, Unity compile, Console `0/0`, scene hash 불변을 통과했다. 아직 building/warehouse/retail registry와 transient character ownership을 하나로 묶는 상위 handoff가 없으므로 caller 연결과 B parent 폐쇄는 OPEN이다.
+
+---
+
+## 132. 2026-08-31 Batch B reversible one-to-one world identity handoff
+
+상태: **world identity 하위 경계 PASS / relocation·evolution 실제 호출자 연결 PASS / active production retarget parent OPEN / B `36/40` 유지**.
+
+- [x] `IBuildingWorldRegistryPort`에 exact forward replacement와 exact rollback을 추가했다. 양방향 모두 source/replacement membership, persistent ID, building/warehouse/retail projection, transient-character ownership과 private registration lifecycle을 mutation 전에 전수 preflight한다.
+- [x] `BuildableObject`의 world-registration flag를 source에서 detached survivor로 이전하고 rollback 때 원본으로 복구한다. registry collection만 바뀌고 object lifecycle flag가 남는 이중 권위를 제거했다.
+- [x] building, warehouse, retail 각각 `forward→rollback→retry`를 검증했다. ordered projection version은 각 swap마다 정확히 `+1`, replay/self/non-detached candidate는 mutation `0`, source retirement 뒤 survivor 유지와 survivor terminal cleanup을 확인했다.
+- [x] relocation 완료는 `CreateDetached→survivor ID restore→Initialization→grid register→state restore→world handoff→PublishDetached→old retire` 순서를 사용한다. handoff 전 실패는 candidate만 폐기하고 packed construction reservation을 복원하며, publication 실패는 world rollback 뒤 동일 reservation을 복원한다.
+- [x] evolution replacement도 detached same-ID candidate를 사용한다. evolution-specific state는 기존 engine의 resolved snapshot 적용 권위를 유지하고 replacer가 구 snapshot을 임의 복제하지 않는다.
+- [x] 실제 warehouse relocation fixture는 persistent ID, world building/warehouse projection과 grid custody를 보존한다. broad FacilityEvolution 시나리오는 result definition 변경 뒤에도 source persistent ID가 동일함을 추가로 검증한다.
+- [x] Unity evidence: `BUILDING_WORLD_REPLACEMENT_ROLLBACK=PASS`, `RELOCATION_IDENTITY_HANDOFF=PASS`, `FACILITY_ONE_TO_ONE_IDENTITY_HANDOFF_BROAD=PASS`, Console Warning/Error `0/0`, official GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`.
+- [ ] 현재 production mutation fence는 active bill/WIP/output/carry custody를 retarget하지 않고 empty/no-authority만 허용한다. active authority participant transaction, support/p95 및 `4.000/4.001`, unified mutation fence와 many-to-one synthesis가 완료될 때까지 B parent 4개와 exhaustive A–H 완료를 주장하지 않는다.
+
+밸런스 영향 판정: **밸런스 영향 없음**. authored kg·BOM·WU·EWU·가격·생산량·시설 용량은 변경하지 않았다. 동일 시설의 object identity가 relocation/evolution에서 끊기던 구조 결함만 교정했으며 active 생산 처리량 변화는 아직 허용하지 않는다.
+
+---
+
+## 133. 2026-08-31 Batch C character durable-equipment owner migration
+
+상태: **career/reproduction current-source PASS / Batch C `10/39`, remaining `29` / full migration OPEN**.
+
+- [x] `character.career`의 raw `IWorldItemStackRuntime` scan, raw item delivery와 durability component 직접 변경을 제거했다. exact `record:arcane-index` policy, facility-derived slot claim/profile, reconcile/supply와 공통 durable use를 사용한다.
+- [x] mentorship award는 내구도 wear와 분리된 사후 mutation이 아니라 동일 transaction의 domain effect다. award reject/exception은 wear를 복원하며 동일 command가 이중 소비되지 않는다.
+- [x] `character.reproduction`의 raw breeding-ledger scan/delivery/component mutation을 제거했다. exact `record:breeding-ledger` 1개와 positive gram profile을 공통 slot이 소유하고, reproduction process commit을 wear transaction의 effect로 실행한다.
+- [x] 두 policy source를 DI에 등록했다. source-level ratchet은 raw delivery·직접 component mutation의 재유입, owner/item/quantity drift, 누락 policy와 정책 없는 사용을 fail-loud한다.
+- [x] focused career/reproduction와 공통 durable-equipment 회귀, broad ProductionEconomy, Unity compile, Console Warning/Error `0/0`을 통과했다.
+- [x] manifest writer를 실제로 두 번 실행했다. current result는 source digest `cd7839f5c930999a262bcb1d0b986f94b7ea61f30d5280ea4663356cc216828a`, input `10/39`, remaining `29`, output `10/10`, bypass/orphan/unclassified `0/0/0`, delivery invocation/files `57/37`, classification `PASS`, full migration `OPEN`이다.
+- [x] 두 번째 생성은 CSV/TXT hash·length·mtime 변화 `0`이다. SHA-256은 `79B5E35B5F32624EBAA748C4495F9842666739B50A06904777E43CBA28A78287` / `8BFF7243E661AF34A66DF90D7CBF2D111E4BF32B821C3E7A6160943745264D8D`다.
+- [ ] remaining `29` owner와 `fullStoredDestinationCoverage=false`가 남아 있으므로 Batch C, F/G integrated 행과 exhaustive H는 닫지 않는다.
+
+Batch D 교차 감사: `external-input-authority-missing` 80개는 모두 실제 physical/fluid input을 반영한 뒤에도 양의 질량을 생성하는 Transform이다. audit DTO의 `DeclaredExternalInputGrams`만 채우는 것은 runtime source debit·WIP receipt·EWU 비용을 만들지 않으므로 금지한다. 수치·BOM·output unit 또는 실제 source authority 변경 없이 안전하게 닫을 수 있는 행은 `0/80`이며, 이 감사에서는 asset 수치를 바꾸지 않았다.
+
+---
+
+## 134. 2026-08-31 Batch C climate durable-equipment owner migration
+
+상태: **climate current-source PASS / Batch C `11/39`, remaining `28` / full migration OPEN**.
+
+- [x] `ClimateRuntime`에서 `IWorldItemStackRuntime` 전수 검색, raw delivery와 직접 durability component mutation을 제거했다.
+- [x] exact seasonal almanac 1개와 weather observation kit 1개를 `infrastructure.climate` logical owner의 공통 durable slot policy로 등록했다. 물리 claim/profile owner는 공통 `durable-facility-equipment`이며 destination은 `facility-input:exact:durable-equipment:infrastructure.climate:{towerId}:{sequence}`다.
+- [x] 기존 일일 wear `0.25/1.0`을 유지했다. kit wear를 almanac wear의 transaction effect로 실행해 두 번째 실패 시 첫 wear가 공통 runtime에서 rollback된다.
+- [x] authored weather tower `8851` 소실 또는 capability 변경을 탐지해 active slot을 close하는 lifecycle과 save-capture guard를 추가했다. terminal custody는 공통 carried-aware drain을 사용한다.
+- [x] focused pair/wear/failure/lost-owner/save-guard, shared durable rollback, broad ProductionEconomy, Unity compile, Console Warning/Error `0/0`을 통과했다.
+- [x] manifest current result는 input `11/39`, remaining `28`, output `10/10`, bypass/orphan/unclassified `0/0/0`, delivery invocations/files `56/36`, source digest `2f46895f490bf1382aebe3385d8e947e5b096fe40c6dd08f167ada641e96ef2e`다.
+- [x] 두 번째 writer 실행의 CSV/TXT hash·length·mtime 변화는 `0`; SHA-256은 `18FD1DA6D6706524F2FE20F768EDAD2562D64A889C1DDD747B4152A157F8C8B6` / `DC309B3DD5F16D9BD64BA9D0093BBC02D0250F680DE2A2716710B5C4E379972D`다.
+- [ ] `fullStoredDestinationCoverage=false`와 remaining `28`이 남아 있으므로 Batch C/F/G/H는 OPEN이다. 다음 구현 순서는 knowledge-residue exact task authority, blueprint archive/research authority, exact RF12 invasion signal authority다.
+
+밸런스 영향 판정: **밸런스 영향 없음**. authored kg·BOM·quantity·WU·EWU·가격·기상 효과·wear 수치는 변경하지 않았다. 기존 물리 도구의 claim/profile/save/terminal 권위를 공통 경계에 결속했다.
+
+---
+
+## 135. 2026-08-31 Batch C knowledge-residue exact task-owner migration
+
+상태: **`research.knowledge-residue` current-source PASS / Batch C `12/39` 중간 이력 / full migration OPEN**.
+
+- [x] category-wide Knowledge delivery/consume를 제거하고 `facility-input:exact:research.knowledge-residue:{taskId}:{assignmentSequence:D8}` exact destination을 사용한다.
+- [x] claim은 `ExactGramRequired`, profile은 현재 exact `captivity:memory-residue` 한 개의 positive gram이며 task/assignment identity와 결속된다.
+- [x] pending typed Sink operation과 request fingerprint를 Research V6에 저장하고 Physical Items restore 이후 exact join한다. 동일 결과 재게시·이중 소비를 금지한다.
+- [x] 정상 완료는 exact Sink publication→task commit→authority ack/revoke 순서다. facility 상실은 carried-aware owner-position release 성공 뒤에만 authority를 종료한다.
+- [x] 별도 저장·소유권이 없던 legacy 자동 knowledge-residue `+12` 보너스 경로를 제거했다. explicit task만 research mutation 권위를 가진다.
+- [x] focused restore/Sink join, V16 source contract, broad ProductionEconomy, Unity compile과 manifest source ratchet을 통과했다.
+
+밸런스 영향: authored item kg·BOM·WU·EWU·가격 변경 `0`. 자동 보너스 제거는 이중 소비·이중 연구 증가를 없애는 실행 권위 교정이다.
+
+---
+
+## 136. 2026-08-31 Batch C blueprint archive exact capacity-owner migration
+
+상태: **`research.blueprint-archive` current-source PASS / Batch C `13/39`, remaining `26` / F·G·H OPEN**.
+
+- [x] destination은 canonical `research-archive:{facilityPersistentId}` 하나이며 claim은 exact `LiveBuilding`/`ExactGramRequired`다.
+- [x] capacity profile은 authored archive count × 모든 current catalog blueprint의 최대 exact unit mass다. 각 blueprint mass가 양수인지 fail-loud하며 현재 `8 × 150g = 1,200g`, revision `1`이다.
+- [x] preferred archive 선택은 deposited/non-carried + committed carried + reserved + requested gram을 profile과 비교하며 stack object 개수를 용량으로 사용하지 않는다.
+- [x] detached restore는 공용 lifecycle로 claim/profile을 함께 게시한다. 실제 registry/admission fixture가 late failure에서 기존 sentinel claim과 profile을 모두 원자 복원함을 검증했다.
+- [x] terminal retirement는 carried-aware physical release가 성공한 뒤에만 paired authority를 교체한다. release 실패 시 기존 claim/profile을 유지해 재시도한다.
+- [x] FirstRun PlayMode에서 blueprint unit `150g`, committed-carried occupancy `150g`, deposited occupancy `150g`을 확인했다. 이후 arcane-index depletion drain 실패 때문에 전체 FirstRun/H는 OPEN이다.
+- [x] manifest first/second generation은 byte/hash/length/mtime 변화 `0`; input `13/39`, remaining `26`, output `10/10`, bypass/orphan/unclassified `0/0/0`, classification `PASS`, full migration `OPEN`이다.
+
+결정론적 증거:
+
+```text
+owner CSV  19AF62F4E23067E5BD4805B6D0662EF820B6E39EA1F9323F74BF6758D88C35A2
+owner TXT  5249D69DB07E4C445632E979780CD81CF7AE192334FA26EE6B9AD04A624547F4
+F CSV      D4A0979D46120F4E96993E863ADADBE4D03D31300FE1591BD2FE655DCCE18132
+F TXT      5D9B2DF6EE8359323890799F05AE2D309A936E8C23A3D643065F470F31A995FD
+G CSV      BB63DB74621C385CFCB7BA87F0284C2C91C1C6A7DE2DB36D88999CF0402AA0D0
+G TXT      A50DC02F71DE8ACB477766D5D4D9229F4333503D5FBDE2C3FE6B95BEF27E6538
+scene SHA  B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8
+```
+
+현재 전체 체크포인트:
+
+```text
+A 31/31
+B 36/40
+C 13/39
+D items 414/414; semantics 363/414; recipe contracts 201/355
+E market 234/234
+F output 10/10; input 13/39; official integrated clusters 0/6
+G official integrated rows 0/19
+H Ship P0 PASS; exhaustive OPEN
+```
+
+밸런스 영향: authored kg·BOM·quantity·WU·EWU·가격 변경 `0`. 두 research owner의 exact 물리 소유권·복원·terminal 계약만 폐쇄했다.
+
+---
+
+## 137. 2026-08-31 Batch B unified production mutation admission foundation
+
+상태: **공통 operation snapshot·FacilityBuffer 신규 admission fence PASS / Batch B `36/40` 유지 / parent OPEN**.
+
+- [x] transient topology mutation과 durable destructive-drain을 facility/operation/revision/kind immutable snapshot으로 합성했다.
+- [x] transient+durable overlap은 durable journal operation을 우선한다. 두 source를 독립 등록해 owner ambiguity를 만드는 방식을 금지한다.
+- [x] production DI에는 `production.facility-mutation` source 하나만 등록한다. destructive-only adapter의 production registration은 `0`이다.
+- [x] exact-lot 및 planned-output 신규 예약은 mutation fence가 열려 있으면 occupancy·mass·token mutation 전에 `OwnerMutationFenceOpen`으로 실패한다.
+- [x] 이미 Reserved/Routed 상태인 custody의 commit/release는 계속 허용해 drain이 자기 fence에 교착되지 않게 한다.
+- [x] transient exact snapshot, durable snapshot, overlap priority, checkpoint GC, unrelated facility, exact/planned mutation-free rejection과 fence 종료 후 admission 재개를 focused 검증했다.
+- [x] broad ProductionEconomy, current-source compile, manifest source ratchet, Console Warning/Error `0/0`, 공식 scene SHA 불변을 통과했다.
+- [x] owner/F/G artifact 두 번째 생성은 hash·length·mtime 변화 `0`이다.
+- [ ] Combat/Apparel/CertifiedSeed/Crop의 start/progress fence, active custody retarget, all-or-none multi-facility begin/rollback, relocation/evolution/synthesis 실제 retarget은 후속이다. 이 하위 기반만으로 B parent row를 닫지 않는다.
+
+밸런스 영향: authored kg·BOM·quantity·WU·EWU·가격·facility capacity 변경 `0`. 신규 생산량이나 저장량을 만들지 않고 mutation 중 신규 custody 유입만 공통 경계로 차단한다.
+
+---
+
+## 138. 2026-08-31 Batch B unified mutation parent closure and Batch C durable-owner continuation
+
+상태: **unified mutation parent PASS / Batch B `37/40` / Batch C `15/39`, remaining `24` / F·G·H exhaustive OPEN**.
+
+- [x] `ProductionFacilityMutationWorkPolicy`가 transient topology와 durable destructive-drain의 exact kind, operation ID, revision을 canonical typed failure로 투영한다.
+- [x] Combat은 material-policy write-on-read, queue, worker/quality policy mutation, work discovery와 productive work를 fence한다. 이미 resolved인 output과 완료된 rejected dismantle의 publication/ack retry는 먼저 허용한다.
+- [x] Apparel은 craft/repair/alteration/batch 생성, 취소와 productive work를 fence한다. `WaitingForDispositionFinalization` 및 완료된 `WaitingForOutputSpace` terminal retry는 먼저 허용한다.
+- [x] Certified Seed는 기존 동일 order의 idempotent 성공과 output/destroy terminal convergence를 먼저 처리하고 신규 plan·productive completion만 fence한다.
+- [x] Crop은 cycle bind, crop set, treatment/golden schedule, treatment cancel, work discovery·productive progress·growth tick을 fence한다. pending harvest publication과 이미 완료된 treatment finalization은 먼저 수렴한다.
+- [x] `run.v20-administrative-seal`과 `invasion.signal-horn`을 공용 durable-equipment policy/slot/use/save/lifecycle로 이관했다. 두 item은 authored `2,350g`, max-stack `1`을 유지하며 raw delivery·직접 durability writer는 production callsite에서 제거했다.
+- [x] facility 상실 또는 capability 제거는 두 owner의 slot close를 요청하고 공용 carried-aware terminal drain이 물리 custody를 마감한다. domain effect reject는 wear를 rollback한다.
+- [x] Unity compile, combined mutation/Combat/Apparel/Crop-Certified/Run-Invasion focused suites, broad ProductionEconomy를 current source에서 통과했다. 최종 Console Warning/Error는 `0/0`, 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 불변이다.
+- [x] owner와 F/G artifact를 두 번 생성했다. 두 번째 실행의 hash·length·mtime 변화는 모두 `0`이다.
+- [ ] Batch B의 remaining parent는 retarget transaction, support/p95 `>4 cycle`, active sorted all-or-none multi-facility retarget 3개다.
+- [ ] Batch C remaining owner는 `24`; `fullStoredDestinationCoverage=false`다. F `0/6`, G `0/19`, H exhaustive는 닫지 않는다.
+
+결정론적 증거:
+
+```text
+owner source digest be61c7b434d2087271e74e0e026c11980b296b41086799e9f0921a418dd0d644
+owner CSV  48EF09658349A178532801957AE92E2BD8DB0CA5169875B785DB0FBB16961E97
+owner TXT  D521208CC0B5B4BD7B0B7DF1FD39A187B7B519BC8022F19F3D9ECDEB2D98CF0A
+F CSV      6E3A75F95FE2B4A4C50C60FCE71048891C94AD705B244183F11E7DA74EB72D31
+F TXT      CFDAABFBFCFFB13CD644B05AE3D46679A30F53023BD8B9E430FDAC12B7993968
+G CSV      357C5EA093FD73A8C4916ACA7324FC35652751DA9A5CAAB955FD058D9C154211
+G TXT      E7FFC812A3AFE40BF6110D4AC2FCC5F7195F73F4391EE31307D357AEBE1084BD
+scene SHA  B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8
+```
+
+현재 전체 체크포인트:
+
+```text
+A 31/31
+B 37/40
+C 15/39
+D items 414/414; semantics 363/414; recipe contracts 201/355
+E market 234/234
+F output 10/10; input 15/39; official integrated clusters 0/6
+G official integrated rows 0/19
+H Ship P0 PASS; exhaustive OPEN
+A-C enumerated 83/110; whole A-H 1/8
+```
+
+밸런스 영향: authored kg·BOM·quantity·WU·EWU·price·facility capacity 변경 `0`. 이번 slice는 mutation 원자성과 exact physical owner 경계를 닫았으며 생산량·소비량·가격 재조정 완료를 의미하지 않는다.
+
+---
+
+## 139. 2026-08-31 Batch B retarget transaction·support/p95 capacity gate
+
+상태: **retarget transaction PASS / support-aware frozen-p95 `4.000/4.001` PASS / Batch B `39/40` / active-owner retarget OPEN**.
+
+- [x] `ProductionFacilityRetargetTransaction`은 source stable-ID 정렬, duplicate source 거부, 모든 source epoch의 원자적 개방, participant stable ordering, N→1 binding coverage, target split-brain 거부, prepare/commit/rollback/complete fingerprint 재검증과 실패 participant를 포함한 역순 rollback을 수행한다.
+- [x] production participant registry는 비어 있거나 중복 participant ID를 fail-loud한다. 현재 등록된 `empty-lifecycle-guard`는 각 source의 output destination lifecycle이 authority-free이고 empty revoke 가능함을 prepare·commit·rollback·complete 경계마다 재검증한다.
+- [x] synthesis는 stable source-ID 순서의 N→1 transaction과 선언 anchor persistent ID를 사용한다. relocation/evolution은 동일 공통 transaction의 1→1 경계를 사용한다. 세 caller 모두 `Begin → detached world/grid handoff → Commit → publish → Complete` 순서와 실패 시 transaction/world/grid 역복구를 가진다.
+- [x] 기존 empty/no-authority preflight를 유지한다. active bill, prepared/WIP output, carried/physical custody는 아직 target으로 이전하지 않으며 안전하게 거부한다. 이 guard를 active retarget 증거로 세지 않는다.
+- [x] `ProductionOutputClearanceCapacityPortfolioGate`는 current producer scope·census·reachable support/work-speed envelope·frozen p95 profile을 exact key와 digest로 결합한다. seed는 최소 `32`개이고 seed별 관측은 정확히 하나여야 한다.
+- [x] authored 2~4 cycle 용량은 수정하지 않고 평가한다. 당시 binary schema에서는 required `4.000` cycle 통과, `4.001` 이상 `PRODUCTION_OUTPUT_CLEARANCE_EXCEEDS_FOUR_CYCLES`로 판정했으나 이 historical 결과는 §156 schema `@3/@2`가 supersede한다. current 계약은 `4.001+ => BackpressureExpected + published 4`, authored bounded target 미달은 `PRODUCTION_OUTPUT_CLEARANCE_AUTHORED_CAPACITY_UNDERSIZED`, 구조·원자성·liveness 실패는 Critical이다. support/throughput digest drift, missing/orphan/duplicate profile과 입력 순서 비결정성은 계속 fail-loud한다.
+- [x] Unity current-source compile 후 retarget transaction, empty lifecycle participant, output-clearance portfolio, synthesis rollback focused를 통과했다. 이어서 `ProductionEconomyDebugScenarios`, `FacilityEvolutionDebugScenarios`, `FacilitySynthesisDebugScenarios` broad가 PASS했고 Console Warning/Error는 `0/0`이다.
+- [x] destructive topology ratchet은 source replacement로 runtime direct `DestroySelf();`가 `6→4`가 된 실제 전수 검색 결과로 갱신했으며 obsolete bypass count `0`을 유지한다.
+- [x] owner/F/G artifact를 current source에서 두 번 생성했다. 두 번째 실행의 hash·length·mtime 변화는 모두 `0`이다.
+- [ ] 실제 active bill/WIP/physical custody participant, source→target sorted all-or-none 이전, failure injection과 live restore 증거가 마지막 Batch B parent다. 이 항목 전에는 B `40/40`이나 active multi-facility retarget 완료를 주장하지 않는다.
+
+결정론적 증거:
+
+```text
+clearance source digest 504de1dd8067abf49224c3f17db2ad7953427d0611198cb30c932ff83e3354b9
+owner source digest d59a8b02ebab32d579722019bf55f42877d2a31c711f73a6d0b834587a273030
+owner CSV 435366C31A2C18149241C0C8C254702A9283DE689386F6ACD04C61C014D33E3D
+owner TXT 585307398E01F8574EA678C6D78A8DFD5D1C68549997C93CCB50658632723827
+F CSV 4115402BF407C760B76DB808D6F3883860FDC6BA207C4EC75BE9EC6A48EE721C
+F TXT 1FD72C65EF1B2B8465F0194365CA71842ADB1D9588462AD077BE8410E8958DC4
+G CSV 78DA87887B1A11CDCDA8BF02BA6CA4D290C4FB3B0BF94EF105F52DF6426942A3
+G TXT 2CAAA4249D6A4C46BD945BB3F511052D6E4A9B54D50FF2F9982118C707620E1C
+scene SHA B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8
+```
+
+현재 전체 체크포인트:
+
+```text
+A 31/31
+B 39/40
+C 15/39
+D items 414/414; semantics 363/414; recipe contracts 201/355
+E market 234/234
+F output 10/10; input 15/39; official integrated clusters 0/6
+G official integrated rows 0/19
+H Ship P0 PASS; exhaustive OPEN
+A-C enumerated 85/110; whole A-H 1/8
+```
+
+밸런스 영향: authored kg·BOM·quantity·WU·EWU·price·facility capacity 변경 `0`. 이 체크포인트는 mutation/용량 검증 구조만 닫았으며 `92×32` 자연 계측, final kg·EWU·가격·6인 생존망 재검증과 active owner 이전은 남아 있다.
+
+---
+
+## 140. 2026-08-31 Batch D deterministic process-loss closure 2
+
+상태: **reviewed exact `179` / closed recipe contracts `209/355` / explanation missing `10` / Batch D OPEN**.
+
+- [x] Arrow/bolt 5개, prosthetic 2개, treated-lumber 1개의 proposal/current runtime 질량식을 각각 재계산했다. 양쪽 식에서 모두 deterministic positive residual인 경우만 reviewed process-loss로 승격했다.
+- [x] projectile shaft·fletching·fitting residue는 `CuttingWaste/ammunition-shaft-fletching-and-fitting-offcuts`, prosthetic machining residue는 `CuttingWaste/prosthetic-machining-and-fitting-offcuts`, lumber planing/resin residue는 `CuttingWaste/lumber-planing-and-resin-treatment-residue`로 명시했다.
+- [x] Unity 에셋 적용 뒤 전체 reviewed catalog 검증은 `changed=0 exact=145`로 재실행 idempotence를 통과했다.
+- [x] 355개 레시피 전수 원장은 `reviewedExact=179`, `balancedExact=3`, `closedTransformRecipes=182`, `closedRecipes=209`, `explanationMissing=10`, `remaining contracts=146`이다.
+- [x] recipe CSV/TXT를 독립적으로 다시 생성해 SHA·length·mtime 변화 `0`을 확인했다. broad ProductionEconomy 회귀, Unity current-source compile, Console Warning/Error `0/0`을 통과했다.
+- [x] 공식 GameplayScene SHA-256은 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`로 불변이다.
+- [ ] `recipe:ration-mixture`는 proposal residual `400g`이지만 current runtime residual `0g`이므로 손실 계약을 꾸며내지 않고 OPEN으로 유지한다.
+- [ ] 나머지 explanation-missing 9개 극단 손실 탄약/봉제도구 행은 item unit 의미 또는 실제 공정 부산물 결정 전까지 OPEN이다. semantic `51`, external-input authority missing `80`, 전체 recipe contract `146`도 남아 있다.
+
+결정론적 증거:
+
+```text
+recipe CSV EECE2739CFCD009CC59E4CBB8DAC8FDE6638087381FB17426AC82872DBF8135D
+recipe TXT C7CC59FFB133E91F08E2A9106C4C911FEED8BA35521830E289885444892BDED2
+recipe source digest 7f2a808b8f6d059bf6f9628f99151c979d2fea6ba04068fabc170c02fbb34292
+scene SHA B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8
+```
+
+현재 전체 체크포인트:
+
+```text
+A 31/31
+B 39/40
+C 15/39
+D items 414/414; semantics 363/414; recipe contracts 209/355
+E market 234/234
+F output 10/10; input 15/39; official integrated clusters 0/6
+G official integrated rows 0/19
+H Ship P0 PASS; exhaustive OPEN
+whole A-H 1/8
+```
+
+밸런스 영향: authored kg·BOM·quantity·WU·EWU·가격·facility capacity 변경 `0`. 이번 변경은 이미 존재하는 양의 질량 잔차의 설명·감사 계약만 닫았으며 생산량·소비량·경제 수치를 변경하지 않는다.
+
+---
+
+## 141. 2026-08-31 Active identity retarget foundation·Circus exact owner·runtime-balanced recipe
+
+상태: **B `39/40` 유지 / C `16/39`, remaining `23` / D recipe contracts `210/355`, remaining `145` / F·G·H exhaustive OPEN**.
+
+### B active authority 기반
+
+- [x] 공통 staged authority adapter와 composite participant가 stable adapter ordering, source fingerprint, prepare/commit/rollback/complete를 제공한다.
+- [x] generic production bill/WIP은 source와 target의 persistent ID가 같은 evolution/relocation 경로에서 identity를 보존한다. focused fixture는 bill `1`, active WIP `1` 성공과 N→1 unsupported failure, epoch rollback을 검증한다.
+- [x] relocation/evolution/synthesis의 구형 empty-only 선차단은 공통 retarget transaction 경계로 이동했다. residual guard는 등록 adapter가 소유하지 않는 authority를 계속 fail-loud한다.
+- [ ] non-anchor N→1 bill reauthor, prepared routing/exact route, physical world/carry/intent/reservation, input claims/custody의 staged adapter가 남았다. 따라서 active bill/WIP/physical-custody multi-facility retarget 완료나 B `40/40`을 주장하지 않는다.
+
+### C captivity.circus exact owner
+
+- [x] 한 stage의 exact durable slot이 공연 소품 상자 `1,950g` 1개와 연회 운반 수레 `3,150g` 1개를 소유한다. capacity는 정확히 `5,100g`이다.
+- [x] prop box는 show마다 typed Sink되고 banquet cart는 정확히 durability `4`가 감소한다. Sink reject/throw 시 공용 use transaction이 cart component를 이전 값으로 rollback한다.
+- [x] Circus V4 pending Sink, durable slot save, Physical Items restore candidate를 교차 검증한다. terminal cancel은 pending receipt를 먼저 finalize하고, lost/destroyed/capability-removed stage는 공용 carried-aware close로 drain한다.
+- [x] bespoke delivery 2개를 제거해 전수 callsite가 `53→51`, 파일이 `34→33`이 됐다. manifest는 input migrated `16/39`, remaining `23`, bypass/orphan/unclassified `0/0/0`이다.
+
+### D current-runtime exact/proposal mismatch
+
+- [x] `recipe:ration-mixture`는 current runtime에서 `2×300g flour + 500g saltstone + 50g water = 2×550g ration + 50g wastewater`로 exact balance다.
+- [x] 아직 미적용인 flour semantic proposal `500g` 때문에 proposal residual만 `+400g`인 상태를 `runtime-balanced-proposal-mismatch@1`로 분리했다. process-loss descriptor는 추가하지 않는다.
+- [x] recipe 원장은 reviewed exact `179`, balanced exact `3`, runtime-balanced/proposal-mismatch `1`, closed `210/355`, explanation missing `9`다.
+- [ ] 남은 9개 탄약/봉제도구 행은 현재 입력 대비 48~98% 질량이 사라진다. kg/BOM/output unit/physical byproduct 중 실제 설계를 정하기 전에는 generic waste로 닫지 않는다.
+
+검증 증거:
+
+```text
+owner CSV 39A5DD8434262142E9E6DE5ECC891B5F4967FB0226E97730D9A1D586C1289538
+owner TXT 6F4A6F724BA2E108393E2C2241AFCA4622D7F0A83A75E26839732936AA4993B1
+owner source digest b04932a342b6c1c0b0a237069b5671ca4a04f62642f35b3a4a4c1b45dc90174d
+recipe CSV 2E828D35FAAF6D99AF9653DE59D37B8971204912BC2FD6853C7432FCE9C3157C
+recipe TXT 8099D886A0EA4B1187880530A1E0ECDE72B99E2C2C668BCEEA723DC5778483AB
+recipe source digest a549dc4273e9656b9c92632c00934b5e8c248d3bbbabe2098d48d90182bcdadc
+F CSV/TXT 95AAC90AD03C158E2D6F56B6FB55DEBB61E84088207DD4C8089EE368592124DF / 4385F9F25FF3A3BE2F1982158ACE9BDE1BBF3D74E058EAECEEBF29C13795180C
+G CSV/TXT 2B8BC4EDF964FF9F8B7BECF2D590A3EAA6223DDE5A65CA4FEA207820E85328F0 / B86DBCC307018BCC1E4A0E154347F53B3EDEB3832C98707238CF243F246E2A0C
+scene SHA B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8
+```
+
+현재 전체 체크포인트:
+
+```text
+A 31/31
+B 39/40
+C 16/39
+D items 414/414; semantics 363/414; recipe contracts 210/355
+E market 234/234
+F output 10/10; input 16/39; official integrated clusters 0/6
+G official integrated rows 0/19
+H Ship P0 PASS; exhaustive OPEN
+A-C enumerated 86/110; whole A-H 1/8
+```
+
+밸런스 영향: authored kg·BOM·quantity·WU·EWU·가격·facility capacity 변경 `0`. 이 checkpoint는 owner/retarget/runtime-contract 구조를 강화했으며 final mass authoring과 경제 재생성을 대신하지 않는다.
+
+---
+
+## 142. 2026-08-31 Batch C exact input-owner closure 16→22
+
+상태: **C `22/39`, remaining `17` / F input `22/39`, integrated `0/6` / owner 관련 focused·broad PASS**.
+
+### 폐쇄한 owner
+
+- [x] `combat.defense-facility`: supply와 maintenance destination을 exact current-item gram으로 투영한다. capacity 확대는 기존 물리 custody를 보존하고 shrink/lost-facility는 carried-aware release 성공 뒤 claim/profile을 폐기한다. current-format restore는 owner pair와 facility join을 다시 검증한다.
+- [x] `combat.equipment-crafting`: recipe의 current exact material lot을 `facility-input:exact:combat.equipment-crafting:{orderId}`로 소유한다. direct delivery orchestration `2→0`, exact gram profile, one-gram restore drift rejection, terminal carried-aware close를 검증했다.
+- [x] `economy.certified-seed`: seed와 certification kit의 exact gram 합계를 `facility-input:exact:economy.certified-seed:{facilityId}:{cropId}:{sequence}`에 동결한다. input committed durable phase, abort/lost-facility retirement와 current-format owner-set restore join을 추가했다.
+- [x] `offense.urgent-mitigation`: 한 주문의 exact material line을 `facility-input:exact:offense.urgent-mitigation:{escapedOrderId}`로 소유한다. Offense world current schema는 V8이며 cancel/facility-loss/completion 모두 물리 custody release 후 paired authority를 폐기한다.
+
+### 검증과 남은 경계
+
+- [x] Unity current-source compile과 네 owner focused fixture가 PASS했다. Offense strategic broad는 `11/11`, Defense broad와 ProductionEconomy는 이번 통합 소스에서 선행 PASS했다.
+- [x] manifest structural gate는 input owners `39`, migrated `22`, remaining `17`, output `10/10`, delivery invocations/files `49/32`, bypass/orphan/unclassified `0/0/0`을 보고했다.
+- [x] owner CSV/TXT 두 번째 생성의 SHA·length·mtime 변화는 `0`이다.
+- [x] 별도 stale combat-repair focused fixture의 facility ability 권위와 sealed `DispatchProxy`를 교정하여 실제 실행 PASS로 복구했다.
+- [x] `CombatEquipmentEditorTestFactory`에 매 aggregate마다 격리된 exact claim/profile authority, real physical mass query와 deterministic non-carried release adapter를 주입했다. production null 계약을 완화하지 않고 `CombatEquipmentMaterialDebugScenarios.RunAll()` current-source broad를 PASS했다.
+- [ ] F six-cluster runner는 아직 없고 G의 evidence reports는 current-source digest가 stale이므로 F `0/6`, G `0/19`를 유지한다.
+
+결정론적 증거:
+
+```text
+owner source digest 0cefbb4035841229b51da4660e805f9925156c3e90566d03308f6f871fa34a8c
+owner CSV B45A075896BD58C23D72BA4E9E77C36C1D6DF7592A323E182A6F7A34E6491B4E
+owner TXT FF34C3FBC81FDB3C430B1A24C596EFC49C5ECB4C5CD42E641A87A70B1CB725C2
+F CSV/TXT EE5F7F5AEDBA83CF43F53BF11AD2C237980011D651A81A37B2C0E2B4989EBEE7 / 8902BD62DEA9E3BE36D63751BFCEAFB3A61806280E75212491ABA5AFD30F5BE0
+G CSV/TXT 7D22F6748A781392F9BCD6C87169F228776E72801EE42D04799B22D0AEE04956 / B71AF5BD164DF1B95238DD92955605E033EBD3C1BC5EEC7837C841DE7511C3F4
+scene SHA B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8
+```
+
+현재 전체 체크포인트:
+
+```text
+A 31/31
+B 39/40
+C 22/39
+D items 414/414; semantics 363/414; recipe contracts 210/355
+E market 234/234
+F output 10/10; input 22/39; official integrated clusters 0/6
+G official integrated rows 0/19
+H Ship P0 PASS; exhaustive OPEN
+A-C enumerated 92/110; whole A-H 1/8
+```
+
+밸런스 영향: authored kg·BOM·quantity·WU·EWU·가격·facility capacity 변경 `0`. 이 checkpoint는 물리 owner·restore·terminal 무결성을 닫았으며 최종 수치 적용이나 F/G/H exhaustive 완료를 의미하지 않는다.
+
+---
+
+## 143. 2026-08-31 Batch B 40/40과 Crop/Wildlife owner 22→24
+
+상태: **B `40/40` / C `24/39`, remaining `15` / F input `24/39`, integrated `0/6`**.
+
+### Batch B 최종 폐쇄
+
+- [x] `ProductionActiveFacilityRetargetStateStore`는 기존 production bill, Physical Items, haul-intent current-format authority를 하나의 transaction-scoped snapshot으로 캡처한다. 신규 save field나 병행 권위를 만들지 않는다.
+- [x] source facility는 persistent ID ordinal 순서로 정렬한다. N→1 reauthor는 bill ID, WIP commit ID·수량·gram·completed work, physical stack/unique instance/claim owner를 보존한다.
+- [x] FacilityBuffer와 FacilityOutputBuffer의 exact custody는 target cell/destination으로 이동한다. carried stack은 character custody와 현재 위치를 유지하고 연관된 exact haul intent destination만 target으로 바꾼다.
+- [x] apply 자체 또는 뒤 participant 실패 시 snapshot 전체를 기존 validator/restore join을 거쳐 source로 exact rollback한다. prepared/pending terminal output 및 source route/drain outbox가 열려 있으면 publish 전에 fail-loud한다.
+- [x] production DI의 `ProductionGenericBillIdentityRetargetAdapter` 등록을 제거하고 active state store/adapter로 교체했다. 동일 lifecycle contributor 중복 소유는 없으며 prepared-routing adapter는 유지한다.
+- [x] N=3 unsorted input, all-success, late-participant failure, claimed/carried/buffer custody 회귀가 Unity current-source에서 PASS했다. `ProductionEconomyDebugScenarios`가 focused 회귀를 매 broad 실행에 포함한다.
+
+### Batch C owner 2종
+
+- [x] `economy.crop-plot`: sow/treatment operation sequence를 포함한 canonical destination, exact LiveFacility claim, positive current-gram profile을 사용한다. crop change/cancel/completion/destroy/removal은 carried-aware release 성공 뒤에만 pair를 폐쇄하고 current-format restore는 detached exact plot/capability join을 검증한다.
+- [x] `captivity.wildlife-care`: exact pen persistent ID를 owner facility로 사용한다. capacity는 active animals × authored daily food/water units × current catalog eligible maximum unit grams이며 기존 typed feed Sink/outbox와 수량 보존은 유지한다.
+- [x] wildlife shrink/terminal은 owner-position release 성공 뒤에만 authority를 줄이거나 폐기한다. restore participant는 derived claim/profile을 common claim/profile restore보다 먼저 재구성한다.
+
+### 검증과 잔여
+
+- [x] crop/wildlife focused, active multi-facility retarget focused, Captivity broad, ProductionEconomy broad, owner manifest current-source PASS.
+- [x] clean Unity Console Warning/Error `0/0`; 공식 GameplayScene SHA `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8` 불변.
+- [x] owner manifest: input `24/39`, remaining `15`, output `10/10`, delivery calls/files `49/32`, bypass/orphan/unclassified `0/0/0`, classification PASS.
+- [ ] C의 남은 owner `15`, D semantic/recipe contract, F `0/6`, G `0/19`, H exhaustive는 계속 OPEN이다.
+
+현재 전체 체크포인트:
+
+```text
+A 31/31
+B 40/40
+C 24/39
+D items 414/414; semantics 363/414; recipe contracts 210/355
+E market 234/234
+F output 10/10; input 24/39; official integrated clusters 0/6
+G official integrated rows 0/19
+H Ship P0 PASS; exhaustive OPEN
+A-C enumerated 95/110; whole A-H 2/8
+```
+
+밸런스 영향: authored kg·BOM·quantity·WU·EWU·가격·facility capacity 변경 `0`. B의 구조적 exit gate만 닫혔으며 C/D/F/G/H 완료를 의미하지 않는다.
+
+---
+
+## 144. 2026-09-01 Batch D 물리 의미·레시피 폐쇄와 6인 공간 current-source 재인증
+
+상태: **D item semantic `414/414`, recipe contract `355/355`; 6인 생존망 PASS; 공간 `1,536/1,536` PASS; D·F·G·H parent gate OPEN**.
+
+### Batch D 물리 의미와 레시피 계약
+
+- [x] 414개 item의 explicit unit semantic이 모두 current authority와 연결됐다. 누락 semantic은 `0`이다.
+- [x] 전체 355개 레시피를 Source `23`, Transform `328`, Sink `4`로 분류했다. Transform은 reviewed exact `313`과 naturally balanced exact `15`로 전부 닫혔다.
+- [x] runtime/proposal mismatch, explanation missing, external-input authority missing, missing semantic recipe는 모두 `0`이다.
+- [x] packaged anesthetic의 재사용 30g vial은 RecipeSO process-loss가 아니라 별도 packaged-lot Sink authority가 소유한다. 동일 질량을 두 writer가 중복 소유하지 않는다.
+- [x] capability/audit 설명이 불일치하던 6개 recipe를 실제 공정 의미로 통일했다: cheese·night-wine은 `MoistureEvaporation`, granulated-powder는 `MillingByproduct`, seasoned-filling은 `CuttingWaste`, hay-feed는 `FiberProcessingWaste`, night-spirit는 `ExtractionResidue`다.
+- [ ] D parent exit에는 이 폐쇄 결과를 warehouse/buffer consumer, EWU·가격·SCC·asset no-op까지 재생성한 current-source 증거가 추가로 필요하다.
+
+### 작성 단위 교정과 6인 폐쇄 루프
+
+- [x] RecipeSO의 clean/waste fluid 단위가 `500g/unit`임을 적용해 12개 공정의 kg/cycle 값을 authored unit으로 교정했다. current serialized 값은 garden `1.4/0.4`, porridge `3.4/0.2`, poultice `0.5/0`, tea `1.1/0.2`, soup `1.9/0.2`, roast `0.3/0`, root stew `1.3/0.2`, brined `1.4/2`, curd `0.4/4.2`, dough `0.6/0.2`, fermented pickle `1.2/2`, salted `1.2/0`이다.
+- [x] 6인 기준 총 물 수요는 `14.047 unit/day`, 물 반복 노동은 `17.560 WU/day`, 전체 반복 노동은 `85.568 WU/day`, 유효 노동 대비 `31.7%`다.
+- [x] 7일 물 비축은 `99 unit`, 필수 저장 질량은 `77,700g`이며 음식 gross `125%`, net `110%`, 실제 primitive N+1 경로 `10`개를 통과했다.
+
+### 공유 접근칸·저장·던전 공간
+
+- [x] 인구 `1/3/6/12/18/24 × 256 seed = 1,536` 배치를 실제 에셋 footprint/access/storage authority로 재실행해 `1,536/1,536`을 통과했다.
+- [x] 최소 폭은 인구별 `27/27/29/51/71/87`, 모든 단계 최소 headroom은 `30%` 이상이다. 6인은 폭 `29`, 최소 headroom `32.1%`, normal/fault storage utilization `62.2%/58.3%`다.
+- [x] shared access union, egress 보호, exact backtracking oracle, deterministic beam fallback, heuristic false-negative `0`을 검증했다.
+- [ ] 기존 Solver는 실패 폭에서도 256 seed를 전부 동기 탐색하고 Beam 후보를 전부 만든 뒤 64개만 남겨 Unity main thread를 약 9분 점유했다. 256 seed와 `243/256` 판정은 유지하되 incremental Editor update, 실패 허용치 조기 종료, bounded top-64, seed/전체 예산의 fail-loud 계약을 적용한 뒤 current-source로 다시 인증해야 한다.
+
+### Paired Run 전력 aggregate 복원 결함
+
+- [x] paired arm에서 동적 조리대를 생성·철거한 뒤 `ElectricalNetworkRuntime`의 state가 topology version 변화 때만 정리되어, 제거된 building ID가 power save DTO에 남던 원인을 확인했다.
+- [x] Capture마다 current live Grid에 실제 등록된 power node 집합과 aggregate state를 exact reconcile한다. 다른 Grid, 파괴·미등록·잘못된 persistent ID는 stale node로 분류한다.
+- [x] stale node에 pending fuel custody가 있으면 삭제하지 않고 `POWER_NODE_RETIREMENT_PENDING_FUEL`로 fail-loud한다. 안전한 node만 state와 fuel request schedule에서 함께 제거하며 두 번째 reconcile은 no-op이다.
+- [x] runtime은 `IGridSystemProvider`를 필수 의존성으로 받아 복원 전·후 Grid 권위를 혼동하지 않는다. direct industrial fuel probe도 fixed Grid provider를 사용한다.
+- [ ] Unity current-source focused power retirement와 paired 32-seed 4-arm 재실행 전에는 H paired gate를 닫지 않는다.
+
+### F 산출물 단일 작성 권위
+
+- [x] `V27ExhaustiveClosureDenominatorDebugScenarios`가 F fixture를 실행하지 않으면서 `v27-domain-cluster-closure.*`를 `0/6`으로 덮어쓰던 중복 writer를 제거했다.
+- [x] F artifact는 실제 여섯 integrated fixture를 실행하는 `V27DomainClusterClosureDebugScenarios`만 쓴다. 범용 denominator runner는 두 registry의 row ID 일치만 검증하고 G artifact만 쓴다.
+- [ ] 이 source 교정은 Unity compile과 F runner의 2회 byte-identical 실행이 끝나기 전에는 F `6/6`으로 닫지 않는다.
+
+결정론적 증거:
+
+```text
+recipe TXT A37D38B39CBF54760FAB9A91B2DE643B93120B3868565CB83EF08ED69CE2BA18
+recipe source digest ffb223b5b516108a7515f34552129238008e9ac7b34c849d9a620ef303f50743
+explicit semantic TXT 9C573D658366E7E309951842AF646E4095DFE490E2E7F4482AEC1DA8D522C60D
+six-adult TXT 56FA9AD7890C87FAF42121FC26458A2D900F3C446D3B72EBD4B8C76A753E39F3
+six-adult source digest b295574e577e5178c4349c70764f2a22ce621e9a216d30058113815bdc52188d
+spatial CSV D8AA14655C8E932E4F7691B0C8A90182C3004B97D1A97E2C6B67C4DDCA9B6A99
+shared-cell TXT C5FFCFB2F181E1F955C79A357ECADB44B42CB3BA45D467314A0786F1890B846E
+spatial source digest 71f03d9183d48c8322fda93baf06b372dddafbfbba23b9a2b856460e9523b6d4
+scene SHA B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8
+```
+
+현재 전체 체크포인트:
+
+```text
+A 31/31; parent PASS, final recapture pending
+B 40/40; parent PASS
+C independent owners 36/36 source-complete; current manifest rerun pending
+D items 414/414; semantics 414/414; recipe contracts 355/355; parent OPEN
+E market 234/234; approved patch 44/44; parent PASS, final no-op recapture pending
+F source integrated runner 6/6; current-source artifact rerun pending
+G official rows current-source live 0/19; source bridge candidates 9/19
+H six-adult and 1,536 layout PASS; paired/economy/3-seed/final matrix OPEN
+logical parent exit gates 3/8 (A/B/E)
+```
+
+밸런스 영향: 12개 RecipeSO의 clean/waste water authored 값을 실제 `500g/unit` 권위에 맞춰 교정했고, 이로부터 6인 물류·노동·저장·공간 수치를 재계산했다. D 전체 완료나 V27 exhaustive 완료를 의미하지 않는다.
+
+---
+
+## 145. 2026-09-01 exhaustive parent 증거 재감사와 장기 실행 격리
+
+상태: **B·C·D·F leaf 구현은 전진했으나 A/D/E/H parent 증거에 단순 재실행으로 닫히지 않는 P1/P2 gap 확인 / paired 32-seed current-source 실행 중**.
+
+### 실행 격리와 freshness 권위
+
+- [x] 장기 Unity 검증을 MCP `ProcessCommands` 안에서 동기 실행하면 `EditorApplication.update`와 Unity AI tracing timeout이 사용자 UI를 점유함을 프로세스·Editor.log로 확인했다.
+- [x] paired 요청은 whitelist 파일 디스패처로 전환했고, 현재 `paired-full|32`는 Unity PID `190440`, paired scene lease, synthetic scene lease와 증가하는 CPU 시간으로 생존을 확인한다. 실행 중 Unity/MCP 명령과 C#·asset 편집은 금지한다.
+- [x] 현재 C# 전체의 production 방식 Ordinal SHA-256은 `4d5ffc6f6a81f0a8ba61279d1010d949e98d4a3a5ac4b103bce2cf10a7f3aa5f`다. 새 paired 산출물은 이 digest와 공식 scene SHA `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`를 모두 가져야 current-source로 인정한다.
+- [ ] 장기 runner는 request 처리를 즉시 반환하고 실제 작업을 PlayMode coroutine 또는 별도 batchmode에서 frame-yield하며, plan/seed shard 단위 atomic progress와 resume를 제공해야 한다. `EditorApplication.update` 안의 장시간 본문 실행은 최종 H에서 허용하지 않는다.
+
+### A parent 재감사
+
+- [x] 문서의 `31/31`은 수동 체크리스트이며 실행 registry 분모가 아님을 확인했다. 현재 실행 가능한 output-owner 분모는 `10/10`, 별도 callsite ratchet은 `46 invocations / 29 files`다.
+- [ ] 현재 A aggregate는 canary·sawmill·M06·world-resource 보고서의 PASS 문자열만 읽고 각 artifact의 current source digest, official scene digest와 byte digest를 결속하지 않는다. 서로 다른 revision의 보고서로도 aggregate PASS가 가능한 상태를 수정한다.
+- [ ] A의 10 owner 목록과 분모, 46/29 callsite 분모를 중복 하드코딩하지 않고 실제 registry/source snapshot에서 자동 도출한다.
+- [ ] synthetic canary, sawmill, M06, world-resource fault matrix, owner manifest와 A aggregate를 같은 source revision에서 생성하고 두 번째 실행의 SHA-256·length·LastWriteTimeUtc 변화 `0`을 증명하기 전에는 A final parent를 다시 닫지 않는다.
+
+### D parent 재감사
+
+- [x] leaf 분모는 item semantic `414/414`, 전체 recipe `355/355`이며 recipe 구성은 Source `23` + Transform `328` + Sink `4`다.
+- [ ] family proposal은 414행 모두 `warehouseAndBufferImpact=OPEN:not-captured`, `ewuAndPriceImpact=OPEN:not-captured`를 쓰므로 현재 writer 재실행만으로 D를 닫을 수 없다.
+- [ ] catalog에서 동적 scope를 캡처하고 current/proposed immutable mass query를 만들어 기존 warehouse gram authority, FacilityBuffer capacity projector, EWU calculator와 market projection을 재사용한다. production에 현재 변경 후보 7개 ID switch를 추가하지 않는다.
+- [ ] normalized coupling artifact는 `(stableId, impactDomain, consumerKind, consumerStableId, metric)` 유일 키로 warehouse, facility output/input owner, acquisition/recoverable EWU와 market 결과를 current ledger에 exact join한다. full delta가 있으나 root-only attribution이 없으면 fail-loud한다.
+- [ ] `ExpectedLedgerItems=414`, `ExpectedRecipes=355` 같은 통과 상수는 실제 scope count와 exact set/bijection으로 교체한다. 현재 숫자는 historical ratchet으로만 보고한다.
+
+### E parent 재감사
+
+- [x] review authority는 decision bundle `234`, member `337`, promote `234`다. 그러나 과거 `previousApplied=44`는 현재 44-property immutable apply receipt가 아니다.
+- [ ] already-applied decision도 pending과 동일하게 `exactAfterValue`, `dependencyFingerprint`, `sourceDigest`, `semanticHash`, source property와 asset authority를 재검증한다.
+- [ ] writer inventory의 current read-only 재현값 `declared=21`, `discovered=27`, `unknown=10`, `declared-not-discovered=4`를 해결한다. 문자열/파일 allowlist 추가가 아니라 semantic writer provenance로 false positive와 stale declaration을 제거한다.
+- [ ] no-clobber 저장 digest `685c…`와 현재 재계산 `167d…` 불일치를 fresh 실행으로 닫고, market decision/application/writer/no-clobber/whole-game coverage를 하나의 current-source parent join으로 결속한다.
+- [ ] 44개 property의 asset·property·before·after·source/decision digest·asset before/after hash를 가진 immutable receipt와 234/234 already-applied `changedAssets=0`, `changedProperties=0`을 두 번째 실행 no-op 증거로 남긴다.
+
+### H 92×32 자연계측 구현 gap
+
+- [x] `92 × 32 = 2,944`행 artifact는 현재 measurement portfolio이며 자연 AI 실행 결과가 아님을 확인했다. 실제 자연 clearance는 P17 `1×32`와 Crop focused 1건뿐이고 natural receipt handler도 `crop-harvest` 하나뿐이다.
+- [ ] 실제 92개 시설을 ID별 switch로 구현하지 않는다. 기존 92 descriptor/plan/2,944 fixture 권위를 공유하고 payload kind `recipe`, `crop-harvest`, `combat-craft`, `apparel`, `certified-seed`의 다형 executor/handler 5종과 공용 fixture harness를 구현한다.
+- [ ] 시설 1개×32 seed를 한 shard로 하여 92 shard를 atomic 저장·resume한다. source/scene/portfolio/descriptor/handler/executor digest가 바뀌면 기존 shard를 섞지 않고 `NATURAL_PORTFOLIO_RESUME_STALE`로 중단한다.
+- [ ] 최종 artifact는 fixture 2,944행과 다중 output slice 별도 행을 보존하고 `ProductionOutputClearanceNaturalObservationPortfolioSnapshot.Build`의 exact coverage·중복·delivery gate를 통과해야 한다. 전체 실행을 두 번 반복하는 대신 payload 5종 대표 fixture의 exact repeatability와 frozen 2,944행의 double-serialization/no-write를 증명한다.
+
+### 감사 뒤 현재 체크포인트
+
+```text
+A implementation checklist 31/31; executable output-owner 10/10; final parent OPEN
+B 40/40 implementation; current paired evidence pending
+C independent owners 36/36 source-complete; stale manifest recapture pending
+D items/semantics 414/414; recipes 355/355; coupling/EWU/price parent OPEN
+E market decisions 234/234; 44-property receipt/writer/no-clobber/final parent OPEN
+F integrated clusters 6/6 current-source; final external no-write proof pending
+G focused producer families PASS; official 19-row current-source aggregate pending
+H six-adult and 1,536 layout prior PASS; paired/economy/3-seed/92×32/final matrix OPEN
+logical exhaustive parent exit gates proven current-source: B only; all others require the listed final joins or recaptures
+```
+
+이 감사에서 gameplay 수치, kg, BOM, WU, EWU, 가격, ScriptableObject와 공식 scene은 변경하지 않았다. 과거 수동 `parent PASS` 문구보다 이 절의 current-source evidence 판정을 우선한다.
+
+## 2026-09-01 H generic recipe 자연 실행 utility P0 체크포인트
+
+- [x] ExactCapability generic recipe가 실제 `ProductionCommittedOutputSnapshot`의 unit commit·physical stack slice를 correlation staging에 캡처하고, 전체 output acknowledgement 뒤에만 aggregate receipt를 finalize하도록 source 계약을 연결했다.
+- [x] receipt의 output-line commit ID와 physical-slice commit ID가 exact coverage가 아닐 때 constructor가 fail-loud하도록 교정하고 mismatch 회귀 fixture를 추가했다.
+- [x] natural recipe fixture 입력을 `Bill.Inputs`가 아니라 실제 `IProductionAssemblyBridge.ToCycleInputMap`으로 구성해 support fuel을 같은 material destination에 포함했다.
+- [x] utility fixture가 공식 runtime archetype을 보존하는 `IGridBuildingObjectFactory`를 사용하고 I08 clean storage와 I09 wastewater storage를 분리하도록 source를 교정했다.
+- [x] support 16개의 기존 power/clean-water/wastewater demand union을 `ProductionWorkshopContentAssetBuilder`와 현재 BuildingSO YAML에 동기화했다. requiresPower 11개는 실제 `1 power/s`, Production priority, minimum supply fraction 1.0을 가진다.
+- [x] recipe fluid 수요와 연결되지 않던 P02/P17/P18의 최소 utility channel union을 `IndustrialInfrastructureAssetBuilder`와 현재 BuildingSO YAML에 동기화했다.
+- [x] 대응 기준 기록 `balance:v27:production-support-utility-authoring-p0`, `balance:v27:recipe-facility-fluid-topology-p0`를 append-only로 추가했다.
+- [x] 정적 전수 증거를 `Artifacts/QA/v27-production-utility-authoring-static-manifest.txt`에 support 16개·facility 3개로 기록했다. 이 manifest의 결과는 `SOURCE_STATIC_PASS_RUNTIME_OPEN`이며 PlayMode 통과를 대신하지 않는다.
+- [ ] 실제 GameplayScene에서 generator·clean/waste storage commissioning, facility/support power 및 fluid preflight, 85 recipe natural production→AIHaul clearance를 실행해 fresh compile·Console 0/0·checkpoint restore·두 번째 artifact/YAML diff 0을 증명한다. 이 행 전에는 H 또는 밸런스 완료로 보고하지 않는다.
+
+---
+
+## 146. 2026-09-01 Batch A current-source 최종 재폐쇄와 MCP 실행 정책 교정
+
+상태: **Batch A implementation `31/31`, executable output owner `10/10`, delivery callsite `46/29`, current-source parent PASS 및 두 번째 실행 no-op PASS**.
+
+### 실제 결함 교정
+
+- [x] full-persistence fixture가 `FacilityOutputExactRouteService`를 world-item runtime에는 주입하면서 restore transaction participant registry에서는 누락하던 결함을 교정했다. 같은 exact-route instance를 fixture runtime과 registry에 함께 등록하여 staged `items.physical` commit 전에 exact-route restore candidate가 활성 상태임을 보장한다.
+- [x] synthetic definition-only canary가 성공 후 일회성 `delayCall` 정리 기회를 놓치면 transaction marker와 임시 item/recipe asset을 남기던 결함을 교정했다. `EditorApplication.update` 기반 안전 복구를 함께 등록하여 성공 뒤 marker와 임시 asset이 자동으로 `0`이 됨을 실제 실행으로 확인했다.
+- [x] Batch A aggregate가 retired admission으로 교정된 live 증거의 이전 label을 요구하던 stale gate를 현재 `PREPARED_OUTPUT_LIVE_STORED_WITH_RETIRED_ADMISSION` 권위와 일치시켰다.
+
+### current-source 집계와 결정론 증거
+
+- [x] synthetic warehouse, sawmill, M06 surgical, world-resource fault matrix, owner manifest를 같은 source digest `640f621d2d011ac60ba79779b69dd4d1befc24e43799269843b1fd948accbb86`와 공식 GameplayScene SHA-256 `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`에서 재생성했다.
+- [x] `Artifacts/QA/v27-batch-a-output-closure.txt`는 각 하위 artifact의 schema, current-source digest, scene digest, byte SHA-256, byte length를 직접 결속하고 output owner `10/10`, remaining/bypass/orphan/unclassified `0/0/0/0`, delivery invocation/file `46/29`, partial/cancel/Downed/mid-haul restore/output-space retry를 모두 PASS로 기록한다.
+- [x] Batch A parent를 같은 입력으로 연속 재실행한 결과 closure artifact SHA-256 `C831EE1EB59B9EE35217F23F4CB503159D4480BD4DB285D1BDA7C398C0BB5C0`, length `6,906`, LastWriteTimeUtc ticks `639238337068227314`가 모두 불변이었다.
+- [x] Unity current-source compile 뒤 Console Warning/Error `0/0`, 공식 scene SHA 불변을 확인했다. 공식 scene은 저장하지 않았다.
+
+### 장기 실행 정책
+
+- [x] Batch A 전체를 MCP `Unity_RunCommand` 안에서 동기 실행해 Unity 메인 스레드와 사용자 UI를 점유한 실행 방식은 폐기한다. `Unity_RunCommand`는 즉시 반환하는 등록·상태 확인에만 사용한다.
+- [ ] 남은 D/E/H parent와 F/G 최종 재실행은 durable request + frame-yield 또는 별도 batchmode worker를 사용한다. `EditorApplication.update` 안에서 장시간 본문을 한 번에 실행하는 dispatcher는 허용하지 않는다.
+
+이 폐쇄는 output ownership Batch A만 증명한다. B/C/D/E/F/G/H의 current-source 최종 parent 및 exhaustive 행렬은 계속 OPEN이며 `V27 exhaustive A–H 완료`로 보고하지 않는다.
+
+---
+
+## 147. 2026-09-01 Batch D current-source 결합 parent 폐쇄
+
+상태: **Batch D item/semantic `414/414`, recipe contract `355/355`, warehouse/buffer·EWU·가격 결합 `30,728/30,728`, Critical/rootless delta `0/0`, current-source parent 및 두 번째 실행 no-op PASS**.
+
+### 실행 전에 발견한 authority 결함
+
+- [x] 전수 결합 감사가 runtime archetype `42`개의 음수 numeric ID를 읽을 때 stable content identity가 비어 있어 fail-loud했다. 이 archetype은 save/runtime lookup을 위해 음수 ID를 유지하되, 감사·dependency graph에는 고정 content ID가 필요하다.
+- [x] world resource, world filth, exterior zone archetype에 deterministic content ID를 부여했다. 기존 음수 numeric ID, GUID, FileID, BOM, WU, kg, footprint, ability와 scene reference는 바꾸지 않았다.
+- [x] batchmode 전용 identity migration은 실제 변경 `42` 후 두 번째 실행 `changed=0`을 기록했다. 두 실행 사이 42개 asset의 byte hash·length·mtime 변화는 `0`이었다.
+
+### D parent 결합 계약
+
+- [x] `V27PhysicalMassCouplingAuditDebugScenarios`가 동적 catalog scope에서 item `414`, recipe `355`, building `419`를 exact set으로 캡처했다.
+- [x] warehouse gram eligibility/capacity, FacilityBuffer input/output/cycle capacity, ordinary/heavy haul band, acquisition/recoverable mEWU, market price/sale rate를 `(stableId, impactDomain, consumerKind, consumerStableId, metric)` 유일 키 `30,728`행으로 결합했다.
+- [x] current/proposed 질량 차이는 `0`, rootless delta `0`, Critical `0`이다. 이는 승인되지 않은 kg 적용이 없었음을 뜻하며, 변화가 없는 행도 exact consumer 연결 증거로 보존한다.
+- [x] 보고서가 source digest·입력 수·path-list digest와 공식 GameplayScene SHA-256을 자체 포함한다. 공식 scene은 저장하지 않았다.
+- [x] writer 내부에서 두 번째 동일 쓰기가 `false`를 반환하고 SHA-256·length·LastWriteTimeUtc가 모두 동일함을 fail-loud한다. 별도 Unity 프로세스 2회 실행도 같은 세 값을 유지했다.
+- [x] portable verifier가 보고서 source/scene freshness, 분모, CSV RFC 4180 종료, schema, 유일 키, ordinal 정렬, unchanged/root attribution을 독립 검증했다.
+
+결정론적 증거:
+
+```text
+source digest ac267bea1b59f6bcfc1aa8b5116caaf3440ebedf29224a504552c8d59cf91e79
+source inputs 3,203
+source path-list digest 14a0f4f19149f37c20229b32c7d40db12e915083312b0bf4cd607b8ba088e5fb
+official scene SHA b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8
+D TXT A745BD3825B62FA6D5E84DDD624211DAAAAF7E390284FCA48346C1C9D6A8276D / 1,283 bytes
+D CSV EED155A5DEBDF22CE35EEC8263579557867F3C7A0E9A8BF48310D26C5EE54CD6 / 5,209,630 bytes
+external run 1→2 SHA diff 0; length diff 0; mtime diff 0
+portable physical-mass-coupling verifier PASS
+```
+
+현재 전체 체크포인트:
+
+```text
+A 31/31 implementation; final frozen-source recapture pending
+B 40/40 source; final frozen evidence pending
+C independent owners 36/36 source; current manifest/frozen proof pending
+D items/semantics 414/414; recipes 355/355; current-source coupling parent PASS
+E decisions 234/234; approved scope 44/44; receipt/no-clobber/current parent OPEN
+F source integrated clusters 6/6; current frozen artifact OPEN
+G source official rows 19/19; current frozen artifact OPEN
+H natural/paired/economy/3-seed/final matrix OPEN
+```
+
+이 단계의 authored kg·BOM·quantity·WU·EWU·가격 변경은 `0`이다. 이후 source가 변경되면 이 D parent도 최종 source freeze에서 다시 생성해야 하며, 현재 결과만으로 `V27 exhaustive A–H 완료`를 주장하지 않는다.
+
+---
+
+## 148. 2026-09-02 H exact-capability 자연 운반 집중 결함 폐쇄
+
+상태: **H의 알려진 집중 결함 3종 중 `8806/8809/1096` 모두 각 `32/32` 자연 실행 PASS. 전체 `92×32`, frozen profile, economy/paired/3-seed 및 A–G 최신 소스 재인증은 계속 OPEN**.
+
+### 메인 Unity 컴파일 권위
+
+- [x] Unity MCP의 project root가 정확히 `F:/01_Programming/01_Project/02_Unity/DungeonStory`임을 재확인했다.
+- [x] route telemetry·shard store schema 교정 뒤 메인 Unity `AssetDatabase.Refresh(ForceUpdate)` compile PASS.
+- [x] 메인 Unity focused EditMode에서 mass admission, environmental workwear, recipe receipt, prepared output, planned output publication 회귀 PASS.
+- [x] 메인 Unity Console Warning/Error `0/0`.
+- [x] 별도 Worker는 장시간 PlayMode seed만 실행하며 compile/final Console 권위로 사용하지 않는다.
+
+### exact-capability receipt·telemetry 결합
+
+- [x] exact-capability의 aggregate execution `BatchCommitId`와 실제 물리 publication `RouteBatchCommitIds`를 구분했다.
+- [x] telemetry completed sample은 route commit ID의 ordinal exact set, 동일 facility, checked mass 합, 각 route positive clearance를 요구한다.
+- [x] batch clearance 시간은 route duration 합이 아니라 `max(clearedAt)-min(publishedAt)` envelope로 계산한다.
+- [x] observation은 completed count `>0`, evidence/canonical 경계는 `TelemetryCompletedCount == RouteBatchCommitIds.Count`를 강제한다.
+- [x] resume store를 schema `@4`로 올리고 각 observation의 route commit ID와 ordinal을 별도 `B` row로 저장·복원한다. missing/duplicate/orphan/ordinal drift는 fail-loud한다.
+
+### 집중 자연 실행 증거
+
+- [x] `building:8806 / workstation:v3:logistics`: seed `157181–157212`, receipt `32`, output slice `32`, route row `32`, hauling harness `1×1,150g` exact warehouse delivery, failure `0`.
+- [x] `building:8809 / workstation:v3:prison-labor`: seed `157181–157212`, `tool:prisoner-work-kit 1×2,350g`, valid generated instance ID, failure `0`.
+- [x] `building:1096` multi-output: seed `157181–157212`, ember-root `33×450g` + returned seed-lot `7×50g` = `15,200g`, receipt `32`, output slice `64`, failure `0`.
+- [x] Worker 실행기는 profile bootstrap contract와 exact workstation tag를 명시하고, 프로세스 `WorkingDirectory`를 해당 Worker root로 고정한다. 상대 `Temp` request가 메인 프로젝트와 교차하는 실행을 금지한다.
+
+### 아직 닫지 않은 최종 게이트
+
+- [ ] 같은 최신 source digest로 92 shard × 32 seed bootstrap 전수 실행 및 exact aggregate.
+- [ ] bootstrap 결과로 92-row frozen clearance profile 생성·메인 권위 반영·strict 전수 검증.
+- [ ] A–G parent를 frozen source에서 재생성하고 두 번째 실행 no-write를 검증.
+- [ ] economy 256, paired 32/64, 3-seed WU, 6인 생존망, artifact/YAML no-op, 최종 Console `0/0`을 하나의 release manifest로 결속.
+
+따라서 구현/집중 결함 폐쇄와 최종 release-frozen 체크포인트를 혼동하지 않는다. 이 절의 PASS는 H 전체 또는 V27 A–H 완료를 의미하지 않는다.
+
+---
+
+## 149. 2026-09-02 H 전수 실행 권위 동결과 schema 4 파티션 계약
+
+상태: **메인 Unity source/scene 권위와 세 worker 입력은 동결됐고 bootstrap `92×32`가 실행 중이다. 이 절은 실행 준비 계약만 닫으며 H 전수 결과는 아직 OPEN이다.**
+
+### 메인 Unity 단일 권위
+
+- [x] 메인 Unity MCP 안에서 별도 C# 명령을 compile·execute하여 `Application.dataPath=F:/01_Programming/01_Project/02_Unity/DungeonStory/Assets`를 확인했다.
+- [x] 메인 Unity current-source digest는 `6f339f5a6007ee168dae8fdc69b807cc528473ba1cfc49cdc39dcb7ce5a7902b`, 입력 수 `3,224`, path-list digest `3ad2e04a71cd6f34b3b9e7f479f929212f58c4abf16a8613569c7115fe820150`이다.
+- [x] 메인 Unity 공식 GameplayScene digest는 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`이며 명령 실행 시 compile/play 상태는 `false/false`였다.
+- [x] 세 worker의 포함 대상 `.cs/.asmdef/.asmref/.rsp` 및 package manifest/lock 총 `3,224`개를 메인과 byte 비교하여 동일하게 동기화했고, 세 worker의 GameplayScene SHA도 메인과 일치한다.
+- [x] 세 worker가 실제 생성한 schema 4 state header의 current source, scene, portfolio, descriptors, measurements, shard count/key-set, handler/executor registry, bootstrap mode/authority가 전부 ordinal exact임을 교차 확인했다. 따라서 코드가 같지만 SO 권위가 달라지는 숨은 partition drift도 없다.
+- [x] worker는 장시간 PlayMode만 담당한다. 최종 compile, Console Warning/Error, asset/YAML authority는 계속 메인 Unity만 사용한다.
+
+### 파티션 실행 사전계약
+
+- [x] 모든 partition 실행에 expected source digest, shard count `92`, shard key-set digest `89a29157d18b34462517b39ad4f70738efadfefc30782f2017b24ce6f6ee6779`, bootstrap profile authority `fec4dc7b07a35fae051525019efd658f135192d9d34555c69ff174a2bcc9c834`를 명시한다.
+- [x] partition index/count만 주고 expected denominator를 생략한 실행은 seed 시작 전에 `NATURAL_PORTFOLIO_PARTITION_EXPECTED_SOURCE_REQUIRED`로 실패함을 확인했다. 이 실패는 gameplay 실패로 계상하지 않는다.
+- [x] 세 worker를 ordinal shard index modulo 3으로 `31/31/30`개에 배정했다. 동일 source/scene/key-set이 아니면 결과를 중앙 합집합에 넣지 않는다.
+
+### schema 4 중앙 병합 계약
+
+- [x] C# shard store `production-output-clearance-natural-shard-store@4`와 외부 worker/staging script의 schema를 일치시켰다.
+- [x] 외부 검증기도 `R(38 fields)`, `S(10 fields)`, `B(4 fields)`를 모두 읽으며 observation별 route batch가 최소 1개 존재해야 한다.
+- [x] B ordinal은 `0..n-1` 연속, route batch commit ID는 observation 내부 ordinal exact unique, B 수는 R의 `TelemetryCompletedCount`와 정확히 같아야 한다.
+- [x] orphan/missing B, case-insensitive observation 오접합, `~` empty sentinel, 내부 whitespace route ID를 거부한다. 집합 비교는 C#과 동일한 `StringComparer.Ordinal`을 사용한다.
+- [x] 중앙 `EXACT_UNION_READY` barrier 전에는 각 shard를 complete 모드로 다시 검증하여 R seed denominator뿐 아니라 S/B orphan·missing도 모두 검사한다.
+- [x] 두 PowerShell script는 parser syntax error `0`이다.
+
+### 아직 열려 있는 실행 결과
+
+- [ ] bootstrap partition `31/31/30`개가 각각 모든 seed를 완료하고 worker failure `0`이어야 한다.
+- [ ] 중앙 schema 4 exact-union `92 shard / 2,944 observation` barrier와 ValidateOnly/stage를 통과해야 한다.
+- [ ] 메인 unpartitioned bootstrap resume가 `resumed=2,944`, `executed=0`, Console `0/0`, 두 번째 write byte/length/mtime 불변을 증명해야 한다.
+- [ ] candidate 92-row profile을 승격한 뒤 strict identity로 별도 `92×32` 전수 실행을 반복해야 한다. bootstrap state를 strict 증거로 재사용하지 않는다.
+
+현재 구현 분모와 릴리스 동결 분모는 별도로 보고한다. source/structural 구현 완료는 A/B/C/D/F/G `6/8`, current-source release-frozen은 전수 parent가 같은 digest에 결속되기 전까지 `0/8`이다.
+
+---
+
+## 150. 2026-09-02 exact-custody 다중 lot 계획 결함과 Editor 정지 오판 폐쇄
+
+상태: **`seasonal-calendar` 고유 출력 2개 운반 결함을 production planner와 verifier 양쪽에서 교정했고, 실패 shard의 자연 실행을 최신 source에서 `32/32` 재인증했다. 전체 bootstrap `92×32`는 새 source로 다시 실행 중이며 H parent는 계속 OPEN이다.**
+
+### 근본 원인과 production 교정
+
+- [x] `WorldItemHaulPlanningService`가 gram-authoritative warehouse에 대해 일반 lot은 작업당 1개로 제한하면서 exact-route custody lot만 예외적으로 opportunistic aggregate하던 계약 불일치를 확인했다.
+- [x] 실제 `ItemTransferService`의 mass-admitted deposit은 owner operation 1개와 carried lot 1개만 허용한다. 따라서 `book:seasonal-almanac` 고유 stack 2개를 한 operation으로 계획한 이전 결과는 최종 입고 계약과 호환되지 않았다.
+- [x] exact-custody 예외를 제거하여 모든 gram-authoritative warehouse plan을 `1 operation = 1 exact admitted lot`로 통일했다. count-only/non-mass 목적지의 기존 Pick-and-Haul 다중 stack 묶음은 유지한다.
+- [x] `AbilityHaul`의 pickup coroutine과 물리 custody는 변경하지 않았다. 두 stack은 별도 operation과 별도 admission token으로 순차 운반한다.
+
+### verifier clock 교정
+
+- [x] 기존 verifier는 realtime 30초와 새 operation 수만으로 deadline을 갱신하여 Unity asset import, GC 또는 Editor 통합의 단일 장기 frame을 게임 내 haul 무진척으로 오판할 수 있었다.
+- [x] `RoutineHeartbeat`, staged operation 수, committed intent 수, warehouse stored mass를 progress fingerprint로 추적하고 실제 progress마다 inactivity deadline을 갱신한다.
+- [x] realtime budget이 먼저 만료돼도 최소 3회의 PlayerLoop scheduling turn을 보장한다. 진짜 정지는 slice당 4,096 turn의 결정론적 상한과 inactivity deadline으로 계속 fail-loud한다.
+- [x] 결과 진단에 시작/종료 frame, loop turn, 마지막 progress 이후 turn, haul heartbeat와 coroutine handle 상태를 추가했다.
+
+### 메인 Unity와 집중 자연 실행 증거
+
+- [x] 메인 Unity project root는 `F:/01_Programming/01_Project/02_Unity/DungeonStory/Assets`이며 두 교정 뒤 compile PASS, Console Warning/Error `0/0`이다.
+- [x] 메인 current-source digest는 `e0a2c1086e4276abf4383e92c88be4f12c186e73b7ab694ced1199840b100eb2`, 공식 GameplayScene digest는 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`이다.
+- [x] 메인 EditMode `HaulPlanConstructionSafetyDebugScenarios.RunAll` PASS로 기존 count-only 다중 stack 운반을 회귀 확인했다.
+- [x] 세 worker의 포함 source/package 입력 `3,224`개를 메인과 normalized exact 비교하여 차이 `0`으로 맞췄다. worker는 장기 PlayMode만 담당하며 compile/Console 최종 권위는 메인이다.
+- [x] `building:8849 / workstation:v19:seasonal-calendar` 자연 실행은 seed `157181–157212` 전부 PASS했다. shard store schema `@4`는 `R=32`, `S=64`, `B=32`이다.
+- [x] 각 seed는 `book:seasonal-almanac` 고유 stack `2×1,100g`을 operation 2개와 admission receipt 2개로 운반해 warehouse `2/2`, `2,200g`, reserved inbound `0`, active intent `0`, active haul `0`으로 종료했다.
+
+### 다시 열린 최신-source 전수 게이트
+
+- [x] 이전 source의 partial bootstrap 결과는 새 source의 PASS로 섞지 않고 digest별 디렉터리에 격리했다.
+- [ ] 새 source에서 bootstrap partition `31/31/30` shard, 총 `2,944` seed를 failure `0`으로 완료한다.
+- [ ] schema 4 중앙 exact-union과 메인 `resumed=2,944`, `executed=0`, 두 번째 write no-op을 증명한다.
+- [ ] 92-row frozen profile 승격 후 strict `92×32`를 별도 identity로 재실행한다.
+- [ ] 같은 최종 source에서 A–G parent와 economy/paired/layout/3-seed/6인 생존망/artifact·YAML no-op/Console `0/0`을 결속한다.
+
+메인 Unity의 MCP 명령은 컴파일, 짧은 EditMode 검증, 상태 조회에만 사용한다. 수천 seed PlayMode를 `Unity.AI.MCP.Editor.Bridge.ProcessCommands`의 한 호출에 동기 결속하지 않는다.
+
+---
+
+## 151. 2026-09-02 최신 source C·D parent 재인증과 H 실행 권위
+
+상태: **메인 Unity에서 source digest `e0a2c1086e4276abf4383e92c88be4f12c186e73b7ab694ced1199840b100eb2` 기준 Batch C와 D parent/no-op을 재인증했다. H bootstrap은 동일 source를 복제한 세 worker에서 장시간 PlayMode만 분할 실행 중이며, 최종 compile·Console·profile 승격 권위는 메인 Unity에 남긴다.**
+
+### 메인 Unity 최신-source parent 증거
+
+- [x] MCP가 연결된 Editor의 project root가 `F:/01_Programming/01_Project/02_Unity/DungeonStory`임을 실행 직전에 다시 확인했다.
+- [x] Batch C parent를 메인 Unity에서 실행했다. `inputOwners=36`, `inputMigrated=36`, `outputOwners=10`, `outputMigrated=10`, `remaining/bypass/orphan/unclassified=0/0/0/0`, `fullStoredDestinationCoverage=true`다.
+- [x] Batch C artifact `Artifacts/QA/v27-batch-c-parent.txt`는 current source와 공식 GameplayScene digest를 결속하고 `secondWriteDiff/secondWriteLengthDiff/secondWriteMtimeDiff=0/0/0`을 기록한다.
+- [x] Batch D coupling parent를 메인 Unity에서 실행했다. `items=414`, `recipes=355`, `buildings=419`, `rows=30,728`, `rootlessDelta=0`, `critical=0`이다.
+- [x] Batch D는 warehouse gram eligibility/capacity, FacilityBuffer input/output/cycle capacity, ordinary/heavy haul, acquisition/recoverable mEWU, market price/sale rate를 재결합하고 `CURRENT_SOURCE_COUPLING_AND_SECOND_WRITE_NOOP_PASS`를 기록한다.
+- [x] 두 parent 실행 뒤 메인 Unity Console Warning/Error는 `0/0`이다.
+
+### A–H 최신-source release-frozen 상태
+
+- [ ] A: strict profile 및 F/G synthetic·sawmill, 별도 M06 current-source live 증거 뒤 parent 재실행.
+- [ ] B: 92-row strict resource와 strict `92×32` terminal 뒤 `40/40` parent 재실행.
+- [x] C: 메인 Unity current-source parent `36/36 input`, `10/10 output`, second-write no-op PASS.
+- [x] D: 메인 Unity current-source coupling `30,728/30,728`, Critical `0`, second-write no-op PASS.
+- [ ] E: fresh whole-game children, no-clobber, coverage, immutable receipt parent 결속.
+- [ ] F: durable 9-step orchestrator의 integrated cluster `6/6` current-source 재인증.
+- [ ] G: 같은 orchestrator의 official fault row `19/19` 및 paired `64` current-source 재인증.
+- [ ] H: bootstrap `92×32`, schema4 exact-union, 메인 resume/no-op, profile 승격, strict `92×32` 및 최종 전역 회귀.
+
+따라서 source/structural 구현 분모는 기존 `6/8`을 유지하고, current-source release-frozen parent 증거는 현재 `2/8(C·D)`이다. 이 `2/8`은 전체 기능 구현률이 아니라 최종 동일-source 증거 체크포인트 수다.
+
+---
+
+## 152. 2026-09-02 cultivar 자연 실행 결함 폐쇄와 최종 실행 순서 동결
+
+상태: **이전 digest의 H bootstrap이 `2,757/2,944`에서 드러낸 cultivar 결함 두 개를 production/verifier 경계에서 교정했고, 실패 shard를 최신 source digest `72c7b5e28887b56dc7c607c5ecdb30b507154251004ac6ac878d2ad0a05fe440`로 `32/32` 재인증했다. H parent와 A–H release-frozen parent는 계속 OPEN이다.**
+
+### 실제 결함과 최소 교정
+
+- [x] `building:8893 / workstation:v19:cultivar-breeding`의 core facility node가 `BuildingRoomRequirementAbility`를 가진 RF93에 대해 usable-room 배치를 요구하지 않던 결함을 확인했다. scenario host는 실제 `BuildingSO.RequiresRoomRole()` 권위를 사용해 room-required 시설만 usable room 안에 배치한다.
+- [x] certified-seed driver가 seed와 certification kit의 물리 배송 전에 `CompleteDeliveredPlans(sameOperatingDay)`를 호출해, runtime의 one-call-per-day gate를 먼저 소비하던 결함을 확인했다.
+- [x] `ICertifiedSeedExecutionReceiptQuery.IsPlanReadyForCompletion(actionId)`가 unique live planned order와 exact seed+kit delivered custody를 확인한 뒤에만 day-gated completion을 호출하도록 했다. 완료 일자를 반복 증가시키거나 runtime day semantics를 완화하지 않았다.
+- [x] timeout stack 진단은 시설 destination에 이미 놓인 stack만 보던 좁은 필터를 제거하고, 해당 transform의 모든 input item stack에 대해 state·quantity·reservation·현재 위치·destination·destination 위치를 기록한다. carried/source stack을 `none`으로 오진하지 않는다.
+
+### 메인 Unity와 집중 자연 실행 증거
+
+- [x] 메인 Unity MCP project root는 `F:/01_Programming/01_Project/02_Unity/DungeonStory`이며 최신 수정 뒤 compile PASS, Console Warning/Error `0/0`이다.
+- [x] 공식 GameplayScene SHA-256은 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`로 불변이다.
+- [x] 실패 shard를 seed `157181–157212`로 다시 실행해 schema 4 `R=32`, `S=32`, `B=32`, distinct seed `32`, ordinal `0..31`, exact FAIL marker `0`을 확인했다.
+- [x] 집중 state header의 source, scene, portfolio, descriptor, measurement, shard count `92`, shard key-set, handler/executor registry, bootstrap profile authority가 모두 기대 권위와 exact 일치한다.
+- [x] 메인과 세 worker의 변경 C# 3개 SHA-256이 byte-identical하다. worker는 장기 PlayMode만 담당하고 compile·Console·profile 승격·artifact/YAML 최종 권위는 메인 Unity에 남긴다.
+
+### 최신 digest로 다시 열려 있는 release-frozen 증거
+
+- [ ] H bootstrap partition `31/31/30`, 총 `92×32=2,944` observation과 failure `0`을 완료한다.
+- [ ] 중앙 schema 4 exact-union을 ValidateOnly 후 메인 store에 원자적으로 stage한다.
+- [ ] 메인 unpartitioned bootstrap resume `2,944`, executed `0`, candidate `92`, 두 번째 write byte/length/mtime 변화 `0`을 증명한다.
+- [ ] candidate profile을 Resources 권위로 승격하고 bootstrap과 다른 strict identity에서 `92×32`를 다시 실행한다.
+- [ ] strict 종료 뒤 B `40/40`, F `6/6`, G `19/19 + paired 64`, A `31/31`과 M06를 같은 final source에 결속한다.
+- [ ] E는 legacy decision schema v1을 parent에 바로 입력하지 않는다. 메인 Unity에서 exact v3 decision epoch 채택 → approved promotion 적용 → 같은 적용 재실행 no-op → builder no-clobber → whole-game coverage → E parent 순으로 직렬 실행한다.
+- [ ] economy 256, layout `1,536/1,536`, 6인 static/live continuity, 3-seed WU, Final Acceptance `33/33`, AuditOnly 2회 artifact no-op, portable verifier와 최종 Console `0/0`을 결속한다.
+
+latest source 변경은 기존 A/B/C/D/F/G 구현을 되돌리지 않지만, 이전 digest에 묶인 parent artifact를 final current-source 증거로 재사용하지 않는다. 구현 완료와 release-frozen 증거를 계속 분리해 보고한다.
+
+---
+
+## 153. 2026-09-03 Apparel 자연 생산 결함 폐쇄와 H bootstrap 재개
+
+상태: **`building:9301 / workstation:v22:tailoring` 자연 생산을 current source digest `0d53b13a3d37aac58abb4aa785e29a4951a53d0db1c986ea81a9dbd44f527a0e`에서 `32/32` 재인증했다. 세 worker의 bootstrap `92×32`는 이 digest로 다시 실행 중이다. H parent와 A–H release-frozen parent는 계속 OPEN이다.**
+
+### 실제 결함과 최소 교정
+
+- [x] room role을 요구하지 않는 시설까지 room profile이 없으면 비가동으로 판정하던 `FacilityCapabilityQuery.IsOperational` 결함을 교정했다. `BuildingData`가 없으면 false, room role이 불필요하면 true, room role이 필요할 때만 usable-room profile을 요구한다.
+- [x] Apparel 품질 계산이 exact facility·craft work profile과 selector context를 통하지 않던 결함을 교정했다. `performance:work:craft:quality`를 실제 `CharacterWorkPerformanceContextResolver` 결과로 평가한다.
+- [x] craft order의 `WaitingForDispositionFinalization` 재개가 Repair 전용 경로로 빠지고, accepted non-Mythic 출력이 rejected-sale disposition으로 잘못 라우팅되며, Conflict가 재료 대기로 환원되던 상태 전이 결함을 교정했다.
+- [x] Apparel batch disposition 직전 order가 소유한 input quantity lease를 `Completed` 사유로 인계 해제하여 자기 자신의 source availability를 막던 `physical-batch-disposition-source-unavailable` 충돌을 제거했다.
+- [x] natural live driver가 첫 `ApplyWork` 실패 코드·파라미터·order state·progress를 fail-loud로 기록하도록 하여 generic terminal publish timeout 뒤에 원인을 숨기지 않게 했다.
+
+### 메인 Unity와 집중 자연 실행 증거
+
+- [x] 메인 Unity MCP project root를 `F:/01_Programming/01_Project/02_Unity/DungeonStory`로 재확인하고 AssetDatabase refresh compile PASS, Console Warning/Error `0/0`을 확인했다.
+- [x] 공식 GameplayScene SHA-256은 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`로 불변이다.
+- [x] Apparel shard seed `157181–157212`의 schema 4 state가 `R=32`, `S=32`, `B=32`, exact output `apparel:waterproof-work-suit`, unit mass `1,380g`, failure marker `0`을 기록했다.
+- [x] state header의 source·scene·portfolio·descriptor·measurement·92-shard key-set·handler/executor registry·bootstrap profile authority가 기대값과 exact 일치한다.
+- [x] 메인과 세 worker의 변경 source를 byte-identical하게 동기화한 뒤 장기 PlayMode만 worker에 분할했다. worker 결과는 최종 compile·Console·artifact 권위가 아니며 중앙 exact-union과 메인 resume/no-op을 통과해야 한다.
+
+### 이 digest에서 아직 열려 있는 release-frozen 증거
+
+- [ ] H bootstrap partition `31/31/30`, 총 `92×32=2,944` observation과 failure `0`을 완료한다.
+- [ ] 중앙 schema 4 exact-union ValidateOnly와 main store atomic stage를 완료한다.
+- [ ] 메인 unpartitioned bootstrap resume `2,944`, executed `0`, candidate `92` 및 두 번째 write byte/length/mtime 변화 `0`을 증명한다.
+- [ ] candidate 92-row profile을 Resources 권위로 승격하고 bootstrap과 별도 strict identity로 `92×32`를 다시 실행한다.
+- [ ] final source에서 A/B/C/D/F/G parent를 재인증하고 E promotion/no-clobber/coverage parent를 닫는다.
+- [ ] economy 256, paired 64, layout `1,536/1,536`, 6인 static/live continuity, 3-seed WU, Final Acceptance `33/33`, AuditOnly no-op, portable verifier와 최종 Console `0/0`을 결속한다.
+
+구조 구현 분모는 `6/8`이다. 이 source digest의 release-frozen parent는 아직 `0/8`이며, Apparel `32/32`는 H의 한 shard 하위 증거이지 H parent 완료가 아니다.
+
+---
+
+## 154. 2026-09-03 final-source 실행 DAG 교정과 portable 재현성 게이트
+
+상태: **계획서의 기존 `E parent → 전역 검증` 순서는 실제 `V27BalanceWholeGameCoverageDebugScenarios` 의존성과 반대이므로 폐기한다. 아래 순서를 final-source 실행 권위로 사용한다. 자연 포트폴리오 report schema는 writer의 현재 `@2`에 맞췄고, exact-union staging 도구는 새 checkout에서도 재현되도록 Git 추적 대상으로 편입했다. 이 절에 기록한 source digest `277412e118dde610def2f0a954eefd6fd3147fae039b96e214cf0ac3a6761ebc` 실행은 이후 `building:8893` 입력 격리 결함 발견으로 최종 인증에서 폐기되었다. 최신 3상태 실행 권위와 회귀 증거는 §156 이후를 따른다. 이전 persistence 결함 경로 `building:8849 / workstation:v19:seasonal-calendar`의 같은 source `32/32`, failure `0` 증거는 결함 회귀 이력으로만 보존한다.**
+
+### 실행 전 확인된 차단점과 교정
+
+- [x] `tools/V27Balance/verify_committed_artifacts.py`가 자연 포트폴리오 writer의 `v27-production-output-clearance-natural-portfolio@2` 대신 구형 `@1`을 요구하던 확정 실패를 `@2`로 교정하고 Python compile 검사를 통과했다.
+- [x] 중앙 exact-union ValidateOnly·atomic stage의 유일 구현을 Unity가 정리하는 `Temp/` 밖의 추적 경로 `tools/V27Balance/stage_central_natural_union.ps1`로 이동하고 PowerShell parser 검사를 통과했다. 런타임 shard state만 `Temp/`에 두며 전체 `Temp/` ignore 정책은 변경하지 않는다.
+- [x] E whole-game coverage가 3-seed, dungeon expansion, static/asset-backed layout, population-stage live, service continuity, paired run, random manifest, output-capacity 증거를 선행 요구함을 코드에서 확인했다.
+- [x] F/G orchestrator의 9단계가 paired 64-seed를 이미 생성하므로 같은 산출물을 별도로 중복 실행하지 않는다. 별도 재실행은 해당 단계 실패를 격리할 때만 `V27PairedClutterPlayModeVerifier.QueueRunFromEditorCommand(64, 1)`을 사용한다.
+- [x] asset-backed layout과 3-seed는 큐 등록 직후 완료로 간주하지 않는다. 각각 terminal incremental status와 3/3 seed artifact를 기다린다.
+- [x] Worker와 중앙 stage가 `deterministicSeed == ExpectedFirstSeed + seedIndex`를 동일하게 강제하며, READY 이후 stage에서만 seed drift가 발견되는 비대칭을 제거했다.
+- [x] 중앙 barrier는 exact `identity-prefix/shard-prefix.state` 상대 경로, identity 중복 금지, portfolio/descriptors/measurements/handlers/executors의 cross-shard ordinal 일치를 검사한다.
+- [x] 중앙 stage는 self-consistent한 다른 92-key 포트폴리오를 승인하지 않도록 외부 권위 `ExpectedShardKeySetDigest`와 `ExpectedPortfolioDigest`를 둘 다 필수 인자로 받는다. current bootstrap 권위는 각각 `89a29157d18b34462517b39ad4f70738efadfefc30782f2017b24ce6f6ee6779`, `c60818d896dee1193b62fea97d3397c627463ae129ea3d4c82571d5c924bbe9c`다.
+- [x] Worker와 중앙 stage가 모든 `S|` 행의 10필드 폭, canonical token, positive quantity/mass, capability/source digest, C# 호환 semantic digest, observation 내 중복, overflow-safe 질량 합계를 검사하고 `sum(sliceMass) == R.actualBatchMassGrams`를 강제한다. 두 PowerShell AST parser, 독립 digest fixture, canonical token fixture와 `git diff --check`를 통과했다.
+
+### final-source 직렬 실행 순서
+
+1. [x] 세 worker의 H bootstrap을 partition `31/31/30`, state `92`, observation `2,944`, failure `0`으로 끝낸다.
+2. [x] `tools/V27Balance/stage_central_natural_union.ps1 -ValidateOnly`에 current source, scene, profile authority, expected shard-key-set digest `89a29157d18b34462517b39ad4f70738efadfefc30782f2017b24ce6f6ee6779`, expected portfolio digest `c60818d896dee1193b62fea97d3397c627463ae129ea3d4c82571d5c924bbe9c`를 명시하여 schema 4 exact-union의 source·scene·profile·외부 key-set·portfolio 권위·state-set digest와 모든 output slice의 질량·semantic digest 완전성을 검증한다. current state-set digest는 `4f7f18baf40d5b12310e734d75fa3dde8546f148e81ec801eac1cf17f3299d39`, barrier SHA-256은 `3b7bc016f5f091ac5461a4a843a08d7a2bbd6349c7cd7508ffad6631b5bafb73`다.
+3. [x] 같은 스크립트의 atomic stage 경로로 exact 92 state만 메인 local store에 승격하고 기존 store는 rollback 가능한 backup으로 보존한다. current-source target에 기존 store가 없어 backup은 `<none>`이었고 staged copy 재검증은 PASS했다.
+4a. [x] 메인 Unity에서 bootstrap composition으로 unpartitioned resume를 실행해 `resumed=2,944`, `executed=0`, `profiles=92`, `seeds=32`, `observations=2,944`, report second-write byte/length/mtime diff `0`을 확인했다. 이 실행은 메인 프로젝트 `F:/01_Programming/01_Project/02_Unity/DungeonStory`의 실제 Editor/AppDomain에서 수행했고 portfolio capture 시점 Console Warning/Error는 `0/0`이었다.
+4b. [x] 구 binary schema의 candidate stage가 `PRODUCTION_OUTPUT_CLEARANCE_PROFILE_STAGE_CAPACITY_CRITICAL: rows=92;critical=52`로 중단되는 것을 재현하고, 52건 모두 authored undersize나 질량 손상이 아니라 `rawRequiredWholeCycles > 4`인 보수적 backpressure projection임을 규명했다. 이 historical failure는 §156 schema `@3/@2`가 supersede하며 current candidate 증거로 재사용하지 않는다. 실패 뒤 Stop으로 남은 `PLAYMODE_ABORTED`도 portfolio 실패 원인이 아닌 중단 정리 로그로 분리했다.
+4c. [ ] requirement `@3`, capacity gate `@2`, generation report `@2`, resource `@1`, shard store `@4`인 current source에서 bootstrap `92×32`·exact-union·메인 resume를 다시 완료하고 candidate/report `accepted/backpressure/blocking=40/52/0`, pressure `52`행 digest, second-write diff `0`을 확인한다.
+5. [ ] EditMode에서 `ProductionOutputClearanceFrozenProfilePipeline.PromoteCandidateFromMenu()`를 실행한다. 승격 전 generation report의 current source·scene·candidate SHA·exact `40/52/0`·pressure `52`행·second-write `0`을 다시 검증하고, Resources 92-row profile, candidate/resource hash 일치와 promotion report second-write diff `0`을 확인한다.
+5a. [ ] 승격된 `Assets/Resources/V27/production-output-clearance-profiles.json`을 세 worker project에 byte-identical하게 동기화하고, 네 project의 resource SHA와 parsed catalog authority digest가 모두 promotion report와 일치하는지 확인한다.
+6. [ ] bootstrap 환경을 제거하고 별도 strict identity, `ProfileMode=strict`, 승격된 profile authority digest로 worker `92×32`를 다시 실행한다. bootstrap state를 strict 증거로 재사용하지 않는다.
+7. [ ] strict 중앙 union을 current source·scene·승격 profile authority·외부 shard-key-set/portfolio digest로 `ValidateOnly`한 뒤 main store에 atomic stage한다. 메인 strict 환경에서 unpartitioned resume `2,944/0`, strict report `92/40/52/0`, pressure digest와 second-write no-op을 확인하고 strict 환경을 제거한다. 그 뒤 `V27CurrentSourceFgEvidenceOrchestrator.QueueRunFromEditorCommand()`를 완료한다. 기대값은 steps `9/9`, F cluster `6/6`, G official fault row `19/19`, paired seeds `64`, windows `1,024`, floor rows `1,280`, fault arms `128`, Console `0/0`, second-write no-op이다.
+8. [ ] `PhysicalItemLogisticsPlayModeVerifier.RequestM06PreparedOutputWarehouseRunFromMenu()`로 M06 actual live 증거를 갱신한다. 이는 enqueue 호출이므로 즉시 다음 단계로 가지 않는다. M06 report가 current source·scene을 결속한 terminal PASS를 기록하고, request가 삭제되고, Unity가 EditMode로 복귀한 뒤에만 A parent를 실행한다.
+9. [ ] `V27BatchAOutputClosureDebugScenarios.RunFromMenu()`로 A parent를 재생성한다. output owners migrated `10`, remaining/bypass/orphan/unclassified `0`, F/G synthetic+sawmill·M06 child freshness와 second-run no-op을 요구한다.
+10. [ ] `V27BatchBcParentDebugScenarios.RunAllFromMenu()`로 B `40/40`, C input/output `36/10`, remaining/bypass/orphan/unclassified `0`, Console `0/0`, second-write diff `0`을 결속한다.
+11. [ ] `V27BalanceAssetApplication.AdoptCurrentMarketRecommendationsAsExactDecisionEpochFromMenu()`로 exact decision epoch schema v3를 채택하고 second-write diff `0`을 확인한다.
+12. [ ] `V27BalanceAssetApplication.ApplyReviewedMarketPromotionsFromMenu()`를 두 번 실행한다. 첫 실행은 pending promotion `0`, 두 번째는 changed asset/property `0/0`이어야 한다.
+13. [ ] E가 변경한 최종 가격·asset을 반영해 `V27PhysicalMassCouplingAuditDebugScenarios.RunFromMenu()`로 D를 다시 실행한다. item/recipe/building/row `414/355/419/30,728`, Critical/rootless `0/0`, second-write diff `0`을 요구한다.
+14. [ ] `V27BalanceBuilderNoClobberDebugScenarios.RunFromMenu()`로 builder `5`, change `0`, final source/scene digest 일치를 확인한다.
+15. [ ] `V27BalanceEconomySimulationDebugScenarios.RunFromMenu()`로 economy seed `256`, failure `0`, 모든 반복 transform margin `<= -1 mEWU`, Critical `0`을 확인한다.
+16. [ ] `DungeonSpaceExpansionDebugScenarios.RunFromMenu()`와 `DungeonSpaceExpansionPlayModeVerifier.RequestRun()`을 순서대로 완료한다. 개발자용 E-key 확장을 정식 해금 권위로 사용하지 않는다.
+17. [ ] `V27PopulationCapacityDebugScenarios.RunFromMenu()`로 정적 layout `6×256=1,536`, heuristic false-negative `0`, headroom/congestion 통과를 확인한다.
+18. [ ] `V27AssetBackedSpatialCapacityDebugScenarios.RunFromMenu()`를 시작하고 `CaptureIncrementalStatus()`가 terminal PASS가 될 때까지 기다린다. active run은 메모리 상태이므로 실행 중 script compile·asset import·domain reload를 금지한다. 단계별 최소 `243/256`, 전체 `1,536`행을 요구한다.
+19. [ ] `V27SixAdultSurvivalLoopDebugScenarios.RunFromMenu()`로 6인 정적 폐쇄 루프 `270,000 mWU`, recurring share `317‰`, grain/meal/water reserve `60/12/99`를 확인한다.
+20. [ ] 6인 live 체인을 `PrimitiveStartSurvivalPlayModeVerifier.RunFocusedFromMenu()` → `CharacterAiSelfCarePlayModeVerifier.RunFromMenu()` → `PrimitiveStartSurvivalPlayModeVerifier.RunSixAdultOutageFromMenu()` → `PrimitiveStartSurvivalPlayModeVerifier.RunPopulationStagesFromMenu()` → `V27ServiceContinuityEvidenceDebugScenarios.RunFromMenu()` 순서로 실행한다. focused·six-adult-outage는 각 durable request/state가 terminal PASS 뒤 소멸하고 EditMode로 복귀한 것을 확인한 뒤 다음 child를 호출한다. self-care는 queue 전에 기존 report를 제거하고 이전 mtime/hash를 기록하며, flag 소멸만이 아니라 새 terminal PASS report와 자동 EditMode 복귀를 확인한다. population-stage도 queue 전에 기존 report를 제거하고 이전 mtime/hash를 기록한다. `Temp/v27-balance-population-stage.flag`는 PlayMode runner 생성 직전에 삭제되므로 플래그 소멸을 완료 증거로 사용하지 않는다. `Artifacts/QA/v27-balance-population-stage-playmode.txt`가 새 mtime/hash, terminal `PASS`와 모든 기대 stage 행을 기록하고 runner GameObject가 소멸할 때까지 기다린 뒤 주 작업자가 명시적으로 EditMode로 복귀한다. 그 후에만 service-continuity parent를 실행한다. 최종 집계는 population/liveActors `6/6`, outage `24h`, paths `10`, Console `0/0`을 요구한다.
+21. [ ] `V27RandomStreamManifestDebugScenarios.RunFromMenu()`로 actor/domain RNG stream manifest를 final source에 결속한다.
+22. [ ] 기존 world-resource와 crop report를 제거하고 이전 mtime/hash를 기록한다. 공식 GameplayScene으로 PlayMode에 진입한 뒤 `WorldResourceDebugScenarios.VerifyRuntimeFromMenu()`를 호출한다. 이 메서드는 EditMode wrapper가 없고 `Application.isPlaying`을 요구하므로 step 21 직후 EditMode에서 직접 호출하지 않는다. 같은 PlayMode에서 새 world-resource report의 PASS를 확인한 뒤 `CropPlotDebugScenarios.RequestRuntimeVerification()`을 호출한다. crop request는 runner 시작 때 삭제되므로 request 소멸만으로 완료 처리하지 않고 새 report의 valid/fresh marker를 기다린다. crop runner의 자동 ExitPlaymode로 EditMode 복귀까지 확인한 뒤에만 `V27OutputCapacityEvidenceDebugScenarios.RunFromMenu()`로 output-capacity checks `2`, PASS를 확인한다.
+23. [ ] `V27DailyRoutineThreeSeedOrchestrator.QueueRunFromEditorCommand()`를 EditMode에서 시작하고 seed `157181/157182/157183`, 각 5일, `3/3 PASS`, Console `0/0`, second-write diff `0`까지 기다린다.
+24. [ ] 위 전역 증거가 모두 fresh인 뒤에만 `V27BalanceWholeGameCoverageDebugScenarios.RunFromMenu()`를 실행한다. domains/rows `12`, orphan producer/consumer `0/0`, approved-unapplied `0`, result PASS를 요구한다.
+25. [ ] 마지막으로 파일명과 다른 실제 partial 클래스 권위인 `V27BalanceAssetApplication.VerifyBatchECurrentSourceParentFromMenu()`를 실행해 E join PASS, pending/change/mutation `0/0/0`, second-write diff `0`을 확인한다.
+26. [ ] `DungeonStoryFinalAcceptanceRunner.RunFromMenu()`로 Expected/Actual/Passed/Failed `33/33/33/0`을 확인한다.
+27. [ ] `V27BalanceAudit.GenerateAuditOnly()`를 두 번 실행하고 CSV·Markdown·audit·manifest·inventory·anomaly의 SHA-256, length, mtime가 모두 불변인지 외부 비교한다.
+28. [ ] `python -X utf8 tools/V27Balance/verify_committed_artifacts.py`가 `RESULT=PASS`, balance Critical `0`, output-clearance `profiles/accepted/backpressure/blocking=92/40/52/0`과 pressure-row digest exact, combat `36×1,000`, daily seeds `3`, Final Acceptance `33/33`을 보고하는지 확인한다.
+29. [ ] 모든 요청·PlayMode·incremental 작업 종료 뒤 메인 Unity Console Warning/Error `0/0`, 공식 GameplayScene SHA 불변, 생성물 두 번째 실행 Git diff `0`을 최종 확인한다.
+
+### 부모 폐쇄 규칙
+
+- H bootstrap 완료는 H parent 완료가 아니다. strict profile과 별도 strict `92×32`, exact-union, main resume/no-op이 모두 필요하다.
+- 구 binary-schema source의 메인 unpartitioned resume는 `profiles=92`, `seeds=32`, `observations=2,944`, `resumed=2,944`, `executed=0`, natural artifact second-build byte/length/mtime diff `0`, portfolio-captured Console `0/0`을 통과했다. 이어진 52/92 capacity Critical은 §156에서 분류 오류로 규명·교정했으므로 historical 4a/4b는 닫되, schema `@3/@2` current source의 4c·candidate promotion·strict 실행 전에는 H parent를 닫지 않는다.
+- A–D/F/G의 과거 digest PASS는 구현 증거로 보존하되 final-source parent 분자에는 세지 않는다.
+- E parent는 24번 whole-game coverage보다 먼저 실행하지 않는다.
+- 수치 적용으로 asset authority가 바뀌면 D와 그 이후 전역 증거를 다시 생성한다.
+- 신규 P0 결함이 아닌 추가 개선은 이 DAG에 끼워 넣지 않고 후속 backlog로 보낸다.
+
+---
+
+## 155. 2026-09-03 CertifiedSeed 입력 격리 결함 폐쇄와 H current-source 재시작
+
+상태: **이전 bootstrap 실행은 source digest `277412e118dde610def2f0a954eefd6fd3147fae039b96e214cf0ac3a6761ebc`에서 state `74/92`, observation `2,401/2,944`까지 진행한 뒤 `building:8893 / workstation:v19:cultivar-breeding / seed 157181`의 실제 timeout을 발견해 중단했다. 수정 후 메인 Unity compile과 Console Warning/Error `0/0`을 통과한 current source digest는 `7b96c13f09ce812df1dde73cd6feb724b47113fb381c6857d40436d07a2f5b14`다. 실패 shard는 이 digest에서 `32/32` focused PASS로 재인증했지만, H bootstrap parent `92×32`는 아직 OPEN이다.**
+
+### 결함 원인과 교정
+
+- [x] RF93 육종 온실은 `BuildingCropPlotAbility`가 없는 CertifiedSeed workstation이므로 종전 timeout의 `crop phase=missing/work-missing` 진단이 원인이 아니라 잘못 붙은 공통 진단임을 확인했다.
+- [x] official scene의 ambient `seed-lot:bloodleaf` Loose stack과 fixture input warehouse의 exact seed stack이 동시에 존재할 때 전역 `RequestBestSeedLot`이 접근 불가능한 ambient stack을 선택할 수 있음을 실패 state와 로그에서 확인했다.
+- [x] special-natural scenario host의 exact input isolation 대상을 CropHarvest뿐 아니라 CertifiedSeed까지 확장했다. fixture가 작성한 exact input vector 외의 competing Loose/Stored/FacilityBuffer/OutputBuffer stack은 측정 동안 forbidden으로 격리하고 cleanup에서 원상 복원한다.
+- [x] timeout 진단을 payload별로 분리했다. CropHarvest에만 crop plot phase/work를 출력하고 CertifiedSeed에는 facility, input warehouse/destination 등록, stored/reserved mass를 출력한다.
+- [x] 메인 Unity MCP가 exact project root `F:/01_Programming/01_Project/02_Unity/DungeonStory`, idle compile state, Console Warning/Error `0/0`, official GameplayScene SHA-256 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8` 불변을 확인했다.
+
+### focused current-source 실행 증거
+
+- [x] focus shard ID `natural-output-clearance-shard:building:8893:workstation:v19:cultivar-breeding`를 Worker2에서 맨 먼저 실행했다. main Unity는 최종 compile·Console 권위로 유지하고 Worker2는 장시간 PlayMode만 수행했다.
+- [x] schema `production-output-clearance-natural-shard-store@4`, profile `bootstrap`, profile authority `fec4dc7b07a35fae051525019efd658f135192d9d34555c69ff174a2bcc9c834`, shard key-set `89a29157d18b34462517b39ad4f70738efadfefc30782f2017b24ce6f6ee6779`, portfolio `c60818d896dee1193b62fea97d3397c627463ae129ea3d4c82571d5c924bbe9c`가 current authority와 exact 일치했다.
+- [x] record/output-slice/route-batch가 각각 `32/32/32`, seed index `0..31`, deterministic seed `157181..157212`, observation/commit bijection을 통과했다.
+- [x] 모든 output slice의 canonical token, positive quantity/mass, C# 호환 semantic digest, observation 내 중복 없음, `sum(sliceMass) == R.actualBatchMassGrams`를 독립 검사했다. shard digest는 `600afe1856877078f1505402c6e7fd8fafe35f72a2707ae33de12115d058f72f`다.
+- [x] focused shard `32/32` 기록 직후 exact Worker2 project path, `-batchmode`, execute method를 command line에서 검증한 PID `217540`만 종료했다. 메인 Unity와 AssetImportWorker는 건드리지 않았다.
+- [x] 이 절의 historical source에 대한 §154 step 1은 이후 §156의 source digest `5d256097...`에서 state `92`, observation `2,944`, failure `0`으로 완료했다. 이 증거는 3상태 current-source H parent에는 재사용하지 않는다.
+
+---
+
+## 156. 2026-09-03 CertifiedSeed 도달 불가 우수 lot 고착 P1과 메인 Unity 컴파일 권위 복구
+
+상태: **fixture 격리만으로 숨기면 안 되는 production P1을 수정하고, 메인 Unity에서 실제 grid/path/haul 경로와 CertifiedSeed Planned 재계획 상태머신을 focused 검증했다. 메인 Unity의 최신 runtime/editor 어셈블리, Console `0/0`, 공식 scene 불변까지 확인했다. H current-source parent는 아직 OPEN이다.**
+
+### production 결함과 코드 교정
+
+- [x] `RequestBestSeedLot`이 품질이 높은 순서만 보고 접근 불가능한 lot을 먼저 destination에 귀속하면, pending quantity 때문에 접근 가능한 차선 lot을 다시 선택하지 못하는 영구 고착을 확인했다.
+- [x] 실제 haul planner와 같은 actor·carry·pickup stand·delivery path 권위를 사용하는 exact-stack 도달성 query를 추가하고, CertifiedSeed/Crop 요청은 `Reachable` 후보만 commit하도록 교정했다.
+- [x] 이미 commit된 seed destination은 carried intent를 건드리지 않으며, 모든 pending seed stack이 확정 `Unreachable`일 때만 공통 owner-position release를 수행하고 전체 입력을 보존적으로 재요청하도록 했다.
+- [x] `WorldItemHaulPlanningService` 단일 인스턴스를 planning service와 reachability query 두 계약으로 DI 등록했다.
+- [x] `CertifiedSeedRuntime`에 실제 pending seed/kit 재계획 경로를 연결하고, fixture의 새 `IProductionItemGateway` 생성자 인자 누락 3곳을 교정했다.
+
+### 메인 Unity 컴파일 증거
+
+- [x] MCP project root가 `F:/01_Programming/01_Project/02_Unity/DungeonStory`임을 다시 확인했다.
+- [x] 단순 Asset import 뒤에는 source asset text만 최신이고 loaded `Assembly-CSharp`는 과거 상태라는 불일치를 AppDomain reflection으로 검출했다. Console `0/0`만으로 compile PASS를 판정하지 않는다.
+- [x] Bee compiler가 fixture 생성자 인자 누락 3개를 보고한 것을 `Editor.log`에서 확인하고 수정했다.
+- [x] runtime source를 다시 import해 `Library/ScriptAssemblies/Assembly-CSharp.dll`을 실제 갱신했다. 최종 production 교정 뒤 DLL SHA-256은 `D638A28143B4395939E16D041FF9D46112733676E82B09349E86B08BBBC38707`다.
+- [x] 메인 AppDomain에서 `IWorldItemDeliveryReachabilityQuery`가 존재하고 `WorldItemHaulPlanningService`가 이를 구현하는지 reflection으로 확인했다. 결과는 `MAIN_CURRENT_SOURCE_LINK_PASS`, Console Warning/Error는 `0/0`이다.
+- [x] `CropPhysicalTransactionFixture`에 deterministic reachability 계약 회귀를 추가하고 메인 Unity에서 `CROP_PHYSICAL_TRANSACTION_FIXTURE_PASS`를 확인했다. 접근 불가 고품질 lot을 건너뛴 차선 exact 요청, 미픽업 unreachable destination release, carried intent가 있는 destination의 release 금지를 검증한다.
+- [x] `HaulPlanConstructionSafetyDebugScenarios`의 실제 `GridPathSearchBroker`·`WorldItemHaulPlanningService`·`ItemTransferService` 경로에서 접근 불가능한 고품질 seed와 접근 가능한 차선 seed를 동시에 구성했다. 차선 lot만 exact FacilityBuffer destination으로 retarget·reserve·pickup commit·deposit되고, 고품질 lot의 위치·수량·component signature는 불변이며 terminal cargo/lease/intent가 `0`, 총수량·총질량이 보존되는 것을 메인 Unity `HAUL_PLAN_CONSTRUCTION_SAFETY_CURRENT_SOURCE_PASS`로 확인했다.
+- [x] `CropPhysicalTransactionFixture`가 실제 `CertifiedSeedRuntime.TryPlan`의 Planned 상태를 통과해 `unreachable destination release → CountPending(seed/kit) 재평가 → 차선 exact seed 1개와 kit 1개 재요청 → prioritize` 순서를 검증한다. Deferred와 committed pickup은 release하지 않고, release failure는 동일 order/destination/pending을 보존하며 typed failure를 반환하고, 재시도 성공 및 같은 tick/day의 중복 요청 `0`을 확인했다. 메인 Unity 결과는 `CROP_PHYSICAL_TRANSACTION_FIXTURE_CURRENT_SOURCE_PASS`다.
+- [x] 위 production·fixture 교정 뒤 current source digest를 `5d25609796eccff21819b65fba98a15141725aa963aef628a7a5ef1304ac295e`로 다시 계산했다.
+- [x] 새 digest에서 Worker2의 `building:8893 / workstation:v19:cultivar-breeding`을 먼저 실행해 state `R/S/B=32/32/32`, seed `157181..157212`, typed failure `0`을 확인했다. exact command line을 검증한 batchmode Unity PID `149256`만 종료했고 메인 Unity와 AssetImportWorker는 건드리지 않았다.
+- [x] 새 digest로 H bootstrap `92×32`를 partition `31/31/30`으로 실행했다. 세 wrapper exit code `0`, 중앙 state `92/92`, observation `2,944/2,944`, typed failure `0`을 확인했고 exact-union ValidateOnly와 main local store atomic stage를 통과했다.
+- [x] 메인 Unity exact project root에서 bootstrap composition unpartitioned resume를 실행했다. natural portfolio report는 `profiles=92`, `seeds=32`, `observations=2,944`, `resumed=2,944`, `executed=0`, artifact second-build byte/length/mtime diff `0`, portfolio capture Console Warning/Error `0/0`을 기록했다.
+- [x] historical binary-schema frozen profile candidate publication이 `PRODUCTION_OUTPUT_CLEARANCE_PROFILE_STAGE_CAPACITY_CRITICAL: rows=92;critical=52`로 fail-loud한 사실과 원인을 재현·분석했다. 52개 모두 authored-capacity undersized가 아니라 `requiredWholeCycles > 4`였고, 분포는 `5:13, 6:3, 7:9, 8:6, 9:5, 10:2, 13:3, 14:4, 15:1, 18:3, 23:2, 26:1`이다. 이 실패는 아래 3상태 계약이 supersede하며 current blocker로 세지 않는다.
+
+### 4-cycle 출력 버퍼와 backpressure 판정 교정
+
+- `p95 clearance × reachable peak output rate > 4회분`만으로 데이터 무결성 Critical을 만들지 않는다. 이 값은 충분한 저장 공간에서 단일 배치의 발행→마지막 pickup까지 측정한 clean p95와, 중단 없는 이론상 최대 생산률을 곱한 보수적 압력 예측이다. 실제 런타임은 출력 공간을 입력 소비 전에 확인하고, 버퍼가 차면 동일 resolved output을 `WaitingForOutputSpace`로 유지하므로 안전한 backpressure가 성립한다.
+- 원시 `RequiredWholeCycles`와 `RequiredCapacityGrams`는 5~26회분 값을 그대로 보존한다. 게시 목표는 `PublishedWholeCycles = min(RequiredWholeCycles, 4)`이며, 실제 물리 권위는 변경하지 않은 `OutputBufferCycleCapacity`와 그 exact gram 용량이다.
+- 판정은 `Accepted`, `BackpressureExpected`, `Critical` 세 상태로 분리한다. `BackpressureExpected`는 `FailureCode`가 없는 비차단 상태이고 `PRODUCTION_OUTPUT_CLEARANCE_BACKPRESSURE_EXPECTED` 진단을 가진다. candidate·strict profile publication은 이를 허용하되 count, 각 definition/tag, authored·bounded·raw cycle, p95, peak g/h, max-cycle·required·authored grams, profile/gate digest를 결정론적 보고서에 전부 남긴다.
+- authored cycle이 `min(RequiredWholeCycles, 4)`보다 작으면 backpressure 여부와 무관하게 `PRODUCTION_OUTPUT_CLEARANCE_AUTHORED_CAPACITY_UNDERSIZED` Critical이다. profile/cardinality/digest/overflow/원자성 오류도 계속 Critical이다.
+- 출력 삭제·복제·재굴림·일반 바닥 유출, 출력 공간 부족인데 생산 지속, no-path/livelock/무한 재계획, 실제 생존·계약 수요의 지속 미충족이 확인되면 해당 행을 Critical로 승격한다. 단순 생산 대기는 안전한 흐름 제어이며 stall ratio와 실제 throughput loss로 밸런스를 판정한다.
+- 현재 기대 분모는 `profiles=92`, `blockingCritical=0`, `backpressureExpected=52`, `accepted=40`이다. 52행을 없애기 위한 kg·레시피·WU·출력량·SO buffer 일괄 변경이나 4회분 초과 자동 확장은 금지한다.
+- 후속 측정은 `publication→scheduler assignment`, `assignment→source arrival`, `arrival→pickup commit`을 분리해 p50/p95를 기록한다. 가장 가까운 운반자 대조군으로 개선 가능한 물류 지연과 시설 처리량 압력을 구분하되, 이 관측 확장은 current candidate publication을 막는 무결성 조건으로 사용하지 않는다.
+
+구현 체크포인트:
+
+- [x] requirement/capacity gate를 schema `@3/@2`의 `Accepted / BackpressureExpected / Critical` 계약으로 교정하고, 원시 요구량·bounded publication·failure/diagnostic 의미를 분리했다.
+- [x] runtime capacity projector는 blocking Critical에만 실패하고 `BackpressureExpected`에서는 authored 2~4회분 물리 권위를 그대로 게시하도록 연결했다.
+- [x] portfolio와 candidate/strict report에 accepted/backpressure/blocking 분모와 52개 pressure 행의 원시 수치·digest를 결정론적으로 남기도록 교정했다.
+- [x] 메인 Unity exact project에서 current-source compile, requirement/catalog/portfolio 집중 시나리오, Console Warning/Error `0/0`을 통과했다. source digest는 `810952314ee8660a64ce590436e6c9b53842febf2a115f2416b011e96f911f22`이고 focused fixture는 `accepted/backpressure/blocking=1/1/2`다.
+- [x] portable verifier가 generation/promotion/strict-current schema, source·scene freshness, candidate/resource byte hash, `profiles/accepted/backpressure/blocking=92/40/52/0`, 52개 pressure 행의 연속 index·raw/bounded/authored cycle·positive gram·diagnostic·profile/gate digest와 generation↔strict exact identity를 독립 검증하도록 연결했고 Python compile을 통과했다.
+- [ ] 변경된 source digest에서 H bootstrap `92×32`를 다시 실행해 실제 전수 기대값 `accepted/backpressure/blocking=40/52/0`, candidate/report second-write diff `0`을 확인한다. 세 worker partition은 `31/31/30`으로 재시작했으며 최종 compile·승격·Console 권위는 메인 Unity만 사용한다.
+- [ ] A–G final-source 부모 재인증은 Resources 92-row profile 승격 뒤에만 실행한다. 승격 전에 메인 A parent를 선행 실행하면 `PRODUCTION_OUTPUT_CLEARANCE_PROFILE_RESOURCE_MISSING`으로 fail-loud함을 확인했으며, 이는 코드 결함이나 A 회귀 실패가 아니라 step 5 선행조건이다. 같은 명령을 profile 승격 전 반복하지 않는다.
+
+---
+
+## 157. 2026-09-03 3상태 승격·부모 fail-late 제거와 final-source 동결
+
+상태: **구 binary key를 읽던 Batch B/C parent와 generation·promotion·strict-current의 서로 다른 분모 판정을 통합했다. 메인 Unity project root, compile, focused requirement/catalog/portfolio, Console Warning/Error `0/0`을 통과한 동결 source digest는 `60336eba8575bf6ebbf89bc3487917a3d53ab44954e41ecbbae37908bac6a08b`다. 이 digest의 H bootstrap partition `31/31/30`을 실행 중이며, 신규 P0/P1 결함이 아닌 개선으로 C#을 변경하지 않는다.**
+
+### 닫힌 선행 결함
+
+- [x] `V27BatchBcParentDebugScenarios`가 strict report `@2`의 `profiles/accepted/backpressureExpected/blockingCritical=92/40/52/0`, schema, source, scene, catalog, portfolio/review/verification digest, lookup mismatch와 52개 pressure 행을 요구하도록 교정했다. 구 `critical=0` literal은 제거했다.
+- [x] generation과 strict-current가 모두 candidate/PASS report 작성 전에 exact `40/52/0`을 강제한다. promotion에서만 늦게 분포 drift를 발견하는 경로를 제거했다.
+- [x] promotion preflight가 UTF-8 no BOM·LF-only·terminal LF, exact scalar/pressure key 순서와 수, digest, `32×92=2,944`, exact `40/52/0`을 검사한다.
+- [x] 각 pressure 행의 13필드 순서, canonical identity, ordinal uniqueness/order, 정수 범위, authored/bounded/raw 관계, diagnostic, profile digest를 검사하고 core requirement/capacity projector로 gate digest를 재계산한다. 실제 candidate row의 p95·peak·profile digest와도 exact join한다.
+- [x] portable verifier가 report/candidate exact 구조, duplicate JSON key, compact canonical JSON, .NET Ordinal 정렬, row/catalog/review/gate digest, Int32/Int64 범위·overflow와 모든 정수 산식을 독립 검증하도록 보강됐고 Python compile과 `git diff --check`를 통과했다.
+- [x] §154의 strict worker 실행 전에 promoted Resources JSON을 세 worker에 byte-identical sync하고 네 project SHA/catalog authority를 검증하는 step 5a를 추가했다.
+- [x] §154 step 7의 strict identity·ValidateOnly·atomic stage·main resume/no-op·환경 제거, step 20/22의 durable PlayMode terminal 순서를 명시했다.
+
+### 열린 current-source 증거
+
+- [ ] source `60336eba...` bootstrap state `92/92`, observations `2,944/2,944`, failure `0`.
+- [ ] 중앙 exact-union root는 `.state`와 `exact-union.barrier`만 포함해야 한다. 현재 장시간 실행의 `wrapper-logs/partition-*.stdout.txt|stderr.txt` 6개는 세 wrapper가 종료한 뒤 byte를 보존하여 source/profile identity의 sibling evidence directory로 이동하고, `UnexpectedFiles=0`과 non-empty stderr `0`을 확인한 뒤에만 `ValidateOnly`를 실행한다. strict partition 실행은 처음부터 stdout/stderr redirect 경로를 union root 밖으로 지정해 같은 오염을 재발시키지 않는다.
+- [ ] exact-union ValidateOnly, main atomic stage/resume, generation `92/40/52/0`, pressure `52`, second-write diff `0`.
+- [ ] candidate promotion과 네 project Resources SHA/catalog authority 일치.
+- [ ] 별도 strict identity `92×32`, exact-union/main resume, strict-current `92/40/52/0`.
+- [ ] §154 step 7~29의 A–G current-source 부모와 최종 전역 회귀.
+
+---
+
+## 158. 2026-09-03 CharacterConsumables 캡처 참조 폐쇄와 메인 Unity 권위 교정
+
+상태: **source `60336eba...`의 H bootstrap은 aggregate state `62/92`에서 `building:8835 / workstation:v3:armor-tailoring / seed 157193` 종료 복원이 실패하여 INVALID다. 생산·출력·AIHaul은 exact `2개 / 2,200g`으로 통과했고, 실패 원인은 `characters.world`에서 제외된 비영속 actor의 pending meal delivery가 `survival.character-consumables`에 남은 자기복원 불가능한 checkpoint였다. production 캡처 경계를 교정하고 메인 Unity focused 회귀를 통과한 새 source는 `561f3b6215daf7a04def27f857ceb5d1ad017474994ee6899c87170b50840d0c`다. H final-source bootstrap·strict와 A–G final-source parent는 OPEN이다.**
+
+### 닫힌 결함과 증거
+
+- [x] `CharacterWorldSaveService.GetPersistentActorIds()`와 consumables의 일반 `world.CharacterIds`가 서로 다른 집합임을 현재 C#과 실패 로그에서 확인했다. restore의 strict unknown-reference 거부는 유지하고 캡처 쪽을 교정했다.
+- [x] Survival 하위 계약 `ICharacterConsumablesPersistentActorQuery`를 추가해 Infrastructure Core가 상위 `Assembly-CSharp` 구현 타입을 역참조하지 않도록 어셈블리 의존 방향을 보존했다.
+- [x] `CharacterConsumablesSaveSection.CapturePayload()`가 `characters.world`와 같은 persistent actor key-set으로 actor-owned 참조를 먼저 reconcile한 뒤 캡처한다.
+- [x] pending delivery와 `DeliveryByRoute`, 정책·완료 ledger·cooldown 같은 비물리 actor-owned 상태는 비영속 actor에 대해 함께 제거한다. 물리 commit 가능성이 있는 active meal/substance operation은 자동 삭제하지 않고 operation ID를 포함해 fail-loud한다.
+- [x] 메인 Unity MCP project root가 `F:/01_Programming/01_Project/02_Unity/DungeonStory`임을 확인하고, worker가 아닌 메인에서 runtime/editor 어셈블리를 재컴파일했다.
+- [x] focused 회귀 `RunPersistentActorCaptureClosureFocused`는 유효 pending delivery `1→0`, strict persistent-reference closure exact를 통과했다.
+- [x] focused 재실행 직전 Console을 비운 뒤 결과 Warning/Error `0/0`을 확인했다.
+- [x] 공식 GameplayScene SHA-256은 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`로 불변이다.
+- [x] 무효 source를 실행하던 worker Unity PID `88580/96288`과 wrapper PID `164572/104468`만 command line을 검증한 뒤 종료했다. 메인 Unity PID `135768`과 메인 AssetImportWorker는 유지했다.
+
+### 열린 final-source 체크포인트
+
+- [x] 새 source에서 실패 shard `building:8835 / workstation:v3:armor-tailoring`를 재실행했다. source `561f3b6215daf7a04def27f857ceb5d1ad017474994ee6899c87170b50840d0c`, 공식 scene `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`, seed `157181..157212`에서 shard state `R/S/B=32/32/32`, typed failure `0`을 확인해 checkpoint restore와 fixture cleanup을 재인증했다.
+- [ ] focused shard 통과 뒤 새 source H bootstrap partition `31/31/30`, exact `92×32=2,944`, failure `0`을 실행한다. wrapper log는 exact-union root 밖에 둔다.
+- [ ] 중앙 exact-union ValidateOnly, 메인 atomic stage/resume `resumed=2,944/executed=0`, candidate generation `92/40/52/0`, second-write no-op을 증명한다.
+- [ ] 92-row profile 승격 후 bootstrap과 별도 strict identity에서 `92×32`를 다시 실행한다.
+- [ ] 같은 최종 source에서 A `31/31`, B `40/40`, C `36+10/36+10`, D `414/414·355/355·30,728/30,728`, E `234/234·44/44`, F `6/6`, G `19/19+paired64` 부모와 economy/layout/6인/3-seed/artifact·YAML no-op/portable verifier/Console `0/0`을 재결속한다.
+
+진행률 표기는 이후 반드시 둘로 나눈다.
+
+- 구현 분모: A `31/31`, B `40/40`, C input/output `36/36·10/10`, D item/recipe `414/414·355/355`, E decision/approved `234/234·44/44`, F source cluster `6/6`, G source row `19/19`.
+- final-source release evidence: H profile 승격 전이므로 A–H parent `0/8`. 이는 구현이 0이라는 뜻이 아니라, 서로 다른 source digest의 과거 증거를 최종 PASS로 섞지 않는다는 뜻이다.
+
+---
+
+## 159. 2026-09-03 CharacterMood sub-250ms exact restore 폐쇄
+
+상태: **source `561f3b...`의 H bootstrap은 중앙 `61/92` 진행 중 `building:8838 / workstation:v3:chain / seed 157192`의 CharacterWorld checkpoint byte mismatch를 발견해 INVALID 처리했다. 신규 mood effect의 authored 최소 지속시간 `0.25초`가 저장 복원에도 재적용되어, 캡처된 `remainingSeconds=0.00164794921875`가 복원 후 `0.25`로 늘어나는 production restore 결함이었다. 신규 효과의 하한은 유지하고 persisted residual만 exact 복원하도록 분리한 메인 current source는 `3120141840fa033bf6adb809f114734ba893b266279ba2536e7e91a5c60b245c`다.**
+
+### 닫힌 결함과 증거
+
+- [x] `CharacterWorldSaveService.CaptureActor()`가 0.25초 미만의 유효 양수 residual을 그대로 저장하고, `CharacterMoodStateService.RestoreFactors()`가 일반 생성자를 호출하면서 `Mathf.Max(0.25f, durationSeconds)`를 다시 적용하는 정확한 변이 지점을 확인했다. JsonUtility, RNG, 프레임 진행 또는 verifier tolerance 문제가 아니다.
+- [x] 신규 gameplay mood 적용은 기존 `Apply()`의 authored 최소 `0.25초`를 유지한다. 저장 복원 전용 `CharacterMoodMemory.RestoreExact()`는 검증된 positive finite residual을 `(double)now + remainingSeconds`로 복원하며 authored-duration 보정을 적용하지 않는다.
+- [x] focused 회귀가 `0.0001`, 실제 실패값 `0.00164794921875`, `0.249999`, `0.25`, 장기 duration의 bit-exact 반복 복원과 신규 authored effect의 `0.25초` 하한을 함께 검증한다.
+- [x] 메인 Unity MCP exact root `F:/01_Programming/01_Project/02_Unity/DungeonStory`에서 실제 recompilation 후 mood exact round-trip과 consumables persistent-reference closure를 연속 실행했다. source input `3,224`, 공식 scene SHA 불변, Console Warning/Error `0/0`이다.
+- [x] 실제 production 연결 `building:8838 / workstation:v3:chain`을 새 source에서 seed `157181..157212`로 재실행했다. shard state `R/S/B=32/32/32`, unique seed `32`, typed failure `0`으로 production·AI haul·CharacterWorld capture/restore/recapture를 재인증했다.
+
+### 열린 final-source 체크포인트
+
+- [ ] source `3120141840fa033bf6adb809f114734ba893b266279ba2536e7e91a5c60b245c`에서 H bootstrap partition `31/31/30`, 중앙 exact-union `92/92`, observation `2,944/2,944`, failure `0`을 완료한다.
+- [ ] exact-union ValidateOnly와 메인 atomic stage/resume `2,944/0`, candidate generation `92/40/52/0`, second-write no-op을 증명한다.
+- [ ] 92-row profile 승격 후 별도 strict identity에서 `92×32`를 다시 실행하고, 같은 최종 source의 A–G parent와 전역 회귀를 재결속한다.
+
+---
+
+## 160. 2026-09-03 Natural p95의 host-load 의존성 및 CertifiedSeed Deferred 재현
+
+상태: **source `3120141840fa033bf6adb809f114734ba893b266279ba2536e7e91a5c60b245c`의 bootstrap exact union은 `92/92`, `2,944/2,944`를 완성했고 중앙 `ValidateOnly`와 메인 atomic stage를 통과했다. 메인 Unity unpartitioned composition도 `resumed=2,944`, `executed=0`으로 정확히 병합했다. 그러나 profile generation이 기대 `accepted/backpressure/blocking=40/52/0` 대신 `24/67/1`로 fail-loud했으므로 H는 닫지 않는다.**
+
+### 닫힌 실행 증거
+
+- [x] 세 worker의 bootstrap state 합집합은 source, official scene, bootstrap authority, portfolio semantic digest, shard key-set이 모두 일치하며 `92 shards × 32 seeds = 2,944 observations`이다. 중앙 state-set digest는 `04eb7da170a6f613a8550150a5b446432752758b98ec92938397352776579ce5`, barrier SHA-256은 `fc5d38b389f776529bef3a41b96d9368cfaf69ae8726f1a49a948af4801535cc`다.
+- [x] 중앙 `stage_central_natural_union.ps1 -ValidateOnly`가 `VALIDATION_PASS`, 같은 입력의 atomic stage가 `STAGED_COPY_PASS`를 반환했다.
+- [x] MCP exact project root `F:/01_Programming/01_Project/02_Unity/DungeonStory`의 메인 Unity에서 bootstrap composition을 실행했고 `NATURAL_PORTFOLIO_CURRENT_X_32_COMPLETE plans=92;seeds=32;observations=2944;resumed=2944;executed=0`을 확인했다.
+- [x] 장시간 partition 2의 마지막 `building:8893 / workstation:v19:cultivar-breeding / seed 157181`에서 최초 `TryPlan`이 `certified-seed-natural-plan-failed`로 종료되었지만, 동일 source·scene·profile identity의 clean worker 재개에서는 해당 shard가 seed `157181..157212` 전부 `R/S/B=32/32/32`로 통과했다. 콘텐츠·질량·출력 descriptor의 영구 실패가 아니라 fixture 간 프레임 상태에 민감한 재현이다.
+
+### 확인된 측정 결함
+
+- [x] historical source `5d256097...`의 92개 p95와 current source `312014...`의 동일 92개 p95를 state 원본에서 직접 비교했다. current/historical 비율은 median `1.156`, p95 `1.402`, min `0.837`, max `1.575`이며 58/92행이 10% 넘게 느려졌다.
+- [x] current natural runner는 `Time.timeScale`만 설정하고 `Time.captureDeltaTime`을 고정하지 않는다. 같은 PC의 세 Unity worker 부하가 실제 frame delta를 바꾸면 frame 단위 AI·haul 진행의 game-time clearance가 달라진다. 이는 kg·BOM·레시피 변화가 아닌 host-load 의존 측정값이다.
+- [x] 이 변동이 profile gate를 `40/52/0`에서 `24/67/1`로 이동시켰으며, gate가 후보 파일을 쓰기 전에 정확히 차단했다. expected count 상수를 결과에 맞춰 바꾸거나 blocking 1행을 승인 처리하지 않는다.
+- [x] CertifiedSeed driver가 `commands.TryPlan(... out DomainFailure _)`로 leaf failure를 버리는 진단 결함과, exact seed lot delivery reachability의 `Deferred`가 즉시 hard-fail로 접히는 경로를 확인했다. clean 재개 성공 때문에 no-route·입력 누락으로 오인하지 않는다.
+
+### 다음 제한 작업
+
+- [ ] natural portfolio 측정 구간에 고정 simulation delta를 설정하고 `finally`에서 원래 `Time.captureDeltaTime`을 exact 복원한다. 같은 32-seed shard를 단독/3-worker 부하 조건에서 실행해 p95와 state가 동일해야 한다.
+- [ ] CertifiedSeed natural driver가 실제 `DomainFailure`를 보존해 input-owner, missing receipt, crop mismatch, retryable reachability deferral을 서로 다른 typed reason으로 기록한다.
+- [ ] `delivery-reachability-deferred`만 bounded next-frame retry하고 hard no-route·invalid authority는 즉시 실패시키는 focused 회귀를 추가한다. production command 계약의 후속 queued UX는 P1 backlog로 분리하되 H 검증기가 transient broker budget을 영구 생산 실패로 오판하지 않게 한다.
+- [ ] 위 교정 후 새 source digest에서 focused CertifiedSeed `32/32`, 메인 compile·Console `0/0`, bootstrap `92×32`, profile `40/52/0`, strict `92×32`를 다시 인증한다.
+
+---
+
+## 161. 2026-09-03 고정 simulation delta와 CertifiedSeed Deferred 경계 교정
+
+상태: **host 부하가 natural p95에 섞이지 않도록 검증 구간의 simulation delta를 고정하고, CertifiedSeed의 일시적 delivery reachability `Deferred`만 bounded retry하도록 교정했다. 메인 Unity current source digest는 `941394dc82de5e9bb7a42c4883ac1ac8ca2dbfd7da1662a415bb936bef6572a3`이며 focused CertifiedSeed는 `32/32` PASS다. H bootstrap·profile·strict와 A–G final-source 재결속은 아직 OPEN이다.**
+
+### 닫힌 교정과 메인 Unity 증거
+
+- [x] natural portfolio coordinator 실행 직전에 `Time.captureDeltaTime = 1/60f`를 설정하고, execution dispose 성공 여부와 무관하게 중첩 `finally`에서 원래 값을 exact 복원한 뒤 autosave를 재개하도록 했다. gameplay runtime의 일반 시간 권위는 변경하지 않는다.
+- [x] CertifiedSeed natural driver가 `DomainFailure`를 보존하고 `ItemTransferStackUnavailable`의 parameter가 정확히 `delivery-reachability-deferred`인 경우에만 `MaximumProductionSteps` 이내에서 다음 프레임 재시도한다. 다른 failure는 즉시 종료한다.
+- [x] plan 실패, receipt 누락, crop mismatch를 서로 다른 typed diagnostic으로 분리했다. 결과·receipt 재굴림이나 hard no-route의 무조건 재시도는 추가하지 않았다.
+- [x] MCP project root가 정확히 `F:/01_Programming/01_Project/02_Unity/DungeonStory`인 메인 Unity에서 두 변경 파일을 import하고 실제 compile 완료, `IsCompiling=false`, compile error `0`을 확인했다.
+- [x] 메인 Unity에서 focus shard `natural-output-clearance-shard:building:8893:workstation:v19:cultivar-breeding`를 실행했다. schema `@4`, official scene, bootstrap authority, portfolio, descriptor, measurement, handler/executor digest가 current source identity와 결속됐다.
+- [x] focus state는 record/output-slice/route-batch `32/32/32`, deterministic seed `157181..157212`, failure `0`이다. state SHA-256은 `0C7C402E1E93E996AC4CB584A5982CCA18A0E6D63E6C8B2D297ACB2033E59346`다.
+- [x] focus state가 완성된 뒤 runner가 다음 물류 시나리오로 계속 진행하는 것을 확인하고 메인 MCP의 `Stop`으로 PlayMode만 종료했다. 종료 후 `Time.captureDeltaTime=0`, `IsPlaying=false`, `IsCompiling=false`를 확인했다.
+- [x] worker log directory에 남은 이전 실행의 `partition-*-of-3.done`이 현재 실행 완료로 오인될 수 있는 상태 가시성 결함을 확인했다. worker 시작 시 기존 marker를 provenance가 남는 quarantine으로 이동하고, 현재 process가 exact union 검증까지 끝난 뒤에만 새 marker를 원자 게시하도록 교정했으며 PowerShell parser와 `git diff --check`를 통과했다. 현재 이미 실행 중인 bootstrap의 완료 판정은 stale marker가 아니라 live wrapper/Unity PID와 current-source state 분모로만 수행한다.
+- [x] 공식 GameplayScene SHA-256은 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8` 권위를 계속 요구한다.
+
+### 열린 final-source 증거
+
+- [ ] 같은 current source의 단독/3-worker 부하 조건에서 동일 shard p95와 state 의미가 재현되는지 교차 검증한다.
+- [ ] 세 worker의 두 교정 파일을 메인과 byte-identical하게 동기화하고 source digest `941394dc...` bootstrap partition `31/31/30`을 완주한다.
+- [ ] 중앙 state `92/92`, observations `2,944/2,944`, failure `0`, unexpected union file `0`으로 exact-union ValidateOnly와 atomic stage를 통과한다.
+- [ ] 메인 Unity unpartitioned resume `resumed=2,944/executed=0`, generation `92/40/52/0`, candidate/report second-write diff `0`을 증명한다.
+- [ ] 92-row profile을 승격·동기화한 후 별도 strict identity `92×32`와 메인 strict resume/no-op을 통과한다.
+- [ ] 같은 최종 source/profile에서 A–G parent와 economy/layout/6인/3-seed/artifact·YAML no-op/portable verifier/Console `0/0`을 재결속한다.
+- [ ] final acceptance 전에 `V27BalanceAssetRollbackDebugScenarios.RunFromMenu()`를 current source에서 새로 실행해 `v27-balance-asset-rollback.txt`의 YAML/meta byte-exact rollback 증거를 갱신한다. portable verifier가 이 산출물을 요구하므로 과거 report 재사용은 금지한다.
+- [ ] AuditOnly 6개 산출물과 승인 대상 Unity YAML 집합의 실행 전 SHA-256·length·mtime를 캡처하고 두 번째 생성·적용 뒤 exact 비교하는 checked-in 또는 manifest-bound gate를 마련한다. 수동 육안 비교만으로 no-op을 닫지 않는다.
+
+### 161.1 wall-clock 제거와 scene-owned scheduler final-source 교정
+
+상태: **source `941394dc...`의 3-worker 실행은 `Time.captureDeltaTime`만으로는 wall-clock 기반 readiness/replan/deadline과 scheduler/path broker 예산을 제거하지 못했으므로 final evidence에서 제외했다. wall-clock을 fixed scheduling turn으로 치환하고 production scene의 scheduler를 결정론 진단 모드로 실행하는 current source `3e4aace906e926205545fc6bbd33c084bb863c8f376f4dba2cba215135591b9e`에서 메인 focused `32/32`를 통과했으며, H bootstrap 전수 계측을 3-worker로 진행 중이다.**
+
+- [x] 자연 계측의 readiness timeout, 순차 slice 재계획 지연, haul deadline, prefixture quiesce를 `Time.realtimeSinceStartup`에서 고정 scheduling-turn 상한으로 교체했다. host FPS·import·GC 지연은 simulated turn 경로와 clearance 시간을 바꾸지 않는다.
+- [x] 자연 계측 동안 `CharacterAiScheduler.ConfigureDeterministicSimulationForDiagnostics(true)`와 checkpoint reset을 적용해 scheduler와 path broker의 wall-time budget을 결정론적 처리량으로 전환한다. 종료 시 원래 진단 모드를 복원한다.
+- [x] scheduler는 production DI의 직접 등록이 아닌 scene-owned `MonoBehaviour` 권위임을 실제 메인 PlayMode에서 확인했다. `DungeonRuntimeLifetimeScope`와 같은 active/inactive scene component 조회를 사용하도록 verifier를 교정했다.
+- [x] `Time.captureDeltaTime` scope는 정상 dispose뿐 아니라 assembly reload, PlayMode 종료, Editor 종료에도 원래 값을 복원하고 중첩 scope를 fail-loud한다.
+- [x] 메인 Unity exact root에서 current source를 compile했고 compile error `0`, source input `3,224`, official GameplayScene SHA 불변을 확인했다.
+- [x] 메인 focus shard `building:8893 / workstation:v19:cultivar-breeding`는 state `R/S/B=32/32/32`, failure `0`이다. clearance 관측 범위는 `35,547..35,564` micro-hours로, 이전 wall-clock 혼입 실행의 `35,554..675,562` 이봉 분포가 제거됐다.
+- [x] focus state 완성 뒤 다음 shard 진입 전에 메인 PlayMode를 수동 종료했다. 이로 인한 `PLAYMODE_ABORTED` 로그는 focus state의 failure가 아니며 Console을 비웠다. 최종 Console gate는 전체 runner의 자연 종료 뒤 별도로 판정한다.
+- [ ] current source `3e4aace...` bootstrap partition `31/31/30`, 중앙 `92/92`, observations `2,944/2,944`, failure `0`을 완주한다.
+- [ ] 중앙 exact-union ValidateOnly·atomic stage, 메인 resume `2,944/0`, generation `92/40/52/0`, artifact second-write diff `0`을 통과한다.
+- [ ] profile 승격 뒤 별도 strict identity `92×32`와 나머지 final-source release gate를 §154 순서대로 닫는다.
+
+---
+
+## 162. 2026-09-03 M06 자연 계측 용량 교정과 동적 disposition 권위
+
+상태: **고정 simulation turn으로 완료한 bootstrap `92×32`의 현재 실측 분포는 `accepted=73`, `backpressureExpected=18`, `blockingCritical=1`이다. 유일한 Critical은 `building:9506 / m06`의 작성 출력 버퍼가 자연 p95 요구 4회분보다 작은 3회분인 결함이다. 과거 `40/52`는 host-load가 섞인 wall-clock 계측의 역사적 결과이며 더 이상 현재 결과 또는 미래 콘텐츠의 고정 불변식이 아니다.**
+
+### 승인된 최소 교정
+
+- [x] M06 실측식을 정수로 재검산했다. p95 `1,813,543 micro-hours → Ceil 1,814 milli-hours`, peak `3,375g/hour`, 최대 단일 완료 `1,800g`이므로 요구량은 `Ceil(1,814 × 3,375 / 1,000) = 6,123g`, 요구 회차는 `Ceil(6,123 / 1,800) = 4`다.
+- [x] M06 `defaultBatchCapacity`와 `physicalOutputBufferCycleCapacity`를 함께 `3→4`로 변경한다. 세 실제 보철 레시피는 모두 unique 1개 출력이므로 legacy count projection과 gram admission을 분리하지 않는다.
+- [x] M06 용량은 `5,400g→7,200g`이다. 이는 이미 허용된 2~4회분 상한 안의 실측 기반 capacity 교정이며 footprint, BOM, Direct WU, Embedded WU/EWU, 가격, 전력, 용수, 폐기물과 current-format save schema는 변경하지 않는다.
+- [x] 현재 92행을 동일하게 유지하고 M06만 4회분으로 재투영하면 예상 분포는 정확히 `74/18/0`이다. 이는 새 실행의 합격 판정 상수가 아니라 전수 관측에 대한 교정 전 예측값이다.
+
+### 동적 disposition 계약
+
+- [x] generation, promotion, strict-current 및 portable verifier에서 `accepted=40`, `backpressureExpected=52` compile-time 고정을 제거한다.
+- [x] 고정하는 것은 현재 카탈로그 분모 `profiles=92`, `blockingCritical=0`, `accepted + backpressureExpected = profiles`, ordered pressure row 수와 보고된 backpressure 수의 exact 일치다.
+- [x] 각 pressure row의 definition/workstation 정렬, p95·peak·maximum·required/authored gram 공식, profile/gate digest와 generation↔strict 동일성은 그대로 강제한다. 단순히 합계만 맞춘 임의 분포는 통과하지 못한다.
+- [x] 새 콘텐츠가 현재 capability와 카탈로그에 합법적으로 추가될 때 분포가 바뀌는 것은 오류가 아니다. Critical 0과 행별 수학·digest·결정론이 유지되는지를 판정한다.
+- [x] §151·§154·§160·§161의 `92/40/52/0` 문구는 해당 source의 역사적 실행 예상 또는 결과로만 보존한다. 이 절이 이후 final-source 실행 권위를 supersede한다.
+
+### 남은 실행 증거
+
+- [ ] 메인 Unity에서 M06 builder/validator, surgical, contributor registry, capacity portfolio, portable Python 정적 검증을 통과한다.
+- [ ] 새 source/portfolio digest에서 bootstrap `92×32`를 재실행해 `92/92`, `2,944/2,944`, failure `0`, blocking Critical `0`을 확인한다.
+- [ ] generation의 실제 accepted/backpressure 값을 frozen report에 기록하고 두 번째 write byte diff `0`을 확인한다.
+- [ ] profile 승격 후 별도 strict identity `92×32`를 실행하고 generation과 strict의 disposition 및 ordered pressure rows가 exact 동일한지 확인한다.
+- [ ] 위 증거 전에는 H와 전체 A–H를 완료 처리하지 않는다.
+
+---
+
+## 163. 2026-09-03 frozen profile 승격의 전체 행 재계산 계약
+
+상태: **기존 generation `@2`는 backpressure 행만 직렬화하여, 실제 backpressure 행을 누락하고 accepted 합계를 늘린 조작을 promotion 단계 자체가 완전하게 재분류하지 못했다. strict-current 정상 경로는 이를 나중에 검출하지만, 원자적 승격 gate로는 부족하므로 generation `@3`에서 92개 review input 전체를 결속한다.**
+
+- [x] generation report에 정렬된 `reviewInput[0..91]` 전체를 기록한다. 각 행은 definition, workstation, authored cycles, lane policy/count, maximum cycle grams와 upstream digest를 포함한다.
+- [x] promotion은 candidate 92행과 review input 92행을 exact 1:1 join하고 기존 `ProductionOutputClearanceCapacityReviewPortfolio.Build`로 Accepted/Backpressure/Critical을 전부 다시 계산한다.
+- [x] 재계산한 disposition 합계, `capacityReviewDigest`, 정렬된 backpressure 행 전체가 generation report와 byte-exact해야 한다. 누락·중복·순서 변경·임의 digest·candidate orphan은 fail-loud한다.
+- [x] `catalogAuthorityDigest`는 더 이상 SHA-256 모양만 확인하지 않고 실제 candidate catalog authority와 exact 일치해야 한다.
+- [x] C#과 Python 숫자 토큰은 canonical decimal만 허용한다. `091`, `04`, `00` 같은 선행 0 표현은 거부한다.
+- [x] runtime profile resource/candidate JSON `@1`, strict-current `@2`, promotion report `@1`, gameplay 타입과 ScriptableObject schema는 변경하지 않는다.
+- [x] 메인 Unity current-source compile, backpressure `0/1/92` positive preflight, 누락·digest·leading-zero·CRLF negative preflight가 PASS했다. Console Warning/Error는 `0/0`이고 source digest는 `d0352a93efeb6a651bc037392a3cca9d1d14a64c610e2d51f3b5fa8d43ec8f8b`다.
+- [ ] source `d0352a93...` bootstrap `92×32`, generation `@3`, promotion, strict `92×32`와 portable Python verifier를 새 산출물로 통과한다.
+
+---
+
+## 164. 2026-09-03 메인 Unity와 headless 전수 측정의 실행 경계
+
+상태: **최종 소스의 짧은 컴파일·집중·통합 검증과 승격은 메인 Unity에서 수행하고, `92×32` 장시간 자연 계측만 hash-synchronized headless worker에 분산한다. clone worker 결과는 exact central union과 메인 Unity unpartitioned resume를 통과하기 전에는 최종 권위가 아니다.**
+
+- [x] Unity MCP project root가 `F:/01_Programming/01_Project/02_Unity/DungeonStory`임을 다시 확인했다.
+- [x] 메인 Unity에서 Batch F durable queued integrated runner를 실행해 active scene topology와 dirty state를 보존하면서 `closed=6/6` PASS를 재캡처했다.
+- [x] final same-source Batch C parent를 메인 Unity에서 `input=36/36; output=10/10`으로 재캡처했다.
+- [x] final same-source Batch D coupling parent를 메인 Unity에서 재캡처했다. items `414`, recipes `355`, buildings `419`, rows `30,728`, changed/rootless/Critical `0/0/0`, second-write diff `0`이다.
+- [x] final same-source parent counter를 `6/8 (A/B/C/D/E/F)`로 갱신한다. A–G 구현 분모 완료와 final parent counter를 혼동하지 않는다.
+- [x] Batch G remaining focused evidence `4/4`는 통과했지만 전체 G live denominator는 `4/19`이므로 G는 열어 둔다. source linkage `19/19`는 live closure가 아니다.
+- [ ] source `d0352a93...`의 H bootstrap은 세 worker에서 `92×32` exact denominator를 완료한다. 중간 observation 수는 H 완료로 계상하지 않는다.
+- [ ] central exact union을 메인 store에 원자적으로 stage한 뒤 메인 Unity가 unpartitioned resume, generation `@3`, promotion을 수행한다.
+- [ ] 승격된 별도 strict identity로 다시 `92×32`를 실행하고 메인 Unity에서 C/D/G와 전역 회귀를 재캡처한다.
+
+---
+
+## 165. 2026-09-03 final-source H bootstrap 합본과 메인 프로필 승격
+
+상태: **source `d0352a93efeb6a651bc037392a3cca9d1d14a64c610e2d51f3b5fa8d43ec8f8b`의 bootstrap 자연 계측은 `92/92`, `2,944/2,944`로 완성됐고 중앙 exact-union 검증·원자 스테이징·전수 합본·후보 생성·메인 Unity EditMode 승격을 통과했다. 별도 strict identity `92×32`와 G·전역 release gate는 아직 OPEN이다.**
+
+- [x] 중앙 barrier가 source `d0352a93...`, 공식 scene `b390a975...`, bootstrap authority `fec4dc7b...`, shard key-set `89a29157...`, state-set `4f56bd04...`에 정확히 결속됐다.
+- [x] 중앙 파일은 shard state `92`, observation `2,944`, 예상 외 파일 `0`이다.
+- [x] `stage_central_natural_union.ps1 -ValidateOnly`가 `VALIDATION_PASS`, 같은 입력의 main/clean-worker atomic stage가 `STAGED_COPY_PASS`를 반환했다.
+- [x] clean worker의 unpartitioned 합본은 기존 증거를 `92/92`, `2,944/2,944`로 재사용했고 candidate/report의 두 번째 쓰기 diff가 `0`이다.
+- [x] generation schema `@3` 결과는 profiles `92`, accepted `74`, backpressureExpected `18`, blockingCritical `0`이다. candidate SHA-256은 `219ebefdebb61fb650f1e9b60e351afb399e7f9aa6199bd8b700235f5d593fa1`이다.
+- [x] MCP가 확인한 exact main root `F:/01_Programming/01_Project/02_Unity/DungeonStory`의 EditMode에서 promotion을 실행했다. command compilation/execution이 모두 성공했고 resource SHA-256은 candidate와 동일하다.
+- [x] 승격된 catalog authority는 `e5b64d1353d3175474dda30d7509d6aa36e3b0e6031db4839e0701414c3262f9`, profile `92`, promotion second-write diff `0`이다.
+- [x] 메인 `GameplayScene`의 저장되지 않은 serialized UI 변경은 저장·폐기·Single-scene PlayMode 전환하지 않았다. 장시간 natural 실행은 공식 on-disk scene을 가진 clean worker만 사용한다.
+- [ ] strict authority `e5b64d...`의 독립 `92×32`를 세 partition으로 완주하고 중앙 exact-union 및 unpartitioned strict report/no-op를 증명한다.
+- [x] strict와 독립적인 메인 EditMode 게이트를 병행했다. RNG manifest는 runtime files `1,701`, consumers `44`, legacy character stream `0`, direct Unity random runtime use `0`; 6인 정적 폐쇄 루프는 recurring `85.568 WU/day`, share `31.7%`, 7일 물 `99`, storage `77,700g`, N+1 `10`; 확장 정적 계약은 연구 `3`, 폭 `29/51/71/87`, E-key developer-only로 PASS했다.
+- [ ] asset rollback을 strict 이전에 호출하면 output-capacity 증거 stale gate가 의도대로 거부한다. 이 선행 실패 산출물은 최종 증거가 아니며 strict·G/output-capacity 갱신 후 반드시 PASS로 교체한다.
+- [ ] strict 이후 G umbrella `19/19+paired64`, economy/layout/6인/3-seed, rollback/YAML·artifact no-op, portable verifier, 최종 Console `0/0`을 current source/profile에 재결속한다.
+
+현재 parent 체크포인트는 A–F `6/8` 완료, G `4/19`, H bootstrap·promotion 완료/strict·전역 gate OPEN이다. H parent는 strict와 전역 gate가 끝나기 전 닫지 않는다.
+
+---
+
+## 166. 2026-09-04 메인 Unity/worker 권위 재결속과 내러티브 DI 회귀 폐쇄
+
+상태: **A–F 부모 `6/8`은 유지한다. G live `4/19`와 H final-source gate는 OPEN이다. 병행 추가된 인게임 내러티브 카탈로그가 VContainer 생성자 선택과 worker authority 동기화를 깨뜨리는 회귀를 발견·교정했고, source `8c247610ef8c8eb2c637cb64cb9939758ab76b8959b60022c7028b4c906eab3c`의 bootstrap 3-partition을 실행 중이다.**
+
+- [x] 메인 Unity project root가 `F:/01_Programming/01_Project/02_Unity/DungeonStory`이고, long PlayMode worker가 아닌 메인에서 최신 project compile이 끝나 `IsCompiling=false`, `IsUpdating=false`임을 확인했다.
+- [x] 메인과 세 full worker의 C#/asmdef/asmref/rsp/package source input 수가 `3,229`로 같고, source digest가 `8c247610ef8c8eb2c637cb64cb9939758ab76b8959b60022c7028b4c906eab3c`로 일치한다.
+- [x] 세 worker의 공식 GameplayScene SHA-256은 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`로 일치한다.
+- [x] 신규 `InGameNarrativeTextCatalog.asset`과 `.meta`를 worker에 byte-identical 동기화했다. asset SHA-256은 `edb73c16a9c458d4f9ddda07e222baec1523b9f96bc413867dd5bacdd72429b6`, meta SHA-256은 `530cbb8272b0d993432a0589012f9bb94c9700143ebff8696f6f983cd9e94254`다.
+- [x] `Register<ResourceInGameNarrativeTextQuery>`가 VContainer의 다중 생성자 선택으로 `InGameNarrativeTextCatalogSO` 주입을 요구해 scene container 전체를 실패시키는 원인을 확인했다. 등록을 명시적 factory `Register<IInGameNarrativeTextQuery>(_ => new ResourceInGameNarrativeTextQuery(), Singleton)`로 바꾸고 asset 입력 생성자는 production 자동 선택 대상이 아니게 제한했다.
+- [x] focused worker P0가 이전 `VContainerException`, `RUN_READY owner=missing`, research completion NullReference 지점을 넘어 deterministic scheduler, deprivation/actor decision isolation, prefixture haul drain을 PASS하고 첫 자연 계측에 진입했다.
+- [ ] bootstrap partition `31/31/30`, 중앙 `92/92`, observations `2,944/2,944`, typed failure `0`을 완주한다.
+- [ ] 중앙 exact-union ValidateOnly·atomic stage와 unpartitioned resume `2,944/0`, generation `@3`, second-write diff `0`을 통과한다.
+- [ ] current-source candidate를 메인 EditMode에서 승격하고 별도 strict identity `92×32`를 통과한다.
+- [ ] G umbrella `19/19+paired64`, economy/layout/6인/3-seed, rollback/YAML·artifact no-op, portable verifier, 최종 Console `0/0`을 같은 source/profile에 재결속한다.
+
+현재 parent 체크포인트는 A–F `6/8`, G `4/19`, H bootstrap 실행 중이다. 부분 observation이나 focused PASS를 G/H 완료로 계상하지 않는다.
+
+---
+
+## 167. 2026-09-04 current-source 승격 완료와 최종 release DAG 재정렬
+
+상태: **이 절이 §154 step 4c 이후의 수치·호출 순서를 supersede한다. source `8e7c6bb0ad94f2ce4a2be01a6ff40a41328695d2cd71de07a7bf2d79812987f5`, 공식 GameplayScene `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`, 승격 profile authority `e05fc6d22befb0544c52e9ec93e5068309a8a8837eb642367ad4692a8b1e5d5f`가 현재 실행 권위다. A–G parent `7/8`은 current-source PASS이며, H의 메인 unpartitioned strict resume와 전역 release gate는 OPEN이다.**
+
+### 167.1 완료된 current-source H 기반
+
+- [x] bootstrap partition `31/31/30`, state `92/92`, observations `2,944/2,944`, incomplete state `0`, typed failure `0`을 완료했다.
+- [x] 중앙 exact-union은 source·scene·bootstrap authority `fec4dc7b07a35fae051525019efd658f135192d9d34555c69ff174a2bcc9c834`·shard key-set `89a29157d18b34462517b39ad4f70738efadfefc30782f2017b24ce6f6ee6779`에 결속됐다. state-set digest는 `02c9ca8ce71f59fcc87a327a83c852a1e066053388a9755ba2b2fcb1feb363bf`, barrier SHA-256은 `ec0e2e0ca2a4d728266eb44dc3223f07c2bf43dd50b3c56b108a711b9bf3cabc`다.
+- [x] `stage_central_natural_union.ps1`의 ValidateOnly `VALIDATION_PASS`와 atomic `STAGED_COPY_PASS`를 통과했다.
+- [x] clean worker의 unpartitioned resume가 profiles/seeds/observations `92/32/2,944`, resumed/executed `2,944/0`, Console Warning/Error `0/0`을 기록했다.
+- [x] current generation은 accepted/backpressureExpected/blockingCritical `74/18/0`, candidate/resource SHA-256 `fc8c1e81869c35a463c7475f6c91cf7a838b32985d2e38198dd5e56e98d1f624`, second-write byte diff `0`이다.
+- [x] profile을 승격하고 메인과 세 worker의 Resources JSON을 byte-identical하게 동기화했다. catalog authority는 `e05fc6d22befb0544c52e9ec93e5068309a8a8837eb642367ad4692a8b1e5d5f`다.
+- [x] 승격 profile authority의 strict partition `31/31/30`, state `92/92`, observations `2,944/2,944`, typed failure `0`을 완료했다. state-set digest는 `4c33a6b8deb2c32e4accbe553a8b325fc555561952c884faa9a1e04e5696acbf`, barrier SHA-256은 `6a4cedad73193c660623d2d775fb2a06bfe39f8aee4a35af96ca7e3b50acd1fa`다.
+- [x] strict exact-union ValidateOnly `VALIDATION_PASS`와 메인·clean worker atomic stage `STAGED_COPY_PASS`를 완료했다.
+- [x] clean worker unpartitioned strict resume가 plans/seeds/observations `92/32/2,944`, resumed/executed `2,944/0`, strict authority 일치, second-build byte/length/mtime diff `0`, Console `0/0`, 공식 scene SHA 불변으로 PASS했다.
+- [ ] 메인 Unity unpartitioned strict resume `2,944/0`과 같은 report/no-op를 Relay 복구 후 다시 결속한다. clean worker 증거만으로 이 메인 관문을 닫지 않는다.
+- [x] 승격 profile로 `V27CurrentSourceFgEvidenceOrchestrator.QueueRunFromEditorCommand()`을 다시 실행해 steps `9/9`, F `6/6`, G `19/19`, paired seeds/windows/floor rows/fault arms `64/1,024/1,280/128`, Console `0/0`, aggregate/orchestration second-run byte·length·mtime diff `0`을 확인했다. orchestration report SHA-256은 `ef63fa2b764a9cbb74a40fd273579b42047fcecfec2a91d53530b4de47925f93`, paired report SHA-256은 `d04997e24dcf3035ec84c85434307201cee15a54764f74731d3355dfb638ff60`, F CSV/report SHA-256은 `5207e7f0a583dc78083eac9081c89d900b27d18c0a4dacd581bcd8307a4ac59d` / `45f23d6d8fea833e7122588f2be5e5f212584bc7a52d1b4130f04c5db92dd9e0`, G CSV/report SHA-256은 `8a1c4b909cfaa16103514db38545ed4bd32b4bcce5cc0f64df5326f5571f2ecc` / `be49c1c890ecac5827b6f7895458ca5e761ceb204092329122729828d9f0eb2b`다. 실행 시 resource SHA-256 `fc8c1e81869c35a463c7475f6c91cf7a838b32985d2e38198dd5e56e98d1f624`와 profile authority `e05fc6d22befb0544c52e9ec93e5068309a8a8837eb642367ad4692a8b1e5d5f`가 유지됐고, 종료 후 공식 scene SHA도 불변이다.
+
+### 167.2 최종 전역 실행 순서
+
+§154의 기존 번호는 이력으로 보존하되, 현재 코드는 output-capacity 증거를 Audit 소비자보다 먼저 요구한다. 또한 portable verifier가 요구하는 YAML rollback이 기존 numbered DAG에서 누락됐으므로 다음 22개 게이트와 마지막 meta-check를 실제 실행 권위로 사용한다.
+
+1. [ ] M06 live: `PhysicalItemLogisticsPlayModeVerifier.RequestM06PreparedOutputWarehouseRunFromMenu()` terminal PASS, request 소멸, EditMode 복귀.
+2. [ ] A parent: `V27BatchAOutputClosureDebugScenarios.RunFromMenu()`으로 `31/31`과 current-source child freshness를 결속.
+3. [ ] B/C parent: `V27BatchBcParentDebugScenarios.RunAllFromMenu()`으로 B `40/40`, C input/output `36/10`을 결속.
+4. [ ] RNG manifest: `V27RandomStreamManifestDebugScenarios.RunFromMenu()`.
+5. [ ] output-capacity 선행 체인: PlayMode의 `WorldResourceDebugScenarios.VerifyRuntimeFromMenu()` → 같은 PlayMode의 `CropPlotDebugScenarios.RequestRuntimeVerification()` → EditMode 복귀 뒤 `V27OutputCapacityEvidenceDebugScenarios.RunFromMenu()`.
+6. [ ] exact decision epoch: `V27BalanceAssetApplication.AdoptCurrentMarketRecommendationsAsExactDecisionEpochFromMenu()`.
+7. [ ] reviewed apply: `V27BalanceAssetApplication.ApplyReviewedMarketPromotionsFromMenu()` 두 번, 두 번째 changed asset/property `0/0`.
+8. [ ] D coupling: `V27PhysicalMassCouplingAuditDebugScenarios.RunFromMenu()`으로 item/recipe/building/row `414/355/419/30,728`.
+9. [ ] builder no-clobber: `V27BalanceBuilderNoClobberDebugScenarios.RunFromMenu()`.
+10. [ ] economy: `V27BalanceEconomySimulationDebugScenarios.RunFromMenu()` seed `256`, failure `0`, 반복 transform margin `<= -1 mEWU`.
+11. [ ] expansion Edit/Play: `DungeonSpaceExpansionDebugScenarios.RunFromMenu()` → `DungeonSpaceExpansionPlayModeVerifier.RequestRun()`.
+12. [ ] static layout: `V27PopulationCapacityDebugScenarios.RunFromMenu()` `1,536/1,536`.
+13. [ ] asset-backed layout: 메인 Editor의 `V27AssetBackedSpatialCapacityDebugScenarios.RunFromMenu()` 후 `CaptureIncrementalStatus()` terminal PASS. batch-only entry와 혼용하지 않는다.
+14. [ ] six-adult static: `V27SixAdultSurvivalLoopDebugScenarios.RunFromMenu()`.
+15. [ ] live continuity chain: focused → self-care → six-adult outage → population stages → service continuity를 각 terminal PASS·EditMode 복귀 뒤 순차 실행한다.
+16. [ ] 3-seed: `V27DailyRoutineThreeSeedOrchestrator.QueueRunFromEditorCommand()`으로 seed `157181/157182/157183`, 각 5일, `3/3 PASS`.
+17. [ ] whole-game coverage: `V27BalanceWholeGameCoverageDebugScenarios.RunFromMenu()` domains `12`, orphan `0/0`.
+18. [ ] E parent: 파일명과 무관한 실제 partial 클래스 권위 `V27BalanceAssetApplication.VerifyBatchECurrentSourceParentFromMenu()`을 사용한다. `V27BalanceMarketApplicationReceiptDebugScenarios`는 파일명일 뿐 선언된 클래스가 아니므로 호출 권위로 사용하지 않는다.
+19. [ ] YAML rollback: `V27BalanceAssetRollbackDebugScenarios.RunFromMenu()`으로 YAML/meta byte-exact rollback PASS를 갱신한다.
+20. [ ] final acceptance: `DungeonStoryFinalAcceptanceRunner.RunFromMenu()` `33/33/33/0`.
+21. [ ] Audit no-op: 수동 `V27BalanceAudit.GenerateAuditOnly()` 두 번 대신 `V27BalanceAuditNoOpReceipt.GenerateTwiceAndVerifyNoOp()`을 사용해 6개 artifact와 durable no-op receipt를 결속한다.
+22. [ ] portable verifier: `python -X utf8 tools/V27Balance/verify_committed_artifacts.py`의 `RESULT=PASS`.
+23. [ ] 모든 request·incremental·PlayMode가 terminal인 뒤 메인 Unity compile 완료, Console Warning/Error `0/0`, 공식 scene SHA 불변, 의도된 Git diff, 두 번째 생성·적용 diff `0`을 확인한다.
+
+### 167.3 메인 Unity와 dirty scene 안전 게이트
+
+- 장시간 `92×32`는 hash-synchronized worker에서만 실행하고 중앙 exact-union·메인 unpartitioned resume 전에는 최종 권위로 인정하지 않는다.
+- 짧은 최종 통합·PlayMode·Console·artifact 검증은 메인 Unity에서 수행한다. worker compile만으로 메인 compile을 닫지 않는다.
+- 메인 Unity PID와 direct Bridge가 살아 있어도 AI Assistant Relay가 끊겨 있으면 명령을 보내지 않는다. 씬 저장·재시작 없이 Unity AI Assistant의 `Try reconnecting`으로 relay만 복구하고, 실패할 때만 Project Settings의 Unity MCP Bridge Stop→Start를 사용한다.
+- 공식 GameplayScene이 dirty인 동안 원본 저장·폐기·scene 전환을 자동 수행하지 않는다. 정식 global PlayMode 전에 사용자가 변경을 저장할지 보존할지 결정하거나, 동일 상태를 손실 없이 복원할 수 있는 명시적 절차가 마련되어야 한다. on-disk scene SHA만 같다는 이유로 dirty in-memory scene의 PlayMode 결과를 공식 증거로 채택하지 않는다.
+- 현재 저장소의 `PlayModeVerificationStartSceneLease`는 start-scene 설정만, `PlayModeVerificationPersistenceSnapshot`은 persistent data만 보존한다. `ByteIdenticalSceneDirtinessGuard`와 `SanitizedGameplayScenePlayModeLease`는 실제 dirty scene을 fail-closed하며, 최종 coordinator의 `OpenSceneMode.Single` 전환 뒤 임의 serialized hierarchy/property를 복원하는 범용 권위는 없다. 따라서 이 API들을 dirty scene snapshot처럼 오용하지 않는다.
+- `SyntheticPreparedOutputCanaryGameplaySceneLease`는 특정 canary runner의 공식 디스크 scene 복제·Build Settings 치환만 소유하며 전체 release coordinator의 임의 dirty state 복원 수단이 아니다. clean worker에서 전체 기능 preflight를 완료할 수는 있지만, 그것을 메인 final evidence로 바꾸지 않는다.
+
+현재 parent 체크포인트는 A–F `6/8`, G final rerun OPEN, H strict·전역 release gate OPEN이다.
+
+---
+
+## 168. 2026-09-04 최종 release preflight에서 발견된 P1 교정과 증거 재발급
+
+상태: **§167의 source `8e7c6bb0...` 증거는 당시 PASS 이력으로 보존하되, 최종 current-source 권위로는 사용하지 않는다. H gate 2의 A parent preflight가 실제 결함 두 개를 발견했고 이를 교정한 source digest는 `d3d25dbbdf8b54dfd713fff161b21af99639661c7a501c2202e1685ec68e953f`다. 구현 체크 A–G는 유지되지만 §167.2의 current-source release 증거는 새 digest로 재발급해야 한다.**
+
+- [x] `ApparelPhysicalTransactionDebugScenarios`의 합성 시설이 strict frozen 92-row catalog에 없는 ID를 사용하면서 contributor와 clearance authority를 주입하지 않아 positive maximum proof에 빈 clearance digest가 결합되던 P1 fixture 결함을 교정했다.
+- [x] fixture-scoped apparel output-capacity contributor가 실제 capability line/item/version으로 `4,000g` maximum branch를 제공하고, deterministic bootstrap clearance source와 exact `TryEnsureCapacitySource`를 사용하도록 했다.
+- [x] focused 회귀가 maximum batch `4,000g`, required capacity `16,000g`, profile/gate/authority lowercase SHA-256, full-buffer `WaitingForOutputSpace`, material/pending/output 무변경을 검증한다.
+- [x] `CharacterActor`의 `[RequireComponent(typeof(CharacterAiMemoryRuntime))]` 자동 부착 직후 같은 컴포넌트를 명시적으로 다시 추가하던 fixture 코드를 제거했다. `EnsureRuntimeState()`는 유지한다.
+- [x] clean worker Unity compile과 A source/focused 구간은 PASS했다. Apparel physical transaction 및 관련 output contracts가 PASS했고 중복 `CharacterAiMemoryRuntime` Console Error는 재현되지 않았다.
+- [ ] A parent terminal은 새 digest의 synthetic/sawmill/M06 live report가 아직 없으므로 freshness gate에서 의도대로 중단됐다. 이는 구현 재실패가 아니라 증거 재발급 OPEN이다.
+- [ ] 추가 source 수정으로 비싼 증거를 반복 생성하지 않도록 §167.2의 source/static 및 짧은 PlayMode gate를 먼저 병렬 preflight하고, 신규 P0/P1/P2가 0일 때 strict/F/G/3-seed/final evidence를 한 번만 재발급한다.
+- [ ] freshness 권위 감사 결과, 두 Editor test-contract 변경도 `V27CurrentSourceEvidenceDigest`의 모든 C# 입력에 포함되므로 strict `92×32` 관측은 새 source에서 다시 실행해야 한다. 과거 state header를 고치거나 관측을 재결속하는 우회는 금지한다.
+- [x] 반면 GameplayScene, natural portfolio/descriptors/measurements/shard key/handler/executor, promoted profile resource SHA와 profile authority가 불변이므로 bootstrap 재측정과 profile 재승격은 생략한다. 기존 승격 profile `e05fc6d22befb0544c52e9ec93e5068309a8a8837eb642367ad4692a8b1e5d5f`를 사용해 strict partition `31/31/30`만 새 source로 재발급한다.
+- [ ] 메인 Unity relay는 도구 목록에는 노출되지만 `GetProjectRoot`가 60초 무응답이었다. clean worker 결과는 preflight이며, §167.3에 따라 relay 복구 후 메인 compile·Console·short final integration을 별도로 결속한다.
+
+진행 표기는 다음 두 축을 분리한다.
+
+| 축 | 현재 상태 | 의미 |
+|---|---:|---|
+| 구현 분모 | A–G 완료, H release orchestration 잔여 | 실제 기능·계약 구현 상태 |
+| current-source 인증 | §167.2 `0/23` terminal, 다수 preflight/history PASS | 새 source digest에 결속된 최종 증거 상태 |
+
+따라서 과거 source의 PASS를 삭제하지도, 새 source의 freshness 미충족을 완료로 세지도 않는다.
+
+### 168.1 새 source 정적 preflight
+
+- [x] worker1의 source/static preflight `8`개 중 RNG manifest, D coupling, builder no-clobber, static layout, six-adult static `5/8`은 PASS했다.
+- [x] B/C parent는 실제 B/C 시나리오 결함이 아니라 strict current-profile report의 old source digest 때문에 freshness에서만 차단됐다.
+- [x] economy 256과 whole-game coverage는 asset-backed spatial current-source artifact가 아직 없어 dependency에서만 차단됐다.
+- [x] 위 8개에서 신규 코드 결함은 `0`이다. current source는 `d3d25dbbdf8b54dfd713fff161b21af99639661c7a501c2202e1685ec68e953f`, scene은 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`다.
+- [x] worker1의 asset-backed incremental gate가 `1,536/1,536` PASS했다. 최소 headroom `300permille`, normal/fault peak utilization `600/840permille`, population `1/3/6/12/18/24`의 최소 폭 `27/27/29/51/71/87`을 기록했다.
+- [x] asset-backed 산출물 생성 뒤 economy/whole-game을 재실행했다. 두 gate는 spatial dependency를 통과했고, 다음 선행 조건인 current-source paired-run 증거 부재에서만 fail-closed했다.
+
+### 168.2 current-source strict 재발급과 메인 컴파일 경계
+
+- [x] strict 재발급 입력을 source `d3d25dbbdf8b54dfd713fff161b21af99639661c7a501c2202e1685ec68e953f`, promoted authority `e05fc6d22befb0544c52e9ec93e5068309a8a8837eb642367ad4692a8b1e5d5f`, profile resource SHA-256 `fc8c1e81869c35a463c7475f6c91cf7a838b32985d2e38198dd5e56e98d1f624`, official scene `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`로 고정했다.
+- [ ] strict partition `0/3`, `1/3`, `2/3`을 각각 `31/31/30`, 전체 observation `2,944/2,944`, typed failure `0`으로 재발급한다. 2026-09-04 현재 세 partition 모두 hash-verified worker에서 실행 중이며 최신 durable 합계는 profile `38/92`, observation `1,277/2,944`, partial `3`, bad/failure `0`이다.
+- [x] 세 번째 full worker와 main의 `3,229` source input exact equality, promoted profile resource, profile authority, 공식 scene SHA를 검증한 뒤 partition `2/3`을 시작했다. 임의 동기화나 분모 제거 없이 세 partition을 동시에 유지한다.
+- [x] 메인 Unity PID `103172`의 Unity AI MCP Relay가 복구되어 `GetProjectRoot`가 공식 main project를 반환했다. 씬 저장·재시작·CUA 없이 MCP 명령 경로만 사용했다.
+- [x] worker compile PASS를 메인 compile PASS로 대체하지 않았다. main `AssetDatabase.Refresh/RequestScriptCompilation(CleanBuildCache)`이 `IsCompiling=true -> false`로 완료됐고, 메인 Console Warning/Error는 `0/0`, on-disk 공식 GameplayScene SHA-256은 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`로 유지됐다.
+- [x] 위 진단과 timestamp 갱신은 source content SHA와 official scene SHA를 변경하지 않았다. main scene 저장·폐기·재시작·PlayMode 전환은 수행하지 않았다.
+
+### 168.3 장기 strict 꼬리 지연의 안전한 refinement
+
+- [x] Unity coordinator가 arbitrary positive partition count를 지원하고, ordinal 92-shard 집합에서 `mod3 index0 == mod6 index0 union mod6 index3`, 교집합 `0`, 크기 `31 == 16 + 15`임을 순수 집합 테스트로 증명했다.
+- [x] `tools/V27Balance/natural_shard_worker.ps1`은 기존 3-way와 refinement 6-way만 허용하고, partition 크기를 `1 + floor((92 - 1 - index) / count)`로 fail-loud 검증한다.
+- [x] opt-in `-SeedAssignedStatesFromCentral`은 현재 source/mode/profile authority의 assigned complete state만 identity-relative path로 SHA-safe atomic stage한다. same-hash 재실행은 byte/mtime no-op이고 partial·foreign·duplicate·conflicting hash는 거부한다.
+- [x] PowerShell parser error `0`, 실제 schema `@4` state 최초 copy hash exact, 두 번째 seeding no-op, 변조 state conflict fail-loud를 임시 fixture로 검증했다. wrapper SHA-256은 `72a7f956673a207ce0da9267c7ce54172e93d26f89bfd542b8702c7137a269b6`다.
+- [x] wrapper 변경은 Unity C#/package source digest에 포함되지 않으며 official GameplayScene SHA를 바꾸지 않는다. 이미 실행 중인 3-way PowerShell/Unity 프로세스는 기존 인메모리 경로를 유지하므로 중단·재시작하지 않았다.
+- [ ] partition 1·2가 먼저 끝나고 partition 0의 장기 꼬리가 남을 때만 완결 shard 경계에서 refinement를 적용한다. 동일 shard 동시 실행을 금지하고, 중앙 exact-union `92/92`가 최종 권위다.
+
+### 168.4 사용자 소스 변경 보존과 최종 strict 재발급
+
+- [x] source `d3d25dbbdf8b54dfd713fff161b21af99639661c7a501c2202e1685ec68e953f`의 strict partition `31/31/30`, observations `2,944/2,944`, bad/failure `0`, 중앙 exact union, clean-worker unpartitioned resume `2,944/0`, second-build byte·length·mtime diff `0`, Console `0/0`을 완료했다. state-set digest는 `69ccbaa61e498a81fe0a66752c2e0fbcd34484068ca5a47c4c234820fa6795d3`, barrier SHA-256은 `4d86640c6313c420ef842903c6bd28c0d158e207759f5118d68aeea43cfe39fd`다.
+- [x] 메인 Unity Relay를 복구하고 official main root에서 clean build-cache compile을 완료했다. main Console Warning/Error는 `0/0`이며 씬 저장·재시작·CUA·PlayMode 전환은 수행하지 않았다.
+- [x] 메인 unpartitioned resume는 strict 실행 도중 사용자 소유 `InGameNarrativeTextCatalogBuilder.cs`가 변경된 사실을 source freshness gate에서 fail-loud 검출했다. expected `d3d25dbb...e953f`, actual `f536f74ec62a2b046b3e4ed89f08d50684653a51ea276977ac3c259285c6e58f`다. 사용자 변경은 되돌리거나 덮어쓰지 않으며, `d3d25dbb...` 결과는 통과 이력으로만 보존하고 current-source 최종 증거로 계상하지 않는다.
+- [x] 세 full worker에는 위 사용자 파일만 exact 동기화했다. 세 worker 모두 official GameplayScene SHA-256 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`와 promoted profile resource SHA-256 `fc8c1e81869c35a463c7475f6c91cf7a838b32985d2e38198dd5e56e98d1f624`를 유지한다.
+- [x] 추가 후보 `DungeonStoryV27Worker1/2`는 digest 입력이 각각 `2/3,229`뿐이고 official scene이 없으며 package/profile provenance도 stale하므로 strict worker에서 제외했다.
+- [x] 메인 Editor에서 partition-only coordinator를 실행하면 외부 batch termination 대기 중 정상 cleanup을 거치지 못하고, disabled domain reload 환경에 구독·debug/time/brain 상태가 잔류할 수 있음을 확인했다. 따라서 장시간 partition은 별도 batch worker에서만 실행하고 메인은 컴파일·unpartitioned resume·최종 통합 권위로 유지한다.
+- [ ] current source `f536f74ec62a2b046b3e4ed89f08d50684653a51ea276977ac3c259285c6e58f`와 기존 promoted authority `e05fc6d22befb0544c52e9ec93e5068309a8a8837eb642367ad4692a8b1e5d5f`로 strict partition `31/31/30`, observations `2,944/2,944`, typed failure `0`을 다시 완주한다. 세 verified full worker의 `0/3`, `1/3`, `2/3` 실행은 시작됐다.
+- [ ] 새 exact union을 검증·원자 stage하고 clean-worker 및 메인 Unity unpartitioned resume `2,944/0`을 각각 통과한 뒤 §167.2 release DAG를 같은 source/profile에 결속한다.
+- [x] §167.2 호출점 전수 감사에서 명시된 API 누락·rename은 `0`임을 확인했다. 다만 A parent와 whole-game coverage가 직접 소비하는 `V27CurrentSourceFgEvidenceOrchestrator.QueueRunFromEditorCommand()`이 numbered DAG의 필수 선행 단계에서 누락돼 있었다.
+- [ ] 위 F/G 선행 단계를 current source `f536f74e...e58f`에서 메인 Unity로 실행한다. strict exact union과 독립이므로 세 strict worker와 병행한다. 시작 전 MCP가 main EditMode, exact source, official scene을 검증했고 첫 prepared-output live request가 생성됐다.
+- [x] F/G evidence owner `1~8/9`가 current source와 official scene에 결속된 terminal PASS를 생성했다. P17·synthetic·sawmill·production input·destructive drain·cross-action·haul lifecycle·remaining focused fault를 완료했다.
+- [ ] 마지막 owner인 paired clutter `64` seed가 메인 PlayMode에서 실행 중이다. 이 owner와 두 번의 F/G aggregate no-op가 terminal PASS가 되기 전에는 F/G current-source 선행 단계를 닫지 않는다.
+- [x] 현재 3-way 실행의 prior same-profile trace와 live CPU/log/state를 비교했다. 세 lane의 예상 종료가 수분 이내로 모이고, runner에는 shard 경계 atomic handoff가 없어 실행 중 refinement가 미래 shard 중복을 피할 수 없다. 이번 실행은 중단하거나 6-way로 재분할하지 않고 기존 `0/3`, `1/3`, `2/3` exact union을 유지한다.
+
+현재 구현 체크포인트는 A–G 완료다. 전체 완료가 아닌 이유는 Batch H의 current-source 증거 재발급과 §167.2 최종 통합 게이트가 남아 있기 때문이다.
+
+### 168.5 PlayMode 재컴파일 중단 방어와 `44afd091...` 증거 재발급
+
+- [x] `f536f74e...e58f` F/G paired owner가 seed 23에서 정체된 원인을 단순 장기 실행과 분리했다. `Unity_RunCommand`의 동적 스크립트 수명주기가 PlayMode 중 script compilation과 forced domain reload를 일으켜 runner coroutine을 중단했고, F/G coordinator는 `CURRENT_SOURCE_CHANGED_DURING_FG_ORCHESTRATION`으로 fail-loud 종료했다.
+- [x] reload 직후의 `DailyFacilityShopRuntime` catalog injection 오류는 공식 scene의 정상 composition 결함이 아니라 managed injection reference가 reload로 소실된 뒤 `Update`가 실행된 파생 증상임을 call chain과 Editor log 순서로 확인했다. gameplay runtime의 null 계약을 완화하지 않는다.
+- [x] active paired scene lease 중 assembly reload를 `PAIRED_RUN_ASSEMBLY_RELOAD_INTERRUPTED`로 영속하고, reload 뒤 PlayMode 종료·request 정리·scene lease 반환을 수행한다.
+- [x] `Temp/v27-balance-paired-clutter-progress.txt`에 result, phase, seed count, start seed, focused, completed windows, failure count, 시작 source digest를 원자적으로 발행한다. 장기 실행의 진행 조회에 동적 C# command를 사용하지 않는다.
+- [x] warmup, measurement setup, fault setup, window, recovery를 별도 phase로 노출하고, `ObserveDuration`과 `ObserveWindow`에서 game clock이 10 realtime seconds 동안 양의 delta를 내지 않으면 `PAIRED_CLOCK_NO_PROGRESS`로 실패한다.
+- [x] 위 방어 코드와 동시에 발견된 사용자 소유 숙련도 source 3개를 보존했다. main과 세 verified worker의 `3,229` source input digest는 `44afd091c33389a263e93cdfd73bf87ce8b8556f8a7e7d4c72081d40c484edad`, path-list digest는 `7723ed95c132db1c0482989cf01d83123245a1b011a787638e6057ef65b618e7`로 byte-equivalent하다.
+- [x] 메인 Unity가 변경 소스를 import·compile했고 Console Warning/Error `0/0`, official GameplayScene SHA-256 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`을 확인했다.
+- [ ] source `44afd091...edad`, promoted profile authority `e05fc6d22...e5d5f`로 strict partition `31/31/30`, observation `2,944/2,944`, typed failure `0`을 완주한다. 현재 새 세 worker 실행이 시작됐다.
+- [ ] 같은 source에서 메인 F/G owner `9/9`, F `6/6`, G `19/19`, paired `64/1,024/1,280/128`, Console `0/0`, 두 번째 aggregate diff `0`을 완주한다. 실행은 durable request로 시작하며 PlayMode 동안 source edit·AssetDatabase refresh·동적 RunCommand를 금지한다.
+- [ ] exact union stage, clean/main unpartitioned resume, §167.2 release DAG와 portable/meta gate를 모두 `44afd091...edad`에 결속한 뒤에만 Batch H와 exhaustive A–H를 닫는다.
+
+## 169. 현재 소스 F/G 재인증과 H 인계 기준 (`2ef1a1d7...c9c34c`)
+
+- [x] 소스 변경 감시는 `Assets`/`Packages`의 모든 `.cs`, `.asmdef`, `.asmref`, `.rsp`와 package manifest를 포함하는 기존 전수 범위를 유지한다. 다른 작업 세션과의 동시 편집을 이유로 검사 범위를 축소하거나 특정 파일만 예외 처리하지 않는다.
+- [x] `WorldCharacterProfile.settlementStanding` 추가 뒤 prepared-output 저장 왕복의 안정 fingerprint가 달라진 원인을 확인했다. 런타임 복원 계약과 동일하게 transient `Visitor`를 `PreparedCandidate`로 투영하되, 실제 복원 결과에도 visiting profile과 `Visitor` standing이 남지 않았음을 별도 assertion `PREPARED_OUTPUT_CANARY_TRANSIENT_VISITOR_LEASE_RELEASED`로 검증한다.
+- [x] current source digest `2ef1a1d7125a12b43c39e87bf799f5cf7fbd6229af094d1bd3d62b2935c9c34c`에서 F/G orchestration `9/9` PASS를 재발급했다.
+- [x] 같은 digest에서 Batch F `6/6`, Batch G `19/19`, paired seeds/windows/floor rows/fault arms `64/1,024/1,280/128`, persistent/access/egress clutter `0`, causal-cone 밖 RNG divergence `0`, 최소 runtime headroom `306 permille`를 확인했다.
+- [x] F/G가 캡처한 Unity Console Warning/Error는 `0/0`이고 aggregate와 orchestration의 두 번째 실행 byte/length/mtime diff는 모두 `0`이다. 실행 종료 뒤 Unity AI package가 일시적으로 생성한 계정/네트워크 오류는 Console을 비우고 10초 안정화 후 Error/Warning `0/0`으로 재검증했다.
+- [x] official GameplayScene SHA-256은 `b390a975545b55d5aae48c27514c889e3386be372fd227f92e7572983e5643c8`로 유지된다.
+- [ ] strict natural `92/92`, observation `2,944/2,944`, typed failure `0`을 반드시 같은 current source digest와 promoted profile authority `e05fc6d22befb0544c52e9ec93e5068309a8a8837eb642367ad4692a8b1e5d5f`로 다시 완주한다. 이전 source digest의 strict 결과를 재사용하거나 재표기하지 않는다.
+- [ ] strict exact union 검증·원자 stage·clean worker와 main unpartitioned resume를 통과한 뒤 §167.2의 23개 release gate를 같은 source/profile 권위에 결속한다. 이것이 끝나기 전에는 Batch H나 전체 밸런스를 완료로 보고하지 않는다.
+
+---
+
+## 170. 2026-09-05 게임 완성 중심 최종 마감 권위
+
+상태: **V27 물리 중량·운반의 현재 gameplay 구현과 필수 밸런스 게이트는
+완료다. A–H는 `8/8`이다.** 이 절은 앞 절의 당시 진행 기록을 삭제하지 않고,
+최종 current-source 증거와 완성 판정 범위를 고정한다.
+
+### 170.1 완성 판정 범위
+
+완벽의 의미는 미래 콘텐츠를 미리 전부 구현하는 것이 아니다. 새 아이템,
+레시피, 시설, 장비와 생산 경로가 공용 gram 질량, exact-lot admission,
+Source/Transfer/Transform/Sink, FacilityBuffer, 운반 소유권과 typed failure
+계약에 구현 재설계 없이 연결될 수 있는 상태를 뜻한다.
+
+다음만 V27 완료를 다시 연다.
+
+- 현재 런타임 또는 메인 Unity 컴파일 실패
+- 양의 EWU/SCC 순환 차익 또는 unresolved Critical
+- 물리 수량·질량·lease·carried cargo의 삭제, 복제, 순간이동, orphan
+- 6인 음식·물·저장·물류 폐쇄 루프 실패
+- 공식 GameplayScene/meta/GUID/FileID 또는 승인 밖 asset 변경
+- 동일 입력 두 번째 생성·적용의 의미/byte diff
+- current-source 최종 gate의 Console Warning/Error
+
+과거 A/B/C 부모 보고서의 source digest만 오래됐거나, 폐기된 보고서 schema를
+portable verifier가 계속 요구하는 문제는 CI 유지보수다. 최신 current-source
+runtime/economy/ownership/asset 증거와 충돌하지 않는 한 gameplay 완료를
+재개방하지 않는다.
+
+### 170.2 최종 current-source 증거
+
+- [x] source digest
+  `444e10da91803afd572fb9bc947e1bca5ebdb8575793fdc40b8ab26cc827ee35`,
+  input `3,236`, path-list
+  `3fc6b7ae15ac7744a754eb7ab63fb03c0850c688646bc8d57f8d20ad65365802`.
+- [x] official GameplayScene
+  `6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40`,
+  meta `0c7f1e7dac6804c5e9bad630433c81b9bb944b7532a9e63d5d938f9f3b56849e`,
+  BuildSettings
+  `8ee44400b9ae37cbd1092f671fe364f277601cc02357b02e3908d1d4e9a95ad4`.
+- [x] F/G orchestration `9/9`; Batch F `6/6`; Batch G `19/19`; paired
+  `64` seeds, `1,024` windows, `1,280` floor rows, `128` fault arms;
+  failure `0`, Console `0/0`, second-run byte/length/mtime diff `0`.
+- [x] H bootstrap 및 strict `92/92 x 32 = 2,944/2,944`; strict state-set
+  `68e5057c41c1d3057c76fe56c3d7ec8a0a1c093b48874a38e51b4c5104ce5055`,
+  barrier
+  `adc58da41127423da12386f3385df78e737ed16675ca051f595b4a625645ac93`,
+  main resume `2944/0`, blocking profile `0`.
+- [x] economy 256-seed: failures `0`, rows `87,443`, Critical `0`, SCC `298`,
+  minimum margin `-4,441,089 mEWU`, lossy checks `92,928`.
+- [x] whole-game: 12 domains, items/recipes/buildings `415/355/356`,
+  producer/consumer orphan `0/0`, approved-unapplied `0`, spatial layouts
+  `1,536`, service paths `10`, paired clutter access/egress `0`.
+- [x] asset application current-source: changed assets/properties `0/0`;
+  rollback failures `0`; YAML byte와 meta/GUID/FileID exact; second write no-op.
+- [x] 메인 Unity stable EditMode, final authority command compile/execution PASS,
+  Console Warning/Error `0/0`, request/lease/synthetic scene residue `0`.
+
+### 170.3 portable verifier 판정
+
+`tools/V27Balance/verify_committed_artifacts.py`는 실행했다. Audit manifest의
+새 rollback hash를 정식 AuditOnly writer로 갱신했고, 시장 second-apply와
+AuditOnly second-generation no-op receipt도 production writer로 재발급했다.
+
+남은 portable hard stop은 `market decision source ledger differs from current
+artifact manifest`다. 독립 검사에서 확인된 추가 legacy 항목은 A/C의 과거
+source stamp, 삭제된 B parent 보고서, 그리고 최신 H semantic CSV에 대한
+구형 필드명 기대다. 이는 위 current-source gameplay 증거를 반증하지 않는다.
+portable CI의 historical/schema 정리는 후속 유지보수로 남기되, 이 작업을
+위해 64-seed·256-seed·92x32 검사를 반복하지 않는다.
+
+### 170.4 최종 체크리스트
+
+- [x] Batch A–H `8/8`
+- [x] kg/EWU/가격/생존/공간/물류 current-source 핵심 회귀
+- [x] mass·quantity·ownership·output containment 무결성
+- [x] 공식 asset 및 deterministic no-op
+- [x] 메인 Unity compile과 Console `0/0`
+- [x] 계획·진행 체크리스트를 실제 증거로 갱신
+- [ ] portable historical/schema 검증기 현대화 — 후속 CI 유지보수,
+  gameplay 완료 비차단

@@ -24,6 +24,115 @@ public static class V27CharacterPerformanceDebugScenarios
     private static readonly List<CharacterSO> consumerAuditData = new();
     private const string CatalogPath =
         "Assets/Resources/SO/Content/GameDomainContentCatalog.asset";
+    private const string HarvestYieldFormulaId =
+        "performance:work:harvest:yield";
+
+    [MenuItem("DungeonStory/Debug/V27/Run Character Performance Maximum Audit")]
+    public static void RunDefinitionMaximumAudit()
+    {
+        GameDomainContentCatalogSO content = AssetDatabase
+            .LoadAssetAtPath<GameDomainContentCatalogSO>(CatalogPath)
+            ?? throw new InvalidOperationException("Domain catalog is missing.");
+        IGameContentDefinitionSource definitions = new
+            EditorAssetContentSource();
+        GameplayEffectResultBoundsCatalog effects = new(definitions);
+        CharacterFunctionalCapacityDefinitionBoundsQuery capacities = new(
+            effects);
+        CharacterPerformanceDefinitionMaximumQuery maximums = new(
+            new CharacterPerformanceFormulaCatalog(definitions),
+            effects,
+            capacities);
+
+        foreach (CharacterFunctionalCapacityId capacityId in Enum
+                     .GetValues(typeof(CharacterFunctionalCapacityId))
+                     .Cast<CharacterFunctionalCapacityId>())
+        {
+            CharacterFunctionalCapacityDefinitionBoundsSnapshot captured =
+                capacities.Capture(capacityId);
+            Require(
+                Math.Abs(captured.RawStateMaximum
+                    - CharacterAnatomyStateBounds.MaximumFunctionalEfficiency)
+                <= 0.000001d,
+                "Functional-capacity raw-state maximum drifted for "
+                + CharacterFunctionalCapacityIds.GetStableId(capacityId));
+            Require(captured.ProjectedMaximum >= captured.RawStateMaximum,
+                "Functional-capacity projection underestimates raw state for "
+                + CharacterFunctionalCapacityIds.GetStableId(capacityId));
+        }
+
+        CharacterPerformanceDefinitionMaximumSnapshot harvest =
+            maximums.Capture(HarvestYieldFormulaId);
+        double expectedCapacity = 0.25d + 0.75d
+            * CharacterAnatomyStateBounds.MaximumFunctionalEfficiency;
+        double expectedProficiency =
+            ProficiencyProgressionRules.ResolveEffects(
+                ProficiencyProgressionRules.MasterCurrentCap).QualityScore / 58d;
+        double expectedEffect = effects.RequireFiniteMaximum("harvest:yield");
+        double expectedHarvest = expectedCapacity
+            * expectedProficiency
+            * expectedEffect;
+        Require(Math.Abs(harvest.FunctionalCapacityMaximum - expectedCapacity)
+                <= 0.000001d,
+            "Harvest bottleneck maximum does not mirror runtime folding.");
+        Require(Math.Abs(harvest.ProficiencyMaximum - expectedProficiency)
+                <= 0.000001d,
+            "Harvest proficiency maximum does not mirror Yield projection.");
+        Require(Math.Abs(harvest.GameplayEffectMaximum - expectedEffect)
+                <= 0.000001d
+                && Math.Abs(harvest.MaximumValue - expectedHarvest)
+                <= 0.0001d,
+            "Harvest definition maximum does not mirror runtime factors.");
+        Require(string.Equals(
+                harvest.SourceDigest,
+                maximums.Capture(
+                    HarvestYieldFormulaId)
+                    .SourceDigest,
+                StringComparison.Ordinal),
+            "Character performance maximum digest is not deterministic.");
+
+        CharacterPerformanceFormulaDefinitionSO speedFormula = content
+            .GetAll<CharacterPerformanceFormulaDefinitionSO>()
+            .Where(value => value != null
+                && value.ResultChannel == CharacterPerformanceResultChannel.Speed
+                && value.PrimaryProficiencyId.Length > 0)
+            .OrderBy(value => value.FormulaId, StringComparer.Ordinal)
+            .First();
+        CharacterPerformanceDefinitionMaximumSnapshot speed =
+            maximums.Capture(speedFormula.FormulaId);
+        double expectedSpeed = ProficiencyProgressionRules.ResolveEffects(
+            ProficiencyProgressionRules.MasterCurrentCap).WorkSpeedMultiplier;
+        Require(Math.Abs(speed.ProficiencyMaximum - expectedSpeed) <= 0.000001d,
+            "Speed maximum incorrectly reused the quality proficiency channel.");
+
+        CharacterPerformanceFormulaDefinitionSO inverse = content
+            .GetAll<CharacterPerformanceFormulaDefinitionSO>()
+            .Where(value => value != null
+                && value.ResultChannel
+                    == CharacterPerformanceResultChannel.AccidentRisk)
+            .OrderBy(value => value.FormulaId, StringComparer.Ordinal)
+            .First();
+        bool inverseRejected = false;
+        try
+        {
+            maximums.Capture(inverse.FormulaId);
+        }
+        catch (InvalidOperationException)
+        {
+            inverseRejected = true;
+        }
+        Require(inverseRejected,
+            "Inverse performance maximum was accepted without a finite minimum proof.");
+
+        Debug.Log(
+            "[V27 Character Performance Maximum] PASS | harvest="
+            + harvest.MaximumValue.ToString("R", CultureInfo.InvariantCulture)
+            + " | capacity="
+            + harvest.FunctionalCapacityMaximum.ToString(
+                "R", CultureInfo.InvariantCulture)
+            + " | proficiency="
+            + harvest.ProficiencyMaximum.ToString(
+                "R", CultureInfo.InvariantCulture));
+    }
 
     [MenuItem("DungeonStory/Debug/V27/Run Character Performance Structural Audit")]
     public static void RunStructuralAudit()
@@ -1720,6 +1829,25 @@ public static class V27CharacterPerformanceDebugScenarios
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private sealed class EditorAssetContentSource :
+        IGameContentDefinitionSource
+    {
+        public IReadOnlyList<T> GetAll<T>() where T : ScriptableObject =>
+            AssetDatabase.FindAssets(
+                    "t:" + typeof(T).Name,
+                    new[] { "Assets/Resources/SO" })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<T>)
+                .Where(value => value != null)
+                .OrderBy(
+                    value => AssetDatabase.GetAssetPath(value),
+                    StringComparer.Ordinal)
+                .ToArray();
+
+        public T RequireSingle<T>() where T : ScriptableObject =>
+            GetAll<T>().Single();
     }
 }
 #endif

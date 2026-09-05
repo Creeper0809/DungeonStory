@@ -1,0 +1,4 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+GameplayEffectDefinitionSO,content-type,,type-reference,services:effects,persistence,structural-type-consumer,Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs
+GameplayEffectDefinitionSO,content-type,,type-reference; save-restore-reference,services:effects,content-loading,structural-type-consumer,Assets/Scripts/Services/Effects/Runtime/GameplayEffectResultBoundsCatalog.cs
+GameplayEffectDefinitionSO,content-type,,type-reference,services:foundation,runtime,structural-type-consumer,Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs

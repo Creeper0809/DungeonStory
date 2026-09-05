@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "character-archetype-3",
+    "spoiler_tier": "none",
+    "title": "세라"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-3",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-3",
+      "target_spoiler_tier": "none",
+      "target_title": "뱀파이어",
+      "to": "character/characterspecies-3",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-3",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "trait-108",
+      "target_spoiler_tier": "none",
+      "target_title": "연구가",
+      "to": "character/trait-108",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

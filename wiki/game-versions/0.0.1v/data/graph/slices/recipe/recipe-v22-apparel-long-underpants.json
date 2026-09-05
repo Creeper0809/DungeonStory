@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-apparel-long-underpants",
+    "spoiler_tier": "none",
+    "title": "내의 바지 재단"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-long-underpants",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "apparel-long-underpants",
+      "target_spoiler_tier": "none",
+      "target_title": "내의 바지",
+      "to": "item/apparel-long-underpants",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-long-underpants",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-long-underpants",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-apparel-long-underpants",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

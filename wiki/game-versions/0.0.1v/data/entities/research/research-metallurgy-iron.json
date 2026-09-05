@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Metallurgy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1620",
+      "target_spoiler_tier": "none",
+      "target_title": "도가니 선반",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1079",
+      "target_spoiler_tier": "none",
+      "target_title": "용광로",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-metallurgy-iron",
+  "spoiler_tier": "none",
+  "summary": "철괴를 표준 장비와 건축 부품으로 가공한다.",
+  "title": "철제 가공"
+}

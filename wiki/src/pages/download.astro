@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+import { getCurrentVersion } from '../lib/wiki-data';
+const version = getCurrentVersion();
+---
+
+<BaseLayout title="다운로드" version={version}>
+  <article class="download-page" data-pagefind-body>
+    <header class="page-header"><p class="eyebrow">DungeonStory</p><h1>다운로드</h1><p>정식 배포처가 확정되면 이 페이지에서 안전한 공식 링크를 제공한다.</p></header>
+    <section class="download-page__panel" aria-labelledby="download-status-title">
+      <Icon name="signal" />
+      <div><p class="eyebrow">배포 상태</p><h2 id="download-status-title">출시처 안내 준비 중</h2><p>Steam, 스토어 또는 직접 다운로드 링크가 준비되면 이 안내를 실제 배포 링크로 교체한다.</p></div>
+      <span class="download-page__badge">준비 중</span>
+    </section>
+    <section class="download-page__note"><h2>안전한 다운로드 안내</h2><p>이 위키의 다운로드 링크는 공식 배포처만 가리킨다. 공식 링크가 게시되면 이 자리에서 제공한다.</p></section>
+  </article>
+</BaseLayout>

@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-iron-ingot",
+    "spoiler_tier": "none",
+    "title": "철 제련"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-iron-ingot",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "to": "item/material-iron-ingot",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-iron-ingot",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-coal",
+      "target_spoiler_tier": "none",
+      "target_title": "석탄",
+      "to": "item/resource-coal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-iron-ingot",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-iron-ore",
+      "target_spoiler_tier": "none",
+      "target_title": "철광석",
+      "to": "item/resource-iron-ore",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-iron-ingot",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

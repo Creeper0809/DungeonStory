@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1036",
+      "target_spoiler_tier": "none",
+      "target_title": "마력수정선반",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1037",
+      "target_spoiler_tier": "none",
+      "target_title": "마력저장조",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1033",
+      "target_spoiler_tier": "none",
+      "target_title": "시약선반",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-arcane-reservoir-1",
+  "spoiler_tier": "none",
+  "summary": "마력수정선반과 시약선반을 결합해 안정적인 대용량 마력저장조를 만든다.",
+  "title": "마력저장조 조립"
+}

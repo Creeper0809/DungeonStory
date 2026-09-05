@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-lavish-meat",
+    "spoiler_tier": "none",
+    "title": "핏빛 호화식"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-lavish-meat",
+      "label": "생산·해금",
+      "to": "item/food-lavish-meat",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "4",
+      "from": "event/guest-request-coronation-feast",
+      "label": "필요 조건",
+      "to": "item/food-lavish-meat",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

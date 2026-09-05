@@ -1,0 +1,42 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,m_Name,AgeCondition_age-cardiac-degeneration,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,conditionId,condition:age-cardiac-degeneration,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,displayName,심장 기능 퇴행,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,constructCondition,0,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,affectedAnatomyNodeIds.0,heart,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,affectedAnatomyNodeIds.1,core,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,m_Name,AgeCondition_age-neural-degeneration,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,conditionId,condition:age-neural-degeneration,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,displayName,신경 기능 퇴행,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,constructCondition,0,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,affectedAnatomyNodeIds.0,brain,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,affectedAnatomyNodeIds.1,sensory-gel,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,affectedAnatomyNodeIds.2,hypha-core,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,affectedAnatomyNodeIds.3,mana-core,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,m_Name,AgeCondition_age-organ-fibrosis,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,conditionId,condition:age-organ-fibrosis,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,displayName,장기 섬유화,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,constructCondition,0,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,affectedAnatomyNodeIds.0,liver,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,affectedAnatomyNodeIds.1,kidney:left,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,affectedAnatomyNodeIds.2,kidney:right,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,affectedAnatomyNodeIds.3,spore-sac,,,explicit-serialized
+AgeConditionDefinitionSO|condition:core-corrosion,condition:core-corrosion,m_Name,AgeCondition_core-corrosion,,,explicit-serialized
+AgeConditionDefinitionSO|condition:core-corrosion,condition:core-corrosion,conditionId,condition:core-corrosion,,,explicit-serialized
+AgeConditionDefinitionSO|condition:core-corrosion,condition:core-corrosion,displayName,핵 부식,,,explicit-serialized
+AgeConditionDefinitionSO|condition:core-corrosion,condition:core-corrosion,constructCondition,1,,,explicit-serialized
+AgeConditionDefinitionSO|condition:core-corrosion,condition:core-corrosion,affectedAnatomyNodeIds.0,power-core,,,explicit-serialized
+AgeConditionDefinitionSO|condition:frame-fatigue,condition:frame-fatigue,m_Name,AgeCondition_frame-fatigue,,,explicit-serialized
+AgeConditionDefinitionSO|condition:frame-fatigue,condition:frame-fatigue,conditionId,condition:frame-fatigue,,,explicit-serialized
+AgeConditionDefinitionSO|condition:frame-fatigue,condition:frame-fatigue,displayName,골격 피로,,,explicit-serialized
+AgeConditionDefinitionSO|condition:frame-fatigue,condition:frame-fatigue,constructCondition,1,,,explicit-serialized
+AgeConditionDefinitionSO|condition:frame-fatigue,condition:frame-fatigue,affectedAnatomyNodeIds.0,torso,,,explicit-serialized
+AgeConditionDefinitionSO|condition:frame-fatigue,condition:frame-fatigue,affectedAnatomyNodeIds.1,arm:left,,,explicit-serialized
+AgeConditionDefinitionSO|condition:frame-fatigue,condition:frame-fatigue,affectedAnatomyNodeIds.2,arm:right,,,explicit-serialized
+AgeConditionDefinitionSO|condition:frame-fatigue,condition:frame-fatigue,affectedAnatomyNodeIds.3,leg:left,,,explicit-serialized
+AgeConditionDefinitionSO|condition:frame-fatigue,condition:frame-fatigue,affectedAnatomyNodeIds.4,leg:right,,,explicit-serialized
+AgeConditionDefinitionSO|condition:rune-circuit-wear,condition:rune-circuit-wear,m_Name,AgeCondition_rune-circuit-wear,,,explicit-serialized
+AgeConditionDefinitionSO|condition:rune-circuit-wear,condition:rune-circuit-wear,conditionId,condition:rune-circuit-wear,,,explicit-serialized
+AgeConditionDefinitionSO|condition:rune-circuit-wear,condition:rune-circuit-wear,displayName,룬 회로 마모,,,explicit-serialized
+AgeConditionDefinitionSO|condition:rune-circuit-wear,condition:rune-circuit-wear,constructCondition,1,,,explicit-serialized
+AgeConditionDefinitionSO|condition:rune-circuit-wear,condition:rune-circuit-wear,affectedAnatomyNodeIds.0,sensor-core,,,explicit-serialized

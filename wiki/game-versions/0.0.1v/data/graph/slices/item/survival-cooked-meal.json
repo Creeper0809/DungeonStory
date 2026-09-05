@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "survival-cooked-meal",
+    "spoiler_tier": "none",
+    "title": "조리 식량"
+  },
+  "edges": [],
+  "schema_version": 1
+}

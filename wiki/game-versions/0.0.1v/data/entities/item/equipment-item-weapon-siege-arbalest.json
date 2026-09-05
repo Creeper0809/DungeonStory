@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1518"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "성벽과 대형 표적을 꿰뚫도록 굵은 시위와 받침을 쓴 공성 쇠뇌다. 특히 크릭 제7굴식 공성 쇠뇌는 좁은 갱도 벽에 걸리지 않도록 활몸 양끝을 짧게 깎는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-siege-arbalest",
+  "spoiler_tier": "none",
+  "summary": "공성 쇠뇌 전투 장비",
+  "title": "공성 쇠뇌"
+}

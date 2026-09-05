@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-twilight-grain-abundant",
+  "spoiler_tier": "none",
+  "summary": "곡물 수확량을 크게 높인 대신 녹병에 약하다.",
+  "title": "genome_twilight-grain_abundant"
+}

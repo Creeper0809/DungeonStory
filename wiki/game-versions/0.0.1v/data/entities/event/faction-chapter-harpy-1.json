@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-harpy-1",
+  "spoiler_tier": "warning",
+  "summary": "폭풍둥지 전령이 끊어진 공중 운반로의 밧줄을 요구한다.",
+  "title": "끊어진 전령줄"
+}

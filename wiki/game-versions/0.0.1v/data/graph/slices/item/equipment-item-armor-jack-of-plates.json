@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-armor-jack-of-plates",
+    "spoiler_tier": "none",
+    "title": "잭 오브 플레이트"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.06kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "활에 메겨 쏘는 기본 화살로, 발사한 뒤에는 회수할 수 없다. 아일라세라제 화살에는 횡풍 쪽으로 한 치 비껴 잡는 손자국이 닳아 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-arrow",
+  "spoiler_tier": "none",
+  "summary": "활에 사용하는 회수 불가능한 탄약.",
+  "title": "화살"
+}

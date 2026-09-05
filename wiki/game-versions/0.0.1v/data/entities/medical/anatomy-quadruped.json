@@ -1,0 +1,58 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-hare",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자토끼",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "rune-deer",
+      "target_spoiler_tier": "none",
+      "target_title": "룬사슴",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "moss-boar",
+      "target_spoiler_tier": "none",
+      "target_title": "이끼멧돼지",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "anatomy-quadruped",
+  "spoiler_tier": "none",
+  "summary": "종족 6종의 신체를 해부 노드 14개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+  "title": "사족 동물"
+}

@@ -48,7 +48,10 @@ public sealed class WildlifeNaturalCondition
             ? new Vector2Int(saveData.herdAnchorX, saveData.herdAnchorY)
             : territoryCenter;
         hasLastThreatPosition = saveData != null && saveData.hasLastThreat;
-        lastThreatPosition = hasLastThreatPosition
+        // The inactive coordinate is behaviorally dormant, but it is still part
+        // of the current-format physical world payload. Preserve it verbatim so
+        // capture -> restore -> capture is exact even after threat expiry.
+        lastThreatPosition = saveData != null
             ? new Vector2Int(saveData.lastThreatX, saveData.lastThreatY)
             : spawnPosition;
         lastThreatTime = hasLastThreatPosition ? now : 0f;

@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Commerce And Craft"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1713",
+      "target_spoiler_tier": "none",
+      "target_title": "분리 계산대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1703",
+      "target_spoiler_tier": "none",
+      "target_title": "순번판",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1712",
+      "target_spoiler_tier": "none",
+      "target_title": "주문 접수대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-service-flow",
+  "spoiler_tier": "none",
+  "summary": "간이 서비스를 접수·대기·이용·결제로 나누어 관리형으로 운영한다.",
+  "title": "서비스 동선"
+}

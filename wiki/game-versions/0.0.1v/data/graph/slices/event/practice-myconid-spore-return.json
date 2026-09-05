@@ -1,0 +1,54 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "practice-myconid-spore-return",
+    "spoiler_tier": "none",
+    "title": "포자 귀환"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/practice-myconid-spore-return",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-myconid-spore-return",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 귀환",
+      "to": "event/practice-myconid-spore-return",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "-4",
+      "from": "event/practice-myconid-spore-return",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-myconid-spore-return",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 귀환",
+      "to": "event/practice-myconid-spore-return",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": "-2",
+      "from": "event/practice-myconid-spore-return",
+      "label": "연결",
+      "to": "event/practice-myconid-spore-return",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "-4",
+      "from": "event/practice-myconid-spore-return",
+      "label": "연결",
+      "to": "event/practice-myconid-spore-return",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-myconid-grove",
+      "label": "관련",
+      "to": "event/practice-myconid-spore-return",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -447,23 +447,9 @@ public sealed class BuildingStructuralIntegrityRuntime :
                 "building-destructive-loss-runtime-missing");
         }
 
-        string operationId = "production-mutation:structural-loss:"
-            + building.PersistentInstanceId.Value;
-        if (!destructiveLoss.TryPrepare(
-                building,
-                operationId,
-                out BuildingDestructiveLossCandidate candidate,
-                out string prepareFailure))
-        {
-            return new BuildingStructuralDamageResult(
-                false,
-                false,
-                0f,
-                before,
-                prepareFailure);
-        }
-
-        BuildingDestructiveLossResult removal = destructiveLoss.TryCommit(candidate);
+        BuildingDestructiveLossResult removal = destructiveLoss.Apply(
+            building,
+            ProductionFacilityDestructiveDrainCause.StructuralIntegrity);
         if (!removal.Removed)
         {
             return new BuildingStructuralDamageResult(

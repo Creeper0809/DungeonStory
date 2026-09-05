@@ -198,7 +198,12 @@ internal static class V21FunctionalContentUiPlayModeScenario
         { failure = DomainFailure.None; return true; }
         public bool TryPlan(string actionId, string cropId, string facilityInstanceId, out DomainFailure failure)
         { failure = DomainFailure.None; return true; }
-        public int CompleteDeliveredPlans() => 0;
+        public int CompleteDeliveredPlans(int operatingDay)
+        {
+            if (operatingDay <= 0)
+                throw new ArgumentOutOfRangeException(nameof(operatingDay));
+            return 0;
+        }
         public bool TryAnalyze(CharacterId characterId, out IReadOnlyList<string> revealedLatentTraitIds, out DomainFailure failure)
         { revealedLatentTraitIds = Array.Empty<string>(); failure = DomainFailure.None; return true; }
     }

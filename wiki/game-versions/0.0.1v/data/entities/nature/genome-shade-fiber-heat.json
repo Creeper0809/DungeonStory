@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-shade-fiber-heat",
+  "spoiler_tier": "none",
+  "summary": "고온 작업장 인근에서도 줄기가 무너지지 않는다.",
+  "title": "genome_shade-fiber_heat"
+}

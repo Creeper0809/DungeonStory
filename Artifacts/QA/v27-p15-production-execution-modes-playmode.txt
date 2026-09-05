@@ -1,0 +1,11 @@
+# P15 production execution-mode live matrix
+authority=Manual/PoweredAssist:Brain -> AIWork -> AbilityWork -> WorkTaskExecutor; Automatic:AutomationRuntime -> ProductionBillWorkExecution
+contract/direct-handler evidence is never accepted as PASS
+RESULT=PASS; rows=5; passed=5; blocked=0; failed=0
+status	workType	target	detail
+PASS	p15:manual	P15	modeCommand=True; modeReady=True; multiplier=1; naturalPhasePass=True; billProgress=True; actualLaborPositive=True; automaticLaborZero=True
+PASS	p15:powered-assist	P15	modeCommand=True; modeReady=True; multiplier=1.35; naturalPhasePass=True; billProgress=True; actualLaborPositive=True; automaticLaborZero=True
+PASS	p15:allocated-worker-transition	P15	manual=True; occupancyOnly=True; transitionAttempted=True; typedRejection=True; naturalPhasePass=True
+PASS	p15:automatic	P15	modeCommand=True; modeReady=True; typedManualRejection=True; priorityAccepted=False; naturalTargetExcluded=True; noNaturalProgress=True; automaticProgress=True; actualLaborZero=True; automaticLaborPositive=True; noManualOwnership=True; restoreExact=True
+PASS	p15:utility-failure-atomic	P15	manual=True; tankFilled=True; overflowTyped=True; utilityRejected=True; handlerResolved=True; handlerRejected=True; delegatedWork=False; billUnchanged=True; physicalUnchanged=True; waterUnchanged=True; sludgeUnchanged=True
+INFO	info:console-warning-error-zero	-	0/0

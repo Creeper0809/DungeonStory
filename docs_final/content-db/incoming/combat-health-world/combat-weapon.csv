@@ -1,0 +1,2 @@
+﻿target_type,target_record_key,source_type,source_id,source_record_key,kind,target_id,amount,duration,field_path,semantic_label,target_category,resolution_status,target_record_keys,source_path
+CombatWeaponSO,CombatWeaponSO|equipment-item:weapon:longsword,SaleItem,sale-item:0,SaleItem|sale-item:0,references,equipment-item:weapon:longsword,,,itemDefinitionId,item Definition Id,content-reference,resolved-content,CombatWeaponSO|equipment-item:weapon:longsword; GenericItemDefinitionSO|equipment-item:weapon:longsword,Assets/Resources/SO/Stock/Item/도란검.asset

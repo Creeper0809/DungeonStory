@@ -1,0 +1,48 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "철제 가공"
+    },
+    {
+      "label": "제작 작업",
+      "value": "176"
+    },
+    {
+      "label": "무게",
+      "value": "6kg"
+    },
+    {
+      "label": "전면 방어 확률",
+      "value": "38%"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-iron",
+  "spoiler_tier": "none",
+  "summary": "철 방패 전투 장비",
+  "title": "철 방패"
+}

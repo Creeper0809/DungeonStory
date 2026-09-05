@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.6kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "벽, 바닥, 엄폐와 석재 장비에 쓰는 거친 돌이다. 특히 노르칸드라산 석재의 붉은 줄은 붕괴 위험 경고다. 좋은 광맥 표시로 읽으면 돌아오지 못한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-stone",
+  "spoiler_tier": "none",
+  "summary": "벽, 바닥, 엄폐와 석재 장비에 쓰는 거친 돌.",
+  "title": "석재"
+}

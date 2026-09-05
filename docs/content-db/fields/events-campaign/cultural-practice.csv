@@ -1,0 +1,521 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,m_Name,practice_adventurer-name-token,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,stableId,practice:adventurer-name-token,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,displayName,이름패 걸기,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,description,성년자는 첫 독립 임무 뒤 공동 지도에 이름패를 건다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,cultureId,culture:adventurer-frontier,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,kind,4,CulturalPracticeKind,Coming Of Age,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,requirements.items.0.itemDefinitionId,material:paper,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,successEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,successEffects.0.targetId,practice:adventurer-name-token,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,neglectedEffects.0.targetId,practice:adventurer-name-token,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-name-token,practice:adventurer-name-token,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,m_Name,practice_adventurer-return-table,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,stableId,practice:adventurer-return-table,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,displayName,귀환자의 식탁,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,description,원정 귀환자가 같은 배급식을 나누며 미귀환자를 보고한다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,cultureId,culture:adventurer-frontier,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,kind,0,CulturalPracticeKind,Daily Routine,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,requirements.items.0.itemDefinitionId,food:preserved-ration,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,successEffects.0.kind,5,CulturalPracticeKind,Partnership,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,successEffects.0.targetId,practice:adventurer-return-table,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,neglectedEffects.0.targetId,practice:adventurer-return-table,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:adventurer-return-table,practice:adventurer-return-table,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,m_Name,practice_beastkin-pack-meal,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,stableId,practice:beastkin-pack-meal,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,displayName,무리 한솥,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,description,가구와 가까운 동료가 큰 고기솥을 함께 비운다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,cultureId,culture:beastkin-pack,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,requirements.items.0.itemDefinitionId,resource:meat,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,successEffects.0.kind,5,CulturalPracticeKind,Partnership,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,successEffects.0.targetId,practice:beastkin-pack-meal,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,neglectedEffects.0.targetId,practice:beastkin-pack-meal,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-pack-meal,practice:beastkin-pack-meal,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,m_Name,practice_beastkin-scent-vigil,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,stableId,practice:beastkin-scent-vigil,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,displayName,향취 철야,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,description,사망자의 익숙한 향을 천에 남겨 무리가 차례로 작별한다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,cultureId,culture:beastkin-pack,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,kind,6,CulturalPracticeKind,Funeral,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.items.0.itemDefinitionId,textile:cloth,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,successEffects.0.kind,2,CulturalPracticeKind,Room,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,successEffects.0.targetId,practice:beastkin-scent-vigil,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,successEffects.0.amount,-4,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,neglectedEffects.0.targetId,practice:beastkin-scent-vigil,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,m_Name,practice_demon-oath-embers,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,stableId,practice:demon-oath-embers,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,displayName,맹세의 잿불,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,description,중요한 약속을 종이에 쓰고 한쪽 사본만 태운다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,cultureId,culture:demon-contract,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,kind,5,CulturalPracticeKind,Partnership,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,requirements.items.0.itemDefinitionId,material:paper,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,successEffects.0.kind,12,CulturalPracticeKind,알 수 없음 (12),explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,successEffects.0.targetId,practice:demon-oath-embers,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,neglectedEffects.0.targetId,practice:demon-oath-embers,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-oath-embers,practice:demon-oath-embers,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,m_Name,practice_demon-third-bell,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,stableId,practice:demon-third-bell,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,displayName,세 번째 종,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,description,교대 종료를 세 번 확인한 뒤에야 작업장을 떠난다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,cultureId,culture:demon-contract,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,kind,7,CulturalPracticeKind,Work Rest,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.items.0.itemDefinitionId,item:bell,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,successEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,successEffects.0.targetId,practice:demon-third-bell,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,neglectedEffects.0.targetId,practice:demon-third-bell,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,m_Name,practice_golem-core-polish,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,stableId,practice:golem-core-polish,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,displayName,핵 광택일,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,description,정기 정비 때 서로의 외장만 손질하고 핵은 본인이 점검한다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,cultureId,culture:golem-core,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,kind,0,CulturalPracticeKind,Daily Routine,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,requirements.items.0.itemDefinitionId,tool:maintenance-kit,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,successEffects.0.kind,4,CulturalPracticeKind,Coming Of Age,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,successEffects.0.targetId,practice:golem-core-polish,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,neglectedEffects.0.targetId,practice:golem-core-polish,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-core-polish,practice:golem-core-polish,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,m_Name,practice_golem-memory-plaque,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,stableId,practice:golem-memory-plaque,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,displayName,기억판 안치,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,description,정지된 골렘의 핵 기록을 금속판에 요약해 보관한다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,cultureId,culture:golem-core,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,kind,6,CulturalPracticeKind,Funeral,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,requirements.items.0.itemDefinitionId,material:iron-ingot,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,successEffects.0.kind,2,CulturalPracticeKind,Room,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,successEffects.0.targetId,practice:golem-memory-plaque,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,successEffects.0.amount,-4,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,neglectedEffects.0.targetId,practice:golem-memory-plaque,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:golem-memory-plaque,practice:golem-memory-plaque,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,m_Name,practice_harpy-dawn-chorus,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,stableId,practice:harpy-dawn-chorus,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,displayName,새벽 합창,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,description,밤 교대가 끝나는 시간에 높은 통로에서 하루의 소식을 노래한다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,cultureId,culture:harpy-aerie,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,kind,0,CulturalPracticeKind,Daily Routine,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.items.0.itemDefinitionId,food:dried-fruit,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,successEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,successEffects.0.targetId,practice:harpy-dawn-chorus,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,neglectedEffects.0.targetId,practice:harpy-dawn-chorus,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,m_Name,practice_harpy-first-flight,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,stableId,practice:harpy-first-flight,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,displayName,첫 비행의 깃,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,description,성년식에서 안전줄을 매고 가장 높은 내부 비행로를 완주한다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,cultureId,culture:harpy-aerie,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,kind,4,CulturalPracticeKind,Coming Of Age,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,requirements.items.0.itemDefinitionId,material:rope,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,successEffects.0.kind,3,CulturalPracticeKind,Social,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,successEffects.0.targetId,practice:harpy-first-flight,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,neglectedEffects.0.targetId,practice:harpy-first-flight,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-first-flight,practice:harpy-first-flight,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,m_Name,practice_kobold-bench-feast,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,stableId,practice:kobold-bench-feast,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,displayName,작업대 잔치,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,description,큰 공사가 끝나면 작업대를 닦고 작은 버섯 요리를 나눈다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,cultureId,culture:kobold-toolclan,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,kind,7,CulturalPracticeKind,Work Rest,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.items.0.itemDefinitionId,food:mushroom-stew,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,successEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,successEffects.0.targetId,practice:kobold-bench-feast,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,neglectedEffects.0.targetId,practice:kobold-bench-feast,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,m_Name,practice_kobold-tool-naming,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,stableId,practice:kobold-tool-naming,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,displayName,첫 도구 이름짓기,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,description,도제는 직접 수리한 첫 도구에 이름과 날짜를 새긴다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,cultureId,culture:kobold-toolclan,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,kind,4,CulturalPracticeKind,Coming Of Age,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,requirements.items.0.itemDefinitionId,material:iron-ingot,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,successEffects.0.kind,3,CulturalPracticeKind,Social,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,successEffects.0.targetId,practice:kobold-tool-naming,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,neglectedEffects.0.targetId,practice:kobold-tool-naming,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-tool-naming,practice:kobold-tool-naming,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,m_Name,practice_myconid-shared-mist,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,stableId,practice:myconid-shared-mist,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,displayName,공유 안개,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,description,휴식 시간에 깨끗한 물을 분무해 포자 리듬을 맞춘다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,cultureId,culture:myconid-grove,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,kind,0,CulturalPracticeKind,Daily Routine,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,requirements.items.0.itemDefinitionId,resource:clean-water,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,successEffects.0.kind,5,CulturalPracticeKind,Partnership,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,successEffects.0.targetId,practice:myconid-shared-mist,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,neglectedEffects.0.targetId,practice:myconid-shared-mist,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-shared-mist,practice:myconid-shared-mist,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,m_Name,practice_myconid-spore-return,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,stableId,practice:myconid-spore-return,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,displayName,포자 귀환,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,description,사망자의 배양 기록을 정원 토양에 되돌려 공동 기억으로 남긴다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,cultureId,culture:myconid-grove,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,kind,6,CulturalPracticeKind,Funeral,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.items.0.itemDefinitionId,resource:compost,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,successEffects.0.kind,2,CulturalPracticeKind,Room,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,successEffects.0.targetId,practice:myconid-spore-return,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,successEffects.0.amount,-4,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,neglectedEffects.0.targetId,practice:myconid-spore-return,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,m_Name,practice_orc-shared-cauldron,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,stableId,practice:orc-shared-cauldron,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,displayName,큰솥의 몫,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,description,가장 약한 구성원이 먼저 고기 스튜를 받은 뒤 나머지가 먹는다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,cultureId,culture:orc-vigil,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,requirements.items.0.itemDefinitionId,food:salted-meat-stew,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,successEffects.0.kind,5,CulturalPracticeKind,Partnership,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,successEffects.0.targetId,practice:orc-shared-cauldron,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,neglectedEffects.0.targetId,practice:orc-shared-cauldron,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-shared-cauldron,practice:orc-shared-cauldron,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,m_Name,practice_orc-weapon-vigil,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,stableId,practice:orc-weapon-vigil,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,displayName,무기 철야,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,description,동료의 무기를 밤새 손질하며 그의 용기와 실수를 함께 말한다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,cultureId,culture:orc-vigil,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,kind,6,CulturalPracticeKind,Funeral,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,requirements.items.0.itemDefinitionId,material:charcoal,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,successEffects.0.kind,2,CulturalPracticeKind,Room,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,successEffects.0.targetId,practice:orc-weapon-vigil,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,successEffects.0.amount,-4,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,neglectedEffects.0.targetId,practice:orc-weapon-vigil,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:orc-weapon-vigil,practice:orc-weapon-vigil,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,m_Name,practice_slime-clear-water,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,stableId,practice:slime-clear-water,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,displayName,맑은물 합류,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,description,서로 다른 가구의 슬라임이 깨끗한 수조 가장자리에서 기억을 나눈다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,cultureId,culture:slime-confluence,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,kind,3,CulturalPracticeKind,Social,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,requirements.items.0.itemDefinitionId,resource:clean-water,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,successEffects.0.kind,5,CulturalPracticeKind,Partnership,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,successEffects.0.targetId,practice:slime-clear-water,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,neglectedEffects.0.targetId,practice:slime-clear-water,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-clear-water,practice:slime-clear-water,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,m_Name,practice_slime-core-ring,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,stableId,practice:slime-core-ring,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,displayName,핵고리 성년식,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,description,성년이 된 슬라임의 핵 둘레에 손상 없는 보호 고리를 맞춘다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,cultureId,culture:slime-confluence,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,kind,4,CulturalPracticeKind,Coming Of Age,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,requirements.items.0.itemDefinitionId,component:mana-shield-plate,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,successEffects.0.kind,4,CulturalPracticeKind,Coming Of Age,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,successEffects.0.targetId,practice:slime-core-ring,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,neglectedEffects.0.targetId,practice:slime-core-ring,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:slime-core-ring,practice:slime-core-ring,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,m_Name,practice_vampire-consent-cup,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,stableId,practice:vampire-consent-cup,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,displayName,동의의 잔,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,description,혈액을 나누기 전 제공자와 수령자가 양과 목적을 함께 선언한다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,cultureId,culture:vampire-nightcourt,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.items.0.itemDefinitionId,food:blood-reserve,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,successEffects.0.kind,5,CulturalPracticeKind,Partnership,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,successEffects.0.targetId,practice:vampire-consent-cup,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,successEffects.0.amount,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,neglectedEffects.0.targetId,practice:vampire-consent-cup,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,neglectedEffects.0.durationDays,3,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,m_Name,practice_vampire-incense-memory,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,stableId,practice:vampire-incense-memory,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,displayName,혈향 촛불,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,description,사망자의 기억을 상징하는 향초를 3일간 개인실 앞에 밝힌다.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,authoringRevision,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,cultureId,culture:vampire-nightcourt,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,kind,6,CulturalPracticeKind,Funeral,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.items.0.itemDefinitionId,item:candle,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.items.0.amount,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.facilities,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.research,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.characters,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.factions,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.worldMetrics,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.requiredFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.excludedFlags,[],,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,successEffects.0.kind,2,CulturalPracticeKind,Room,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,successEffects.0.targetId,practice:vampire-incense-memory,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,successEffects.0.amount,-4,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,successEffects.0.durationDays,5,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,neglectedEffects.0.kind,1,CulturalPracticeKind,Food,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,neglectedEffects.0.targetId,practice:vampire-incense-memory,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,neglectedEffects.0.amount,-2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,neglectedEffects.0.durationDays,3,,,explicit-serialized

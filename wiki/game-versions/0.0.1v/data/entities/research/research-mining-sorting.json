@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Mining"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-stonecutting",
+      "target_spoiler_tier": "none",
+      "target_title": "석재 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-stonecutting",
+      "target_spoiler_tier": "none",
+      "target_title": "석재 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-stonecutting",
+      "target_spoiler_tier": "none",
+      "target_title": "석재 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1078",
+      "target_spoiler_tier": "none",
+      "target_title": "광석 선별대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-mining-sorting",
+  "spoiler_tier": "none",
+  "summary": "석탄, 철, 금과 마나 결정을 분리한다.",
+  "title": "광석 선별"
+}

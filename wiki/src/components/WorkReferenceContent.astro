@@ -1,0 +1,52 @@
+---
+import { entityHref, getGuide, guideHref, workTaskHref, type Guide, type WorkReference } from '../lib/wiki-data';
+
+interface Props {
+  reference: WorkReference;
+  version: string;
+  historical?: boolean;
+}
+
+const { reference, version, historical = false } = Astro.props;
+const archiveVersion = historical ? version : undefined;
+const directoryHref = historical ? `/game-versions/${version}/` : '/directory/';
+const residentsHref = historical ? `/game-versions/${version}/guide/residents-and-work/` : '/guide/residents-and-work/';
+const relatedGuides = reference.related_guides
+  .map((id) => getGuide(version, id))
+  .filter((guide): guide is Guide => Boolean(guide));
+---
+
+<article class="work-reference-page" data-pagefind-body={historical ? undefined : 'true'}>
+  <nav class="breadcrumbs" aria-label="현재 위치"><a href={directoryHref}>둘러보기</a><span>/</span><a href={residentsHref}>주민과 노동</a><span>/</span><span aria-current="page">{reference.title}</span></nav>
+  <header class="page-header">
+    <p class="eyebrow">업무 분류</p>
+    <h1>{reference.title}</h1>
+    <p>{reference.summary}</p>
+  </header>
+
+  <div class="work-reference-layout">
+    <div class="work-reference-main">
+      <section aria-labelledby="work-list-title">
+        <h2 id="work-list-title">세부 업무</h2>
+        <div class="work-task-index">
+          {reference.tasks.map((task) => <a href={workTaskHref(reference.id, task.id, archiveVersion)}><strong>{task.title}</strong><span>세부 문서 보기</span></a>)}
+        </div>
+      </section>
+    </div>
+
+    <aside class="work-reference-rail">
+      <section class="fact-box">
+        <h2>업무 정보</h2>
+        <dl>
+          <div><dt>세부 업무</dt><dd>{reference.tasks.length}개</dd></div>
+          {reference.proficiency && <div><dt>관련 스킬</dt><dd><a href={entityHref(reference.proficiency, archiveVersion)}>{reference.proficiency.title}</a></dd></div>}
+          {!reference.proficiency && <div><dt>관련 스킬</dt><dd>상태·우선순위·현장 조건</dd></div>}
+        </dl>
+      </section>
+      <section class="version-card">
+        <h2>같이 볼 문서</h2>
+        <p>{relatedGuides.map((guide, index) => <>{index > 0 && ' · '}<a href={guideHref(guide.id, archiveVersion)}>{guide.title}</a></>)}</p>
+      </section>
+    </aside>
+  </div>
+</article>

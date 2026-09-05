@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Life And Survival"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1617",
+      "target_spoiler_tier": "none",
+      "target_title": "연기 포집 후드",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1613",
+      "target_spoiler_tier": "none",
+      "target_title": "염장·절임조",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1088",
+      "target_spoiler_tier": "none",
+      "target_title": "훈연대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-survival-preservation",
+  "spoiler_tier": "none",
+  "summary": "식량 부패를 늦추고 보존 조리법을 정리한다.",
+  "title": "식량 보존"
+}

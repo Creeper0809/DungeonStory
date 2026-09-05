@@ -54,9 +54,17 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=FiberProcessingWaste|reason=paper-pulp-screening-and-trim-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:lumber
-    amount: 1
+    amount: 3
   - itemId: resource:clean-water
     amount: 1
   outputs:

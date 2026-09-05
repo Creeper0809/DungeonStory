@@ -1,0 +1,8 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+DungeonFactionDefinitionSO,content-type,,type-reference,services:factions,runtime,structural-type-consumer,Assets/Scripts/Services/Factions/FactionApplicationDependencies.cs
+DungeonFactionDefinitionSO,stable-id,faction:dungeon:beastkin,stable-id-literal,models:factions,runtime,exact-literal-consumer,Assets/Scripts/Models/Factions/Core/FactionModels.cs
+DungeonFactionDefinitionSO,stable-id,faction:dungeon:demon,stable-id-literal,models:factions,runtime,exact-literal-consumer,Assets/Scripts/Models/Factions/Core/FactionModels.cs
+DungeonFactionDefinitionSO,stable-id,faction:dungeon:golem,stable-id-literal,models:factions,runtime,exact-literal-consumer,Assets/Scripts/Models/Factions/Core/FactionModels.cs
+DungeonFactionDefinitionSO,stable-id,faction:dungeon:harpy,stable-id-literal,models:factions,runtime,exact-literal-consumer,Assets/Scripts/Models/Factions/Core/FactionModels.cs
+DungeonFactionDefinitionSO,stable-id,faction:dungeon:kobold,stable-id-literal,models:factions,runtime,exact-literal-consumer,Assets/Scripts/Models/Factions/Core/FactionModels.cs
+DungeonFactionDefinitionSO,stable-id,faction:dungeon:myconid,stable-id-literal,models:factions,runtime,exact-literal-consumer,Assets/Scripts/Models/Factions/Core/FactionModels.cs

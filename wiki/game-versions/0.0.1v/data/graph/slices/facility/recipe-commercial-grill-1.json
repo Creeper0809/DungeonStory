@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "recipe-commercial-grill-1",
+    "spoiler_tier": "none",
+    "title": "고기그릴 개량"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-commercial-grill-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1000",
+      "target_spoiler_tier": "none",
+      "target_title": "간이화덕",
+      "to": "facility/building-1000",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-commercial-grill-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1001",
+      "target_spoiler_tier": "none",
+      "target_title": "고기그릴",
+      "to": "facility/building-1001",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-commercial-grill-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1002",
+      "target_spoiler_tier": "none",
+      "target_title": "조리손질대",
+      "to": "facility/building-1002",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

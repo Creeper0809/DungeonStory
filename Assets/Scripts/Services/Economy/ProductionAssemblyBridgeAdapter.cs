@@ -1,36 +1,118 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
-internal static class ProductionFacilityDefinitionIdentity
+public static class ProductionFacilityDefinitionIdentity
 {
-    internal static string Resolve(BuildingSO definition)
+    public static bool IsProductionWorkstation(BuildableObject candidate)
     {
-        if (definition == null)
+        if (candidate == null)
         {
-            throw new InvalidOperationException(
-                "Production facility has no building definition authority.");
+            return false;
         }
 
-        string authored = definition.AuthoredContentDefinitionId;
-        if (authored.Length > 0)
+        BuildingSO definition = candidate.BuildingData;
+        if (definition == null)
         {
-            if (string.IsNullOrWhiteSpace(authored)
-                || !string.Equals(authored, authored.Trim(), StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "Production facility definition ID is noncanonical.");
-            }
-            return authored;
+            return false;
         }
-        if (definition.id < 0)
+
+        BuildingProductionWorkstationAbility authored =
+            definition.GetAbility<BuildingProductionWorkstationAbility>();
+        if (authored == null)
+        {
+            return false;
+        }
+
+        string authoredTag = authored.workstationTag ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(authoredTag)
+            || !string.Equals(
+                authoredTag,
+                authoredTag.Trim(),
+                StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                "Production facility has neither a definition ID nor numeric authority.");
+                "Production workstation has a missing or noncanonical workstation tag.");
         }
-        return "building:" + definition.id.ToString(CultureInfo.InvariantCulture);
+
+        return true;
+    }
+
+    public static string Resolve(BuildingSO definition)
+    {
+        try
+        {
+            return BuildingDefinitionIdentity.Resolve(definition);
+        }
+        catch (ArgumentNullException exception)
+        {
+            throw new InvalidOperationException(
+                "Production facility has no building definition authority.",
+                exception);
+        }
+    }
+}
+
+/// <summary>
+/// Projects a live building into the immutable production facility handle.
+/// This query deliberately has no dependency on the production aggregate or
+/// output-capability registry so output handlers can validate a destination
+/// without recursively constructing their own registry.
+/// </summary>
+public sealed class ProductionFacilityHandleQueryAdapter :
+    IProductionFacilityHandleQuery
+{
+    public ProductionFacilityHandle CaptureFacility(object runtimeObject) =>
+        ProductionFacilityHandleProjection.Capture(runtimeObject);
+}
+
+internal static class ProductionFacilityHandleProjection
+{
+    public static ProductionFacilityHandle Capture(object runtimeObject)
+    {
+        if (runtimeObject == null)
+        {
+            return null;
+        }
+        BuildableObject facility = runtimeObject as BuildableObject
+            ?? throw new ArgumentException(
+                "Production facility handle must wrap BuildableObject.",
+                nameof(runtimeObject));
+        string sensorItemId = facility.BuildingData
+            ?.GetProductionWorkstationAbility()
+            ?.StockSensorInstallationItemId
+            ?? string.Empty;
+        BuildingProductionBufferAbility bufferAbility = facility.BuildingData
+            ?.GetProductionBufferAbility();
+        BuildingProductionWorkstationAbility workstation =
+            facility.BuildingData?.GetProductionWorkstationAbility();
+        if (workstation != null && bufferAbility == null)
+        {
+            throw new InvalidOperationException(
+                "Production workstation is missing authored output-buffer capacity: "
+                + ProductionFacilityDefinitionIdentity.Resolve(
+                    facility.BuildingData));
+        }
+        return new ProductionFacilityHandle(
+            facility,
+            facility.PersistentInstanceId,
+            facility.centerPos,
+            facility.IsGridDestroyed,
+            sensorItemId,
+            bufferAbility?.allowOverflowDump == true,
+            bufferAbility?.overflowOffset ?? default,
+            ProductionFacilityDefinitionIdentity.Resolve(facility.BuildingData),
+            workstation?.WorkstationTag ?? string.Empty,
+            bufferAbility?.physicalOutputBufferCycleCapacity ?? 4,
+            facility.BuildingData == null
+                ? ProductionFacilityProcessFluidCapacityProfile.Empty
+                : ProductionFacilityCapacitySubjectAdapter
+                    .CaptureProcessFluidProfile(facility.BuildingData),
+            workstation == null
+                ? ProductionFacilityWorkstationLaneCapacityProfile.Empty
+                : ProductionFacilityCapacitySubjectAdapter
+                    .CaptureWorkstationLaneProfile(facility.BuildingData));
     }
 }
 
@@ -49,10 +131,11 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
     private readonly IBuildingWorldQuery buildings;
     private readonly IWarehouseWorldQuery warehouses;
     private readonly IWorkforceReplanService workforce;
-    private readonly IReadOnlyList<IProductionOutputHandler> outputHandlers;
+    private readonly ProductionOutputHandlerRegistry outputHandlers;
     private readonly IWorkerNarrativeQualificationQuery narrativeQualification;
-    private readonly ICharacterPerformanceQuery performance;
+    private readonly Func<ICharacterPerformanceQuery> performance;
 
+    [VContainer.Inject]
     public ProductionAssemblyBridgeAdapter(
         IProductionItemGateway items,
         IProductionOutputBufferGateway outputBuffer,
@@ -63,9 +146,9 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         IBuildingWorldQuery buildings,
         IWarehouseWorldQuery warehouses,
         IWorkforceReplanService workforce,
-        IReadOnlyList<IProductionOutputHandler> outputHandlers,
-        IWorkerNarrativeQualificationQuery narrativeQualification = null,
-        ICharacterPerformanceQuery performance = null)
+        ProductionOutputHandlerRegistry outputHandlers,
+        IWorkerNarrativeQualificationQuery narrativeQualification,
+        Func<ICharacterPerformanceQuery> performance)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.outputBuffer = outputBuffer
@@ -93,42 +176,17 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
 
     public int BuildingVersion => buildings.BuildingVersion;
 
+    public IReadOnlyList<ProductionOutputCapabilityContractSnapshot>
+        OutputCapabilityContracts => outputHandlers.CapabilityContracts;
+
     public IReadOnlyList<ProductionFacilityHandle> Facilities =>
         (buildings.Buildings ?? Array.Empty<BuildableObject>())
-        .Where(candidate => candidate != null)
+        .Where(ProductionFacilityDefinitionIdentity.IsProductionWorkstation)
         .Select(CaptureFacility)
         .ToArray();
 
     public ProductionFacilityHandle CaptureFacility(object runtimeObject)
-    {
-        if (runtimeObject == null)
-        {
-            return null;
-        }
-        BuildableObject facility = runtimeObject as BuildableObject
-            ?? throw new ArgumentException(
-                "Production facility handle must wrap BuildableObject.",
-                nameof(runtimeObject));
-        string sensorItemId = facility.BuildingData
-            ?.GetProductionWorkstationAbility()
-            ?.StockSensorInstallationItemId
-            ?? string.Empty;
-        BuildingProductionBufferAbility bufferAbility = facility.BuildingData
-            ?.GetProductionBufferAbility();
-        BuildingProductionWorkstationAbility workstation =
-            facility.BuildingData?.GetProductionWorkstationAbility();
-        return new ProductionFacilityHandle(
-            facility,
-            facility.PersistentInstanceId,
-            facility.centerPos,
-            facility.IsGridDestroyed,
-            sensorItemId,
-            bufferAbility?.allowOverflowDump == true,
-            bufferAbility?.overflowOffset ?? default,
-            ProductionFacilityDefinitionIdentity.Resolve(facility.BuildingData),
-            workstation?.WorkstationTag ?? string.Empty,
-            bufferAbility?.physicalOutputBufferCycleCapacity ?? 4);
-    }
+        => ProductionFacilityHandleProjection.Capture(runtimeObject);
 
     public ProductionWorkerHandle CaptureWorker(object runtimeObject)
     {
@@ -150,6 +208,12 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         WorkerSelectionPolicySaveData policy,
         out string failureReason)
     {
+        if (worker?.AuthorityKind is ProductionWorkerAuthorityKind
+                .AutomaticExecutor or ProductionWorkerAuthorityKind.PassiveProcessor)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
         return WorkerSelectionPolicyRules.IsEligible(
             policy,
             worker?.RuntimeObject as CharacterActor,
@@ -166,14 +230,15 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         {
             return 0f;
         }
-        if (performance == null)
+        ICharacterPerformanceQuery performanceQuery = performance();
+        if (performanceQuery == null)
             throw new InvalidOperationException(
                 "Production craft quality requires the authoritative character performance query.");
         ProficiencyWorkProfileAuthoring profile = recipe?.Proficiency;
         if (profile == null || !profile.IsValid)
             throw new InvalidOperationException(
                 $"Production recipe '{recipe?.RecipeId}' has no authored proficiency profile.");
-        CharacterPerformanceSnapshot result = performance.Evaluate(
+        CharacterPerformanceSnapshot result = performanceQuery.Evaluate(
             actor,
             "performance:work:craft:quality",
             new CharacterPerformanceEvaluationContext
@@ -463,7 +528,13 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         BuildingProductionBufferAbility ability = Unwrap(facility)
             ?.BuildingData
             ?.GetProductionBufferAbility();
-        int capacity = ability?.physicalOutputBufferCycleCapacity ?? 4;
+        if (ability == null)
+        {
+            throw new InvalidOperationException(
+                "Production facility is missing authored output-buffer capacity: "
+                + (facility?.DefinitionId ?? "<missing>"));
+        }
+        int capacity = ability.physicalOutputBufferCycleCapacity;
         if (capacity < 2 || capacity > 4)
         {
             throw new InvalidOperationException(
@@ -520,12 +591,26 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         return result;
     }
 
+    public ProductionOutputCapabilityDescriptor CaptureOutputCapability(
+        string outputLineId,
+        string itemId) => outputHandlers.CaptureDescriptor(
+        outputLineId,
+        itemId);
+
+    public bool TryValidateOutputCapability(
+        ProductionOutputCapabilityDescriptor capability,
+        out DomainFailure failure) => outputHandlers.TryValidateExact(
+        capability,
+        out _,
+        out failure);
+
     public bool TryHandleOutput(
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility,
         ProductionWorkerHandle worker,
-        string itemId,
+        ProductionOutputCapabilityDescriptor capability,
         int amount,
+        string outputDestinationId,
         float qualityModifier,
         float workerQuality,
         string commitId,
@@ -534,20 +619,21 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
     {
         handled = false;
         failure = DomainFailure.None;
-        IProductionOutputHandler handler = outputHandlers.FirstOrDefault(
-            candidate => candidate != null && candidate.CanHandle(itemId));
-        if (handler == null)
-        {
-            return true;
-        }
+        if (!outputHandlers.TryResolveExact(
+                capability,
+                out IProductionOutputHandler handler,
+                out failure))
+            return false;
 
         handled = true;
         ProductionOutputContext context = new(
             recipe,
             Unwrap(facility),
             Unwrap(worker),
-            itemId,
+            capability.OutputLineId,
+            capability.ItemId,
             amount,
+            outputDestinationId,
             qualityModifier,
             workerQuality,
             commitId);
@@ -555,7 +641,7 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         {
             failure = new DomainFailure(
                 FailureCode.ProductionOutputUnavailable,
-                itemId,
+                capability.ItemId,
                 "handler-not-idempotent");
             return false;
         }
@@ -567,62 +653,75 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         {
             failure = new DomainFailure(
                 FailureCode.ProductionOutputUnavailable,
-                itemId);
+                capability.ItemId);
         }
         return false;
     }
 
     public bool AcknowledgeHandledOutput(
-        string itemId,
+        ProductionOutputCapabilityDescriptor capability,
         string commitId,
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
-        IProductionOutputHandler handler = outputHandlers.FirstOrDefault(
-            candidate => candidate != null && candidate.CanHandle(itemId));
-        if (handler == null)
-        {
-            return outputBuffer.AcknowledgeBufferedOutput(
-                commitId,
-                out failure);
-        }
+        if (!outputHandlers.TryResolveExact(
+                capability,
+                out IProductionOutputHandler handler,
+                out failure))
+            return false;
         if (handler is not IIdempotentProductionOutputHandler idempotent)
         {
             failure = new DomainFailure(
                 FailureCode.ProductionOutputUnavailable,
-                itemId,
+                capability.ItemId,
                 "handler-not-idempotent");
             return false;
         }
         return idempotent.TryAcknowledge(commitId, out failure);
     }
 
-    public bool TryGetCommittedOutputMassGrams(
-        string itemId,
+    public bool TryCaptureCommittedOutput(
+        ProductionRecipeSO recipe,
+        ProductionFacilityHandle facility,
+        ProductionWorkerHandle worker,
+        ProductionOutputCapabilityDescriptor capability,
+        int amount,
+        string outputDestinationId,
+        float qualityModifier,
+        float workerQuality,
         string commitId,
-        out long massGrams,
+        out ProductionCommittedOutputSnapshot snapshot,
         out DomainFailure failure)
     {
-        IProductionOutputHandler handler = outputHandlers.FirstOrDefault(
-            candidate => candidate != null && candidate.CanHandle(itemId));
-        if (handler == null)
+        snapshot = null;
+        if (!outputHandlers.TryResolveExact(
+                capability,
+                out IProductionOutputHandler handler,
+                out failure))
         {
-            return outputBuffer.TryGetBufferedOutputCommitMassGrams(
-                commitId,
-                out massGrams,
-                out failure);
+            return false;
         }
         if (handler is IIdempotentProductionOutputHandler idempotent)
         {
-            return idempotent.TryGetCommittedMassGrams(
-                commitId,
-                out massGrams,
+            ProductionOutputContext context = new(
+                recipe,
+                Unwrap(facility),
+                Unwrap(worker),
+                capability.OutputLineId,
+                capability.ItemId,
+                amount,
+                outputDestinationId,
+                qualityModifier,
+                workerQuality,
+                commitId);
+            return idempotent.TryCaptureCommittedOutput(
+                context,
+                out snapshot,
                 out failure);
         }
-        massGrams = 0L;
         failure = new DomainFailure(
             FailureCode.ProductionOutputUnavailable,
-            itemId,
+            capability.ItemId,
             "handler-not-idempotent");
         return false;
     }
@@ -640,16 +739,14 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
             requiredFeatureTags,
             out failureReason);
 
-    public bool HasCompatibleWarehouse(string itemId, StockCategory category) =>
-        !string.IsNullOrWhiteSpace(itemId)
-        && string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal)
-        &&
-        (warehouses.Warehouses ?? Array.Empty<IWarehouseFacility>())
-        .Any(warehouse => warehouse != null
-            && warehouse.HasWarehouseInventory
-            && warehouse.Inventory != null
-            && warehouse.Inventory.Accepts(category)
-            && warehouse.Inventory.CanStoreItem(itemId, 1));
+    public bool HasCompatibleWarehouse(string itemId) =>
+        items.TryGetStockCategory(itemId, out StockCategory category)
+        && (warehouses.Warehouses ?? Array.Empty<IWarehouseFacility>())
+            .Any(warehouse => warehouse != null
+                && warehouse.HasWarehouseInventory
+                && warehouse.Inventory != null
+                && warehouse.Inventory.Accepts(category)
+                && warehouse.Inventory.CanStoreItem(itemId, 1));
 
     public void RequestWorkReplan(WorkTypeId workTypeId) =>
         workforce.RequestOneWorkerToReplanFor(workTypeId);

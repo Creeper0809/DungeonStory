@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-ammo-paper-cartridge",
+    "spoiler_tier": "none",
+    "title": "종이 탄약통"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-paper-cartridge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-black-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "흑색화약",
+      "to": "item/material-black-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-paper-cartridge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "12",
+      "from": "recipe/recipe-ammo-paper-cartridge",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-paper-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "종이 탄약통",
+      "to": "item/ammo-paper-cartridge",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-paper-cartridge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lead-shot",
+      "target_spoiler_tier": "none",
+      "target_title": "납탄",
+      "to": "item/material-lead-shot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-paper-cartridge",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-standard-ammunition",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약 규격화",
+      "to": "research/research-equipment-standard-ammunition",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

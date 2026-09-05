@@ -1,0 +1,28 @@
+---
+import { entityHref, type WikiEntity } from '../lib/wiki-data';
+
+interface Props {
+  title: string;
+  description: string;
+  entries: WikiEntity[];
+  version?: string;
+  historical?: boolean;
+}
+
+const { title, description, entries, version, historical = false } = Astro.props;
+const kinds = Array.from(new Set(entries.map((entry) => entry.kind))).sort();
+const itemCatalogue = entries.length > 0 && entries.every((entry) => entry.kind === 'item');
+---
+
+<article class="catalogue" data-catalogue data-pagefind-body={historical ? undefined : 'true'}>
+  <nav class="breadcrumbs" aria-label="현재 위치"><a href="/directory/">둘러보기</a><span>/</span><span aria-current="page">{title}</span></nav>
+  <header class="page-header"><p class="eyebrow">도감</p><h1>{title}</h1><p>{description}</p></header>
+  <div class="catalogue-controls" aria-label="도감 필터">
+    <label>이름 <input type="search" placeholder="항목 검색" data-catalogue-search /></label>
+    <label>유형 <select data-catalogue-kind><option value="all">모든 유형</option>{kinds.map((kind) => <option value={kind}>{kind}</option>)}</select></label>
+    <output data-catalogue-count>{entries.length}개 표시</output>
+  </div>
+  <div class="table-wrap"><table><caption class="sr-only">{title} 목록</caption><thead><tr><th scope="col">이름</th><th scope="col">유형</th><th scope="col">{itemCatalogue ? '게임 내 설명' : '요약'}</th></tr></thead><tbody>
+    {entries.map((entity) => <tr data-catalogue-row data-kind={entity.kind} data-title={entity.title}><td><a href={entityHref(entity, version)}>{entity.title}</a></td><td>{entity.kind}</td><td>{entity.in_game_description ?? entity.summary}</td></tr>)}
+  </tbody></table></div>
+</article>

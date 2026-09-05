@@ -1,0 +1,44 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "44"
+    },
+    {
+      "label": "필요 연구",
+      "value": "보철 공학"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "procedure-prosthetic-installation",
+  "spoiler_tier": "none",
+  "summary": "결손 부위에 제작된 보철을 결합한다.",
+  "title": "보철 설치"
+}

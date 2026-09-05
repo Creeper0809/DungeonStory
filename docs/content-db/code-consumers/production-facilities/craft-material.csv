@@ -1,0 +1,47 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+CraftMaterialDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/CombatWeaponSO.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/EmptyResourceEconomyContentCatalog.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ResourceEconomyModels.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalSupplyDestinationRuntimeDebugScenarios.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalSupplyOutboxDebugScenarios.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentCraftingRuntime.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentLoadoutRuntime.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,persistence,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentRestoreBuilder.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentRuntime.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentRuntimeContracts.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentStatProjector.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatRejectedRecoveryProjection.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/EquipmentEvolutionRuntime.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,services:combat,persistence,structural-type-consumer,Assets/Scripts/Services/Combat/EquipmentMaintenanceSaveValidation.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CombatCraftSpecialThroughputContributor.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionConsumerDemandAdapters.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V23EmbeddedWorkValueCalculator.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V27EmbeddedWorkValueCalculator.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidatorDebugScenarios.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs
+CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/EquipmentCraftingPanelPresenter.cs
+CraftMaterialDefinitionSO,stable-id,material:blacksteel-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+CraftMaterialDefinitionSO,stable-id,material:cloth,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+CraftMaterialDefinitionSO,stable-id,material:cloth,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+CraftMaterialDefinitionSO,stable-id,material:gold-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+CraftMaterialDefinitionSO,stable-id,material:iron-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+CraftMaterialDefinitionSO,stable-id,material:iron-ingot,stable-id-literal,services:combat,content-loading,exact-literal-consumer,Assets/Scripts/Services/Combat/CombatCraftDefinitionCatalog.cs
+CraftMaterialDefinitionSO,stable-id,material:iron-ingot,stable-id-literal,services:defense,runtime,exact-literal-consumer,Assets/Scripts/Services/Defense/DefenseFacilityPhysicalTransactionOutbox.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,services:combat,content-loading,exact-literal-consumer,Assets/Scripts/Services/Combat/CombatCraftDefinitionCatalog.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Exterior/ExteriorIncidentHandlers.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureStressProbe.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/ExactWarehouseHaulAdmissionJoinDebugScenarios.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputBufferAggregationGuardDebugScenarios.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputCustodyCarryBoundaryDebugScenarios.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputCustodyMutationGuardDebugScenarios.cs
+CraftMaterialDefinitionSO,stable-id,material:lumber,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputHaulPlannerGateDebugScenarios.cs
+CraftMaterialDefinitionSO,stable-id,material:steel-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+CraftMaterialDefinitionSO,stable-id,material:stone-block,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+CraftMaterialDefinitionSO,stable-id,resource:wool,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/Diagnostics/PreparedOutputCustodyMutationGuardDebugScenarios.cs
+CraftMaterialDefinitionSO,stable-id,resource:wool,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/TextileBatchCompactionService.cs
+CraftMaterialDefinitionSO,stable-id,resource:wool,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs

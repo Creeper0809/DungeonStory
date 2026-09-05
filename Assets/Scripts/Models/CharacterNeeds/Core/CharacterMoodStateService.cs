@@ -116,12 +116,11 @@ public sealed class CharacterMoodStateService
                 continue;
             }
 
-            restored.Add(new CharacterMoodMemory(
+            restored.Add(CharacterMoodMemory.RestoreExact(
                 factor.Id,
                 factor.Label,
                 factor.Value,
                 factor.RemainingSeconds,
-                1,
                 now));
         }
 

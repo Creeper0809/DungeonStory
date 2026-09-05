@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8862",
+    "spoiler_tier": "none",
+    "title": "계보 관리실"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-society-generation-management",
+      "label": "시설 해금",
+      "to": "facility/building-8862",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

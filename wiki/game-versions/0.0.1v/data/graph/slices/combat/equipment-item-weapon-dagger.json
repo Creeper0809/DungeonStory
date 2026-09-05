@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-weapon-dagger",
+    "spoiler_tier": "none",
+    "title": "단검"
+  },
+  "edges": [],
+  "schema_version": 1
+}

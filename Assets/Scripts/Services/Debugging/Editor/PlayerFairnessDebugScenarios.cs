@@ -122,7 +122,7 @@ public static class PlayerFairnessDebugScenarios
             "external.influence version is not V4");
         Require(DungeonWildlifeSaveData.CurrentVersion == 5,
             "wildlife.population version is not V5");
-        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 9,
+        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 10,
             "environment.exposure version lacks apparel physical transaction authority");
 
         DungeonExternalInfluenceSaveData external = new()

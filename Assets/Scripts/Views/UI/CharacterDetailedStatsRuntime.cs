@@ -216,21 +216,15 @@ public sealed class CharacterDetailedStatsRuntime : ICharacterDetailedStatsRunti
         {
             return string.Empty;
         }
-        long grace = value.Rank == CharacterProficiencyRank.Master
-            ? 5L * GameCalendarRules.HoursPerDay
-            : 15L * GameCalendarRules.HoursPerDay;
+        long grace = ProficiencyProgressionRules.ResolveDecayGraceHours(
+            value.Rank);
         long start = value.LastPracticeAbsoluteHour + grace;
         if (absoluteHour < start)
         {
             return $"쇠퇴 시작까지 {(start - absoluteHour) / 24f:0.#}일";
         }
-        long floor = value.Rank == CharacterProficiencyRank.Master
-            ? ProficiencyProgressionRules.ExpertThreshold
-            : ProficiencyProgressionRules.TechnicianThreshold;
-        long rate = value.Rank == CharacterProficiencyRank.Master ? 100L : 250L;
-        long hours = Math.Max(
-            0L,
-            (value.CurrentMilliExperience - floor + rate - 1L) / rate);
+        long hours = ProficiencyProgressionRules.CalculateHoursUntilDemotion(
+            value.CurrentMilliExperience);
         return $"강등 예상 {hours / 24f:0.#}일";
     }
 

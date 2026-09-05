@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-mushroom-soup",
+    "spoiler_tier": "none",
+    "title": "동굴버섯국"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-mushroom-soup",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-mushroom-soup",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯국",
+      "to": "item/food-mushroom-soup",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-mushroom-soup",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-mushroom-soup",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "to": "research/research-cuisine-crops",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

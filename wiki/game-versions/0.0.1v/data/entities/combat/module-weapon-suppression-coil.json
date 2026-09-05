@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "combat",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "module-weapon-suppression-coil",
+  "spoiler_tier": "none",
+  "summary": "원정에서 회수하는 제압 코일 개량 부품",
+  "title": "제압 코일"
+}

@@ -54,11 +54,19 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=ExtractionResidue|reason=greenhouse-nutrient-mixing-and-settling-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: supply:nitrate-fertilizer
-    amount: 1
+    amount: 3
   - itemId: resource:clean-water
-    amount: 2
+    amount: 3
   outputs:
   - outputLineId: output:recipe:supply:greenhouse-nutrient/000/main/supply:greenhouse-nutrient
     role: 0

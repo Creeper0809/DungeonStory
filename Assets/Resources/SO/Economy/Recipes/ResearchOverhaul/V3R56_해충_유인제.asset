@@ -54,9 +54,17 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=ExtractionResidue|reason=pest-lure-resin-rendering-and-packaging-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: resource:dark-resin
-    amount: 1
+    amount: 4
   - itemId: resource:meat
     amount: 1
   - itemId: material:paper

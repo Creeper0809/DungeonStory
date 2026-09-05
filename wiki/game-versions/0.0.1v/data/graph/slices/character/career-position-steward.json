@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "career-position-steward",
+    "spoiler_tier": "none",
+    "title": "관리인"
+  },
+  "edges": [],
+  "schema_version": 1
+}

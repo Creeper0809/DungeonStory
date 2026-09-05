@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "120"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "수술로 적출한 감각 젤이다. 기증자 정보와 신선도가 남아 있어 이식 전까지 보존해야 한다. 하르나크의 맑은물 합류 치료사는 적출 감각 젤을 맑은 물에 한 방울 풀어 색이 핵 쪽으로 번지는지 먼저 본다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-organ-sensory-gel",
+  "spoiler_tier": "none",
+  "summary": "기증자와 신선도가 보존되는 고유 수술 장기",
+  "title": "적출 감각 젤"
+}

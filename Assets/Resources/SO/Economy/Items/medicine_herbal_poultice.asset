@@ -51,7 +51,7 @@ MonoBehaviour:
     - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5782857
+        saleRate: 0.580119
     - rid: 1003
       type: {class: MedicineItemFeature, ns: , asm: DungeonStory.Economy}
       data:

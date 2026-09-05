@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "특수"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1710",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 서비스 보조이다. 건설에는 작업량 60, 재료 목재×6, 철괴×1이 필요하다.",
+  "title": "목욕 위생대"
+}

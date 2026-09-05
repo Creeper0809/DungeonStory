@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-civilian-corridor",
+    "spoiler_tier": "none",
+    "title": "피난 통로"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-05",
+      "label": "관련",
+      "to": "world/battlefield-civilian-corridor",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-17",
+      "label": "관련",
+      "to": "world/battlefield-civilian-corridor",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-29",
+      "label": "관련",
+      "to": "world/battlefield-civilian-corridor",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

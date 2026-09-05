@@ -1,0 +1,137 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-mail-weaving",
+    "spoiler_tier": "none",
+    "title": "사슬 편조"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8838",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 조립틀",
+      "to": "facility/building-8838",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-mail-coif",
+      "label": "필요 조건",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-mail-shirt",
+      "label": "필요 조건",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-scale-coat",
+      "label": "필요 조건",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-chain-mesh",
+      "label": "필요 조건",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "선행 연구",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "선행 연구",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "선행 연구",
+      "to": "research/research-equipment-mail-weaving",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

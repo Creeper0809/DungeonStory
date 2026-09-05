@@ -69,7 +69,7 @@ public abstract class CaptivityInteractionHandlerBase : ICaptivityInteractionHan
         CaptivityInteractionContext context,
         out string failureReason)
     {
-        if (context.Captive == null || !context.Captive.IsActive)
+        if (context.Captive == null || !context.Captive.IsInCustody)
         {
             failureReason = "대상이 더 이상 수용 중이 아닙니다.";
             return false;

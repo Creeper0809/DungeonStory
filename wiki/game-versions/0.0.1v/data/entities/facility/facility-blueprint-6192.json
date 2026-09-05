@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-defense-tactical-command",
+      "target_spoiler_tier": "none",
+      "target_title": "전술 지휘",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facility-blueprint-6192",
+  "spoiler_tier": "none",
+  "summary": "순찰 체계와 세력 표식을 결합해 전투깃발을 만드는 희귀 조합식이다.",
+  "title": "전술 지휘 설계도"
+}

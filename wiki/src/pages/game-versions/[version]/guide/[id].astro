@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../../../../components/BaseLayout.astro';
+import GuideBody from '../../../../components/GuideBody.astro';
+import SystemIndex from '../../../../components/SystemIndex.astro';
+import { getGuide, getGuideNavigation, getGuideRedirect, hasGameVersion } from '../../../../lib/wiki-data';
+const version = Astro.params.version ?? '';
+if (!hasGameVersion(version)) return new Response(null, { status: 404 });
+const guideId = Astro.params.id ?? '';
+const redirectTo = getGuideRedirect(version, guideId);
+if (redirectTo) return Response.redirect(new URL(`/game-versions/${version}/guide/${redirectTo}/`, Astro.url), 308);
+const guide = getGuide(version, guideId);
+if (!guide) return new Response(null, { status: 404 });
+const navigation = getGuideNavigation(version);
+const guideKind = navigation.pages.find((item) => item.id === guide.id)?.kind === 'situation' ? '상황별 안내' : '주제 안내';
+---
+
+<BaseLayout title={guide.title} version={version} historical currentHref={`/guide/${guide.id}/`}>
+  <article class="guide-page"><header class="page-header"><p class="eyebrow">{guideKind}</p><h1>{guide.title}</h1><p>{guide.summary}</p></header><div class="guide-page__layout"><div class="guide-page__main"><GuideBody body={guide.body} version={version} historical /><SystemIndex guide={guide} version={version} historical /></div><aside class="guide-page__rail" aria-label="이 문서 탐색" hidden></aside></div></article>
+</BaseLayout>

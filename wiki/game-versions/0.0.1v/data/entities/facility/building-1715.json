@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "특수"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1715",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 전력 소비, 서비스 보조이다. 건설에는 작업량 522, 재료 처리 목재×4, 강철×3, 기계 부품×2, 정밀 부품×1이 필요하다.",
+  "title": "자동 급배수 제어기"
+}

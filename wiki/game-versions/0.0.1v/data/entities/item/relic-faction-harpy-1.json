@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "외부인에게 하늘길 통행을 허가하는 깃인장이다. 아일라세라의 첫바람 깃인장은 하늘길을 연 사람의 이름을 노래와 문서 양쪽에 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-harpy-1",
+  "spoiler_tier": "none",
+  "summary": "외부인에게 하늘길 통행을 허가하는 깃인장.",
+  "title": "첫바람 깃인장"
+}

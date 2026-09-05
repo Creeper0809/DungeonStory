@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.6kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "접힌 날개를 덮고 펼칠 때 양옆으로 갈라지도록 뒤판을 나눈 망토다. 아일라세라제 날개 망토의 등솔기는 날개가 완전히 펴질 때만 팽팽해지며, 첫 착용자의 이름은 새벽 합창에 오른다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-wing-cloak",
+  "spoiler_tier": "none",
+  "summary": "날개 망토 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "날개 망토"
+}

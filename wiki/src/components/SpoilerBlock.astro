@@ -1,0 +1,15 @@
+---
+import type { WikiEntity } from '../lib/wiki-data';
+interface Props { entity: WikiEntity; version: string }
+const { entity, version } = Astro.props;
+const source = `/api/spoiler/${version}/${entity.kind}/${entity.slug}.json`;
+---
+
+<section class="spoiler-block" data-spoiler-block data-source={source} aria-labelledby="spoiler-title">
+  <p class="eyebrow">스포일러 경고</p>
+  <h1 id="spoiler-title">스포일러가 될 수 있는 콘텐츠</h1>
+  <p>이 문서에는 진행 결과나 사건의 세부 내용이 포함될 수 있다. 상세 정보는 아래 버튼을 선택해 확인한다.</p>
+  <button type="button" class="button" data-spoiler-reveal>스포일러를 이해했고 상세 보기</button>
+  <div data-spoiler-content aria-live="polite"></div>
+  <noscript><p class="empty-state">스포일러 상세 내용은 JavaScript를 켠 뒤 직접 열 수 있다.</p></noscript>
+</section>

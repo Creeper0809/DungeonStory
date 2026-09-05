@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "234"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "룬가죽 장비 안감을 장비 안쪽에 덧대 충격과 마찰이 착용자에게 바로 닿지 않게 한다. 베르사디온의 룬가죽 장비 안감에는 마나를 댄 손 두 개의 인장이 서로 마주 보고 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-rune-leather-lining",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 룬가죽 장비 안감.",
+  "title": "룬가죽 장비 안감"
+}

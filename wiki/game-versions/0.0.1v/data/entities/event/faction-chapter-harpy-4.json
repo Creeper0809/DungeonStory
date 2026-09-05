@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "type": "requires"
+    },
+    {
+      "amount": "7",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-harpy-4",
+  "spoiler_tier": "warning",
+  "summary": "던전은 새 통로, 공동 관측, 전령 호위 중 개입 방식을 정한다.",
+  "title": "높이를 나누는 법"
+}

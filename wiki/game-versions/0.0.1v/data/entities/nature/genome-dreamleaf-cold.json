@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-dreamleaf-cold",
+  "spoiler_tier": "none",
+  "summary": "겨울 저온에서 향 성분을 유지하지만 성장이 느리다.",
+  "title": "genome_dreamleaf_cold"
+}

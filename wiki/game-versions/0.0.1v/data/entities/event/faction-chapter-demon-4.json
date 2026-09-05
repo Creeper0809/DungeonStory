@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    },
+    {
+      "amount": "7",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-demon-4",
+  "spoiler_tier": "warning",
+  "summary": "던전은 공개 중재, 채무 매입, 계약 파기 중 하나를 선택한다.",
+  "title": "계약을 고치는 손"
+}

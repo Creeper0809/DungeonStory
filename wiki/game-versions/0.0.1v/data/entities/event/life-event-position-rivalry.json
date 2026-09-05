@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Career"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-position-rivalry",
+      "target_spoiler_tier": "warning",
+      "target_title": "한 자리, 두 후보",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "20",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-position-rivalry",
+      "target_spoiler_tier": "warning",
+      "target_title": "한 자리, 두 후보",
+      "type": "grants-skill-experience"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-position-rivalry",
+  "spoiler_tier": "warning",
+  "summary": "같은 직위를 원하는 두 숙련자가 공개 평가를 요구한다.",
+  "title": "한 자리, 두 후보"
+}

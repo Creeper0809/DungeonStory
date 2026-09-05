@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "anatomy-quadruped",
+    "spoiler_tier": "none",
+    "title": "사족 동물"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/anatomy-quadruped",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/anatomy-quadruped",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "moss-boar",
+      "target_spoiler_tier": "none",
+      "target_title": "이끼멧돼지",
+      "to": "nature/moss-boar",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/anatomy-quadruped",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "rune-deer",
+      "target_spoiler_tier": "none",
+      "target_title": "룬사슴",
+      "to": "nature/rune-deer",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/anatomy-quadruped",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-hare",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자토끼",
+      "to": "nature/shadow-hare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/anatomy-quadruped",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "to": "nature/shadow-wolf",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

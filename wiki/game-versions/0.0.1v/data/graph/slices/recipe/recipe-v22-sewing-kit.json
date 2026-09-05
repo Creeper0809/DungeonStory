@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-sewing-kit",
+    "spoiler_tier": "none",
+    "title": "재봉 도구"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-sewing-kit",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-sewing-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉 도구",
+      "to": "item/tool-sewing-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-sewing-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-sewing-kit",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-sewing-kit",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

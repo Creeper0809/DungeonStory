@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "relic-faction-kobold-1",
+    "spoiler_tier": "none",
+    "title": "깊은톱니 대가도장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-kobold",
+      "label": "관련",
+      "to": "item/relic-faction-kobold-1",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.45kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "60개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "11"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "균형 잡힌 연갑과 장비의 주재료이다. 라카쉬 세갈래길의 가죽에는 짐승의 종류와 무두질한 날짜가 살이 붙어 있던 면에 옅게 눌려 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-leather",
+  "spoiler_tier": "none",
+  "summary": "균형 잡힌 연갑과 장비의 주재료.",
+  "title": "가죽"
+}

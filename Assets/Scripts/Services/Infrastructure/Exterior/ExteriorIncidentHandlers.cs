@@ -94,6 +94,17 @@ public interface IExteriorIncidentHandler
         out string message);
 }
 
+public interface IExteriorIncidentExactSourceRestoreContributor
+{
+    string ExactSourceOwnerDomain { get; }
+
+    bool TryCreateRestoreDescriptor(
+        ExteriorIncidentRuntimeState state,
+        ExteriorZoneMarker zone,
+        out PhysicalItemExactSourceRestoreDescriptor descriptor,
+        out string failureReason);
+}
+
 public sealed class ExteriorIncidentHandlerRegistry
 {
     private readonly Dictionary<ExteriorIncidentKind, IExteriorIncidentHandler> handlers =
@@ -460,21 +471,27 @@ public abstract class ExteriorIncidentHandlerBase : IExteriorIncidentHandler
     }
 }
 
-public sealed class MerchantCartExteriorIncidentHandler : ExteriorIncidentHandlerBase
+public sealed class MerchantCartExteriorIncidentHandler :
+    ExteriorIncidentHandlerBase,
+    IExteriorIncidentExactSourceRestoreContributor
 {
     private readonly IWorldItemStackRuntime items;
+    private readonly IPhysicalItemExactSourcePublicationService exactSources;
     private readonly IGameMoneyAccount money;
     private readonly IDungeonDebugRuleQuery debugRules;
 
     public MerchantCartExteriorIncidentHandler(
         IExteriorIncidentActorService actors,
         IWorldItemStackRuntime items,
+        IPhysicalItemExactSourcePublicationService exactSources,
         IGameEventBus eventBus,
         IGameMoneyAccount money,
         IDungeonDebugRuleQuery debugRules)
         : base(actors, eventBus)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.exactSources = exactSources
+            ?? throw new ArgumentNullException(nameof(exactSources));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
     }
@@ -482,6 +499,7 @@ public sealed class MerchantCartExteriorIncidentHandler : ExteriorIncidentHandle
     public override ExteriorIncidentKind Kind => ExteriorIncidentKind.MerchantCart;
     public override string DefaultText => "상인 마차가 실제 물품을 싣고 입구에 도착했습니다.";
     public override float DurationSeconds => 180f;
+    public string ExactSourceOwnerDomain => "exterior.merchant-cart";
 
     public override bool TryBegin(
         ExteriorIncidentRuntimeState state,
@@ -493,38 +511,45 @@ public sealed class MerchantCartExteriorIncidentHandler : ExteriorIncidentHandle
             return false;
         }
 
-        foreach ((string itemId, int amount) in new[]
-                 {
-                     ("food:preserved-ration", 4),
-                     ("medicine:standard", 2),
-                     ("material:lumber", 3)
-                 })
+        PhysicalItemExactSourcePublicationPlan sourcePlan =
+            CreateSourcePlan(state, zone);
+        if (!exactSources.TryPrepare(
+                sourcePlan,
+                out PhysicalItemExactSourcePublicationTransaction sourceTransaction,
+                out failureReason))
         {
-            items.SpawnItemAt(
-                itemId,
-                amount,
-                zone.centerPos,
-                WorldItemStackState.FacilityBuffer,
-                state.incidentId,
-                out _);
+            DespawnVisitors(state);
+            return false;
+        }
+        if (!exactSources.TryCommitRetained(
+                sourceTransaction,
+                out PhysicalItemExactSourcePublicationReceipt sourceReceipt,
+                out failureReason))
+        {
+            if (exactSources.TryRollback(
+                    sourceTransaction,
+                    "merchant-cart-begin-failed",
+                    out string rollbackFailure))
+            {
+                DespawnVisitors(state);
+                return false;
+            }
+            throw new InvalidOperationException(
+                "Merchant exact source committed partially and could not roll back: "
+                + failureReason + ":" + rollbackFailure);
         }
 
-        state.itemStackIds = items.GetStacksAt(zone.centerPos, true)
-            .Where(stack => stack != null
-                && string.Equals(
-                    stack.DestinationId,
-                    state.incidentId,
-                    StringComparison.Ordinal))
+        state.itemStackIds = sourceReceipt.Stacks
             .Select(stack => stack.StackId)
+            .OrderBy(value => value, StringComparer.Ordinal)
             .ToList();
+        HashSet<string> exactStackIds = state.itemStackIds.ToHashSet(
+            StringComparer.Ordinal);
         state.offerPrice = Mathf.Max(
             1,
-            Mathf.RoundToInt(items.GetStacksAt(zone.centerPos, true)
+            Mathf.RoundToInt(items.GetAllStacks()
                 .Where(stack => stack != null
-                    && string.Equals(
-                        stack.DestinationId,
-                        state.incidentId,
-                        StringComparison.Ordinal))
+                    && exactStackIds.Contains(stack.StackId))
                 .Sum(stack => stack.UnitPrice * stack.Quantity)
                 * 0.8f));
         state.stage = ExteriorIncidentStage.Active;
@@ -551,11 +576,7 @@ public sealed class MerchantCartExteriorIncidentHandler : ExteriorIncidentHandle
         {
             if (state.remainingSeconds <= 0f)
             {
-                state.stage = ExteriorIncidentStage.TimedOut;
-                items.RemoveStacksByStateAndDestination(
-                    WorldItemStackState.FacilityBuffer,
-                    state.incidentId);
-                DespawnVisitors(state);
+                TryTimeoutExactSource(state, zone);
             }
             return;
         }
@@ -563,11 +584,7 @@ public sealed class MerchantCartExteriorIncidentHandler : ExteriorIncidentHandle
         state.stage = ExteriorIncidentStage.Interacting;
         if (state.remainingSeconds <= 0f)
         {
-            state.stage = ExteriorIncidentStage.TimedOut;
-            items.RemoveStacksByStateAndDestination(
-                WorldItemStackState.FacilityBuffer,
-                state.incidentId);
-            DespawnVisitors(state);
+            TryTimeoutExactSource(state, zone);
         }
     }
 
@@ -612,9 +629,25 @@ public sealed class MerchantCartExteriorIncidentHandler : ExteriorIncidentHandle
             }
         }
 
-        int released = items.ReleaseStacksByDestination(
-            state.incidentId,
-            zone.centerPos);
+        if (!exactSources.TryReleaseRetained(
+                CreateSourcePlan(state, zone),
+                zone.centerPos,
+                "merchant-cart-purchased",
+                out int released,
+                out string releaseFailure))
+        {
+            if (!debugRules.IsEnabled(DungeonDebugCheat.NoMoneyOrItemCost))
+            {
+                money.Add(
+                    price,
+                    new EconomyTransactionContext(
+                        EconomyTransactionKind.ShopPurchase,
+                        state.incidentId,
+                        description: "상인 마차 화물 구매 실패 환불"));
+            }
+            message = "상인 화물을 안전하게 인계하지 못했습니다: " + releaseFailure;
+            return false;
+        }
         state.stage = ExteriorIncidentStage.Resolved;
         state.outcome = ExteriorIncidentOutcome.TradePurchased;
         DespawnVisitors(state);
@@ -625,6 +658,88 @@ public sealed class MerchantCartExteriorIncidentHandler : ExteriorIncidentHandle
             EventAlertImportance.Medium,
             "외부");
         return true;
+    }
+
+    private void TryTimeoutExactSource(
+        ExteriorIncidentRuntimeState state,
+        ExteriorZoneMarker zone)
+    {
+        if (!exactSources.TrySinkRetained(
+                CreateSourcePlan(state, zone),
+                "merchant-cart-timed-out",
+                out _,
+                out _))
+        {
+            return;
+        }
+        state.stage = ExteriorIncidentStage.TimedOut;
+        state.outcome = ExteriorIncidentOutcome.None;
+        DespawnVisitors(state);
+    }
+
+    internal static PhysicalItemExactSourcePublicationPlan CreateSourcePlan(
+        ExteriorIncidentRuntimeState state,
+        ExteriorZoneMarker zone)
+    {
+        if (state == null)
+            throw new ArgumentNullException(nameof(state));
+        if (zone == null)
+            throw new ArgumentNullException(nameof(zone));
+        (string itemId, int quantity)[] values =
+        {
+            ("food:preserved-ration", 4),
+            ("material:lumber", 3),
+            ("medicine:standard", 2)
+        };
+        FacilityBufferPlannedOutputSlice[] outputs = values
+            .OrderBy(value => value.itemId, StringComparer.Ordinal)
+            .Select((value, index) =>
+            {
+                ItemDefinitionId itemId = (ItemDefinitionId)value.itemId;
+                return new FacilityBufferPlannedOutputSlice(
+                    $"merchant:{index:D4}:{value.itemId}",
+                    PhysicalItemMassSubject.ForDefinition(itemId),
+                    value.quantity);
+            })
+            .ToArray();
+        return new PhysicalItemExactSourcePublicationPlan(
+            "exterior.merchant-cart",
+            state.incidentId,
+            zone.centerPos,
+            outputs);
+    }
+
+    public bool TryCreateRestoreDescriptor(
+        ExteriorIncidentRuntimeState state,
+        ExteriorZoneMarker zone,
+        out PhysicalItemExactSourceRestoreDescriptor descriptor,
+        out string failureReason)
+    {
+        descriptor = default;
+        failureReason = string.Empty;
+        if (state == null
+            || zone == null
+            || state.kind != ExteriorIncidentKind.MerchantCart
+            || state.IsTerminal
+            || state.itemStackIds == null
+            || state.itemStackIds.Count == 0)
+        {
+            failureReason = "merchant-cart-exact-source-restore-state-invalid";
+            return false;
+        }
+        try
+        {
+            descriptor = new PhysicalItemExactSourceRestoreDescriptor(
+                CreateSourcePlan(state, zone),
+                state.itemStackIds);
+            return true;
+        }
+        catch (ArgumentException exception)
+        {
+            failureReason = "merchant-cart-exact-source-restore-descriptor:"
+                + exception.Message;
+            return false;
+        }
     }
 }
 

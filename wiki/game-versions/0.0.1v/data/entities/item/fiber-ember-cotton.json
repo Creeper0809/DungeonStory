@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "200개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "잿불 목화에서 뽑아 세척한 섬유다. 실로 잣기 전까지 엉킴과 오염을 피해서 보관한다. 노르칸드라의 겨울 직조장은 잿불 목화 섬유를 불씨 가까이에 펴 놓고 그을음이 번지는 정도로 건조 상태를 가린다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "fiber-ember-cotton",
+  "spoiler_tier": "none",
+  "summary": "등급·상태 밴드로만 병합되는 V22 원섬유.",
+  "title": "잿불 목화 원섬유"
+}

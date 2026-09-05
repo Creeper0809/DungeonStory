@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "22"
+    },
+    {
+      "label": "필요 연구",
+      "value": "연금 가공"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-fang-poison",
+      "target_spoiler_tier": "none",
+      "target_title": "송곳니 독액",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-fang",
+      "target_spoiler_tier": "none",
+      "target_title": "송곳니",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-alchemical-solvent",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 용매",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-fang-poison",
+  "spoiler_tier": "none",
+  "summary": "송곳니 독액 생산 주문",
+  "title": "송곳니 독액"
+}

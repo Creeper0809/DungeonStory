@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-kobold-3",
+    "spoiler_tier": "warning",
+    "title": "폭풍둥지 운반 특허"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-kobold-3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-engineering-drawing",
+      "target_spoiler_tier": "none",
+      "target_title": "공학 도면",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-chapter-kobold-3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-engineering-drawing",
+      "target_spoiler_tier": "none",
+      "target_title": "공학 도면",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-kobold",
+      "label": "관련",
+      "to": "event/faction-chapter-kobold-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

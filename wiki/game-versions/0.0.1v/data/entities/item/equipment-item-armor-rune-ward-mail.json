@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2536"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "사슬 고리마다 수호 룬을 이어 물리 공격과 마나 충격을 함께 받는 갑옷이다. 특히 베르사디온산 룬 수호 사슬갑옷에는 마나가 새면 먼저 끊어지는 세 번째 봉인실이 감겨 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-rune-ward-mail",
+  "spoiler_tier": "none",
+  "summary": "룬 수호 사슬갑옷 전투 장비",
+  "title": "룬 수호 사슬갑옷"
+}

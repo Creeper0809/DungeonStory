@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "200개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "6"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "일반 모직 섬유를 꼬아 굵기를 맞춘 실이다. 직물과 의복을 짜는 다음 공정에 넘긴다. 노르칸드라의 일반 모직 원사는 실패 끝에 굵기와 꼬임 방향을 표시해 다른 실과 이어 쓸 때 결이 틀어지지 않게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "yarn-common-wool",
+  "spoiler_tier": "none",
+  "summary": "등급·상태 밴드로만 병합되는 V22 원섬유.",
+  "title": "일반 모직 원사"
+}

@@ -26,6 +26,28 @@ public sealed class ProductionFacilityMutationAuthorityGate :
     public bool IsFrozen(BuildingInstanceId facilityId) =>
         transient.IsFrozen(facilityId) || open.IsOpen(facilityId);
 
+    public bool TryCaptureOpen(
+        BuildingInstanceId facilityId,
+        out ProductionFacilityMutationFenceSnapshot snapshot)
+    {
+        snapshot = default;
+        if (open.TryCapture(
+                facilityId,
+                out ProductionFacilityDestructiveDrainOpenOperationSnapshot
+                    durable))
+        {
+            snapshot = new ProductionFacilityMutationFenceSnapshot(
+                facilityId,
+                durable.OperationId.Value,
+                durable.Revision,
+                ProductionFacilityMutationFenceKind
+                    .DurableDestructiveDrain);
+            return true;
+        }
+
+        return transient.TryCaptureOpen(facilityId, out snapshot);
+    }
+
     public bool TryBegin(
         BuildingInstanceId facilityId,
         string ownerOperationId,

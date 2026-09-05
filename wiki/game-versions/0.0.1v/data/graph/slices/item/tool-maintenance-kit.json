@@ -1,0 +1,74 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "tool-maintenance-kit",
+    "spoiler_tier": "none",
+    "title": "정비 키트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/faction-contract-golem-crisis",
+      "label": "필요 조건",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "event/practice-golem-core-polish",
+      "label": "필요 조건",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-maintenance-kit",
+      "label": "생산·해금",
+      "to": "item/tool-maintenance-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "character/festival-core-resonance",
+      "label": "필요 조건",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-golem-2",
+      "label": "필요 조건",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-golem-5",
+      "label": "필요 조건",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-golem-2",
+      "label": "필요 조건",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-chapter-golem-5",
+      "label": "필요 조건",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-golem-core",
+      "label": "관련",
+      "to": "item/tool-maintenance-kit",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

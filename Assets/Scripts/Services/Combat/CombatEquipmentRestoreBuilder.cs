@@ -225,7 +225,10 @@ internal static class CombatEquipmentRestoreBuilder
                     && (order.qualityRoll == null
                         || order.qualityRoll.attemptIndex
                             != order.qualityAttemptIndex))
-                || !ValidateCraftTransaction(order, crafting))
+                || !ValidateCraftTransaction(order, crafting)
+                || !crafting.TryValidateInputDestinationProjection(
+                    order,
+                    out _))
             {
                 throw new InvalidOperationException(
                     $"Combat craft order '{order.orderId}' has duplicate ID or invalid work.");
@@ -584,12 +587,20 @@ internal static class CombatEquipmentRestoreBuilder
             {
                 return false;
             }
+            if (!crafting.TryValidateFrozenRejectedRecovery(order, out _))
+            {
+                return false;
+            }
             if (!string.IsNullOrEmpty(order.rejectedDismantleOperationId)
                 && !CombatEquipmentRejectedDismantleOutbox
                     .ValidateProvenance(order, out _))
             {
                 return false;
             }
+        }
+        else if (!crafting.TryValidateEmptyRejectedRecovery(order, out _))
+        {
+            return false;
         }
 
         bool hasMaterials = materials.Any(pair => pair.Value > 0);
@@ -627,14 +638,99 @@ internal static class CombatEquipmentRestoreBuilder
                 && string.IsNullOrEmpty(order.outputCommitId)
                 && string.IsNullOrEmpty(order.outputInstanceId)
                 && string.IsNullOrEmpty(order.outputStackId)
+                && (order.outputCapability == null
+                    || order.outputCapability.IsEmpty)
+                && order.outputPhase == CombatEquipmentCraftOutputPhase.None
+                && (order.outputPublication == null
+                    || order.outputPublication.IsEmpty)
+                && !order.outputMarketRouted
+                && order.outputPreparedComponent == null
                 && order.resolvedMythicProvenance == null
                 && !order.completionEffectsPublished;
         }
 
         bool ammunition = CombatEquipmentCraftingRuntime.IsAmmunitionRecipe(
             order.definitionId);
+        if (order.outputPhase !=
+                CombatEquipmentCraftOutputPhase.LegacyUniqueOutput)
+        {
+            bool ownerValid = ProductionDomainOutputPublicationService
+                .TryValidateRestorableOwner(
+                    order.outputPublication,
+                    out bool committed,
+                    out _);
+            bool phaseValid = order.outputPhase switch
+            {
+                CombatEquipmentCraftOutputPhase
+                    .ResolvedWaitingForPublication => !committed
+                        && order.outputPublication is { outputAcknowledged: false }
+                        && !order.outputPublished,
+                CombatEquipmentCraftOutputPhase
+                    .PublishedAwaitingInputAcknowledgement => committed
+                        && !order.outputPublication.outputAcknowledged
+                        && order.outputPublished,
+                CombatEquipmentCraftOutputPhase
+                    .RestoredOutputAwaitingInputAcknowledgement => committed
+                        && order.outputPublication.outputAcknowledged
+                        && order.outputPublished,
+                _ => false
+            };
+            bool identityValid = ammunition
+                ? string.IsNullOrEmpty(order.outputInstanceId)
+                    && order.outputPreparedComponent == null
+                    && (!committed || order.outputPublication.stacks.All(
+                        value => string.IsNullOrEmpty(value.itemInstanceId)))
+                : ((ItemInstanceId)order.outputInstanceId).IsValid
+                    && order.outputPreparedComponent != null
+                    && EquipmentItemStateCodec.TryDecode(
+                        order.outputPreparedComponent,
+                        out CombatEquipmentInstance prepared,
+                        out _)
+                    && string.Equals(
+                        prepared.instanceId,
+                        order.outputInstanceId,
+                        StringComparison.Ordinal)
+                    && string.IsNullOrEmpty(prepared.sourceStackId)
+                    && (!committed
+                        || order.outputPublication.stacks.Count == 1
+                            && string.Equals(
+                                order.outputPublication.stacks[0]
+                                    .itemInstanceId,
+                                order.outputInstanceId,
+                                StringComparison.Ordinal));
+            return order.materialsReady
+                && order.completionEffectsPublished
+                && crafting.TryValidateResolvedOutputCapability(order, out _)
+                && Enum.IsDefined(
+                    typeof(CombatEquipmentQuality),
+                    order.resolvedQuality)
+                && !string.IsNullOrWhiteSpace(order.outputOperationId)
+                && !string.IsNullOrWhiteSpace(order.outputItemId)
+                && order.outputQuantity > 0
+                && ownerValid
+                && phaseValid
+                && identityValid
+                && (committed
+                    ? string.Equals(
+                        order.outputCommitId,
+                        order.outputPublication.batchCommitId,
+                        StringComparison.Ordinal)
+                    : string.IsNullOrEmpty(order.outputCommitId))
+                && (ammunition
+                    ? string.IsNullOrEmpty(order.outputStackId)
+                    : !committed
+                        ? string.IsNullOrEmpty(order.outputStackId)
+                        : string.Equals(
+                            order.outputStackId,
+                            order.outputPublication.stacks[0].stackId,
+                            StringComparison.Ordinal))
+                && (!order.outputMarketRouted
+                    || order.outputPublication.outputAcknowledged)
+                && (!order.materialTransferAcknowledged || committed);
+        }
         return order.materialsReady
             && order.completionEffectsPublished
+            && crafting.TryValidateResolvedOutputCapability(order, out _)
             && Enum.IsDefined(
                 typeof(CombatEquipmentQuality),
                 order.resolvedQuality)
@@ -655,7 +751,13 @@ internal static class CombatEquipmentRestoreBuilder
                         : !string.IsNullOrWhiteSpace(order.outputInstanceId)
                             && !string.IsNullOrWhiteSpace(order.outputStackId))))
             && (!order.materialTransferAcknowledged
-                || order.outputPublished);
+                || order.outputPublished)
+            && order.outputPhase ==
+                CombatEquipmentCraftOutputPhase.LegacyUniqueOutput
+            && (order.outputPublication == null
+                || order.outputPublication.IsEmpty)
+            && !order.outputMarketRouted
+            && order.outputPreparedComponent == null;
     }
 
     private static bool ValidateMaterial(

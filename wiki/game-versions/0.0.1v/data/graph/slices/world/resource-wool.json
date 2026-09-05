@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "resource-wool",
+    "spoiler_tier": "none",
+    "title": "털"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/resource-wool",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "to": "research/research-husbandry-selective",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

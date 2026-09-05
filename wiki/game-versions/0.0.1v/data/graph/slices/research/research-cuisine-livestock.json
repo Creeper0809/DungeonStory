@@ -1,0 +1,225 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-cuisine-livestock",
+    "spoiler_tier": "none",
+    "title": "축산 조리"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-vegan",
+      "target_spoiler_tier": "none",
+      "target_title": "채식 조리",
+      "to": "research/research-cuisine-vegan",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-vegan",
+      "target_spoiler_tier": "none",
+      "target_title": "채식 조리",
+      "to": "research/research-cuisine-vegan",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-vegan",
+      "target_spoiler_tier": "none",
+      "target_title": "채식 조리",
+      "to": "research/research-cuisine-vegan",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1614",
+      "target_spoiler_tier": "none",
+      "target_title": "치즈 응고조",
+      "to": "facility/building-1614",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-livestock",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1615",
+      "target_spoiler_tier": "none",
+      "target_title": "치즈 숙성 선반",
+      "to": "facility/building-1615",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-boar-stew",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-cheese",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-cheese-mushroom",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-curd",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-egg-pancake",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-fresh-curd",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-roasted-meat",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-salted-meat-stew",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tallow",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-fermentation",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-fermentation",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-fermentation",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-dining-operations",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-dining-operations",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-dining-operations",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

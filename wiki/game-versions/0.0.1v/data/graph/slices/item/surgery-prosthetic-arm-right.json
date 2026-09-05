@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-prosthetic-arm-right",
+    "spoiler_tier": "none",
+    "title": "오른팔 보철"
+  },
+  "edges": [],
+  "schema_version": 1
+}

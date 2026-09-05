@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facilityevolutionrecipe-9102",
+    "spoiler_tier": "none",
+    "title": "상점 진열장 진화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9102",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1013",
+      "target_spoiler_tier": "none",
+      "target_title": "잡화진열선반",
+      "to": "facility/building-1013",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9102",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1014",
+      "target_spoiler_tier": "none",
+      "target_title": "잠금진열장",
+      "to": "facility/building-1014",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9102",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1012",
+      "target_spoiler_tier": "none",
+      "target_title": "판매카운터",
+      "to": "facility/building-1012",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9102",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1070",
+      "target_spoiler_tier": "none",
+      "target_title": "촛대",
+      "to": "facility/building-1070",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

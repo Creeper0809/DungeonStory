@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Authority And Housing"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-office",
+      "target_spoiler_tier": "none",
+      "target_title": "영주 집무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-office",
+      "target_spoiler_tier": "none",
+      "target_title": "영주 집무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-office",
+      "target_spoiler_tier": "none",
+      "target_title": "영주 집무",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8805",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 화로",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-authority-ritual",
+  "spoiler_tier": "none",
+  "summary": "권위의 장식을 비전 의식의 매개로 가공한다.",
+  "title": "의식 장식"
+}

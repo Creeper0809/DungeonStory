@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1000",
+      "target_spoiler_tier": "none",
+      "target_title": "간이화덕",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1001",
+      "target_spoiler_tier": "none",
+      "target_title": "고기그릴",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1002",
+      "target_spoiler_tier": "none",
+      "target_title": "조리손질대",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-commercial-grill-1",
+  "spoiler_tier": "none",
+  "summary": "간이화덕과 조리손질대를 합쳐 처리량이 높은 고기그릴로 개량한다.",
+  "title": "고기그릴 개량"
+}

@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-sulfur",
+    "spoiler_tier": "none",
+    "title": "황"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-black-powder",
+      "label": "필요 조건",
+      "to": "item/resource-sulfur",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-resource-sulfur",
+      "label": "생산·해금",
+      "to": "item/resource-sulfur",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

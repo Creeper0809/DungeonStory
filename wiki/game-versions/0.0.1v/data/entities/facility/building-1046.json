@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "특수"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1046",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 치안과 보안이다. 건설에는 작업량 378, 재료 처리 목재×8, 공학 도면×2, 철괴×1이 필요하다.",
+  "title": "순찰상황판"
+}

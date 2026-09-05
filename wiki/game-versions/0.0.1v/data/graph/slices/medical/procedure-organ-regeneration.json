@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-organ-regeneration",
+    "spoiler_tier": "none",
+    "title": "장기 재생"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-regeneration",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medical-organ-regeneration-scaffold",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 재생 골격",
+      "to": "item/medical-organ-regeneration-scaffold",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-regeneration",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medical-regenerative-medium",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양액",
+      "to": "item/medical-regenerative-medium",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-regeneration",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-regeneration",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 재생",
+      "to": "research/research-medical-organ-regeneration",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

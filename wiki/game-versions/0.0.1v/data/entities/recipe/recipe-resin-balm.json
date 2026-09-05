@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "32"
+    },
+    {
+      "label": "필요 연구",
+      "value": "소독·붕대"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-resin-balm",
+      "target_spoiler_tier": "none",
+      "target_title": "수액 연고",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독·붕대",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-moonflower",
+      "target_spoiler_tier": "none",
+      "target_title": "월화",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-tallow",
+      "target_spoiler_tier": "none",
+      "target_title": "정제 지방",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-resin-balm",
+  "spoiler_tier": "none",
+  "summary": "수액 연고 생산 주문",
+  "title": "수액 연고"
+}

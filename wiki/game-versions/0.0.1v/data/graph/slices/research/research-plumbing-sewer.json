@@ -1,0 +1,280 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-plumbing-sewer",
+    "spoiler_tier": "none",
+    "title": "하수 처리와 수세 위생"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비·윤작",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비·윤작",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비·윤작",
+      "to": "research/research-agriculture-compost",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-basics",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 배관과 펌프 급수",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-basics",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 배관과 펌프 급수",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-basics",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 배관과 펌프 급수",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9803",
+      "target_spoiler_tier": "none",
+      "target_title": "하수관",
+      "to": "facility/building-9803",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9818",
+      "target_spoiler_tier": "none",
+      "target_title": "오수 탱크",
+      "to": "facility/building-9818",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9820",
+      "target_spoiler_tier": "none",
+      "target_title": "오수 침전조",
+      "to": "facility/building-9820",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9823",
+      "target_spoiler_tier": "none",
+      "target_title": "샤워 시설",
+      "to": "facility/building-9823",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-controlled-fermentation",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-controlled-fermentation",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-controlled-fermentation",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-sanitation",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-sanitation",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-sanitation",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-geriatric-medicine",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-reuse",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

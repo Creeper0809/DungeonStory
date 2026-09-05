@@ -26,6 +26,80 @@ public readonly struct CharacterStatsProjectionContext
             : Identity?.Profile;
 }
 
+public static class CharacterEquipmentBurdenWorkSpeedAuthority
+{
+    public const string Schema =
+        "character-equipment-burden-work-speed-authority@1";
+    public const float MinimumFunctionalCapacityKilograms = 8f;
+    public const float MinimumPositiveCapacityKilograms = 0.0001f;
+    public const float OverloadThresholdRatio = 0.5f;
+    public const float OverloadPenaltyPerRatio = 0.35f;
+    public const float MinimumMultiplier = 0.45f;
+    public const float MaximumMultiplier = 1f;
+
+    public static float Resolve(
+        float equippedWeightKilograms,
+        float physicalMobility,
+        float haulCapacityMultiplier)
+    {
+        if (!Finite(equippedWeightKilograms)
+            || equippedWeightKilograms < 0f
+            || !Finite(physicalMobility)
+            || !Finite(haulCapacityMultiplier)
+            || haulCapacityMultiplier <= 0f)
+        {
+            throw new InvalidOperationException(
+                "Equipment burden inputs must be finite with positive haul "
+                + "capacity.");
+        }
+        float capacity = Mathf.Max(
+            MinimumPositiveCapacityKilograms,
+            Mathf.Max(
+                MinimumFunctionalCapacityKilograms,
+                CharacterCarryTuning.NominalBaseCapacityKilograms
+                    * physicalMobility)
+            * haulCapacityMultiplier);
+        float overload = Mathf.Max(
+            0f,
+            equippedWeightKilograms / capacity - OverloadThresholdRatio);
+        return Mathf.Clamp(
+            1f - overload * OverloadPenaltyPerRatio,
+            MinimumMultiplier,
+            MaximumMultiplier);
+    }
+
+    private static bool Finite(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value);
+}
+
+public static class CharacterFatigueWorkSpeedAuthority
+{
+    public const string Schema = "character-fatigue-work-speed-authority@1";
+    public const float MinimumMultiplier = 0.65f;
+    public const float MaximumMultiplier = 1f;
+    public const float RestedStatValue = 100f;
+
+    public static float Resolve(float sleep) => Mathf.Lerp(
+        MinimumMultiplier,
+        MaximumMultiplier,
+        Mathf.Clamp01(sleep / RestedStatValue));
+}
+
+public static class CharacterExposureWorkSpeedAuthority
+{
+    public const string Schema = "character-exposure-work-speed-authority@1";
+    public const float MaximumMultiplier = 1f;
+
+    public static bool UsesPrecisionProjection(WorkTypeId workTypeId)
+    {
+        string id = workTypeId.Value ?? string.Empty;
+        return id.IndexOf("research", StringComparison.OrdinalIgnoreCase) >= 0
+            || id.IndexOf("craft", StringComparison.OrdinalIgnoreCase) >= 0
+            || id.IndexOf("medical", StringComparison.OrdinalIgnoreCase) >= 0
+            || id.IndexOf("treat", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+}
+
 /// <summary>
 /// Calculates derived character performance from authoritative character state
 /// and injected domain policies. It stores no character state.
@@ -150,12 +224,8 @@ public sealed class CharacterStatsProjectionService
         CharacterStatsProjectionContext context,
         WorkTypeId workTypeId)
     {
-        string id = workTypeId.Value ?? string.Empty;
-        bool precision =
-            id.IndexOf("research", StringComparison.OrdinalIgnoreCase) >= 0
-            || id.IndexOf("craft", StringComparison.OrdinalIgnoreCase) >= 0
-            || id.IndexOf("medical", StringComparison.OrdinalIgnoreCase) >= 0
-            || id.IndexOf("treat", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool precision = CharacterExposureWorkSpeedAuthority
+            .UsesPrecisionProjection(workTypeId);
         CharacterId characterId = new(context.Identity?.PersistentId);
         return precision
             ? environmentStatus.GetPrecisionWorkSpeedMultiplier(characterId)
@@ -178,12 +248,12 @@ public sealed class CharacterStatsProjectionService
                 "Character performance query is required for equipment burden.");
         float mobility = performance.GetFunctionalCapacities(context.Actor)
             .Get(CharacterFunctionalCapacityId.PhysicalMobility).Value;
-        float capacity = Mathf.Max(8f, 20f * mobility)
-            * GetDetailedStatMultiplier(
+        return CharacterEquipmentBurdenWorkSpeedAuthority.Resolve(
+            weight,
+            mobility,
+            GetDetailedStatMultiplier(
                 context,
-                GameplayEffectTargetIds.HaulCapacity);
-        float overload = Mathf.Max(0f, weight / capacity - 0.5f);
-        return Mathf.Clamp(1f - overload * 0.35f, 0.45f, 1f);
+                GameplayEffectTargetIds.HaulCapacity));
     }
 
     public float GetSpendingMultiplier(
@@ -396,7 +466,7 @@ public sealed class CharacterStatsProjectionService
     }
 
     public static float GetFatigueEfficiencyMultiplier(float sleep) =>
-        Mathf.Lerp(0.65f, 1f, Mathf.Clamp01(sleep / 100f));
+        CharacterFatigueWorkSpeedAuthority.Resolve(sleep);
 
     public static float GetInjuryEfficiencyMultiplier(float injurySeverity) =>
         Mathf.Lerp(1f, 0.45f, Mathf.Clamp01(injurySeverity));

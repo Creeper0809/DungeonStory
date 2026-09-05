@@ -54,9 +54,17 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:cloth
-    amount: 2
+    amount: 5
   - itemId: resource:saltstone
     amount: 1
   - itemId: resource:clean-water

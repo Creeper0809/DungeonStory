@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "40"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "미세 체 선반은 체의 눈금별로 재료를 나눠 두고 분말이 섞이지 않게 보관하는 시설이다. 하르나크의 도면은 손 크기가 달라도 맞는 체를 바로 찾도록 손잡이 높이와 표식을 여러 단계로 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-1600",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "미세 체 선반 설치 키트"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "8"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "호화식과 발효 음료에 쓰는 농축액이다. 베르사디온의 밤포도 시럽은 피와 비슷한 색 때문에 병마개에 포도잎을 새기고, 동의의 잔에 올리는 혈액과 구분한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-syrup",
+  "spoiler_tier": "none",
+  "summary": "호화식과 발효 음료에 쓰는 농축액.",
+  "title": "밤포도 시럽"
+}

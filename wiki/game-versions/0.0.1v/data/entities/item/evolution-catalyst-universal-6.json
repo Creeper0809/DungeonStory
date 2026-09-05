@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3840"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "두 번째 등급을 위해 입자 사이의 틈을 다시 메운 무색 결정이다. 하르나크의 조율사는 범용 촉매 진행 6 · 2등급을 서로 다른 개조 계통을 잇는 범용 계통의 2등급 개조에 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "evolution-catalyst-universal-6",
+  "spoiler_tier": "none",
+  "summary": "시설 개조와 장비 조율에 사용하는 진화 촉매.",
+  "title": "범용 촉매 진행 6 · 2등급"
+}

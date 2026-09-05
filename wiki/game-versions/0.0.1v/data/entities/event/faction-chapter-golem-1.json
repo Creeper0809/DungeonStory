@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-golem-1",
+  "spoiler_tier": "warning",
+  "summary": "정지한 골렘 운반자가 던전 문 앞에서 긴급 정비를 요청한다.",
+  "title": "멈춘 운반자"
+}

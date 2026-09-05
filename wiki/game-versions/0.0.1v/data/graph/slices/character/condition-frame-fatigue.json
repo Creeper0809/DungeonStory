@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "condition-frame-fatigue",
+    "spoiler_tier": "none",
+    "title": "골격 피로"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -143,20 +143,31 @@ public static class GameContentCatalogAssetBuilder
             .Distinct()
             .OrderBy(recipe => recipe.RecipeId, StringComparer.Ordinal)
             .ToArray();
-        ScriptableObject[] definitions = domainCatalog.Definitions
+        HashSet<ProductionRecipeSO> liveRecipes = new HashSet<ProductionRecipeSO>(
+            recipes);
+        List<ScriptableObject> definitions = domainCatalog.Definitions
             .Where(definition => definition != null
-                && definition is not ProductionRecipeSO)
-            .Concat(recipes.Cast<ScriptableObject>())
-            .ToArray();
+                && (definition is not ProductionRecipeSO recipe
+                    || liveRecipes.Contains(recipe)))
+            .ToList();
+        HashSet<ProductionRecipeSO> alreadyIndexed = definitions
+            .OfType<ProductionRecipeSO>()
+            .ToHashSet();
+        definitions.AddRange(recipes
+            .Where(recipe => !alreadyIndexed.Contains(recipe))
+            .Cast<ScriptableObject>());
 
-        domainCatalog.SetDefinitions(definitions);
+        bool changed = !domainCatalog.Definitions.SequenceEqual(definitions);
+        if (changed)
+            domainCatalog.SetDefinitions(definitions);
         IReadOnlyList<string> errors = domainCatalog.ValidateCatalog();
         if (errors.Count > 0)
         {
             throw new InvalidOperationException(
                 "Production-recipe reindex failed:\n" + string.Join("\n", errors));
         }
-        EditorUtility.SetDirty(domainCatalog);
+        if (changed)
+            EditorUtility.SetDirty(domainCatalog);
     }
 
     /// <summary>
@@ -292,21 +303,26 @@ public static class GameContentCatalogAssetBuilder
             .Where(value => value != null)
             .Cast<ScriptableObject>()
             .ToArray();
-        ScriptableObject[] definitions = domainCatalog.Definitions
-            .Where(value => value != null
-                && value is not ApparelDefinitionSO
-                && value is not TextileMaterialDefinitionSO
-                && !IsV22TextileCrop(value)
-                && !IsV22TextileGenome(value)
-                && !IsV22TextileRecipe(value))
-            .Concat(apparel)
+        ScriptableObject[] liveV22Definitions = apparel
             .Concat(materials)
             .Concat(textileCrops)
             .Concat(textileGenomes)
             .Concat(textileRecipes)
             .Distinct()
+            .OrderBy(AssetDatabase.GetAssetPath, StringComparer.Ordinal)
             .ToArray();
-        domainCatalog.SetDefinitions(definitions);
+        HashSet<ScriptableObject> liveV22Set = new(liveV22Definitions);
+        List<ScriptableObject> definitions = domainCatalog.Definitions
+            .Where(value => value != null
+                && (!IsV22OwnedDefinition(value)
+                    || liveV22Set.Contains(value)))
+            .ToList();
+        HashSet<ScriptableObject> alreadyIndexed = new(definitions);
+        definitions.AddRange(liveV22Definitions
+            .Where(value => !alreadyIndexed.Contains(value)));
+        bool changed = !domainCatalog.Definitions.SequenceEqual(definitions);
+        if (changed)
+            domainCatalog.SetDefinitions(definitions);
         IReadOnlyList<string> errors = domainCatalog.ValidateCatalog();
         if (errors.Count > 0)
         {
@@ -314,8 +330,16 @@ public static class GameContentCatalogAssetBuilder
                 "V22 apparel domain-definition reindex failed:\n"
                 + string.Join("\n", errors));
         }
-        EditorUtility.SetDirty(domainCatalog);
+        if (changed)
+            EditorUtility.SetDirty(domainCatalog);
     }
+
+    private static bool IsV22OwnedDefinition(ScriptableObject value) =>
+        value is ApparelDefinitionSO
+        || value is TextileMaterialDefinitionSO
+        || IsV22TextileCrop(value)
+        || IsV22TextileGenome(value)
+        || IsV22TextileRecipe(value);
 
     private static bool IsV22TextileCrop(ScriptableObject value) =>
         value is CropDefinitionSO crop

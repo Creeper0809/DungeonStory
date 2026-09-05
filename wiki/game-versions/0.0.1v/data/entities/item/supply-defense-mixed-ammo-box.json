@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "3.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "3개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "118"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "방어 시설마다 다른 탄약을 즉시 꺼내 쓰도록 종류별로 칸을 나눈 상자다. 오르데나제 혼합 탄약 상자는 내용물을 채우기 전에 붉은 봉랍과 군영 번호부터 확인한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-defense-mixed-ammo-box",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 방어시설용 혼합 탄약 상자.",
+  "title": "방어시설용 혼합 탄약 상자"
+}

@@ -8,6 +8,38 @@ public enum ProductionSupportKind
     BatchProcessor = 1
 }
 
+public enum ProductionOutputDispositionAuthoringKind
+{
+    None = 0,
+    DeclaredNoOutput = 1
+}
+
+[Serializable]
+[BuildingAbilityDisplayName("생산 산출 처분 선언")]
+public sealed class BuildingProductionOutputDispositionAbility : BuildingAbility
+{
+    [InspectorName("산출 처분 종류")]
+    public ProductionOutputDispositionAuthoringKind dispositionKind;
+
+    [InspectorName("소유 capability ID")]
+    public string ownerCapabilityId = string.Empty;
+
+    [InspectorName("사유 코드")]
+    public string reasonCode = string.Empty;
+
+    public string OwnerCapabilityId => ownerCapabilityId ?? string.Empty;
+    public string ReasonCode => reasonCode ?? string.Empty;
+
+    public bool IsValid =>
+        dispositionKind == ProductionOutputDispositionAuthoringKind.DeclaredNoOutput
+        && IsCanonical(OwnerCapabilityId)
+        && IsCanonical(ReasonCode);
+
+    private static bool IsCanonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+}
+
 [Serializable]
 [BuildingAbilityDisplayName("생산 주 작업대")]
 public sealed class BuildingProductionWorkstationAbility : BuildingAbility
@@ -18,10 +50,31 @@ public sealed class BuildingProductionWorkstationAbility : BuildingAbility
     [InspectorName("재고 감지반 설치품 ID")]
     public string stockSensorInstallationItemId = string.Empty;
 
+    [InspectorName("생산 lane 정책")]
+    public ProductionWorkstationLanePolicy lanePolicy;
+
+    [Min(1), InspectorName("동시 수동 작업 lane")]
+    public int manualWorkLaneCount;
+
+    [Min(0), InspectorName("작업대 자체 자동 lane")]
+    public int automaticWorkLaneCount;
+
     public string WorkstationTag => workstationTag?.Trim() ?? string.Empty;
     public string StockSensorInstallationItemId =>
         stockSensorInstallationItemId?.Trim() ?? string.Empty;
-    public bool IsValid => !string.IsNullOrWhiteSpace(WorkstationTag);
+    public int ManualWorkLaneCount => manualWorkLaneCount;
+    public int AutomaticWorkLaneCount => automaticWorkLaneCount;
+    public bool IsValid =>
+        !string.IsNullOrWhiteSpace(WorkstationTag)
+        && lanePolicy != ProductionWorkstationLanePolicy.Unspecified
+        && manualWorkLaneCount > 0
+        && automaticWorkLaneCount >= 0
+        && (lanePolicy != ProductionWorkstationLanePolicy
+                .ManualWithDetachedBatchProcessors
+            || automaticWorkLaneCount == 0)
+        && (lanePolicy != ProductionWorkstationLanePolicy
+                .ModeExclusiveManualOrAutomaticWithDetachedBatchProcessors
+            || automaticWorkLaneCount > 0);
 }
 
 [Serializable]
@@ -42,6 +95,9 @@ public sealed class BuildingProductionSupportAbility : BuildingAbility
 
     [Min(1), InspectorName("배치 용량")]
     public int batchCapacity = 1;
+
+    [Min(1), InspectorName("작업대당 최대 연결 인스턴스")]
+    public int maximumLinkedInstancesPerWorkstation;
 
     [InspectorName("전력 필요")]
     public bool requiresPower;
@@ -78,12 +134,20 @@ public sealed class BuildingProductionSupportAbility : BuildingAbility
 
     public string SupportId => supportId?.Trim() ?? string.Empty;
     public int BatchCapacity => kind == ProductionSupportKind.BatchProcessor
-        ? Mathf.Max(1, batchCapacity)
+        ? batchCapacity
         : 0;
+    public int MaximumLinkedInstancesPerWorkstation =>
+        maximumLinkedInstancesPerWorkstation;
     public bool IsValid =>
         !string.IsNullOrWhiteSpace(SupportId)
         && featureTags != null
-        && featureTags.Length > 0;
+        && featureTags.Length > 0
+        && maximumLinkedInstancesPerWorkstation > 0
+        && (kind != ProductionSupportKind.BatchProcessor
+            || batchCapacity > 0)
+        && !float.IsNaN(workSpeedMultiplier)
+        && !float.IsInfinity(workSpeedMultiplier)
+        && workSpeedMultiplier > 0f;
 
     public bool Provides(string featureTag)
     {
@@ -203,6 +267,14 @@ public static class ProductionWorkshopAbilityAccessors
     public static BuildingProductionBufferAbility
         GetProductionBufferAbility(this BuildingSO building) =>
         building?.GetAbility<BuildingProductionBufferAbility>();
+
+    public static BuildingProductionOutputDispositionAbility
+        GetProductionOutputDispositionAbility(this BuildingSO building)
+    {
+        BuildingProductionOutputDispositionAbility ability =
+            building?.GetAbility<BuildingProductionOutputDispositionAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
 
     public static BuildingFacilitySupplyAbility
         GetFacilitySupplyAbility(this BuildingSO building) =>

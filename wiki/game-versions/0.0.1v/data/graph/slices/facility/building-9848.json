@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9848",
+    "spoiler_tier": "none",
+    "title": "컨베이어 필터"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-junctions",
+      "label": "시설 해금",
+      "to": "facility/building-9848",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

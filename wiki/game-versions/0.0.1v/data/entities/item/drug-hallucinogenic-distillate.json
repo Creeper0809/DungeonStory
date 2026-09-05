@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "12개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "37"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "강한 환각과 오락 효과를 주는 유흥 약물이다. 므네실라 치료사는 환각균 증류액을 쓴 뒤 환자가 다시 먹고 걷고 일할 때까지 약병을 치우지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "drug-hallucinogenic-distillate",
+  "spoiler_tier": "none",
+  "summary": "강한 환각과 오락 효과를 주는 유흥 약물.",
+  "title": "환각균 증류액"
+}

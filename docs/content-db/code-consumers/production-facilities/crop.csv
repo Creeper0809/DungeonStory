@@ -1,0 +1,24 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+CropDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/EmptyResourceEconomyContentCatalog.cs
+CropDefinitionSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ResourceEconomyModels.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalSupplyDestinationRuntimeDebugScenarios.cs
+CropDefinitionSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalSupplyOutboxDebugScenarios.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CertifiedSeedFacilityOutputCapacityContributor.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CertifiedSeedRuntime.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CertifiedSeedSpecialThroughputContributor.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropCycleInputRequirementAuthority.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropEcologyRuntime.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropHarvestOutputMaximumAuthority.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropHarvestReachableMaximumWitnessAuthority.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropHarvestSpecialThroughputContributor.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropPlotRuntime.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/Planning/ResourceEconomyForecastService.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionOutputClearanceExecutableDescriptorRegistry.cs
+CropDefinitionSO,content-type,,type-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+CropDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V27EmbeddedWorkValueCalculator.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidatorDebugScenarios.cs
+CropDefinitionSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs
+CropDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Save/DungeonAggregateReferencePreflight.cs
+CropDefinitionSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/CropPlotBuildingPanelPresenter.cs
+CropDefinitionSO,stable-id,crop:cave-mushroom,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/CropPlotRuntime.cs
+CropDefinitionSO,stable-id,crop:twilight-grain,stable-id-literal,services:economy,runtime,exact-literal-consumer,Assets/Scripts/Services/Economy/CropPlotRuntime.cs

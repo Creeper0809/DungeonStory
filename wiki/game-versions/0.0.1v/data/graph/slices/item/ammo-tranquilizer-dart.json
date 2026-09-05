@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-tranquilizer-dart",
+    "spoiler_tier": "none",
+    "title": "진정 다트"
+  },
+  "edges": [
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-tranquilizer-dart",
+      "label": "생산·해금",
+      "to": "item/ammo-tranquilizer-dart",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "to": "item/ammo-tranquilizer-dart",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-repeating-crossbow",
+      "label": "관련",
+      "to": "item/ammo-tranquilizer-dart",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-siege-arbalest",
+      "label": "관련",
+      "to": "item/ammo-tranquilizer-dart",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-windlass-crossbow",
+      "label": "관련",
+      "to": "item/ammo-tranquilizer-dart",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

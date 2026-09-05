@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-supply-certified-seed-kit",
+    "spoiler_tier": "none",
+    "title": "인증 품종 종자 꾸러미"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-certified-seed-kit",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "supply-certified-seed-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "인증 품종 종자 꾸러미",
+      "to": "item/supply-certified-seed-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-certified-seed-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-certified-seed-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-certified-seed-kit",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-cultivar-breeding",
+      "target_spoiler_tier": "none",
+      "target_title": "품종 개량",
+      "to": "research/research-agriculture-cultivar-breeding",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

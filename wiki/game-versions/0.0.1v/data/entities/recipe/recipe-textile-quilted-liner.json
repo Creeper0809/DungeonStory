@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "14"
+    },
+    {
+      "label": "필요 연구",
+      "value": "층상 방어구"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "textile-quilted-liner",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 충전재",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "털",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-textile-quilted-liner",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 층상 충전재을(를) 생산한다.",
+  "title": "층상 충전재"
+}

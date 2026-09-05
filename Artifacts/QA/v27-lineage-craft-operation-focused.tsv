@@ -1,0 +1,2 @@
+case	result	details
+equipment_lineage_registered_craft	PASS	requiredWork=120;partialWork=60;sourceConsumed=true;targetHistoryInherited=true;sealRemaining=1;registeredContributor=equipment-progression:lineage-transfer-work

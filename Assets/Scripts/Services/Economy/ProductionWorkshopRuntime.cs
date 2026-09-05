@@ -219,9 +219,15 @@ public sealed class ProductionWorkshopRuntime : IProductionWorkshopRuntime
                 .Where(workstation =>
                     rooms.TryGetRoom(workstation, out RoomInstance targetRoom)
                     && ReferenceEquals(room, targetRoom))
-                .Where(workstation => supportAbility.SupportsWorkstation(
-                    workstation.GetProductionWorkstationTag()))
-                .OrderBy(workstation => ManhattanDistance(
+                 .Where(workstation => supportAbility.SupportsWorkstation(
+                     workstation.GetProductionWorkstationTag()))
+                 .Where(workstation => linksByWorkstation[workstation]
+                     .Count(link => string.Equals(
+                         link.SupportId,
+                         supportAbility.SupportId,
+                         StringComparison.Ordinal))
+                     < supportAbility.MaximumLinkedInstancesPerWorkstation)
+                 .OrderBy(workstation => ManhattanDistance(
                     workstation.centerPos,
                     support.centerPos))
                 .ThenBy(GetStableBuildingKey, StringComparer.Ordinal)

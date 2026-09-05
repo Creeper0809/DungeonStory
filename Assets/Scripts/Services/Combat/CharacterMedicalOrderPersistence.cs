@@ -26,6 +26,18 @@ internal static class CharacterMedicalOrderPersistence
             treatmentPainReduction = source.treatmentPainReduction,
             treatmentMaterialDestinationId =
                 source.treatmentMaterialDestinationId ?? string.Empty,
+            nextTreatmentMaterialDestinationSequence =
+                source.nextTreatmentMaterialDestinationSequence,
+            treatmentDestinationSequence = source.treatmentDestinationSequence,
+            treatmentBufferCapacityGrams =
+                source.treatmentBufferCapacityGrams,
+            treatmentMassAuthorityRevision =
+                source.treatmentMassAuthorityRevision,
+            treatmentCapacityFingerprint =
+                source.treatmentCapacityFingerprint ?? string.Empty,
+            treatmentDestinationDrainJoins =
+                CloneDestinationDrainJoins(
+                    source.treatmentDestinationDrainJoins),
             treatmentSupplyCommitPhase = source.treatmentSupplyCommitPhase,
             treatmentSupplyOperationSequence =
                 source.treatmentSupplyOperationSequence,
@@ -53,5 +65,59 @@ internal static class CharacterMedicalOrderPersistence
                 ? new List<string>(source.statusParameters)
                 : new List<string>()
         };
+    }
+
+    internal static CharacterMedicalSupplyDestinationDrainJoinData
+        CloneDestinationDrainJoin(
+            CharacterMedicalSupplyDestinationDrainJoinData source)
+    {
+        if (source == null)
+        {
+            return null;
+        }
+
+        return new CharacterMedicalSupplyDestinationDrainJoinData
+        {
+            destinationSequence = source.destinationSequence,
+            phase = source.phase,
+            targetState = source.targetState,
+            targetStatusCode = source.targetStatusCode,
+            targetStatusParameters = source.targetStatusParameters != null
+                ? new List<string>(source.targetStatusParameters)
+                : new List<string>(),
+            parentOperationId = source.parentOperationId ?? string.Empty,
+            stepOperationId = source.stepOperationId ?? string.Empty,
+            ownerFacilityId = source.ownerFacilityId ?? string.Empty,
+            sourceDestinationId = source.sourceDestinationId ?? string.Empty,
+            sourceBufferCapacityGrams = source.sourceBufferCapacityGrams,
+            sourceMassAuthorityRevision = source.sourceMassAuthorityRevision,
+            sourceCapacityFingerprint =
+                source.sourceCapacityFingerprint ?? string.Empty,
+            requestFingerprint = source.requestFingerprint ?? string.Empty,
+            commitId = source.commitId ?? string.Empty,
+            receiptFingerprint = source.receiptFingerprint ?? string.Empty,
+            inputQuantity = source.inputQuantity,
+            inputMassGrams = source.inputMassGrams,
+            ownerX = source.ownerX,
+            ownerY = source.ownerY
+        };
+    }
+
+    private static List<CharacterMedicalSupplyDestinationDrainJoinData>
+        CloneDestinationDrainJoins(
+            IEnumerable<CharacterMedicalSupplyDestinationDrainJoinData>
+                source)
+    {
+        List<CharacterMedicalSupplyDestinationDrainJoinData> result = new();
+        if (source == null)
+        {
+            return result;
+        }
+
+        foreach (CharacterMedicalSupplyDestinationDrainJoinData value in source)
+        {
+            result.Add(CloneDestinationDrainJoin(value));
+        }
+        return result;
     }
 }

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9843",
+    "spoiler_tier": "none",
+    "title": "컨베이어 하향"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-conveyor",
+      "label": "시설 해금",
+      "to": "facility/building-9843",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

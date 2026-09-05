@@ -1,0 +1,44 @@
+schema=v27-production-output-clearance-telemetry-focused@1
+evidenceStatus=SUPERSEDED_HISTORICAL_CAPACITY_INTERPRETATION
+supersededBy=production-output-clearance-requirement@3,production-output-clearance-capacity-gate@2
+result=STRUCTURAL-PARTIAL-PASS
+capturedAt=deterministic-no-timestamp
+
+[implemented]
+- diagnostics-only FacilityOutput publication -> last committed pickup raw observation seam
+- batchCommitId exact gram accumulation across partial pickups
+- game time captured as micro-hours from GameCalendarRules.SecondsPerDay/HoursPerDay
+- elapsed duration quantized exactly once with conservative Ceil to milli-hours
+- physical publication rollback removes an uncommitted raw sample
+- default player runtime capture is disabled
+- explicit bounded capture session: active<=4096, completed<=16384
+- save capture fails loudly while a measurement session is active
+- restore intervention invalidates and clears active measurement candidates
+- conflicting publication, orphan pickup, and over-pickup remain visible and make the session unclean
+
+[focused-evidence]
+DungeonStory.Items direct compile exit=0
+Assembly-CSharp direct compile exit=0
+Assembly-CSharp-Editor plus focused scenario direct compile exit=0
+harness=PASS fixed-clock partial-exact rollback conflict orphan over-pickup
+
+[source-sha256]
+D7CE9AD5BB044566D9594E5C19ED1A9D276E13EBF492DF7FFE458B6D29A8566E  Assets/Scripts/Models/Items/Core/FacilityOutputClearanceTelemetryContracts.cs
+0EBF1CFC513383F1A6A65FD5778879524E29DC0A6A133D17D3DEEC2CE7419D27  Assets/Scripts/Services/Items/FacilityOutputClearanceTelemetryRuntime.cs
+FD9F11D691EE04B08F17CA9E1CC4839F1CEC5325473ECB63B67E665DD4811C22  Assets/Scripts/Services/Items/FacilityBufferPlannedOutputPublicationService.cs
+442427BBA54E52D6BC8C8F30EBCFDE0E57730AC49B7396BF004D73F397347E92  Assets/Scripts/Services/Items/WorldItemStackRuntime.cs
+9DE46928BC83E1C4D2C13812E410D7E3D244E89E0C7473DED880FBDEA6954111  Assets/Scripts/Services/Items/Editor/FacilityOutputClearanceTelemetryDebugScenarios.cs
+
+[scene-integrity]
+B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8  Assets/Scenes/GameplayScene.unity
+
+[open-do-not-close-parent-checkpoint]
+- natural AIBrain multi-seed clean PlayMode measurement
+- deterministic raw observation CSV and nearest-rank p95 aggregation
+- throughput envelope including support work-speed and content-neutral contributor cadence
+- immutable ProductionOutputClearanceProfileCatalog and production DI
+- whole-cycle 2..4 capacity integration, source schema/revision, restore drift guard
+- support attach/detach atomic re-projection and destination-scoped capacity generation
+- 4.000 accepted / 4.001 Critical full-path mutation-zero PlayMode
+
+verdict=Raw measurement seam is implemented and focused-verified. It is not yet a production p95 profile authority, and Batch B support/p95 checkpoint remains OPEN.

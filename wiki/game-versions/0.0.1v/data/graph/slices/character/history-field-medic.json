@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "history-field-medic",
+    "spoiler_tier": "none",
+    "title": "야전 치료사"
+  },
+  "edges": [],
+  "schema_version": 1
+}

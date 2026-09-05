@@ -1,0 +1,296 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-assisted-processing",
+    "spoiler_tier": "none",
+    "title": "동력 보조 가공"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1609",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 오븐",
+      "to": "facility/building-1609",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8821",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 공구날 연마대",
+      "to": "facility/building-8821",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9313",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 방적기",
+      "to": "facility/building-9313",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9314",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 직조기",
+      "to": "facility/building-9314",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 동력 방적",
+      "to": "recipe/recipe-v22-spin-powered-cave-silk",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-common-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "일반 모직 동력 방적",
+      "to": "recipe/recipe-v22-spin-powered-common-wool",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-deep-goat-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "심층 염소모직 동력 방적",
+      "to": "recipe/recipe-v22-spin-powered-deep-goat-wool",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 동력 방적",
+      "to": "recipe/recipe-v22-spin-powered-dreamweave",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-ember-cotton",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불 면직물 동력 방적",
+      "to": "recipe/recipe-v22-spin-powered-ember-cotton",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-frost-linen",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 린넨 동력 방적",
+      "to": "recipe/recipe-v22-spin-powered-frost-linen",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-frost-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 양모직 동력 방적",
+      "to": "recipe/recipe-v22-spin-powered-frost-wool",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-mire-canvas",
+      "target_spoiler_tier": "none",
+      "target_title": "습지 캔버스 동력 방적",
+      "to": "recipe/recipe-v22-spin-powered-mire-canvas",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-shade-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "그늘천 동력 방적",
+      "to": "recipe/recipe-v22-spin-powered-shade-cloth",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-powered-spore-hemp",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 삼베 동력 방적",
+      "to": "recipe/recipe-v22-spin-powered-spore-hemp",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-machine-parts",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-cave-silk",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-common-wool",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-deep-goat-wool",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-dreamweave",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-ember-cotton",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-frost-linen",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-frost-wool",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-mire-canvas",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-shade-cloth",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-spore-hemp",
+      "label": "필요 조건",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-bills",
+      "label": "선행 연구",
+      "to": "research/research-industry-assisted-processing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-bills",
+      "label": "선행 연구",
+      "to": "research/research-industry-assisted-processing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-bills",
+      "label": "선행 연구",
+      "to": "research/research-industry-assisted-processing",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

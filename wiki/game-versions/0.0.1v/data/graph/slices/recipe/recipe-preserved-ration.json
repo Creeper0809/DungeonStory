@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-preserved-ration",
+    "spoiler_tier": "none",
+    "title": "보존 배급식 훈연"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-preserved-ration",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-ration-mixture",
+      "target_spoiler_tier": "none",
+      "target_title": "배급식 혼합물",
+      "to": "item/material-ration-mixture",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-preserved-ration",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-starch",
+      "target_spoiler_tier": "none",
+      "target_title": "전분",
+      "to": "item/material-starch",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-preserved-ration",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-preserved-ration",
+      "target_spoiler_tier": "none",
+      "target_title": "보존 배급식",
+      "to": "item/food-preserved-ration",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-preserved-ration",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-lavish",
+      "target_spoiler_tier": "none",
+      "target_title": "호화·보존식",
+      "to": "research/research-cuisine-lavish",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,89 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "룬 부품 조율"
+    },
+    {
+      "label": "제작 작업",
+      "value": "344"
+    },
+    {
+      "label": "무게",
+      "value": "9kg"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-rune-module-tuning",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 부품 조율",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-leather-lining",
+      "target_spoiler_tier": "none",
+      "target_title": "룬가죽 장비 안감",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-mana-alloy",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 합금",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-dreamweave-rune-lining",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 룬 안감",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-chain-mesh",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 망",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-rune-ward-mail",
+  "spoiler_tier": "none",
+  "summary": "룬 수호 사슬갑옷 전투 장비",
+  "title": "룬 수호 사슬갑옷"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "200개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "습지 갈대에서 뽑아 세척한 섬유다. 실로 잣기 전까지 엉킴과 오염을 피해서 보관한다. 밀로세아 가도의 습지 갈대 원섬유는 젖은 채 묶으면 썩기 때문에 검문소마다 매듭을 풀어 속까지 말렸는지 확인한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "fiber-mire-reed",
+  "spoiler_tier": "none",
+  "summary": "등급·상태 밴드로만 병합되는 V22 원섬유.",
+  "title": "습지 갈대 원섬유"
+}

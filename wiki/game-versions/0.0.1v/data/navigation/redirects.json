@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    {
+      "from": "/changes/",
+      "status": 301,
+      "to": "/updates/"
+    }
+  ],
+  "schema_version": 1
+}

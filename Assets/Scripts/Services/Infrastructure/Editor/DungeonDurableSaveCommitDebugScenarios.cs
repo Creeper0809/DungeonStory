@@ -14,6 +14,7 @@ public static class DungeonDurableSaveCommitDebugScenarios
         VerifyThrownAndConflictingResultsBecomeCorruption();
         VerifyTopologyRejectsDuplicateIdentityAndOrder();
         VerifyPreparedOutputAdapterStatusMapping();
+        VerifyDestructiveDrainAdapterStatusMapping();
         Debug.Log("V27_DURABLE_SAVE_COMMIT_PIPELINE=PASS");
     }
 
@@ -171,6 +172,31 @@ public static class DungeonDurableSaveCommitDebugScenarios
         }
     }
 
+    private static void VerifyDestructiveDrainAdapterStatusMapping()
+    {
+        foreach (ProductionFacilityDestructiveDrainCheckpointGcStatus source in
+                 (ProductionFacilityDestructiveDrainCheckpointGcStatus[])
+                 Enum.GetValues(typeof(
+                     ProductionFacilityDestructiveDrainCheckpointGcStatus)))
+        {
+            ProductionFacilityDestructiveDrainCheckpointGcDurableSaveParticipant
+                adapter = new(new FixedDestructiveDrainCoordinator(source));
+            DungeonDurableSaveCommitResult result = adapter
+                .OnDurableSaveCommitted(
+                    new DungeonDurableSaveCommitContext(
+                        "slot",
+                        Digest('f')));
+            Require(
+                (int)result.Status == (int)source
+                && result.ParticipantId ==
+                    ProductionFacilityDestructiveDrainCheckpointGcDurableSaveParticipant
+                        .Id
+                && adapter.Order == 200,
+                "destructive-drain durable-save adapter status mapping drifted: "
+                + source);
+        }
+    }
+
     private static string Digest(char character) => new(character, 64);
 
     private static void Require(bool condition, string message)
@@ -250,6 +276,28 @@ public static class DungeonDurableSaveCommitDebugScenarios
             PreparedOutputCheckpointGcReason.None,
             1L,
             "fixture");
+    }
+
+    private sealed class FixedDestructiveDrainCoordinator :
+        IProductionFacilityDestructiveDrainCheckpointGcCoordinator
+    {
+        private readonly ProductionFacilityDestructiveDrainCheckpointGcStatus
+            status;
+
+        internal FixedDestructiveDrainCoordinator(
+            ProductionFacilityDestructiveDrainCheckpointGcStatus status)
+        {
+            this.status = status;
+        }
+
+        public ProductionFacilityDestructiveDrainCheckpointGcResult
+            OnDurableSaveCommitted(
+                string slotId,
+                string serializedByteDigest) => new(
+                status,
+                ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+                1L,
+                "fixture");
     }
 }
 #endif

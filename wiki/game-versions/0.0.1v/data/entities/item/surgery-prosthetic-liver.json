@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "180"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손상되거나 잃은 간의 기능을 대신하도록 신체에 연결하는 보철 부품이다. 제4주조도시산 간 보철에는 처리할 수 있는 독소 농도와 세척 주기가 작은 황동판에 적혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-prosthetic-liver",
+  "spoiler_tier": "none",
+  "summary": "수술로 설치하는 고유 보철 부품",
+  "title": "간 보철"
+}

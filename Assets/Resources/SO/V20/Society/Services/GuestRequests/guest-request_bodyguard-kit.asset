@@ -39,7 +39,7 @@ MonoBehaviour:
   successEffects:
   - kind: 9
     targetId: guest-service
-    amount: 520
+    amount: 1248
     durationDays: 0
   - kind: 6
     targetId: requesting-faction

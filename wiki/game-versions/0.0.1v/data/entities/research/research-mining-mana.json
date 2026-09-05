@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Mining"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-deep",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 채굴",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-deep",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 채굴",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-deep",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 채굴",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-mining-mana",
+  "spoiler_tier": "none",
+  "summary": "불안정한 마나 광맥에서 결정을 추출한다.",
+  "title": "마나 시추"
+}

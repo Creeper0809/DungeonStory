@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1044",
+      "target_spoiler_tier": "none",
+      "target_title": "경비초소책상",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1047",
+      "target_spoiler_tier": "none",
+      "target_title": "전술지도탁자",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1042",
+      "target_spoiler_tier": "none",
+      "target_title": "중량훈련석",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-fortress-tactical-1",
+  "spoiler_tier": "none",
+  "summary": "경비초소의 기록과 중량훈련석의 훈련 자료를 모아 전술지도탁자를 만든다.",
+  "title": "전술지도탁자 제작"
+}

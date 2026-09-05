@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "진통, 마취와 유흥 약물에 쓰는 잎이다. 므네실라에서는 몽엽을 그늘에서 말리고, 향이 빠진 줄기는 다른 약초와 섞이지 않게 퇴비통으로 보낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-dreamleaf",
+  "spoiler_tier": "none",
+  "summary": "진통, 마취와 유흥 약물에 쓰는 잎.",
+  "title": "몽엽"
+}

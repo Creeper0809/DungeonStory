@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "background-monastery-novice",
+    "spoiler_tier": "none",
+    "title": "수도원 수련자"
+  },
+  "edges": [],
+  "schema_version": 1
+}

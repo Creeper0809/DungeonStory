@@ -22,9 +22,9 @@ public static class V16IntegrationDebugScenarios
     {
         List<string> failures = new List<string>();
         Check(
-            DungeonGameSaveData.CurrentVersion == 18,
+            DungeonGameSaveData.CurrentVersion == 24,
             "save version",
-            $"expected 18, got {DungeonGameSaveData.CurrentVersion}",
+            $"expected 24, got {DungeonGameSaveData.CurrentVersion}",
             failures);
         CheckLegacyEquipmentRemoved(failures);
         CheckGameplaySceneComposition(failures);
@@ -292,20 +292,30 @@ public static class V16IntegrationDebugScenarios
             failures);
 
         const string medicalPath =
-            "Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs";
+            "Assets/Scripts/Services/Combat/CharacterMedicalSupplyCoordinator.cs";
+        const string medicalDestinationPath =
+            "Assets/Scripts/Services/Combat/CharacterMedicalSupplyDestinationRuntime.cs";
         string medicalSource = File.ReadAllText(medicalPath);
+        string medicalDestinationSource = File.ReadAllText(
+            medicalDestinationPath);
         Check(
             medicalSource.Contains(
-                "TryRequestFacilityDelivery(",
+                "TryRequestItemDelivery(",
                 StringComparison.Ordinal)
             && medicalSource.Contains(
-                "StockCategory.Biological",
+                "ExtractedBloodItemId",
                 StringComparison.Ordinal)
             && medicalSource.Contains(
+                "TryCommitSinkPending(",
+                StringComparison.Ordinal)
+            && !medicalSource.Contains(
                 "TryConsumeFacilityBuffer(",
                 StringComparison.Ordinal)
             && !medicalSource.Contains(
                 "TryConsumeStoredStock(",
+                StringComparison.Ordinal)
+            && medicalDestinationSource.Contains(
+                "FacilityBufferDestinationAdmissionPolicy.ExactGramRequired",
                 StringComparison.Ordinal),
             "physical blood treatment consumer",
             "medical treatment bypasses delivery or still consumes abstract stock",
@@ -345,26 +355,32 @@ public static class V16IntegrationDebugScenarios
             failures);
 
         const string knowledgePath =
-            "Assets/Scripts/Services/Research/KnowledgeResidueProcessingRuntime.cs";
+            "Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs";
         string knowledgeSource = File.ReadAllText(knowledgePath);
         Check(
             knowledgeSource.Contains(
-                "StockCategory.Knowledge",
+                "KnowledgeResidueDestinationAuthority.MemoryResidueItemId",
                 StringComparison.Ordinal)
             && knowledgeSource.Contains(
-                "TryRequestFacilityDelivery(",
+                "TryRequestItemDelivery(",
                 StringComparison.Ordinal)
             && knowledgeSource.Contains(
-                "TryConsumeFacilityBuffer(",
+                "TryCommitSinkPending(",
                 StringComparison.Ordinal)
             && knowledgeSource.Contains(
                 "KnowledgeResidueUse.CodexAnalysis",
                 StringComparison.Ordinal)
             && knowledgeSource.Contains(
                 "KnowledgeResidueUse.RegionReconnaissance",
+                StringComparison.Ordinal)
+            && !knowledgeSource.Contains(
+                "StockCategory.Knowledge",
+                StringComparison.Ordinal)
+            && !knowledgeSource.Contains(
+                "TryConsumeFacilityBuffer(",
                 StringComparison.Ordinal),
             "knowledge residue work consumers",
-            "memory residue lacks a physical work-unit consumer",
+            "memory residue lacks an exact item and pending Sink consumer",
             failures);
     }
 
@@ -437,11 +453,11 @@ public static class V16IntegrationDebugScenarios
     {
         string[] playerFacingPaths =
         {
-            "Assets/Scripts/Services/Exterior/ExteriorIncidentHandlers.cs",
+            "Assets/Scripts/Services/Infrastructure/Exterior/ExteriorIncidentHandlers.cs",
             "Assets/Scripts/Services/Infrastructure/DungeonGameSaveService.cs",
             "Assets/Scripts/Services/Offense/OffenseRegionRuntime.cs",
             "Assets/Scripts/Services/Offense/OffenseReturnArrivalRuntime.cs",
-            "Assets/Scripts/Services/Research/KnowledgeResidueProcessingRuntime.cs",
+            "Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs",
             "Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs",
             "Assets/Scripts/Services/Offense/OffenseWorldMapService.cs"
         };

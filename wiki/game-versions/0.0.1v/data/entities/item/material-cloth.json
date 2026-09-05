@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "6"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "의복, 붕대와 가벼운 방어구의 주재료이다. 노르칸드라 상단은 천을 하르나크 재단소에 넘길 때 뿔, 날개와 꼬리용 재단 여유를 따로 표시한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-cloth",
+  "spoiler_tier": "none",
+  "summary": "의복, 붕대와 가벼운 방어구의 주재료.",
+  "title": "천"
+}

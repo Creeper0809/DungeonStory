@@ -182,6 +182,14 @@ public sealed class ProductionPreparedOutputRestoreJoin :
                  query.Batches.OrderBy(value => value.BatchCommitId,
                      StringComparer.Ordinal))
         {
+            // Custom producers are joined by the common domain-output restore
+            // guard against their registered durable owner sources.
+            if (incoming?.BatchCommitId.StartsWith(
+                    ProductionDomainOutputPublicationIdentity.BatchCommitPrefix,
+                    StringComparison.Ordinal) == true)
+            {
+                continue;
+            }
             if (incoming == null
                 || !incomingIds.Add(incoming.BatchCommitId)
                 || !owners.TryGetValue(incoming.BatchCommitId, out var owner)
@@ -362,7 +370,7 @@ public sealed class ProductionPreparedOutputRestoreJoin :
     private static bool IsPhysicalLine(
         ProductionPreparedOutputLineSaveData line) =>
         line != null
-        && line.role != ProductionOutputRole.DeclaredLoss
+        && ProductionOutputRoleRules.IsPhysical(line.role)
         && line.rollSucceeded
         && line.quantity > 0;
 }

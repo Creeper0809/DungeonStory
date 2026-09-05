@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1041",
+    "spoiler_tier": "none",
+    "title": "사격과녁"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9104",
+      "label": "관련",
+      "to": "facility/building-1041",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-ranged-positions",
+      "label": "시설 해금",
+      "to": "facility/building-1041",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

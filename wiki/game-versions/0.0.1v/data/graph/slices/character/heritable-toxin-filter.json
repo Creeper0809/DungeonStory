@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-toxin-filter",
+    "spoiler_tier": "none",
+    "title": "독소 여과 기관"
+  },
+  "edges": [],
+  "schema_version": 1
+}

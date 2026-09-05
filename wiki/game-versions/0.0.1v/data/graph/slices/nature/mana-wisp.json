@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "mana-wisp",
+    "spoiler_tier": "none",
+    "title": "마나도깨비불"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/mana-wisp",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-mana-pox",
+      "target_spoiler_tier": "none",
+      "target_title": "마나두창",
+      "to": "medical/disease-mana-pox",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/mana-wisp",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "rune-deer",
+      "target_spoiler_tier": "none",
+      "target_title": "룬사슴",
+      "to": "nature/rune-deer",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

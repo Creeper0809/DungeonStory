@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "106"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "세척한 섬유와 결합재를 오염 없이 굳혀 수술 도구와 보철 외피에 쓰는 복합재다. 밀로세아 가도를 지나는 무균 복합재는 봉인된 상자째 검사하며, 색실이 끊긴 것은 의료용으로 받지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-sterile-composite",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 무균 복합재.",
+  "title": "무균 복합재"
+}

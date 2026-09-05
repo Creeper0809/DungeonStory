@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "40"
+    },
+    {
+      "label": "필요 연구",
+      "value": "의식 장식"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-dreamweave-ritual-banner",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 의식 장식",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-gold-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "금괴",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-authority-ritual",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 장식",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-craft-dreamweave-ritual-banner",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 몽직물 의식 장식을(를) 생산한다.",
+  "title": "몽직물 의식 장식"
+}

@@ -82,10 +82,11 @@ public static class GrandProjectSaveValidation
         string destinationId = state.destinationId ?? string.Empty;
         if (activeProjectId.Length == 0)
         {
-            if (destinationId.Length != 0 || state.completedWork != 0f)
+            if (destinationId.Length != 0 || state.completedWork != 0f
+                || !HasCanonicalEmptyInputOwner(state))
             {
                 report.AddError(
-                    "Inactive grand-project state must have an empty destination and zero work.");
+                    "Inactive grand-project state must have empty work and input-owner authority.");
             }
             return;
         }
@@ -100,7 +101,8 @@ public static class GrandProjectSaveValidation
                 "Grand-project payload has an unknown, completed, or non-canonical active project.");
             return;
         }
-        string expectedDestination = $"grand-project:{activeProjectId}";
+        string expectedDestination = EconomyProjectInputOwnerAuthority
+            .BuildGrandProjectDestinationId(activeProjectId);
         if (!string.Equals(
             destinationId,
             expectedDestination,
@@ -116,6 +118,12 @@ public static class GrandProjectSaveValidation
             report.AddError(
                 $"Grand-project '{activeProjectId}' has invalid completed work.");
         }
+        if (!IsCanonical(state.inputOwnerFacilityId)
+            || state.inputCapacityGrams <= 0L
+            || state.inputMassAuthorityRevision <= 0L
+            || !IsLowerSha256(state.inputCapacityFingerprint))
+            report.AddError(
+                $"Grand-project '{activeProjectId}' has invalid exact input-owner provenance.");
     }
 
     private static bool IsCanonical(string value) =>
@@ -124,6 +132,23 @@ public static class GrandProjectSaveValidation
 
     private static bool IsFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value);
+
+    private static bool HasCanonicalEmptyInputOwner(
+        GrandProjectRuntimeState state) =>
+        string.IsNullOrEmpty(state.inputOwnerFacilityId)
+        && state.inputDestinationX == 0
+        && state.inputDestinationY == 0
+        && state.inputCapacityGrams == 0L
+        && state.inputMassAuthorityRevision == 0L
+        && string.IsNullOrEmpty(state.inputCapacityFingerprint);
+
+    private static bool IsLowerSha256(string value)
+    {
+        if (value?.Length != 64)
+            return false;
+        return value.All(character => character is >= '0' and <= '9'
+            or >= 'a' and <= 'f');
+    }
 
     private static void ValidatePendingPhysicalCommit(
         GrandProjectRuntimeState state,

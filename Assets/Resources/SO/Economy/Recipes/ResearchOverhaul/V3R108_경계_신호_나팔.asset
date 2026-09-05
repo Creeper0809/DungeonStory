@@ -54,11 +54,21 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:iron-ingot
-    amount: 1
+    amount: 2
   - itemId: material:leather
     amount: 1
+  - itemId: resource:rune-dust
+    amount: 2
   outputs:
   - outputLineId: output:recipe:tool:watch-signal-horn/000/main/tool:watch-signal-horn
     role: 0

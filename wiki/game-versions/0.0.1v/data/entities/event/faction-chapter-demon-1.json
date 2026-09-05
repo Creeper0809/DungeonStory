@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-demon-1",
+  "spoiler_tier": "warning",
+  "summary": "계약정 사절이 세 번 봉인된 협정의 증인을 요구한다.",
+  "title": "세 번 접힌 계약"
+}

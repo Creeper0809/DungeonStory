@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "relic-faction-golem-1",
+    "spoiler_tier": "none",
+    "title": "자기각인 핵편"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-golem",
+      "label": "관련",
+      "to": "item/relic-faction-golem-1",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

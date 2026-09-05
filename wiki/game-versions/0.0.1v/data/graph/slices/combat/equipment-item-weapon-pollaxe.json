@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-weapon-pollaxe",
+    "spoiler_tier": "none",
+    "title": "폴액스"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-pollaxe",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

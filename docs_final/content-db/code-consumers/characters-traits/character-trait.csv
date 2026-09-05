@@ -1,0 +1,27 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,ai-decision,structural-type-consumer,Assets/Scripts/Services/Character/AI/Idle/IdleBehavior.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterPopulationService.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterProgression.cs
+CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterProgressionProfileProjector.cs
+CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterTraitSelectionRules.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/StartPartyPreparationService.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityDomainAdapters.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs
+CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Identity/Runtime/CharacterPersistentNeedClock.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Identity/Runtime/CharacterRitualFastingRuntime.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs
+CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/ReproductionApplicationAdapter.cs
+CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterModelData.cs
+CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterRuntimeProfileFactory.cs
+CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterSO.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropHarvestReachableMaximumWitnessAuthority.cs
+CharacterTraitSO,content-type,,type-reference,services:effects,persistence,structural-type-consumer,Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs
+CharacterTraitSO,content-type,,type-reference,services:effects,runtime,structural-type-consumer,Assets/Scripts/Services/Effects/Runtime/CharacterGameplayEffectProjector.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs
+CharacterTraitSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseCombatAbilities.cs
+CharacterTraitSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentResolutionService.cs
+CharacterTraitSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Character/UI/StartPartyMemberDetailRenderer.cs
+CharacterTraitSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs

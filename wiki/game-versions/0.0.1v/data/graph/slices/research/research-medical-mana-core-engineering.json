@@ -1,0 +1,65 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-mana-core-engineering",
+    "spoiler_tier": "none",
+    "title": "마핵 공학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-mana-core-engineering",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-aberrant-augmentation",
+      "target_spoiler_tier": "none",
+      "target_title": "이형 개조",
+      "to": "research/research-medical-aberrant-augmentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-mana-core-engineering",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-aberrant-augmentation",
+      "target_spoiler_tier": "none",
+      "target_title": "이형 개조",
+      "to": "research/research-medical-aberrant-augmentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-mana-core-engineering",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-aberrant-augmentation",
+      "target_spoiler_tier": "none",
+      "target_title": "이형 개조",
+      "to": "research/research-medical-aberrant-augmentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-demon-heat-sac",
+      "label": "필요 조건",
+      "to": "research/research-medical-mana-core-engineering",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-demon-mana-core-suture",
+      "label": "필요 조건",
+      "to": "research/research-medical-mana-core-engineering",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-mana-core-case",
+      "label": "필요 조건",
+      "to": "research/research-medical-mana-core-engineering",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

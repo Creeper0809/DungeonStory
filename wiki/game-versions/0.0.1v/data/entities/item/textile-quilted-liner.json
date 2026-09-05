@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.95kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "21"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "얇은 천 사이에 충전재를 고르게 넣고 누벼 의복과 방어구 안쪽에 덧대는 내피다. 밀로세아 가도의 층상 충전재 두루마리는 눌린 두께를 끝단에 적어 운송 뒤 다시 펼칠 시간을 가늠한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "textile-quilted-liner",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 층상 충전재.",
+  "title": "층상 충전재"
+}

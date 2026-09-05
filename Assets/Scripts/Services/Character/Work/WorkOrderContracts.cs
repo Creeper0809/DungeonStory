@@ -66,6 +66,10 @@ public sealed class WorkOrderSaveData
     public float requiredWork;
     public float completedWork;
     public string materialDestinationId = string.Empty;
+    public string constructionSitePersistentId = string.Empty;
+    public long materialBufferCapacityGrams;
+    public long materialMassAuthorityRevision;
+    public string materialCapacityFingerprint = string.Empty;
     public string reservedWorkerPersistentId = string.Empty;
     public WorkerSelectionPolicySaveData workerPolicy =
         WorkerSelectionPolicySaveData.Anyone();
@@ -73,7 +77,9 @@ public sealed class WorkOrderSaveData
     public CraftQualityRollSaveData qualityRoll;
     public string qualityPipelineId = string.Empty;
     public int qualityAttemptIndex;
+    public string destructiveDrainOperationId = string.Empty;
     public bool facilityRemovedForRetry;
+    public bool cancelRebuildAfterDestructiveDrain;
     public List<WorkOrderItemMaterialSaveData> recoveryOutputs = new();
     public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
     public List<WorkOrderItemMaterialSaveData> itemMaterials =
@@ -84,7 +90,7 @@ public sealed class WorkOrderSaveData
 [Serializable]
 public sealed class DungeonWorkOrderSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 8;
 
     public int version = CurrentVersion;
     public int nextOrderSequence = 1;
@@ -186,6 +192,10 @@ internal sealed class WorkOrderRecord
     // Save contracts remain float-compatible; restore seeds this value once.
     public double preciseCompletedWork;
     public string materialDestinationId = string.Empty;
+    public string constructionSitePersistentId = string.Empty;
+    public long materialBufferCapacityGrams;
+    public long materialMassAuthorityRevision;
+    public string materialCapacityFingerprint = string.Empty;
     public string reservedWorkerPersistentId = string.Empty;
     public WorkerSelectionPolicySaveData workerPolicy =
         WorkerSelectionPolicySaveData.Anyone();
@@ -193,7 +203,9 @@ internal sealed class WorkOrderRecord
     public CraftQualityRollSaveData qualityRoll;
     public string qualityPipelineId = string.Empty;
     public int qualityAttemptIndex;
+    public string destructiveDrainOperationId = string.Empty;
     public bool facilityRemovedForRetry;
+    public bool cancelRebuildAfterDestructiveDrain;
     public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
     public readonly Dictionary<string, int> requiredItemMaterials =
         new Dictionary<string, int>(StringComparer.Ordinal);
@@ -217,6 +229,10 @@ internal sealed class WorkOrderRecord
             completedWork = completedWork,
             preciseCompletedWork = preciseCompletedWork,
             materialDestinationId = materialDestinationId,
+            constructionSitePersistentId = constructionSitePersistentId,
+            materialBufferCapacityGrams = materialBufferCapacityGrams,
+            materialMassAuthorityRevision = materialMassAuthorityRevision,
+            materialCapacityFingerprint = materialCapacityFingerprint,
             reservedWorkerPersistentId = reservedWorkerPersistentId,
             workerPolicy = workerPolicy?.CloneNormalized()
                 ?? WorkerSelectionPolicySaveData.Anyone(),
@@ -229,7 +245,11 @@ internal sealed class WorkOrderRecord
             },
             qualityPipelineId = qualityPipelineId ?? string.Empty,
             qualityAttemptIndex = Math.Max(0, qualityAttemptIndex),
+            destructiveDrainOperationId =
+                destructiveDrainOperationId ?? string.Empty,
             facilityRemovedForRetry = facilityRemovedForRetry,
+            cancelRebuildAfterDestructiveDrain =
+                cancelRebuildAfterDestructiveDrain,
             status = status,
             materialTransfer = materialTransfer?.DeepClone()
                 ?? new WorkOrderMaterialTransferState()

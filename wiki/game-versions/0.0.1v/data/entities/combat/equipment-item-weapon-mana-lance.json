@@ -1,0 +1,48 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "룬 부품 조율"
+    },
+    {
+      "label": "제작 작업",
+      "value": "256"
+    },
+    {
+      "label": "무게",
+      "value": "4.9kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-rune-module-tuning",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 부품 조율",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-mana-lance",
+  "spoiler_tier": "none",
+  "summary": "마나 랜스 전투 장비",
+  "title": "마나 랜스"
+}

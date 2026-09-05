@@ -1,0 +1,58 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "carrion-drake",
+    "spoiler_tier": "none",
+    "title": "시체청소 비룡"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/carrion-drake",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-gut-rot",
+      "target_spoiler_tier": "none",
+      "target_title": "장부패증",
+      "to": "medical/disease-gut-rot",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/carrion-drake",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/carrion-drake",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-hare",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자토끼",
+      "to": "nature/shadow-hare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/cave-hound",
+      "label": "관련",
+      "to": "nature/carrion-drake",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/shadow-wolf",
+      "label": "관련",
+      "to": "nature/carrion-drake",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

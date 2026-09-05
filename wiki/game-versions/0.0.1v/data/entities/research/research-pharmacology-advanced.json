@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Pharmacology"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-stimulants",
+      "target_spoiler_tier": "none",
+      "target_title": "각성제",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-stimulants",
+      "target_spoiler_tier": "none",
+      "target_title": "각성제",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-stimulants",
+      "target_spoiler_tier": "none",
+      "target_title": "각성제",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-pharmacology-advanced",
+  "spoiler_tier": "none",
+  "summary": "의료와 연금 지식을 결합해 고급 약품과 해독제를 만든다.",
+  "title": "고급 약리"
+}

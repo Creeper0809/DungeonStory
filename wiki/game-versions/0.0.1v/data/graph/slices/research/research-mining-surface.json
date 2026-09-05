@@ -1,0 +1,60 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-mining-surface",
+    "spoiler_tier": "none",
+    "title": "노천 채석"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "recipe/recipe-resource-lead-ore",
+      "label": "필요 조건",
+      "to": "research/research-mining-surface",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-resource-sulfur",
+      "label": "필요 조건",
+      "to": "research/research-mining-surface",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-prospecting-kit",
+      "label": "필요 조건",
+      "to": "research/research-mining-surface",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-saltstone",
+      "label": "필요 조건",
+      "to": "research/research-mining-surface",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-quarry",
+      "label": "선행 연구",
+      "to": "research/research-mining-surface",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-quarry",
+      "label": "선행 연구",
+      "to": "research/research-mining-surface",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-quarry",
+      "label": "선행 연구",
+      "to": "research/research-mining-surface",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

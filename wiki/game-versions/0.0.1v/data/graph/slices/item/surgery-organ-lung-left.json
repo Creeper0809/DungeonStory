@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-organ-lung-left",
+    "spoiler_tier": "none",
+    "title": "적출 왼쪽 폐"
+  },
+  "edges": [],
+  "schema_version": 1
+}

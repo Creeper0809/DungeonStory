@@ -1,0 +1,441 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,m_Name,festival_ash-oath,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,festivalId,festival:ash-oath,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,displayName,재의 맹세일,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,description,악마들이 지난 계약을 검토하고 지킬 약속만 다시 봉인한다.,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,season,3,Season,Winter,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,dayOfSeason,12,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,cultureId,culture:demon-contract,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,requiredBuildingDefinitionId,building:faction-audience-hall,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,requiredItems.0.itemDefinitionId,material:paper,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,requiredItems.0.amount,12,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,minimumParticipants,6,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,successOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,failureOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:ash-oath,festival:ash-oath,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,m_Name,festival_blood-lantern,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,festivalId,festival:blood-lantern,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,displayName,혈향 등불제,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,description,뱀파이어가 동의받은 혈향 촛불로 생존자와 사망자의 이름을 밝힌다.,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,season,2,Season,Autumn,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,dayOfSeason,30,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,convertsActiveGrief,1,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,cultureId,culture:vampire-nightcourt,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,requiredBuildingDefinitionId,workstation:v19:memorial-room,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,requiredItems.0.itemDefinitionId,craft:candle,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,requiredItems.0.amount,8,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,minimumParticipants,6,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,successOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,successOutcome.griefConversionPercent,25,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,partialOutcome.griefConversionPercent,10,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,failureOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:blood-lantern,festival:blood-lantern,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,m_Name,festival_clear-confluence,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,festivalId,festival:clear-confluence,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,displayName,맑은 합류제,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,description,슬라임 가구가 깨끗한 수조에서 색과 기억을 나눈다.,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,season,1,Season,Summer,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,dayOfSeason,20,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,cultureId,culture:slime-confluence,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,requiredBuildingDefinitionId,building:clean-water-reservoir,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,requiredItems.0.itemDefinitionId,resource:clean-water,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,requiredItems.0.amount,24,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,minimumParticipants,8,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,successOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,failureOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:clear-confluence,festival:clear-confluence,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,m_Name,festival_core-resonance,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,festivalId,festival:core-resonance,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,displayName,핵 공명일,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,description,골렘들이 정비된 핵의 주파수를 맞추고 기억판을 교환한다.,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,season,1,Season,Summer,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,dayOfSeason,6,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,cultureId,culture:golem-core,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,requiredBuildingDefinitionId,building:rune-tuning-room,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,requiredItems.0.itemDefinitionId,tool:maintenance-kit,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,requiredItems.0.amount,2,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,minimumParticipants,5,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,successOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,failureOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:core-resonance,festival:core-resonance,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,m_Name,festival_dungeon-accord-day,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,festivalId,festival:dungeon-accord-day,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,displayName,던전 협약 기념일,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,description,세력 사절과 직원이 공동 방어·구호 계약의 이행을 공개 점검한다.,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,season,2,Season,Autumn,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,dayOfSeason,12,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,cultureId,,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,requiredBuildingDefinitionId,building:faction-audience-hall,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,requiredItems.0.itemDefinitionId,craft:dreamweave-ritual-banner,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,requiredItems.0.amount,1,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,minimumParticipants,12,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,successOutcome.factionRapportDelta,3,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,failureOutcome.factionRapportDelta,-2,,,explicit-serialized
+FestivalDefinitionSO|festival:dungeon-accord-day,festival:dungeon-accord-day,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,m_Name,festival_frontier-map-night,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,festivalId,festival:frontier-map-night,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,displayName,지도에 불을 밝히는 밤,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,description,개척자들이 귀환 경로와 미귀환자의 이름을 지도에 남긴다.,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,season,0,Season,Spring,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,dayOfSeason,22,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,cultureId,culture:adventurer-frontier,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,requiredBuildingDefinitionId,building:expedition-map-room,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,requiredItems.0.itemDefinitionId,material:paper,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,requiredItems.0.amount,8,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,minimumParticipants,6,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,successOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,failureOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:frontier-map-night,festival:frontier-map-night,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/Population/Festivals/festival_high-sun.asset,festival:high-sun,m_Name,festival_high-sun,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/Population/Festivals/festival_high-sun.asset,festival:high-sun,festivalId,festival:high-sun,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/Population/Festivals/festival_high-sun.asset,festival:high-sun,displayName,고일제,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/Population/Festivals/festival_high-sun.asset,festival:high-sun,season,1,Season,Summer,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/Population/Festivals/festival_high-sun.asset,festival:high-sun,dayOfSeason,15,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/Population/Festivals/festival_high-sun.asset,festival:high-sun,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,m_Name,festival_high-sun,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,festivalId,festival:high-sun,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,displayName,고일제,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,description,가장 긴 작업일 뒤 차가운 음료와 공연으로 여름 피로를 푼다.,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,season,1,Season,Summer,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,dayOfSeason,15,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,cultureId,,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,requiredBuildingDefinitionId,building:festival-common-hall,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,requiredItems.0.itemDefinitionId,food:twilight-beer,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,requiredItems.0.amount,8,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,minimumParticipants,8,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,successOutcome.factionRapportDelta,3,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,failureOutcome.factionRapportDelta,-2,,,explicit-serialized
+FestivalDefinitionSO|festival:high-sun|Assets/Resources/SO/V20/Society/Festivals/festival_high-sun.asset,festival:high-sun,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/Population/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,m_Name,festival_long-night-memorial,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/Population/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,festivalId,festival:long-night-memorial,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/Population/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,displayName,긴밤 추모제,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/Population/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,season,3,Season,Winter,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/Population/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,dayOfSeason,30,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/Population/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,convertsActiveGrief,1,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,m_Name,festival_long-night-memorial,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,festivalId,festival:long-night-memorial,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,displayName,긴밤 추모제,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,description,한 해의 사망자를 함께 기억하고 남은 슬픔을 결의로 바꾼다.,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,season,3,Season,Winter,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,dayOfSeason,30,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,convertsActiveGrief,1,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,cultureId,,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,requiredBuildingDefinitionId,workstation:v19:memorial-room,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,requiredItems.0.itemDefinitionId,craft:candle,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,requiredItems.0.amount,12,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,minimumParticipants,10,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,successOutcome.factionRapportDelta,3,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,successOutcome.griefConversionPercent,25,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,partialOutcome.griefConversionPercent,10,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,failureOutcome.factionRapportDelta,-2,,,explicit-serialized
+FestivalDefinitionSO|festival:long-night-memorial|Assets/Resources/SO/V20/Society/Festivals/festival_long-night-memorial.asset,festival:long-night-memorial,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,m_Name,festival_many-tables,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,festivalId,festival:many-tables,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,displayName,열 문화의 식탁,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,description,서로의 금기를 표시한 열 개의 작은 식탁을 돌며 대체식을 나눈다.,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,season,1,Season,Summer,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,dayOfSeason,28,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,cultureId,,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,requiredBuildingDefinitionId,building:festival-common-hall,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,requiredItems.0.itemDefinitionId,food:lavish-vegan,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,requiredItems.0.amount,8,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,minimumParticipants,20,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,successOutcome.factionRapportDelta,3,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,failureOutcome.factionRapportDelta,-2,,,explicit-serialized
+FestivalDefinitionSO|festival:many-tables,festival:many-tables,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,m_Name,festival_open-sky-chorus,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,festivalId,festival:open-sky-chorus,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,displayName,열린 하늘 합창,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,description,하피가 높은 통로를 비우고 계절 바람의 변화를 합창으로 기록한다.,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,season,0,Season,Spring,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,dayOfSeason,10,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,cultureId,culture:harpy-aerie,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,requiredBuildingDefinitionId,building:weather-observation-tower,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,requiredItems.0.itemDefinitionId,resource:night-grape,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,requiredItems.0.amount,10,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,minimumParticipants,6,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,successOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,failureOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:open-sky-chorus,festival:open-sky-chorus,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,m_Name,festival_pack-first-hunt,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,festivalId,festival:pack-first-hunt,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,displayName,무리의 첫사냥,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,description,수인 무리가 공동 사냥과 고기 분배로 새 계절의 결속을 확인한다.,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,season,2,Season,Autumn,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,dayOfSeason,8,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,cultureId,culture:beastkin-pack,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,requiredBuildingDefinitionId,building:festival-common-hall,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,requiredItems.0.itemDefinitionId,resource:meat,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,requiredItems.0.amount,18,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,minimumParticipants,8,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,successOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,failureOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:pack-first-hunt,festival:pack-first-hunt,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,m_Name,festival_spore-bloom,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,festivalId,festival:spore-bloom,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,displayName,포자 개화제,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,description,균사체가 배양 정원의 향과 포자를 섞어 공동 기억을 갱신한다.,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,season,0,Season,Spring,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,dayOfSeason,25,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,cultureId,culture:myconid-grove,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,requiredBuildingDefinitionId,building:cave-growing-rack,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,requiredItems.0.itemDefinitionId,resource:cave-mushroom,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,requiredItems.0.amount,14,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,minimumParticipants,6,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,successOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,failureOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:spore-bloom,festival:spore-bloom,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/Population/Festivals/festival_sprout.asset,festival:sprout,m_Name,festival_sprout,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/Population/Festivals/festival_sprout.asset,festival:sprout,festivalId,festival:sprout,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/Population/Festivals/festival_sprout.asset,festival:sprout,displayName,새싹제,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/Population/Festivals/festival_sprout.asset,festival:sprout,season,0,Season,Spring,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/Population/Festivals/festival_sprout.asset,festival:sprout,dayOfSeason,15,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/Population/Festivals/festival_sprout.asset,festival:sprout,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,m_Name,festival_sprout,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,festivalId,festival:sprout,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,displayName,새싹제,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,description,첫 파종과 겨울 비축의 끝을 함께 기념한다.,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,season,0,Season,Spring,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,dayOfSeason,15,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,cultureId,,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,requiredBuildingDefinitionId,building:festival-common-hall,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,requiredItems.0.itemDefinitionId,seed-lot:twilight-grain,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,requiredItems.0.amount,12,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,minimumParticipants,8,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,successOutcome.factionRapportDelta,3,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,failureOutcome.factionRapportDelta,-2,,,explicit-serialized
+FestivalDefinitionSO|festival:sprout|Assets/Resources/SO/V20/Society/Festivals/festival_sprout.asset,festival:sprout,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/Population/Festivals/festival_storage.asset,festival:storage,m_Name,festival_storage,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/Population/Festivals/festival_storage.asset,festival:storage,festivalId,festival:storage,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/Population/Festivals/festival_storage.asset,festival:storage,displayName,저장제,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/Population/Festivals/festival_storage.asset,festival:storage,season,2,Season,Autumn,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/Population/Festivals/festival_storage.asset,festival:storage,dayOfSeason,25,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/Population/Festivals/festival_storage.asset,festival:storage,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,m_Name,festival_storage,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,festivalId,festival:storage,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,displayName,저장제,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,description,창고를 점검하고 첫 보존식을 나누며 겨울 준비를 선언한다.,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,season,2,Season,Autumn,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,dayOfSeason,25,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,cultureId,,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,requiredBuildingDefinitionId,building:festival-common-hall,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,requiredItems.0.itemDefinitionId,food:preserved-ration,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,requiredItems.0.amount,16,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,minimumParticipants,10,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,successOutcome.factionRapportDelta,3,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,failureOutcome.factionRapportDelta,-2,,,explicit-serialized
+FestivalDefinitionSO|festival:storage|Assets/Resources/SO/V20/Society/Festivals/festival_storage.asset,festival:storage,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,m_Name,festival_tool-clan-fair,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,festivalId,festival:tool-clan-fair,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,displayName,도구씨족 품평회,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,description,코볼트 씨족이 수리한 도구를 전시하고 가장 유용한 개선을 뽑는다.,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,season,2,Season,Autumn,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,dayOfSeason,18,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,convertsActiveGrief,0,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,cultureId,culture:kobold-toolclan,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,requiredBuildingDefinitionId,building:apprentice-workbench,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,requiredItems.0.itemDefinitionId,component:machine-parts,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,requiredItems.0.amount,2,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,minimumParticipants,6,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,successOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,successOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,partialOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,failureOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:tool-clan-fair,festival:tool-clan-fair,failureOutcome.griefConversionPercent,0,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,m_Name,festival_weapon-vigil,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,festivalId,festival:weapon-vigil,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,displayName,무기 철야제,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,description,오크들이 밤새 무기를 손질하며 승리와 실수를 같은 무게로 말한다.,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,authoringRevision,1,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,sourceNote,V20 hand-authored festival manifest.,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,season,3,Season,Winter,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,dayOfSeason,20,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,convertsActiveGrief,1,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,cultureId,culture:orc-vigil,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,requiredBuildingDefinitionId,building:armory,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,requiredItems.0.itemDefinitionId,material:charcoal,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,requiredItems.0.amount,12,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,minimumParticipants,8,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,successOutcome.moodDelta,6,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,successOutcome.moodDurationDays,10,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,successOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,successOutcome.griefConversionPercent,25,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,partialOutcome.moodDelta,2,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,partialOutcome.moodDurationDays,5,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,partialOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,partialOutcome.griefConversionPercent,10,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,failureOutcome.moodDelta,-3,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,failureOutcome.moodDurationDays,4,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,failureOutcome.factionRapportDelta,0,,,explicit-serialized
+FestivalDefinitionSO|festival:weapon-vigil,festival:weapon-vigil,failureOutcome.griefConversionPercent,0,,,explicit-serialized

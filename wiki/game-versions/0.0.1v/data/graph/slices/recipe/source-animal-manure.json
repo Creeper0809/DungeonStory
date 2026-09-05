@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "source-animal-manure",
+    "spoiler_tier": "none",
+    "title": "축사 분뇨"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/source-animal-manure",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-manure",
+      "target_spoiler_tier": "none",
+      "target_title": "분뇨",
+      "to": "item/resource-manure",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-animal-manure",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

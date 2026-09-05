@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-gold-ornament",
+    "spoiler_tier": "none",
+    "title": "금 장식"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-gold-ornament",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-gold-ornament",
+      "target_spoiler_tier": "none",
+      "target_title": "금 장식",
+      "to": "item/craft-gold-ornament",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-gold-ornament",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-gold-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "금괴",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-gold-ornament",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-gold-ornament",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-precious",
+      "target_spoiler_tier": "none",
+      "target_title": "귀금 세공",
+      "to": "research/research-metallurgy-precious",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

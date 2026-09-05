@@ -17,13 +17,18 @@ public sealed class ResearchWorkExecutionHandler :
     public ResearchWorkExecutionHandler(IBlueprintResearchWorkService researchWorkService)
         : this(
             researchWorkService,
-            UnavailableEquipmentPhysicalItemGateway.Instance,
+            (IEquipmentPhysicalItemGateway)
+                UnavailableEquipmentPhysicalItemGateway.Instance,
             new SingleResearchWorkforcePolicyQuery(),
-            new ProjectWorkforceRuntime())
+            new ProjectWorkforceRuntime(),
+            null,
+            null,
+            null,
+            null,
+            null)
     {
     }
 
-    [VContainer.Inject]
     public ResearchWorkExecutionHandler(
         IBlueprintResearchWorkService researchWorkService,
         IWorldItemStackRuntime items,
@@ -33,7 +38,36 @@ public sealed class ResearchWorkExecutionHandler :
             researchWorkService,
             (IEquipmentPhysicalItemGateway)items,
             workforcePolicy,
-            projectWorkforce)
+            projectWorkforce,
+            null,
+            null,
+            null,
+            null,
+            null)
+    {
+    }
+
+    [VContainer.Inject]
+    public ResearchWorkExecutionHandler(
+        IBlueprintResearchWorkService researchWorkService,
+        IWorldItemStackRuntime items,
+        IBlueprintResearchWorkforcePolicyQuery workforcePolicy,
+        IProjectWorkforceRuntime projectWorkforce,
+        IResearchDurableEquipmentWorkPolicyQuery equipmentWorkPolicies,
+        IDurableFacilityEquipmentPolicyQuery equipmentPolicies,
+        IDurableFacilityEquipmentSlotCommand equipmentSlots,
+        IDurableFacilityEquipmentSlotQuery equipmentSlotQuery,
+        IDurableFacilityEquipmentUseCommand equipmentUse)
+        : this(
+            researchWorkService,
+            (IEquipmentPhysicalItemGateway)items,
+            workforcePolicy,
+            projectWorkforce,
+            equipmentWorkPolicies,
+            equipmentPolicies,
+            equipmentSlots,
+            equipmentSlotQuery,
+            equipmentUse)
     {
     }
 
@@ -41,12 +75,22 @@ public sealed class ResearchWorkExecutionHandler :
         IBlueprintResearchWorkService researchWorkService,
         IEquipmentPhysicalItemGateway items,
         IBlueprintResearchWorkforcePolicyQuery workforcePolicy,
-        IProjectWorkforceRuntime projectWorkforce)
+        IProjectWorkforceRuntime projectWorkforce,
+        IResearchDurableEquipmentWorkPolicyQuery equipmentWorkPolicies,
+        IDurableFacilityEquipmentPolicyQuery equipmentPolicies,
+        IDurableFacilityEquipmentSlotCommand equipmentSlots,
+        IDurableFacilityEquipmentSlotQuery equipmentSlotQuery,
+        IDurableFacilityEquipmentUseCommand equipmentUse)
     {
         runtime = new DefaultResearchWorkRuntimePort(
             researchWorkService
                 ?? throw new ArgumentNullException(nameof(researchWorkService)),
-            items ?? throw new ArgumentNullException(nameof(items)));
+            items ?? throw new ArgumentNullException(nameof(items)),
+            equipmentWorkPolicies,
+            equipmentPolicies,
+            equipmentSlots,
+            equipmentSlotQuery,
+            equipmentUse);
         core = new DungeonStory.Work.ResearchWorkExecutionHandler(runtime);
         this.workforcePolicy = workforcePolicy
             ?? throw new ArgumentNullException(nameof(workforcePolicy));
@@ -194,14 +238,53 @@ public sealed class ResearchWorkExecutionHandler :
 public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
 {
     private readonly IBlueprintResearchWorkService service;
-    private readonly IEquipmentPhysicalItemGateway items;
+    private readonly IResearchDurableEquipmentWorkPolicyQuery
+        equipmentWorkPolicies;
+    private readonly IDurableFacilityEquipmentPolicyQuery equipmentPolicies;
+    private readonly IDurableFacilityEquipmentSlotCommand equipmentSlots;
+    private readonly IDurableFacilityEquipmentSlotQuery equipmentSlotQuery;
+    private readonly IDurableFacilityEquipmentUseCommand equipmentUse;
+    private readonly bool equipmentEnabled;
 
     public DefaultResearchWorkRuntimePort(
         IBlueprintResearchWorkService service,
         IEquipmentPhysicalItemGateway items)
+        : this(service, items, null, null, null, null, null)
+    {
+    }
+
+    public DefaultResearchWorkRuntimePort(
+        IBlueprintResearchWorkService service,
+        IEquipmentPhysicalItemGateway items,
+        IResearchDurableEquipmentWorkPolicyQuery equipmentWorkPolicies,
+        IDurableFacilityEquipmentPolicyQuery equipmentPolicies,
+        IDurableFacilityEquipmentSlotCommand equipmentSlots,
+        IDurableFacilityEquipmentSlotQuery equipmentSlotQuery,
+        IDurableFacilityEquipmentUseCommand equipmentUse)
     {
         this.service = service ?? throw new ArgumentNullException(nameof(service));
-        this.items = items ?? throw new ArgumentNullException(nameof(items));
+        _ = items ?? throw new ArgumentNullException(nameof(items));
+        bool anyEquipmentDependency = equipmentWorkPolicies != null
+            || equipmentPolicies != null
+            || equipmentSlots != null
+            || equipmentSlotQuery != null
+            || equipmentUse != null;
+        bool allEquipmentDependencies = equipmentWorkPolicies != null
+            && equipmentPolicies != null
+            && equipmentSlots != null
+            && equipmentSlotQuery != null
+            && equipmentUse != null;
+        if (anyEquipmentDependency && !allEquipmentDependencies)
+        {
+            throw new ArgumentException(
+                "Research durable-equipment runtime dependencies must be all present or all absent.");
+        }
+        this.equipmentWorkPolicies = equipmentWorkPolicies;
+        this.equipmentPolicies = equipmentPolicies;
+        this.equipmentSlots = equipmentSlots;
+        this.equipmentSlotQuery = equipmentSlotQuery;
+        this.equipmentUse = equipmentUse;
+        equipmentEnabled = allEquipmentDependencies;
     }
 
     public ResearchWorkerHandle CaptureWorker(object runtimeWorker)
@@ -241,28 +324,30 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
         float approvedWorkUnits)
     {
         BuildableObject target = RequireFacility(facility);
+        CharacterActor researcher = RequireWorker(worker);
         float appliedWorkUnits = Math.Max(0f, approvedWorkUnits);
-        WorldItemStackSnapshot index = FindArcaneIndex(target);
-        if (index != null)
+        BlueprintResearchWorkResult result;
+        if (!equipmentEnabled)
         {
-            appliedWorkUnits *= 1.1f;
-            float current = DurableToolItemRules.ReadCurrentDurability(
-                index.ItemId,
-                index.Components);
-            items.TrySetInstanceComponent(
-                index.StackId,
-                DurableToolItemRules.CreateDurability(
-                    index.ItemId,
-                    current - Math.Max(0f, approvedWorkUnits) * 0.01f));
+            result = service.ApplyApprovedResearchWork(
+                researcher,
+                target,
+                appliedWorkUnits);
         }
-        else
+        else if (!TryApplyRegisteredEquipmentWork(
+                     researcher,
+                     target,
+                     appliedWorkUnits,
+                     out result,
+                     out string equipmentFailure))
         {
-            RequestArcaneIndex(target);
+            return new ResearchWorkProgressResult(
+                false,
+                false,
+                0f,
+                equipmentFailure,
+                equipmentFailure);
         }
-        BlueprintResearchWorkResult result = service.ApplyApprovedResearchWork(
-            RequireWorker(worker),
-            target,
-            appliedWorkUnits);
         string label = result.Blueprint != null
             ? result.Blueprint.DisplayName
             : result.Message;
@@ -274,36 +359,191 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
             result.Success ? string.Empty : result.Message);
     }
 
-    private WorldItemStackSnapshot FindArcaneIndex(BuildableObject facility)
+    private bool TryApplyRegisteredEquipmentWork(
+        CharacterActor researcher,
+        BuildableObject target,
+        float approvedWorkUnits,
+        out BlueprintResearchWorkResult result,
+        out string failureReason)
     {
-        string destinationId = facility.PersistentInstanceId.Value;
-        return items.GetAllStacks()
-            .Where(stack => stack != null
-                && stack.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
-                && string.Equals(stack.ItemId, DurableToolItemRules.ArcaneIndex, StringComparison.Ordinal)
-                && DurableToolItemRules.ReadCurrentDurability(stack.ItemId, stack.Components) > 0f)
-            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
-            .FirstOrDefault();
+        result = default;
+        failureReason = string.Empty;
+        if (!equipmentWorkPolicies.TryResolve(
+                target,
+                out ResearchDurableEquipmentWorkPolicy workPolicy,
+                out failureReason))
+        {
+            return false;
+        }
+        if (!equipmentPolicies.TryGetPolicy(
+                workPolicy.EquipmentPolicyId,
+                out DurableFacilityEquipmentPolicy equipmentPolicy))
+        {
+            failureReason = "research-durable-equipment-policy-unregistered:"
+                + workPolicy.EquipmentPolicyId;
+            return false;
+        }
+        if (!string.Equals(
+                equipmentPolicy.UsabilityPolicyKind,
+                workPolicy.WearPolicyKind,
+                StringComparison.Ordinal))
+        {
+            failureReason =
+                "research-durable-equipment-wear-policy-mismatch";
+            return false;
+        }
+        BuildingInstanceId facilityId = target.RequirePersistentInstanceId();
+        DurableFacilityEquipmentAssignment assignment =
+            equipmentPolicy.CreateAssignment(
+                facilityId.Value,
+                facilityId,
+                target.centerPos);
+        DurableFacilityEquipmentSlotResult reconciled =
+            equipmentSlots.TryReconcile(assignment);
+        if (!reconciled.Succeeded)
+        {
+            failureReason = Canonical(reconciled.FailureReason)
+                ? reconciled.FailureReason
+                : "research-durable-equipment-reconcile-failed";
+            return false;
+        }
+
+        DurableFacilityEquipmentSlotResult supplied =
+            equipmentSlots.TryEnsureSupply(assignment.Key);
+        if (supplied.Status == DurableFacilityEquipmentSlotStatus.Conflict)
+        {
+            failureReason = Canonical(supplied.FailureReason)
+                ? supplied.FailureReason
+                : "research-durable-equipment-supply-conflict";
+            return false;
+        }
+        if (!equipmentSlotQuery.TryCapture(
+                assignment.Key,
+                out DurableFacilityEquipmentSlotSnapshot slot))
+        {
+            failureReason = "research-durable-equipment-slot-missing";
+            return false;
+        }
+        if (!slot.SupplyReady)
+        {
+            result = service.ApplyApprovedResearchWork(
+                researcher,
+                target,
+                approvedWorkUnits);
+            return true;
+        }
+
+        ResearchEquipmentEffectCommit effect = new(
+            service,
+            researcher,
+            target,
+            workPolicy,
+            approvedWorkUnits);
+        double wearAmount = checked(
+            (double)approvedWorkUnits * workPolicy.WearPerApprovedWorkUnit);
+        DurableFacilityEquipmentUseResult use =
+            equipmentUse.TryApplyWearAndEffect(
+                assignment.Key,
+                workPolicy.RequirementId,
+                wearAmount,
+                effect);
+        if (!use.Succeeded)
+        {
+            failureReason = Canonical(use.FailureReason)
+                ? use.FailureReason
+                : "research-durable-equipment-use-failed";
+            return false;
+        }
+        result = effect.Result;
+        if (!result.Success)
+        {
+            failureReason = "research-durable-equipment-effect-result-missing";
+            return false;
+        }
+        return true;
     }
 
-    private void RequestArcaneIndex(BuildableObject facility)
+    private sealed class ResearchEquipmentEffectCommit :
+        IDurableFacilityEquipmentEffectCommit
     {
-        string destinationId = facility.PersistentInstanceId.Value;
-        if (items.GetAllStacks().Any(stack => stack != null
-                && string.Equals(stack.ItemId, DurableToolItemRules.ArcaneIndex, StringComparison.Ordinal)
-                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)))
+        private readonly IBlueprintResearchWorkService service;
+        private readonly CharacterActor researcher;
+        private readonly BuildableObject facility;
+        private readonly ResearchDurableEquipmentWorkPolicy policy;
+        private readonly float approvedWorkUnits;
+
+        internal ResearchEquipmentEffectCommit(
+            IBlueprintResearchWorkService service,
+            CharacterActor researcher,
+            BuildableObject facility,
+            ResearchDurableEquipmentWorkPolicy policy,
+            float approvedWorkUnits)
         {
-            return;
+            this.service = service;
+            this.researcher = researcher;
+            this.facility = facility;
+            this.policy = policy;
+            this.approvedWorkUnits = approvedWorkUnits;
         }
-        items.TryRequestItemDelivery(
-            DurableToolItemRules.ArcaneIndex,
-            1,
-            facility.centerPos,
-            destinationId,
-            out _,
-            out _);
+
+        public string EffectKind => policy.EffectKind;
+        internal BlueprintResearchWorkResult Result { get; private set; }
+
+        public bool TryPreflight(
+            DurableFacilityEquipmentSlotSnapshot slot,
+            DurableFacilityEquipmentRequirement requirement,
+            DurableFacilityEquipmentUseSubject subject,
+            double wearAmount,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            if (slot == null
+                || requirement == null
+                || subject == null
+                || !string.Equals(
+                    slot.PolicyId,
+                    policy.EquipmentPolicyId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    requirement.RequirementId,
+                    policy.RequirementId,
+                    StringComparison.Ordinal)
+                || researcher == null
+                || facility == null
+                || approvedWorkUnits <= 0f
+                || !service.HasResearchWorkFor(facility))
+            {
+                failureReason = "research-durable-equipment-effect-preflight-rejected";
+                return false;
+            }
+            return true;
+        }
+
+        public bool TryCommit(
+            DurableFacilityEquipmentUseContext context,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            float boosted = checked(
+                approvedWorkUnits * (float)policy.EffectMultiplier);
+            Result = service.ApplyApprovedResearchWork(
+                researcher,
+                facility,
+                boosted);
+            if (!Result.Success)
+            {
+                failureReason = Canonical(Result.Message)
+                    ? Result.Message
+                    : "research-durable-equipment-effect-rejected";
+                return false;
+            }
+            return true;
+        }
     }
+
+    private static bool Canonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     private static CharacterActor RequireWorker(ResearchWorkerHandle handle) =>
         handle?.RuntimeObject as CharacterActor

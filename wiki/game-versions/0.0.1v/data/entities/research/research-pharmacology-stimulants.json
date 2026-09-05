@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Pharmacology"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-pharmacology-stimulants",
+  "spoiler_tier": "none",
+  "summary": "혈엽과 마나로 전투·작업 촉진제를 만든다.",
+  "title": "각성제"
+}

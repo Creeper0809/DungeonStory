@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-spin-shade-cloth",
+    "spoiler_tier": "none",
+    "title": "그늘천 방적"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-spin-shade-cloth",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "yarn-shade-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "그늘천 원사",
+      "to": "item/yarn-shade-cloth",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-shade-cloth",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-shade-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "그늘섬유",
+      "to": "item/resource-shade-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-shade-cloth",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-spin-shade-cloth",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

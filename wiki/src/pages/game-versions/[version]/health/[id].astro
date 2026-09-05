@@ -1,0 +1,14 @@
+---
+import BaseLayout from '../../../../components/BaseLayout.astro';
+import AnatomyReferenceContent from '../../../../components/AnatomyReferenceContent.astro';
+import { getAnatomyReference, hasGameVersion } from '../../../../lib/wiki-data';
+
+const version = Astro.params.version ?? '';
+if (!hasGameVersion(version)) return new Response(null, { status: 404 });
+const reference = getAnatomyReference(version, Astro.params.id ?? '');
+if (!reference) return new Response(null, { status: 404 });
+---
+
+<BaseLayout title={reference.title} version={version} historical currentHref={`/health/${reference.id}/`}>
+  <AnatomyReferenceContent reference={reference} version={version} historical />
+</BaseLayout>

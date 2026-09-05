@@ -1,0 +1,88 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-medical-whole-body-regeneration-medium",
+    "spoiler_tier": "none",
+    "title": "전신 재생 배지"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-whole-body-regeneration-medium",
+      "target_spoiler_tier": "none",
+      "target_title": "전신 재생 배지",
+      "to": "item/medical-whole-body-regeneration-medium",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-mycelial-culture-pack",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 배양 팩",
+      "to": "item/medicine-mycelial-culture-pack",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-sterile-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 천",
+      "to": "item/textile-sterile-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-whole-body-regeneration",
+      "target_spoiler_tier": "none",
+      "target_title": "전신 재생",
+      "to": "research/research-medical-whole-body-regeneration",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

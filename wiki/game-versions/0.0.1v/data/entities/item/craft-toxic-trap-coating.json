@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "22"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "함정의 날과 촉에 얇게 발라 상처로 독이 스며들게 하는 도포제다. 밀로세아 가도를 지나는 독성 함정 도포제 항아리는 새지 않았는지 검문소마다 봉인 가장자리를 다시 확인한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "craft-toxic-trap-coating",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 독성 함정 도포제.",
+  "title": "독성 함정 도포제"
+}

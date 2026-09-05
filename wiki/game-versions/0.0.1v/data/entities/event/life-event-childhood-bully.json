@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Childhood"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-childhood-bully",
+      "target_spoiler_tier": "warning",
+      "target_title": "놀림의 대가",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "5",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-childhood-bully",
+      "target_spoiler_tier": "warning",
+      "target_title": "놀림의 대가",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-childhood-bully",
+  "spoiler_tier": "warning",
+  "summary": "문화가 다른 아이를 향한 반복적인 놀림이 다툼으로 번졌다.",
+  "title": "놀림의 대가"
+}

@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "일반"
+    },
+    {
+      "label": "성향",
+      "value": "상충"
+    },
+    {
+      "label": "효과",
+      "value": "2개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-201",
+  "spoiler_tier": "none",
+  "summary": "작은 경보에도 깨지만 소음이 있는 방에서는 쉬기 어렵다.",
+  "title": "얕은 잠"
+}

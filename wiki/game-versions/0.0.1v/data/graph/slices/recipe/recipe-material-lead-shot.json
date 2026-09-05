@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-material-lead-shot",
+    "spoiler_tier": "none",
+    "title": "납탄"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-lead-shot",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lead-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "납괴",
+      "to": "item/material-lead-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "12",
+      "from": "recipe/recipe-material-lead-shot",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-lead-shot",
+      "target_spoiler_tier": "none",
+      "target_title": "납탄",
+      "to": "item/material-lead-shot",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-lead-shot",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-standard-ammunition",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약 규격화",
+      "to": "research/research-equipment-standard-ammunition",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

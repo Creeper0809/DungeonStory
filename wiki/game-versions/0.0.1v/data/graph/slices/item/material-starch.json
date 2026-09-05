@@ -1,0 +1,53 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-starch",
+    "spoiler_tier": "none",
+    "title": "전분"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-paper-paste",
+      "label": "필요 조건",
+      "to": "item/material-starch",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-cartridge-paper",
+      "label": "필요 조건",
+      "to": "item/material-starch",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-textile-hardener",
+      "label": "필요 조건",
+      "to": "item/material-starch",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-expedition-ration-pack",
+      "label": "필요 조건",
+      "to": "item/material-starch",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-preserved-ration",
+      "label": "필요 조건",
+      "to": "item/material-starch",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-starch",
+      "label": "생산·해금",
+      "to": "item/material-starch",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

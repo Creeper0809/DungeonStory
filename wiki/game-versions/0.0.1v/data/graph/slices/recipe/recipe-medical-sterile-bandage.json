@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-medical-sterile-bandage",
+    "spoiler_tier": "none",
+    "title": "무균 붕대"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-sterile-bandage",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독제",
+      "to": "item/medicine-antiseptic",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-sterile-bandage",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-sterile-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 천",
+      "to": "item/textile-sterile-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-sterile-bandage",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-sterile-bandage",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 붕대",
+      "to": "item/medical-sterile-bandage",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-sterile-bandage",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-surgery",
+      "target_spoiler_tier": "none",
+      "target_title": "외과술",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

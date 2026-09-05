@@ -1,0 +1,60 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-bolt-steel",
+    "spoiler_tier": "none",
+    "title": "강철촉 볼트"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "recipe/recipe-bolt-steel",
+      "label": "생산·해금",
+      "to": "item/ammo-bolt-steel",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-incendiary-bolt",
+      "label": "필요 조건",
+      "to": "item/ammo-bolt-steel",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-mana-disruptor-bolt",
+      "label": "필요 조건",
+      "to": "item/ammo-bolt-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "to": "item/ammo-bolt-steel",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-repeating-crossbow",
+      "label": "관련",
+      "to": "item/ammo-bolt-steel",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-siege-arbalest",
+      "label": "관련",
+      "to": "item/ammo-bolt-steel",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-windlass-crossbow",
+      "label": "관련",
+      "to": "item/ammo-bolt-steel",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "437"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8845",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 골격 지그",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-equipment-modular-frames",
+  "spoiler_tier": "none",
+  "summary": "정밀 장착 치수와 강철 시험값을 공유하는 성장형 장비 골격을 제작한다.",
+  "title": "모듈식 장비 골격"
+}

@@ -56,7 +56,7 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
     private readonly IStockQuery stock;
     private readonly IItemReservationService reservations;
     private readonly IAtomicItemConsumptionService atomicItems;
-    private readonly IWorldItemStackRuntime items;
+    private readonly ReproductionDurableEquipmentUseRuntime breedingEquipment;
 
     public ReproductionCommandRuntime(
         IReproductionService reproduction,
@@ -70,7 +70,9 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
         IStockQuery stock,
         IItemReservationService reservations,
         IAtomicItemConsumptionService atomicItems,
-        IWorldItemStackRuntime items)
+        IDurableFacilityEquipmentPolicyQuery equipmentPolicies,
+        IDurableFacilityEquipmentSlotCommand equipmentSlots,
+        IDurableFacilityEquipmentUseCommand equipmentUse)
     {
         this.reproduction = reproduction
             ?? throw new ArgumentNullException(nameof(reproduction));
@@ -90,7 +92,10 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
             ?? throw new ArgumentNullException(nameof(reservations));
         this.atomicItems = atomicItems
             ?? throw new ArgumentNullException(nameof(atomicItems));
-        this.items = items ?? throw new ArgumentNullException(nameof(items));
+        breedingEquipment = new ReproductionDurableEquipmentUseRuntime(
+            equipmentPolicies,
+            equipmentSlots,
+            equipmentUse);
     }
 
     public bool TryPlan(
@@ -244,78 +249,27 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
         if (reproduction.Processes.Any(value => string.Equals(
                 value.ProcessId,
                 plannedProcessId,
-                StringComparison.Ordinal))
-            || !TryUseBreedingLedger(facility, out failure))
-        {
-            processId = string.Empty;
-            return false;
-        }
-        try
-        {
-            reproduction.AddProcess(process);
-            return true;
-        }
-        catch (InvalidOperationException)
+                StringComparison.Ordinal)))
         {
             processId = string.Empty;
             failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
             return false;
         }
-    }
-
-    private bool TryUseBreedingLedger(
-        BuildableObject facility,
-        out DomainFailure failure)
-    {
-        string destinationId = facility.PersistentInstanceId.Value;
-        WorldItemStackSnapshot ledger = items.GetAllStacks()
-            .Where(stack => stack != null
-                && stack.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal)
-                && string.Equals(
-                    stack.ItemId,
-                    DurableToolItemRules.BreedingLedger,
-                    StringComparison.Ordinal)
-                && DurableToolItemRules.ReadCurrentDurability(
-                    stack.ItemId,
-                    stack.Components) > 0f)
-            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        if (ledger == null)
+        if (!breedingEquipment.TryCommitPlan(
+                facility.RequirePersistentInstanceId(),
+                facility.centerPos,
+                () =>
+                {
+                    reproduction.AddProcess(process);
+                    return true;
+                }))
         {
-            bool pending = items.GetAllStacks().Any(stack => stack != null
-                && string.Equals(
-                    stack.ItemId,
-                    DurableToolItemRules.BreedingLedger,
-                    StringComparison.Ordinal)
-                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal));
-            if (!pending)
-            {
-                items.TryRequestItemDelivery(
-                    DurableToolItemRules.BreedingLedger,
-                    1,
-                    facility.centerPos,
-                    destinationId,
-                    out _,
-                    out _);
-            }
+            processId = string.Empty;
             failure = new DomainFailure(
                 FailureCode.ServiceFeatureMissing,
                 DurableToolItemRules.BreedingLedger);
             return false;
         }
-
-        float current = DurableToolItemRules.ReadCurrentDurability(
-            ledger.ItemId,
-            ledger.Components);
-        if (!items.TrySetInstanceComponent(
-                ledger.StackId,
-                DurableToolItemRules.CreateDurability(ledger.ItemId, current - 1f)))
-        {
-            failure = new DomainFailure(FailureCode.ItemTransferConsumptionFailed);
-            return false;
-        }
-        failure = DomainFailure.None;
         return true;
     }
 

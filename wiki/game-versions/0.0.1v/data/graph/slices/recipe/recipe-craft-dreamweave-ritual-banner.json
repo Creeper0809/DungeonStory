@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-craft-dreamweave-ritual-banner",
+    "spoiler_tier": "none",
+    "title": "몽직물 의식 장식"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-craft-dreamweave-ritual-banner",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-dreamweave-ritual-banner",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 의식 장식",
+      "to": "item/craft-dreamweave-ritual-banner",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-craft-dreamweave-ritual-banner",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물",
+      "to": "item/material-dreamweave",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-craft-dreamweave-ritual-banner",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-gold-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "금괴",
+      "to": "item/material-gold-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-craft-dreamweave-ritual-banner",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-authority-ritual",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 장식",
+      "to": "research/research-authority-ritual",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

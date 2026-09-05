@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Immutable, exact five-participant registry. Journal persistence binds to
+/// Immutable, exact six-participant registry. Journal persistence binds to
 /// its fingerprint, while runtime execution uses the dependency-derived order.
 /// Persisted participant rows remain ID-ordinal and never use execution order.
 /// </summary>
@@ -11,9 +11,9 @@ public sealed class ProductionFacilityDestructiveDrainParticipantRegistry :
     IProductionFacilityDestructiveDrainParticipantRegistry
 {
     public const string Schema =
-        "production-facility-destructive-drain-participant-registry@1";
+        "production-facility-destructive-drain-participant-registry@3";
     public const string ExpectedRegistryFingerprint =
-        "316767864bd434d682d84c57b3b4de82fa8309304672eafd4ecea9645ec218a2";
+        "2a12b255807935361d7326d21e5d533f8802c6825332343aa03471a8033aff58";
 
     private static readonly IReadOnlyDictionary<string, ParticipantSpec>
         Required = new Dictionary<string, ParticipantSpec>(
@@ -50,6 +50,14 @@ public sealed class ProductionFacilityDestructiveDrainParticipantRegistry :
                     {
                         ProductionFacilityDestructiveDrainParticipantIds
                             .CapacityRoutingOutbox
+                    }),
+            [ProductionFacilityDestructiveDrainParticipantIds
+                .StockSensorEmbeddedSalvage] = new(
+                    2,
+                    new[]
+                    {
+                        ProductionFacilityDestructiveDrainParticipantIds
+                            .PhysicalCustodyCarryRecovery
                     })
         };
 
@@ -151,6 +159,22 @@ public sealed class ProductionFacilityDestructiveDrainParticipantRegistry :
         out IProductionFacilityDestructiveDrainParticipant participant) =>
         byId.TryGetValue(participantId ?? string.Empty, out participant);
 
+    internal static bool TryGetRequiredContractVersion(
+        string participantId,
+        out int contractVersion)
+    {
+        if (Required.TryGetValue(
+                participantId ?? string.Empty,
+                out ParticipantSpec spec))
+        {
+            contractVersion = spec.ContractVersion;
+            return true;
+        }
+
+        contractVersion = 0;
+        return false;
+    }
+
     private static void RequireExactParticipantSet(
         IReadOnlyDictionary<string,
             IProductionFacilityDestructiveDrainParticipant> collected)
@@ -164,7 +188,7 @@ public sealed class ProductionFacilityDestructiveDrainParticipantRegistry :
         if (!actual.SequenceEqual(expected, StringComparer.Ordinal))
         {
             throw new InvalidOperationException(
-                "Destructive-drain participant registry does not contain the exact required five IDs.");
+                "Destructive-drain participant registry does not contain the exact required six IDs.");
         }
     }
 

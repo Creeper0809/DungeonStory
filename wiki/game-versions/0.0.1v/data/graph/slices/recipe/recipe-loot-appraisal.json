@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-loot-appraisal",
+    "spoiler_tier": "none",
+    "title": "원정 전리품 감정"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "recipe/recipe-loot-appraisal",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-appraised-valuables",
+      "target_spoiler_tier": "none",
+      "target_title": "감정된 귀중품",
+      "to": "item/offense-appraised-valuables",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "10",
+      "from": "recipe/recipe-loot-appraisal",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-loot-appraisal",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-relic-appraisal",
+      "target_spoiler_tier": "none",
+      "target_title": "유물 부품 감정과 복원",
+      "to": "research/research-equipment-relic-appraisal",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

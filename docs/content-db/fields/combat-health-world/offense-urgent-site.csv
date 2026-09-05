@@ -1,0 +1,73 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,m_Name,heat_emitter,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,id,170200,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,urgentSiteId,heat_emitter,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,displayName,열기 방출탑,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,description,던전 주변의 공기를 달궈 냉각과 연료 부담을 높입니다.,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,modifierKind,0,OffenseThreatModifierKind,Temperature,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,maximumStrength,1,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,maximumMitigation,0.6,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,mitigationWorkTypeId,work:operate,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,mitigationItemId,material:low-fuel,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,mitigationItemAmount,3,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170200,offenseurgentsite:170200,mitigationWork,24,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,m_Name,defense_disruptor,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,id,170201,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,urgentSiteId,defense_disruptor,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,displayName,방어 교란기,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,description,자동 방어 장치의 감응과 발동을 흐트러뜨립니다.,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,modifierKind,2,OffenseThreatModifierKind,Automated Defense,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,maximumStrength,1,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,maximumMitigation,0.6,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,mitigationWorkTypeId,work:research,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,mitigationItemId,resource:mana-crystal,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,mitigationItemAmount,3,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170201,offenseurgentsite:170201,mitigationWork,24,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,m_Name,dissonant_choir,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,id,170202,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,urgentSiteId,dissonant_choir,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,displayName,불협 성가대,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,description,잠과 집중을 망가뜨리는 낮은 노래가 계속 울립니다.,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,modifierKind,3,OffenseThreatModifierKind,Mood,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,maximumStrength,1,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,maximumMitigation,0.6,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,mitigationWorkTypeId,work:perform,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,mitigationItemId,resource:mana-crystal,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,mitigationItemAmount,3,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170202,offenseurgentsite:170202,mitigationWork,24,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,m_Name,rot_fog_nest,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,id,170203,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,urgentSiteId,rot_fog_nest,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,displayName,부패 안개 둥지,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,description,오염된 안개가 위생을 낮추고 질병을 퍼뜨립니다.,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,modifierKind,5,OffenseThreatModifierKind,Sanitation,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,maximumStrength,1,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,maximumMitigation,0.6,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,mitigationWorkTypeId,work:clean,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,mitigationItemId,medicine:standard,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,mitigationItemAmount,3,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170203,offenseurgentsite:170203,mitigationWork,24,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,m_Name,shadow_screen,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,id,170204,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,urgentSiteId,shadow_screen,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,displayName,그림자 차광막,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,description,던전의 조명과 원거리 명중을 약화시키는 그림자를 드리웁니다.,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,modifierKind,7,OffenseThreatModifierKind,Lighting,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,maximumStrength,1,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,maximumMitigation,0.6,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,mitigationWorkTypeId,work:refuel,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,mitigationItemId,material:low-fuel,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,mitigationItemAmount,3,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170204,offenseurgentsite:170204,mitigationWork,24,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,m_Name,siege_observer,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,id,170205,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,urgentSiteId,siege_observer,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,displayName,공성 관측소,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,description,침공 경로와 방어 사각을 관측해 다음 공격을 돕습니다.,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,modifierKind,9,OffenseThreatModifierKind,Invasion Warning,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,maximumStrength,1,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,maximumMitigation,0.6,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,mitigationWorkTypeId,work:guard,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,mitigationItemId,material:lumber,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,mitigationItemAmount,3,,,explicit-serialized
+OffenseUrgentSiteDefinitionSO|offenseurgentsite:170205,offenseurgentsite:170205,mitigationWork,24,,,explicit-serialized

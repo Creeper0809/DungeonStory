@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-ammo-scatter-cartridge",
+    "spoiler_tier": "none",
+    "title": "산탄 탄약"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-scatter-cartridge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cartridge-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약지",
+      "to": "item/material-cartridge-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-scatter-cartridge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-granulated-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "과립 화약",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-scatter-cartridge",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-scatter-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "산탄 탄약",
+      "to": "item/ammo-scatter-cartridge",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-scatter-cartridge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lead-shot",
+      "target_spoiler_tier": "none",
+      "target_title": "납탄",
+      "to": "item/material-lead-shot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-scatter-cartridge",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-standard-ammunition",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약 규격화",
+      "to": "research/research-equipment-standard-ammunition",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

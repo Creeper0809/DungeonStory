@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "122880"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "긴 각인을 되돌림 없이 버티도록 단단히 굳힌 무색 결정이다. 하르나크의 조율사는 범용 촉매 진행 11 · 3등급을 서로 다른 개조 계통을 잇는 범용 계통의 3등급 개조에 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "evolution-catalyst-universal-11",
+  "spoiler_tier": "none",
+  "summary": "시설 개조와 장비 조율에 사용하는 진화 촉매.",
+  "title": "범용 촉매 진행 11 · 3등급"
+}

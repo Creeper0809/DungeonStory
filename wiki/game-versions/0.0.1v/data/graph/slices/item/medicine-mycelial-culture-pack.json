@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medicine-mycelial-culture-pack",
+    "spoiler_tier": "none",
+    "title": "균사 배양 팩"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-organ-regeneration-scaffold",
+      "label": "필요 조건",
+      "to": "item/medicine-mycelial-culture-pack",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "필요 조건",
+      "to": "item/medicine-mycelial-culture-pack",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

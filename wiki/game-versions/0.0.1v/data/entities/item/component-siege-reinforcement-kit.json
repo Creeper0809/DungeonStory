@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "354"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "공성 보강 키트에는 현장 조립과 보강에 필요한 작은 부품을 빠짐없이 모아 두었다. 크릭 제7굴에서는 공성 보강 키트의 치수와 맞물림 상태를 조립 전에 검사한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-siege-reinforcement-kit",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 공성 보강 키트.",
+  "title": "공성 보강 키트"
+}

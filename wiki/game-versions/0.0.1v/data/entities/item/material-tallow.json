@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "60개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "9"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "비누, 양초와 연고의 기초이다. 라카쉬 세갈래길의 정제 지방은 조리용과 공업용을 항아리 봉인색으로 나눠 냄새가 밴 것을 음식에 쓰지 않게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-tallow",
+  "spoiler_tier": "none",
+  "summary": "비누, 양초와 연고의 기초.",
+  "title": "정제 지방"
+}

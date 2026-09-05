@@ -77,16 +77,11 @@ public interface IWarehouseStockCategoryCatalogPort
 public interface IWarehouseInventoryPort
 {
     int TotalStock { get; }
-    int MaxCapacity { get; }
-    int RemainingCapacity { get; }
-    bool HasCapacityLimit { get; }
     bool RestrictsCategory { get; }
     StockCategory AcceptedCategory { get; }
     IReadOnlyList<KeyValuePair<StockCategory, int>> EnumerateStock();
     int GetStock(StockCategory category);
     bool HasStock(StockCategory category);
-    bool CanStore(int amount);
-    bool CanStore(StockCategory category, int amount);
     bool Accepts(StockCategory category);
     WarehouseInventorySnapshot CreateSnapshot();
     void ApplySnapshot(WarehouseInventorySnapshot snapshot);
@@ -155,7 +150,6 @@ public class WarehouseInventory : IWarehouseInventoryPort, IWarehouseMassCapacit
     [NonSerialized] private int cachedStoredMassItemStackVersion = int.MinValue;
     [NonSerialized] private long cachedStoredMassAuthorityRevision = long.MinValue;
     [NonSerialized] private long cachedStoredMassGrams;
-    [SerializeField] private int maxCapacity;
     [NonSerialized] private long maxStoredMassGrams;
     [SerializeField] private bool restrictCategory;
     [SerializeField] private StockCategory acceptedCategory;
@@ -163,9 +157,6 @@ public class WarehouseInventory : IWarehouseInventoryPort, IWarehouseMassCapacit
     public int TotalStock => physicalStockQuery != null
         ? physicalStockQuery.GetWarehouseTotal(warehouseId)
         : 0;
-    public int MaxCapacity => maxCapacity > 0 ? maxCapacity : int.MaxValue;
-    public int RemainingCapacity => Mathf.Max(0, MaxCapacity - TotalStock);
-    public bool HasCapacityLimit => maxCapacity > 0;
     public bool HasMassCapacityAuthority => maxStoredMassGrams > 0L;
     public long StoredMassGrams
     {
@@ -206,31 +197,12 @@ public class WarehouseInventory : IWarehouseInventoryPort, IWarehouseMassCapacit
     public bool RestrictsCategory => restrictCategory;
     public StockCategory AcceptedCategory => acceptedCategory;
 
-    public WarehouseInventory()
-    {
-    }
-
-    public WarehouseInventory(int maxCapacity)
-    {
-        this.maxCapacity = Mathf.Max(0, maxCapacity);
-    }
-
     public WarehouseInventory(
-        int maxCapacity,
-        StockCategory acceptedCategory,
-        bool restrictCategory)
-        : this(maxCapacity, 0L, acceptedCategory, restrictCategory)
-    {
-    }
-
-    public WarehouseInventory(
-        int legacyMaxCapacity,
         long maxStoredMassGrams,
         StockCategory acceptedCategory,
         bool restrictCategory)
     {
-        this.maxCapacity = Mathf.Max(0, legacyMaxCapacity);
-        if (maxStoredMassGrams < 0L)
+        if (maxStoredMassGrams <= 0L)
         {
             throw new ArgumentOutOfRangeException(nameof(maxStoredMassGrams));
         }
@@ -263,10 +235,6 @@ public class WarehouseInventory : IWarehouseInventoryPort, IWarehouseMassCapacit
         : 0;
 
     public bool HasStock(StockCategory category) => GetStock(category) > 0;
-    public bool CanStore(int amount) => RemainingCapacity >= Mathf.Max(0, amount);
-    public bool CanStore(StockCategory category, int amount) =>
-        Accepts(category) && CanStore(amount);
-
     public int GetAcceptableQuantity(string itemDefinitionId, int requestedQuantity)
     {
         if (requestedQuantity <= 0)
@@ -274,9 +242,8 @@ public class WarehouseInventory : IWarehouseInventoryPort, IWarehouseMassCapacit
             return 0;
         }
         if (!HasMassCapacityAuthority)
-        {
-            return Math.Min(requestedQuantity, RemainingCapacity);
-        }
+            throw new InvalidOperationException(
+                "Warehouse admission requires a positive gram-capacity authority.");
 
         long unitMassGrams = RequirePhysicalMassQuery()
             .GetDefinitionUnitMassGrams(itemDefinitionId);
@@ -357,7 +324,7 @@ public class WarehouseInventory : IWarehouseInventoryPort, IWarehouseMassCapacit
         cachedStoredMassItemStackVersion = int.MinValue;
         cachedStoredMassAuthorityRevision = long.MinValue;
         cachedStoredMassGrams = 0L;
-        if (HasMassCapacityAuthority && physicalMassQuery == null)
+        if (physicalMassQuery == null)
         {
             throw new InvalidOperationException(
                 "A mass-authoritative warehouse requires IWarehousePhysicalMassQueryPort.");
@@ -368,10 +335,8 @@ public class WarehouseInventory : IWarehouseInventoryPort, IWarehouseMassCapacit
         IWarehouseMassAdmissionLedgerQuery admissionLedger)
     {
         if (!HasMassCapacityAuthority)
-        {
             throw new InvalidOperationException(
-                "A count-only warehouse cannot bind the gram admission ledger.");
-        }
+                "Warehouse gram admission requires a positive mass capacity.");
         if (admissionLedger == null)
         {
             throw new ArgumentNullException(nameof(admissionLedger));

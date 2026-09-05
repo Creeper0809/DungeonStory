@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "yarn-dreamweave",
+    "spoiler_tier": "none",
+    "title": "몽직물 원사"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-spin-dreamweave",
+      "label": "생산·해금",
+      "to": "item/yarn-dreamweave",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-spin-powered-dreamweave",
+      "label": "생산·해금",
+      "to": "item/yarn-dreamweave",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-weave-dreamweave",
+      "label": "필요 조건",
+      "to": "item/yarn-dreamweave",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

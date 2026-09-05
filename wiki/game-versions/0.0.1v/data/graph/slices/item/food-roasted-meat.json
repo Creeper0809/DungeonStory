@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-roasted-meat",
+    "spoiler_tier": "none",
+    "title": "고기구이"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-roasted-meat",
+      "label": "생산·해금",
+      "to": "item/food-roasted-meat",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

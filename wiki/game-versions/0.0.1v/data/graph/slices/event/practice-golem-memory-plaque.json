@@ -1,0 +1,65 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "practice-golem-memory-plaque",
+    "spoiler_tier": "none",
+    "title": "기억판 안치"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/practice-golem-memory-plaque",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-golem-memory-plaque",
+      "target_spoiler_tier": "none",
+      "target_title": "기억판 안치",
+      "to": "event/practice-golem-memory-plaque",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "-4",
+      "from": "event/practice-golem-memory-plaque",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-golem-memory-plaque",
+      "target_spoiler_tier": "none",
+      "target_title": "기억판 안치",
+      "to": "event/practice-golem-memory-plaque",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": "1",
+      "from": "event/practice-golem-memory-plaque",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "to": "item/material-iron-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "-2",
+      "from": "event/practice-golem-memory-plaque",
+      "label": "연결",
+      "to": "event/practice-golem-memory-plaque",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "-4",
+      "from": "event/practice-golem-memory-plaque",
+      "label": "연결",
+      "to": "event/practice-golem-memory-plaque",
+      "type": "changes-trauma"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-golem-core",
+      "label": "관련",
+      "to": "event/practice-golem-memory-plaque",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

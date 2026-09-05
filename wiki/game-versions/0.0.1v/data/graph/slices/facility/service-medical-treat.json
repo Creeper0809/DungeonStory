@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "service-medical-treat",
+    "spoiler_tier": "none",
+    "title": "진료 서비스"
+  },
+  "edges": [],
+  "schema_version": 1
+}

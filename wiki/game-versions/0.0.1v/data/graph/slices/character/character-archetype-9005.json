@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "character-archetype-9005",
+    "spoiler_tier": "none",
+    "title": "아자라"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-9005",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-5",
+      "target_spoiler_tier": "none",
+      "target_title": "데몬",
+      "to": "character/characterspecies-5",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

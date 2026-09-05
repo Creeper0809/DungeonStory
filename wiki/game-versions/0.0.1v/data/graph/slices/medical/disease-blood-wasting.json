@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "disease-blood-wasting",
+    "spoiler_tier": "none",
+    "title": "혈액소모병"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/mire-leech",
+      "label": "관련",
+      "to": "medical/disease-blood-wasting",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

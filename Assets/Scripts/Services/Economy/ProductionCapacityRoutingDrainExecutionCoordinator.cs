@@ -12,6 +12,13 @@ public interface IProductionCapacityRoutingDrainExecutionCoordinator
         string requestFingerprint);
 }
 
+public interface IProductionCapacityRoutingCheckpointGcAbsenceQuery
+{
+    bool TryVerifyRoutingAuthorityAbsent(
+        string batchCommitId,
+        out string failureReason);
+}
+
 /// <summary>
 /// Live executor for the capacity-routing producer outbox. All normal route
 /// operations and actor quiescence complete synchronously on the Unity main
@@ -20,7 +27,8 @@ public interface IProductionCapacityRoutingDrainExecutionCoordinator
 /// later Tick before the producer effect receipt is committed.
 /// </summary>
 public sealed class ProductionCapacityRoutingDrainExecutionCoordinator :
-    IProductionCapacityRoutingDrainExecutionCoordinator
+    IProductionCapacityRoutingDrainExecutionCoordinator,
+    IProductionCapacityRoutingCheckpointGcAbsenceQuery
 {
     private readonly IProductionCapacityRoutingDrainOutbox producer;
     private readonly IProductionPreparedOutputRoutingBatchQuery batches;
@@ -337,14 +345,43 @@ public sealed class ProductionCapacityRoutingDrainExecutionCoordinator :
             drain.stepOperationId);
     }
 
-    private bool CheckpointGcCompleted(string batchCommitId) =>
-        !batches.TryCaptureBatch(batchCommitId, out _)
-        && !(exactRoutes.CapturePendingRoutes()
+    public bool TryVerifyRoutingAuthorityAbsent(
+        string batchCommitId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (string.IsNullOrEmpty(batchCommitId)
+            || !string.Equals(
+                batchCommitId,
+                batchCommitId.Trim(),
+                StringComparison.Ordinal))
+        {
+            failureReason =
+                "production-capacity-routing-checkpoint-gc-batch-invalid";
+            return false;
+        }
+        if (batches.TryCaptureBatch(batchCommitId, out _))
+        {
+            failureReason =
+                "production-capacity-routing-checkpoint-gc-batch-still-live";
+            return false;
+        }
+        if ((exactRoutes.CapturePendingRoutes()
                 ?? Array.Empty<FacilityOutputExactRoutePendingSnapshot>())
             .Any(value => string.Equals(
                 value?.Receipt?.BatchCommitId,
                 batchCommitId,
-                StringComparison.Ordinal));
+                StringComparison.Ordinal)))
+        {
+            failureReason =
+                "production-capacity-routing-checkpoint-gc-route-still-live";
+            return false;
+        }
+        return true;
+    }
+
+    private bool CheckpointGcCompleted(string batchCommitId) =>
+        TryVerifyRoutingAuthorityAbsent(batchCommitId, out _);
 
     private bool TryCaptureExact(
         string stepOperationId,

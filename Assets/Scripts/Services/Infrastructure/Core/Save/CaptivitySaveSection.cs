@@ -67,6 +67,10 @@ public sealed class CaptivitySaveSection :
                 captive.reservedCarrierId, report, path + ".reservedCarrierId");
             captive.reservedWardenId = NormalizeV18CharacterReference(
                 captive.reservedWardenId, report, path + ".reservedWardenId");
+            if (captive.status == CaptivityStatus.Minion)
+            {
+                CaptivityStateTransitionRules.ClearCaptiveOnlyState(captive);
+            }
         }
         if (captiveIdsChanged)
         {

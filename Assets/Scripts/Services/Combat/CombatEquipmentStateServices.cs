@@ -58,12 +58,20 @@ internal sealed class CombatEquipmentRuntimeState
 
 public sealed class CombatEquipmentRestoreCandidate
 {
-    internal CombatEquipmentRestoreCandidate(CombatEquipmentRuntimeState state)
+    internal CombatEquipmentRestoreCandidate(
+        CombatEquipmentRuntimeState state,
+        IReadOnlyList<ProductionDomainOutputRestoreAcknowledgement>
+            outputAcknowledgements = null)
     {
         State = state ?? throw new ArgumentNullException(nameof(state));
+        OutputAcknowledgements = Array.AsReadOnly((outputAcknowledgements
+                ?? Array.Empty<ProductionDomainOutputRestoreAcknowledgement>())
+            .ToArray());
     }
 
     internal CombatEquipmentRuntimeState State { get; }
+    internal IReadOnlyList<ProductionDomainOutputRestoreAcknowledgement>
+        OutputAcknowledgements { get; }
 }
 
 public sealed class CombatEquipmentRuntimeStateStore
@@ -94,15 +102,46 @@ public sealed class CombatEquipmentPhysicalStateWriter
 {
     private readonly IItemInstanceRepository itemInstances;
     private readonly IEquipmentPhysicalItemGateway physicalItems;
+    private readonly IProductionOutputCapabilityRegistry outputCapabilities;
 
     public CombatEquipmentPhysicalStateWriter(
         IItemInstanceRepository itemInstances,
-        IEquipmentPhysicalItemGateway physicalItems)
+        IEquipmentPhysicalItemGateway physicalItems,
+        IProductionOutputCapabilityRegistry outputCapabilities)
     {
         this.itemInstances = itemInstances
             ?? throw new ArgumentNullException(nameof(itemInstances));
         this.physicalItems = physicalItems
             ?? throw new ArgumentNullException(nameof(physicalItems));
+        this.outputCapabilities = outputCapabilities
+            ?? throw new ArgumentNullException(nameof(outputCapabilities));
+    }
+
+    public ProductionOutputCapabilityDescriptor CaptureOutputCapability(
+        string outputLineId,
+        string itemId,
+        string capabilityId) => outputCapabilities.CaptureDeclaredDescriptor(
+        outputLineId,
+        itemId,
+        capabilityId);
+
+    public bool TryValidateOutputCapability(
+        ProductionOutputCapabilitySaveData frozen,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (frozen == null || frozen.IsEmpty)
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                string.Empty,
+                "combat-output-capability-missing");
+            return false;
+        }
+        return outputCapabilities.TryValidateExact(
+            frozen.ToDescriptor(),
+            out _,
+            out failure);
     }
 
     public void Persist(CombatEquipmentInstance equipment)

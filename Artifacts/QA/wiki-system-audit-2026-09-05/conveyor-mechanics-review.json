@@ -1,0 +1,2137 @@
+{
+  "status": "partial-system-audit; global audit incomplete",
+  "scope": "Read-only current conveyor code, all Resources-authored conveyor modules, corresponding version 0.0.1v facility JSON and relevant guide prose. No code/content edits or Unity execution.",
+  "population": {
+    "facilities": 40,
+    "publicEntries": 40,
+    "catalogReferences": 40,
+    "segmentModules": 13,
+    "portModules": 29,
+    "overflowModules": 1,
+    "selectedAuthoredFields": 284,
+    "fieldsByModule": {
+      "segment": 195,
+      "port": 87,
+      "overflow": 2
+    },
+    "emptyPortDestinations": 29,
+    "shadowedPortCapacities": 2,
+    "selectedDomainFactsInPublicEntries": 0,
+    "warning": "284 is a field census, not 284 independent player-visible omissions. Direction names partly disclose direction; empty and disabled settings are preserved explicitly."
+  },
+  "freshness": {
+    "query": "Conveyor",
+    "areas": [
+      "code",
+      "content",
+      "authority"
+    ],
+    "limit": 6,
+    "session": 18555,
+    "exitCode": 1,
+    "status": "stale",
+    "failures": 4,
+    "rows": 0,
+    "contentSourceDigest": "139a0a989275ecdd5a4a26c10ceb6a1931041c7c928ed0421628faea5cd928c6",
+    "knowledgeBaseSourceDigest": "ceef8dc8f25f4d327205b15e12346aee0ebc5d6a84aa7eeb1f08af5ce14db0dd",
+    "regenerated": false
+  },
+  "facilityRows": [
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "b44f874c2a3d7695fabcb52df961c8d86e8278daf4bfea167f400aa311c34793",
+      "source": "Assets/Resources/SO/Building/Modular/D01_간이화덕.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 조리, 연료 소비, 욕구 회복이다. 건설에는 작업량 261, 재료 석재 블록×9, 철괴×3이 필요하다.",
+      "publicSha256": "ae99fd8c98758e3a9f1161a2bb8fff7a57e5733e924d3abb6fb9e359a0a2056e",
+      "id": "1000",
+      "catalogReferenced": true,
+      "name": "간이화덕",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1000.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "상점"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "80e5a1fed80dee056599c542bf91aa0b7520ae85ab29883739219ecfb8e90be2",
+      "source": "Assets/Resources/SO/Building/Modular/D02_고기그릴.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 조리, 연료 소비, 욕구 회복이다. 건설에는 작업량 364, 재료 석재 블록×4, 철괴×5이 필요하다.",
+      "publicSha256": "eacef070b04862486da6b88add582755e99e358b3fb58b35f333288893d646b0",
+      "id": "1001",
+      "catalogReferenced": true,
+      "name": "고기그릴",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1001.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "상점"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "0e14cdbb6b95dfdc6fb241645e0d27e4e759f623e85dd972809bd10ca29648c8",
+      "source": "Assets/Resources/SO/Building/Modular/D03_조리손질대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 조리, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×9, 철괴×3, 석재 블록×2이 필요하다.",
+      "publicSha256": "9d2df3da5e4b3d8ac8ae28e1c65bafe088714a6ce293246e2c2ae8793276dd91",
+      "id": "1002",
+      "catalogReferenced": true,
+      "name": "조리손질대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1002.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "상점"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "aa8e9b7d2836aa5cd040e5c4c9d523b2a310373d2a03d695a8a877b23dc279fb",
+      "source": "Assets/Resources/SO/Building/Modular/S08_대장작업대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 장비 제작, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×9, 철괴×4, 석재 블록×2이 필요하다.",
+      "publicSha256": "c40cb4273b5b6f921d9c2e47ccacb2413196d4bdb946622b8b03a3ba62853e6b",
+      "id": "1019",
+      "catalogReferenced": true,
+      "name": "대장작업대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1019.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "상점"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "6867fbafa5ccb1b48703d451a93a2fc2dac92f7a6f66ca67794084af18dc2fc3",
+      "source": "Assets/Resources/SO/Building/Modular/G06_전리품거치대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 치안과 보안이다. 건설에는 작업량 501, 재료 목재×5, 철괴×3이 필요하다.",
+      "publicSha256": "103c8d9c54e301909f65611196bf61bca2d65be14ae8bc756e37159e4b81ae33",
+      "id": "1049",
+      "catalogReferenced": true,
+      "name": "전리품거치대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1049.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "특수"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "8805ba121a2f252cfdd1aac72cf6af0d5dc25e1a72dc759724b4b31fabb1f5b4",
+      "source": "Assets/Resources/SO/Building/Modular/P01_제분소.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "publicSha256": "70daddbc547c0f673eb2a114bed64ba3cff3eeaf12da0650ba2edddfe6c74deb",
+      "id": "1073",
+      "catalogReferenced": true,
+      "name": "제분소",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1073.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "ee5ae4ab3cabc3ccb5e2ab6a1251174e52eee990d0a478707f7fe0b705cfde6e",
+      "source": "Assets/Resources/SO/Building/Modular/P02_양조장.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×5, 철괴×3, 기계 부품×3이 필요하다.",
+      "publicSha256": "20462d58ebe3538f83569a0f02b1749ce1a2fd212db37cc82949beb086038d71",
+      "id": "1074",
+      "catalogReferenced": true,
+      "name": "양조장",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1074.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "d2cbe4597abe3cbfabbe8b33ea39b0920f2b92c9f5cda416cbc7675fc4c38157",
+      "source": "Assets/Resources/SO/Building/Modular/P03_제재소.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 384, 재료 처리 목재×10, 철괴×6, 석재 블록×2, 기계 부품×1이 필요하다.",
+      "publicSha256": "ce73c76235a1de7506bfd3f16d2019b9f836bdd5888272b629443349741c5e11",
+      "id": "1075",
+      "catalogReferenced": true,
+      "name": "제재소",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1075.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "3×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "1b54fbb31e484ec62d821d0b5bedbb7b75e8d79d939e98b66a199d964e227460",
+      "source": "Assets/Resources/SO/Building/Modular/P04_숯가마.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 318, 재료 석재 블록×6, 철괴×4, 기계 부품×3이 필요하다.",
+      "publicSha256": "b9d9d018e23f2082d7f361b09f506d39ba81af13d5b46a4e73ee982bdd3f0a91",
+      "id": "1076",
+      "catalogReferenced": true,
+      "name": "숯가마",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1076.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "d4eb8c2758554b7cc68851c819fafbddff1fe58c5ffb79bde6385cadfff39ddc",
+      "source": "Assets/Resources/SO/Building/Modular/P05_석재절단대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "publicSha256": "044ad32caa28a10497ea7d38f13275839a0b0fac0491c65bd61d9ff1717494ef",
+      "id": "1077",
+      "catalogReferenced": true,
+      "name": "석재 절단대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1077.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "60836495bbc8ebafa6b028dc733e3f8dde9171f08f0fe1529162ffd0ab059240",
+      "source": "Assets/Resources/SO/Building/Modular/P06_광석선별대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 목재×6, 철괴×2, 기계 부품×3이 필요하다.",
+      "publicSha256": "ba9e3eb0f951d82ff55d87ef16dd9ac429a055c40012cc7da7e9518fdcff1cc1",
+      "id": "1078",
+      "catalogReferenced": true,
+      "name": "광석 선별대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1078.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "71f948d2c0367bc4341cf2efa17805a6d85a2c5a7c46d03aaa6d9018c64c5d03",
+      "source": "Assets/Resources/SO/Building/Modular/P07_용광로.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 318, 재료 석재 블록×6, 철괴×4, 기계 부품×3이 필요하다.",
+      "publicSha256": "4c006ed5b418f36dd9eec94a588ead4b03d455cf5418783b5461faec73e45758",
+      "id": "1079",
+      "catalogReferenced": true,
+      "name": "용광로",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1079.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "334fba5afc84fb6b7588e9420a7531f2e27bba4197cc3b5e2a17b13e266a9907",
+      "source": "Assets/Resources/SO/Building/Modular/P08_제강로.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 585, 재료 석재 블록×6, 철괴×4, 기계 부품×2, 합금 도가니×1이 필요하다.",
+      "publicSha256": "44d553845c502e69b02525a007227041d0fb6a249ffac72ac98ef4f1f08e052d",
+      "id": "1080",
+      "catalogReferenced": true,
+      "name": "제강로",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1080.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "3×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "075d8e5f6740644508fb4e6833bc9e177f4c86e2350dc3fac44a696aa561e5ff",
+      "source": "Assets/Resources/SO/Building/Modular/P09_귀금세공대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 468, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2, 외 1개이 필요하다.",
+      "publicSha256": "ac1a522a3eb81c78c8fc2156ea3bcffe0ce5bea732ea318aa4503aef9b560be7",
+      "id": "1081",
+      "catalogReferenced": true,
+      "name": "귀금 세공대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1081.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "35c23f4818906ad516461bd484d39cf19bb345d1c5733078277b63607673b305",
+      "source": "Assets/Resources/SO/Building/Modular/P10_비전단조대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 603, 재료 석재 블록×6, 룬 도체×3, 철괴×2, 기계 부품×2, 외 3개이 필요하다.",
+      "publicSha256": "f71c65a43f7243133fe7d1c5c26783ec4e628996139396b6d62007912b86e05d",
+      "id": "1082",
+      "catalogReferenced": true,
+      "name": "비전 단조대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1082.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "3×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "cd02583321c8692336b43267c212f99cd5f15f246db96c7bdf4d70f56b5c45bf",
+      "source": "Assets/Resources/SO/Building/Modular/P11_직조기.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "publicSha256": "b22cad2182498540bcffd3c47689e5ee559b8902d37a2913022dfe02ce980dab",
+      "id": "1083",
+      "catalogReferenced": true,
+      "name": "직조기",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1083.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "237e8832f0a50680ed0f0f1ae5dcafbf5fad0c6378a1f2f77031f7dbe89f1c5c",
+      "source": "Assets/Resources/SO/Building/Modular/P12_무두질대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "publicSha256": "594d6b43ff554fbb9c5bafd7e152494e500f565a6a5cfdc9a164170111579f92",
+      "id": "1084",
+      "catalogReferenced": true,
+      "name": "무두질대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1084.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "bfb431a280d5407be535ef92c6e447c1bdb6e2674cfe0aead199390efa3f89eb",
+      "source": "Assets/Resources/SO/Building/Modular/P13_퇴비장.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 목재×4, 철괴×3, 기계 부품×2, 석재 블록×2이 필요하다.",
+      "publicSha256": "a722bea94b44f1872dcfcfdd544ea239c4c97e1cc93ae9810e21b29c5bf64332",
+      "id": "1085",
+      "catalogReferenced": true,
+      "name": "퇴비장",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1085.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "5658d0bfe4139290b84cec38ce68f6a319e1fb8467bdcba950fa5cb961ef666e",
+      "source": "Assets/Resources/SO/Building/Modular/P14_증류기.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 486, 재료 석재 블록×6, 룬 도체×2, 철괴×2, 기계 부품×2이 필요하다.",
+      "publicSha256": "e97764752de470a2b6ca791c24c7a6b844c1a69db80702f3e9d93e7e8a8fe366",
+      "id": "1086",
+      "catalogReferenced": true,
+      "name": "증류기",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1086.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "0c884580021490c01bd6d7dd42efc45ac84e50e723084905ee3776f78237b5d5",
+      "source": "Assets/Resources/SO/Building/Modular/P15_조리대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "publicSha256": "aad86e1764bb7b6fb336c9d68c7eccce2789e981f7416822dc0b1eb985135ced",
+      "id": "1087",
+      "catalogReferenced": true,
+      "name": "조리대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1087.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "c9a6ef19738e6f00aefbac592c0d9b875f0bc58f34f0214b1f1655d54ef0acbd",
+      "source": "Assets/Resources/SO/Building/Modular/P16_훈연대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 318, 재료 석재 블록×6, 철괴×4, 기계 부품×3이 필요하다.",
+      "publicSha256": "f306f9012f76dd86bdf2b2eefe4a42b6b2ba124af812b05039e94c6e1bd39ae6",
+      "id": "1088",
+      "catalogReferenced": true,
+      "name": "훈연대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1088.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "8dd5ea15c5c235615587c2c0f31ea06f531c6884f46bcf7792a78eb78ed41662",
+      "source": "Assets/Resources/SO/Building/Modular/P17_사료배합대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×6, 철괴×4, 석재 블록×2, 기계 부품×2이 필요하다.",
+      "publicSha256": "5748f12cc4c5460ac7e73db66fa617bce7b1d400ffd82ef84e37b453dcc85310",
+      "id": "1089",
+      "catalogReferenced": true,
+      "name": "사료 배합대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1089.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "6b5c237e620e85985625ca1553d37df78a67a573133b308ca70a0392b9de1b3e",
+      "source": "Assets/Resources/SO/Building/Modular/P18_약제대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 312, 재료 처리 목재×4, 철괴×3, 기계 부품×3이 필요하다.",
+      "publicSha256": "45f530e234eb28c1ad3973c45f116ea3e26446e8e2be602640c4ead8d1271929",
+      "id": "1090",
+      "catalogReferenced": true,
+      "name": "약제대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1090.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "bea692304705d7b81bdf4b1c9bf7d971924f315306ba4e38f3bb1ae86884f907",
+      "source": "Assets/Resources/SO/Building/Modular/P19_연금대.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대, 연구 수용력이다. 건설에는 작업량 486, 재료 석재 블록×6, 룬 도체×3, 철괴×2, 기계 부품×2, 외 1개이 필요하다.",
+      "publicSha256": "14e9e174141265964f67d73448d4a3fab182a5cd072fb3f2b0bfdcffcf8a15fb",
+      "id": "1091",
+      "catalogReferenced": true,
+      "name": "연금대",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1091.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "396c658d01f96df30236b3db14fc36e32615739930521ce4d7ae95e64e6abcd1",
+      "source": "Assets/Resources/SO/Building/Modular/P20_몽직기.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 495, 재료 석재 블록×6, 룬 도체×3, 철괴×2, 기계 부품×2, 외 2개이 필요하다.",
+      "publicSha256": "3352170fc316f6a446712f4f3b974b7e047aa3c353c77199803fc12550caca92",
+      "id": "1092",
+      "catalogReferenced": true,
+      "name": "몽직기",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1092.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "6aae839939e0a37d4932573816d4ebee360a61806f12f4bd99fd0795f65c8051",
+      "source": "Assets/Resources/SO/Building/Modular/P21_대장간.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비, 생산 작업대이다. 건설에는 작업량 576, 재료 처리 목재×7, 철괴×5, 석재 블록×2, 기계 부품×1, 외 1개이 필요하다.",
+      "publicSha256": "dc8a9bf7d66da8737c7c51ab3588be8ed68933c18ea41276f5ab438b7d1ec446",
+      "id": "1093",
+      "catalogReferenced": true,
+      "name": "대장간",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1093.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "제작"
+        },
+        {
+          "label": "크기",
+          "value": "3×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "fcc507cb1a6fd8fcfe441bc07a635c6fe963c08aa5c64286f14e53ec8cc57f8c",
+      "source": "Assets/Resources/SO/Building/Modular/P25_폐기소각로.asset",
+      "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 전력 소비이다. 건설에는 작업량 895, 재료 석재 블록×8, 철괴×8, 기계 부품×2이 필요하다.",
+      "publicSha256": "36535f97088628b58420decba8d572784d0fc52ae57d75cd3e6d303b0fb8256a",
+      "id": "1097",
+      "catalogReferenced": true,
+      "name": "폐기 소각로",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1097.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "1",
+            "outputDirections": "- {x: 1, y: 0}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        }
+      ],
+      "sha256": "97fd2f776bb626d8da14e7e3f47b19238828459b5dc65dfe5ef247d29a1b812b",
+      "source": "Assets/Resources/SO/Building/Industrial/C01R_컨베이어_우향.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "826b66de20ac63b6a515dadbe17c050aba164aafd89d0c5087978ab07367cb01",
+      "id": "9840",
+      "catalogReferenced": true,
+      "name": "컨베이어 우향",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9840.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "1",
+            "outputDirections": "- {x: -1, y: 0}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        }
+      ],
+      "sha256": "58feb2eb1eaec33f853acb3fbd6cd49947302bd1ac6e0bbf07814f74d785f829",
+      "source": "Assets/Resources/SO/Building/Industrial/C01L_컨베이어_좌향.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "a595635a7fa223966b17901ed617fe7622a3fc9b7b311f69c032729ab540a591",
+      "id": "9841",
+      "catalogReferenced": true,
+      "name": "컨베이어 좌향",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9841.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "1",
+            "outputDirections": "- {x: 0, y: 1}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        }
+      ],
+      "sha256": "f244d21ccdacbda55281d77d46f1a3da70ce144b05fb2c9d479bee2a89dbf994",
+      "source": "Assets/Resources/SO/Building/Industrial/C01U_컨베이어_상향.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "45120f1d964b9be6e54c1b96e29dc3524ab43bc21e29ea8b7277fb93c8cf497a",
+      "id": "9842",
+      "catalogReferenced": true,
+      "name": "컨베이어 상향",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9842.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "1",
+            "outputDirections": "- {x: 0, y: -1}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        }
+      ],
+      "sha256": "5538d8927b62fcc22f76f775b0c0491c0cd0d16caa023389652bf92986080981",
+      "source": "Assets/Resources/SO/Building/Industrial/C01D_컨베이어_하향.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "c2160c4a7bdce3ac9ceefca31dcc9a7ccc37a9b75d074f9d6a5f0a17d82fb073",
+      "id": "9843",
+      "catalogReferenced": true,
+      "name": "컨베이어 하향",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9843.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "2",
+            "outputDirections": "- {x: 1, y: 0}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        },
+        {
+          "fields": {
+            "mode": "0",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "a6bd47749294e267008d6fbf79d49ff0c395c30b50383d5c2db8d7034c73b465",
+      "source": "Assets/Resources/SO/Building/Industrial/C02_컨베이어_입력기.asset",
+      "summary": "시설의 고유 역할은 물류 입출력, 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "3b9f7df11404ee30d13595faab62ce4ea1f8b7a7d3cb999fed723e97aee44000",
+      "id": "9844",
+      "catalogReferenced": true,
+      "name": "컨베이어 입력기",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9844.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "2",
+            "outputDirections": "[]",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        },
+        {
+          "fields": {
+            "mode": "1",
+            "destinationId": "",
+            "capacity": "4"
+          },
+          "kind": "BuildingConveyorPortAbility"
+        }
+      ],
+      "sha256": "3354ef5fd71e10ffe2840801aba5f2916fd4c08e4da4449375bf76a038ba7c74",
+      "source": "Assets/Resources/SO/Building/Industrial/C03_컨베이어_출력기.asset",
+      "summary": "시설의 고유 역할은 물류 입출력, 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "492e007797a1446aff9cb87556b93c7784ac76096c49b9278b859cef6e92f1f5",
+      "id": "9845",
+      "catalogReferenced": true,
+      "name": "컨베이어 출력기",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9845.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "2",
+            "outputDirections": "- {x: 1, y: 0}\n        - {x: 0, y: 1}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        }
+      ],
+      "sha256": "1c17b8746fa94f68a051c62ed5d024403cb289f5dcd2587fcd7c10a815e1f0ce",
+      "source": "Assets/Resources/SO/Building/Industrial/C04_컨베이어_분배기.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "f9c03b95a0ce5b5e8622d7dce0ebf02a56b5fcd1dcd940c3d9d6f0ab6e60d324",
+      "id": "9846",
+      "catalogReferenced": true,
+      "name": "컨베이어 분배기",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9846.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "2",
+            "outputDirections": "- {x: 1, y: 0}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        }
+      ],
+      "sha256": "dde0ac33ce658641b2bea6a5a0bb418903238693f93279ff1068b9452f279e9b",
+      "source": "Assets/Resources/SO/Building/Industrial/C05_컨베이어_합류기.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "ae4fb15f80dd2203dd82a0bd784c9a588728990a28049813c45505e05e1e346a",
+      "id": "9847",
+      "catalogReferenced": true,
+      "name": "컨베이어 합류기",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9847.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "1",
+            "outputDirections": "- {x: 1, y: 0}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        }
+      ],
+      "sha256": "80797b9c4c2430160dacff0b5e174929e0e7cd2bef937b02a597ada0cccbeab4",
+      "source": "Assets/Resources/SO/Building/Industrial/C06_컨베이어_필터.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "375341ffcbe6df198d299c69c5394f6313a4b6fd970e1548826774bdffa0f122",
+      "id": "9848",
+      "catalogReferenced": true,
+      "name": "컨베이어 필터",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9848.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "1",
+            "outputDirections": "- {x: 1, y: 0}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        }
+      ],
+      "sha256": "0cab121bf0c9ae18286f9bdaf77fa21c341139e1eea0117ed634a1b72b5bc0a3",
+      "source": "Assets/Resources/SO/Building/Industrial/C07_우선순위_게이트.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "bb49aaabe84923faf712f3b6262ef7eed07ad02dce1408924a33291e40c6b39f",
+      "id": "9849",
+      "catalogReferenced": true,
+      "name": "우선순위 게이트",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9849.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "0.8",
+            "capacity": "2",
+            "outputDirections": "- {x: 0, y: 1}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        }
+      ],
+      "sha256": "cf5be70542f0dc44474e2c061bd816c6d61f13e553f7e79a7b1490ec5e4559a9",
+      "source": "Assets/Resources/SO/Building/Industrial/C08_층간_물류_리프트.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "3f4c20038755df7c8c7e936f7ddbdd7672a5adfcb2ac513825a2cd1901cb02b3",
+      "id": "9850",
+      "catalogReferenced": true,
+      "name": "층간 물류 리프트",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9850.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "1",
+            "capacity": "2",
+            "outputDirections": "[]",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        },
+        {
+          "fields": {
+            "defaultPolicy": "0",
+            "stallSeconds": "30"
+          },
+          "kind": "BuildingConveyorOverflowAbility"
+        }
+      ],
+      "sha256": "bf4c5330bd514f0b49d54cf6f29f4183d798be803d29bbecc4df35224da1699b",
+      "source": "Assets/Resources/SO/Building/Industrial/C09_오버플로_배출_게이트.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 927, 재료 강철×3, 철괴×2, 기계 부품×1, 정밀 부품×1이 필요하다.",
+      "publicSha256": "c60de12c6c94f980284cf7668a6b1c273077c3e37c88095825766b4e2a2a9c01",
+      "id": "9851",
+      "catalogReferenced": true,
+      "name": "오버플로 배출 게이트",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9851.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    },
+    {
+      "modules": [
+        {
+          "fields": {
+            "speed": "2",
+            "capacity": "2",
+            "outputDirections": "- {x: 1, y: 0}",
+            "requiresPower": "1",
+            "allowedItemIds": "[]",
+            "allowedStockCategories": "",
+            "allowedMaterialIds": "[]",
+            "filterQuality": "0",
+            "minimumQuality": "0",
+            "maximumQuality": "7",
+            "filterFreshness": "0",
+            "minimumFreshness01": "0",
+            "maximumFreshness01": "1",
+            "allowContaminated": "1",
+            "allowForbidden": "0"
+          },
+          "kind": "BuildingConveyorSegmentAbility"
+        }
+      ],
+      "sha256": "c2cb5deaef5302ad63da3cca222be8d4fbc5717c1270c7b624598ca3a325d750",
+      "source": "Assets/Resources/SO/Building/Industrial/C10_고속_컨베이어.asset",
+      "summary": "시설의 고유 역할은 컨베이어 운송, 전력 소비이다. 건설에는 작업량 618, 재료 강철×4, 철괴×3, 기계 부품×1이 필요하다.",
+      "publicSha256": "abbac6f76e47925d61433334156344b98937c36b0936307746f255f79a8cf7da",
+      "id": "9852",
+      "catalogReferenced": true,
+      "name": "고속 컨베이어",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9852.json",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "admission",
+      "ownerGap": "GAP-076",
+      "source": "ItemTransferService.TryBeginTransit / CopyLoadableTransitStackIds; ConveyorRuntime.AutoLoadInputPorts",
+      "text": "Auto loading reads first occupied node cell, at most one successful stack per input port per 0.1 simulation-second tick. Nonempty matching destination required. Only Loose/FacilityOutputBuffer; protected exact-route custody or any reservedQuantity prevents launch. Whole stack becomes one payload; no partial split here."
+    },
+    {
+      "id": "routing",
+      "ownerGap": "GAP-076",
+      "text": "Directed adjacent cardinal-cell graph; BFS shortest edge count, tie by ordinal NodeId, pass filters but ignore current load, power and speed costs. Named destination requires output/Both port matching destination. Unnamed destination is terminal output-capable node other than start, but auto load skips empty destination."
+    },
+    {
+      "id": "speed-capacity",
+      "ownerGap": "GAP-076",
+      "text": "progress += max(0.1,currentSegment.speed or 1)*elapsed; if>=1 cross one edge and subtract1. capacity=max(1,segment.capacity ?? port.capacity ??1), counted in payload stacks, not items or grams. 9844/9845 use segment2, not port4. Failed route retry1sec."
+    },
+    {
+      "id": "filters",
+      "ownerGap": "GAP-077",
+      "text": "Authored and runtime filters both pass. Within each ID/category set match ID OR category, or both empty. Material/quality needs source-stack equipment instance. Freshness needs food status. Contamination stack>0.001 or food contaminated. Freshness epsilon0.0001 and inclusive quality bounds. Forbidden allowed if either authored or runtime allows. Range settings normalized; ordinary UI has toggles, 10-percentage-point minimum freshness, quality min/max steps."
+    },
+    {
+      "id": "overflow",
+      "ownerGap": "GAP-078",
+      "text": "Network threshold=min(max(1,gate.stallSeconds)), default30. Power/manual stops do not accrue timer. Eligible candidates prioritized approved, oldest stall, ordinal payloadId; keep8 per tick. Gate candidates use undirected reachability, shortest edge count then NodeId. 4 policies: preferred warehouse then loose; any compatible warehouse then loose; loose only; manual approval then preferred warehouse/loose. Approval does not waive timer. Loose locations self/down/left/right/up if grid exists; failure keeps payload."
+    },
+    {
+      "id": "state-ui",
+      "ownerGap": "GAP-078",
+      "text": "All unpowered/all stopped take precedence. Cyclic + payloadcount>=totalcapacity + all payloads blocked + no movement30sec => Deadlocked. Otherwise max(longest stall,noProgress)>=30 => Stalled. Live UI force-discharge button threshold30; snapshot threshold30 distinct from authored overflow threshold."
+    },
+    {
+      "id": "save",
+      "ownerGap": "GAP-080",
+      "text": "Persist node settings/filters and payload identity/current+previous node/destination/progress/stall elapsed/routeVersion/sequence. Route list/index omitted and rebuilt. Restore resets topology projection and clears transient manual approvals; subsequent InvalidateRoutes clears stall timer/retry. UI/save round trip not executed."
+    }
+  ],
+  "readCoverage": [
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorRuntime.cs",
+      "coverage": "entire current file (1-260,256-396,396-681,680-951,951-end)"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorRoutePlanner.cs",
+      "coverage": "entire current file"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorPayloadAdmissionPolicy.cs",
+      "coverage": "entire current file"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorItemGateway.cs",
+      "coverage": "entire current file"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorPersistence.cs",
+      "coverage": "entire current file"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorSnapshotProjector.cs",
+      "coverage": "entire current file"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureTopology.cs",
+      "coverage": "conveyor graph276-355 and544-580 reread; previous full-file review preserved, unrelated logic not re-audited here"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureModels.cs",
+      "coverage": "enums/state evaluator1-109 and filter/save DTO279-367"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/ItemTransferService.cs",
+      "coverage": "2056-2201 transit launch/list and2260-2365 facility admission; commit/rollback remainder not reviewed here"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/IndustrialFeatureSurfacePresenter.cs",
+      "coverage": "316-581 conveyor controls and687-728 quality/filter submission"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+      "coverage": "846-878 DI"
+    },
+    {
+      "path": "docs/handbook/03-world-building-facilities-environment.md",
+      "coverage": "127-151"
+    },
+    {
+      "path": "docs_final/architecture/systems/07-industrial-networks-and-automation.md",
+      "coverage": "conveyor passages from targeted search; not full chapter"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/infrastructure.md",
+      "coverage": "entire"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/production.md",
+      "coverage": "entire"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/inventory-and-carrying.md",
+      "coverage": "conveyor/gram passage only this checkpoint"
+    }
+  ],
+  "uncertainties": [
+    {
+      "key": "destination-ui",
+      "status": "live caller absent in full Assets/Scripts non-Editor textual reverse search; runtime execution unverified",
+      "detail": "SetPortDestination has declaration/interface only. All29 authored destinations blank. AutoLoad skips empty destinations; document an implementation connection concern rather than claiming players can configure working routes."
+    },
+    {
+      "key": "overflow-warehouse-ui",
+      "status": "unverified configuration path",
+      "detail": "UI cycles policy but passes unchanged ReserveWarehouseId. No warehouse picker found in AddConveyors. Defaults blank means preferred-only policy proceeds to loose, not any warehouse."
+    },
+    {
+      "key": "filter-ui",
+      "status": "partial controls",
+      "detail": "Generic criteria supports item/category/material lists and max freshness; inspected live controls only toggle modes and change min freshness/quality endpoints. Do not claim every criterion has an editing UI."
+    },
+    {
+      "key": "gate-semantics",
+      "status": "needs design/runtime reconciliation",
+      "detail": "Reachable overflow gates ignore enabled/power/filters in planner/discharge. Runtime limits8 candidates rather than8 successes; blocked early candidates may starve later ones. No execution performed."
+    },
+    {
+      "key": "save-stall",
+      "status": "static path concern; no round-trip execution",
+      "detail": "Restore reads elapsed stalls but topology invalidation clears them; manual approval is not serialized. Verify intended continuity before publishing as intended behavior."
+    },
+    {
+      "key": "named-feature",
+      "status": "needs full domain reconciliation",
+      "detail": "Priority gate authored identical routing fields to ordinary filter; lift authors upward 2D direction. No priority weighting or cross-floor rule in inspected planner. Names alone do not prove those capabilities."
+    },
+    {
+      "key": "building-work-drift",
+      "status": "separate full-facility comparison pending",
+      "detail": "building9840 public summary constructionWU618 vs current authored883. This report audits conveyor fields, not all construction costs."
+    }
+  ],
+  "sources": [
+    {
+      "sha256": "bbaccc09222c4dededb2361951310495e85aaf8373246f1bb617fafc117fffea",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorRuntime.cs"
+    },
+    {
+      "sha256": "f23eb232bb41dfa0aa6ccf3b109c63c9ecead24d9e84cbcf025799a8c1fec48d",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorRoutePlanner.cs"
+    },
+    {
+      "sha256": "38f3ea556876ab947dd5cb2377ac6d92d97588d50dacb90db129631c64370cd6",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorPayloadAdmissionPolicy.cs"
+    },
+    {
+      "sha256": "6dae88d168a91b78c8d296b5434c1b89b2f4c59c9fae516f63655c61b665d438",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorItemGateway.cs"
+    },
+    {
+      "sha256": "08afe44a0eb93b4406025134764a6e135240d508ffa94673537a797e4ee08725",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorPersistence.cs"
+    },
+    {
+      "sha256": "0330a5a93aafee9f005f1188a944c0fc257cc8f1a9fe8b4eb6845a67cc2fe964",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorSnapshotProjector.cs"
+    },
+    {
+      "sha256": "57eac6cccb270635d9dd6b08237c6152df6bc07758a277ed5c9456decdc64aa3",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureTopology.cs"
+    },
+    {
+      "sha256": "be5433c44700ea4f48be18d4e1e0ceb1cb5e92a3cc204c5922710e30effe9cfc",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureModels.cs"
+    },
+    {
+      "sha256": "27afa903f5145cc2d72c934d648952c6479a4f105c96ac2cca24ed6f17fc6042",
+      "path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureBuildingAbilities.cs"
+    },
+    {
+      "sha256": "adb2143c0822dbc4c119314c41e64ee3c6f75a100ac12ae174a7106c5e8d759f",
+      "path": "Assets/Scripts/Services/Items/ItemTransferService.cs"
+    },
+    {
+      "sha256": "182830b5b282724cbbd58d293319f5ef774b921f50dcf3318c945b3145d989c3",
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs"
+    },
+    {
+      "sha256": "ab74f6070428f587b420549db541440c1d859e783282d94bba7dbdefb358c1b2",
+      "path": "Assets/Scripts/Views/UI/IndustrialFeatureSurfacePresenter.cs"
+    },
+    {
+      "sha256": "78e87c3239487cb4b4ded6309d549de06320bbe1db8362c0c25fe7abdecd808e",
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset"
+    },
+    {
+      "sha256": "8b3fe3d0265e1c18a3a25c54e4c0d011c64e4f75eb264aee22d4466700861645",
+      "path": "Assets/Resources/SO/GameContentCatalog.asset"
+    },
+    {
+      "sha256": "161532cdd0ede7706e4af597fc135579b7462db43c8b5945a98f2dabe7f11d39",
+      "path": "docs/handbook/03-world-building-facilities-environment.md"
+    },
+    {
+      "sha256": "d78d2dc3c8b7ef13c039fa8a6ee35c1e673fcfb1f18098363260bde62f2585d0",
+      "path": "docs_final/architecture/systems/07-industrial-networks-and-automation.md"
+    },
+    {
+      "sha256": "721c2c6448a623e0383e360a379722217a2179b0a7e637b8cfd97edd791bd2f4",
+      "path": "wiki/game-versions/0.0.1v/content/guides/infrastructure.md"
+    },
+    {
+      "sha256": "c46cec0e434165f21723c1bb39947a87f1a2528697cc4e5d00bffe08b8847817",
+      "path": "wiki/game-versions/0.0.1v/content/guides/production.md"
+    },
+    {
+      "sha256": "8cef7e1f76c53cd8177c77f05c6428bf956ff92b07fe512edadde3e13eb27f7a",
+      "path": "wiki/game-versions/0.0.1v/content/guides/inventory-and-carrying.md"
+    },
+    {
+      "sha256": "1f55e0e166623f36bbb1a1de46c35c16ffbc0ed7da74396f362a55cf9f0c3c44",
+      "path": "wiki/game-versions/0.0.1v/content/guides/source-coverage.json"
+    },
+    {
+      "sha256": "b44f874c2a3d7695fabcb52df961c8d86e8278daf4bfea167f400aa311c34793",
+      "path": "Assets/Resources/SO/Building/Modular/D01_간이화덕.asset"
+    },
+    {
+      "sha256": "02c96dd88ccf31500618e423d713d370a508255501c10a3c1ce115e7d02ccc33",
+      "path": "Assets/Resources/SO/Building/Modular/D01_간이화덕.asset.meta"
+    },
+    {
+      "sha256": "ae99fd8c98758e3a9f1161a2bb8fff7a57e5733e924d3abb6fb9e359a0a2056e",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1000.json"
+    },
+    {
+      "sha256": "80e5a1fed80dee056599c542bf91aa0b7520ae85ab29883739219ecfb8e90be2",
+      "path": "Assets/Resources/SO/Building/Modular/D02_고기그릴.asset"
+    },
+    {
+      "sha256": "7cce65aad96e176f5301df64aa5705dc5cf6f4b1b880df84014a59f8e10862b1",
+      "path": "Assets/Resources/SO/Building/Modular/D02_고기그릴.asset.meta"
+    },
+    {
+      "sha256": "eacef070b04862486da6b88add582755e99e358b3fb58b35f333288893d646b0",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1001.json"
+    },
+    {
+      "sha256": "0e14cdbb6b95dfdc6fb241645e0d27e4e759f623e85dd972809bd10ca29648c8",
+      "path": "Assets/Resources/SO/Building/Modular/D03_조리손질대.asset"
+    },
+    {
+      "sha256": "94de945695a23f38edf9503e644ad21bfe02c65054684799a5ab4d82ee3a633f",
+      "path": "Assets/Resources/SO/Building/Modular/D03_조리손질대.asset.meta"
+    },
+    {
+      "sha256": "9d2df3da5e4b3d8ac8ae28e1c65bafe088714a6ce293246e2c2ae8793276dd91",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1002.json"
+    },
+    {
+      "sha256": "aa8e9b7d2836aa5cd040e5c4c9d523b2a310373d2a03d695a8a877b23dc279fb",
+      "path": "Assets/Resources/SO/Building/Modular/S08_대장작업대.asset"
+    },
+    {
+      "sha256": "0f690525b96ec46fdefbfaddca18abbfc07fccc9ae9b003a5238cd1dcefc45e9",
+      "path": "Assets/Resources/SO/Building/Modular/S08_대장작업대.asset.meta"
+    },
+    {
+      "sha256": "c40cb4273b5b6f921d9c2e47ccacb2413196d4bdb946622b8b03a3ba62853e6b",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1019.json"
+    },
+    {
+      "sha256": "6867fbafa5ccb1b48703d451a93a2fc2dac92f7a6f66ca67794084af18dc2fc3",
+      "path": "Assets/Resources/SO/Building/Modular/G06_전리품거치대.asset"
+    },
+    {
+      "sha256": "8c15e456e17c62bbe071e096a6d0487b808e24d0a61e791c20b4608877a9f35b",
+      "path": "Assets/Resources/SO/Building/Modular/G06_전리품거치대.asset.meta"
+    },
+    {
+      "sha256": "103c8d9c54e301909f65611196bf61bca2d65be14ae8bc756e37159e4b81ae33",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1049.json"
+    },
+    {
+      "sha256": "8805ba121a2f252cfdd1aac72cf6af0d5dc25e1a72dc759724b4b31fabb1f5b4",
+      "path": "Assets/Resources/SO/Building/Modular/P01_제분소.asset"
+    },
+    {
+      "sha256": "135ce8e42e37305cde77350c5a665fcb1743bbb990571fa91fd3ba5c6556aaf7",
+      "path": "Assets/Resources/SO/Building/Modular/P01_제분소.asset.meta"
+    },
+    {
+      "sha256": "70daddbc547c0f673eb2a114bed64ba3cff3eeaf12da0650ba2edddfe6c74deb",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1073.json"
+    },
+    {
+      "sha256": "ee5ae4ab3cabc3ccb5e2ab6a1251174e52eee990d0a478707f7fe0b705cfde6e",
+      "path": "Assets/Resources/SO/Building/Modular/P02_양조장.asset"
+    },
+    {
+      "sha256": "f6772e7a8b39442425e34ff93acea0d4ebe019d84dc7534507df9cd3535b087b",
+      "path": "Assets/Resources/SO/Building/Modular/P02_양조장.asset.meta"
+    },
+    {
+      "sha256": "20462d58ebe3538f83569a0f02b1749ce1a2fd212db37cc82949beb086038d71",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1074.json"
+    },
+    {
+      "sha256": "d2cbe4597abe3cbfabbe8b33ea39b0920f2b92c9f5cda416cbc7675fc4c38157",
+      "path": "Assets/Resources/SO/Building/Modular/P03_제재소.asset"
+    },
+    {
+      "sha256": "e20f37ec91f50954ec7483b855533862ee9ce37792471b861188a3fa64c95901",
+      "path": "Assets/Resources/SO/Building/Modular/P03_제재소.asset.meta"
+    },
+    {
+      "sha256": "ce73c76235a1de7506bfd3f16d2019b9f836bdd5888272b629443349741c5e11",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1075.json"
+    },
+    {
+      "sha256": "1b54fbb31e484ec62d821d0b5bedbb7b75e8d79d939e98b66a199d964e227460",
+      "path": "Assets/Resources/SO/Building/Modular/P04_숯가마.asset"
+    },
+    {
+      "sha256": "0576f5c68f39e1ce2cdc90f4579a5f253fb144a52ee6af79401a014af99dab37",
+      "path": "Assets/Resources/SO/Building/Modular/P04_숯가마.asset.meta"
+    },
+    {
+      "sha256": "b9d9d018e23f2082d7f361b09f506d39ba81af13d5b46a4e73ee982bdd3f0a91",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1076.json"
+    },
+    {
+      "sha256": "d4eb8c2758554b7cc68851c819fafbddff1fe58c5ffb79bde6385cadfff39ddc",
+      "path": "Assets/Resources/SO/Building/Modular/P05_석재절단대.asset"
+    },
+    {
+      "sha256": "215260dc4ca14f8cbfe1bc629beb410d87f4c98128f21a555552e7bcc8a9a785",
+      "path": "Assets/Resources/SO/Building/Modular/P05_석재절단대.asset.meta"
+    },
+    {
+      "sha256": "044ad32caa28a10497ea7d38f13275839a0b0fac0491c65bd61d9ff1717494ef",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1077.json"
+    },
+    {
+      "sha256": "60836495bbc8ebafa6b028dc733e3f8dde9171f08f0fe1529162ffd0ab059240",
+      "path": "Assets/Resources/SO/Building/Modular/P06_광석선별대.asset"
+    },
+    {
+      "sha256": "2f1fe9136be6294a7db672c1bb34e0f3296a7448d1a8ea7a99beae75277f6517",
+      "path": "Assets/Resources/SO/Building/Modular/P06_광석선별대.asset.meta"
+    },
+    {
+      "sha256": "ba9e3eb0f951d82ff55d87ef16dd9ac429a055c40012cc7da7e9518fdcff1cc1",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1078.json"
+    },
+    {
+      "sha256": "71f948d2c0367bc4341cf2efa17805a6d85a2c5a7c46d03aaa6d9018c64c5d03",
+      "path": "Assets/Resources/SO/Building/Modular/P07_용광로.asset"
+    },
+    {
+      "sha256": "3aaba95a561836070f2f2a800fabdce7e1eac10f5ebede4c9373b86cefac2d16",
+      "path": "Assets/Resources/SO/Building/Modular/P07_용광로.asset.meta"
+    },
+    {
+      "sha256": "4c006ed5b418f36dd9eec94a588ead4b03d455cf5418783b5461faec73e45758",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1079.json"
+    },
+    {
+      "sha256": "334fba5afc84fb6b7588e9420a7531f2e27bba4197cc3b5e2a17b13e266a9907",
+      "path": "Assets/Resources/SO/Building/Modular/P08_제강로.asset"
+    },
+    {
+      "sha256": "4c16ac63a59c6012de6e9ddb6e8244307d7fec37fcd387464a3a2f69b2db1f7e",
+      "path": "Assets/Resources/SO/Building/Modular/P08_제강로.asset.meta"
+    },
+    {
+      "sha256": "44d553845c502e69b02525a007227041d0fb6a249ffac72ac98ef4f1f08e052d",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1080.json"
+    },
+    {
+      "sha256": "075d8e5f6740644508fb4e6833bc9e177f4c86e2350dc3fac44a696aa561e5ff",
+      "path": "Assets/Resources/SO/Building/Modular/P09_귀금세공대.asset"
+    },
+    {
+      "sha256": "02f996703ad80a3de0615cd62e9fa1a5b60a53d46985453526fba09d4575d476",
+      "path": "Assets/Resources/SO/Building/Modular/P09_귀금세공대.asset.meta"
+    },
+    {
+      "sha256": "ac1a522a3eb81c78c8fc2156ea3bcffe0ce5bea732ea318aa4503aef9b560be7",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1081.json"
+    },
+    {
+      "sha256": "35c23f4818906ad516461bd484d39cf19bb345d1c5733078277b63607673b305",
+      "path": "Assets/Resources/SO/Building/Modular/P10_비전단조대.asset"
+    },
+    {
+      "sha256": "64c89984b40905f1c97e69f9ef704c4974b8903229a380628a25d04d05fcb8de",
+      "path": "Assets/Resources/SO/Building/Modular/P10_비전단조대.asset.meta"
+    },
+    {
+      "sha256": "f71c65a43f7243133fe7d1c5c26783ec4e628996139396b6d62007912b86e05d",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1082.json"
+    },
+    {
+      "sha256": "cd02583321c8692336b43267c212f99cd5f15f246db96c7bdf4d70f56b5c45bf",
+      "path": "Assets/Resources/SO/Building/Modular/P11_직조기.asset"
+    },
+    {
+      "sha256": "b6fc89a401d1adc28a1794946e641cd9b9044eb38579a574b851ea1027be044d",
+      "path": "Assets/Resources/SO/Building/Modular/P11_직조기.asset.meta"
+    },
+    {
+      "sha256": "b22cad2182498540bcffd3c47689e5ee559b8902d37a2913022dfe02ce980dab",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1083.json"
+    },
+    {
+      "sha256": "237e8832f0a50680ed0f0f1ae5dcafbf5fad0c6378a1f2f77031f7dbe89f1c5c",
+      "path": "Assets/Resources/SO/Building/Modular/P12_무두질대.asset"
+    },
+    {
+      "sha256": "c832fce3097706dc235d5a6fc824d3702a6497d5e11b2978c6417406bad21a0f",
+      "path": "Assets/Resources/SO/Building/Modular/P12_무두질대.asset.meta"
+    },
+    {
+      "sha256": "594d6b43ff554fbb9c5bafd7e152494e500f565a6a5cfdc9a164170111579f92",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1084.json"
+    },
+    {
+      "sha256": "bfb431a280d5407be535ef92c6e447c1bdb6e2674cfe0aead199390efa3f89eb",
+      "path": "Assets/Resources/SO/Building/Modular/P13_퇴비장.asset"
+    },
+    {
+      "sha256": "a09553aef0d6a672947d1e40ddd236c2039dffea48c18a9e0d6061589a1624e9",
+      "path": "Assets/Resources/SO/Building/Modular/P13_퇴비장.asset.meta"
+    },
+    {
+      "sha256": "a722bea94b44f1872dcfcfdd544ea239c4c97e1cc93ae9810e21b29c5bf64332",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1085.json"
+    },
+    {
+      "sha256": "5658d0bfe4139290b84cec38ce68f6a319e1fb8467bdcba950fa5cb961ef666e",
+      "path": "Assets/Resources/SO/Building/Modular/P14_증류기.asset"
+    },
+    {
+      "sha256": "508b343190dea8ed01aeab2f0fcbff46627c7d760c2d5abe084cb75bf0869b15",
+      "path": "Assets/Resources/SO/Building/Modular/P14_증류기.asset.meta"
+    },
+    {
+      "sha256": "e97764752de470a2b6ca791c24c7a6b844c1a69db80702f3e9d93e7e8a8fe366",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1086.json"
+    },
+    {
+      "sha256": "0c884580021490c01bd6d7dd42efc45ac84e50e723084905ee3776f78237b5d5",
+      "path": "Assets/Resources/SO/Building/Modular/P15_조리대.asset"
+    },
+    {
+      "sha256": "e213f52af40be0d6ab8dbb87985affb85e33c1e912e664d88b8300d7aed3ffdd",
+      "path": "Assets/Resources/SO/Building/Modular/P15_조리대.asset.meta"
+    },
+    {
+      "sha256": "aad86e1764bb7b6fb336c9d68c7eccce2789e981f7416822dc0b1eb985135ced",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1087.json"
+    },
+    {
+      "sha256": "c9a6ef19738e6f00aefbac592c0d9b875f0bc58f34f0214b1f1655d54ef0acbd",
+      "path": "Assets/Resources/SO/Building/Modular/P16_훈연대.asset"
+    },
+    {
+      "sha256": "c701ebbaab1abdf09bb81e7ae99fc2cb35b5e17953d78dadfa463642258c7f57",
+      "path": "Assets/Resources/SO/Building/Modular/P16_훈연대.asset.meta"
+    },
+    {
+      "sha256": "f306f9012f76dd86bdf2b2eefe4a42b6b2ba124af812b05039e94c6e1bd39ae6",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1088.json"
+    },
+    {
+      "sha256": "8dd5ea15c5c235615587c2c0f31ea06f531c6884f46bcf7792a78eb78ed41662",
+      "path": "Assets/Resources/SO/Building/Modular/P17_사료배합대.asset"
+    },
+    {
+      "sha256": "42a95792b6a8fb4166b06ab50d3edc69783516d8894c0386c0a8ea3f00e80232",
+      "path": "Assets/Resources/SO/Building/Modular/P17_사료배합대.asset.meta"
+    },
+    {
+      "sha256": "5748f12cc4c5460ac7e73db66fa617bce7b1d400ffd82ef84e37b453dcc85310",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1089.json"
+    },
+    {
+      "sha256": "6b5c237e620e85985625ca1553d37df78a67a573133b308ca70a0392b9de1b3e",
+      "path": "Assets/Resources/SO/Building/Modular/P18_약제대.asset"
+    },
+    {
+      "sha256": "ae08823429ea8acf44e78ee5cf51e033f8fefe7d0bc3935d573025a9596d498d",
+      "path": "Assets/Resources/SO/Building/Modular/P18_약제대.asset.meta"
+    },
+    {
+      "sha256": "45f530e234eb28c1ad3973c45f116ea3e26446e8e2be602640c4ead8d1271929",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1090.json"
+    },
+    {
+      "sha256": "bea692304705d7b81bdf4b1c9bf7d971924f315306ba4e38f3bb1ae86884f907",
+      "path": "Assets/Resources/SO/Building/Modular/P19_연금대.asset"
+    },
+    {
+      "sha256": "0d35598e0f0ec4450fb6967aa615b7871a4d6442c79204698ffc06822be18e19",
+      "path": "Assets/Resources/SO/Building/Modular/P19_연금대.asset.meta"
+    },
+    {
+      "sha256": "14e9e174141265964f67d73448d4a3fab182a5cd072fb3f2b0bfdcffcf8a15fb",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1091.json"
+    },
+    {
+      "sha256": "396c658d01f96df30236b3db14fc36e32615739930521ce4d7ae95e64e6abcd1",
+      "path": "Assets/Resources/SO/Building/Modular/P20_몽직기.asset"
+    },
+    {
+      "sha256": "9c60e07f1a43722fe7f021a7ab6aa26d1245a5fd0903cf80e84bb5580da2132f",
+      "path": "Assets/Resources/SO/Building/Modular/P20_몽직기.asset.meta"
+    },
+    {
+      "sha256": "3352170fc316f6a446712f4f3b974b7e047aa3c353c77199803fc12550caca92",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1092.json"
+    },
+    {
+      "sha256": "6aae839939e0a37d4932573816d4ebee360a61806f12f4bd99fd0795f65c8051",
+      "path": "Assets/Resources/SO/Building/Modular/P21_대장간.asset"
+    },
+    {
+      "sha256": "81a22b795dab5338fb69e60118d75f6b5c63643338117b315191c1157befeadb",
+      "path": "Assets/Resources/SO/Building/Modular/P21_대장간.asset.meta"
+    },
+    {
+      "sha256": "dc8a9bf7d66da8737c7c51ab3588be8ed68933c18ea41276f5ab438b7d1ec446",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1093.json"
+    },
+    {
+      "sha256": "fcc507cb1a6fd8fcfe441bc07a635c6fe963c08aa5c64286f14e53ec8cc57f8c",
+      "path": "Assets/Resources/SO/Building/Modular/P25_폐기소각로.asset"
+    },
+    {
+      "sha256": "8186a92cc752c4c302cf49e92fea9d7f84574202351f8ce37c6d062575324a54",
+      "path": "Assets/Resources/SO/Building/Modular/P25_폐기소각로.asset.meta"
+    },
+    {
+      "sha256": "36535f97088628b58420decba8d572784d0fc52ae57d75cd3e6d303b0fb8256a",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1097.json"
+    },
+    {
+      "sha256": "97fd2f776bb626d8da14e7e3f47b19238828459b5dc65dfe5ef247d29a1b812b",
+      "path": "Assets/Resources/SO/Building/Industrial/C01R_컨베이어_우향.asset"
+    },
+    {
+      "sha256": "31c712aa1df15d064d0a400ec0cad5a9f682a154f1850b0ea69f98d50d0b35ea",
+      "path": "Assets/Resources/SO/Building/Industrial/C01R_컨베이어_우향.asset.meta"
+    },
+    {
+      "sha256": "826b66de20ac63b6a515dadbe17c050aba164aafd89d0c5087978ab07367cb01",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9840.json"
+    },
+    {
+      "sha256": "58feb2eb1eaec33f853acb3fbd6cd49947302bd1ac6e0bbf07814f74d785f829",
+      "path": "Assets/Resources/SO/Building/Industrial/C01L_컨베이어_좌향.asset"
+    },
+    {
+      "sha256": "089cbdf60c1127e4058f19503f9a2281be06a8445e569cdd890e68ff50155403",
+      "path": "Assets/Resources/SO/Building/Industrial/C01L_컨베이어_좌향.asset.meta"
+    },
+    {
+      "sha256": "a595635a7fa223966b17901ed617fe7622a3fc9b7b311f69c032729ab540a591",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9841.json"
+    },
+    {
+      "sha256": "f244d21ccdacbda55281d77d46f1a3da70ce144b05fb2c9d479bee2a89dbf994",
+      "path": "Assets/Resources/SO/Building/Industrial/C01U_컨베이어_상향.asset"
+    },
+    {
+      "sha256": "5b8ce0e9bbf8d920d3be6467c1bf47cccba64cc55a443ff8dda27d109f88081b",
+      "path": "Assets/Resources/SO/Building/Industrial/C01U_컨베이어_상향.asset.meta"
+    },
+    {
+      "sha256": "45120f1d964b9be6e54c1b96e29dc3524ab43bc21e29ea8b7277fb93c8cf497a",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9842.json"
+    },
+    {
+      "sha256": "5538d8927b62fcc22f76f775b0c0491c0cd0d16caa023389652bf92986080981",
+      "path": "Assets/Resources/SO/Building/Industrial/C01D_컨베이어_하향.asset"
+    },
+    {
+      "sha256": "f5e92f3e096ef7e37ad259ab78f84cc28f6203e62b68289c787e599c7f8d8074",
+      "path": "Assets/Resources/SO/Building/Industrial/C01D_컨베이어_하향.asset.meta"
+    },
+    {
+      "sha256": "c2160c4a7bdce3ac9ceefca31dcc9a7ccc37a9b75d074f9d6a5f0a17d82fb073",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9843.json"
+    },
+    {
+      "sha256": "a6bd47749294e267008d6fbf79d49ff0c395c30b50383d5c2db8d7034c73b465",
+      "path": "Assets/Resources/SO/Building/Industrial/C02_컨베이어_입력기.asset"
+    },
+    {
+      "sha256": "165c2c0563c806f6a80ce044e7da592c43f342c7a74f6e76bfefa659d1b45409",
+      "path": "Assets/Resources/SO/Building/Industrial/C02_컨베이어_입력기.asset.meta"
+    },
+    {
+      "sha256": "3b9f7df11404ee30d13595faab62ce4ea1f8b7a7d3cb999fed723e97aee44000",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9844.json"
+    },
+    {
+      "sha256": "3354ef5fd71e10ffe2840801aba5f2916fd4c08e4da4449375bf76a038ba7c74",
+      "path": "Assets/Resources/SO/Building/Industrial/C03_컨베이어_출력기.asset"
+    },
+    {
+      "sha256": "c3534d47fdaf9d7c39c44b425899cdad0c0897b8dda1351ea2cecd3bdc9b7b12",
+      "path": "Assets/Resources/SO/Building/Industrial/C03_컨베이어_출력기.asset.meta"
+    },
+    {
+      "sha256": "492e007797a1446aff9cb87556b93c7784ac76096c49b9278b859cef6e92f1f5",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9845.json"
+    },
+    {
+      "sha256": "1c17b8746fa94f68a051c62ed5d024403cb289f5dcd2587fcd7c10a815e1f0ce",
+      "path": "Assets/Resources/SO/Building/Industrial/C04_컨베이어_분배기.asset"
+    },
+    {
+      "sha256": "103bf312f1a85fc810c3a52603e918f00964de08501cd4a73773009fdb7c1342",
+      "path": "Assets/Resources/SO/Building/Industrial/C04_컨베이어_분배기.asset.meta"
+    },
+    {
+      "sha256": "f9c03b95a0ce5b5e8622d7dce0ebf02a56b5fcd1dcd940c3d9d6f0ab6e60d324",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9846.json"
+    },
+    {
+      "sha256": "dde0ac33ce658641b2bea6a5a0bb418903238693f93279ff1068b9452f279e9b",
+      "path": "Assets/Resources/SO/Building/Industrial/C05_컨베이어_합류기.asset"
+    },
+    {
+      "sha256": "4cd2b2b44485b7dce63dfae23c48b3d9eae1f058da13c05bf32b0ee124605980",
+      "path": "Assets/Resources/SO/Building/Industrial/C05_컨베이어_합류기.asset.meta"
+    },
+    {
+      "sha256": "ae4fb15f80dd2203dd82a0bd784c9a588728990a28049813c45505e05e1e346a",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9847.json"
+    },
+    {
+      "sha256": "80797b9c4c2430160dacff0b5e174929e0e7cd2bef937b02a597ada0cccbeab4",
+      "path": "Assets/Resources/SO/Building/Industrial/C06_컨베이어_필터.asset"
+    },
+    {
+      "sha256": "2a95174c1f531eadf19e9013e837a74714de1363accdfbf22266d3d9b19a1253",
+      "path": "Assets/Resources/SO/Building/Industrial/C06_컨베이어_필터.asset.meta"
+    },
+    {
+      "sha256": "375341ffcbe6df198d299c69c5394f6313a4b6fd970e1548826774bdffa0f122",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9848.json"
+    },
+    {
+      "sha256": "0cab121bf0c9ae18286f9bdaf77fa21c341139e1eea0117ed634a1b72b5bc0a3",
+      "path": "Assets/Resources/SO/Building/Industrial/C07_우선순위_게이트.asset"
+    },
+    {
+      "sha256": "02d5e9c635a6da027825c320e6da361b021a17e60eff1328f58da5c7257d0365",
+      "path": "Assets/Resources/SO/Building/Industrial/C07_우선순위_게이트.asset.meta"
+    },
+    {
+      "sha256": "bb49aaabe84923faf712f3b6262ef7eed07ad02dce1408924a33291e40c6b39f",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9849.json"
+    },
+    {
+      "sha256": "cf5be70542f0dc44474e2c061bd816c6d61f13e553f7e79a7b1490ec5e4559a9",
+      "path": "Assets/Resources/SO/Building/Industrial/C08_층간_물류_리프트.asset"
+    },
+    {
+      "sha256": "4b8cc13a932f8348aa4e288c1391ec3e6060af758b3b73caa5dc0834bc5e5b12",
+      "path": "Assets/Resources/SO/Building/Industrial/C08_층간_물류_리프트.asset.meta"
+    },
+    {
+      "sha256": "3f4c20038755df7c8c7e936f7ddbdd7672a5adfcb2ac513825a2cd1901cb02b3",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9850.json"
+    },
+    {
+      "sha256": "bf4c5330bd514f0b49d54cf6f29f4183d798be803d29bbecc4df35224da1699b",
+      "path": "Assets/Resources/SO/Building/Industrial/C09_오버플로_배출_게이트.asset"
+    },
+    {
+      "sha256": "97995b59e63cf02526332162a45fcf3c9b2fd952ca85a6932441f57298740141",
+      "path": "Assets/Resources/SO/Building/Industrial/C09_오버플로_배출_게이트.asset.meta"
+    },
+    {
+      "sha256": "c60de12c6c94f980284cf7668a6b1c273077c3e37c88095825766b4e2a2a9c01",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9851.json"
+    },
+    {
+      "sha256": "c2cb5deaef5302ad63da3cca222be8d4fbc5717c1270c7b624598ca3a325d750",
+      "path": "Assets/Resources/SO/Building/Industrial/C10_고속_컨베이어.asset"
+    },
+    {
+      "sha256": "2f5e05376e57ee7b25acee04803916adbb796a6ad767ca6cdc3c3cbbd3096137",
+      "path": "Assets/Resources/SO/Building/Industrial/C10_고속_컨베이어.asset.meta"
+    },
+    {
+      "sha256": "abbac6f76e47925d61433334156344b98937c36b0936307746f255f79a8cf7da",
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9852.json"
+    }
+  ],
+  "validation": {
+    "priorEvidenceCount": 2977,
+    "priorEvidenceHashChanges": 0,
+    "facilityIdsUnique": true,
+    "allSourceAndPublicPathsExist": true,
+    "allCatalogReferenced": true,
+    "allFieldsExtracted": true,
+    "unityCompilation": false,
+    "playMode": false,
+    "actualUi": false,
+    "saveRoundTrip": false,
+    "globalDeduplication": "pending",
+    "balanceImpact": "none"
+  }
+}

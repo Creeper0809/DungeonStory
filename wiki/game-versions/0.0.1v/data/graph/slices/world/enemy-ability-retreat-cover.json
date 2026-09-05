@@ -1,0 +1,53 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-retreat-cover",
+    "spoiler_tier": "none",
+    "title": "퇴각 엄호"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-legion-pavise",
+      "label": "관련",
+      "to": "world/enemy-ability-retreat-cover",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-merchant-factor",
+      "label": "관련",
+      "to": "world/enemy-ability-retreat-cover",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-merchant-hired-bulwark",
+      "label": "관련",
+      "to": "world/enemy-ability-retreat-cover",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-neutral-mercenary",
+      "label": "관련",
+      "to": "world/enemy-ability-retreat-cover",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-settler-ranger-chief",
+      "label": "관련",
+      "to": "world/enemy-ability-retreat-cover",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-settler-ranger-chief",
+      "label": "관련",
+      "to": "world/enemy-ability-retreat-cover",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

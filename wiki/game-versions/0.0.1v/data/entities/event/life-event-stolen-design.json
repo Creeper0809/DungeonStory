@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Apprenticeship"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-stolen-design",
+      "target_spoiler_tier": "warning",
+      "target_title": "닮은 설계도",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "1",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-stolen-design",
+      "target_spoiler_tier": "warning",
+      "target_title": "닮은 설계도",
+      "type": "sets-world-flag"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-stolen-design",
+  "spoiler_tier": "warning",
+  "summary": "경쟁 작업반이 도제의 시제품 설계를 자신의 성과로 제출했다.",
+  "title": "닮은 설계도"
+}

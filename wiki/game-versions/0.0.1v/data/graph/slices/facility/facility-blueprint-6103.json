@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facility-blueprint-6103",
+    "spoiler_tier": "none",
+    "title": "생활 지원 설계도"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6103",
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-survival-support",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원",
+      "to": "research/research-survival-support",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "관련",
+      "to": "facility/facility-blueprint-6103",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

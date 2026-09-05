@@ -45,6 +45,11 @@ public static class CaptivityCircusDebugScenarios
         Run("circus_save_validation", VerifyCircusSaveValidation, lines, errors);
         Run("circus_supply_restore_join", CircusSupplyRestoreJoinFixture.Run, lines, errors);
         Run(
+            "circus_performance_supply_exact_owner",
+            CircusPerformanceSupplyDebugScenarios.Run,
+            lines,
+            errors);
+        Run(
             "captured_wildlife_feed_pending_outbox",
             CapturedWildlifeFeedOutboxDebugScenarios.Run,
             lines,
@@ -54,6 +59,11 @@ public static class CaptivityCircusDebugScenarios
         Run(
             "captivity_late_publish_failure_preserves_escort_parents",
             VerifyLatePublishFailurePreservesEscortParents,
+            lines,
+            errors);
+        Run(
+            "minion_resident_standing",
+            MinionResidentStandingDebugScenarios.Run,
             lines,
             errors);
 
@@ -829,7 +839,7 @@ public static class CaptivityCircusDebugScenarios
             + string.Join(", ", violations));
 
         RequireNullGuard(
-            () => new CaptivityRuntime(null, null, null),
+            () => new CaptivityRuntime(null, null, null, null, null, null),
             nameof(CaptivityRuntime));
         RequireNullGuard(
             () => new WildlifeCaptureRuntime(null, null, null),

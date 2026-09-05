@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9813",
+    "spoiler_tier": "none",
+    "title": "축전지"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-storage",
+      "label": "시설 해금",
+      "to": "facility/building-9813",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

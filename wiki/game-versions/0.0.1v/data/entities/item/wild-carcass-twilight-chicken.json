@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "야생에서 회수한 황혼닭의 사체다. 도축 시설로 옮기면 식량과 부산물을 얻을 수 있다. 라카쉬 세갈래길의 무리는 황혼닭 사체에서 얻은 고기와 가죽을 사냥한 사람보다 피난 행렬의 필요에 따라 나눈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-carcass-twilight-chicken",
+  "spoiler_tier": "none",
+  "summary": "도축 시설로 옮기면 식량과 부산물을 얻는다.",
+  "title": "황혼닭 사체"
+}

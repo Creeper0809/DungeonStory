@@ -1,0 +1,39 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "요새화"
+    },
+    {
+      "label": "제작 작업",
+      "value": "192"
+    },
+    {
+      "label": "무게",
+      "value": "10kg"
+    },
+    {
+      "label": "전면 방어 확률",
+      "value": "52%"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-tower",
+  "spoiler_tier": "none",
+  "summary": "대형 방패 전투 장비",
+  "title": "대형 방패"
+}

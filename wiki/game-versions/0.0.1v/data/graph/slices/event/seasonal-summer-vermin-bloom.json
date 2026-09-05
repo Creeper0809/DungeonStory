@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "seasonal-summer-vermin-bloom",
+    "spoiler_tier": "warning",
+    "title": "해충 대발생"
+  },
+  "edges": [],
+  "schema_version": 1
+}

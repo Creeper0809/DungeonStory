@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "34"
+    },
+    {
+      "label": "필요 연구",
+      "value": "마나 시추"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-mana-probe",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 탐침",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-mining-mana",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 시추",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-mana-shield-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 차폐판",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-tool-mana-probe",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 마나 탐침을(를) 생산한다.",
+  "title": "마나 탐침"
+}

@@ -141,7 +141,7 @@ public static class CharacterCarryTuning
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonPhysicalItemSaveData
 {
-    public const int CurrentVersion = 17;
+    public const int CurrentVersion = 18;
 
     public int version = CurrentVersion;
     public long nextHaulOperationSequence = 1;
@@ -550,6 +550,24 @@ public sealed class HaulDeliveryIntentSaveData
     public bool HasCommittedPickup => commitments != null
         && commitments.Any(commitment => commitment != null
             && commitment.quantity > 0);
+
+    /// <summary>
+    /// Unity's JSON projection may materialize an omitted optional reference as
+    /// a default-constructed object.  Only this exact all-default shape means
+    /// "no saved intent"; any partial identity, admission or commitment remains
+    /// a malformed current-format authority and must fail validation.
+    /// </summary>
+    public bool IsDefaultEmptyProjection =>
+        string.IsNullOrEmpty(operationId)
+        && string.IsNullOrEmpty(ownerCharacterId)
+        && destinationKind == WorldItemHaulDestinationKind.Warehouse
+        && string.IsNullOrEmpty(destinationId)
+        && deliveryGridX == 0
+        && deliveryGridY == 0
+        && dropGridX == 0
+        && dropGridY == 0
+        && (warehouseAdmissions == null || warehouseAdmissions.Count == 0)
+        && (commitments == null || commitments.Count == 0);
 }
 
 /// <summary>

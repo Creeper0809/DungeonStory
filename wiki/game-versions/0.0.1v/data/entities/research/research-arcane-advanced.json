@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Records And Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6104",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구 설계도",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1056",
+      "target_spoiler_tier": "none",
+      "target_title": "마력보관함",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-arcane-advanced",
+  "spoiler_tier": "none",
+  "summary": "마력과 의식 설비의 고급 원리를 해석한다.",
+  "title": "비전 연구"
+}

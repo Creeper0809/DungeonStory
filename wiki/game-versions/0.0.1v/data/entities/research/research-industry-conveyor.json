@@ -1,0 +1,130 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "582"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9842",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어 상향",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9840",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어 우향",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9844",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어 입력기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9841",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어 좌향",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9845",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어 출력기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9843",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어 하향",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-industry-conveyor",
+  "spoiler_tier": "none",
+  "summary": "컨베이어와 물류 포트에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "컨베이어와 물류 포트"
+}

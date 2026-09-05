@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "32"
+    },
+    {
+      "label": "필요 연구",
+      "value": "보철 공학"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-leg-left",
+      "target_spoiler_tier": "none",
+      "target_title": "왼다리 보철",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-surgery-prosthetic-leg",
+  "spoiler_tier": "none",
+  "summary": "하중을 견디는 강철 골격과 가죽 완충재로 고유 보철 다리를 만든다.",
+  "title": "철제 의족 조립"
+}

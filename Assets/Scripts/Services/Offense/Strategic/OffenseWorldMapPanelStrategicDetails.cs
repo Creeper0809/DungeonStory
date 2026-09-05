@@ -32,6 +32,10 @@ public partial class OffenseWorldMapPanel
             string mitigationOrder = BuildMitigationOrderDetail(
                 urgent.siteId);
             return $"{urgent.displayName}\n"
+                + strategicNarrativeText.GetRequired(
+                    InGameNarrativeTextKind.ExpeditionSite,
+                    urgent.definitionId)
+                + "\n"
                 + $"긴급 단계: {GetUrgentStageLabel(urgent.stage)}\n"
                 + $"던전 교란: {GetModifierLabel(urgent.modifierKind)} "
                 + $"{urgent.Intensity * 100f:0}%\n"
@@ -62,6 +66,10 @@ public partial class OffenseWorldMapPanel
             }
 
             return $"{site.displayName}\n"
+                + strategicNarrativeText.GetRequired(
+                    InGameNarrativeTextKind.ExpeditionSite,
+                    site.archetypeId)
+                + "\n"
                 + $"{expiration}\n"
                 + $"지역: {site.regionId}\n"
                 + $"전력: {(hasIntel ? site.strength.ToString() : "미확인")}\n"

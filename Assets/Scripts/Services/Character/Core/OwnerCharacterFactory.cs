@@ -176,6 +176,19 @@ public sealed class OwnerCharacterFactory : IOwnerCharacterFactory
             actor = ownerObject.AddComponent<CharacterActor>();
         }
 
+        CharacterIdentity identity = ownerObject.GetComponent<CharacterIdentity>();
+        if (identity == null)
+        {
+            throw new InvalidOperationException(
+                "An owner candidate has no CharacterIdentity before composition.");
+        }
+
+        // The owner factory is the creation authority for owner actors. Assign
+        // the canonical owner ID before CreateDetached/CreateInactive performs
+        // DI, because actor-scoped transient state must never observe a generated
+        // provisional identity during restore or ordinary owner composition.
+        identity.SetPersistentId(CharacterId.Owner);
+
         if (!ownerObject.TryGetComponent(out AIBrain _))
         {
             ownerObject.AddComponent<AIBrain>();

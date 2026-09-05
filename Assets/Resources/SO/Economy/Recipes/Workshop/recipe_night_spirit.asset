@@ -55,6 +55,10 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:plant-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=ExtractionResidue|reason=spirit-distillation-vapour-and-filter-residue|physicalByproduct=false
   inputs:
   - itemId: material:young-wine
     amount: 2

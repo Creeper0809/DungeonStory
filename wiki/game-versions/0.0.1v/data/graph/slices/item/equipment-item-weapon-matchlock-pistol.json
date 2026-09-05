@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-matchlock-pistol",
+    "spoiler_tier": "none",
+    "title": "화승 권총"
+  },
+  "edges": [],
+  "schema_version": 1
+}

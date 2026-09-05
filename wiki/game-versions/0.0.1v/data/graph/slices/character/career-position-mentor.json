@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "career-position-mentor",
+    "spoiler_tier": "none",
+    "title": "멘토"
+  },
+  "edges": [],
+  "schema_version": 1
+}

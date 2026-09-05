@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-flooded-floor",
+    "spoiler_tier": "none",
+    "title": "침수 바닥"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-04",
+      "label": "관련",
+      "to": "world/battlefield-flooded-floor",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-16",
+      "label": "관련",
+      "to": "world/battlefield-flooded-floor",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-28",
+      "label": "관련",
+      "to": "world/battlefield-flooded-floor",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

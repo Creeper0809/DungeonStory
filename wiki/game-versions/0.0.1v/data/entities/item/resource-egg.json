@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "60개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "채식식, 제과와 약품의 원료이다. 밀로세아 가도를 지나는 알은 짚을 채운 바구니에 담고, 검문할 때마다 금이 간 것이 없는지 빛에 비춰 본다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-egg",
+  "spoiler_tier": "none",
+  "summary": "채식식, 제과와 약품의 원료.",
+  "title": "알"
+}

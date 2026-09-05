@@ -1,0 +1,229 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-commerce-logistics",
+    "spoiler_tier": "none",
+    "title": "창고 구획"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-commerce-logistics",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8806",
+      "target_spoiler_tier": "none",
+      "target_title": "운반 멜빵 걸이",
+      "to": "facility/building-8806",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-logistics",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-hauling-harness",
+      "target_spoiler_tier": "none",
+      "target_title": "운반 멜빵 재단",
+      "to": "recipe/recipe-v22-apparel-hauling-harness",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23023",
+      "label": "필요 조건",
+      "to": "research/research-commerce-logistics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/workwear-hauling-harness",
+      "label": "필요 조건",
+      "to": "research/research-commerce-logistics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-hauling-harness",
+      "label": "필요 조건",
+      "to": "research/research-commerce-logistics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-hauling-harness",
+      "label": "필요 조건",
+      "to": "research/research-commerce-logistics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-retail",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-retail",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-retail",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-supply",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-conveyor",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-conveyor",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-conveyor",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-flow",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-flow",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-flow",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-field-rations",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-field-rations",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-field-rations",
+      "label": "선행 연구",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

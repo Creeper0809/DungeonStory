@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-field-dressing",
+    "spoiler_tier": "none",
+    "title": "야전 처치"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-crown-chaplain",
+      "label": "관련",
+      "to": "world/enemy-ability-field-dressing",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-legion-surgeon",
+      "label": "관련",
+      "to": "world/enemy-ability-field-dressing",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-settler-herbalist",
+      "label": "관련",
+      "to": "world/enemy-ability-field-dressing",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

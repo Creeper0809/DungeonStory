@@ -11,7 +11,8 @@ using System.Linq;
 /// </summary>
 public sealed class ProductionPhysicalCustodyDestructiveDrainParticipant :
     IProductionFacilityDestructiveDrainParticipant,
-    IProductionFacilityDestructiveDrainDurablePrepareParticipant
+    IProductionFacilityDestructiveDrainDurablePrepareParticipant,
+    IProductionFacilityDestructiveDrainCheckpointGcParticipant
 {
     public const int CurrentContractVersion = 1;
 
@@ -25,6 +26,7 @@ public sealed class ProductionPhysicalCustodyDestructiveDrainParticipant :
     private readonly IProductionOutputDestinationLifecycleQuery lifecycle;
     private readonly IProductionPhysicalCustodyDrainPort physical;
     private readonly IProductionAssemblyBridge facilities;
+    private CheckpointGcCandidate activeCheckpointGcCandidate;
 
     public ProductionPhysicalCustodyDestructiveDrainParticipant(
         IProductionOutputDestinationLifecycleQuery lifecycle,
@@ -42,6 +44,8 @@ public sealed class ProductionPhysicalCustodyDestructiveDrainParticipant :
     public string ParticipantId =>
         ProductionFacilityDestructiveDrainParticipantIds
             .PhysicalCustodyCarryRecovery;
+
+    public string CheckpointGcParticipantId => ParticipantId;
 
     public int ContractVersion => CurrentContractVersion;
 
@@ -283,6 +287,134 @@ public sealed class ProductionPhysicalCustodyDestructiveDrainParticipant :
             context,
             result,
             requireJournalReceiptMatch: true);
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData> entries,
+            out IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        candidate = null;
+        if (activeCheckpointGcCandidate != null)
+            return GcFailure(context, "physical-gc-already-prepared");
+        if (physical is not IProductionPhysicalCustodyDrainCheckpointGcPort gc)
+        {
+            return GcFailure(
+                context,
+                "physical-gc-port-missing",
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .MissingParticipant);
+        }
+
+        ProductionFacilityDestructiveDrainEntrySaveData[] source =
+            (entries ?? Array.Empty<ProductionFacilityDestructiveDrainEntrySaveData>())
+            .ToArray();
+        if (source.Any(entry => entry == null)
+            || source.Select(entry => entry.operationId)
+                .Distinct(StringComparer.Ordinal).Count() != source.Length)
+        {
+            return GcFailure(context, "physical-gc-entries-invalid");
+        }
+
+        List<ProductionPhysicalCustodyDrainSaveData> rows = new();
+        foreach (ProductionFacilityDestructiveDrainEntrySaveData entry in source)
+        {
+            ProductionFacilityDestructiveDrainParticipantSaveData[] matches =
+                (entry.participants
+                    ?? new List<ProductionFacilityDestructiveDrainParticipantSaveData>())
+                .Where(value => value != null && string.Equals(
+                    value.participantId,
+                    ParticipantId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (entry.phase != ProductionFacilityDestructiveDrainPhase
+                    .WorldRemovedAwaitingCheckpointGc
+                || matches.Length != 1)
+            {
+                return GcFailure(context, "physical-gc-journal-conflict");
+            }
+            foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in
+                     matches[0].owners
+                     ?? new List<ProductionFacilityDestructiveDrainOwnerSaveData>())
+            {
+                if (owner == null
+                    || owner.phase != ProductionFacilityDestructiveDrainStepPhase
+                        .OwnerAcknowledged
+                    || !physical.TryCapture(
+                        owner.stepOperationId,
+                        out ProductionPhysicalCustodyDrainSaveData row)
+                    || row.phase != ProductionPhysicalCustodyDrainPhase
+                        .OwnerAcknowledgedAwaitingCheckpointGc
+                    || !string.Equals(
+                        row.receiptFingerprint,
+                        owner.receiptFingerprint,
+                        StringComparison.Ordinal))
+                {
+                    return GcFailure(
+                        context,
+                        "physical-gc-row-conflict",
+                        ProductionFacilityDestructiveDrainCheckpointGcReason
+                            .LiveAuthorityChanged);
+                }
+                rows.Add(row);
+            }
+        }
+
+        if (!gc.TryPrepareCheckpointGarbageCollection(
+                rows,
+                out IProductionPhysicalCustodyDrainCheckpointGcCandidate lower,
+                out string failureReason))
+        {
+            return GcFailure(context, failureReason);
+        }
+        activeCheckpointGcCandidate = new CheckpointGcCandidate(
+            context,
+            source.Select(entry => entry.operationId).ToArray(),
+            gc,
+            lower);
+        candidate = activeCheckpointGcCandidate;
+        return GcApplied(context, source.Length);
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        exact.PublishAttempted = true;
+        if (!exact.Port.TryPublishCheckpointGarbageCollection(
+                exact.LowerCandidate,
+                out string failureReason))
+        {
+            return GcFailure(
+                exact.Context,
+                failureReason,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPublishFailed);
+        }
+        exact.Published = true;
+        return GcApplied(exact.Context, exact.OperationIds.Count);
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (!exact.PublishAttempted)
+            return;
+        exact.Port.RollbackCheckpointGarbageCollection(exact.LowerCandidate);
+        exact.PublishAttempted = false;
+        exact.Published = false;
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        exact.Port.CompleteCheckpointGarbageCollection(exact.LowerCandidate);
+        exact.Completed = true;
+        activeCheckpointGcCandidate = null;
     }
 
     public ProductionFacilityDestructiveDrainRecoveryResult Recover(
@@ -689,7 +821,17 @@ public sealed class ProductionPhysicalCustodyDestructiveDrainParticipant :
             || state.ownerGridY != facility.Position.y
             || !string.Equals(state.requestFingerprint,
                 context.Owner.requestFingerprint, StringComparison.Ordinal)
-            || !string.Equals(state.sourceOwnershipFingerprint,
+            // The stored source fingerprint is the immutable pre-effect
+            // authority captured into requestFingerprint. Once the producer
+            // commits, the journal intentionally advances its expected
+            // contribution to the post-effect value before acknowledgement.
+            // Comparing those two different epochs makes every legitimate
+            // terminal replay conflict. The planned epoch still requires the
+            // exact live source fingerprint; terminal epochs are authenticated
+            // by the canonical request and receipt checks below.
+            || context.Owner.phase ==
+                ProductionFacilityDestructiveDrainStepPhase.Planned
+            && !string.Equals(state.sourceOwnershipFingerprint,
                 context.ExpectedDurableContributionFingerprint,
                 StringComparison.Ordinal)
             || state.inputQuantity <= 0
@@ -824,4 +966,74 @@ public sealed class ProductionPhysicalCustodyDestructiveDrainParticipant :
         RecoveryConflict(string current) => new(
         ProductionFacilityDestructiveDrainRecoveryAction.Conflict,
         UpperConflict(current));
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || exact.Completed
+            || !ReferenceEquals(exact, activeCheckpointGcCandidate)
+            || !string.Equals(
+                exact.ParticipantId,
+                ParticipantId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "production-physical-custody-checkpoint-gc-candidate-conflict");
+        }
+        return exact;
+    }
+
+    private static ProductionFacilityDestructiveDrainCheckpointGcResult GcApplied(
+        ProductionFacilityDestructiveDrainCheckpointGcContext context,
+        int operationCount) => new(
+        ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+        ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+        context.CheckpointSequence,
+        string.Empty,
+        operationCount);
+
+    private static ProductionFacilityDestructiveDrainCheckpointGcResult GcFailure(
+        ProductionFacilityDestructiveDrainCheckpointGcContext context,
+        string message,
+        ProductionFacilityDestructiveDrainCheckpointGcReason reason =
+            ProductionFacilityDestructiveDrainCheckpointGcReason
+                .ParticipantPrepareFailed) => new(
+        ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+        reason,
+        context.CheckpointSequence,
+        message ?? string.Empty);
+
+    private sealed class CheckpointGcCandidate :
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate
+    {
+        internal CheckpointGcCandidate(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<string> operationIds,
+            IProductionPhysicalCustodyDrainCheckpointGcPort port,
+            IProductionPhysicalCustodyDrainCheckpointGcCandidate lowerCandidate)
+        {
+            Context = context;
+            OperationIds = operationIds
+                ?? throw new ArgumentNullException(nameof(operationIds));
+            Port = port ?? throw new ArgumentNullException(nameof(port));
+            LowerCandidate = lowerCandidate
+                ?? throw new ArgumentNullException(nameof(lowerCandidate));
+        }
+
+        public string ParticipantId =>
+            ProductionFacilityDestructiveDrainParticipantIds
+                .PhysicalCustodyCarryRecovery;
+        public long CheckpointSequence => Context.CheckpointSequence;
+        public string SerializedByteDigest => Context.SerializedByteDigest;
+        public IReadOnlyList<string> OperationIds { get; }
+        internal ProductionFacilityDestructiveDrainCheckpointGcContext Context
+        { get; }
+        internal IProductionPhysicalCustodyDrainCheckpointGcPort Port { get; }
+        internal IProductionPhysicalCustodyDrainCheckpointGcCandidate LowerCandidate
+        { get; }
+        internal bool PublishAttempted { get; set; }
+        internal bool Published { get; set; }
+        internal bool Completed { get; set; }
+    }
 }

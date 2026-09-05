@@ -17,8 +17,88 @@ public static class ProductionPreparedOutputContractDebugScenarios
     public static void RunAll()
     {
         VerifyRoundTripAndTransitions();
+        VerifyDeclaredExternalInputContract();
         VerifyInvalidStatesFailLoud();
         Debug.Log("V27_PRODUCTION_PREPARED_OUTPUT_CONTRACT=PASS");
+    }
+
+    private static void VerifyDeclaredExternalInputContract()
+    {
+        ProductionPreparedOutputBatchSaveData batch = CreateResolvedBatch();
+        ProductionPreparedOutputLineSaveData externalInput = new()
+        {
+            outputLineId = "output:external-input",
+            role = ProductionOutputRole.DeclaredExternalInput,
+            itemId = string.Empty,
+            quantity = 0,
+            componentPayload = "process-addition-receipt",
+            componentFingerprint = Digest('7'),
+            qualityPermille = 1000,
+            rollKind = "process-addition",
+            rollValue = 0L,
+            rollUpperExclusive = 1L,
+            rollSucceeded = true,
+            exactMassGrams = 200L
+        };
+        externalInput.lineCommitId =
+            ProductionPreparedOutputIdentity.BuildLineCommitId(
+                batch.batchCommitId,
+                externalInput.outputLineId);
+        batch.totalDeclaredExternalInputMassGrams = 200L;
+        batch.lines.Add(externalInput);
+        batch.lines = batch.lines
+            .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+            .ToList();
+        ProductionPreparedOutputContract.ValidateForBill(
+            batch,
+            BillId,
+            RecipeId,
+            1,
+            DestinationId);
+        Require(
+            ProductionOutputRoleRules.IsNonPhysical(externalInput.role)
+            && !ProductionOutputRoleRules.IsPhysical(externalInput.role)
+            && batch.lines.Count(value =>
+                ProductionOutputRoleRules.IsPhysical(value.role)) == 1,
+            "declared external input was classified as a physical output");
+
+        string canonical = JsonUtility.ToJson(batch);
+        ProductionPreparedOutputBatchSaveData decoded =
+            JsonUtility.FromJson<ProductionPreparedOutputBatchSaveData>(
+                canonical);
+        ProductionPreparedOutputContract.ValidateForBill(
+            decoded,
+            BillId,
+            RecipeId,
+            1,
+            DestinationId);
+        Require(
+            decoded.totalDeclaredExternalInputMassGrams == 200L
+            && string.Equals(
+                canonical,
+                JsonUtility.ToJson(decoded),
+                StringComparison.Ordinal),
+            "declared external-input batch receipt did not round-trip exactly");
+
+        ProductionPreparedOutputBatchSaveData totalDrift = decoded.Clone();
+        totalDrift.totalDeclaredExternalInputMassGrams = 199L;
+        RequireInvalid(totalDrift, "declared external-input total drift");
+
+        ProductionPreparedOutputBatchSaveData lineDrift = decoded.Clone();
+        lineDrift.lines.Single(value =>
+                value.role == ProductionOutputRole.DeclaredExternalInput)
+            .exactMassGrams = 199L;
+        RequireInvalid(lineDrift, "declared external-input line drift");
+
+        ProductionPreparedOutputBatchSaveData physicalForgery = decoded.Clone();
+        ProductionPreparedOutputLineSaveData forged = physicalForgery.lines
+            .Single(value =>
+                value.role == ProductionOutputRole.DeclaredExternalInput);
+        forged.itemId = "material:test-output";
+        forged.quantity = 1;
+        RequireInvalid(
+            physicalForgery,
+            "declared external-input physical publication forgery");
     }
 
     private static void VerifyRoundTripAndTransitions()
@@ -90,6 +170,30 @@ public static class ProductionPreparedOutputContractDebugScenarios
                 StringComparison.Ordinal),
             "prepared output aggregate restore changed durable authority");
 
+        ProductionPreparedOutputBatchSaveData ruined = CreateRuinedBatch(
+            includeProof: true);
+        ProductionPreparedOutputContract.ValidateForBill(
+            ruined,
+            BillId,
+            RecipeId,
+            1,
+            DestinationId);
+        ProductionPreparedOutputBatchSaveData ruinedRoundTrip =
+            JsonUtility.FromJson<ProductionPreparedOutputBatchSaveData>(
+                JsonUtility.ToJson(ruined));
+        Require(
+            string.Equals(
+                ruinedRoundTrip.maximumMassProofDigest,
+                ruined.maximumMassProofDigest,
+                StringComparison.Ordinal)
+            && ruinedRoundTrip.maximumBatchMassGrams ==
+                ruined.maximumBatchMassGrams
+            && string.Equals(
+                ruinedRoundTrip.capacityClaimDigest,
+                ruined.capacityClaimDigest,
+                StringComparison.Ordinal),
+            "ruined output proof did not survive clone/JSON round-trip");
+
         record.ClearCompletedPreparedOutput();
         ProductionPreparedOutputContract.ValidateForBill(
             record.preparedOutput,
@@ -115,6 +219,32 @@ public static class ProductionPreparedOutputContractDebugScenarios
         ProductionPreparedOutputBatchSaveData nonCanonical = CreateResolvedBatch();
         nonCanonical.lines[1].outputLineId = " output:main";
         RequireInvalid(nonCanonical, "noncanonical line ID");
+
+        ProductionPreparedOutputBatchSaveData capabilityFingerprintDrift =
+            CreateResolvedBatch();
+        capabilityFingerprintDrift.lines[1].outputCapabilityFingerprint =
+            Digest('9');
+        RequireInvalid(
+            capabilityFingerprintDrift,
+            "output capability fingerprint drift");
+
+        ProductionPreparedOutputBatchSaveData capabilityVersionDrift =
+            CreateResolvedBatch();
+        capabilityVersionDrift.lines[1].outputCapabilityVersion++;
+        RequireInvalid(capabilityVersionDrift, "output capability version drift");
+
+        ProductionPreparedOutputBatchSaveData componentCodecVersionDrift =
+            CreateResolvedBatch();
+        componentCodecVersionDrift.lines[1].outputComponentCodecVersion++;
+        RequireInvalid(componentCodecVersionDrift, "output component codec drift");
+
+        ProductionPreparedOutputBatchSaveData declaredLossCapability =
+            CreateResolvedBatch();
+        declaredLossCapability.lines[0].outputCapabilityId =
+            ProductionOutputCapabilityIds.StandardDefinition;
+        RequireInvalid(
+            declaredLossCapability,
+            "declared loss with physical output capability");
 
         ProductionPreparedOutputBatchSaveData negativeMass = CreateResolvedBatch();
         negativeMass.lines[1].exactMassGrams = -1L;
@@ -148,6 +278,22 @@ public static class ProductionPreparedOutputContractDebugScenarios
             CreateResolvedBatch();
         nonHexCapacityDigest.capacitySourceDigest = new string('g', 64);
         RequireInvalid(nonHexCapacityDigest, "nonhex capacity source digest");
+
+        ProductionPreparedOutputBatchSaveData partialMaximumProof =
+            CreateResolvedBatch();
+        partialMaximumProof.capacityClaimDigest = string.Empty;
+        RequireInvalid(partialMaximumProof, "partial maximum-mass proof tuple");
+
+        ProductionPreparedOutputBatchSaveData normalWithoutProof =
+            CreateResolvedBatch();
+        normalWithoutProof.maximumMassProofDigest = string.Empty;
+        normalWithoutProof.maximumBatchMassGrams = 0L;
+        normalWithoutProof.capacityClaimDigest = string.Empty;
+        RequireInvalid(normalWithoutProof, "normal output without maximum proof");
+
+        RequireInvalid(
+            CreateRuinedBatch(includeProof: false),
+            "ruined output without maximum-mass proof");
 
         ProductionPreparedOutputBatchSaveData invalidCycle = CreateResolvedBatch();
         invalidCycle.outputBufferCycleCapacity = 1;
@@ -219,6 +365,11 @@ public static class ProductionPreparedOutputContractDebugScenarios
         unresolvedMinimum.requiredMinimumCapacityGrams = 1L;
         RequireInvalid(unresolvedMinimum, "unresolved payload with minimum capacity");
 
+        ProductionPreparedOutputBatchSaveData unresolvedProof =
+            ProductionPreparedOutputBatchSaveData.Unresolved();
+        unresolvedProof.maximumMassProofDigest = Digest('1');
+        RequireInvalid(unresolvedProof, "unresolved payload with maximum-mass proof");
+
         ProductionBillRecord record = CreateRecord();
         RequireThrows(
             () => record.MarkPreparedOutputPublicationPrepared(Digest('b')),
@@ -267,6 +418,21 @@ public static class ProductionPreparedOutputContractDebugScenarios
             outputLineId = "output:main",
             role = ProductionOutputRole.Main,
             itemId = "material:test-output",
+            outputCapabilityId = ProductionOutputCapabilityIds.StandardDefinition,
+            outputCapabilityVersion =
+                ProductionOutputCapabilityIds.StandardDefinitionVersion,
+            outputComponentCodecId =
+                ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+            outputComponentCodecVersion =
+                ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+            outputCapabilityFingerprint =
+                ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                    "output:main",
+                    "material:test-output",
+                    ProductionOutputCapabilityIds.StandardDefinition,
+                    ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
             quantity = 2,
             componentPayload = "components:none",
             componentFingerprint = Digest('d'),
@@ -290,6 +456,9 @@ public static class ProductionPreparedOutputContractDebugScenarios
             recipeDefinitionDigest = Digest('e'),
             migrationProfileDigest = Digest('f'),
             capacitySourceDigest = Digest('a'),
+            maximumMassProofDigest = Digest('1'),
+            maximumBatchMassGrams = 1_000L,
+            capacityClaimDigest = Digest('2'),
             outputBufferCycleCapacity = 4,
             projectedPortfolioCapacityGrams = 4_000L,
             requiredMinimumCapacityGrams = 4_000L,
@@ -313,6 +482,70 @@ public static class ProductionPreparedOutputContractDebugScenarios
             Candidate(batch, "stack:prepared-output:0001", 1, 500L),
             Candidate(batch, "stack:prepared-output:0002", 1, 500L)
         };
+        return batch;
+    }
+
+    private static ProductionPreparedOutputBatchSaveData CreateRuinedBatch(
+        bool includeProof)
+    {
+        ProductionPreparedOutputBatchSaveData batch = CreateResolvedBatch();
+        ProductionPreparedOutputLineSaveData main = batch.lines.Single(
+            line => line.role == ProductionOutputRole.Main);
+        main.quantity = 0;
+        main.rollSucceeded = false;
+        main.exactMassGrams = 0L;
+
+        const string wasteLineId =
+            ProductionRuinedBatchDispositionPlan.RecoverableWasteOutputLineId;
+        const string wasteItemId = "waste:test-ruined";
+        ProductionPreparedOutputLineSaveData waste = new()
+        {
+            outputLineId = wasteLineId,
+            role = ProductionOutputRole.RecoverableWaste,
+            itemId = wasteItemId,
+            outputCapabilityId =
+                ProductionOutputCapabilityIds.StandardDefinition,
+            outputCapabilityVersion =
+                ProductionOutputCapabilityIds.StandardDefinitionVersion,
+            outputComponentCodecId =
+                ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+            outputComponentCodecVersion =
+                ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+            outputCapabilityFingerprint =
+                ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                    wasteLineId,
+                    wasteItemId,
+                    ProductionOutputCapabilityIds.StandardDefinition,
+                    ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
+            quantity = 1,
+            componentPayload = "components:none",
+            componentFingerprint = Digest('7'),
+            qualityPermille = 1000,
+            rollKind = "ruined-batch",
+            rollValue = 0L,
+            rollUpperExclusive = 1L,
+            rollSucceeded = true,
+            exactMassGrams = 600L
+        };
+        waste.lineCommitId = ProductionPreparedOutputIdentity.BuildLineCommitId(
+            batch.batchCommitId,
+            waste.outputLineId);
+        batch.lines.Add(waste);
+        batch.lines = batch.lines
+            .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+            .ToList();
+        batch.totalPhysicalMassGrams = 600L;
+        batch.maximumMassProofDigest = string.Empty;
+        batch.maximumBatchMassGrams = 0L;
+        batch.capacityClaimDigest = string.Empty;
+        if (includeProof)
+        {
+            batch.maximumMassProofDigest = Digest('1');
+            batch.maximumBatchMassGrams = 600L;
+            batch.capacityClaimDigest = Digest('2');
+        }
         return batch;
     }
 

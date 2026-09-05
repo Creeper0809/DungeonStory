@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-root-stew",
+    "spoiler_tier": "none",
+    "title": "잿불뿌리 스튜"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-root-stew",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-root-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불뿌리 스튜",
+      "to": "item/food-root-stew",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-root-stew",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-ember-root",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불뿌리",
+      "to": "item/resource-ember-root",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-root-stew",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-crops",
+      "target_spoiler_tier": "none",
+      "target_title": "농산 조리",
+      "to": "research/research-cuisine-crops",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

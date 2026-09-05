@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "equipment-item-shield-tower",
+      "target_spoiler_tier": "none",
+      "target_title": "대형 방패",
+      "type": "requires"
+    },
+    {
+      "amount": "9",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "equipment-item-shield-tower",
+      "target_spoiler_tier": "none",
+      "target_title": "대형 방패",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-beastkin-6",
+  "spoiler_tier": "warning",
+  "summary": "무리와 던전이 동맹·종속·결별 중 새로운 경계를 확정한다.",
+  "title": "새로운 사냥 경계"
+}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "offenseurgentsite-170205",
+    "spoiler_tier": "warning",
+    "title": "공성 관측소"
+  },
+  "edges": [],
+  "schema_version": 1
+}

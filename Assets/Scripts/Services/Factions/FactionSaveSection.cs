@@ -68,5 +68,6 @@ public sealed class FactionSaveSection :
     {
         runtime.PublishRestoreCandidate(candidate);
     }
+
 }
 }

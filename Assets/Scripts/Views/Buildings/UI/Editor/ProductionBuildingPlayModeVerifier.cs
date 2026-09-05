@@ -347,12 +347,12 @@ public sealed class ProductionBuildingPlayModeVerificationRunner : MonoBehaviour
             out DomainFailure beginFailure);
         DomainFailure completeFailure = DomainFailure.None;
         bool completedTransit = beganTransit
-            && itemTransfers.TryCompleteTransit(
+            && itemTransfers.TryCompleteTransitToFacilityBuffer(
                 (ItemStackId)reservedSensor.StackId,
                 transitOwner,
-                WorldItemStackState.FacilityBuffer,
                 activeFacility.centerPos,
                 sensorDestination,
+                out _,
                 out completeFailure);
         Check(completedTransit,
             suffix + "_SENSOR_PHYSICAL_DELIVERY",

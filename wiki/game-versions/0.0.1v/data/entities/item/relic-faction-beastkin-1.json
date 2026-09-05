@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무리의 첫 공동 사냥에서 승자를 표시하던 인장이다. 라카쉬 세갈래길의 첫발톱 인장은 혈통이 달라도 같은 길을 지킨 사람을 한 무리로 받아들인 기록이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-beastkin-1",
+  "spoiler_tier": "none",
+  "summary": "무리의 첫 공동 사냥에서 승자를 표시하던 인장.",
+  "title": "첫발톱 인장"
+}

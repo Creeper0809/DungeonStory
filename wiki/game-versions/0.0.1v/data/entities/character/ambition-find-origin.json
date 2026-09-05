@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Vengeance Or Discovery"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-find-origin",
+  "spoiler_tier": "none",
+  "summary": "자신의 출생과 관련된 기록·실험·유적의 진실을 찾으려 한다.",
+  "title": "기원의 흔적"
+}

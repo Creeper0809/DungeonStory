@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "3.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "147"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "연회 운반 수레는 여러 접시와 술병을 한꺼번에 객석과 식탁으로 나른다. 밀로세아 가도의 공동 연회 운반 수레에는 검문소를 지날 때마다 다른 색실이 손잡이에 묶인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-banquet-cart",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 연회 운반 수레.",
+  "title": "연회 운반 수레"
+}

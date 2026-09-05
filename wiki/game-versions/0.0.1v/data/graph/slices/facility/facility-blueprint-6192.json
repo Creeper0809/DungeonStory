@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facility-blueprint-6192",
+    "spoiler_tier": "none",
+    "title": "전술 지휘 설계도"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6192",
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-defense-tactical-command",
+      "target_spoiler_tier": "none",
+      "target_title": "전술 지휘",
+      "to": "research/research-defense-tactical-command",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-tactical-command",
+      "label": "관련",
+      "to": "facility/facility-blueprint-6192",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

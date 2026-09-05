@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 /// <summary>
 /// Production-owned terminal producer for one generic bill. The producer does
@@ -10,7 +11,8 @@ using System.Linq;
 /// </summary>
 public sealed class ProductionGenericBillTerminalDrainOutbox :
     IProductionGenericBillTerminalDrainQuery,
-    IProductionGenericBillTerminalDrainCommand
+    IProductionGenericBillTerminalDrainCommand,
+    IProductionGenericBillTerminalDrainCheckpointGcPort
 {
     private sealed class State
     {
@@ -22,6 +24,11 @@ public sealed class ProductionGenericBillTerminalDrainOutbox :
     private readonly IProductionBillPersistence billPersistence;
     private readonly IProductionInputDestinationClaimRuntime inputClaims;
     private readonly IProductionInputDestinationCustodyDrainOutbox inputDrain;
+    private readonly IProductionInputDestinationCustodyDrainCheckpointGcPort
+        inputCheckpointGc;
+    private readonly IProductionGenericBillWipTerminalCheckpointGcPort
+        wipCheckpointGc;
+    private CheckpointGcCandidate activeCheckpointGcCandidate;
 
     public ProductionGenericBillTerminalDrainOutbox(
         DungeonRuntimeAggregateRootStore rootStore,
@@ -37,6 +44,10 @@ public sealed class ProductionGenericBillTerminalDrainOutbox :
             ?? throw new ArgumentNullException(nameof(inputClaims));
         this.inputDrain = inputDrain
             ?? throw new ArgumentNullException(nameof(inputDrain));
+        inputCheckpointGc = inputDrain as
+            IProductionInputDestinationCustodyDrainCheckpointGcPort;
+        wipCheckpointGc = billPersistence as
+            IProductionGenericBillWipTerminalCheckpointGcPort;
     }
 
     private State Current => rootStore.GetOrCreate(() => new State());
@@ -254,8 +265,338 @@ public sealed class ProductionGenericBillTerminalDrainOutbox :
         .Select(value => value.Clone())
         .ToArray();
 
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData>
+                entries,
+            out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                candidate)
+    {
+        candidate = null;
+        if (activeCheckpointGcCandidate != null)
+            return GcResult(context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                "production-generic-checkpoint-gc-already-active");
+
+        ProductionFacilityDestructiveDrainEntrySaveData[] orderedEntries =
+            (entries ?? Array.Empty<
+                    ProductionFacilityDestructiveDrainEntrySaveData>())
+            .OrderBy(value => value?.operationId, StringComparer.Ordinal)
+            .ToArray();
+        if (orderedEntries.Any(value => value == null)
+            || orderedEntries.Select(value => value.operationId)
+                .Distinct(StringComparer.Ordinal).Count()
+                != orderedEntries.Length)
+        {
+            return GcResult(context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                "production-generic-checkpoint-gc-entry-invalid");
+        }
+
+        List<ProductionGenericBillTerminalDrainSaveData> producers = new();
+        List<ProductionInputDestinationCustodyDrainSaveData> children = new();
+        foreach (ProductionFacilityDestructiveDrainEntrySaveData entry in
+                 orderedEntries)
+        {
+            ProductionFacilityDestructiveDrainParticipantSaveData[] rows =
+                (entry.participants ?? new List<
+                    ProductionFacilityDestructiveDrainParticipantSaveData>())
+                .Where(value => value != null && string.Equals(
+                    value.participantId,
+                    ProductionFacilityDestructiveDrainParticipantIds
+                        .GenericProductionBills,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (rows.Length != 1)
+            {
+                return GcResult(context,
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus
+                        .Corruption,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .ParticipantTopologyMismatch,
+                    "production-generic-checkpoint-gc-participant-row-invalid");
+            }
+            foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in
+                     rows[0].owners ?? new List<
+                         ProductionFacilityDestructiveDrainOwnerSaveData>())
+            {
+                if (owner == null
+                    || owner.phase != ProductionFacilityDestructiveDrainStepPhase
+                        .OwnerAcknowledged
+                    || !TryCapture(
+                        owner.stepOperationId,
+                        out ProductionGenericBillTerminalDrainSaveData producer)
+                    || !ProducerMatchesUpper(producer, entry, owner)
+                    || !inputDrain.TryCapture(
+                        producer.inputDestinationDrainStepOperationId,
+                        out ProductionInputDestinationCustodyDrainSaveData child)
+                    || !ChildMatchesProducer(child, producer))
+                {
+                    return GcResult(context,
+                        ProductionFacilityDestructiveDrainCheckpointGcStatus
+                            .Corruption,
+                        ProductionFacilityDestructiveDrainCheckpointGcReason
+                            .ParticipantPrepareFailed,
+                        "production-generic-checkpoint-gc-upper-lower-gap");
+                }
+                producers.Add(producer.Clone());
+                children.Add(child.Clone());
+            }
+        }
+        if (producers.Select(value => value.stepOperationId)
+                .Distinct(StringComparer.Ordinal).Count() != producers.Count
+            || children.Select(value => value.stepOperationId)
+                .Distinct(StringComparer.Ordinal).Count() != children.Count)
+        {
+            return GcResult(context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                "production-generic-checkpoint-gc-owner-duplicate");
+        }
+        if (producers.Count > 0
+            && (inputCheckpointGc == null || wipCheckpointGc == null))
+        {
+            return GcResult(context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .MissingParticipant,
+                "production-generic-checkpoint-gc-lower-port-missing");
+        }
+
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+            childCandidate = null;
+        IProductionGenericBillWipTerminalCheckpointGcCandidate wipCandidate =
+            null;
+        try
+        {
+            if (inputCheckpointGc != null
+                && children.Count > 0
+                && !inputCheckpointGc.TryPrepareCheckpointGarbageCollection(
+                    children,
+                    out childCandidate,
+                    out string childFailure))
+            {
+                CompletePreparedLowerCheckpointCandidates(
+                    childCandidate,
+                    wipCandidate);
+                return GcResult(context,
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus
+                        .Corruption,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .ParticipantPrepareFailed,
+                    "production-generic-checkpoint-gc-child-prepare-failed:"
+                    + childFailure);
+            }
+            if (wipCheckpointGc != null
+                && producers.Count > 0
+                && !wipCheckpointGc.TryPrepareCheckpointGarbageCollection(
+                    producers,
+                    out wipCandidate,
+                    out string wipFailure))
+            {
+                CompletePreparedLowerCheckpointCandidates(
+                    childCandidate,
+                    wipCandidate);
+                return GcResult(context,
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus
+                        .Corruption,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .ParticipantPrepareFailed,
+                    "production-generic-checkpoint-gc-wip-prepare-failed:"
+                    + wipFailure);
+            }
+
+            activeCheckpointGcCandidate = new CheckpointGcCandidate(
+                context,
+                orderedEntries.Select(value => value.operationId).ToArray(),
+                producers,
+                childCandidate,
+                wipCandidate);
+        }
+        catch (Exception prepareException)
+        {
+            try
+            {
+                CompletePreparedLowerCheckpointCandidates(
+                    childCandidate,
+                    wipCandidate);
+            }
+            catch (Exception cleanupException)
+            {
+                throw new AggregateException(
+                    "Generic production checkpoint-GC preparation and lower-candidate cleanup both failed.",
+                    prepareException,
+                    cleanupException);
+            }
+            throw;
+        }
+        candidate = activeCheckpointGcCandidate;
+        return GcResult(context,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+            "production-generic-checkpoint-gc-prepared");
+    }
+
+    private void CompletePreparedLowerCheckpointCandidates(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+            childCandidate,
+        IProductionGenericBillWipTerminalCheckpointGcCandidate wipCandidate)
+    {
+        List<Exception> failures = new();
+        if (wipCandidate != null)
+        {
+            try
+            {
+                wipCheckpointGc.CompleteCheckpointGarbageCollection(
+                    wipCandidate);
+            }
+            catch (Exception exception)
+            {
+                failures.Add(exception);
+            }
+        }
+        if (childCandidate != null)
+        {
+            try
+            {
+                inputCheckpointGc.CompleteCheckpointGarbageCollection(
+                    childCandidate);
+            }
+            catch (Exception exception)
+            {
+                failures.Add(exception);
+            }
+        }
+        if (failures.Count > 0)
+        {
+            throw new AggregateException(
+                "Generic production checkpoint-GC lower-candidate cleanup failed.",
+                failures);
+        }
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.ProducersPublished)
+            return GcResult(exact.Context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus
+                    .AlreadyApplied,
+                ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+                "production-generic-checkpoint-gc-already-published",
+                exact.OperationIds.Count);
+        if (exact.ChildCandidate != null && !exact.ChildPublished)
+        {
+            if (!inputCheckpointGc.TryPublishCheckpointGarbageCollection(
+                    exact.ChildCandidate,
+                    out string failure))
+            {
+                return GcResult(exact.Context,
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .ParticipantPublishFailed,
+                    "production-generic-checkpoint-gc-child-publish-failed:"
+                    + failure);
+            }
+            exact.ChildPublished = true;
+        }
+        if (exact.WipCandidate != null && !exact.WipPublished)
+        {
+            if (!wipCheckpointGc.TryPublishCheckpointGarbageCollection(
+                    exact.WipCandidate,
+                    out string failure))
+            {
+                return GcResult(exact.Context,
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .ParticipantPublishFailed,
+                    "production-generic-checkpoint-gc-wip-publish-failed:"
+                    + failure);
+            }
+            exact.WipPublished = true;
+        }
+        if (exact.Producers.Any(expected =>
+                !Current.ByStepOperationId.TryGetValue(
+                    expected.stepOperationId,
+                    out ProductionGenericBillTerminalDrainSaveData current)
+                || !ProducerEquals(current, expected)))
+        {
+            return GcResult(exact.Context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .LiveAuthorityChanged,
+                "production-generic-checkpoint-gc-producer-changed");
+        }
+        foreach (ProductionGenericBillTerminalDrainSaveData expected in
+                 exact.Producers)
+            Current.ByStepOperationId.Remove(expected.stepOperationId);
+        exact.ProducersPublished = true;
+        return GcResult(exact.Context,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+            "production-generic-checkpoint-gc-published",
+            exact.OperationIds.Count);
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.ProducersPublished)
+        {
+            if (exact.Producers.Any(producer =>
+                    Current.ByStepOperationId.ContainsKey(
+                        producer.stepOperationId)))
+            {
+                throw new InvalidOperationException(
+                    "Generic checkpoint-GC rollback would overwrite producer authority.");
+            }
+            foreach (ProductionGenericBillTerminalDrainSaveData producer in
+                     exact.Producers)
+            {
+                Current.ByStepOperationId.Add(
+                    producer.stepOperationId,
+                    producer.Clone());
+            }
+            exact.ProducersPublished = false;
+        }
+        if (exact.WipPublished)
+        {
+            wipCheckpointGc.RollbackCheckpointGarbageCollection(
+                exact.WipCandidate);
+            exact.WipPublished = false;
+        }
+        if (exact.ChildPublished)
+        {
+            inputCheckpointGc.RollbackCheckpointGarbageCollection(
+                exact.ChildCandidate);
+            exact.ChildPublished = false;
+        }
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.WipCandidate != null)
+            wipCheckpointGc.CompleteCheckpointGarbageCollection(
+                exact.WipCandidate);
+        if (exact.ChildCandidate != null)
+            inputCheckpointGc.CompleteCheckpointGarbageCollection(
+                exact.ChildCandidate);
+        activeCheckpointGcCandidate = null;
+    }
+
     [GameplayInternalOnly(
-        "Atomically replaces the unregistered producer state after current-format save validation.",
+        "Atomically replaces the producer state after current-format save validation.",
         "Production save restore coordinator only")]
     public bool TryRestoreCurrentFormat(
         IEnumerable<ProductionGenericBillTerminalDrainSaveData> records,
@@ -695,6 +1036,125 @@ public sealed class ProductionGenericBillTerminalDrainOutbox :
             throw new InvalidOperationException(
                 "Generic production terminal outbox refused an invalid state.");
         Current.ByStepOperationId[value.stepOperationId] = value.Clone();
+    }
+
+    private static bool ProducerMatchesUpper(
+        ProductionGenericBillTerminalDrainSaveData producer,
+        ProductionFacilityDestructiveDrainEntrySaveData entry,
+        ProductionFacilityDestructiveDrainOwnerSaveData owner) =>
+        ProductionGenericBillTerminalDrainCanonical.IsValidSave(producer)
+        && producer.phase == ProductionGenericBillTerminalDrainPhase
+            .OwnerAcknowledgedAwaitingCheckpointGc
+        && string.Equals(producer.parentOperationId, entry.operationId,
+            StringComparison.Ordinal)
+        && string.Equals(producer.stepOperationId, owner.stepOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(producer.ownerStableId, owner.ownerStableId,
+            StringComparison.Ordinal)
+        && string.Equals(producer.requestFingerprint, owner.requestFingerprint,
+            StringComparison.Ordinal)
+        && string.Equals(producer.commitId, owner.commitId,
+            StringComparison.Ordinal)
+        && string.Equals(producer.receiptFingerprint,
+            owner.receiptFingerprint, StringComparison.Ordinal);
+
+    private static bool ChildMatchesProducer(
+        ProductionInputDestinationCustodyDrainSaveData child,
+        ProductionGenericBillTerminalDrainSaveData producer) =>
+        ProductionInputDestinationCustodyDrainContract.IsValidSave(child)
+        && child.phase == ProductionInputDestinationCustodyDrainPhase
+            .BillAcknowledgedAwaitingCheckpointGc
+        && string.Equals(child.parentOperationId, producer.parentOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(child.stepOperationId,
+            producer.inputDestinationDrainStepOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(child.ownerStableId, producer.ownerStableId,
+            StringComparison.Ordinal)
+        && string.Equals(child.billId, producer.billId,
+            StringComparison.Ordinal)
+        && string.Equals(child.facilityId, producer.facilityId,
+            StringComparison.Ordinal)
+        && string.Equals(child.sourceDestinationId,
+            producer.inputDestinationId, StringComparison.Ordinal)
+        && string.Equals(child.requestFingerprint,
+            producer.inputDestinationDrainRequestFingerprint,
+            StringComparison.Ordinal)
+        && string.Equals(child.commitId,
+            producer.inputDestinationDrainCommitId, StringComparison.Ordinal)
+        && string.Equals(child.receiptFingerprint,
+            producer.inputDestinationDrainReceiptFingerprint,
+            StringComparison.Ordinal);
+
+    private static bool ProducerEquals(
+        ProductionGenericBillTerminalDrainSaveData left,
+        ProductionGenericBillTerminalDrainSaveData right) => left != null
+        && right != null
+        && string.Equals(JsonUtility.ToJson(left), JsonUtility.ToJson(right),
+            StringComparison.Ordinal);
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || !ReferenceEquals(activeCheckpointGcCandidate, exact))
+            throw new InvalidOperationException(
+                "Generic checkpoint-GC candidate is stale or foreign.");
+        return exact;
+    }
+
+    private static ProductionFacilityDestructiveDrainCheckpointGcResult
+        GcResult(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus status,
+            ProductionFacilityDestructiveDrainCheckpointGcReason reason,
+            string message,
+            int collected = 0) => new(
+            status,
+            reason,
+            context.CheckpointSequence,
+            message,
+            collected);
+
+    private sealed class CheckpointGcCandidate :
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate
+    {
+        internal CheckpointGcCandidate(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<string> operationIds,
+            IReadOnlyList<ProductionGenericBillTerminalDrainSaveData> producers,
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+                childCandidate,
+            IProductionGenericBillWipTerminalCheckpointGcCandidate wipCandidate)
+        {
+            Context = context;
+            OperationIds = (operationIds ?? Array.Empty<string>())
+                .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            Producers = (producers
+                    ?? Array.Empty<ProductionGenericBillTerminalDrainSaveData>())
+                .Select(value => value.Clone())
+                .OrderBy(value => value.stepOperationId, StringComparer.Ordinal)
+                .ToArray();
+            ChildCandidate = childCandidate;
+            WipCandidate = wipCandidate;
+        }
+
+        public string ParticipantId => ProductionFacilityDestructiveDrainParticipantIds
+            .GenericProductionBills;
+        public long CheckpointSequence => Context.CheckpointSequence;
+        public string SerializedByteDigest => Context.SerializedByteDigest;
+        public IReadOnlyList<string> OperationIds { get; }
+        internal ProductionFacilityDestructiveDrainCheckpointGcContext Context
+            { get; }
+        internal IReadOnlyList<ProductionGenericBillTerminalDrainSaveData>
+            Producers { get; }
+        internal IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+            ChildCandidate { get; }
+        internal IProductionGenericBillWipTerminalCheckpointGcCandidate
+            WipCandidate { get; }
+        internal bool ChildPublished { get; set; }
+        internal bool WipPublished { get; set; }
+        internal bool ProducersPublished { get; set; }
     }
 
     private static bool HasDuplicates(IEnumerable<string> source)

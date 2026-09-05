@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "recipe-arcane-reservoir-1",
+    "spoiler_tier": "none",
+    "title": "마력저장조 조립"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-reservoir-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1033",
+      "target_spoiler_tier": "none",
+      "target_title": "시약선반",
+      "to": "facility/building-1033",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-reservoir-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1036",
+      "target_spoiler_tier": "none",
+      "target_title": "마력수정선반",
+      "to": "facility/building-1036",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-reservoir-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1037",
+      "target_spoiler_tier": "none",
+      "target_title": "마력저장조",
+      "to": "facility/building-1037",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

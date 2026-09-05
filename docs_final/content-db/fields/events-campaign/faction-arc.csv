@@ -1,0 +1,115 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,m_Name,arc_beastkin,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,stableId,faction-arc:beastkin,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,displayName,붉은발톱 교역소,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,description,사냥터와 피난민 사이에서 무리의 생존 규칙을 다시 정하려 한다.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,authoringRevision,1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,factionId,faction:dungeon:beastkin,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,chapterIds.0,faction-chapter:beastkin:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,chapterIds.1,faction-chapter:beastkin:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,chapterIds.2,faction-chapter:beastkin:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,chapterIds.3,faction-chapter:beastkin:4,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,chapterIds.4,faction-chapter:beastkin:5,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,chapterIds.5,faction-chapter:beastkin:6,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,contractIds.0,faction-contract:beastkin:supply,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,contractIds.1,faction-contract:beastkin:crisis,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,contractIds.2,faction-contract:beastkin:strategic,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,relicItemIds.0,relic:faction:beastkin:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,relicItemIds.1,relic:faction:beastkin:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:beastkin,faction-arc:beastkin,relicItemIds.2,relic:faction:beastkin:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,m_Name,arc_demon,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,stableId,faction-arc:demon,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,displayName,잿빛 계약정,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,description,불완전한 계약과 계승 분쟁을 이용해 세력을 재편하려 한다.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,authoringRevision,1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,factionId,faction:dungeon:demon,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,chapterIds.0,faction-chapter:demon:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,chapterIds.1,faction-chapter:demon:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,chapterIds.2,faction-chapter:demon:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,chapterIds.3,faction-chapter:demon:4,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,chapterIds.4,faction-chapter:demon:5,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,chapterIds.5,faction-chapter:demon:6,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,contractIds.0,faction-contract:demon:supply,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,contractIds.1,faction-contract:demon:crisis,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,contractIds.2,faction-contract:demon:strategic,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,relicItemIds.0,relic:faction:demon:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,relicItemIds.1,relic:faction:demon:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:demon,faction-arc:demon,relicItemIds.2,relic:faction:demon:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,m_Name,arc_golem,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,stableId,faction-arc:golem,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,displayName,돌맥 주조소,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,description,마모된 핵과 생산 할당량 사이에서 인격을 가진 구성체의 권리를 묻는다.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,authoringRevision,1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,factionId,faction:dungeon:golem,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,chapterIds.0,faction-chapter:golem:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,chapterIds.1,faction-chapter:golem:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,chapterIds.2,faction-chapter:golem:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,chapterIds.3,faction-chapter:golem:4,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,chapterIds.4,faction-chapter:golem:5,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,chapterIds.5,faction-chapter:golem:6,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,contractIds.0,faction-contract:golem:supply,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,contractIds.1,faction-contract:golem:crisis,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,contractIds.2,faction-contract:golem:strategic,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,relicItemIds.0,relic:faction:golem:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,relicItemIds.1,relic:faction:golem:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:golem,faction-arc:golem,relicItemIds.2,relic:faction:golem:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,m_Name,arc_harpy,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,stableId,faction-arc:harpy,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,displayName,폭풍둥지,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,description,하늘길과 노래 기록의 독점을 둘러싸고 둥지 내부가 갈라졌다.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,authoringRevision,1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,factionId,faction:dungeon:harpy,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,chapterIds.0,faction-chapter:harpy:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,chapterIds.1,faction-chapter:harpy:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,chapterIds.2,faction-chapter:harpy:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,chapterIds.3,faction-chapter:harpy:4,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,chapterIds.4,faction-chapter:harpy:5,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,chapterIds.5,faction-chapter:harpy:6,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,contractIds.0,faction-contract:harpy:supply,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,contractIds.1,faction-contract:harpy:crisis,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,contractIds.2,faction-contract:harpy:strategic,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,relicItemIds.0,relic:faction:harpy:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,relicItemIds.1,relic:faction:harpy:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:harpy,faction-arc:harpy,relicItemIds.2,relic:faction:harpy:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,m_Name,arc_kobold,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,stableId,faction-arc:kobold,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,displayName,깊은톱니 굴,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,description,도구와 설계의 소유를 씨족이 가질지 제작자가 가질지 다툰다.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,authoringRevision,1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,factionId,faction:dungeon:kobold,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,chapterIds.0,faction-chapter:kobold:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,chapterIds.1,faction-chapter:kobold:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,chapterIds.2,faction-chapter:kobold:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,chapterIds.3,faction-chapter:kobold:4,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,chapterIds.4,faction-chapter:kobold:5,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,chapterIds.5,faction-chapter:kobold:6,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,contractIds.0,faction-contract:kobold:supply,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,contractIds.1,faction-contract:kobold:crisis,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,contractIds.2,faction-contract:kobold:strategic,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,relicItemIds.0,relic:faction:kobold:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,relicItemIds.1,relic:faction:kobold:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:kobold,faction-arc:kobold,relicItemIds.2,relic:faction:kobold:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,m_Name,arc_myconid,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,stableId,faction-arc:myconid,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,displayName,균사정원,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,description,공동 기억망이 병든 포자와 오래된 조상의 의지를 함께 퍼뜨린다.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,authoringRevision,1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,factionId,faction:dungeon:myconid,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,chapterIds.0,faction-chapter:myconid:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,chapterIds.1,faction-chapter:myconid:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,chapterIds.2,faction-chapter:myconid:3,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,chapterIds.3,faction-chapter:myconid:4,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,chapterIds.4,faction-chapter:myconid:5,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,chapterIds.5,faction-chapter:myconid:6,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,contractIds.0,faction-contract:myconid:supply,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,contractIds.1,faction-contract:myconid:crisis,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,contractIds.2,faction-contract:myconid:strategic,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,relicItemIds.0,relic:faction:myconid:1,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,relicItemIds.1,relic:faction:myconid:2,,,explicit-serialized
+FactionArcDefinitionSO|faction-arc:myconid,faction-arc:myconid,relicItemIds.2,relic:faction:myconid:3,,,explicit-serialized

@@ -73,10 +73,14 @@ public sealed class BuildingTabContentPresenter : IUITabContentPresenter
 public sealed class StaffTabContentPresenter : IUITabContentPresenter
 {
     private readonly IStaffWorkforceQueryService workforce;
+    private readonly ICharacterSettlementStandingQuery standings;
 
-    public StaffTabContentPresenter(IStaffWorkforceQueryService workforce)
+    public StaffTabContentPresenter(
+        IStaffWorkforceQueryService workforce,
+        ICharacterSettlementStandingQuery standings)
     {
         this.workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
+        this.standings = standings ?? throw new ArgumentNullException(nameof(standings));
     }
 
     public TabId Id => TabId.Staff;
@@ -87,6 +91,8 @@ public sealed class StaffTabContentPresenter : IUITabContentPresenter
         int offDutyCount = 0;
         int workingCount = 0;
         int expeditionCount = 0;
+        int residentCount = 0;
+        int minionCount = 0;
 
         foreach (CharacterActor character in workforce.FindActiveWorkers())
         {
@@ -97,6 +103,8 @@ public sealed class StaffTabContentPresenter : IUITabContentPresenter
             }
 
             staffCount++;
+            if (standings.IsMinion(character)) minionCount++;
+            else if (standings.IsFormalResident(character)) residentCount++;
             if (work.IsOffDuty) offDutyCount++;
             if (work.isWorking) workingCount++;
             if (character.IsOnExpedition) expeditionCount++;
@@ -104,7 +112,9 @@ public sealed class StaffTabContentPresenter : IUITabContentPresenter
 
         return string.Join("\n", new[]
         {
-            $"직원 수: {staffCount}",
+            $"정착 인력: {staffCount}",
+            $"정식 주민: {residentCount}",
+            $"하수인: {minionCount} · 허용 업무 23/31 · XP 50% · 임금 0 · 경비 가능 · 원정 불가",
             $"근무 중: {workingCount}",
             $"비번/휴식 보호: {offDutyCount}",
             $"원정 중: {expeditionCount}",
@@ -171,14 +181,9 @@ public sealed class WarehouseTabContentPresenter : IUITabContentPresenter
         if (summary.HasMassCapacityAuthority)
         {
             builder.AppendLine(
-                $"중량 창고: {summary.MassWarehouseCount}개 / "
+                $"중량 창고: {summary.WarehouseCount}개 / "
                 + $"{WarehouseMassUiFormatter.FormatKilograms(summary.TotalStoredMassGrams)}"
                 + $" / {WarehouseMassUiFormatter.FormatKilograms(summary.TotalMaxMassGrams)}");
-        }
-        if (summary.HasCapacityLimit)
-        {
-            builder.AppendLine(
-                $"개수형 창고: {summary.LegacyCountWarehouseCount}개 / 용량 {summary.TotalCapacity}");
         }
         foreach (StockCategoryDefinition definition in stockCategoryCatalog.All)
         {

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "전장과 도살장의 사체를 찾아오며 병원체를 먼 거리로 옮긴다. 죽은 시체청소 비룡의 사체는 도축 시설로 옮겨 식량과 부산물로 나눈다. 아일라세라의 하피는 시체청소 비룡 사체를 하늘길의 바람과 마나 흐름이 바뀌었다는 징조로 읽는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-carcass-carrion-drake",
+  "spoiler_tier": "none",
+  "summary": "도축 시설로 옮기면 식량과 부산물을 얻는다.",
+  "title": "시체청소 비룡 사체"
+}

@@ -1,0 +1,53 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+CharacterSO,content-type,,type-reference,controllers,runtime,structural-type-consumer,Assets/Scripts/Controllers/GameManager.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,ai-decision,structural-type-consumer,Assets/Scripts/Services/Character/AI/AIBrain.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,ai-decision,structural-type-consumer,Assets/Scripts/Services/Character/AI/CustomerPersonaRuntime.cs
+CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Ability/AbilityMove.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Ability/AbilityShopping.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Ability/AbilityWork.cs
+CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Ability/CharacterAbility.cs
+CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterLifePublicationService.cs
+CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterSpawner.cs
+CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterSpawnerSceneApplicationAdapter.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterActor.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterActorCollaborators.cs
+CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterIdentity.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterPopulationService.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterPopulationServiceFacade.cs
+CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterProgressionProfileProjector.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/OwnerCharacterFactory.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/OwnerRunManager.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/StartPartyPreparationService.cs
+CharacterSO,content-type,,type-reference,services:character,persistence,structural-type-consumer,Assets/Scripts/Services/Character/Core/StartPartyPreparationSnapshot.cs
+CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/ReproductionApplicationAdapter.cs
+CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterModelData.cs
+CharacterSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterRuntimeProfileFactory.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Work/WorkDutyController.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:factions,runtime,structural-type-consumer,Assets/Scripts/Services/Factions/FactionRuntime.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/CharacterV18RestoreIdentityResolver.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Diagnostics/DungeonGameplayPerformanceProbe.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Diagnostics/GameplayPerformanceWorldConfigurator.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/DungeonSceneNavigation.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Exterior/ExteriorIncidentHandlers.cs
+CharacterSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/InvasionIntruderDataProvider.cs
+CharacterSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/RunVariableCatalogServices.cs
+CharacterSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/RunVariableRuntimeProvider.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:invasion,persistence,structural-type-consumer,Assets/Scripts/Services/Invasion/InvasionDirectorRuntime.Restore.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:invasion,runtime,structural-type-consumer,Assets/Scripts/Services/Invasion/InvasionDirectorRuntime.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:invasion,persistence,structural-type-consumer,Assets/Scripts/Services/Invasion/InvasionIntruderRuntime.Restore.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:invasion,runtime,structural-type-consumer,Assets/Scripts/Services/Invasion/InvasionIntruderSystem.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseBattlePanel.cs
+CharacterSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseCombatAbilities.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseReturnArrivalRuntime.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:recruitment,runtime,structural-type-consumer,Assets/Scripts/Services/Recruitment/RegularCustomerRuntime.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:recruitment,persistence,structural-type-consumer,Assets/Scripts/Services/Recruitment/RegularCustomerSaveSection.cs
+CharacterSO,content-type,,type-reference,services:recruitment,runtime,structural-type-consumer,Assets/Scripts/Services/Recruitment/RegularCustomerSystem.cs
+CharacterSO,content-type,,type-reference,services:run,content-loading,structural-type-consumer,Assets/Scripts/Services/Run/AuthoredGameplayCatalog.cs
+CharacterSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/RunStartVariableSelector.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/RunVariableSystem.cs
+CharacterSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Character/UI/OwnerSelectionPanel.cs
+CharacterSO,content-type,,type-reference; save-restore-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Character/UI/OwnerSelectionViewRules.cs
+CharacterSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Character/UI/StartPartyPreparationUiController.cs
+CharacterSO,stable-id,character-archetype:2001,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs

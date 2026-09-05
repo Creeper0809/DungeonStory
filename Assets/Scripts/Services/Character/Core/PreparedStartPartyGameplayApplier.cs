@@ -687,9 +687,17 @@ public sealed class PreparedStartPartyGameplayApplier :
         PreparedStartPartyMemberSnapshot snapshot,
         CharacterSpawner spawner)
     {
+        CharacterId canonicalId = (CharacterId)(snapshot?.persistentId
+            ?? string.Empty);
+        if (!canonicalId.IsValid)
+        {
+            throw new InvalidOperationException(
+                "A prepared start-party staff member requires a canonical CharacterId before composition.");
+        }
+
         GameObject staffObject = characterObjectFactory.CreateInactive(
             spawner.characterPrefab,
-            EnsureStaffWorkAbility);
+            candidate => PrepareStaffComposition(candidate, canonicalId));
         CharacterActor actor = CharacterActorCollection.GetCanonical(
             staffObject.GetComponent<CharacterActor>());
         if (actor == null)
@@ -699,7 +707,14 @@ public sealed class PreparedStartPartyGameplayApplier :
         }
 
         actor.Initialize(staffData);
-        actor.Identity.SetPersistentId(snapshot.persistentId);
+        CharacterId composedId = CharacterPersistentIdentity.Require(actor);
+        if (!composedId.Equals(canonicalId))
+        {
+            characterObjectFactory.Destroy(staffObject);
+            throw new InvalidOperationException(
+                $"Prepared staff CharacterId '{composedId.Value}' changed during composition; "
+                + $"expected '{canonicalId.Value}'.");
+        }
         actor.characterType = CharacterType.NPC;
         actor.Progression.RestorePersistentState(snapshot.ToProgressionSnapshot());
         actor.gameObject.name = actor.Progression.GrowthState.displayName;
@@ -713,9 +728,27 @@ public sealed class PreparedStartPartyGameplayApplier :
         return null;
     }
 
-    private static void EnsureStaffWorkAbility(GameObject staffObject)
+    private static void PrepareStaffComposition(
+        GameObject staffObject,
+        CharacterId canonicalId)
     {
-        if (staffObject != null && staffObject.GetComponent<AbilityWork>() == null)
+        if (staffObject == null)
+        {
+            throw new ArgumentNullException(nameof(staffObject));
+        }
+
+        CharacterIdentity identity = staffObject.GetComponent<CharacterIdentity>();
+        if (identity == null)
+        {
+            throw new InvalidOperationException(
+                "A prepared staff candidate has no CharacterIdentity before composition.");
+        }
+
+        // Prepared party snapshots already own the canonical actor ID. Install
+        // it before CreateInactive performs DI so actor-scoped RNG, transient
+        // skills and vitals can never observe a generated provisional ID.
+        identity.SetPersistentId(canonicalId);
+        if (staffObject.GetComponent<AbilityWork>() == null)
         {
             staffObject.AddComponent<AbilityWork>();
         }

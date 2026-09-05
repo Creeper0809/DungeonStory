@@ -1,0 +1,44 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "180"
+    },
+    {
+      "label": "필요 연구",
+      "value": "전신 재생"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medical-whole-body-regeneration-medium",
+      "target_spoiler_tier": "none",
+      "target_title": "전신 재생 배지",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-whole-body-regeneration",
+      "target_spoiler_tier": "none",
+      "target_title": "전신 재생",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "procedure-whole-body-regeneration",
+  "spoiler_tier": "none",
+  "summary": "전신 재생 배지를 사용해 생물학적 나이와 초기 노화 질환을 되돌린다.",
+  "title": "전신 재생"
+}

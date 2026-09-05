@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "3kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "3개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "215"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "장기 보존 용기는 심한 조직 손상과 장기 회복을 지원하는 고급 의료 재료다. 므네실라의 장기 보존 용기 병에는 사람의 종족보다 몸이 보인 반응을 먼저 표시하는 색점이 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medical-organ-preservation-canister",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 장기 보존 용기.",
+  "title": "장기 보존 용기"
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-fermented-pickle",
+    "spoiler_tier": "none",
+    "title": "발효 절임"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-fermented-pickle",
+      "label": "생산·해금",
+      "to": "item/food-fermented-pickle",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

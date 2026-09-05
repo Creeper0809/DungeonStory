@@ -10,7 +10,7 @@ using System.Linq;
 /// </summary>
 public static class ProductionRecipeSemanticDigest
 {
-    public const string SchemaToken = "production-recipe-semantic@2";
+    public const string SchemaToken = "production-recipe-semantic@5";
 
     public static string Capture(ProductionRecipeSO recipe)
     {
@@ -32,8 +32,16 @@ public static class ProductionRecipeSemanticDigest
             nameof(recipe.RequiredResearchId));
         RequireCanonicalOptional(recipe.BatchSupportTag,
             nameof(recipe.BatchSupportTag));
-        RequireCanonicalRequired(recipe.SpoilageItemId,
-            nameof(recipe.SpoilageItemId));
+        if (recipe.ProcessKind == ProductionProcessKind.PassiveBatch)
+        {
+            RequireCanonicalRequired(recipe.SpoilageItemId,
+                nameof(recipe.SpoilageItemId));
+        }
+        else
+        {
+            RequireCanonicalOptional(recipe.SpoilageItemId,
+                nameof(recipe.SpoilageItemId));
+        }
 
         ProficiencyWorkProfileAuthoring proficiency = recipe.Proficiency
             ?? throw new InvalidOperationException(
@@ -59,6 +67,10 @@ public static class ProductionRecipeSemanticDigest
             "required support tag");
         ItemAmountDefinition[] inputs = CaptureInputs(recipe);
         ProductionOutputDefinition[] outputs = CaptureOutputs(recipe);
+        ProductionMassExplanationAuthoringSnapshot massExplanation =
+            recipe.MassExplanation;
+        ProductionOutputCostAllocationAuthoringSnapshot outputCostAllocation =
+            recipe.OutputCostAllocation;
 
         CanonicalSemanticDigestBuilder canonical = new();
         canonical.Append(SchemaToken);
@@ -85,6 +97,12 @@ public static class ProductionRecipeSemanticDigest
         canonical.Append(recipe.AllowsManualWaterFallback);
         canonical.Append(recipe.BatchSupportTag);
         canonical.Append(recipe.SpoilageItemId);
+        canonical.Append(massExplanation.CapabilityId);
+        canonical.Append(massExplanation.ContractVersion);
+        canonical.Append(massExplanation.CanonicalPayload);
+        canonical.Append(outputCostAllocation.CapabilityId);
+        canonical.Append(outputCostAllocation.ContractVersion);
+        canonical.Append(outputCostAllocation.CanonicalPayload);
         canonical.Append(proficiency.Primary.Value);
         canonical.Append(proficiency.Secondary.Value ?? string.Empty);
         canonical.AppendFloat(proficiency.PrimaryWeight);
@@ -147,10 +165,17 @@ public static class ProductionRecipeSemanticDigest
             .CaptureCanonicalOutputs()
             .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
             .ToArray();
-        if (outputs.Length == 0)
+        if (outputs.Length == 0
+            && recipe.FlowRole != ProductionFlowRole.Sink)
         {
             throw new InvalidOperationException(
                 $"Production recipe '{recipe.RecipeId}' has no canonical output.");
+        }
+        if (outputs.Length > 0
+            && recipe.FlowRole == ProductionFlowRole.Sink)
+        {
+            throw new InvalidOperationException(
+                $"Sink production recipe '{recipe.RecipeId}' has a canonical output.");
         }
         return outputs;
     }

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8836",
+    "spoiler_tier": "none",
+    "title": "궁시 지그"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-bowyery",
+      "label": "시설 해금",
+      "to": "facility/building-8836",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

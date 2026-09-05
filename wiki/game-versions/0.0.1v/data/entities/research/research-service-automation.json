@@ -1,0 +1,193 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "328"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-bath-business",
+      "target_spoiler_tier": "none",
+      "target_title": "목욕 영업",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-bath-business",
+      "target_spoiler_tier": "none",
+      "target_title": "목욕 영업",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-bath-business",
+      "target_spoiler_tier": "none",
+      "target_title": "목욕 영업",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-hospitality-operations",
+      "target_spoiler_tier": "none",
+      "target_title": "환대 운영",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-hospitality-operations",
+      "target_spoiler_tier": "none",
+      "target_title": "환대 운영",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-hospitality-operations",
+      "target_spoiler_tier": "none",
+      "target_title": "환대 운영",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1708",
+      "target_spoiler_tier": "none",
+      "target_title": "뱀파이어 전용 좌석",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1704",
+      "target_spoiler_tier": "none",
+      "target_title": "보온 배식대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1706",
+      "target_spoiler_tier": "none",
+      "target_title": "슬라임 전용 좌석",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1707",
+      "target_spoiler_tier": "none",
+      "target_title": "오크 전용 좌석",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1714",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 객실 배정판",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1705",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 계산대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1715",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 급배수 제어기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-service-automation",
+  "spoiler_tier": "none",
+  "summary": "자동 계산·순번·보온·객실 배정 장치로 직원 부담을 줄인다.",
+  "title": "서비스 자동화"
+}

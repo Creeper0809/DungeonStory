@@ -115,7 +115,13 @@ internal static class CharacterV18RestoreIdentityResolver
                 $"Duplicate persistent character ID '{canonicalId.Value}' encountered during restore.");
         }
 
-        actor.Identity?.SetPersistentId(canonicalId);
+        CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+        if (!actorId.Equals(canonicalId))
+        {
+            throw new InvalidOperationException(
+                $"Restore candidate CharacterId '{actorId.Value}' does not match "
+                + $"canonical ID '{canonicalId.Value}' before indexing.");
+        }
         actorsById.Add(canonicalId.Value, actor);
 
         string sourceId = source.persistentId ?? string.Empty;

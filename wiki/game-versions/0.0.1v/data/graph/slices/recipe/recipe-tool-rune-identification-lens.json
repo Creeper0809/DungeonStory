@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-rune-identification-lens",
+    "spoiler_tier": "none",
+    "title": "룬 식별 렌즈"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-rune-identification-lens",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-rune-identification-lens",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 식별 렌즈",
+      "to": "item/tool-rune-identification-lens",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-rune-identification-lens",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-optics",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 광학계",
+      "to": "item/component-precision-optics",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-rune-identification-lens",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-rune-dust",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 가루",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-rune-identification-lens",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-rune-identification",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 식별",
+      "to": "research/research-defense-rune-identification",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

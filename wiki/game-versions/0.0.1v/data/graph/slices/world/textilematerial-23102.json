@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "textilematerial-23102",
+    "spoiler_tier": "none",
+    "title": "서리 린넨"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/textilematerial-23102",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

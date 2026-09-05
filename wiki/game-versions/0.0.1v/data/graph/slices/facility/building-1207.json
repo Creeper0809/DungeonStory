@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1207",
+    "spoiler_tier": "none",
+    "title": "공연 위험 장치"
+  },
+  "edges": [],
+  "schema_version": 1
+}

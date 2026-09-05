@@ -1,0 +1,40 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+ResearchProjectSO,content-type,,type-reference,services:effects,persistence,structural-type-consumer,Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs
+ResearchProjectSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs
+ResearchProjectSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchProjectCoordinator.cs
+ResearchProjectSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs
+ResearchProjectSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntimeProvider.cs
+ResearchProjectSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/BlueprintResearchSaveSection.cs
+ResearchProjectSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchCraftingSummaryService.cs
+ResearchProjectSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchFacilityCapacityAdapter.cs
+ResearchProjectSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchGraphLayoutService.cs
+ResearchProjectSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchProjectCatalogAdapter.cs
+ResearchProjectSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs
+ResearchProjectSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/FirstRunObjectiveRuntime.cs
+ResearchProjectSO,content-type,,type-reference; save-restore-reference,services:run,persistence,structural-type-consumer,Assets/Scripts/Services/Run/V20MilestoneWorldSnapshotProjector.cs
+ResearchProjectSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/ResearchTreePresentationRules.cs
+ResearchProjectSO,content-type,,type-reference; save-restore-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/ResearchTreeWindow.cs
+ResearchProjectSO,stable-id,research:agriculture:subterranean,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResearchProjectSO,stable-id,research:arcane:advanced,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResearchProjectSO,stable-id,research:authority:office,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResearchProjectSO,stable-id,research:bath-business,stable-id-literal,models:coresession,runtime,exact-literal-consumer,Assets/Scripts/Models/CoreSession/ServiceSessionContracts.cs
+ResearchProjectSO,stable-id,research:defense:alliance-signals,stable-id-literal,services:invasion,runtime,exact-literal-consumer,Assets/Scripts/Services/Invasion/InvasionDefenseKitSupplyRuntime.cs
+ResearchProjectSO,stable-id,research:defense:tactical-command,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResearchProjectSO,stable-id,research:equipment:lineage-binding,stable-id-literal,services:combat,runtime,exact-literal-consumer,Assets/Scripts/Services/Combat/EquipmentHistoryTransferRuntime.cs
+ResearchProjectSO,stable-id,research:equipment:precision-fitting,stable-id-literal,services:combat,runtime,exact-literal-consumer,Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs
+ResearchProjectSO,stable-id,research:equipment:relic-appraisal,stable-id-literal,services:combat,runtime,exact-literal-consumer,Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs
+ResearchProjectSO,stable-id,research:equipment:rune-module-tuning,stable-id-literal,services:combat,runtime,exact-literal-consumer,Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs
+ResearchProjectSO,stable-id,research:equipment:weapon-patterns,stable-id-literal,services:combat,runtime,exact-literal-consumer,Assets/Scripts/Services/Combat/CombatEquipmentCraftingRuntime.cs
+ResearchProjectSO,stable-id,research:health:pathogen-observation,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ResearchProjectSO,stable-id,research:hospitality-operations,stable-id-literal,models:coresession,runtime,exact-literal-consumer,Assets/Scripts/Models/CoreSession/ServiceSessionContracts.cs
+ResearchProjectSO,stable-id,research:husbandry:capture,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ResearchProjectSO,stable-id,research:medical-reception,stable-id-literal,models:coresession,runtime,exact-literal-consumer,Assets/Scripts/Models/CoreSession/ServiceSessionContracts.cs
+ResearchProjectSO,stable-id,research:medical:mycelial-grafting,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+ResearchProjectSO,stable-id,research:mining:deep,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
+ResearchProjectSO,stable-id,research:mining:deep,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs
+ResearchProjectSO,stable-id,research:mining:quarry,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs
+ResearchProjectSO,stable-id,research:mining:stonecutting,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs
+ResearchProjectSO,stable-id,research:service-automation,stable-id-literal,models:coresession,runtime,exact-literal-consumer,Assets/Scripts/Models/CoreSession/ServiceSessionContracts.cs
+ResearchProjectSO,stable-id,research:service-flow,stable-id-literal,models:coresession,runtime,exact-literal-consumer,Assets/Scripts/Models/CoreSession/ServiceSessionContracts.cs
+ResearchProjectSO,stable-id,research:survival:field-rations,stable-id-literal,services:offense,runtime,exact-literal-consumer,Assets/Scripts/Services/Offense/OffenseExpeditionAccessRules.cs
+ResearchProjectSO,stable-id,research:textile:tailoring,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs

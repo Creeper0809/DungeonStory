@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-dough",
+    "spoiler_tier": "none",
+    "title": "반죽 치대기"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dough",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-egg",
+      "target_spoiler_tier": "none",
+      "target_title": "알",
+      "to": "item/resource-egg",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-dough",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-dough",
+      "target_spoiler_tier": "none",
+      "target_title": "반죽",
+      "to": "item/material-dough",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-dough",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-flour",
+      "target_spoiler_tier": "none",
+      "target_title": "밀가루",
+      "to": "item/material-flour",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-dough",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-baking",
+      "target_spoiler_tier": "none",
+      "target_title": "제빵",
+      "to": "research/research-cuisine-baking",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

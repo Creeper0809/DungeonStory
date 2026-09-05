@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1078",
+    "spoiler_tier": "none",
+    "title": "광석 선별대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-mining-sorting",
+      "label": "시설 해금",
+      "to": "facility/building-1078",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

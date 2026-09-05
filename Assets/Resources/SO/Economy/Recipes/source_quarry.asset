@@ -53,6 +53,14 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: weighted-output-share
+    contractVersion: 1
+    canonicalPayload: output:source:quarry/000/main/resource:stone=4;output:source:quarry/001/byproduct/resource:coal=1;output:source:quarry/002/byproduct/resource:iron-ore=1;output:source:quarry/003/byproduct/resource:gold-ore=1;output:source:quarry/004/byproduct/resource:mana-crystal=1
   inputs: []
   outputs:
   - outputLineId: output:source:quarry/000/main/resource:stone

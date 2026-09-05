@@ -18,6 +18,25 @@ public sealed class ProductionFacilityMutationEpochRuntime :
     public bool IsFrozen(BuildingInstanceId facilityId) =>
         facilityId.IsValid && active.ContainsKey(facilityId);
 
+    public bool TryCaptureOpen(
+        BuildingInstanceId facilityId,
+        out ProductionFacilityMutationFenceSnapshot snapshot)
+    {
+        snapshot = default;
+        if (!facilityId.IsValid
+            || !active.TryGetValue(facilityId, out Entry entry))
+        {
+            return false;
+        }
+
+        snapshot = new ProductionFacilityMutationFenceSnapshot(
+            facilityId,
+            entry.OwnerOperationId,
+            entry.Epoch,
+            ProductionFacilityMutationFenceKind.TransientTopology);
+        return true;
+    }
+
     public bool TryBegin(
         BuildingInstanceId facilityId,
         string ownerOperationId,

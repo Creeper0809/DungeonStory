@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-spin-spore-hemp",
+    "spoiler_tier": "none",
+    "title": "포자 삼베 방적"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-spin-spore-hemp",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "yarn-spore-hemp",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 삼베 원사",
+      "to": "item/yarn-spore-hemp",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-spore-hemp",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "fiber-spore-hemp",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 삼 원섬유",
+      "to": "item/fiber-spore-hemp",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-spore-hemp",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-spin-spore-hemp",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "craft-candle",
+    "spoiler_tier": "none",
+    "title": "양초"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "event/guest-request-memorial-performance",
+      "label": "필요 조건",
+      "to": "item/craft-candle",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-candle",
+      "label": "생산·해금",
+      "to": "item/craft-candle",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "8",
+      "from": "character/festival-blood-lantern",
+      "label": "필요 조건",
+      "to": "item/craft-candle",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

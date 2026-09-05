@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.65kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "30개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "먹을 수는 있지만 누구도 이 선택을 쉽게 잊지 못한다. 오르데나의 선전물은 금기의 고기 한 점만으로 하르나크의 모든 부엌을 식인 시설이라 부른다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "dark-humanoid-meat",
+  "spoiler_tier": "none",
+  "summary": "먹을 수는 있지만 누구도 이 선택을 쉽게 잊지 못한다.",
+  "title": "금기의 고기"
+}

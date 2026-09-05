@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-landmark-truth-observatory",
+    "spoiler_tier": "none",
+    "title": "진실 관측소"
+  },
+  "edges": [],
+  "schema_version": 1
+}

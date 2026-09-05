@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "sample-antigen-spore-lung",
+    "spoiler_tier": "none",
+    "title": "포자폐증 항원 표본"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-spore-lung",
+      "label": "필요 조건",
+      "to": "item/sample-antigen-spore-lung",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

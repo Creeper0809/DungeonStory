@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-ammo-mana-disruptor-bolt",
+    "spoiler_tier": "none",
+    "title": "마나 차단 볼트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-mana-disruptor-bolt",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-mana-alloy",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 합금",
+      "to": "item/material-mana-alloy",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-mana-disruptor-bolt",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-mana-disruptor-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 차단 볼트",
+      "to": "item/ammo-mana-disruptor-bolt",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-mana-disruptor-bolt",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "강철촉 볼트",
+      "to": "item/ammo-bolt-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-mana-disruptor-bolt",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-rune-identification",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 식별",
+      "to": "research/research-defense-rune-identification",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

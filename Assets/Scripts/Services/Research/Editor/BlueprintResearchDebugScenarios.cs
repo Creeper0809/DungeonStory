@@ -27,6 +27,10 @@ public static class BlueprintResearchDebugScenarios
         RunScenario("연구 중단/재개 진행도", VerifyResearchProgressPersistsUntilCompletion, errors);
         RunScenario("연구 완료 모듈 건축 조기 해금", VerifyCompletionUnlocksModularConstruction, errors);
         RunScenario("연구 완료 조합식 해금", VerifyCompletionUnlocksRecipes, errors);
+        RunScenario(
+            "검증용 연구 완료의 정규 해금 상태",
+            VerifyImmediateVerificationCompletionUsesCanonicalUnlocks,
+            errors);
         RunScenario("개방형 설계도 해금", VerifyOpenUnlockEntry, errors);
         RunScenario("연구 속도 보정", VerifyResearchSpeedUsesCharacterAndFacilityModifiers, errors);
         RunScenario("연구 작업 후보 조건", VerifyResearchWorkCandidateRequiresQueuedBlueprint, errors);
@@ -220,6 +224,51 @@ public static class BlueprintResearchDebugScenarios
 
         return result.Completed
             && runtime.State.UnlockedRecipeIds.Contains("recipe_commerce_secure_display_2");
+    }
+
+    private static bool VerifyImmediateVerificationCompletionUsesCanonicalUnlocks()
+    {
+        using ResearchScenarioWorld world = new ResearchScenarioWorld();
+        BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
+        string[] projectIds = DungeonSpaceExpansionCatalog.All
+            .OrderBy(value => value.Tier)
+            .Select(value => value.ResearchProjectId)
+            .ToArray();
+        ResearchProjectSO[] projects = projectIds
+            .Select(id => runtime.ProjectCatalog.TryGet(
+                    new ResearchProjectId(id), out ResearchProjectSO project)
+                ? project
+                : null)
+            .ToArray();
+        if (projects.Any(project => project == null))
+            return false;
+
+        foreach (ResearchProjectSO project in projects)
+        {
+            if (!runtime.TryCompleteProjectImmediatelyForVerification(
+                    project.ProjectId,
+                    out _))
+            {
+                return false;
+            }
+        }
+
+        HashSet<int> expectedBuildingUnlocks = projects
+            .SelectMany(project => project.Unlocks)
+            .OfType<BlueprintBuildingUnlock>()
+            .Select(unlock => unlock.buildingId)
+            .ToHashSet();
+        HashSet<string> expectedRecipeUnlocks = projects
+            .SelectMany(project => project.Unlocks)
+            .OfType<BlueprintRecipeUnlock>()
+            .Select(unlock => unlock.recipeId)
+            .ToHashSet(StringComparer.Ordinal);
+        return projects.All(project =>
+                runtime.State.Projects.IsCompleted(project.ProjectId))
+            && expectedBuildingUnlocks.SetEquals(
+                runtime.State.UnlockedBuildingIds)
+            && expectedRecipeUnlocks.SetEquals(
+                runtime.State.UnlockedRecipeIds);
     }
 
     private static bool VerifyOpenUnlockEntry()

@@ -1,0 +1,25 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "비일반"
+    },
+    {
+      "label": "성향",
+      "value": "이점"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-404",
+  "spoiler_tier": "none",
+  "summary": "학술 숙련의 출발이 빠르다.",
+  "title": "학술 소질"
+}

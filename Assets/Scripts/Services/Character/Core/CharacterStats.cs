@@ -2,10 +2,45 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System;
+using System.Linq;
 using DungeonStory.Foundation;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using VContainer;
+
+internal sealed class CharacterMoodDeliveryTransactionSnapshot
+{
+    public CharacterMoodDeliveryTransactionSnapshot(
+        IReadOnlyDictionary<CharacterCondition, float> stats,
+        float currentHealth,
+        float injurySeverity,
+        float baseMood,
+        float lastCalculatedMood,
+        CharacterStatsMaintenanceScheduleSnapshot maintenance,
+        IReadOnlyList<CharacterMoodMemory> factors)
+    {
+        Stats = new Dictionary<CharacterCondition, float>(
+            stats ?? throw new ArgumentNullException(nameof(stats)));
+        CurrentHealth = currentHealth;
+        InjurySeverity = injurySeverity;
+        BaseMood = baseMood;
+        LastCalculatedMood = lastCalculatedMood;
+        Maintenance = maintenance;
+        Factors = (factors ?? Array.Empty<CharacterMoodMemory>())
+            .Select(value => value?.DeepClone())
+            .Where(value => value != null)
+            .ToArray();
+    }
+
+    public IReadOnlyDictionary<CharacterCondition, float> Stats { get; }
+    public float CurrentHealth { get; }
+    public float InjurySeverity { get; }
+    public float BaseMood { get; }
+    public float LastCalculatedMood { get; }
+    public CharacterStatsMaintenanceScheduleSnapshot Maintenance { get; }
+    public IReadOnlyList<CharacterMoodMemory> Factors { get; }
+}
+
 [DisallowMultipleComponent]
 public class CharacterStats :
     SerializedMonoBehaviour
@@ -495,6 +530,44 @@ public class CharacterStats :
         SynchronizeExternalMoodOverride();
         RecalculateMood(notify: false, forceNotify: false, adoptExternalOverride: false);
         return BuildMoodSnapshot(gameClock.Time);
+    }
+
+    internal CharacterMoodDeliveryTransactionSnapshot
+        CaptureMoodDeliveryTransactionState()
+    {
+        EnsureStats();
+        return new CharacterMoodDeliveryTransactionSnapshot(
+            CreateStatSnapshot(),
+            CurrentHealth,
+            InjurySeverity,
+            baseMood,
+            lastCalculatedMood,
+            maintenanceSchedule.Capture(),
+            interactionMoodFactors);
+    }
+
+    internal void RestoreMoodDeliveryTransactionState(
+        CharacterMoodDeliveryTransactionSnapshot snapshot)
+    {
+        if (snapshot == null)
+            throw new ArgumentNullException(nameof(snapshot));
+        stats = new Dictionary<CharacterCondition, float>(snapshot.Stats);
+        baseMood = Mathf.Clamp(snapshot.BaseMood, 0f, 100f);
+        interactionMoodFactors = snapshot.Factors
+            .Select(value => value?.DeepClone())
+            .Where(value => value != null)
+            .ToList();
+        EnsureStats();
+        float restoredMaximum = RequireProjectionService()
+            .CalculateMaximumHealth(CreateProjectionContext());
+        RequireVitalsService().RestoreProjection(
+            actor,
+            restoredMaximum,
+            snapshot.CurrentHealth,
+            snapshot.InjurySeverity);
+        lastCalculatedMood = snapshot.LastCalculatedMood;
+        maintenanceSchedule.Restore(snapshot.Maintenance);
+        PublishStatsChanged(includeMood: true);
     }
 
     public float GetMoveSpeed()

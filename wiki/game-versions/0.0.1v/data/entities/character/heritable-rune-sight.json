@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-rune-sight",
+  "spoiler_tier": "none",
+  "summary": "미세한 룬 오차를 감지해 조율 작업에 유리하다.",
+  "title": "룬시"
+}

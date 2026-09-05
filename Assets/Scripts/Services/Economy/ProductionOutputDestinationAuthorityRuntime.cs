@@ -25,16 +25,82 @@ public interface IProductionOutputDestinationAuthorityRuntime
         out string failureReason);
 }
 
+public interface IProductionOutputDestinationCapacitySourceAuthority
+{
+    bool TryEnsureCapacitySource(
+        ProductionFacilityHandle facility,
+        ProductionOutputBufferCapacitySourceSnapshot capacitySource,
+        out FacilityBufferCapacityProfile profile,
+        out string failureReason);
+
+    bool TryReplaceProjectedCapacitySources(
+        IReadOnlyList<ProductionFacilityHandle> facilities,
+        IReadOnlyDictionary<string, ProductionOutputBufferCapacitySourceSnapshot>
+            sourcesByFacilityId,
+        out string failureReason);
+}
+
+public static class ProductionOutputDestinationCapacitySourceExtensions
+{
+    public static bool TryEnsureCapacitySource(
+        this IProductionOutputDestinationAuthorityRuntime authority,
+        ProductionFacilityHandle facility,
+        ProductionOutputBufferCapacitySourceSnapshot capacitySource,
+        out FacilityBufferCapacityProfile profile,
+        out string failureReason)
+    {
+        if (authority is IProductionOutputDestinationCapacitySourceAuthority exact)
+        {
+            return exact.TryEnsureCapacitySource(
+                facility,
+                capacitySource,
+                out profile,
+                out failureReason);
+        }
+        return authority.TryEnsure(
+            facility,
+            capacitySource.RequiredMinimumCapacityGrams,
+            out profile,
+            out failureReason);
+    }
+
+    public static bool TryReplaceProjectedCapacitySources(
+        this IProductionOutputDestinationAuthorityRuntime authority,
+        IReadOnlyList<ProductionFacilityHandle> facilities,
+        IReadOnlyDictionary<string, ProductionOutputBufferCapacitySourceSnapshot>
+            sourcesByFacilityId,
+        out string failureReason)
+    {
+        if (authority is IProductionOutputDestinationCapacitySourceAuthority exact)
+        {
+            return exact.TryReplaceProjectedCapacitySources(
+                facilities,
+                sourcesByFacilityId,
+                out failureReason);
+        }
+        Dictionary<string, long> legacy = sourcesByFacilityId
+            .ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value.RequiredMinimumCapacityGrams,
+                StringComparer.Ordinal);
+        return authority.TryReplaceProjected(
+            facilities,
+            legacy,
+            out failureReason);
+    }
+}
+
 /// <summary>
 /// Owns the single facility-scoped claim/profile pair used by every generic
 /// production bill sharing one physical output buffer. Capacity never shrinks
 /// while the authority is live; terminal revocation is a separate operation.
 /// </summary>
 public sealed class ProductionOutputDestinationAuthorityRuntime :
-    IProductionOutputDestinationAuthorityRuntime
+    IProductionOutputDestinationAuthorityRuntime,
+    IProductionOutputDestinationCapacitySourceAuthority
 {
     public const string OwnerDomain = "economy.production-output";
-    public const long CapacitySchemaRevision = 2L;
+    public const long CapacitySchemaRevision = 3L;
 
     private readonly IFacilityBufferDestinationClaimQuery claimQuery;
     private readonly IFacilityBufferMassCapacityQuery capacityQuery;
@@ -64,6 +130,18 @@ public sealed class ProductionOutputDestinationAuthorityRuntime :
     public bool TryEnsure(
         ProductionFacilityHandle facility,
         long minimumMassCapacityGrams,
+        out FacilityBufferCapacityProfile profile,
+        out string failureReason) => TryEnsureCore(
+        facility,
+        minimumMassCapacityGrams,
+        string.Empty,
+        out profile,
+        out failureReason);
+
+    private bool TryEnsureCore(
+        ProductionFacilityHandle facility,
+        long minimumMassCapacityGrams,
+        string authorityDigest,
         out FacilityBufferCapacityProfile profile,
         out string failureReason)
     {
@@ -111,7 +189,11 @@ public sealed class ProductionOutputDestinationAuthorityRuntime :
             desiredCapacity = Math.Max(
                 existing.MaxMassGrams,
                 minimumMassCapacityGrams);
-            if (existing.MaxMassGrams == desiredCapacity)
+            if (existing.MaxMassGrams == desiredCapacity
+                && string.Equals(
+                    existing.AuthorityDigest,
+                    authorityDigest,
+                    StringComparison.Ordinal))
             {
                 profile = existing;
                 return true;
@@ -119,12 +201,16 @@ public sealed class ProductionOutputDestinationAuthorityRuntime :
             claims[claimIndex] = desiredClaim;
             profiles[profileIndex] = CreateProfile(
                 desiredClaim,
-                desiredCapacity);
+                desiredCapacity,
+                authorityDigest);
         }
         else
         {
             claims.Add(desiredClaim);
-            profiles.Add(CreateProfile(desiredClaim, desiredCapacity));
+            profiles.Add(CreateProfile(
+                desiredClaim,
+                desiredCapacity,
+                authorityDigest));
         }
 
         SortAuthorities(claims, profiles);
@@ -141,6 +227,26 @@ public sealed class ProductionOutputDestinationAuthorityRuntime :
 
         return TryValidate(facility, out profile, out failureReason)
             && profile.MaxMassGrams >= minimumMassCapacityGrams;
+    }
+
+    public bool TryEnsureCapacitySource(
+        ProductionFacilityHandle facility,
+        ProductionOutputBufferCapacitySourceSnapshot capacitySource,
+        out FacilityBufferCapacityProfile profile,
+        out string failureReason)
+    {
+        profile = null;
+        if (!IsLowercaseSha256(capacitySource.ClearanceGateDigest))
+        {
+            failureReason = "production-output-clearance-authority-invalid";
+            return false;
+        }
+        return TryEnsureCore(
+            facility,
+            capacitySource.RequiredMinimumCapacityGrams,
+            capacitySource.ClearanceGateDigest,
+            out profile,
+            out failureReason);
     }
 
     public bool TryValidate(
@@ -243,6 +349,70 @@ public sealed class ProductionOutputDestinationAuthorityRuntime :
         return false;
     }
 
+    public bool TryReplaceProjectedCapacitySources(
+        IReadOnlyList<ProductionFacilityHandle> facilities,
+        IReadOnlyDictionary<string, ProductionOutputBufferCapacitySourceSnapshot>
+            sourcesByFacilityId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        ProductionFacilityHandle[] exactFacilities = (facilities
+                ?? throw new ArgumentNullException(nameof(facilities)))
+            .Where(value => value != null && !value.IsDestroyed)
+            .OrderBy(value => value.InstanceId.Value, StringComparer.Ordinal)
+            .ToArray();
+        IReadOnlyDictionary<string, ProductionOutputBufferCapacitySourceSnapshot>
+            exactSources = sourcesByFacilityId
+            ?? throw new ArgumentNullException(nameof(sourcesByFacilityId));
+        if (exactFacilities.Select(value => value.InstanceId.Value)
+                .Distinct(StringComparer.Ordinal).Count() != exactFacilities.Length
+            || exactFacilities.Length != exactSources.Count)
+        {
+            failureReason = "production-output-projected-source-set-invalid";
+            return false;
+        }
+
+        List<FacilityBufferDestinationClaim> claims = new();
+        List<FacilityBufferCapacityProfile> profiles = new();
+        foreach (ProductionFacilityHandle facility in exactFacilities)
+        {
+            if (!exactSources.TryGetValue(
+                    facility.InstanceId.Value,
+                    out ProductionOutputBufferCapacitySourceSnapshot source)
+                || source.RequiredMinimumCapacityGrams <= 0L
+                || !IsLowercaseSha256(source.ClearanceGateDigest)
+                || !TryCreateClaim(
+                    facility,
+                    out FacilityBufferDestinationClaim claim,
+                    out failureReason))
+            {
+                failureReason = string.IsNullOrEmpty(failureReason)
+                    ? "production-output-projected-source-invalid:"
+                        + facility.InstanceId.Value
+                    : failureReason;
+                return false;
+            }
+            claims.Add(claim);
+            profiles.Add(CreateProfile(
+                claim,
+                source.RequiredMinimumCapacityGrams,
+                source.ClearanceGateDigest));
+        }
+
+        SortAuthorities(claims, profiles);
+        if (lifecycle.TryReplaceOwnedAuthorities(
+                OwnerDomain,
+                claims,
+                profiles,
+                out failureReason))
+        {
+            return true;
+        }
+        failureReason =
+            "production-output-projected-source-publish-failed:" + failureReason;
+        return false;
+    }
+
     public bool TryRevoke(
         BuildingInstanceId facilityId,
         out string failureReason)
@@ -255,6 +425,32 @@ public sealed class ProductionOutputDestinationAuthorityRuntime :
         }
         string destinationId = ProductionBillRuntime.OutputDestinationPrefix
             + facilityId.Value;
+        FacilityBufferDestinationClaim[] targetClaims = claimAuthority
+            .CaptureAuthorityClaims()
+            .Where(value => value != null && string.Equals(
+                value.DestinationId,
+                destinationId,
+                StringComparison.Ordinal))
+            .ToArray();
+        FacilityBufferCapacityProfile[] targetProfiles = capacityAuthority
+            .CaptureAuthorityProfiles()
+            .Where(value => value != null && string.Equals(
+                value.DestinationId,
+                destinationId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (targetClaims.Length != 1
+            || targetProfiles.Length != 1
+            || !PairMatches(
+                facilityId,
+                targetClaims[0],
+                targetProfiles[0]))
+        {
+            failureReason = "production-output-authority-revoke-invalid:"
+                + destinationId + ":claim=" + targetClaims.Length
+                + ":profile=" + targetProfiles.Length;
+            return false;
+        }
         List<FacilityBufferDestinationClaim> claims = CaptureOwnedClaims()
             .Where(value => !string.Equals(
                 value.DestinationId,
@@ -274,7 +470,21 @@ public sealed class ProductionOutputDestinationAuthorityRuntime :
                 profiles,
                 out failureReason))
         {
-            return true;
+            bool claimRemoved = claimAuthority.CaptureAuthorityClaims()
+                .All(value => value == null || !string.Equals(
+                    value.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal));
+            bool profileRemoved = capacityAuthority.CaptureAuthorityProfiles()
+                .All(value => value == null || !string.Equals(
+                    value.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal));
+            if (claimRemoved && profileRemoved)
+                return true;
+            failureReason = "production-output-authority-revoke-postcondition:"
+                + destinationId;
+            return false;
         }
         failureReason = $"production-output-authority-revoke-failed:{failureReason}";
         return false;
@@ -308,14 +518,62 @@ public sealed class ProductionOutputDestinationAuthorityRuntime :
 
     private static FacilityBufferCapacityProfile CreateProfile(
         FacilityBufferDestinationClaim claim,
-        long capacityGrams) => new(
+        long capacityGrams,
+        string authorityDigest = "") => new(
         claim.DestinationId,
         claim.DropPosition,
         claim.OwnerDomain,
         claim.OwnerOperationId,
         claim.OwnerFacilityId,
         new PhysicalMassGrams(capacityGrams),
-        CapacitySchemaRevision);
+        CapacitySchemaRevision,
+        authorityDigest);
+
+    private static bool IsLowercaseSha256(string value)
+    {
+        if (value == null || value.Length != 64)
+            return false;
+        foreach (char character in value)
+        {
+            if (!(character is >= '0' and <= '9')
+                && !(character is >= 'a' and <= 'f'))
+                return false;
+        }
+        return true;
+    }
+
+    private static bool PairMatches(
+        BuildingInstanceId facilityId,
+        FacilityBufferDestinationClaim claim,
+        FacilityBufferCapacityProfile profile) =>
+        facilityId.IsValid
+        && claim != null
+        && profile != null
+        && claim.AnchorKind == FacilityBufferDestinationAnchorKind.LiveFacility
+        && claim.DropPosition == profile.DropPosition
+        && profile.CapacityRevision == CapacitySchemaRevision
+        && string.Equals(claim.OwnerDomain, OwnerDomain, StringComparison.Ordinal)
+        && string.Equals(profile.OwnerDomain, OwnerDomain, StringComparison.Ordinal)
+        && string.Equals(
+            claim.OwnerOperationId,
+            claim.DestinationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            profile.OwnerOperationId,
+            claim.OwnerOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            claim.OwnerFacilityId,
+            facilityId.Value,
+            StringComparison.Ordinal)
+        && string.Equals(
+            profile.OwnerFacilityId,
+            facilityId.Value,
+            StringComparison.Ordinal)
+        && string.Equals(
+            profile.DestinationId,
+            claim.DestinationId,
+            StringComparison.Ordinal);
 
     private static bool PairMatches(
         ProductionFacilityHandle facility,

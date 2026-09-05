@@ -233,7 +233,9 @@ public sealed class HaulDeliveryIntentRuntime :
             failureReason = "haul-delivery-operation-duplicate:" + intent.operationId.Trim();
             return false;
         }
-        byOperation.Add(intent.operationId.Trim(), Clone(intent));
+        byOperation.Add(
+            intent.operationId.Trim(),
+            CloneForProjection(intent));
         return true;
     }
 
@@ -245,7 +247,7 @@ public sealed class HaulDeliveryIntentRuntime :
                 operationId?.Trim() ?? string.Empty,
                 out HaulDeliveryIntentSaveData state))
         {
-            intent = Clone(state);
+            intent = CloneForProjection(state);
             return true;
         }
         intent = null;
@@ -269,7 +271,8 @@ public sealed class HaulDeliveryIntentRuntime :
                     throw new InvalidOperationException(failureReason);
                 }
             }
-            HaulDeliveryIntentSaveData committedProjection = Clone(intent);
+            HaulDeliveryIntentSaveData committedProjection =
+                CloneForProjection(intent);
             ExactWarehouseHaulAdmissionJoin.RetainCommittedAdmissions(
                 committedProjection);
             result.Add(committedProjection);
@@ -481,7 +484,7 @@ public sealed class HaulDeliveryIntentRuntime :
     public IReadOnlyList<HaulDeliveryIntentSaveData> CaptureRuntimeState() =>
         byOperation.Values
             .OrderBy(intent => intent.operationId, StringComparer.Ordinal)
-            .Select(Clone)
+            .Select(CloneForProjection)
             .ToArray();
 
     public void ReplaceRuntimeState(IReadOnlyList<HaulDeliveryIntentSaveData> intents)
@@ -493,7 +496,9 @@ public sealed class HaulDeliveryIntentRuntime :
         {
             string failure = Validate(intent);
             if (failure.Length > 0
-                || !replacement.TryAdd(intent.operationId.Trim(), Clone(intent)))
+                || !replacement.TryAdd(
+                    intent.operationId.Trim(),
+                    CloneForProjection(intent)))
             {
                 throw new InvalidOperationException(
                     failure.Length > 0 ? failure : "duplicate haul delivery intent");
@@ -587,7 +592,8 @@ public sealed class HaulDeliveryIntentRuntime :
         return true;
     }
 
-    private static HaulDeliveryIntentSaveData Clone(HaulDeliveryIntentSaveData source) =>
+    public static HaulDeliveryIntentSaveData CloneForProjection(
+        HaulDeliveryIntentSaveData source) =>
         new()
         {
             operationId = source?.operationId?.Trim() ?? string.Empty,
@@ -636,4 +642,32 @@ public sealed class HaulDeliveryIntentRuntime :
             catalogRevision = source?.catalogRevision ?? 0L,
             sourceRevision = source?.sourceRevision ?? 0L
         };
+}
+
+public static class HaulDeliveryIntentAuthorityView
+{
+    public static IReadOnlyList<HaulDeliveryIntentSaveData> Capture(
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IRestoreHaulDeliveryIntentCandidateQuery restoreCandidates,
+        IHaulDeliveryIntentQuery liveAuthority)
+    {
+        if (aggregateRootStore?.IsRestoreStaging == true)
+        {
+            if (restoreCandidates == null
+                || !restoreCandidates.TryGetHaulDeliveryIntents(
+                    out IReadOnlyList<HaulDeliveryIntentSaveData> candidateIntents))
+            {
+                throw new InvalidOperationException(
+                    "Restore staging requires detached haul-delivery intent authority.");
+            }
+            return (candidateIntents ?? Array.Empty<HaulDeliveryIntentSaveData>())
+                .Where(value => value != null && value.HasCommittedPickup)
+                .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                .Select(HaulDeliveryIntentRuntime.CloneForProjection)
+                .ToArray();
+        }
+
+        return liveAuthority?.CaptureCommitted()
+            ?? Array.Empty<HaulDeliveryIntentSaveData>();
+    }
 }

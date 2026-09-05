@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "source-grass",
+    "spoiler_tier": "none",
+    "title": "풀과 짚 채집"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "recipe/source-grass",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-grass-straw",
+      "target_spoiler_tier": "none",
+      "target_title": "풀·짚",
+      "to": "item/resource-grass-straw",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-grass",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-gathering",
+      "target_spoiler_tier": "none",
+      "target_title": "야생 채집",
+      "to": "research/research-agriculture-gathering",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

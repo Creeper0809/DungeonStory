@@ -1,0 +1,8 @@
+blueprint_id,default_cost,research_work_required,rarity,target_research_project_id,unlock_item_count,source_path
+6104,130,24,0,research:arcane:advanced,0,Assets/Resources/SO/Blueprint/P1/BP_ArcaneBasics.asset
+6191,260,45,1,research:commerce:secure-trade,0,Assets/Resources/SO/Blueprint/P1/BP_BattleDining.asset
+6101,120,18,0,research:commerce:expansion,0,Assets/Resources/SO/Blueprint/P1/BP_CommercialBasics.asset
+6102,140,22,0,research:defense:fortification,0,Assets/Resources/SO/Blueprint/P1/BP_DefenseBasics.asset
+6193,340,60,1,research:arcane:resonance,0,Assets/Resources/SO/Blueprint/P1/BP_StormFireTrap.asset
+6103,130,20,0,research:survival:support,0,Assets/Resources/SO/Blueprint/P1/BP_SupportBasics.asset
+6192,280,50,1,research:defense:tactical-command,0,Assets/Resources/SO/Blueprint/P1/BP_TrapChain.asset

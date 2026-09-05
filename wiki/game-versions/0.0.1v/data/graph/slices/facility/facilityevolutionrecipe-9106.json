@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facilityevolutionrecipe-9106",
+    "spoiler_tier": "none",
+    "title": "마력 의식 진화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9106",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1036",
+      "target_spoiler_tier": "none",
+      "target_title": "마력수정선반",
+      "to": "facility/building-1036",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9106",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1039",
+      "target_spoiler_tier": "none",
+      "target_title": "의식초점석",
+      "to": "facility/building-1039",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9106",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1033",
+      "target_spoiler_tier": "none",
+      "target_title": "시약선반",
+      "to": "facility/building-1033",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9106",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1070",
+      "target_spoiler_tier": "none",
+      "target_title": "촛대",
+      "to": "facility/building-1070",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

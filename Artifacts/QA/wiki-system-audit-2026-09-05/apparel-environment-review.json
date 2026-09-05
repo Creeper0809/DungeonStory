@@ -1,0 +1,5085 @@
+{
+  "status": "partial-domain-audit",
+  "scope": "종족 열환경, 환경작업복, 의복 착용 및 원단 비교. 모든 시스템 전수 감사의 한 배치이며 의복 생산·세탁·수선·폐기 전과정 및 실제 UI/저장 검증은 미완료.",
+  "population": {
+    "species": 10,
+    "speciesEnvironmentFields": 130,
+    "thermalFieldsMissing": 60,
+    "workwear": 4,
+    "workwearProtectionFields": 24,
+    "apparelDefinitions": 56,
+    "textileMaterials": 12,
+    "textileNumericFields": 96,
+    "textileSelectionConsumedFields": 36,
+    "textilePerformanceOrDryingUnconfirmedFields": 60,
+    "publicEntities": 82,
+    "restBeds": 2,
+    "catalogDefinitions": 82
+  },
+  "freshness": {
+    "query": "SpeciesThermal Apparel ThermalProtection",
+    "areas": [
+      "code",
+      "content",
+      "authority"
+    ],
+    "limit": 8,
+    "session": 80757,
+    "status": "stale",
+    "failures": 4,
+    "returnedRows": 0,
+    "contentSourceDigest": "139a0a989275ecdd5a4a26c10ceb6a1931041c7c928ed0421628faea5cd928c6",
+    "knowledgeBaseSourceDigest": "ceef8dc8f25f4d327205b15e12346aee0ebc5d6a84aa7eeb1f08af5ce14db0dd",
+    "generatedIndexesUsed": false,
+    "regenerated": false
+  },
+  "species": [
+    {
+      "source": "Assets/Resources/SO/Character/Species\\Species_Vampire.asset",
+      "tag": "Vampire",
+      "id": "3",
+      "environment": {
+        "comfortMinimum": 8,
+        "comfortMaximum": 22,
+        "safeMinimum": 0,
+        "safeMaximum": 34,
+        "lethalMinimum": -10,
+        "lethalMaximum": 42,
+        "comfortableAirMinimum": 70,
+        "comfortableLightMinimum": 40,
+        "comfortableLightMaximum": 100,
+        "airborneExposureMultiplier": 1,
+        "visualStrainMultiplier": 1,
+        "preferredHumidity": 0.5,
+        "drynessSensitivity": 1
+      },
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-3.json",
+      "title": "뱀파이어",
+      "facts": [
+        {
+          "label": "효과",
+          "value": "17개"
+        }
+      ],
+      "summary": "식사 부담은 낮고 연구와 마력 시설을 오래 이용하지만, 불만이 쌓이면 공포 사고를 만든다."
+    },
+    {
+      "source": "Assets/Resources/SO/Character/Species\\Species_Slime.asset",
+      "tag": "Slime",
+      "id": "1",
+      "environment": {
+        "comfortMinimum": 16,
+        "comfortMaximum": 24,
+        "safeMinimum": 5,
+        "safeMaximum": 34,
+        "lethalMinimum": 0,
+        "lethalMaximum": 40,
+        "comfortableAirMinimum": 55,
+        "comfortableLightMinimum": 40,
+        "comfortableLightMaximum": 100,
+        "airborneExposureMultiplier": 1,
+        "visualStrainMultiplier": 1,
+        "preferredHumidity": 0.5,
+        "drynessSensitivity": 1
+      },
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-1.json",
+      "title": "슬라임",
+      "facts": [
+        {
+          "label": "효과",
+          "value": "15개"
+        }
+      ],
+      "summary": "낮은 소비와 빠른 회전으로 초반 던전을 채우지만, 불만이 쌓이면 오염 사고를 만든다."
+    },
+    {
+      "source": "Assets/Resources/SO/Character/Species\\Species_Orc.asset",
+      "tag": "Orc",
+      "id": "2",
+      "environment": {
+        "comfortMinimum": 12,
+        "comfortMaximum": 30,
+        "safeMinimum": -5,
+        "safeMaximum": 42,
+        "lethalMinimum": -15,
+        "lethalMaximum": 50,
+        "comfortableAirMinimum": 65,
+        "comfortableLightMinimum": 40,
+        "comfortableLightMaximum": 100,
+        "airborneExposureMultiplier": 1,
+        "visualStrainMultiplier": 1,
+        "preferredHumidity": 0.5,
+        "drynessSensitivity": 1
+      },
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-2.json",
+      "title": "오크",
+      "facts": [
+        {
+          "label": "효과",
+          "value": "17개"
+        }
+      ],
+      "summary": "돈을 많이 쓰고 경비 인력으로 강하지만, 불만이 쌓이면 시설 파손 사고를 일으킨다."
+    },
+    {
+      "source": "Assets/Resources/SO/Character/Species\\Species_Myconid.asset",
+      "tag": "Myconid",
+      "id": "7",
+      "environment": {
+        "comfortMinimum": 8,
+        "comfortMaximum": 22,
+        "safeMinimum": 0,
+        "safeMaximum": 32,
+        "lethalMinimum": -8,
+        "lethalMaximum": 40,
+        "comfortableAirMinimum": 35,
+        "comfortableLightMinimum": 40,
+        "comfortableLightMaximum": 100,
+        "airborneExposureMultiplier": 1,
+        "visualStrainMultiplier": 1,
+        "preferredHumidity": 0.5,
+        "drynessSensitivity": 1
+      },
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-7.json",
+      "title": "균사인",
+      "facts": [
+        {
+          "label": "효과",
+          "value": "14개"
+        }
+      ],
+      "summary": "균사인은(는) 균사 심림을 대표하는 종족이다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Character/Species\\Species_Kobold.asset",
+      "tag": "Kobold",
+      "id": "6",
+      "environment": {
+        "comfortMinimum": 11,
+        "comfortMaximum": 28,
+        "safeMinimum": -2,
+        "safeMaximum": 40,
+        "lethalMinimum": -10,
+        "lethalMaximum": 48,
+        "comfortableAirMinimum": 60,
+        "comfortableLightMinimum": 40,
+        "comfortableLightMaximum": 100,
+        "airborneExposureMultiplier": 1,
+        "visualStrainMultiplier": 1,
+        "preferredHumidity": 0.5,
+        "drynessSensitivity": 1
+      },
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-6.json",
+      "title": "코볼트",
+      "facts": [
+        {
+          "label": "효과",
+          "value": "14개"
+        }
+      ],
+      "summary": "코볼트은(는) 심층 톱니굴을 대표하는 종족이다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Character/Species\\Species_Harpy.asset",
+      "tag": "Harpy",
+      "id": "8",
+      "environment": {
+        "comfortMinimum": 7,
+        "comfortMaximum": 25,
+        "safeMinimum": -5,
+        "safeMaximum": 36,
+        "lethalMinimum": -15,
+        "lethalMaximum": 44,
+        "comfortableAirMinimum": 80,
+        "comfortableLightMinimum": 40,
+        "comfortableLightMaximum": 100,
+        "airborneExposureMultiplier": 1,
+        "visualStrainMultiplier": 1,
+        "preferredHumidity": 0.5,
+        "drynessSensitivity": 1
+      },
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-8.json",
+      "title": "하피",
+      "facts": [
+        {
+          "label": "효과",
+          "value": "14개"
+        }
+      ],
+      "summary": "하피은(는) 폭풍 둥지을 대표하는 종족이다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Character/Species\\Species_Golem.asset",
+      "tag": "Golem",
+      "id": "9",
+      "environment": {
+        "comfortMinimum": -5,
+        "comfortMaximum": 35,
+        "safeMinimum": -20,
+        "safeMaximum": 50,
+        "lethalMinimum": -35,
+        "lethalMaximum": 65,
+        "comfortableAirMinimum": 20,
+        "comfortableLightMinimum": 40,
+        "comfortableLightMaximum": 100,
+        "airborneExposureMultiplier": 1,
+        "visualStrainMultiplier": 1,
+        "preferredHumidity": 0.5,
+        "drynessSensitivity": 1
+      },
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-9.json",
+      "title": "골렘",
+      "facts": [
+        {
+          "label": "효과",
+          "value": "14개"
+        }
+      ],
+      "summary": "골렘은(는) 석맥 주조소을 대표하는 종족이다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Character/Species\\Species_Demon.asset",
+      "tag": "Demon",
+      "id": "5",
+      "environment": {
+        "comfortMinimum": 20,
+        "comfortMaximum": 34,
+        "safeMinimum": 10,
+        "safeMaximum": 46,
+        "lethalMinimum": -2,
+        "lethalMaximum": 56,
+        "comfortableAirMinimum": 60,
+        "comfortableLightMinimum": 40,
+        "comfortableLightMaximum": 100,
+        "airborneExposureMultiplier": 1,
+        "visualStrainMultiplier": 1,
+        "preferredHumidity": 0.5,
+        "drynessSensitivity": 1
+      },
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-5.json",
+      "title": "데몬",
+      "facts": [
+        {
+          "label": "효과",
+          "value": "15개"
+        }
+      ],
+      "summary": "데몬은(는) 잿불 계약정을 대표하는 종족이다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Character/Species\\Species_Beastkin.asset",
+      "tag": "Beastkin",
+      "id": "4",
+      "environment": {
+        "comfortMinimum": 10,
+        "comfortMaximum": 29,
+        "safeMinimum": -4,
+        "safeMaximum": 40,
+        "lethalMinimum": -12,
+        "lethalMaximum": 48,
+        "comfortableAirMinimum": 70,
+        "comfortableLightMinimum": 40,
+        "comfortableLightMaximum": 100,
+        "airborneExposureMultiplier": 1,
+        "visualStrainMultiplier": 1,
+        "preferredHumidity": 0.5,
+        "drynessSensitivity": 1
+      },
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-4.json",
+      "title": "수인",
+      "facts": [
+        {
+          "label": "효과",
+          "value": "15개"
+        }
+      ],
+      "summary": "수인은(는) 붉은발 역참을 대표하는 종족이다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Character/Species\\Species_Adventurer.asset",
+      "tag": "Adventurer",
+      "id": "10",
+      "environment": {
+        "comfortMinimum": 15,
+        "comfortMaximum": 27,
+        "safeMinimum": 0,
+        "safeMaximum": 40,
+        "lethalMinimum": -10,
+        "lethalMaximum": 48,
+        "comfortableAirMinimum": 70,
+        "comfortableLightMinimum": 40,
+        "comfortableLightMaximum": 100,
+        "airborneExposureMultiplier": 1,
+        "visualStrainMultiplier": 1,
+        "preferredHumidity": 0.5,
+        "drynessSensitivity": 1
+      },
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-10.json",
+      "title": "원정자",
+      "facts": [],
+      "summary": "던전을 침입하는 적대적 외부 원정자 종족 정의다."
+    }
+  ],
+  "workwear": [
+    {
+      "source": "Assets/Resources/SO/Environment/Workwear\\SlimeWarmingPad.asset",
+      "id": "workwear:slime-warming-pad",
+      "protection": {
+        "comfortMinimumOffset": -4,
+        "comfortMaximumOffset": 0,
+        "safeMinimumOffset": -4,
+        "safeMaximumOffset": 0,
+        "coldExposureMultiplier": 0.6,
+        "heatExposureMultiplier": 1
+      },
+      "allowedSpecies": "- Slime",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/combat/workwear-slime-warming-pad.json",
+      "title": "보온 점액 패드",
+      "facts": [
+        {
+          "label": "필요 연구",
+          "value": "저온 작업 보호"
+        }
+      ],
+      "summary": "슬라임의 짧은 냉장 운반을 돕는 탈착식 보온 패드.",
+      "relations": [
+        {
+          "amount": null,
+          "label": "관련",
+          "target_kind": "item",
+          "target_slug": "equipment-slime-warming-pad",
+          "target_spoiler_tier": "none",
+          "target_title": "보온 점액 패드",
+          "type": "references"
+        },
+        {
+          "amount": null,
+          "label": "필요 조건",
+          "target_kind": "research",
+          "target_slug": "research-environment-cold-work",
+          "target_spoiler_tier": "none",
+          "target_title": "저온 작업 보호",
+          "type": "requires"
+        }
+      ]
+    },
+    {
+      "source": "Assets/Resources/SO/Environment/Workwear\\RuneColdSuit.asset",
+      "id": "workwear:rune-cold-suit",
+      "protection": {
+        "comfortMinimumOffset": -10,
+        "comfortMaximumOffset": 0,
+        "safeMinimumOffset": -10,
+        "safeMaximumOffset": 0,
+        "coldExposureMultiplier": 0.2,
+        "heatExposureMultiplier": 1
+      },
+      "allowedSpecies": "[]",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/combat/workwear-rune-cold-suit.json",
+      "title": "룬 방한복",
+      "facts": [
+        {
+          "label": "필요 연구",
+          "value": "룬 단열학"
+        }
+      ],
+      "summary": "후기 2°C 냉장 근무용 룬 단열 작업복. 치명선은 바꾸지 않는다.",
+      "relations": [
+        {
+          "amount": null,
+          "label": "관련",
+          "target_kind": "item",
+          "target_slug": "equipment-rune-cold-suit",
+          "target_spoiler_tier": "none",
+          "target_title": "룬 방한복",
+          "type": "references"
+        },
+        {
+          "amount": null,
+          "label": "필요 조건",
+          "target_kind": "research",
+          "target_slug": "research-environment-rune-insulation",
+          "target_spoiler_tier": "none",
+          "target_title": "룬 단열학",
+          "type": "requires"
+        }
+      ]
+    },
+    {
+      "source": "Assets/Resources/SO/Environment/Workwear\\HaulingHarness.asset",
+      "id": "workwear:hauling-harness",
+      "protection": {
+        "comfortMinimumOffset": 0,
+        "comfortMaximumOffset": 0,
+        "safeMinimumOffset": 0,
+        "safeMaximumOffset": 0,
+        "coldExposureMultiplier": 1,
+        "heatExposureMultiplier": 1
+      },
+      "allowedSpecies": "[]",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/combat/workwear-hauling-harness.json",
+      "title": "운반 멜빵",
+      "facts": [
+        {
+          "label": "필요 연구",
+          "value": "창고 구획"
+        }
+      ],
+      "summary": "운반 작업 중 적재 한도를 25% 늘리고 완료 시 내구도를 소모하는 물리 작업 장비.",
+      "relations": [
+        {
+          "amount": null,
+          "label": "관련",
+          "target_kind": "item",
+          "target_slug": "tool-hauling-harness",
+          "target_spoiler_tier": "none",
+          "target_title": "운반 멜빵",
+          "type": "references"
+        },
+        {
+          "amount": null,
+          "label": "필요 조건",
+          "target_kind": "research",
+          "target_slug": "research-commerce-logistics",
+          "target_spoiler_tier": "none",
+          "target_title": "창고 구획",
+          "type": "requires"
+        }
+      ]
+    },
+    {
+      "source": "Assets/Resources/SO/Environment/Workwear\\ColdWorkSuit.asset",
+      "id": "workwear:cold-work-suit",
+      "protection": {
+        "comfortMinimumOffset": -8,
+        "comfortMaximumOffset": 0,
+        "safeMinimumOffset": -8,
+        "safeMaximumOffset": 0,
+        "coldExposureMultiplier": 0.35,
+        "heatExposureMultiplier": 1
+      },
+      "allowedSpecies": "[]",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/combat/workwear-cold-work-suit.json",
+      "title": "방한 작업복",
+      "facts": [
+        {
+          "label": "필요 연구",
+          "value": "저온 작업 보호"
+        }
+      ],
+      "summary": "전투 방어력 없이 8°C 냉장실 상시 근무를 지원한다.",
+      "relations": [
+        {
+          "amount": null,
+          "label": "관련",
+          "target_kind": "item",
+          "target_slug": "equipment-cold-work-suit",
+          "target_spoiler_tier": "none",
+          "target_title": "방한 작업복",
+          "type": "references"
+        },
+        {
+          "amount": null,
+          "label": "필요 조건",
+          "target_kind": "research",
+          "target_slug": "research-environment-cold-work",
+          "target_spoiler_tier": "none",
+          "target_title": "저온 작업 보호",
+          "type": "requires"
+        }
+      ]
+    }
+  ],
+  "apparel": [
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_work_shirt.asset",
+      "apparelId": "apparel:work-shirt",
+      "physicalItemId": "apparel:work-shirt",
+      "displayName": "작업 셔츠",
+      "bodyForm": "0",
+      "layer": "1",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "104",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "12",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.95",
+      "baseWeight": "0.48",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-work-shirt.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.48kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "작업 셔츠 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_wing_harness.asset",
+      "apparelId": "apparel:wing-harness",
+      "physicalItemId": "apparel:wing-harness",
+      "displayName": "날개 멜빵",
+      "bodyForm": "0",
+      "layer": "4",
+      "fitMode": "2",
+      "requiredPoints": "98304",
+      "occupiedPoints": "106496",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1032",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.82",
+      "baseWeight": "0.5",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-wing-harness.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.5kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "날개 멜빵 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_wing_cloak.asset",
+      "apparelId": "apparel:wing-cloak",
+      "physicalItemId": "apparel:wing-cloak",
+      "displayName": "날개 망토",
+      "bodyForm": "0",
+      "layer": "4",
+      "fitMode": "2",
+      "requiredPoints": "98304",
+      "occupiedPoints": "106496",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1040",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.9",
+      "baseWeight": "0.6",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-wing-cloak.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.6kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "날개 망토 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_weapon_vigil_cloak.asset",
+      "apparelId": "apparel:weapon-vigil-cloak",
+      "physicalItemId": "apparel:weapon-vigil-cloak",
+      "displayName": "무기 철야 망토",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "8200",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "528",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.08",
+      "baseWeight": "0.8",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-weapon-vigil-cloak.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.8kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "무기 철야 망토 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_waterproof_work_suit.asset",
+      "apparelId": "apparel:waterproof-work-suit",
+      "physicalItemId": "apparel:waterproof-work-suit",
+      "displayName": "방수 작업복",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "2120",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.15",
+      "baseWeight": "1.38",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-waterproof-work-suit.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "1.38kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "방수 작업복 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_vest.asset",
+      "apparelId": "apparel:vest",
+      "physicalItemId": "apparel:vest",
+      "displayName": "조끼",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "8",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "4",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.9",
+      "baseWeight": "0.4",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-vest.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.4kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "조끼 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_undershirt.asset",
+      "apparelId": "apparel:undershirt",
+      "physicalItemId": "apparel:undershirt",
+      "displayName": "속셔츠",
+      "bodyForm": "0",
+      "layer": "0",
+      "fitMode": "0",
+      "requiredPoints": "8",
+      "occupiedPoints": "8",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.78",
+      "baseWeight": "0.2",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-undershirt.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.2kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "속셔츠 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_tunic.asset",
+      "apparelId": "apparel:tunic",
+      "physicalItemId": "apparel:tunic",
+      "displayName": "튜닉",
+      "bodyForm": "0",
+      "layer": "1",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "104",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "4",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.9",
+      "baseWeight": "0.45",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tunic.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.45kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "튜닉 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_trousers.asset",
+      "apparelId": "apparel:trousers",
+      "physicalItemId": "apparel:trousers",
+      "displayName": "바지",
+      "bodyForm": "0",
+      "layer": "1",
+      "fitMode": "0",
+      "requiredPoints": "1552",
+      "occupiedPoints": "1552",
+      "sealedOptionalPoints": "16384",
+      "supportedModifications": "1",
+      "useTags": "4",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.92",
+      "baseWeight": "0.5",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-trousers.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.5kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "바지 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_tail_ribbon.asset",
+      "apparelId": "apparel:tail-ribbon",
+      "physicalItemId": "apparel:tail-ribbon",
+      "displayName": "꼬리 리본",
+      "bodyForm": "0",
+      "layer": "4",
+      "fitMode": "2",
+      "requiredPoints": "16384",
+      "occupiedPoints": "16384",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1536",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.55",
+      "baseWeight": "0.08",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tail-ribbon.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.08kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "꼬리 리본 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_tail_guard.asset",
+      "apparelId": "apparel:tail-guard",
+      "physicalItemId": "apparel:tail-guard",
+      "displayName": "꼬리 보호대",
+      "bodyForm": "0",
+      "layer": "4",
+      "fitMode": "2",
+      "requiredPoints": "16384",
+      "occupiedPoints": "16384",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "3072",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.9",
+      "baseWeight": "0.35",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tail-guard.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.35kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "꼬리 보호대 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_surgical_apron.asset",
+      "apparelId": "apparel:surgical-apron",
+      "physicalItemId": "apparel:surgical-apron",
+      "displayName": "외과 앞치마",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "24",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "136",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.05",
+      "baseWeight": "0.62",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-surgical-apron.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.62kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "외과 앞치마 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_sterile_gown.asset",
+      "apparelId": "apparel:sterile-gown",
+      "physicalItemId": "apparel:sterile-gown",
+      "displayName": "무균 가운",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "104",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "136",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1",
+      "baseWeight": "0.52",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sterile-gown.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.52kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "무균 가운 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_spore_protection_hood.asset",
+      "apparelId": "apparel:spore-protection-hood",
+      "physicalItemId": "apparel:spore-protection-hood",
+      "displayName": "포자 방호 두건",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "3",
+      "occupiedPoints": "3",
+      "sealedOptionalPoints": "131072",
+      "supportedModifications": "4",
+      "useTags": "2056",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.05",
+      "baseWeight": "0.35",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-spore-protection-hood.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.35kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "포자 방호 두건 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_spore_garden_cloak.asset",
+      "apparelId": "apparel:spore-garden-cloak",
+      "physicalItemId": "apparel:spore-garden-cloak",
+      "displayName": "포자 정원 망토",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "8200",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "2560",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.02",
+      "baseWeight": "0.78",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-spore-garden-cloak.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.78kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "포자 정원 망토 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_socks.asset",
+      "apparelId": "apparel:socks",
+      "physicalItemId": "apparel:socks",
+      "displayName": "양말",
+      "bodyForm": "0",
+      "layer": "0",
+      "fitMode": "0",
+      "requiredPoints": "6144",
+      "occupiedPoints": "6144",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.72",
+      "baseWeight": "0.12",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-socks.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.12kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "양말 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_smoke_protection_hood.asset",
+      "apparelId": "apparel:smoke-protection-hood",
+      "physicalItemId": "apparel:smoke-protection-hood",
+      "displayName": "연기 방호 두건",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "3",
+      "occupiedPoints": "3",
+      "sealedOptionalPoints": "131072",
+      "supportedModifications": "4",
+      "useTags": "2056",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.08",
+      "baseWeight": "0.38",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-smoke-protection-hood.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.38kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "연기 방호 두건 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_smith_apron.asset",
+      "apparelId": "apparel:smith-apron",
+      "physicalItemId": "apparel:smith-apron",
+      "displayName": "대장장이 앞치마",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "24",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "2088",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.12",
+      "baseWeight": "0.9",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-smith-apron.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.9kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "대장장이 앞치마 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_slime_warming_pad.asset",
+      "apparelId": "apparel:slime-warming-pad",
+      "physicalItemId": "equipment:slime-warming-pad",
+      "displayName": "보온 점액 패드",
+      "bodyForm": "0",
+      "layer": "1",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "8",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "24",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.1",
+      "baseWeight": "0.45",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:environment:cold-work",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/equipment-slime-warming-pad.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.3kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "22"
+        }
+      ],
+      "publicSummary": "슬라임 전용 초기 저온 작업복."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_sleep_top.asset",
+      "apparelId": "apparel:sleep-top",
+      "physicalItemId": "apparel:sleep-top",
+      "displayName": "잠옷 상의",
+      "bodyForm": "0",
+      "layer": "1",
+      "fitMode": "0",
+      "requiredPoints": "8",
+      "occupiedPoints": "104",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.82",
+      "baseWeight": "0.35",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sleep-top.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.35kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "잠옷 상의 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_sleep_bottom.asset",
+      "apparelId": "apparel:sleep-bottom",
+      "physicalItemId": "apparel:sleep-bottom",
+      "displayName": "잠옷 하의",
+      "bodyForm": "0",
+      "layer": "1",
+      "fitMode": "0",
+      "requiredPoints": "1552",
+      "occupiedPoints": "1552",
+      "sealedOptionalPoints": "16384",
+      "supportedModifications": "1",
+      "useTags": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.82",
+      "baseWeight": "0.32",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sleep-bottom.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.32kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "잠옷 하의 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_sky_chorus_shawl.asset",
+      "apparelId": "apparel:sky-chorus-shawl",
+      "physicalItemId": "apparel:sky-chorus-shawl",
+      "displayName": "하늘 합창 숄",
+      "bodyForm": "0",
+      "layer": "4",
+      "fitMode": "2",
+      "requiredPoints": "8",
+      "occupiedPoints": "8200",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1536",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.72",
+      "baseWeight": "0.22",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sky-chorus-shawl.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.22kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "하늘 합창 숄 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_skirt.asset",
+      "apparelId": "apparel:skirt",
+      "physicalItemId": "apparel:skirt",
+      "displayName": "치마",
+      "bodyForm": "0",
+      "layer": "1",
+      "fitMode": "1",
+      "requiredPoints": "16",
+      "occupiedPoints": "1552",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "4",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.82",
+      "baseWeight": "0.42",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-skirt.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.42kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "치마 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_shorts.asset",
+      "apparelId": "apparel:shorts",
+      "physicalItemId": "apparel:shorts",
+      "displayName": "반바지",
+      "bodyForm": "0",
+      "layer": "1",
+      "fitMode": "0",
+      "requiredPoints": "16",
+      "occupiedPoints": "1552",
+      "sealedOptionalPoints": "16384",
+      "supportedModifications": "1",
+      "useTags": "36",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.76",
+      "baseWeight": "0.32",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-shorts.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.32kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "반바지 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_scarf.asset",
+      "apparelId": "apparel:scarf",
+      "physicalItemId": "apparel:scarf",
+      "displayName": "목도리",
+      "bodyForm": "2",
+      "layer": "4",
+      "fitMode": "2",
+      "requiredPoints": "4",
+      "occupiedPoints": "4",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1040",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.82",
+      "baseWeight": "0.18",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-scarf.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.18kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "목도리 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_rune_cold_suit.asset",
+      "apparelId": "apparel:rune-cold-suit",
+      "physicalItemId": "equipment:rune-cold-suit",
+      "displayName": "룬 방한복",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "2072",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.3",
+      "baseWeight": "1.55",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:environment:rune-insulation",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/equipment-rune-cold-suit.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.8kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "2°C 장기 근무를 지원하되 치명선을 바꾸지 않는 작업복."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_ritual_robe.asset",
+      "apparelId": "apparel:ritual-robe",
+      "physicalItemId": "apparel:ritual-robe",
+      "displayName": "의식 로브",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "768",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.1",
+      "baseWeight": "0.95",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-ritual-robe.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.95kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "의식 로브 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_raincoat.asset",
+      "apparelId": "apparel:raincoat",
+      "physicalItemId": "apparel:raincoat",
+      "displayName": "우비",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "2116",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.08",
+      "baseWeight": "1.1",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-raincoat.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "1.1kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "우비 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_mourning_clothes.asset",
+      "apparelId": "apparel:mourning-clothes",
+      "physicalItemId": "apparel:mourning-clothes",
+      "displayName": "상복",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "768",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1",
+      "baseWeight": "0.85",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-mourning-clothes.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.85kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "상복 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_miner_workwear.asset",
+      "apparelId": "apparel:miner-workwear",
+      "physicalItemId": "apparel:miner-workwear",
+      "displayName": "광부 작업복",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "0",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "2056",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.08",
+      "baseWeight": "1.25",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-miner-workwear.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "1.25kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "광부 작업복 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_lower_underwear.asset",
+      "apparelId": "apparel:lower-underwear",
+      "physicalItemId": "apparel:lower-underwear",
+      "displayName": "하의 속옷",
+      "bodyForm": "0",
+      "layer": "0",
+      "fitMode": "0",
+      "requiredPoints": "16",
+      "occupiedPoints": "16",
+      "sealedOptionalPoints": "16384",
+      "supportedModifications": "1",
+      "useTags": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.75",
+      "baseWeight": "0.18",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-lower-underwear.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.18kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "하의 속옷 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_long_underpants.asset",
+      "apparelId": "apparel:long-underpants",
+      "physicalItemId": "apparel:long-underpants",
+      "displayName": "내의 바지",
+      "bodyForm": "0",
+      "layer": "1",
+      "fitMode": "0",
+      "requiredPoints": "1552",
+      "occupiedPoints": "1552",
+      "sealedOptionalPoints": "16384",
+      "supportedModifications": "1",
+      "useTags": "17",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.9",
+      "baseWeight": "0.35",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-long-underpants.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.35kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "내의 바지 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_loincloth_underwear.asset",
+      "apparelId": "apparel:loincloth-underwear",
+      "physicalItemId": "apparel:loincloth-underwear",
+      "displayName": "허리 두름 속옷",
+      "bodyForm": "0",
+      "layer": "0",
+      "fitMode": "1",
+      "requiredPoints": "16",
+      "occupiedPoints": "16",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.65",
+      "baseWeight": "0.16",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-loincloth-underwear.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.16kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "허리 두름 속옷 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_keeper_coat.asset",
+      "apparelId": "apparel:keeper-coat",
+      "physicalItemId": "apparel:keeper-coat",
+      "displayName": "사육사 외투",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "2056",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.05",
+      "baseWeight": "1.15",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-keeper-coat.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "1.15kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "사육사 외투 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_horn_ring.asset",
+      "apparelId": "apparel:horn-ring",
+      "physicalItemId": "apparel:horn-ring",
+      "displayName": "뿔 고리",
+      "bodyForm": "0",
+      "layer": "4",
+      "fitMode": "2",
+      "requiredPoints": "131072",
+      "occupiedPoints": "131072",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1536",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.5",
+      "baseWeight": "0.1",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-horn-ring.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.1kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "13"
+        }
+      ],
+      "publicSummary": "뿔 고리 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_hooded_robe.asset",
+      "apparelId": "apparel:hooded-robe",
+      "physicalItemId": "apparel:hooded-robe",
+      "displayName": "후드 로브",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9849",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "20",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.05",
+      "baseWeight": "1",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-hooded-robe.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "1kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "후드 로브 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_heat_work_suit.asset",
+      "apparelId": "apparel:heat-work-suit",
+      "physicalItemId": "apparel:heat-work-suit",
+      "displayName": "내열 작업복",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "2088",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.15",
+      "baseWeight": "1.35",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-heat-work-suit.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "1.35kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "내열 작업복 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_hauling_harness.asset",
+      "apparelId": "apparel:hauling-harness",
+      "physicalItemId": "tool:hauling-harness",
+      "displayName": "운반 멜빵",
+      "bodyForm": "0",
+      "layer": "4",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "8200",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1032",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.9",
+      "baseWeight": "0.9",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:commerce:logistics",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/tool-hauling-harness.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "1.15kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "분기형 생산망의 운반 멜빵."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_hat.asset",
+      "apparelId": "apparel:hat",
+      "physicalItemId": "apparel:hat",
+      "displayName": "모자",
+      "bodyForm": "2",
+      "layer": "4",
+      "fitMode": "1",
+      "requiredPoints": "1",
+      "occupiedPoints": "1",
+      "sealedOptionalPoints": "131072",
+      "supportedModifications": "4",
+      "useTags": "1024",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.78",
+      "baseWeight": "0.2",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-hat.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.2kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "모자 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_golem_functional_lining.asset",
+      "apparelId": "apparel:golem-functional-lining",
+      "physicalItemId": "apparel:golem-functional-lining",
+      "displayName": "골렘 기능성 내피",
+      "bodyForm": "1",
+      "layer": "1",
+      "fitMode": "0",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "2048",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1",
+      "baseWeight": "0.7",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-golem-functional-lining.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.7kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "골렘 기능성 내피 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_gloves.asset",
+      "apparelId": "apparel:gloves",
+      "physicalItemId": "apparel:gloves",
+      "displayName": "장갑",
+      "bodyForm": "2",
+      "layer": "4",
+      "fitMode": "0",
+      "requiredPoints": "384",
+      "occupiedPoints": "384",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "3072",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.82",
+      "baseWeight": "0.25",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-gloves.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.25kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "장갑 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_formal_coat.asset",
+      "apparelId": "apparel:formal-coat",
+      "physicalItemId": "apparel:formal-coat",
+      "displayName": "정장 외투",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "0",
+      "requiredPoints": "8",
+      "occupiedPoints": "8296",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "256",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.08",
+      "baseWeight": "0.82",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-formal-coat.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.82kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "정장 외투 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_footwraps.asset",
+      "apparelId": "apparel:footwraps",
+      "physicalItemId": "apparel:footwraps",
+      "displayName": "발싸개",
+      "bodyForm": "0",
+      "layer": "0",
+      "fitMode": "1",
+      "requiredPoints": "6144",
+      "occupiedPoints": "6144",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.62",
+      "baseWeight": "0.1",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-footwraps.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.1kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "발싸개 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_festival_vest.asset",
+      "apparelId": "apparel:festival-vest",
+      "physicalItemId": "apparel:festival-vest",
+      "displayName": "축제 조끼",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "8",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "768",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1",
+      "baseWeight": "0.48",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-festival-vest.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.48kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "축제 조끼 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_farmer_workwear.asset",
+      "apparelId": "apparel:farmer-workwear",
+      "physicalItemId": "apparel:farmer-workwear",
+      "displayName": "농부 작업복",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "72",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1",
+      "baseWeight": "1",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-farmer-workwear.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "1kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "농부 작업복 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_envoy_coat.asset",
+      "apparelId": "apparel:envoy-coat",
+      "physicalItemId": "apparel:envoy-coat",
+      "displayName": "사절 외투",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "0",
+      "requiredPoints": "8",
+      "occupiedPoints": "8296",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "256",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.08",
+      "baseWeight": "0.9",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-envoy-coat.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.9kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "사절 외투 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_daily_robe.asset",
+      "apparelId": "apparel:daily-robe",
+      "physicalItemId": "apparel:daily-robe",
+      "displayName": "일상 로브",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "4",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1",
+      "baseWeight": "0.85",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-daily-robe.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.85kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "일상 로브 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_contract_sash.asset",
+      "apparelId": "apparel:contract-sash",
+      "physicalItemId": "apparel:contract-sash",
+      "displayName": "계약 어깨띠",
+      "bodyForm": "0",
+      "layer": "4",
+      "fitMode": "2",
+      "requiredPoints": "8",
+      "occupiedPoints": "8",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1792",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.65",
+      "baseWeight": "0.15",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-contract-sash.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.15kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "계약 어깨띠 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_cold_work_suit.asset",
+      "apparelId": "apparel:cold-work-suit",
+      "physicalItemId": "equipment:cold-work-suit",
+      "displayName": "방한 작업복",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "2072",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.18",
+      "baseWeight": "1.4",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:environment:cold-work",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/equipment-cold-work-suit.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.9kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "8°C 냉장실 상시 근무용 작업복."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_cloak.asset",
+      "apparelId": "apparel:cloak",
+      "physicalItemId": "apparel:cloak",
+      "displayName": "망토",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "8200",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "20",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1",
+      "baseWeight": "0.72",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-cloak.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.72kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "망토 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_chest_wrap.asset",
+      "apparelId": "apparel:chest-wrap",
+      "physicalItemId": "apparel:chest-wrap",
+      "displayName": "가슴 감개",
+      "bodyForm": "0",
+      "layer": "0",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "8",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.65",
+      "baseWeight": "0.15",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-chest-wrap.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.15kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "가슴 감개 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_ceremonial_dress.asset",
+      "apparelId": "apparel:ceremonial-dress",
+      "physicalItemId": "apparel:ceremonial-dress",
+      "displayName": "예복 드레스",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "0",
+      "requiredPoints": "8",
+      "occupiedPoints": "9848",
+      "sealedOptionalPoints": "245760",
+      "supportedModifications": "7",
+      "useTags": "768",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.12",
+      "baseWeight": "1.05",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-ceremonial-dress.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "1.05kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "예복 드레스 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_boots.asset",
+      "apparelId": "apparel:boots",
+      "physicalItemId": "apparel:boots",
+      "displayName": "장화",
+      "bodyForm": "2",
+      "layer": "4",
+      "fitMode": "0",
+      "requiredPoints": "6144",
+      "occupiedPoints": "6144",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "3072",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.9",
+      "baseWeight": "0.65",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-boots.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.65kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "장화 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_blouse.asset",
+      "apparelId": "apparel:blouse",
+      "physicalItemId": "apparel:blouse",
+      "displayName": "블라우스",
+      "bodyForm": "0",
+      "layer": "1",
+      "fitMode": "0",
+      "requiredPoints": "8",
+      "occupiedPoints": "104",
+      "sealedOptionalPoints": "98304",
+      "supportedModifications": "2",
+      "useTags": "4",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.88",
+      "baseWeight": "0.38",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-blouse.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.38kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "블라우스 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_belt.asset",
+      "apparelId": "apparel:belt",
+      "physicalItemId": "apparel:belt",
+      "displayName": "허리띠",
+      "bodyForm": "2",
+      "layer": "4",
+      "fitMode": "2",
+      "requiredPoints": "16",
+      "occupiedPoints": "16",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "1024",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.62",
+      "baseWeight": "0.2",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-belt.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.2kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "허리띠 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions\\apparel_apron.asset",
+      "apparelId": "apparel:apron",
+      "physicalItemId": "apparel:apron",
+      "displayName": "앞치마",
+      "bodyForm": "0",
+      "layer": "2",
+      "fitMode": "1",
+      "requiredPoints": "8",
+      "occupiedPoints": "24",
+      "sealedOptionalPoints": "0",
+      "supportedModifications": "0",
+      "useTags": "12",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.9",
+      "baseWeight": "0.42",
+      "allowMythicInspiration": "1",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-apron.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.42kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "1개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "19"
+        }
+      ],
+      "publicSummary": "앞치마 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다."
+    }
+  ],
+  "materials": [
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_spore_hemp.asset",
+      "materialId": "textile:spore-hemp",
+      "physicalItemId": "material:spore-hemp",
+      "displayName": "포자 삼베",
+      "tags": "2053",
+      "warmth": "0.35",
+      "heatResistance": "0.45",
+      "waterResistance": "0.35",
+      "airborneResistance": "0.68",
+      "sterility": "0.25",
+      "durability": "78",
+      "weightMultiplier": "1.05",
+      "dryingRate": "1.1",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-spore-hemp.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.21kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "100개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "17"
+        }
+      ],
+      "publicSummary": "포자 삼베 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_shade_cloth.asset",
+      "materialId": "textile:shade-cloth",
+      "physicalItemId": "material:cloth",
+      "displayName": "그늘천",
+      "tags": "5",
+      "warmth": "0.45",
+      "heatResistance": "0.35",
+      "waterResistance": "0.25",
+      "airborneResistance": "0.2",
+      "sterility": "0.15",
+      "durability": "60",
+      "weightMultiplier": "1",
+      "dryingRate": "1",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-cloth.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.2kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "75개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "6"
+        }
+      ],
+      "publicSummary": "의복, 붕대와 가벼운 방어구의 주재료."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_rune_leather.asset",
+      "materialId": "textile:rune-leather",
+      "physicalItemId": "material:rune-leather",
+      "displayName": "룬가죽",
+      "tags": "538",
+      "warmth": "0.72",
+      "heatResistance": "0.7",
+      "waterResistance": "0.74",
+      "airborneResistance": "0.68",
+      "sterility": "0.52",
+      "durability": "125",
+      "weightMultiplier": "1.38",
+      "dryingRate": "0.75",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-rune-leather.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.4kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "40개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "216"
+        }
+      ],
+      "publicSummary": "고방어와 마법 저항을 제공하는 가죽."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_mire_canvas.asset",
+      "materialId": "textile:mire-canvas",
+      "physicalItemId": "material:mire-canvas",
+      "displayName": "습지 캔버스",
+      "tags": "645",
+      "warmth": "0.38",
+      "heatResistance": "0.38",
+      "waterResistance": "0.72",
+      "airborneResistance": "0.3",
+      "sterility": "0.2",
+      "durability": "92",
+      "weightMultiplier": "1.35",
+      "dryingRate": "0.75",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-mire-canvas.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.27kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "100개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "17"
+        }
+      ],
+      "publicSummary": "습지 캔버스 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_leather.asset",
+      "materialId": "textile:leather",
+      "physicalItemId": "material:leather",
+      "displayName": "가죽",
+      "tags": "522",
+      "warmth": "0.52",
+      "heatResistance": "0.48",
+      "waterResistance": "0.62",
+      "airborneResistance": "0.42",
+      "sterility": "0.18",
+      "durability": "105",
+      "weightMultiplier": "1.45",
+      "dryingRate": "0.6",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-leather.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.45kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "60개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "11"
+        }
+      ],
+      "publicSummary": "균형 잡힌 연갑과 장비의 주재료."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_frost_wool.asset",
+      "materialId": "textile:frost-wool",
+      "physicalItemId": "material:frost-wool",
+      "displayName": "서리 양모직",
+      "tags": "553",
+      "warmth": "0.92",
+      "heatResistance": "0.18",
+      "waterResistance": "0.38",
+      "airborneResistance": "0.35",
+      "sterility": "0.2",
+      "durability": "84",
+      "weightMultiplier": "1.28",
+      "dryingRate": "0.55",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-frost-wool.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.256kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "100개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "서리 양모직 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_frost_linen.asset",
+      "materialId": "textile:frost-linen",
+      "physicalItemId": "material:frost-linen",
+      "displayName": "서리 린넨",
+      "tags": "1061",
+      "warmth": "0.62",
+      "heatResistance": "0.32",
+      "waterResistance": "0.3",
+      "airborneResistance": "0.25",
+      "sterility": "0.25",
+      "durability": "65",
+      "weightMultiplier": "0.82",
+      "dryingRate": "1.25",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-frost-linen.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.164kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "100개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "16"
+        }
+      ],
+      "publicSummary": "서리 린넨 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_ember_cotton.asset",
+      "materialId": "textile:ember-cotton",
+      "physicalItemId": "material:ember-cotton",
+      "displayName": "잿불 면직물",
+      "tags": "69",
+      "warmth": "0.25",
+      "heatResistance": "0.68",
+      "waterResistance": "0.22",
+      "airborneResistance": "0.18",
+      "sterility": "0.3",
+      "durability": "58",
+      "weightMultiplier": "0.88",
+      "dryingRate": "0.45",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-ember-cotton.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.176kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "100개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "16"
+        }
+      ],
+      "publicSummary": "잿불 면직물 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_dreamweave.asset",
+      "materialId": "textile:dreamweave",
+      "physicalItemId": "material:dreamweave",
+      "displayName": "몽직물",
+      "tags": "1041",
+      "warmth": "0.58",
+      "heatResistance": "0.58",
+      "waterResistance": "0.5",
+      "airborneResistance": "0.62",
+      "sterility": "0.55",
+      "durability": "88",
+      "weightMultiplier": "0.62",
+      "dryingRate": "1.05",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-dreamweave.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.12kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "40개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "17"
+        }
+      ],
+      "publicSummary": "초경량과 정신 저항을 제공하는 비전 직물."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_deep_goat_wool.asset",
+      "materialId": "textile:deep-goat-wool",
+      "physicalItemId": "material:deep-goat-wool",
+      "displayName": "심층 염소모직",
+      "tags": "521",
+      "warmth": "0.78",
+      "heatResistance": "0.42",
+      "waterResistance": "0.42",
+      "airborneResistance": "0.4",
+      "sterility": "0.25",
+      "durability": "96",
+      "weightMultiplier": "1.3",
+      "dryingRate": "0.65",
+      "requiredResearchId": "research:textile:layered",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-deep-goat-wool.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.26kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "100개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "심층 염소모직 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_common_wool.asset",
+      "materialId": "textile:common-wool",
+      "physicalItemId": "material:common-wool",
+      "displayName": "일반 모직",
+      "tags": "41",
+      "warmth": "0.75",
+      "heatResistance": "0.22",
+      "waterResistance": "0.28",
+      "airborneResistance": "0.3",
+      "sterility": "0.2",
+      "durability": "70",
+      "weightMultiplier": "1.2",
+      "dryingRate": "0.4",
+      "requiredResearchId": "research:textile:fiber",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-common-wool.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.24kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "100개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "13"
+        }
+      ],
+      "publicSummary": "일반 모직 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다."
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Materials\\textile_cave_silk.asset",
+      "materialId": "textile:cave-silk",
+      "physicalItemId": "material:cave-silk",
+      "displayName": "동굴 비단",
+      "tags": "1289",
+      "warmth": "0.48",
+      "heatResistance": "0.55",
+      "waterResistance": "0.45",
+      "airborneResistance": "0.5",
+      "sterility": "0.72",
+      "durability": "74",
+      "weightMultiplier": "0.55",
+      "dryingRate": "1.35",
+      "requiredResearchId": "research:textile:tailoring",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/material-cave-silk.json",
+      "publicFacts": [
+        {
+          "label": "무게",
+          "value": "0.11kg"
+        },
+        {
+          "label": "한 칸 적재",
+          "value": "100개"
+        },
+        {
+          "label": "기준 가격",
+          "value": "25"
+        }
+      ],
+      "publicSummary": "동굴 비단 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다."
+    }
+  ],
+  "beds": [
+    {
+      "source": "Assets/Resources/SO/Building/Modular/R02_정식침대.asset",
+      "id": 1021,
+      "coldProtection": 5,
+      "comfortMinimumOffset": -5,
+      "safeMinimumOffset": -2.5,
+      "coldExposureMultiplier": 0.6
+    },
+    {
+      "source": "Assets/Resources/SO/Building/Modular/R03_이층침대.asset",
+      "id": 1022,
+      "coldProtection": 4,
+      "comfortMinimumOffset": -4,
+      "safeMinimumOffset": -2,
+      "coldExposureMultiplier": 0.6
+    }
+  ],
+  "catalog": {
+    "root": "Assets/Resources/SO/GameContentCatalog.asset",
+    "domain": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset",
+    "domainGuid": "ca85b9de9b508c046af6fe6dfdc302cd",
+    "rootReferencesDomain": true,
+    "rows": [
+      {
+        "source": "Assets/Resources/SO/Character/Species/Species_Vampire.asset",
+        "guid": "acd4481ed200a4d9bbd2fe13e47321ae",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Character/Species/Species_Slime.asset",
+        "guid": "4c9d840bdf77fa52c83d305b480c977f",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Character/Species/Species_Orc.asset",
+        "guid": "c7f6b6a35919a8091a84822b06288975",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Character/Species/Species_Myconid.asset",
+        "guid": "c982f29e653dbc7458aab634cdcbcb29",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Character/Species/Species_Kobold.asset",
+        "guid": "4ef04935a390a804a95843d1089d9cd6",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Character/Species/Species_Harpy.asset",
+        "guid": "d6114a61f3f197645bc69590b2992baf",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Character/Species/Species_Golem.asset",
+        "guid": "a562f96c8cdc2ee42ae892f925b77feb",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Character/Species/Species_Demon.asset",
+        "guid": "48afe38b6689c25469938d8b27b17aaa",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Character/Species/Species_Beastkin.asset",
+        "guid": "23b3bdb812c683d40925cebba53b2137",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Character/Species/Species_Adventurer.asset",
+        "guid": "eca51344f20fbf746af86e4950a735cf",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Environment/Workwear/SlimeWarmingPad.asset",
+        "guid": "3de1b712e41678d4299f1633a02b5743",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Environment/Workwear/RuneColdSuit.asset",
+        "guid": "0dcc63cbdba447747bb1507c5a3109b0",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Environment/Workwear/HaulingHarness.asset",
+        "guid": "62a8ecb48f144c749b373f53efb9476d",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Environment/Workwear/ColdWorkSuit.asset",
+        "guid": "73626235116cce945ab4f8a1f5541568",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_work_shirt.asset",
+        "guid": "d28386442c2c41d45b170745091de72d",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_wing_harness.asset",
+        "guid": "45e46b5e9ec599b40aff501b847249a7",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_wing_cloak.asset",
+        "guid": "94be55fa9cc340f40a35517b90b93f04",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_weapon_vigil_cloak.asset",
+        "guid": "b4b57b7433c5b634fbc7e05e8ba7fae7",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_waterproof_work_suit.asset",
+        "guid": "88e2a7353091dfd45837fad90c11d4f0",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_vest.asset",
+        "guid": "d21a04af16e769a47935439095ce8771",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_undershirt.asset",
+        "guid": "098802b117aab8941b5e5a548d384601",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_tunic.asset",
+        "guid": "a5b27479aeb85934688f6374211fda2a",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_trousers.asset",
+        "guid": "6e39414a1d37aa343b363cfac8c837be",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_tail_ribbon.asset",
+        "guid": "9070b4bd4154cf14da7e4c55114193fd",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_tail_guard.asset",
+        "guid": "51ecc4b4de9585047a16086206572a04",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_surgical_apron.asset",
+        "guid": "bfaea5a109e59f44d9b2f82e881c81f2",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_sterile_gown.asset",
+        "guid": "22ec2af9dafd03e48b60d5fb6e25c8e1",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_spore_protection_hood.asset",
+        "guid": "799f73872bc0f0145841ea9846073d52",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_spore_garden_cloak.asset",
+        "guid": "7a4566b2119bfa14a9de586973b46c20",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_socks.asset",
+        "guid": "0a05a366b50087645955a729b65cdb67",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_smoke_protection_hood.asset",
+        "guid": "de7d25c4e4fd0234c8112fd7fef44e1a",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_smith_apron.asset",
+        "guid": "eb671e30af3c85f44b601471588a6030",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_slime_warming_pad.asset",
+        "guid": "3cdee5a86d97bf249808fb11886873cf",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_sleep_top.asset",
+        "guid": "5b24e4a574105124db72368e0767e230",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_sleep_bottom.asset",
+        "guid": "a09a03cc95d861f4c8074b3f3c6da1a8",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_sky_chorus_shawl.asset",
+        "guid": "d304c7a5ca4d5bd488bc3269101b848b",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_skirt.asset",
+        "guid": "131c5a8ce0243904abb42d2ef8205050",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_shorts.asset",
+        "guid": "3efe600e3401eb84ab9c448935322c1b",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_scarf.asset",
+        "guid": "70ff8e3d84030864da692855a8d33b54",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_rune_cold_suit.asset",
+        "guid": "254d6fd453712ae469f8f96bda2ce9d8",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_ritual_robe.asset",
+        "guid": "d52cf9f9dabfb224abdf18533c5ec730",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_raincoat.asset",
+        "guid": "39e558d85dbbf3746b63fc650a4ba629",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_mourning_clothes.asset",
+        "guid": "543cc4c346db1854cb87e648dbb92325",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_miner_workwear.asset",
+        "guid": "467a130191cb0ab4c868be07cc70b74f",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_lower_underwear.asset",
+        "guid": "9143c84d0aa0c3545a5ec7054088bec3",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_long_underpants.asset",
+        "guid": "a0681d36e982f7442b7b6ec21d17ab51",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_loincloth_underwear.asset",
+        "guid": "33cf29f721052ba47b2ee0002d38be15",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_keeper_coat.asset",
+        "guid": "73366efbf64089c488f400d6ca77c19a",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_horn_ring.asset",
+        "guid": "55de84f347211794daeb66206e56502b",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_hooded_robe.asset",
+        "guid": "db7693b7647705040a2615a30f593430",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_heat_work_suit.asset",
+        "guid": "224948269c0c3a34b95be84fadf1d812",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_hauling_harness.asset",
+        "guid": "17ee163838995d34b94033d134ab277a",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_hat.asset",
+        "guid": "bc53520cfb45a504a93ed39d76b7711a",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_golem_functional_lining.asset",
+        "guid": "ad1ca4abc6871b6469928189bd79f56d",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_gloves.asset",
+        "guid": "e6835e3dcb77aef4ba55ddc104517bc5",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_formal_coat.asset",
+        "guid": "d3a8a68d30e7ee64e8659722b40a900e",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_footwraps.asset",
+        "guid": "c0671559d98cd0c43987ae172d1eebbf",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_festival_vest.asset",
+        "guid": "83d98e2fb73d1624fa02fccfadc9a013",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_farmer_workwear.asset",
+        "guid": "0717ebb10a04d254a80b679912431f74",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_envoy_coat.asset",
+        "guid": "c5c635090d46cc2408c50bdf92a5c966",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_daily_robe.asset",
+        "guid": "8db46814680d05c41a70f937756e9315",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_contract_sash.asset",
+        "guid": "9ee10935ccf94c34f9c98fa143348320",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_cold_work_suit.asset",
+        "guid": "3880515f97348de47be15563431d1483",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_cloak.asset",
+        "guid": "03e0bdc08df749f469ee2df0a32af07c",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_chest_wrap.asset",
+        "guid": "c061b8deb0bcef44489e2c5c595ad82b",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_ceremonial_dress.asset",
+        "guid": "39d3ee896e2f5d14db5f690a18ee7478",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_boots.asset",
+        "guid": "d9277638d2fec2b408ed8d40ff62df30",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_blouse.asset",
+        "guid": "8de2d15722dbd6d46bb6d71d7ecdff34",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_belt.asset",
+        "guid": "16bc15b6c2bbb904f9388b7cf182b7d9",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Definitions/apparel_apron.asset",
+        "guid": "b9bbce3bdfd248848b451fc9b1c652da",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_spore_hemp.asset",
+        "guid": "51c4ec8ed2c7ee9468d7642ba33ba90a",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_shade_cloth.asset",
+        "guid": "db3d531fbc4b9ad4386c37943e6e6219",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_rune_leather.asset",
+        "guid": "347ecd2950e2397449ab6da86506c827",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_mire_canvas.asset",
+        "guid": "b67543628d70d2d40bc4945c95464ff5",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_leather.asset",
+        "guid": "de711a5510ea04f4a9e07d63563aa41d",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_frost_wool.asset",
+        "guid": "f63a8fc3e494cc441ae836041ecc1907",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_frost_linen.asset",
+        "guid": "9b50a78647915af4983508726fa85536",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_ember_cotton.asset",
+        "guid": "2eb03b7d46220c9418e4e16f6138fe36",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_dreamweave.asset",
+        "guid": "67781ca44b2a3504c99cd1ee9a1049e5",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_deep_goat_wool.asset",
+        "guid": "57f328b8e027eff478c3c715437caad1",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_common_wool.asset",
+        "guid": "7f8f56d8539bfda41a77eb22695c4a62",
+        "domainOccurrences": 1
+      },
+      {
+        "source": "Assets/Resources/SO/Apparel/Materials/textile_cave_silk.asset",
+        "guid": "73da272a859b3984785f2a0ea5e4334e",
+        "domainOccurrences": 1
+      }
+    ]
+  },
+  "gaps": [
+    {
+      "id": "GAP-094",
+      "title": "종족10종의 쾌적·안전·치명 온도60개와 범위 의미 누락",
+      "owner": "species-culture-and-life / 종족 도감",
+      "category": "종족별 수치·환경 조건 누락",
+      "wiki_evidence": "종족 가이드는 기후 적응을 언급할 뿐 개별 온도 구간이 없다. 공개 종족10개 도감 facts는 효과 개수 또는 빈 배열이며 온도6필드가 없다.",
+      "required_documentation": "종족10종의 쾌적 최저/최고, 안전 최저/최고, 치명 최저/최고를 apparel-environment-review.json의 전수표로 보완한다. 예: 슬라임16~24/5~34/0~40°C, 오크12~30/-5~42/-15~50°C, 뱀파이어8~22/0~34/-10~42°C, 데몬20~34/10~46/-2~56°C, 골렘-5~35/-20~50/-35~65°C다. 안전 범위는 노출이 없는 범위가 아니며 쾌적 밖에서는 누적된다. 치명 최저 이하·최고 이상에는 직접 환경 피해가 생긴다. 원정자도 작성 종족10종에 포함하되 아군 선택 가능 종족으로 오해시키지 않는다. 일반 노출 공식은 GAP-083의 환경 권위 문서로 연결하고 각 종족의 수치는 도감 한 곳에 둔다.",
+      "sources": [
+        "Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs",
+        "Assets/Scripts/Models/Species/Core/CharacterSpeciesCatalog.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+        "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+        "Assets/Resources/SO/Character/Species/Species_Vampire.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-3.json",
+        "Assets/Resources/SO/Character/Species/Species_Slime.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-1.json",
+        "Assets/Resources/SO/Character/Species/Species_Orc.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-2.json",
+        "Assets/Resources/SO/Character/Species/Species_Myconid.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-7.json",
+        "Assets/Resources/SO/Character/Species/Species_Kobold.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-6.json",
+        "Assets/Resources/SO/Character/Species/Species_Harpy.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-8.json",
+        "Assets/Resources/SO/Character/Species/Species_Golem.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-9.json",
+        "Assets/Resources/SO/Character/Species/Species_Demon.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-5.json",
+        "Assets/Resources/SO/Character/Species/Species_Beastkin.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-4.json",
+        "Assets/Resources/SO/Character/Species/Species_Adventurer.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-10.json"
+      ],
+      "symbols": "SpeciesEnvironmentProfile.ToThermalProfile / ResourceCharacterSpeciesCatalog.GetRequiredThermalProfile / CharacterEnvironmentRules.CalculateTemperatureRates",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    },
+    {
+      "id": "GAP-095",
+      "title": "특성·의복·침구의 온도 보호 합산과 치명선 제한 공식 누락",
+      "owner": "weather-seasons-and-environment",
+      "category": "보정 공식·중첩·상한 누락",
+      "wiki_evidence": "환경 문서는 의복과 휴식 공간을 준비하라고만 안내한다. 종족의 온도 경계에 보호값이 어떻게 더해지는지, 노출 배율과 치명선의 관계는 설명하지 않는다.",
+      "required_documentation": "온도 보호 오프셋은 특성·환경 작업복·휴식시설·공용 효과에서 합산하고 냉기/열기 노출 배율은 곱한다. 최종 노출 배율은0.05~2로 제한한다. 보정 안전최저=max(치명최저+2,기본안전최저+안전최저오프셋), 안전최고=min(치명최고-2,기본안전최고+안전최고오프셋)이다. 쾌적최저=clamp(기본쾌적최저+오프셋,보정안전최저,치명최고-2), 쾌적최고=clamp(기본쾌적최고+오프셋,치명최저+2,보정안전최고)다. 치명 온도 자체와 그 경계의 직접 피해는 방한 배율로 면제되지 않는다. 실제 현재 환경 보호 조회는 장착 목록에서 환경 작업복으로 해석되는 첫 항목 하나를 사용한다. 여러 의복의 소재 성능을 전부 합산한다고 설명해서는 안 된다. 선택 순서·겹침 및 소재 투영 연결 문제는 APPAREL-U01/03으로 분리한다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentModels.cs",
+        "Assets/Scripts/Models/Environment/Core/ThermalProtectionProfile.cs",
+        "Assets/Scripts/Models/Environment/Core/EnvironmentalCoreDomain.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterThermalGameplayEffectProjection.cs",
+        "wiki/game-versions/0.0.1v/content/guides/weather-seasons-and-environment.md"
+      ],
+      "symbols": "CharacterEnvironmentProtectionResolver.Resolve / ThermalProtectionProfile.Add / SpeciesThermalProfileExtensions.Apply / ThermalProtectionSnapshot / CharacterThermalGameplayEffectProjection.Apply",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    },
+    {
+      "id": "GAP-096",
+      "title": "환경 작업복4종의 보호 수치와 종족별 냉장 근무 조건 누락",
+      "owner": "환경 작업복 도감 / species-culture-and-life",
+      "category": "장비 수치 누락·설명 조건 부족",
+      "wiki_evidence": "4개 작업복 도감은 연구 요구와 아이템 링크를 보여 주지만 보호24필드는 없다. 방한 작업복은8°C 상시 근무, 룬 방한복은2°C 근무로 요약되어 종족 차이를 파악하기 어렵다.",
+      "required_documentation": "방한 작업복은 쾌적최저/안전최저-8°C·냉기노출0.35배, 룬 방한복은-10°C·0.2배, 보온 점액 패드는-4°C·0.6배다. 모두 최고온도 오프셋0·열기노출1배이고 운반 멜빵은 온도 보호가 중립이다. 연구·아이템 관계8개는 이미 표시되므로 유지한다. 8°C/2°C 근무 가능성을 모든 종족의 무노출 보장으로 쓰지 않는다. 다른 보호가 없으면 데몬의 쾌적최저는 방한복 착용 후12°C, 룬복 착용 후10°C이므로 각각8°C/2°C에서도 냉기가 누적된다. 슬라임 패드의 allowedSpecies=Slime은 작성값이나 실제 착용 경로가 이를 직접 검사하지 않으므로 확정된 종족 제한으로 표시하기 전에 APPAREL-U03을 해소해야 한다. 자동착용의 공통 시작 조건은 GAP-085에서 참조한다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+        "Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs",
+        "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+        "Assets/Resources/SO/Environment/Workwear/SlimeWarmingPad.asset",
+        "wiki/game-versions/0.0.1v/data/entities/combat/workwear-slime-warming-pad.json",
+        "Assets/Resources/SO/Environment/Workwear/RuneColdSuit.asset",
+        "wiki/game-versions/0.0.1v/data/entities/combat/workwear-rune-cold-suit.json",
+        "Assets/Resources/SO/Environment/Workwear/HaulingHarness.asset",
+        "wiki/game-versions/0.0.1v/data/entities/combat/workwear-hauling-harness.json",
+        "Assets/Resources/SO/Environment/Workwear/ColdWorkSuit.asset",
+        "wiki/game-versions/0.0.1v/data/entities/combat/workwear-cold-work-suit.json"
+      ],
+      "symbols": "EnvironmentalWorkwearSO.Protection / EnvironmentalWorkwearRuntime.TryGetEquippedItemInstance / TryEquip / TryAutoEquipForCold",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    },
+    {
+      "id": "GAP-097",
+      "title": "정식침대·이층침대의 휴식 중 방한 보정 누락",
+      "owner": "침대 도감 / weather-seasons-and-environment",
+      "category": "시설 효과·조건·수치 누락",
+      "wiki_evidence": "두 침대 도감은 분류·크기와 일반 회복 역할만 표시한다. 환경 문서와 욕구 참고 문서에도 침구 방한값과 계산 조건이 없다.",
+      "required_documentation": "Rest 업무로 배정된 시설이 Rest 역할을 제공하고 coldProtection>0이면 쾌적최저를coldProtection만큼, 안전최저를그 절반만큼 낮추며 냉기노출에0.6배를 곱한다. 정식침대의5는-5°C/-2.5°C/0.6배, 이층침대의4는-4°C/-2°C/0.6배다. 이는 실내 온도를 그만큼 올리는 수치가 아니다. 방 온도 오프셋 및 열 보호 작성값은 별도 소비 경로 확인이 필요하다. 해당 helper는 실제 수면중 여부나 침상 위치를 직접 검사하지 않으므로 실제 잠든 동안에만 적용된다고 단정하지 않는다. 조건 확인 문제는 APPAREL-U05로 분리한다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+        "Assets/Resources/SO/Building/Modular/R02_정식침대.asset",
+        "Assets/Resources/SO/Building/Modular/R03_이층침대.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-1021.json",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-1022.json",
+        "wiki/game-versions/0.0.1v/content/guides/weather-seasons-and-environment.md"
+      ],
+      "symbols": "ApplySleepingInsulation / BuildingTemperatureAbility.coldProtection / AssignedWorkType / SupportsRole",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    },
+    {
+      "id": "GAP-098",
+      "title": "의복56종의 체형·사이즈·착용 부위·겹침과 개조 조건 누락",
+      "owner": "species-culture-and-life / 의복 아이템 도감",
+      "category": "착용·교체 규칙 및 도감 필드 누락",
+      "wiki_evidence": "종족 가이드는 의복3벌과 특수체형 장비의 목표 효율만 안내한다. 의복56개 아이템 facts에는 무게·적재·가격만 있으며 체형·맞음새·부착 부위·겹침 조건이 없다.",
+      "required_documentation": "의복별 체형(Humanoid/Construct/Any), 겹(속옷/내의/겉옷/갑옷/장신구), 맞음새, 필수·점유 부위와 꼬리/날개/뿔 개조 조건을 전수표에서 표시한다. 골렘은 Construct이고 다른 종족은 슬라임도 Humanoid로 판정한다. 크기는 코볼트 Small, 오크/골렘 Large, 그 외 Medium이다. Sized는 같은 크기, Adjustable은 한 단계 차이까지 허용하며 Accessory는 크기 검사를 받지 않는다. 신체에 필요한 부위가 없거나 필수 개구부가 닫혀 있으면 거부한다. 같은 겹에서 점유 부위가 겹치는 옷은 교체하며 다른 겹은 그 검사에서 제외한다. 전투 방어층 공식과 의복 착용 슬롯을 혼동하지 않는다. 정적 실행은 환경작업복 자동착용→TryPlanChange→TryCommitChange에서 확인했으며 56종 전체의 직접 선택 UI·자율 환복 경로는 APPAREL-U04로 남긴다. 인접 크기의 기분-5/이동0.97은 미연결 소재투영기 값이므로 현재 적용 규칙으로 공개하지 않는다.",
+      "sources": [
+        "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+        "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+        "Assets/Resources/SO/Apparel/Definitions/apparel_cold_work_suit.asset",
+        "Assets/Resources/SO/Apparel/Definitions/apparel_golem_functional_lining.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/equipment-cold-work-suit.json",
+        "wiki/game-versions/0.0.1v/data/entities/item/apparel-golem-functional-lining.json"
+      ],
+      "symbols": "AnatomyAttachmentQuery.CanEquip / GetBodyForm / GetSize / GetAvailablePoints / RequiredOpenings / CharacterApparelAggregate.TryPlanChange / TryCommitChange",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    },
+    {
+      "id": "GAP-099",
+      "title": "원단12종의 비교 수치·의복 재료 선택 규칙과 미연결 성능 구분 누락",
+      "owner": "production-quality-and-supply / species-culture-and-life / 원단 아이템 도감",
+      "category": "재료 비교·선택 규칙 누락 및 적용 상태 확인 필요",
+      "wiki_evidence": "원단12개 아이템은 무게·적재·가격만 표시한다. 가이드는 원단의 보온·방수·내구가 다르다고 쓰지만 비교 수치나 실제 제작 재료 선택 조건을 설명하지 않는다.",
+      "required_documentation": "의복은 allowedMaterialTags와 한 개 이상 태그가 겹치는 원단을 사용한다. 재료 선택은 ExactMaterial/ID순/최저가격/최고보온/최저무게배율/최고내구를 구분하며 Ready 상태이고 사용 가능하며 금지되지 않은 재고에서 필요 수량을 한 소재로 모은다. 여러 소재를 합쳐 최소량을 채우지는 않는다. 최고보온은 warmth, 최저무게는 weightMultiplier, 최고내구는 durability를 읽으므로 12원단의 해당36값을 비교할 수 있게 한다. 전체8수치96개 전수표에서 heatResistance/waterResistance/airborneResistance/sterility/dryingRate의60값은 작성되어 있지만 실제 보호·건조 소비가 확인되지 않았음을 감사 기록으로 분리한다. 소재·품질·내구·젖음·오염·개구부 보정은 ApparelMaterialProjector에 있으나 사용처를 찾지 못했으므로 보호 수치가 실제 주민에 적용된다고 쓰면 안 된다. 최저가공난도 정책은 현재 MaterialId순이라는 불일치와 부분예약 선택 문제는 APPAREL-U06에 남긴다.",
+      "sources": [
+        "Assets/Scripts/Models/Economy/Content/TextileMaterialDefinitionSO.cs",
+        "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelItemStateCodec.cs",
+        "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+        "Assets/Resources/SO/Apparel/Materials/textile_spore_hemp.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-spore-hemp.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_shade_cloth.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-cloth.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_rune_leather.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-rune-leather.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_mire_canvas.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-mire-canvas.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_leather.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-leather.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_frost_wool.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-frost-wool.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_frost_linen.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-frost-linen.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_ember_cotton.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-ember-cotton.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_dreamweave.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-dreamweave.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_deep_goat_wool.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-deep-goat-wool.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_common_wool.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-common-wool.json",
+        "Assets/Resources/SO/Apparel/Materials/textile_cave_silk.asset",
+        "wiki/game-versions/0.0.1v/data/entities/item/material-cave-silk.json"
+      ],
+      "symbols": "TextileMaterialDefinitionSO / ApparelWorkOrderRuntime.TrySelectMaterial / ApparelMaterialSelectionPolicy / ApparelMaterialProjector.GetOrCreate",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    }
+  ],
+  "implementationQuestions": [
+    {
+      "id": "APPAREL-U01",
+      "title": "소재 성능 투영의 라이브 소비자 부재",
+      "evidence": "전체 Assets/Scripts 비Editor 역검색에서 IApparelMaterialProjector/ApparelMaterialProjector는 정의와 DI 등록뿐이고 ApparelProjectionKey 생성자는 선언 외 사용이 없다. CharacterEnvironmentProtectionResolver는 EnvironmentalWorkwearSO.Protection만 읽으며 소재·품질·내구·젖음·오염을 반영하지 않는다. 투영기의 보온/내열/방수/공기/무균·인접크기 효과를 실제 적용으로 표시하지 않는다. Weight도 BaseWeight×소재배율이 아닌 실물 정의 질량 Query를 읽는다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelItemStateCodec.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs"
+      ]
+    },
+    {
+      "id": "APPAREL-U02",
+      "title": "종족 공기·조명·습도 필드와 소비 경로 구분",
+      "evidence": "comfortableAirMinimum, comfortableLightMinimum/Maximum, visualStrainMultiplier, preferredHumidity, drynessSensitivity는 정의·프로필 복사 외 사용이 없었다. 현재 칸별 환경 노출은 일반 공기·조명 기준을 읽는다. airborneExposureMultiplier에는 PopulationHealthRuntime의 공기 전파 질병 소비가 있으므로 미사용으로 세지 않는다. 현재10종족 값은 모두1이다.",
+      "sources": [
+        "Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+        "Assets/Scripts/Services/Character/PopulationHealthRuntime.cs"
+      ]
+    },
+    {
+      "id": "APPAREL-U03",
+      "title": "작업복 종족 제한·자동 후보·첫 장착 효과의 불일치",
+      "evidence": "SlimeWarmingPad.allowedSpecies=Slime이나 TryEquip/TryAutoEquipForCold는 AllowsSpecies를 호출하지 않는다. 자동 후보는 재고·연구·방한순으로만 골라 그 후 CanEquip를 검사하므로 최고 후보가 체형 불일치일 때 다른 후보를 재시도하지 않는다. 실제 보호 조회는 layer/occupiedPoints 순의 첫 작업복만 사용한다. Inner인 점액패드가 Outer 방한복을 가릴 수 있으며 허용 조합·효과 우선순위는 실제 시연이 필요하다.",
+      "sources": [
+        "Assets/Resources/SO/Environment/Workwear/SlimeWarmingPad.asset",
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs"
+      ]
+    },
+    {
+      "id": "APPAREL-U04",
+      "title": "56종 일반 의복의 착용 UI·자율 환복 경로 미확인",
+      "evidence": "비Editor ICharacterApparelCommand 참조는 정의·구현·DI 등록·EnvironmentalWorkwearRuntime뿐이다. Views 검색에서 TryPlanChange/GetEquipped/해당 인터페이스 호출을 찾지 못했다. 환경작업복 자동착용은 확인했으나 모든 의복의 플레이어 선택·환복 경로가 있다고 주장하지 않는다. 저장·실물 이동은 정적 일부 검토이고 실제 UI/왕복 실행은 미실행이다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs"
+      ]
+    },
+    {
+      "id": "APPAREL-U05",
+      "title": "침구 보호의 실제 수면·위치 조건과 다른 온도 필드",
+      "evidence": "ApplySleepingInsulation은 Rest 업무와 assignedShop의 Rest 역할을 검사한다. 실제 수면 상태·현재 침상 위치는 이 helper의 조건에 없다. roomTemperatureOffset/heatProtection은 이 방한 보정에서 읽지 않으므로 같은 보호 효과로 합치지 않는다. 다른 서비스·시설 이용의 소비 경로는 후속 조사한다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+        "Assets/Resources/SO/Building/Modular/R02_정식침대.asset",
+        "Assets/Resources/SO/Building/Modular/R03_이층침대.asset"
+      ]
+    },
+    {
+      "id": "APPAREL-U06",
+      "title": "원단 정책 명칭과 부분예약 수량 선택",
+      "evidence": "LowestHandlingDifficulty는 가공 난도 수치 대신 MaterialId순이다. TrySelectMaterial은 AvailableQuantity>0으로 후보를 걸러도 수량을 모을 때 Stack.Quantity를 사용한다. 일부 예약된 스택에서 과다 제안 후 하류 예약이 실패하는지, 다른 스택으로 이어갈 수 있는지는 실제 명령 대조가 남았다. DryingRate는 비Editor 전체 역검색에서 소비자가 없었다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Models/Economy/Content/TextileMaterialDefinitionSO.cs"
+      ]
+    }
+  ],
+  "independentArithmeticChecks": [
+    {
+      "case": "authored-normalization:Vampire",
+      "actual": [
+        8,
+        22,
+        0,
+        34,
+        -10,
+        42
+      ],
+      "expected": [
+        8,
+        22,
+        0,
+        34,
+        -10,
+        42
+      ],
+      "pass": true
+    },
+    {
+      "case": "authored-normalization:Slime",
+      "actual": [
+        16,
+        24,
+        5,
+        34,
+        0,
+        40
+      ],
+      "expected": [
+        16,
+        24,
+        5,
+        34,
+        0,
+        40
+      ],
+      "pass": true
+    },
+    {
+      "case": "authored-normalization:Orc",
+      "actual": [
+        12,
+        30,
+        -5,
+        42,
+        -15,
+        50
+      ],
+      "expected": [
+        12,
+        30,
+        -5,
+        42,
+        -15,
+        50
+      ],
+      "pass": true
+    },
+    {
+      "case": "authored-normalization:Myconid",
+      "actual": [
+        8,
+        22,
+        0,
+        32,
+        -8,
+        40
+      ],
+      "expected": [
+        8,
+        22,
+        0,
+        32,
+        -8,
+        40
+      ],
+      "pass": true
+    },
+    {
+      "case": "authored-normalization:Kobold",
+      "actual": [
+        11,
+        28,
+        -2,
+        40,
+        -10,
+        48
+      ],
+      "expected": [
+        11,
+        28,
+        -2,
+        40,
+        -10,
+        48
+      ],
+      "pass": true
+    },
+    {
+      "case": "authored-normalization:Harpy",
+      "actual": [
+        7,
+        25,
+        -5,
+        36,
+        -15,
+        44
+      ],
+      "expected": [
+        7,
+        25,
+        -5,
+        36,
+        -15,
+        44
+      ],
+      "pass": true
+    },
+    {
+      "case": "authored-normalization:Golem",
+      "actual": [
+        -5,
+        35,
+        -20,
+        50,
+        -35,
+        65
+      ],
+      "expected": [
+        -5,
+        35,
+        -20,
+        50,
+        -35,
+        65
+      ],
+      "pass": true
+    },
+    {
+      "case": "authored-normalization:Demon",
+      "actual": [
+        20,
+        34,
+        10,
+        46,
+        -2,
+        56
+      ],
+      "expected": [
+        20,
+        34,
+        10,
+        46,
+        -2,
+        56
+      ],
+      "pass": true
+    },
+    {
+      "case": "authored-normalization:Beastkin",
+      "actual": [
+        10,
+        29,
+        -4,
+        40,
+        -12,
+        48
+      ],
+      "expected": [
+        10,
+        29,
+        -4,
+        40,
+        -12,
+        48
+      ],
+      "pass": true
+    },
+    {
+      "case": "authored-normalization:Adventurer",
+      "actual": [
+        15,
+        27,
+        0,
+        40,
+        -10,
+        48
+      ],
+      "expected": [
+        15,
+        27,
+        0,
+        40,
+        -10,
+        48
+      ],
+      "pass": true
+    },
+    {
+      "case": "fit:0/0/0",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:0/0/1",
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "case": "fit:0/0/2",
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "case": "fit:0/1/0",
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "case": "fit:0/1/1",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:0/1/2",
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "case": "fit:0/2/0",
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "case": "fit:0/2/1",
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "case": "fit:0/2/2",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:1/0/0",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:1/0/1",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:1/0/2",
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "case": "fit:1/1/0",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:1/1/1",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:1/1/2",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:1/2/0",
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "case": "fit:1/2/1",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:1/2/2",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:2/0/0",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:2/0/1",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:2/0/2",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:2/1/0",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:2/1/1",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:2/1/2",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:2/2/0",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:2/2/1",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fit:2/2/2",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "comfort-minimum:Demon/workwear:cold-work-suit",
+      "actual": 12,
+      "expected": 12,
+      "pass": true
+    },
+    {
+      "case": "comfort-minimum:Demon/workwear:rune-cold-suit",
+      "actual": 10,
+      "expected": 10,
+      "pass": true
+    },
+    {
+      "case": "comfort-minimum:Orc/workwear:rune-cold-suit",
+      "actual": 2,
+      "expected": 2,
+      "pass": true
+    },
+    {
+      "case": "comfort-minimum:Slime/workwear:slime-warming-pad",
+      "actual": 12,
+      "expected": 12,
+      "pass": true
+    },
+    {
+      "case": "cold-factor-lower-clamp",
+      "actual": 0.05,
+      "expected": 0.05,
+      "pass": true
+    },
+    {
+      "case": "cold-factor-upper-clamp",
+      "actual": 2,
+      "expected": 2,
+      "pass": true
+    },
+    {
+      "case": "bed5-safe-offset",
+      "actual": -2.5,
+      "expected": -2.5,
+      "pass": true
+    },
+    {
+      "case": "bed4-safe-offset",
+      "actual": -2,
+      "expected": -2,
+      "pass": true
+    }
+  ],
+  "unconnectedMaterialFormula": {
+    "status": "projection-only-not-proven-live",
+    "quality": "CraftsmanshipQualityRules.ProjectionMultiplier(q); quality values not re-audited in this batch",
+    "durabilityBandMultipliers": [
+      0.25,
+      0.55,
+      0.75,
+      0.9,
+      1
+    ],
+    "conditionMultipliers": {
+      "Ready": 1,
+      "Wet": 0.72,
+      "Contaminated": 0.55
+    },
+    "warmth": "material.warmth × q × durability × condition × tailoringCoefficient; unused wing -0.05; unused tail or horn -0.02 once",
+    "water": "material.waterResistance × q × durability × tailoringCoefficient; unused wing -0.08; unused tail or horn -0.03 once",
+    "heat": "material.heatResistance × q × durability × tailoringCoefficient",
+    "air": "material.airborneResistance × q × durability × condition × tailoringCoefficient",
+    "sterility": "material.sterility × q × condition × tailoringCoefficient",
+    "durability": "material.durability × q × durabilityBand × tailoringCoefficient",
+    "weight": "physical item definition mass query / 1000",
+    "adjacentSize": "comfort -5, movement 0.97",
+    "condition": "contamination>0 => Contaminated; else moisture>=20 => Wet; else Ready",
+    "bounds": "warmth/heat/water/air/sterility clamped0..1; durability>=1; weight>=0.01"
+  },
+  "readScope": {
+    "full": [
+      "CharacterSpeciesCatalog.cs",
+      "ThermalProtectionProfile.cs",
+      "EnvironmentalWorkwearRuntime.cs",
+      "CharacterThermalGameplayEffectProjection.cs",
+      "ApparelDefinitionSO.cs",
+      "TextileMaterialDefinitionSO.cs",
+      "species-culture-and-life.md",
+      "weather-seasons-and-environment.md"
+    ],
+    "partial": {
+      "CharacterSpeciesDefinitionSO.cs": "SpeciesEnvironmentProfile and ToThermalProfile",
+      "CharacterEnvironmentModels.cs": "1-110",
+      "CharacterEnvironmentRuntime.cs": "325-527 thermal rates/step/sleeping insulation",
+      "CharacterApparelRuntime.cs": "1-301,464-719 fit/query/plan/commit",
+      "ApparelItemStateCodec.cs": "287-end projection key/projector",
+      "ApparelWorkOrderRuntime.cs": "2042-2148 material selection",
+      "PopulationHealthRuntime.cs": "46-93 disease route modifier",
+      "DungeonWorldSimulationRegistration.cs": "893-937 apparel/environment registrations",
+      "EnvironmentWorkPolicyUnityAdapter.cs": "56-125 and326-397 automatic protection entry",
+      "combat-and-equipment.md": "matching equipment/armor layer passages",
+      "authored assets": "selected fields recorded above, not all definition effects or recipes"
+    },
+    "notRun": [
+      "Unity compile",
+      "PlayMode",
+      "actual UI input",
+      "save roundtrip",
+      "DB/KB regeneration",
+      "deployment"
+    ]
+  },
+  "sourceEvidence": [
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_apron.asset",
+      "sha256": "5fbe6e912a5222dd8a4cab92be5543763b98990e7b608e29ba17834648ae17ae"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_apron.asset.meta",
+      "sha256": "f656e20c8f8ac12da3b5294922abf661f06e76ace8eee7d487738db81a253255"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_belt.asset",
+      "sha256": "edbf713f7f27983b27c47a2415f28cfedaca3407fadb4113ed370937526003fa"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_belt.asset.meta",
+      "sha256": "2d920388e23a16f833343f0ae6a3fbdfeb49a0cc33110228374db853740dc86b"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_blouse.asset",
+      "sha256": "9873a4c834bbbde7e21744ad2d730434b5a9393ce6562d8303a0de3ebfe44d53"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_blouse.asset.meta",
+      "sha256": "a8bc0f4bdd812ce966bf941f466f2dcf0f9a455dbc4a606fc536eedab6e78eb6"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_boots.asset",
+      "sha256": "c666e0f48559effcc80b2baad7b4ae8432eb5e870c249de2cbb7063ea028f9e0"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_boots.asset.meta",
+      "sha256": "914ff4db059d441680a0cbf11fbc9de20942b9f41b3bd3fec7206356c29954d0"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_ceremonial_dress.asset",
+      "sha256": "2afecb12b50de0278103450b3eb6331af76a2435791d9aa534f51c474fed00c9"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_ceremonial_dress.asset.meta",
+      "sha256": "a610624213ed3671a8e2e2fd06fb6229dd7464d0d32af8f69c9831d6a4d42a98"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_chest_wrap.asset",
+      "sha256": "814e25f609334473433ff893a6fe3d3c3ec8accabeff75227719ed5da25231d8"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_chest_wrap.asset.meta",
+      "sha256": "da4ed7ad65bb772dcad2edb247e4c5b6a5b9740ab7c6ef464835351d919515aa"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_cloak.asset",
+      "sha256": "c2318be1adfc3fcf6dc677f88dd684bf0706ee87c56cdbd38d798d4efa750844"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_cloak.asset.meta",
+      "sha256": "af9e1a9eb8de89661b33b66a46e931dde52637436a44e9a3dde3dafc192b9e1f"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_cold_work_suit.asset",
+      "sha256": "5acff0be3dd71ba88ef742339bb69c51ac79009008dd5f17357f6f70a702f15c"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_cold_work_suit.asset.meta",
+      "sha256": "8719afcc8a0396fd08fd8ad1273f91718943b3ccb00d44fcdabd7d1c2ba35090"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_contract_sash.asset",
+      "sha256": "8f59fed392cc62189f7fc1b4cf9b07a69c891715f1e47c27d5278e180c16cfa5"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_contract_sash.asset.meta",
+      "sha256": "28e151b9d358958a585a591aaae1d6b26d7bedbd32c885c21ed7e8d7828d878e"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_daily_robe.asset",
+      "sha256": "21e61b583e435b35e0a748f276d7b660ea5fcea04694727685c6f07f6e947753"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_daily_robe.asset.meta",
+      "sha256": "53d0092ff94beab671129db5876f0404e6e37f437134b000c440f69cca53a7c3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_envoy_coat.asset",
+      "sha256": "338b37cbad77302639c63a3477006aeaa77c05d6c8a65fc524af063971e168ac"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_envoy_coat.asset.meta",
+      "sha256": "00617847421094c75d50f5a774a19e5f9d9326ecf2f21747d45b1d9fbcebb73d"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_farmer_workwear.asset",
+      "sha256": "a3cd934c8e1827ef47f9f62e4c0290a43950dfd74870841b963b6f7012fd72c5"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_farmer_workwear.asset.meta",
+      "sha256": "a499e812bb70379ec463fad0d2f6ad0578d417fa662ea4951acdc3d3ce7f0649"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_festival_vest.asset",
+      "sha256": "6c225d935283a0d3c4912cc1732669f8dfa7b533b51fc9754e0641ee4ab15f6e"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_festival_vest.asset.meta",
+      "sha256": "a90901050327a663b15a5c96262c5b0285fb2d266eca6a682461284d9f9ea6a0"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_footwraps.asset",
+      "sha256": "bc3883ab7fcbd125b85aac090e95350ceeb1e8e66e60a054eded7bf0be8ff399"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_footwraps.asset.meta",
+      "sha256": "d155e79a443922a1826d9dca58b45594fc6111249dbd0bb8fe69a31ec4dfa750"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_formal_coat.asset",
+      "sha256": "b57b8d12653b3bb0a8c7dc6b62b2e97cd9a87a5852daad00d6c55af46c23fd37"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_formal_coat.asset.meta",
+      "sha256": "cfd340ee4526b2eaf3e205cc50f8f017c932576669b08c4ffedcdc85d28cbc07"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_gloves.asset",
+      "sha256": "2399971c4b5b72f2fd07e4d28c80e4811616c2b5d4dcc30b6e6794b6f9a1b8e7"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_gloves.asset.meta",
+      "sha256": "626f25994bc4d3d8904ffed47e150f6912519ed831649c22fbab547e9921892f"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_golem_functional_lining.asset",
+      "sha256": "8314358923b202ecc88a2de17786c3067b83902a96746834a83ed4abb9bc3eab"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_golem_functional_lining.asset.meta",
+      "sha256": "731f91d70c3f4c6fb3548a299d2763fc493a5cd439e22c42038f63e5d3d55366"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_hat.asset",
+      "sha256": "06f261714062961f74d45d676e8249e4ca07068459275e56e08e03fb1a7a63b0"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_hat.asset.meta",
+      "sha256": "9922ef513042e9274ac20c95e0b5d13de49248f03474e8b6e49dcb44d531c23e"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_hauling_harness.asset",
+      "sha256": "4f473bcc16eeed263356b98609cb855a7a04cfec578c82ce8b6a5a08273afe14"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_hauling_harness.asset.meta",
+      "sha256": "96acd200e79d1ce3ee988ba5fbd2d8fd3df2cfb2dde9b056b149661cbae59df3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_heat_work_suit.asset",
+      "sha256": "518f6bcd1da3f89fa6844d7ddc0062568e7ed601a99b6cbb9b44a62c55db5d3c"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_heat_work_suit.asset.meta",
+      "sha256": "947cbf1110a47f6eb76704927546763c853c9598c33a6dcff11dd37ebcab4284"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_hooded_robe.asset",
+      "sha256": "188db7788e0ba64e82d370e09b9c51e51035bb0309cbcd268706d144a9139d72"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_hooded_robe.asset.meta",
+      "sha256": "c15bdefc747ab3588a9d8be6e918d725673e34b9413feffb9627043672af7d9f"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_horn_ring.asset",
+      "sha256": "4359a2b4ad258803c5a561f2ece6847172d3064b834c2a5fd8aedaf611406357"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_horn_ring.asset.meta",
+      "sha256": "a39b2116356c5f1ffd99e164e157ab8d733a7e8c558eae0465b525c98289a0a8"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_keeper_coat.asset",
+      "sha256": "5c4cc2f5649b2b38aa321cbb2b1007c6ccd395a6334a8194fb66294ff4d26cac"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_keeper_coat.asset.meta",
+      "sha256": "c04f7800011fc055b4d19d95690122badaab85d93bdf708656bcf45e64de79aa"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_loincloth_underwear.asset",
+      "sha256": "e5935952fc7113aed45fd2e87b18ef750bc75c1cb84ad71706a92d83832bc162"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_loincloth_underwear.asset.meta",
+      "sha256": "a8c9fa265c4d13bee5a5440a213aa5aaa86476042e50d67c804ea3cd73afaabc"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_long_underpants.asset",
+      "sha256": "cfefd2af9c80c29f52176116a1ffc813e7a87ea638e15f35ef75bbcbb7809296"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_long_underpants.asset.meta",
+      "sha256": "e67b3b11ff634dade0d486590550a2151ebf484ab18d31c30846421c75bbdcac"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_lower_underwear.asset",
+      "sha256": "929672779c3859040ef7206028d47d8694f0b7b9f68bd01f8eb1d7db4b2b47d4"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_lower_underwear.asset.meta",
+      "sha256": "2715565936979ca3326afac3de44f597b40273d9a4ead3dc21d38646ca6e359b"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_miner_workwear.asset",
+      "sha256": "750fda8cb5b4161ae4505420dedac39269a38e0cb7f45ae189b1f3af666a038f"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_miner_workwear.asset.meta",
+      "sha256": "fcf0483dda3c6d765a71462aabd8341ca743efd4b3dbb559a2e3e02114fe149a"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_mourning_clothes.asset",
+      "sha256": "5c2185ca30b652b6e62f37351207ee289ccd78f40a90cc1a6e5adad0156d387b"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_mourning_clothes.asset.meta",
+      "sha256": "209b5111a1b4fd2a95c212a86b358b59f4d4b86604ba557ce710e7ced7685e6e"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_raincoat.asset",
+      "sha256": "fe06de8282144ebbddea50dec81d6ba7821c3865b564e0d38c41bf2121736bc4"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_raincoat.asset.meta",
+      "sha256": "7a5c07ebfa0f45a70263ab43e53ec611f023b6c24f9f285dd72dc8bb535b8b38"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_ritual_robe.asset",
+      "sha256": "a592b65e84b296ae313af2de563c5d8e8ab117c0f3c650692c8678495cdbbe42"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_ritual_robe.asset.meta",
+      "sha256": "42ad1388aab27a647306c9dd4722bed8eb827eab57ba1f6097d6e6b298ca1cef"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_rune_cold_suit.asset",
+      "sha256": "84e29040a69e1d6e2b59955e183bd333f461bd940383fa0cd54531a205622f40"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_rune_cold_suit.asset.meta",
+      "sha256": "7482b5a4c6abe0d179a3624bf0687cb5eab92aaddb943a87182b4bf7182ba3b5"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_scarf.asset",
+      "sha256": "4fc5e47cb02a7b9076f677b13ca724393c4a36361d8d187d5d4c65cfea22a747"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_scarf.asset.meta",
+      "sha256": "c418af0167d5707ae921deba858fcd9d350f53ca0aba060d90f30a8ad123a7df"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_shorts.asset",
+      "sha256": "e2eac35fa944f22450318c87144d9106a60443e28ad19cf313bc41e8e3fbb06a"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_shorts.asset.meta",
+      "sha256": "6a6bbc1990b44b51ad3ae8a7210e0e463a49f0676d5966b59e34892691dd6aa3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_skirt.asset",
+      "sha256": "943487c4be50211db696807c6bc5c4a93424cd645dbb00e9a2bfbeb48f993e87"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_skirt.asset.meta",
+      "sha256": "bde0eac7e37c81b737be078af1678b92b41a9a4cf89c24c9d98b6d862eb57197"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sky_chorus_shawl.asset",
+      "sha256": "2e7db1433c909a2f7ffd7880dfff8a9325db3938c9a5f0baa4d335b0d5ea484a"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sky_chorus_shawl.asset.meta",
+      "sha256": "8c250f699af6fdfd38e513f1d523cc78c1c1ac558fcbb7596ceefb0dd8b73c36"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sleep_bottom.asset",
+      "sha256": "86ffe04a6871739aebe84d0751677bd616599bd366ce552751bbbd15cd40956a"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sleep_bottom.asset.meta",
+      "sha256": "988567fc2cb0b7828af0d27361f1bf61fe22eaea5c5db0c1603cd4a481b90a1b"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sleep_top.asset",
+      "sha256": "77e09c2441db1e19aa3880ff79adb247e4f99e5987ea202c1e34d13a6b4a6ccd"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sleep_top.asset.meta",
+      "sha256": "d6ffb947e44e0bcc356da45196cd3af207b77f6a032bfc9aac6601462c3465ac"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_slime_warming_pad.asset",
+      "sha256": "56359193f7886a0c12dd7086640d98e315131973d8bf0d3c0f59a0d2cc9d72c8"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_slime_warming_pad.asset.meta",
+      "sha256": "1e8925a1d32ccd086c00d81fb2adce0c5e67390884dca14ff7aa1a437d82052d"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_smith_apron.asset",
+      "sha256": "00e8653e866c6006e00ab0e8de9442416e06dfd3b1fe2b01b13b0c30315ab96e"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_smith_apron.asset.meta",
+      "sha256": "805673e92d9dae2abed68f97a6efb09b08996204db035b28061eb50dc450bfd8"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_smoke_protection_hood.asset",
+      "sha256": "44e4ef50ffa90881443d7488f2a59ede1fbf51779053e696e1390e0859f54cb7"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_smoke_protection_hood.asset.meta",
+      "sha256": "5b20237042cbaf487802d5884aad3e776b3e004fa07ec83e221675e204280c47"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_socks.asset",
+      "sha256": "d6c2899f0e33b88846b77cbbf270a47712c5f02a470a3c5cd20c0be0a11a766e"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_socks.asset.meta",
+      "sha256": "2c3b9433a2e13aa8ecc0aae92adaa99eec70453014c561fff05909d2f074cbe3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_spore_garden_cloak.asset",
+      "sha256": "509cba9100282abaa96d7978b0c85717023f2818529d2fed99b5da84252767ed"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_spore_garden_cloak.asset.meta",
+      "sha256": "b466fcec1b95421308772035525156d51126c7cd1000b5a552a8f21c5ae208b4"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_spore_protection_hood.asset",
+      "sha256": "8d459dc9e1a9254f63f8ab3cf32240726b35f01f9db3107bd54f9e83783ce802"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_spore_protection_hood.asset.meta",
+      "sha256": "d807142fa1a827aeed4d78bc110c7d624517f9443bdf0fbd7c5135d90096751b"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sterile_gown.asset",
+      "sha256": "ab6f9069acb34c54b731d20440f04ff6f025908481f2f34d683a381bf080a4cd"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sterile_gown.asset.meta",
+      "sha256": "0a9b8621fbcae06534cacfe4166d4f4b36a88f712b71e863e3a3f290687e7861"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_surgical_apron.asset",
+      "sha256": "629dfd68d9ddcc89a2cfe8e87bf00f6a8c0fd8fbf9c9c707d0374c4dade464cc"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_surgical_apron.asset.meta",
+      "sha256": "668d51f6dd483b4a6f99d60d21671fcc0956d41d4b95f763d14a28aa0c7e1450"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_tail_guard.asset",
+      "sha256": "bd647ee29c78f43a0834a6ddcfb9b6419727b9e74b22ff33720412eaf1941d89"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_tail_guard.asset.meta",
+      "sha256": "c76f55d501dcc0fdbc559b753164849c15b6b2459686a2b02e272615159af571"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_tail_ribbon.asset",
+      "sha256": "ff8ffc7dc929981e9e5eddcba3a8674aefad1bffe3ce36097419b7ee6890d308"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_tail_ribbon.asset.meta",
+      "sha256": "f671303e5f70e105c52b4ae906f3a44c3ee9b5e5ed4a02052070d26a73a8f166"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_trousers.asset",
+      "sha256": "300ce1ae77bd4487b34324321f67b96efbdd4792a0cf8e54e8dcc4366f0c8440"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_trousers.asset.meta",
+      "sha256": "301c0cb4167f5f15ba879059dfc0006c31c707d5bc58c5ff60155b19a242588b"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_tunic.asset",
+      "sha256": "cd19751c3014a8c07caca5793100852c9306f38380de81eb946f05d9934497cd"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_tunic.asset.meta",
+      "sha256": "940746e81df094e7cf09b3fb35a4b7e14d81218e40e2cecb5096769d2dcffdff"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_undershirt.asset",
+      "sha256": "91c35225b62fc57739cd767c197c8e3c2cf628874c90d767d364c60d1a24f316"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_undershirt.asset.meta",
+      "sha256": "f41a0164109c8ca3be8f3469e90b84828555517c3b92dbe71a822fcd502cc0f3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_vest.asset",
+      "sha256": "fbf6903fef967ece1f6878ddd40c90b0e9625a96c4e2ebf3f4e466f277f5587c"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_vest.asset.meta",
+      "sha256": "a0c2ee26a2a67fed2d3b3ed95f5d48699e2e9acafd02e5a0655d8d2ade235d98"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_waterproof_work_suit.asset",
+      "sha256": "af3bd85160aa57a9ba54ed52121a1dc164da23ba319153dc784185487edab12e"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_waterproof_work_suit.asset.meta",
+      "sha256": "089d944549fa7fd5f8ab8b9ae73c0702b0df2df318798906d2730a5fcff071b3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_weapon_vigil_cloak.asset",
+      "sha256": "4764e13ed275ac132d9ea2b3f7f35ca28e8a671f3c7ac69fafbb82a0784565ba"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_weapon_vigil_cloak.asset.meta",
+      "sha256": "870847ceb655905fe9a2c88306e30f7f554d96ff3cb25fdc420e6056ac0801d0"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_wing_cloak.asset",
+      "sha256": "3fd11c9cc5dfe8daa66e5b6752f9736b4fe5652ac0b5d7f5eb3e1acad64a152d"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_wing_cloak.asset.meta",
+      "sha256": "b76d105b7d32789c782d43e21ec77bd362aae11ab9ad11a12a7cbec3cafc4ef2"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_wing_harness.asset",
+      "sha256": "91c851bb69977a52f67e580d0e87808c0923fe2ed0ee2c44504792fec3bab1b0"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_wing_harness.asset.meta",
+      "sha256": "70b1585f9d66c737a89a2062f7d964b81fdc831a691e44325dc63742be7b93ae"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_work_shirt.asset",
+      "sha256": "cfe68fb0bc9919ef878a7ef24b328f0dca98d88e502396d4ecd9030604848b47"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_work_shirt.asset.meta",
+      "sha256": "f4f17a4d3a3a64c2fa87f73a76bb99937943a40f62003e8fbe2bbf6e2ccfaa3d"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_cave_silk.asset",
+      "sha256": "b49d29d7587f76fb841494bf2a6ea655c1bd91a9f02234570f6440169b1c597c"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_cave_silk.asset.meta",
+      "sha256": "7f8bec6922c1ccb600c08395d90d7c54971702c893e4ed139d5d093d5900b1c3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_common_wool.asset",
+      "sha256": "6b72348845f3acba43d5a5304a1b3a65754be59a41bc9fa3d96e0e46290d8ce5"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_common_wool.asset.meta",
+      "sha256": "fd4b2b214458c19ed26023ea366cfb49b79bbe9b98a3e9f9b824ac9da338b14a"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_deep_goat_wool.asset",
+      "sha256": "5e63c14a8cba1f5f8bef9fdffa7c5fd43f3b5265eec6a16e45bc1a37ee718289"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_deep_goat_wool.asset.meta",
+      "sha256": "d70b5229b7de551472748ca7cde0d4db313cfb0d55656580eba966fc90923ced"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_dreamweave.asset",
+      "sha256": "7563d1105d7bf69b2b6c9ecad0dea72f7b9d73f99676382c58cb0d7db68fffd3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_dreamweave.asset.meta",
+      "sha256": "a4d3ad1bc8e6dfe0a82ff53bd0d6d9f5f0801d40207fa1e8f1b26cdbefc48fd3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_ember_cotton.asset",
+      "sha256": "78f5ac1ea184260950175292f2afc78e187122b6e1c71562a8f9c83afde239c5"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_ember_cotton.asset.meta",
+      "sha256": "10870257ffb4b6846936d1c266b2adc0d58195b8dcdfb9ac8c06943349d0e76f"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_frost_linen.asset",
+      "sha256": "a1c0044c8f1bd97a484b5766647947ba90aa2f46270dc9b29f66a3265b622617"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_frost_linen.asset.meta",
+      "sha256": "4d53bf7d69111be6401d611b9aa554c0156b7ac9c643465dd3d8d813e003e72f"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_frost_wool.asset",
+      "sha256": "b1473e2ff7283dbb48d82740b068002bca4a2bae271b72626963c2c518a1d687"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_frost_wool.asset.meta",
+      "sha256": "7156ad376bad516b677edb0cdb9ef4928066dc3141f39e24a9198ae6d9406136"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_leather.asset",
+      "sha256": "e60eed5a41026f94674ff0e2cb75183f12c9d97238e7cdf37f445bc55a975976"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_leather.asset.meta",
+      "sha256": "0e1b7a630036a089c11891edca1d265e3f5a29ce882f9ef6cd689df1f15aade0"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_mire_canvas.asset",
+      "sha256": "dda74059af6024a0e9b949e30cc642866651e4c8e957800599f52427ffd1c448"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_mire_canvas.asset.meta",
+      "sha256": "7ff000d1cb0e7c2522ef2ffc659f7fad3260b38b0943a8c98e41eb19ff11ae37"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_rune_leather.asset",
+      "sha256": "d2e2b150f1a0923a05e1a0123b71d6dff5856757d39abc270dec66311f36e2d6"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_rune_leather.asset.meta",
+      "sha256": "3dbdd24e640e4b713a6bfca635989376b009f1666fdb6014db0aa900191e8fa9"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_shade_cloth.asset",
+      "sha256": "4ace2d447580c30a81ee7f34583e8cf379813d8a83244821122d0cec3f159d3a"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_shade_cloth.asset.meta",
+      "sha256": "970a8e9fa06851bd635d001ba1c584c3b37e104cc306fa323932f14e109d8aaa"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_spore_hemp.asset",
+      "sha256": "797ca6232e9ceef3b8c511d20d4fca9f1e1afbd6a985fb45b9ca84ba45c267cf"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_spore_hemp.asset.meta",
+      "sha256": "1d115568d90d2434c62feb303854f4f0d56c31c575b2145b764f32b99b7b7f0f"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/R02_정식침대.asset",
+      "sha256": "2ee20e60368763f2f74ff68d2d5e0bc653bc1e69d78226e44cd00cabd4dede15"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/R03_이층침대.asset",
+      "sha256": "c0d66c5d9106fa2784bdedfc4d8ac3632e3f41ee27dbc9f1965a7082f5b81f24"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Adventurer.asset",
+      "sha256": "f89f6c3538c02563ac50e1f59526cd1e63c767bf306d52854f47cd296c56a4df"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Adventurer.asset.meta",
+      "sha256": "413edfcb1c029ae1770c4c857f3ed8aa43d27bb0c11cf1e0ba389bf32ffe81f9"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Beastkin.asset",
+      "sha256": "f227596f3a10c125f95bffebd04de0b9a39946d98c68e1dd70b7c5c3ce6e0a70"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Beastkin.asset.meta",
+      "sha256": "6e8a1ece77cd8b1c908d8188a77d4fe3a160e48e8092eb457907d126d1fdd697"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Demon.asset",
+      "sha256": "35fdf663346e8b69747db8b0b05173d9a06d52456fab02f6019498a5bf71acab"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Demon.asset.meta",
+      "sha256": "05b6420f2266a93bf69954d647edc317c15c1d086591ccf5792d828797981ec2"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Golem.asset",
+      "sha256": "dab1e52aa9fc4b3e4a6799daae48e272dd26815ac50c663fffdc17ef23b93df2"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Golem.asset.meta",
+      "sha256": "63df718ebe2cd870279204ddee7d6558661a66c4bf61d32015f44dadd0f74d37"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Harpy.asset",
+      "sha256": "446bae8780422ee4b0c19d7a977e5188ff5b86b9478b59f1496115fdc940a606"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Harpy.asset.meta",
+      "sha256": "34dc27791e66ba87a48be63c4f302832af32d4fa48e284ddf8ec0afe8387fa8d"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Kobold.asset",
+      "sha256": "c326df3c815dc56b3b130896454c907f94c321b6f013ae31d0352e740522777c"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Kobold.asset.meta",
+      "sha256": "376117938afd2da9738ad5d9f5b6580051334ca5d37d4b1975eb508a7cd90cf7"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Myconid.asset",
+      "sha256": "53e12254655baa223b1486bee9194da5e9e0185926cacf17edf9b4eebabfaa94"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Myconid.asset.meta",
+      "sha256": "da2d40ef146fc5fe64e18a17cc833b756e2ed5a22bd97ba6db314397ff80ae7e"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Orc.asset",
+      "sha256": "06159b4b1ec9b19d15d381501f97ea51c9b2c5324dcca28324714d8a6aad776c"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Orc.asset.meta",
+      "sha256": "0d65aa4faa49fc54c11de3f3ef128e574576eacb9920c255513bb683cb7d32ff"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Slime.asset",
+      "sha256": "566d5bf56f230edc2c2651bf2bf1afee99bdf17af72bbeaabbe29f3c87f108e2"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Slime.asset.meta",
+      "sha256": "d5942126ba9571ab04905558fd7e42f796ba05ed894ec96c4cfe3cfd77f5b75c"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Vampire.asset",
+      "sha256": "d119ac80722547cd02ecc6cd309ce53f2f5ae37b873c387caf0f2cb7fc2fbbca"
+    },
+    {
+      "path": "Assets/Resources/SO/Character/Species/Species_Vampire.asset.meta",
+      "sha256": "71c5a4dd703e57483c3693a28fbba52fd9bfda142fbe75cd9c734cf422143806"
+    },
+    {
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset",
+      "sha256": "78e87c3239487cb4b4ded6309d549de06320bbe1db8362c0c25fe7abdecd808e"
+    },
+    {
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset.meta",
+      "sha256": "c1c65d35728aaeb0466c5586c1a26559b39e0991bb49db4614dc4508bdf7e05a"
+    },
+    {
+      "path": "Assets/Resources/SO/Environment/Workwear/ColdWorkSuit.asset",
+      "sha256": "f6d18f524e76c6b7b214b06935e2ec62e4f9b5afe8671e0923013b9d2cbb0508"
+    },
+    {
+      "path": "Assets/Resources/SO/Environment/Workwear/ColdWorkSuit.asset.meta",
+      "sha256": "6a92fe0c4aaa737468bbe6b9470f37903bf89a77b0add960f0f122ec5bfa1e2f"
+    },
+    {
+      "path": "Assets/Resources/SO/Environment/Workwear/HaulingHarness.asset",
+      "sha256": "afe54a37827ac4d897c2e28e0c0fc5fe00a49283a87f4ef4a6167555a8062033"
+    },
+    {
+      "path": "Assets/Resources/SO/Environment/Workwear/HaulingHarness.asset.meta",
+      "sha256": "f528de9eac584f12840537bdd05536ed952599ea8e820bab0dbdd43a62050411"
+    },
+    {
+      "path": "Assets/Resources/SO/Environment/Workwear/RuneColdSuit.asset",
+      "sha256": "042461d3e88878ff51e232d679801333df52898b4fe62ec237d09fe155ce27d6"
+    },
+    {
+      "path": "Assets/Resources/SO/Environment/Workwear/RuneColdSuit.asset.meta",
+      "sha256": "26d191ae93a93b611c3b788be431f4997e0656baefa9d639547b86f1e03cc276"
+    },
+    {
+      "path": "Assets/Resources/SO/Environment/Workwear/SlimeWarmingPad.asset",
+      "sha256": "3796cb10f14d13d4dd9dd27d834cbe6dfc082443edb216cbabc252ed17c64845"
+    },
+    {
+      "path": "Assets/Resources/SO/Environment/Workwear/SlimeWarmingPad.asset.meta",
+      "sha256": "3c9c88d4e17a32a94729f67d06077a43c143d844f1d5198525cce0c46cbe5bf9"
+    },
+    {
+      "path": "Assets/Resources/SO/GameContentCatalog.asset",
+      "sha256": "8b3fe3d0265e1c18a3a25c54e4c0d011c64e4f75eb264aee22d4466700861645"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs",
+      "sha256": "b0100231af73024a27fc686ffa7a20ab8fafd61dfb5ae55ee0a4b3e3188eb887"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs",
+      "sha256": "bc3993a48cfc87e31647d6715fbaef11ecccfba61babe63e8608def831eaec02"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/TextileMaterialDefinitionSO.cs",
+      "sha256": "bb87ca4da93f0e2a36dc5a1bad7d1fd52472ac403310a420475ec0211300e7ff"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalCoreDomain.cs",
+      "sha256": "964be440b19e043faa313445ab9b3b76b6a0c032cd41ab87086908b45987d3f9"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/ThermalProtectionProfile.cs",
+      "sha256": "5a0d89157cd8948accc56d2c73355ca38e0e63f3ba7b42249626395c0f9e06c1"
+    },
+    {
+      "path": "Assets/Scripts/Models/Species/Core/CharacterSpeciesCatalog.cs",
+      "sha256": "ae04c99cfc37d71900d63d62f940d8311434ab4176efd188e7d8691f95c7b614"
+    },
+    {
+      "path": "Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs",
+      "sha256": "21455d968148d59389d8ca248e59976d13abcaa9e7449c981189fa7224fdab2f"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/PopulationHealthRuntime.cs",
+      "sha256": "7ccc594a7d6cf295856e8fdd562a962b917745c5c1b470280213b4dfd47a8e46"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelItemStateCodec.cs",
+      "sha256": "fe33d505686cb1d639b97bf998289e610d22308ea9fdb07538e651478c2358d9"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+      "sha256": "4fda39ad5c2d06f0ff649b4d5740250f8ca8b0e786acb92dd4f97b3e265f70bf"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs",
+      "sha256": "be7cfc7c095686ef4c02078cb1b192335f0c473ea7a066d7350705fed6945f83"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentModels.cs",
+      "sha256": "13f5f6e5b2effb01daf5ea25531eafbc4e353ba8814f83c49bb5fca13b5f5530"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+      "sha256": "51fd4c04887fc8992fab41747063c72458f3a1a5de50c6e947bc575c5fcb42db"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterThermalGameplayEffectProjection.cs",
+      "sha256": "fbca42c714527e65a5dd4b2bd2dcdfc09b6476026d05c8b5d4a3228a8cad7f90"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentWorkPolicyUnityAdapter.cs",
+      "sha256": "56da3c5578532166f422a42fea44f413313f10bfdb84269ffc25467ee720f36d"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+      "sha256": "7830b4481b5646dc9b6bf1476ef1d99afa4121eab59b8d9d3692508f254a0c6b"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+      "sha256": "182830b5b282724cbbd58d293319f5ef774b921f50dcf3318c945b3145d989c3"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/combat-and-equipment.md",
+      "sha256": "b472698a299c1618bf19942aa28073905e5b907674e99e27ade78a06df026470"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+      "sha256": "cd356f79ff6edde0835a1590c3f4e2688a41b97cd2e510e320671bf79dfe5c04"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/weather-seasons-and-environment.md",
+      "sha256": "e2e4371f61725319f30e74da29c0a31742cdcf48f746ba7fcb785fe97a665ad6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-1.json",
+      "sha256": "1c600917c5baadc2afb87f9c6cfc2afade6bb19d9039a46da656a72429c2b687"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-10.json",
+      "sha256": "0838d2b53a99c97ce49df1c8858feb61e6e559339f502a5b4efe42bf40be54b3"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-2.json",
+      "sha256": "bf28a0ce5f389cfdb299540109e729210d91cc5b7e327195ffbaab96a6880948"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-3.json",
+      "sha256": "aa351a8b9ae7254d66415e9d9562e473c3f6936a77da0c5a1a4ddae16725ddde"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-4.json",
+      "sha256": "1af57473f43f9fe07e5bbacd67cb5b5f18c62ba978cc0bf53304032e158188f6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-5.json",
+      "sha256": "f18d9bcc0c72b43694b219c1b218e53ed0d47047153ba54a5017d640c7b9467a"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-6.json",
+      "sha256": "85ba663ad0f9e4137615534ba3eb9bc457e00c2af180dc400d89325e6a5c61aa"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-7.json",
+      "sha256": "71e52611ced6c509770c94f6d5f145d645833e2d1893032cd53c93495e2f4a5a"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-8.json",
+      "sha256": "4322cccab5274568095d3bb64815393063d969558b81c86e55e0b1ca53a8cc6d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/characterspecies-9.json",
+      "sha256": "e6dafe9317e0f2b0174cec5063f85da7a4c286dab6125c5a01d2f8d7c23f7bcf"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/combat/workwear-cold-work-suit.json",
+      "sha256": "cc6da73d1dfabece0bf831a86954eca0fd8b5637148fcbfbd79b7202f97022d2"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/combat/workwear-hauling-harness.json",
+      "sha256": "2f9b7adc8e1de03bbf4c576384b96e98d6d49c377332a5fb64991eb6ddaf98a6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/combat/workwear-rune-cold-suit.json",
+      "sha256": "4fbe2557fa81ec763a360bc73add6bc9cdf4509c4b9edc739bc94f00273b807d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/combat/workwear-slime-warming-pad.json",
+      "sha256": "05e5aa30b0f6ff72f353e30622fd04d346ae6f252275cc1bba6bff9581be6f41"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1021.json",
+      "sha256": "32ae6c67d8851be170ac2fca3645161fc5139a7438502544a8efa31ef3668f8e"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1022.json",
+      "sha256": "6cba9015ad77187cb9c25773f513a4787dfb98ac9f1933ace087a0ae4e19f6ce"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-apron.json",
+      "sha256": "9035ae867d7642d68a14ed9a601becdff16a7087b75908d92f400c26b83cb110"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-belt.json",
+      "sha256": "1637df039e0d28d0b40f258b959cbdac8ce75b8f0d0f97651ca917514aeb4deb"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-blouse.json",
+      "sha256": "0aa6814901a24ee0116c6ed431783e1b6bb3b5841546f827c67db48679826640"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-boots.json",
+      "sha256": "b91fcda1b908946b6036a550bd18c08719a73dcffded4e1a5ca8c2e584d0d5f2"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-ceremonial-dress.json",
+      "sha256": "bf3db8d5a8053d5c50ac82fbfe0cc14c5f45095e21327a934f4ae841a5ee96ea"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-chest-wrap.json",
+      "sha256": "0ca8e3c2d06606bdda225e014e00b59e1add538c16f5def8a8a6ace8329628c6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-cloak.json",
+      "sha256": "d4747b160c14f45de09c74524464a39025a28942f8c79e2b549744f6e94039d2"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-contract-sash.json",
+      "sha256": "1d84eb6944a09f57c38bf54c54e666c73c49a152743393d410a417afc9a2d1be"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-daily-robe.json",
+      "sha256": "c5938878e6aa4d0d1085c6d0479533df3519a529b0731a4ebf8be1fca9f46271"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-envoy-coat.json",
+      "sha256": "2ee7c532f159db5948152b9c6b5d78a89a9f1f86cdb0d1c7b88226a9fbb31cc1"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-farmer-workwear.json",
+      "sha256": "eb2ec52535428ea7462c27fa6bfc0bf56549f16201ab2d94fca658cd992d96e9"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-festival-vest.json",
+      "sha256": "ee65516c26a55fc281dc9230c3f4733f707a31d5e556d4c31ae85ca2c88d63dd"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-footwraps.json",
+      "sha256": "2bee1dc6d79807a426ef3dcec8eb7282eb2373706fddf1c7810d81c54447af9f"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-formal-coat.json",
+      "sha256": "f10a445e1c208b38cec2717f87d849b605d4ff65b582d662884522ceda2744b3"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-gloves.json",
+      "sha256": "460642fb842ec9d437e89555a0000c4f6e233123baed7fe1febfd5aa2bbaac6a"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-golem-functional-lining.json",
+      "sha256": "f0c17c8311f7b777e9c5cf2f6ad022a08dc679c3d2c82d10898ed211357f2de4"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-hat.json",
+      "sha256": "60563c36510a047c794941f64cad70ecd2b18adb88d8b32b2720e97b3b068561"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-heat-work-suit.json",
+      "sha256": "df25fab5d64142883bed7c41487ca31aa106629db409c59432f63250a20629c7"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-hooded-robe.json",
+      "sha256": "015c9a5dc7cc306ca6124370aa2c4986a276ac55e0357dd3a19649d39a2e2acd"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-horn-ring.json",
+      "sha256": "22879077ba2118a183c76340c085f563cfd901dc8547d05eb4b3f2aded9e7c2f"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-keeper-coat.json",
+      "sha256": "db6b9b858e16b40c9ee734c7e83c7865c30c1786a4401eaaee54ffe53359cffa"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-loincloth-underwear.json",
+      "sha256": "1400968c0a2d3b5fda56ccec3a86b7b8ef547ebbb3e44ca739915dda975480bd"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-long-underpants.json",
+      "sha256": "21d87c669a0a2a05aa787fe2bc9131efcc145e0a3bcba47d100311a5740e7fa3"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-lower-underwear.json",
+      "sha256": "3f434dd810fdf1ca13cb1c03d4dfafecbf69bfafa625e610dcaf6c4b30f00dee"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-miner-workwear.json",
+      "sha256": "07b0874e814dcdc3918cac4077252632af07792b9e2ed028e05dd5b234763940"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-mourning-clothes.json",
+      "sha256": "8cb2f1085825a8067f2f474db08f590b12299eeb82f757f607404f5cfc638d66"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-raincoat.json",
+      "sha256": "cdd97729cb4b6eaabf81001d32d39dc8eddda440ebe54279ff6302b97678477c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-ritual-robe.json",
+      "sha256": "72f778ba330ae076641683e7d640f44a9a4a270b63c444d3d1d4f166c277f9e9"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-scarf.json",
+      "sha256": "9b32bd26a1562e4d2c6a7cf10568cdd30b31271a9a3f1a92115043875e9f7551"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-shorts.json",
+      "sha256": "ecf8a9039a72131ff06ebcd9c6c844a39b826aecd15198e431164311b86bd902"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-skirt.json",
+      "sha256": "7cd32c57100db9dd7fa1dadd9a890ddb344ac4f1c1fe1a0f1f1020f11110a7d9"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sky-chorus-shawl.json",
+      "sha256": "be39949da6513abce088bb97d72fd9aa1f18b8be2c4af64997b65c89fa9e2274"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sleep-bottom.json",
+      "sha256": "4f1d4812e6e342a296417959c2378ef36bb6deefc303af683473b3311a3822ab"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sleep-top.json",
+      "sha256": "f574dc7b33991f58c342a1fa807cd7b3f6d47ab96b557160e40b68575ce4213f"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-smith-apron.json",
+      "sha256": "d89e5b8d0e3468ac4685adb29a48ea13492581949ca34f7251ecc9e87acd7cfb"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-smoke-protection-hood.json",
+      "sha256": "87e9ba7ec396a1fa77ed07af18508e81dfb108693a6281bdb9c301bdaac40e7d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-socks.json",
+      "sha256": "072cdc0f6258346a18d22cdb20e41651aafe856c95d627e3b4210ee2d77eec56"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-spore-garden-cloak.json",
+      "sha256": "fadc51625eba91f2f4230b0a0a45bfe24e0a445465e2e3e662ed173d2f4f4482"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-spore-protection-hood.json",
+      "sha256": "8f2e1470b23726dc2f90b6fa5a2a5ef40ca3ac66b166647dbcf53e9ae1cbbbbf"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sterile-gown.json",
+      "sha256": "4ae49f4d7a4c22fb5a01c4f5d791a170a51de03ae2beec8c7b52bcc4e46857dd"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-surgical-apron.json",
+      "sha256": "ba8dff70b22ae0229be507bdbfde509685b177663753fed3fd96f09c4f2b689c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tail-guard.json",
+      "sha256": "483dee9389c29dae29431f32e33709bb9d7d48febaaaebdaf67e7c55042de9c1"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tail-ribbon.json",
+      "sha256": "0a152acbb4eb9e16f5d4efde7675fa4a28e240ffed48a31165e060dce50e7e5d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-trousers.json",
+      "sha256": "ebcadbb5b9d27a9ceffcd32536b731fe4f17f7596392cc35fdf79b8ca640075c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tunic.json",
+      "sha256": "6e38ea8276c56ef5710e22c07b7c2006feb95e1d8ce390400c1e72dc5faaf262"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-undershirt.json",
+      "sha256": "23306625c514ea7e7bc980d67dd1c9be7c744e3c3a7c2d980e4cf57c691bbaa7"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-vest.json",
+      "sha256": "1f9f2f1746b1852b285b547f66058cd2e61b2a4095c72e0fdf0d041e5300ea0c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-waterproof-work-suit.json",
+      "sha256": "e2f640fc76b4a955d2582434291c7aee217dfa296e84a3de8c1dd4245172136b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-weapon-vigil-cloak.json",
+      "sha256": "2af0e097876a1728de44e366b49bea9abe07a4456da82264ebda3f963d500315"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-wing-cloak.json",
+      "sha256": "67538f0ddc59092a8f5bc90fcd8357aa2da98ea3b2506424b650e843f69bfc8b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-wing-harness.json",
+      "sha256": "b3d169bc9d743968a5e27ba814f5b6e3a4bfd10c5dff1ac041577cf986bdbd50"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-work-shirt.json",
+      "sha256": "624dc514baf3d6ea643802510cb9eacd6e2fb397366075a78282d27dd75c0ca7"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/equipment-cold-work-suit.json",
+      "sha256": "260a3d90eb8e0908264b9d0863349d372f6b1506d9ec0c2d17e9322156a3ad08"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/equipment-rune-cold-suit.json",
+      "sha256": "e86656ba2e8e01b119cc1210e0bf1fdacd2920a5174c2f48d624e213e357a29d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/equipment-slime-warming-pad.json",
+      "sha256": "7b39dfe8d6015ff4da1020f401d895f45289c6f45db581b07045e3f913164fd6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-cave-silk.json",
+      "sha256": "9cc08b715ad894d4e2630070e381821c4b05b58d638745f8c531df930dfe48fc"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-cloth.json",
+      "sha256": "5fa1ed23b8627d1c49162418f41ec36babb6b2afaf156ddde13c3d290366a56a"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-common-wool.json",
+      "sha256": "1a96f93fe2cadb072ac803c49e274d0807af3eaec8311cc98578e028ab4d04d3"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-deep-goat-wool.json",
+      "sha256": "88ae2f78c0061a20184b7ee0a68b3337ce574a86b35370005dcacbc9d2264ad3"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-dreamweave.json",
+      "sha256": "8a0f76182a3558476f28fa925dfe385a476f2204d2a361adcc4a6fb4a45f6d9d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-ember-cotton.json",
+      "sha256": "410c2da35b3d3d035f18a75c52b4175b4bf712d37dcf391a9de0ea7dd7f642a8"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-frost-linen.json",
+      "sha256": "8a507c5203d106482a9301c39d05ac40d7e82d8e28822ea318b00457b9f8b062"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-frost-wool.json",
+      "sha256": "ecaf9f4f3ad318c603a55c7b88192843cd28f3569507b75bda4c7ab19921844b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-leather.json",
+      "sha256": "86367d252d849a5b6d4683a5f423d4f2052d559337240d77adde93c5ef43538b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-mire-canvas.json",
+      "sha256": "9c52c7189e09fc21e7eb09a6353479b0d6cba629fc56196d367a2c70f47e0a3b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-rune-leather.json",
+      "sha256": "5a0e8dca336a1e32b0ee5fa75d9ad6814abfad0faab585aa20af1d88663e6aff"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/material-spore-hemp.json",
+      "sha256": "4676bef4e045af69475c3bfa0a377f9606a2c98ffa8bb9db5d8d425981099f0f"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/tool-hauling-harness.json",
+      "sha256": "957ccec87ef36fe616d018fc30eb63d16f77764383a054e5195e8a20638f6c60"
+    }
+  ],
+  "validation": {
+    "catalogReferences": 82,
+    "catalogErrors": 0,
+    "independentArithmeticChecks": 45,
+    "arithmeticErrors": 0,
+    "priorSourceHashesChecked": 3153,
+    "priorArtifactHashesChecked": 22,
+    "priorHashErrors": 0,
+    "semanticDeduplication": "local overlap checked against GAP-083/085; full pending"
+  },
+  "remaining": [
+    "의복 생산·세탁·건조·수선·해체·회수와 선택 UI 전과정",
+    "종족 공통 효과·기분·환경 및 전투 보정의 남은 값",
+    "날씨의 작물·축산·원정 효과",
+    "식품 부패 전체 상태기",
+    "전체 원본·도감·버전·문서 의미 중복 감사"
+  ]
+}

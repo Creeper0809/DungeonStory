@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "feed-hay",
+    "spoiler_tier": "none",
+    "title": "건초 사료"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "recipe/recipe-hay-feed",
+      "label": "생산·해금",
+      "to": "item/feed-hay",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

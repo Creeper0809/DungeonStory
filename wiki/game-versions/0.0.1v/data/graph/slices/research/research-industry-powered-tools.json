@@ -1,0 +1,337 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-powered-tools",
+    "spoiler_tier": "none",
+    "title": "공장 공학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-records",
+      "target_spoiler_tier": "none",
+      "target_title": "기록 체계",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-records",
+      "target_spoiler_tier": "none",
+      "target_title": "기록 체계",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-records",
+      "target_spoiler_tier": "none",
+      "target_title": "기록 체계",
+      "to": "research/research-arcane-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1035",
+      "target_spoiler_tier": "none",
+      "target_title": "설계판",
+      "to": "facility/building-1035",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8827",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 기초대",
+      "to": "facility/building-8827",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8831",
+      "target_spoiler_tier": "none",
+      "target_title": "전동 선반",
+      "to": "facility/building-8831",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-engineering-drawing",
+      "label": "필요 조건",
+      "to": "research/research-industry-powered-tools",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-factory-installation-plan",
+      "label": "필요 조건",
+      "to": "research/research-industry-powered-tools",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-cartridge-paper",
+      "label": "필요 조건",
+      "to": "research/research-industry-powered-tools",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-paper",
+      "label": "필요 조건",
+      "to": "research/research-industry-powered-tools",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-powered-tool-head",
+      "label": "필요 조건",
+      "to": "research/research-industry-powered-tools",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ignition-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ignition-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ignition-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-standard-ammunition",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-standard-ammunition",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-standard-ammunition",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-child-education",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-child-education",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-child-education",
+      "label": "선행 연구",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

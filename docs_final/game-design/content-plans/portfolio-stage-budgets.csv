@@ -1,0 +1,31 @@
+portfolio_id,horizon_day,standard_active_adults,available_effective_wu_per_day,life_support_wu,logistics_wu,maintenance_wu,security_wu,primary_commitment_wu,research_wu,reserve_wu,minimum_food_stock_days,minimum_water_stock_days,minimum_critical_stock_days,maximum_single_network_share,maximum_recovery_days,mandatory_pressure,omissible_primary_investment
+sanctuary,10,3,135,55,25,5,10,20,8,12,5,5,2,0.70,3,early frost or water interruption,advanced service automation
+underground,10,3,135,55,15,12,10,23,8,12,5,5,3,0.70,3,ventilation or contamination warning,external field expansion
+hospitality,10,3,135,45,20,8,10,22,15,15,5,5,4,0.65,3,guest delay or small service fault,deep self-sufficient agriculture
+industrial,10,3,135,45,24,15,15,18,8,10,5,5,4,0.65,3,fuel or repair interruption,guest-space expansion
+expeditionary,10,3,135,42,17,7,25,16,18,10,5,5,5,0.65,3,injury or ammunition shortage,large fixed defense network
+arcane,10,3,135,45,14,15,11,17,25,8,5,5,5,0.65,3,catalyst shortage or sanitation fault,bulk industrial expansion
+sanctuary,30,6,270,100,50,12,25,45,20,18,12,10,5,0.70,5,seasonal harvest pressure,advanced service automation
+underground,30,6,270,95,35,30,25,50,22,13,10,10,6,0.70,5,localized contamination,external field expansion
+hospitality,30,6,270,75,45,18,20,48,38,26,9,8,10,0.65,5,contract deadline and guest load,deep self-sufficient agriculture
+industrial,30,6,270,75,51,32,45,38,15,14,10,9,10,0.65,5,fuel loss or repair queue,guest-space expansion
+expeditionary,30,6,270,72,32,18,55,35,42,16,8,8,12,0.65,5,injury recovery and perimeter threat,large fixed defense network
+arcane,30,6,270,75,30,35,25,40,48,17,9,9,12,0.65,5,catalyst or cooling interruption,bulk industrial expansion
+sanctuary,120,12,540,185,95,30,55,95,45,35,30,25,15,0.70,10,drought frost or livestock disease,advanced service automation
+underground,120,12,540,175,75,55,60,105,45,25,20,22,18,0.70,10,contamination and ventilation outage,external field expansion
+hospitality,120,12,540,145,80,35,50,100,70,60,15,15,25,0.65,10,blockade contract cascade or service infection,deep self-sufficient agriculture
+industrial,120,12,540,150,95,65,80,90,35,25,22,20,25,0.65,10,power fuel or maintenance cascade,guest-space expansion
+expeditionary,120,12,540,140,65,35,120,85,70,25,18,18,30,0.65,10,expedition casualty and internal breach,large fixed defense network
+arcane,120,12,540,150,60,70,65,100,75,20,20,20,30,0.65,10,resonance disruption or sterile-material shortage,bulk industrial expansion
+sanctuary,400,24,1080,360,200,65,100,185,95,75,60,50,30,0.65,15,combined climate and supply shock,advanced service automation
+underground,400,24,1080,345,150,125,110,205,95,50,45,45,35,0.65,15,multi-zone contamination and ventilation loss,external field expansion
+hospitality,400,24,1080,280,180,85,85,190,155,105,30,30,45,0.60,15,trade blockade and high-severity service incident,deep self-sufficient agriculture
+industrial,400,24,1080,285,208,150,160,180,55,42,45,40,45,0.60,15,grid failure with internal sabotage,guest-space expansion
+expeditionary,400,24,1080,270,145,75,235,155,155,45,30,30,55,0.60,15,expedition loss with simultaneous invasion,large fixed defense network
+arcane,400,24,1080,285,130,180,120,190,140,35,45,45,55,0.60,15,resonance failure with medical demand spike,bulk industrial expansion
+sanctuary,960,24,1080,330,190,90,120,180,95,75,60,60,45,0.60,30,season-scale food and water disruption,advanced service automation
+underground,960,24,1080,315,145,160,115,205,90,50,45,50,50,0.60,30,deep contamination with blocked exterior access,external field expansion
+hospitality,960,24,1080,265,190,110,95,180,145,95,30,35,60,0.55,30,multi-faction embargo and cultural crisis,deep self-sufficient agriculture
+industrial,960,24,1080,265,197,180,170,170,50,48,45,45,60,0.55,30,fuel loss grid outage and siege,guest-space expansion
+expeditionary,960,24,1080,255,135,100,260,145,145,40,30,35,70,0.55,30,boss campaign with wounded-return backlog,large fixed defense network
+arcane,960,24,1080,275,125,205,120,180,135,40,45,50,70,0.55,30,rune disruption combined with legacy medical demand,bulk industrial expansion

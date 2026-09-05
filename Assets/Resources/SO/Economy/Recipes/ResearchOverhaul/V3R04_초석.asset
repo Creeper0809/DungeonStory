@@ -54,9 +54,17 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=FermentationGasLoss|reason=niter-bed-biogenic-gas-and-sediment-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: resource:manure
-    amount: 3
+    amount: 8
   - itemId: resource:clean-water
     amount: 1
   outputs:

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.196kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "6"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "풀을 충분히 말려 초식동물이 사계절 먹을 수 있게 쌓아 둔 기본 사료다. 사르베니아 내해의 목장은 비가 적은 철에 벤 풀을 건초 사료로 말려 밀로세아 가도의 짐승까지 먹인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "feed-hay",
+  "spoiler_tier": "none",
+  "summary": "초식동물용 기본 사료.",
+  "title": "건초 사료"
+}

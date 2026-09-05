@@ -1,0 +1,53 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "20"
+    },
+    {
+      "label": "필요 연구",
+      "value": "발효"
+    },
+    {
+      "label": "사이클당 깨끗한 물",
+      "value": "0.7"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-fermented-vinegar",
+      "target_spoiler_tier": "none",
+      "target_title": "발효 식초",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-fermented-liquor",
+      "target_spoiler_tier": "none",
+      "target_title": "발효액",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-fermented-vinegar",
+  "spoiler_tier": "none",
+  "summary": "같은 방의 연결 시설을 사용하는 수동 생산 단계.",
+  "title": "발효 식초"
+}

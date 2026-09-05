@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "33"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무균 균사 이식편은 치료 도구와 상처 주변의 오염을 줄이는 데 쓴다. 므네실라의 무균 균사 이식편은 병을 닫은 뒤에도 천천히 자란다. 공동 정원은 절반 이상 채취하지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medical-sterile-mycelium-graft",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 무균 균사 이식편.",
+  "title": "무균 균사 이식편"
+}

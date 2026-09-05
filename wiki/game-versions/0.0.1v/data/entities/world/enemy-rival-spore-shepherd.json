@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-poison-cloud",
+      "target_spoiler_tier": "none",
+      "target_title": "독성 구름",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-summon-minion",
+      "target_spoiler_tier": "none",
+      "target_title": "지원체 소환",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "enemy-rival-spore-shepherd",
+  "spoiler_tier": "none",
+  "summary": "독성 포자와 소형 균사체로 지역을 장악한다.",
+  "title": "경쟁 던전 포자목자"
+}

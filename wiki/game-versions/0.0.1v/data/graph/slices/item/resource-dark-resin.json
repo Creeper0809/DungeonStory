@@ -1,0 +1,123 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-dark-resin",
+    "spoiler_tier": "none",
+    "title": "암흑수액"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-textile-hardener",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-gold-leaf",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-hardened-leather",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-resin-balm",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-rune-leather",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-slime-warming-pad",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-soap",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-treated-lumber",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/source-logging",
+      "label": "생산·해금",
+      "to": "item/resource-dark-resin",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-solvent",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-prisoner-work-kit",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-prospecting-kit",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-tool-administrative-seal",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-supply-pest-lure",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-craft-toxic-trap-coating",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-material-laminated-lumber",
+      "label": "필요 조건",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

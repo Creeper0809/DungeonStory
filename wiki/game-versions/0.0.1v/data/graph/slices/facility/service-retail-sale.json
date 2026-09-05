@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "service-retail-sale",
+    "spoiler_tier": "none",
+    "title": "판매 서비스"
+  },
+  "edges": [],
+  "schema_version": 1
+}

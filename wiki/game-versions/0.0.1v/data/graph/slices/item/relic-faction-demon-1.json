@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "relic-faction-demon-1",
+    "spoiler_tier": "none",
+    "title": "삼중계약 인장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-demon",
+      "label": "관련",
+      "to": "item/relic-faction-demon-1",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

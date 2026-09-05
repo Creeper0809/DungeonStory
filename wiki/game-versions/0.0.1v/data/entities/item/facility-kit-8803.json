@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "260"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "동굴 재배 선반에서 작물의 파종과 성장 상태를 살피고 재배 작업을 처리하도록 만든 설치 부품이다. 하르나크식 동굴 재배 선반에는 큰솥의 몫을 받을 어린 주민과 부상자를 위한 낮은 자리가 비어 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-8803",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "동굴 재배 선반 설치 키트"
+}

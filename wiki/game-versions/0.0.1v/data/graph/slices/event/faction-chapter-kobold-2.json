@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-kobold-2",
+    "spoiler_tier": "warning",
+    "title": "도제의 이름 없는 설계"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-kobold-2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-field-repair-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "야전 수리 키트",
+      "to": "item/tool-field-repair-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-kobold-2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-field-repair-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "야전 수리 키트",
+      "to": "item/tool-field-repair-kit",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-kobold",
+      "label": "관련",
+      "to": "event/faction-chapter-kobold-2",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

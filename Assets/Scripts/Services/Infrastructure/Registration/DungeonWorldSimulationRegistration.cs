@@ -102,8 +102,16 @@ public static class DungeonWorldSimulationRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<FacilityBufferPhysicalOccupancyQuery>(Lifetime.Singleton)
             .As<IFacilityBufferPhysicalOccupancyQuery>();
+        builder.Register<FacilityOutputClearanceTelemetryRuntime>(
+                Lifetime.Singleton)
+            .As<IFacilityOutputClearanceTelemetrySink>()
+            .As<IFacilityOutputClearanceTelemetryQuery>()
+            .As<IFacilityOutputClearanceTelemetryControl>()
+            .As<IDungeonSaveCaptureGuard>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<FacilityBufferMassAdmissionService>(Lifetime.Singleton)
             .As<IFacilityBufferMassAdmissionService>()
+            .As<IFacilityBufferPlannedOutputProjectionQuery>()
             .As<IFacilityBufferMassCapacityQuery>()
             .As<IFacilityBufferMassCapacityAuthorityQuery>()
             .As<IFacilityBufferMassCapacityCommand>()
@@ -145,6 +153,9 @@ public static class DungeonWorldSimulationRegistration
             .As<IItemQuantityReservationPersistence>()
             .As<IItemReservationMutationGate>()
             .As<IDungeonRestoreTransactionParticipant>();
+        builder.Register<ApparelLeaseAuthorityPort>(Lifetime.Singleton)
+            .As<IApparelLeaseAuthorityQuery>()
+            .As<IApparelLeaseAuthorityCommand>();
         builder.Register<ItemReservationService>(Lifetime.Singleton)
             .As<IItemReservationService>();
         builder.Register<LeasedItemReservationService>(Lifetime.Singleton)
@@ -167,6 +178,12 @@ public static class DungeonWorldSimulationRegistration
             .As<IProductionInputDestinationCustodyDrainOutbox>();
         builder.Register<ProductionInputDestinationCustodyDrainService>(Lifetime.Singleton)
             .As<IProductionInputDestinationCustodyDrainService>();
+        builder.Register<FacilityBufferDestinationCustodyDrainService>(
+                Lifetime.Singleton)
+            .As<IFacilityBufferDestinationCustodyDrainService>()
+            .As<IFacilityBufferDestinationCustodyDrainRestoreCandidateQuery>()
+            .As<IFacilityBufferDestinationCustodyDrainCheckpointGcPort>()
+            .As<IFacilityBufferDestinationCustodyDrainLiveQuery>();
         builder.Register<ProductionCapacityRoutingDrainOutbox>(Lifetime.Singleton)
             .As<IProductionCapacityRoutingDrainOutbox>()
             .As<IProductionCapacityRoutingDrainQuery>();
@@ -176,6 +193,11 @@ public static class DungeonWorldSimulationRegistration
             .As<IPhysicalFacilityItemBatchTransferGateway>();
         builder.Register<PhysicalItemSourcePublicationService>(Lifetime.Singleton)
             .As<IPhysicalItemSourcePublicationService>();
+        builder.Register<PhysicalItemExactSourcePublicationService>(
+                Lifetime.Singleton)
+            .As<IPhysicalItemExactSourcePublicationService>()
+            .As<IPhysicalItemExactSourceRestoreAuthorityCommand>()
+            .As<IDungeonSaveCaptureGuard>();
         builder.Register<WorldItemQueryService>(Lifetime.Singleton)
             .AsSelf()
             .As<IWorldItemQueryService>();
@@ -186,7 +208,8 @@ public static class DungeonWorldSimulationRegistration
                 Lifetime.Singleton)
             .As<IProductionCapacityRoutingHaulPlanFence>();
         builder.Register<WorldItemHaulPlanningService>(Lifetime.Singleton)
-            .As<IWorldItemHaulPlanningService>();
+            .As<IWorldItemHaulPlanningService>()
+            .As<IWorldItemDeliveryReachabilityQuery>();
         builder.Register<ItemTransferService>(Lifetime.Singleton)
             .As<IItemTransferService>()
             .As<IReservedItemTransferService>()
@@ -214,9 +237,11 @@ public static class DungeonWorldSimulationRegistration
             .As<IProductionInputDestinationCustodyDrainRestoreCandidateQuery>()
             .As<IPhysicalItemRestoreCandidateOutputQuery>()
             .As<IFacilityBufferPlannedOutputRestoreCandidateQuery>()
+            .As<IFacilityBufferAcknowledgedOutputRestoreCandidateQuery>()
             .As<IFacilityOutputExactRouteRestoreCandidateQuery>()
             .As<IWarehouseOverCapacityEvacuationQuery>()
             .As<IEquipmentPhysicalItemGateway>()
+            .As<IHaulDeliveryIntentCommand>()
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<BuildingItemStackPortAdapter>(Lifetime.Singleton)
             .As<IBuildingItemStackPort>();
@@ -249,23 +274,328 @@ public static class DungeonWorldSimulationRegistration
             .As<IProductionOutputPlanningService>();
         builder.Register<CanonicalProductionOutputResolver>(Lifetime.Singleton);
         builder.Register<ProductionPreparedOutputComponentCodec>(Lifetime.Singleton)
-            .As<IProductionPreparedOutputComponentCodec>();
+            .As<IProductionPreparedOutputComponentCodec>()
+            .As<IProductionPreparedOutputMaterializer>();
+        builder.Register<CombatAmmunitionPreparedOutputMaterializer>(
+                Lifetime.Singleton)
+            .As<IProductionPreparedOutputMaterializer>();
+        builder.Register<PerishableFoodPreparedOutputMaterializer>(
+                Lifetime.Singleton)
+            .As<IProductionPreparedOutputMaterializer>();
+        builder.Register<StandardDefinitionProductionOutputCapability>(
+                Lifetime.Singleton)
+            .As<IProductionOutputCapability>()
+            .As<IProductionOutputMaximumMassCapability>();
+        builder.Register<ApparelWorkOrderOutputCapability>(Lifetime.Singleton)
+            .As<IProductionOutputCapability>()
+            .As<IProductionOutputMaximumMassCapability>();
+        builder.Register<CombatEquipmentCraftOutputCapability>(Lifetime.Singleton)
+            .As<IProductionOutputCapability>()
+            .As<IProductionOutputMaximumMassCapability>();
+        builder.Register<CombatAmmunitionCraftOutputCapability>(Lifetime.Singleton)
+            .As<IProductionOutputCapability>()
+            .As<IProductionOutputMaximumMassCapability>();
+        builder.Register<PerishableFoodOutputCapability>(Lifetime.Singleton)
+            .As<IProductionOutputCapability>()
+            .As<IProductionOutputMaximumMassCapability>();
+        builder.Register<CertifiedSeedOutputCapability>(Lifetime.Singleton)
+            .As<IProductionOutputCapability>()
+            .As<IProductionOutputMaximumMassCapability>();
+        builder.Register<CropHarvestSeedLotOutputCapability>(Lifetime.Singleton)
+            .As<IProductionOutputCapability>()
+            .As<IProductionOutputMaximumMassCapability>();
+        builder.Register<EnvironmentalWorkwearProductionOutputMaximumMassCapability>(
+                Lifetime.Singleton)
+            .As<IProductionOutputMaximumMassCapability>();
+        builder.Register<ProductionOutputHandlerRegistry>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IProductionOutputCapabilityRegistry>();
+        builder.Register<ProductionPreparedOutputMaterializerRegistry>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IProductionPreparedOutputMaterializerRegistry>();
+        builder.Register<ProductionOutputMaximumMassRegistry>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IProductionOutputMaximumMassRegistry>()
+            .As<IProductionOutputMaximumMassCapabilitySelector>();
+        builder.Register<ProductionFacilityOutputCapacityBranchMassAuthority>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityOutputCapacityBranchMassQuery>();
+        builder.Register<GameplayEffectResultBoundsCatalog>(Lifetime.Singleton)
+            .As<IGameplayEffectResultBoundsQuery>();
+        builder.Register<CertifiedSeedFacilityOutputCapacityContributor>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityOutputCapacityContributor>();
+        builder.Register<ApparelFacilityOutputCapacityContributor>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityOutputCapacityContributor>();
+        builder.Register<CombatCraftFacilityOutputCapacityContributor>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityOutputCapacityContributor>();
+        builder.Register<
+                NaturalGoldenHarvestReachableMaximumWitnessContributor>(
+                Lifetime.Singleton)
+            .As<ICropHarvestReachableMaximumWitnessContributor>();
+        builder.Register<CropHarvestFacilityOutputCapacityContributor>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityOutputCapacityContributor>();
+        builder.Register<ProductionFacilityOutputCapacityContributorRegistry>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IProductionFacilityOutputCapacityContributorRegistry>();
+        builder.Register<CertifiedSeedCycleMaximumAuthority>(Lifetime.Singleton)
+            .As<ICertifiedSeedCycleMaximumQuery>();
+        builder.Register<CertifiedSeedSpecialThroughputContributor>(
+                Lifetime.Singleton)
+            .As<IProductionSpecialThroughputContributor>();
+        builder.Register<CropHarvestCycleMaximumAuthority>(Lifetime.Singleton)
+            .As<ICropHarvestCycleMaximumQuery>();
+        builder.Register<CropHarvestSpecialThroughputContributor>(
+                Lifetime.Singleton)
+            .As<IProductionSpecialThroughputContributor>();
+        builder.Register<ApparelCraftCycleMaximumAuthority>(Lifetime.Singleton)
+            .As<IApparelCraftCycleMaximumQuery>();
+        builder.Register<ApparelSpecialThroughputContributor>(
+                Lifetime.Singleton)
+            .As<IProductionSpecialThroughputContributor>();
+        builder.Register<CombatCraftCycleMaximumAuthority>(Lifetime.Singleton)
+            .As<ICombatCraftCycleMaximumQuery>();
+        builder.Register<CombatCraftSpecialThroughputContributor>(
+                Lifetime.Singleton)
+            .As<IProductionSpecialThroughputContributor>();
+        builder.Register<ProductionSpecialThroughputContributorRegistry>(
+                Lifetime.Singleton)
+            .AsSelf();
+        builder.Register<
+                ProductionResolvedOutputRestoreCapabilityValidatorRegistry>(
+                Lifetime.Singleton)
+            .As<IProductionResolvedOutputRestoreCapabilityValidatorRegistry>();
+        builder.Register<ProductionDomainOutputPublicationService>(
+                Lifetime.Singleton)
+            .As<IProductionDomainOutputPublicationService>();
+        builder.Register<ProductionDomainOutputRestoreJoin>(Lifetime.Singleton)
+            .As<IProductionDomainOutputRestoreJoin>();
         builder.Register<ProductionMaximumOutputFactorCatalog>(Lifetime.Singleton)
             .As<IProductionMaximumOutputFactorCatalog>();
+        builder.Register<ProductionPassiveBatchOutputPortfolioAuthority>(
+                Lifetime.Singleton)
+            .As<IProductionPassiveBatchOutputPortfolioQuery>();
+        builder.Register<ProductionRecipeThroughputBranchAuthority>(
+                Lifetime.Singleton)
+            .As<IProductionRecipeThroughputBranchQuery>();
+        builder.Register<ProductionFacilityDefinitionCatalog>(Lifetime.Singleton);
+        builder.Register<BuildingCraftsmanshipDefinitionMaximumQuery>(
+                Lifetime.Singleton)
+            .As<IBuildingCraftsmanshipDefinitionMaximumQuery>();
+        builder.Register<ProductionAutomationAssistedWorkDefinitionMaximumQuery>(
+                Lifetime.Singleton)
+            .As<IAutomationAssistedWorkDefinitionMaximumQuery>();
+        builder.Register<ProductionAutomaticWorkRateMaximumQuery>(
+                Lifetime.Singleton)
+            .As<IProductionAutomaticWorkRateMaximumQuery>();
+        builder.Register<ProductionWorkStatPolicyMaximumContributor>(
+                Lifetime.Singleton)
+            .As<IProductionRecipeWorkRateMaximumContributor>();
+        builder.Register<ProductionCharacterPerformanceMaximumContributor>(
+                Lifetime.Singleton)
+            .As<IProductionRecipeWorkRateMaximumContributor>();
+        builder.Register<ProductionCharacterWorkContextMaximumContributor>(
+                Lifetime.Singleton)
+            .As<IProductionRecipeWorkRateMaximumContributor>();
+        builder.Register<ProductionWorkEnvironmentMaximumContributor>(
+                Lifetime.Singleton)
+            .As<IProductionRecipeWorkRateMaximumContributor>();
+        builder.Register<ProductionCraftsmanshipMaximumContributor>(
+                Lifetime.Singleton)
+            .As<IProductionRecipeWorkRateMaximumContributor>();
+        builder.Register<ProductionFacilityEvolutionWorkRateMaximumContributor>(
+                Lifetime.Singleton)
+            .As<IProductionRecipeWorkRateMaximumContributor>();
+        builder.Register<ProductionAutomationAssistedWorkMaximumContributor>(
+                Lifetime.Singleton)
+            .As<IProductionRecipeWorkRateMaximumContributor>();
+        builder.RegisterInstance(
+            ProductionWorkRateContributorManifest.CreateCanonical());
+        builder.Register<ProductionRecipeWorkRateMaximumAuthority>(
+                Lifetime.Singleton)
+            .As<IProductionRecipeWorkRateMaximumQuery>()
+            .As<IProductionWorkRateMaximumQuery>();
         builder.Register<ProductionOutputDestinationAuthorityRuntime>(
                 Lifetime.Singleton)
             .As<IProductionOutputDestinationAuthorityRuntime>();
+        builder.Register<ProductionStockSensorDestinationAuthorityRuntime>(
+                Lifetime.Singleton)
+            .As<IProductionStockSensorDestinationAuthorityRuntime>();
         builder.Register<ProductionFacilityMutationEpochRuntime>(Lifetime.Singleton)
             .AsSelf();
+        builder.Register<ProductionActiveFacilityRetargetStateStore>(
+                Lifetime.Singleton)
+            .As<IProductionActiveFacilityRetargetStateStore>();
+        builder.Register<ProductionActiveMultiFacilityRetargetAdapter>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityRetargetAuthorityAdapter>();
+        builder.Register<ProductionPreparedRoutingIdentityRetargetAdapter>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityRetargetAuthorityAdapter>();
+        builder.Register<ProductionFacilityRetargetAuthorityParticipant>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityRetargetParticipant>();
+        builder.Register<ProductionFacilityEmptyLifecycleRetargetParticipant>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityRetargetParticipant>();
+        builder.Register<ProductionFacilityRetargetParticipantRegistry>(
+            Lifetime.Singleton);
+        builder.Register<ProductionFacilityRetargetTransaction>(Lifetime.Singleton)
+            .As<IProductionFacilityRetargetTransaction>();
         builder.Register<ProductionFacilityDestructiveDrainOpenOperationQuery>(
                 Lifetime.Singleton)
             .As<IProductionFacilityDestructiveDrainOpenOperationQuery>();
+        builder.Register<ProductionFacilityMutationAdmissionFenceSource>(
+                Lifetime.Singleton)
+            .As<IFacilityBufferDestinationAdmissionFenceSource>();
+        builder.Register<DurableFacilityEquipmentAdmissionFenceRegistry>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentAdmissionFenceCommand>()
+            .As<IFacilityBufferDestinationAdmissionFenceSource>();
+        builder.Register<FacilityBufferDestinationAdmissionFenceQuery>(
+                Lifetime.Singleton)
+            .As<IFacilityBufferDestinationAdmissionFenceQuery>();
+        builder.Register<ResearchArcaneIndexEquipmentPolicySource>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentPolicySource>()
+            .As<IResearchDurableEquipmentWorkPolicySource>();
+        builder.Register<CareerDurableEquipmentPolicySource>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentPolicySource>();
+        builder.Register<ReproductionDurableEquipmentPolicySource>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentPolicySource>();
+        builder.Register<ClimateDurableEquipmentPolicySource>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentPolicySource>();
+        builder.Register<RunAdministrativeSealDurableEquipmentPolicySource>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentPolicySource>();
+        builder.Register<InvasionSignalHornDurableEquipmentPolicySource>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentPolicySource>();
+        builder.Register<InvasionDefenseKitSupplyPolicySource>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentPolicySource>();
+        builder.Register<CircusPerformanceSupplyPolicySource>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentPolicySource>();
+        builder.Register<ResearchDurableEquipmentWorkPolicyRegistry>(
+                Lifetime.Singleton)
+            .As<IResearchDurableEquipmentWorkPolicyQuery>();
+        builder.RegisterEntryPoint<ResearchDurableEquipmentLifecycleRuntime>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveCaptureGuard>();
+        builder.RegisterEntryPoint<ClimateDurableEquipmentLifecycleRuntime>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveCaptureGuard>();
+        builder.RegisterEntryPoint<RunInvasionDurableEquipmentLifecycleRuntime>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveCaptureGuard>();
+        builder.RegisterEntryPoint<InvasionDefenseKitSupplyLifecycleRuntime>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveCaptureGuard>();
+        builder.RegisterEntryPoint<CircusPerformanceSupplyLifecycleRuntime>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveCaptureGuard>();
+        builder.Register<DurableFacilityEquipmentPolicyRegistry>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentPolicyQuery>();
+        builder.Register<DefinitionMassDurableFacilityEquipmentCapacityProjector>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentCapacityProjector>();
+        builder.Register<DurableFacilityEquipmentCapacityProjectionRegistry>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentCapacityProjectionQuery>();
+        builder.Register<PositiveDurabilityComponentUsabilityPolicy>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentUsabilityPolicy>();
+        builder.Register<CircusPerformanceSupplyUsabilityPolicy>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentUsabilityPolicy>();
+        builder.Register<InvasionDefenseKitSupplyUsabilityPolicy>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentUsabilityPolicy>();
+        builder.Register<DurableFacilityEquipmentUsabilityRegistry>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentUsabilityQuery>();
+        builder.Register<PositiveDurabilityComponentWearPolicy>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentWearPolicy>();
+        builder.Register<CircusPerformanceSupplyWearPolicy>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentWearPolicy>();
+        builder.Register<DurableFacilityEquipmentWearRegistry>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentWearQuery>();
+        builder.Register<DurableFacilityEquipmentPhysicalPort>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentPhysicalPort>()
+            .As<IDurableFacilityEquipmentComponentMutationPort>();
+        builder.Register<DurableFacilityEquipmentSlotRuntime>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentSlotCommand>()
+            .As<IDurableFacilityEquipmentSlotQuery>()
+            .As<IDurableFacilityEquipmentSlotPersistence>()
+            .As<IDurableFacilityEquipmentSlotCheckpointGcPort>()
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.Register<DurableFacilityEquipmentUseRuntime>(
+                Lifetime.Singleton)
+            .As<IDurableFacilityEquipmentUseCommand>();
+        builder.Register<RunAdministrativeSealDurableEquipmentRuntime>(
+            Lifetime.Singleton);
+        builder.Register<InvasionSignalHornDurableEquipmentRuntime>(
+            Lifetime.Singleton);
+        builder.Register<InvasionDefenseKitSupplyRuntime>(
+            Lifetime.Singleton);
+        builder.Register<DurableFacilityEquipmentRestoreProjection>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<DurableFacilityEquipmentSlotRecoveryRuntime>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveRestoreCompletedHook>()
+            .As<IDungeonSaveCaptureGuard>();
         builder.Register<ProductionFacilityMutationAuthorityGate>(
                 Lifetime.Singleton)
             .As<IProductionFacilityMutationEpochQuery>()
             .As<IProductionFacilityMutationEpochAuthority>();
-        builder.Register<ProductionOutputBufferCapacityProjector>(
+        builder.RegisterFactory<IProductionAssemblyBridge>(
+            resolver => () => resolver.Resolve<IProductionAssemblyBridge>(),
             Lifetime.Singleton);
+        builder.RegisterFactory<IProductionOutputMaximumMassRegistry>(
+            resolver => () => resolver.Resolve<
+                IProductionOutputMaximumMassRegistry>(),
+            Lifetime.Singleton);
+        builder.RegisterFactory<IProductionFacilityOutputCapacityContributorRegistry>(
+            resolver => () => resolver.Resolve<
+                IProductionFacilityOutputCapacityContributorRegistry>(),
+            Lifetime.Singleton);
+#if UNITY_EDITOR
+        if (ProductionOutputClearanceNaturalBootstrapProfileSource.IsRequested)
+        {
+            builder.Register<ProductionOutputClearanceNaturalBootstrapProfileSource>(
+                    Lifetime.Singleton)
+                .As<IProductionOutputClearanceProfileSource>();
+        }
+        else
+#endif
+        {
+            builder.Register<ProductionOutputClearanceProfileResourceSource>(
+                    Lifetime.Singleton)
+                .As<IProductionOutputClearanceProfileSource>();
+        }
+        builder.Register<ProductionOutputBufferCapacityProjector>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IProductionOutputBufferCapacityProjector>();
+        builder.Register<ProductionOutputDetachedFacilityCapacityRestoreGuard>(
+                Lifetime.Singleton)
+            .As<IProductionOutputDetachedFacilityCapacityRestoreGuard>()
+            .As<IProductionOutputDetachedFacilityCapacityProjectionQuery>();
         builder.Register<ProductionPreparedOutputRoutingAuthority>(
                 Lifetime.Singleton)
             .As<IProductionPreparedOutputRoutingAuthority>()
@@ -287,13 +617,23 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<ProductionPreparedOutputRoutingRestoreJoin>(
                 Lifetime.Singleton)
             .As<IProductionPreparedOutputRoutingRestoreJoin>();
+        builder.RegisterInstance(
+            ProductionMassExplanationCapabilityRegistry.CreateDefault());
         builder.Register<ProductionPreparedOutputExecutionAdapter>(
                 Lifetime.Singleton)
             .As<IProductionPreparedOutputExecutionPort>()
             .As<IProductionRuinedBatchExecutionPort>()
             .As<IDungeonRestoreTransactionParticipant>();
+        builder.Register<ProductionRecipeExecutionReceiptAuthority>(
+                Lifetime.Singleton)
+            .As<IProductionRecipeExecutionReceiptAuthority>()
+            .As<IProductionRecipeExecutionCorrelationCommand>()
+            .As<IProductionRecipeExecutionReceiptQuery>();
         builder.Register<ProductionPreparedOutputRestoreJoin>(Lifetime.Singleton)
             .As<IProductionPreparedOutputRestoreJoin>();
+        builder.Register<ProductionExactCapabilityOutputRestoreJoin>(
+                Lifetime.Singleton)
+            .As<IProductionExactCapabilityOutputRestoreJoin>();
         builder.Register<ProductionFacilityDestructiveDrainStartPreflight>(
                 Lifetime.Singleton)
             .As<IProductionFacilityDestructiveDrainStartPreflight>();
@@ -301,9 +641,10 @@ public static class DungeonWorldSimulationRegistration
             .As<IProductionCycleUtilityService>();
         builder.Register<ProductionInputLogisticsService>(Lifetime.Singleton)
             .As<IProductionInputLogisticsService>();
-        builder.Register<ProductionAssemblyBridgeAdapter>(Lifetime.Singleton)
-            .As<IProductionAssemblyBridge>()
+        builder.Register<ProductionFacilityHandleQueryAdapter>(Lifetime.Singleton)
             .As<IProductionFacilityHandleQuery>();
+        builder.Register<ProductionAssemblyBridgeAdapter>(Lifetime.Singleton)
+            .As<IProductionAssemblyBridge>();
         builder.Register<ProductionInputDestinationClaimRuntime>(Lifetime.Singleton)
             .As<IProductionInputDestinationClaimRuntime>();
         builder.Register<ProductionGenericBillTerminalDrainOutbox>(Lifetime.Singleton)
@@ -335,7 +676,8 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<ProductionOutputExecutionService>(Lifetime.Singleton)
             .As<IProductionOutputExecutionService>();
         builder.Register<ProductionStockSensorRuntime>(Lifetime.Singleton)
-            .As<IProductionStockSensorRuntime>();
+            .As<IProductionStockSensorRuntime>()
+            .As<IProductionStockSensorDestructiveDrainPort>();
         builder.Register<ProductionBillSnapshotProjector>(Lifetime.Singleton)
             .As<IProductionBillSnapshotProjector>();
         builder.RegisterEntryPoint<ProductionBillRuntime>(Lifetime.Singleton)
@@ -343,6 +685,7 @@ public static class DungeonWorldSimulationRegistration
             .As<IProductionFacilityDestructiveDrainPreparedOutputQuery>()
             .As<IProductionBillCoreOrderCommand>()
             .As<IProductionBillCoreWorkExecution>()
+            .As<IProductionBillDetachedFacilityPersistence>()
             .As<IProductionBillPersistence>();
         builder.Register<ProductionBillLifecycleContributor>(Lifetime.Singleton);
         builder.Register<CombatEquipmentCraftLifecycleContributor>(Lifetime.Singleton);
@@ -351,14 +694,96 @@ public static class DungeonWorldSimulationRegistration
             Lifetime.Singleton);
         builder.Register<ProductionOutputPhysicalLifecycleContributor>(
             Lifetime.Singleton);
+        builder.Register<ProductionStockSensorLifecycleContributor>(
+            Lifetime.Singleton);
         builder.Register<ProductionOutputDestinationLifecycleQuery>(Lifetime.Singleton)
             .As<IProductionOutputDestinationLifecycleQuery>();
+        builder.Register<ProductionPhysicalCustodyDrainService>(
+                Lifetime.Singleton)
+            .As<IProductionPhysicalCustodyDrainPort>();
+        builder.Register<ProductionApparelOrderTerminalDrainOutbox>(
+                Lifetime.Singleton)
+            .As<IProductionApparelOrderTerminalDrainQuery>()
+            .As<IProductionApparelOrderTerminalDrainCommand>();
+        builder.Register<CombatEquipmentCraftTerminalAuthority>(
+                Lifetime.Singleton)
+            .AsSelf();
+        builder.Register<CombatEquipmentRepairTerminalAuthority>(
+                Lifetime.Singleton)
+            .AsSelf();
+        builder.Register<CombatEquipmentTerminalSourceAuthorityRouter>(
+                Lifetime.Singleton)
+            .As<ICombatEquipmentTerminalSourceAuthority>();
+        builder.Register<CombatEquipmentTerminalDrainOutbox>(Lifetime.Singleton)
+            .As<ICombatEquipmentTerminalDrainQuery>()
+            .As<ICombatEquipmentTerminalDrainCommand>();
+        builder.Register<CombatEquipmentTerminalDrainSourceAdapter>(
+                Lifetime.Singleton)
+            .As<ICombatEquipmentTerminalFacilitySourceQuery>();
+        builder.Register<CombatEquipmentTerminalFacilityAdapter>(
+                Lifetime.Singleton)
+            .As<ICombatEquipmentTerminalFacilityQuery>();
+        builder.Register<ProductionApparelOrderTerminalDestructiveDrainParticipant>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainParticipant>()
+            .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<CombatEquipmentTerminalDestructiveDrainParticipant>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainParticipant>()
+            .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<ProductionGenericBillTerminalDestructiveDrainParticipant>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainParticipant>()
+            .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<ProductionCapacityRoutingDestructiveDrainParticipant>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainParticipant>()
+            .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<ProductionPhysicalCustodyDestructiveDrainParticipant>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainParticipant>()
+            .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<ProductionStockSensorDestructiveDrainParticipant>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainParticipant>()
+            .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<ProductionFacilityDestructiveDrainParticipantRegistry>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IProductionFacilityDestructiveDrainParticipantRegistry>();
+        builder.Register<ProductionFacilityDestructiveDrainJournal>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainJournalQuery>()
+            .As<IProductionFacilityDestructiveDrainJournalCommand>()
+            .As<IProductionFacilityDestructiveDrainPersistence>()
+            .As<IProductionFacilityDestructiveDrainCheckpointGcJournal>();
+        builder.Register<ProductionFacilityDestructiveDrainAuthorityStateQuery>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainAuthorityStateQuery>();
+        builder.Register<ProductionFacilityDestructiveDrainCoordinator>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainCoordinator>();
+        builder.Register<ProductionFacilityDestructiveDrainAuthorityRevoker>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainAuthorityRevoker>();
+        builder.Register<ProductionFacilityDestructiveDrainWorldRemovalPort>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainWorldRemovalPort>();
+        builder.RegisterEntryPoint<
+                ProductionFacilityDestructiveDrainRecoveryRuntime>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainRecoveryRuntime>()
+            .As<IDungeonSaveRestoreCompletedHook>()
+            .As<IDungeonSaveCaptureGuard>();
         builder.Register<ProductionFacilityMutationFence>(Lifetime.Singleton)
             .As<IProductionFacilityMutationFence>();
         builder.Register<ProductionBillSceneFacade>(Lifetime.Singleton)
             .As<IProductionBillQuery>()
             .As<IProductionBillOrderCommand>()
             .As<IProductionBillWorkExecution>();
+        builder.Register<EconomyProjectInputOwnerRuntime>(Lifetime.Singleton)
+            .As<IEconomyProjectInputOwnerPort>()
+            .As<IEconomyProjectInputOwnerRestoreRuntime>();
         builder.Register<GrandProjectApplicationAdapter>(Lifetime.Singleton)
             .As<IGrandProjectWorldPort>()
             .As<IGrandProjectOperationsPort>();
@@ -367,6 +792,10 @@ public static class DungeonWorldSimulationRegistration
             .As<IGrandProjectBenefitQuery>();
         builder.Register<ResourceStockPolicyLogisticsDependencies>(Lifetime.Singleton);
         builder.Register<ResourceStockPolicyProductionDependencies>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<QualityRejectedSaleDestinationAuthority>(
+                Lifetime.Singleton)
+            .As<IQualityRejectedSaleDestinationAuthority>()
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<ResourceStockPolicyRuntime>(
                 Lifetime.Singleton)
             .As<IResourceStockPolicyRuntime>();
@@ -408,6 +837,7 @@ public static class DungeonWorldSimulationRegistration
                 Lifetime.Singleton)
             .As<IIndustrialInfrastructureTopologyRuntime>();
         builder.Register<AutomationPowerDemandRegistry>(Lifetime.Singleton)
+            .As<IAutomationExecutionModeQuery>()
             .AsSelf();
         builder.RegisterEntryPoint<ElectricalNetworkRuntime>(
                 Lifetime.Singleton)
@@ -509,7 +939,12 @@ public static class DungeonWorldSimulationRegistration
             .As<IEnvironmentWorkPolicy>();
         builder.Register<EnvironmentalWorkwearProductionOutputHandler>(
                 Lifetime.Singleton)
-            .As<IProductionOutputHandler>();
+            .As<IProductionOutputHandler>()
+            .As<IProductionOutputCapability>();
+        builder.Register<
+                EnvironmentalWorkwearProductionOutputRestoreCapabilityValidator>(
+                Lifetime.Singleton)
+            .As<IProductionResolvedOutputRestoreCapabilityValidator>();
         builder.RegisterEntryPoint<IndustrialInfrastructureOverlayPresenter>(
                 Lifetime.Singleton)
             .As<IIndustrialInfrastructureOverlayService>();
@@ -536,9 +971,12 @@ public static class DungeonWorldSimulationRegistration
             .As<ICharacterDeprivationPersistence>();
         builder.Register<WorkOrderAggregateStateStore>(Lifetime.Singleton);
         builder.Register<WorkOrderExecutionServices>(Lifetime.Singleton);
+        builder.Register<WorkConstructionInputOwnerRuntime>(Lifetime.Singleton)
+            .As<IWorkConstructionInputOwnerRuntime>();
         builder.RegisterEntryPoint<WorkOrderRuntime>(Lifetime.Singleton)
             .As<IWorkOrderRuntime>()
             .As<IWorkOrderQuery>()
+            .As<IWorkOrderDestructiveDrainRetentionQuery>()
             .As<IWorkOrderWorkerPolicyQuery>()
             .As<IWorkOrderWorkerPolicyCommand>()
             .As<IQualityTargetPipelineQuery>()
@@ -568,8 +1006,16 @@ public static class DungeonWorldSimulationRegistration
             .As<IWorldResourceEnvironmentPort>();
         builder.Register<WorldResourceNodeHostPortAdapter>(Lifetime.Singleton)
             .As<IWorldResourceNodeHostPort>();
-        builder.Register<WorldResourceOutputPortAdapter>(Lifetime.Singleton)
-            .As<IWorldResourceOutputPort>();
+        builder.Register<BuiltInWorldResourceSourceBindingContributor>(
+                Lifetime.Singleton)
+            .As<IWorldResourceSourceBindingContributor>();
+        builder.Register<WorldResourceSourceBindingCatalog>(Lifetime.Singleton)
+            .As<IWorldResourceSourceBindingCatalog>();
+        builder.Register<WorldResourceOutputMaximumEnvelopeAuthority>(
+                Lifetime.Singleton)
+            .As<IWorldResourceOutputMaximumEnvelopeAuthority>();
+        builder.Register<WorldResourceOutputPublicationPortAdapter>(Lifetime.Singleton)
+            .As<IWorldResourceOutputPublicationPort>();
         builder.Register<WorldResourceResearchPortAdapter>(Lifetime.Singleton)
             .As<IWorldResourceResearchPort>();
         builder.Register<WorldResourceEnvironmentDependencies>(Lifetime.Singleton);
@@ -579,6 +1025,10 @@ public static class DungeonWorldSimulationRegistration
             .AsSelf()
             .As<IWorldResourceRuntime>()
             .As<IWorldResourcePersistence>();
+        builder.Register<CropCycleInputRequirementAuthority>(Lifetime.Singleton)
+            .As<ICropCycleInputRequirementQuery>();
+        builder.Register<CropPlotInputOwnerRuntime>(Lifetime.Singleton)
+            .As<ICropPlotInputOwnerRuntime>();
         builder.Register<CropPlotWorldDependencies>(Lifetime.Singleton);
         builder.Register<CropPlotSimulationDependencies>(Lifetime.Singleton);
         builder.Register<PhysicalSeedLotGateway>(Lifetime.Singleton)
@@ -586,12 +1036,21 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<CropEcologyRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICropEcologyService>()
+            .As<ICropEcologyHarvestTransactionService>()
             .As<ICropEcologyPersistence>()
             .As<IInitialCropSeedGrant>();
+        builder.Register<CertifiedSeedInputOwnerRuntime>(Lifetime.Singleton)
+            .As<ICertifiedSeedInputOwnerRuntime>();
         builder.Register<CertifiedSeedRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICertifiedSeedCommand>()
-            .As<ICertifiedSeedPersistence>();
+            .As<ICertifiedSeedExecutionReceiptQuery>()
+            .As<ICertifiedSeedPersistence>()
+            .As<ICertifiedSeedInputOwnerDescriptorSource>()
+            .As<IProductionDomainOutputRestoreOwnerSource>()
+            .As<IProductionDomainOutputFacilityLifecycleQuery>();
+        builder.Register<ProductionDomainOutputRestoreGuard>(Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<CropPhysicalRestoreGuard>(Lifetime.Singleton)
             .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<CertifiedSeedApplicationAdapter>(
@@ -600,7 +1059,12 @@ public static class DungeonWorldSimulationRegistration
         builder.RegisterEntryPoint<CropPlotRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICropPlotRuntime>()
-            .As<ICropPlotPersistence>();
+            .As<ICropPlotPersistence>()
+            .As<ICropCycleExecutionCorrelationCommand>()
+            .As<ICropPlanExecutionReceiptQuery>()
+            .As<ICropPlotInputOwnerDescriptorSource>()
+            .As<IProductionDomainOutputRestoreOwnerSource>()
+            .As<IProductionDomainOutputFacilityLifecycleQuery>();
         builder.Register<WildlifeCarcassService>(Lifetime.Singleton)
             .As<IWildlifeCarcassService>();
         builder.Register<WildlifeWorldServices>(Lifetime.Singleton);
@@ -640,6 +1104,13 @@ public static class DungeonWorldSimulationRegistration
             .As<ICharacterConsumablesInventoryPort>()
             .As<ICharacterConsumablesEventPort>()
             .As<ICharacterConsumablesWorkforcePort>();
+        builder.Register<CharacterConsumablesInputOwnerDescriptorSource>(
+                Lifetime.Singleton)
+            .As<ICharacterConsumablesInputOwnerDescriptorSource>();
+        builder.Register<CharacterConsumablesInputOwnerRuntime>(Lifetime.Singleton)
+            .As<ICharacterConsumablesInputOwnerRuntime>();
+        builder.RegisterEntryPoint<CharacterConsumablesInputOwnerLifecycleRuntime>(
+            Lifetime.Singleton);
         builder.Register<CharacterConsumablesRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICharacterConsumablesApplication>()
@@ -674,18 +1145,42 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<CaptivityCorruptionRitualHandler>(Lifetime.Singleton)
             .As<ICaptivityInteractionHandler>();
         builder.Register<CaptivityInteractionRegistry>(Lifetime.Singleton);
+        builder.Register<CaptivityInteractionMaterialMassCatalog>(
+                Lifetime.Singleton)
+            .As<ICaptivityInteractionMaterialMassCatalog>();
+        builder.Register<CaptivityInteractionMaterialRuntime>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<ICaptivityInteractionMaterialRuntime>();
         builder.Register<CaptivityCharacterContext>(Lifetime.Singleton);
         builder.Register<CaptivityWorldContext>(Lifetime.Singleton);
         builder.Register<CaptivitySessionContext>(Lifetime.Singleton);
+        builder.Register<CaptivityCareLaborInputOwnerRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<ICaptivityCareLaborInputOwnerRuntime>();
         builder.RegisterEntryPoint<CaptivityRuntime>(Lifetime.Singleton)
             .As<ICaptivityRuntime>()
+            .As<ICaptivityRestoreStateQuery>()
             .As<ICaptivityPersistence>()
             .As<ICaptiveLaborQuery>()
             .As<ICaptivityWorkReadinessQuery>()
             .As<ICaptivityCommandService>()
             .As<ICaptivityEscortRuntime>()
             .As<ICaptivityEscapeRuntime>()
+            .As<IMinionSettlementCommand>()
             .As<ICharacterCarePriorityQuery>()
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.RegisterEntryPoint<MinionSettlementSocialRuntime>(
+            Lifetime.Singleton);
+        builder.Register<CaptivityCareLaborInputOwnerRestoreParticipant>(
+                Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.Register<CaptivityInteractionMaterialLifecycleRuntime>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<ICaptivityInteractionMaterialRestoreAuthority>();
+        builder.Register<CaptivityInteractionMaterialRestoreParticipant>(
+                Lifetime.Singleton)
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<CaptivityRetaliationEffectsAdapter>(Lifetime.Singleton)
             .As<ICaptivityRetaliationEffectsPort>();
@@ -694,6 +1189,17 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<WildlifeCaptureWorldContext>(Lifetime.Singleton);
         builder.Register<WildlifeCaptureCareContext>(Lifetime.Singleton);
         builder.Register<WildlifeCaptureSessionContext>(Lifetime.Singleton);
+        builder.Register<WildlifeCareInputOwnerSource>(Lifetime.Singleton)
+            .As<IWildlifeCareInputOwnerSource>();
+        builder.Register<WildlifeCareInputOwnerRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IWildlifeCareInputOwnerRuntime>();
+        builder.RegisterEntryPoint<WildlifeCareInputOwnerLifecycleRuntime>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveCaptureGuard>();
+        builder.Register<WildlifeCareInputOwnerRestoreParticipant>(
+                Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<WildlifeCaptureRuntime>(Lifetime.Singleton)
             .As<IWildlifeCaptureRuntime>()
             .As<IWildlifeCaptureTransportRuntime>();
@@ -721,6 +1227,7 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<PublicCorruptionRitualCircusProgram>(Lifetime.Singleton)
             .As<ICircusProgramHandler>();
         builder.Register<CircusProgramRegistry>(Lifetime.Singleton);
+        builder.Register<CircusPerformanceSupplyRuntime>(Lifetime.Singleton);
         builder.Register<CircusProgramContext>(Lifetime.Singleton);
         builder.Register<CircusWorldContext>(Lifetime.Singleton);
         builder.Register<CircusCombatContext>(Lifetime.Singleton);

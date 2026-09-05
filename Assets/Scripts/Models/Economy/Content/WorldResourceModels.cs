@@ -14,7 +14,8 @@ public readonly struct WorldResourceWorkSnapshot
         float completedWork,
         float resourceRatio,
         bool available,
-        string unavailableReason)
+        string unavailableReason,
+        bool pendingOutputReady = false)
     {
         NodeId = nodeId ?? string.Empty;
         WorkTypeId = workTypeId;
@@ -25,6 +26,7 @@ public readonly struct WorldResourceWorkSnapshot
         ResourceRatio = Mathf.Clamp01(resourceRatio);
         Available = available;
         UnavailableReason = unavailableReason ?? string.Empty;
+        PendingOutputReady = pendingOutputReady;
     }
 
     public string NodeId { get; }
@@ -36,6 +38,7 @@ public readonly struct WorldResourceWorkSnapshot
     public float ResourceRatio { get; }
     public bool Available { get; }
     public string UnavailableReason { get; }
+    public bool PendingOutputReady { get; }
 }
 
 public interface IWorldResourceRuntime
@@ -55,6 +58,11 @@ public interface IWorldResourceRuntime
         float amount,
         out bool cycleCompleted);
 
+    bool TryFinalizePendingOutput(
+        WorldResourceNode node,
+        WorkTypeId workTypeId,
+        out bool cycleCompleted);
+
 }
 
 [Serializable]
@@ -65,6 +73,8 @@ public sealed class WorldResourceSourceSaveData
     public string recipeId = string.Empty;
     public float completedWork;
     public int remainingCycles;
+    public int completedCycleSequence;
+    public WorldResourcePendingOutputSaveData pendingOutput = new();
 }
 
 [Serializable]
@@ -82,7 +92,7 @@ public sealed class WorldResourceNodeSaveData
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonWorldResourceSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 4;
 
     public int version = CurrentVersion;
     public List<WorldResourceNodeSaveData> nodes =

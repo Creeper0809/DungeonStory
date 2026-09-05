@@ -1,0 +1,431 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,m_Name,culture_adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,stableId,culture:adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,displayName,개척자 연맹 문화,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,description,서로 다른 고향의 규칙을 원정대식 실용주의로 엮는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,authoringRevision,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,defaultSpeciesId,Adventurer,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,preferredItemIds.0,food:preserved-ration,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,forbiddenItemIds.0,food:raw-monster-meat,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,preferredFacilityIds,[],,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,environmentalPreferences.0,lit communal rooms,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,roomPreference.preferredRoles,5,FacilityRole,Meal | Rest,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,roomPreference.idealTemperatureC,20,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,roomPreference.temperatureToleranceC,10,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,roomPreference.minimumVentilation,45,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,roomPreference.minimumLighting,55,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,roomPreference.maximumLighting,100,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,roomPreference.minimumCleanliness,40,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,roomPreference.prefersSharedSpace,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,etiquetteRules.0,전리품은 귀환자 전원이 확인한 뒤 나눈다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,ceremonyIds.0,practice:adventurer-return-table,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,ceremonyIds.1,practice:adventurer-name-token,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.0.id,culture:beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.0.weight,0.88,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.1.id,culture:demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.1.weight,0.91,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.2.id,culture:golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.2.weight,0.94,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.3.id,culture:harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.3.weight,0.97,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.4.id,culture:kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.4.weight,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.5.id,culture:myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.5.weight,1.03,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.6.id,culture:orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.6.weight,1.06,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.7.id,culture:slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.7.weight,1.09,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.8.id,culture:vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,otherCultureAttitudes.8.weight,1.12,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,assimilationDays,120,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,preferredRoles,0,FacilityRole,None,implicit-csharp-default
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,m_Name,culture_beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,stableId,culture:beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,displayName,무리의 화로 문화,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,description,식사와 휴식을 무리 단위로 공유하고 홀로 남는 이를 먼저 챙긴다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,authoringRevision,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,defaultSpeciesId,Beastkin,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,preferredItemIds.0,resource:meat,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,forbiddenItemIds.0,medicine:strong-perfume,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,preferredFacilityIds,[],,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,environmentalPreferences.0,warm shared quarters,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.preferredRoles,5,FacilityRole,Meal | Rest,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.idealTemperatureC,24,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.temperatureToleranceC,8,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.minimumVentilation,35,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.minimumLighting,20,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.maximumLighting,80,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.minimumCleanliness,30,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.prefersSharedSpace,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,etiquetteRules.0,상대의 냄새표식을 허락 없이 지우지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,ceremonyIds.0,practice:beastkin-pack-meal,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,ceremonyIds.1,practice:beastkin-scent-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.0.weight,0.92,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.1.id,culture:demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.1.weight,0.98,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.2.id,culture:golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.2.weight,1.01,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.3.id,culture:harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.3.weight,1.04,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.4.id,culture:kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.4.weight,1.07,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.5.id,culture:myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.5.weight,1.1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.6.id,culture:orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.6.weight,1.13,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.7.id,culture:slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.7.weight,0.85,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.8.id,culture:vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.8.weight,0.88,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,assimilationDays,120,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,preferredRoles,0,FacilityRole,None,implicit-csharp-default
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,m_Name,culture_demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,stableId,culture:demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,displayName,재의 계약 문화,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,description,말보다 기록된 약속을 중시하고 결연과 장례에 계약 소각을 쓴다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,authoringRevision,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,defaultSpeciesId,Demon,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,preferredItemIds.0,food:spiced-stew,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,forbiddenItemIds.0,item:unsealed-oath,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,preferredFacilityIds,[],,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,environmentalPreferences.0,warm dry rooms,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.preferredRoles,544,FacilityRole,Mana | Administration,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.idealTemperatureC,27,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.temperatureToleranceC,8,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.minimumVentilation,35,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.minimumLighting,20,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.maximumLighting,70,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.minimumCleanliness,40,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.prefersSharedSpace,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.prefersPrivateSpace,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,etiquetteRules.0,세 번 확인한 약속은 공개적으로 번복하지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,ceremonyIds.0,practice:demon-oath-embers,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,ceremonyIds.1,practice:demon-third-bell,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.0.weight,0.99,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.1.id,culture:beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.1.weight,1.02,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.2.id,culture:golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.2.weight,1.08,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.3.id,culture:harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.3.weight,1.11,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.4.id,culture:kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.4.weight,1.14,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.5.id,culture:myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.5.weight,0.86,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.6.id,culture:orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.6.weight,0.89,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.7.id,culture:slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.7.weight,0.92,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.8.id,culture:vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.8.weight,0.95,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,assimilationDays,120,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,preferredRoles,0,FacilityRole,None,implicit-csharp-default
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,m_Name,culture_golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,stableId,culture:golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,displayName,핵 공명 문화,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,description,침묵의 정비와 기억 기록을 휴식으로 여기며 핵의 이력을 존중한다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,authoringRevision,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,defaultSpeciesId,Golem,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,preferredItemIds.0,tool:maintenance-kit,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,forbiddenItemIds.0,resource:corrosive-slurry,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,preferredFacilityIds,[],,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,environmentalPreferences.0,dry rune-powered alcoves,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.preferredRoles,96,FacilityRole,Mana | Logistics,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.idealTemperatureC,18,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.temperatureToleranceC,15,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.minimumVentilation,50,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.minimumLighting,30,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.maximumLighting,90,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.minimumCleanliness,60,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.prefersSharedSpace,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.prefersPrivateSpace,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,etiquetteRules.0,다른 골렘의 핵각인을 허락 없이 읽지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,ceremonyIds.0,practice:golem-core-polish,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,ceremonyIds.1,practice:golem-memory-plaque,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.0.weight,1.06,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.1.id,culture:beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.1.weight,1.09,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.2.id,culture:demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.2.weight,1.12,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.3.id,culture:harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.3.weight,0.87,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.4.id,culture:kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.4.weight,0.9,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.5.id,culture:myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.5.weight,0.93,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.6.id,culture:orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.6.weight,0.96,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.7.id,culture:slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.7.weight,0.99,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.8.id,culture:vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.8.weight,1.02,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,assimilationDays,120,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,preferredRoles,0,FacilityRole,None,implicit-csharp-default
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,m_Name,culture_harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,stableId,culture:harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,displayName,높은 둥지 문화,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,description,높은 공간과 바람길을 선호하며 소식과 노래를 공동 자산으로 여긴다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,authoringRevision,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,defaultSpeciesId,Harpy,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,preferredItemIds.0,food:dried-fruit,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,forbiddenItemIds.0,food:heavy-oil-stew,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,preferredFacilityIds,[],,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,environmentalPreferences.0,high airy rooms,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.preferredRoles,4,FacilityRole,Rest,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.idealTemperatureC,18,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.temperatureToleranceC,10,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.minimumVentilation,70,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.minimumLighting,50,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.maximumLighting,100,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.minimumCleanliness,35,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.prefersSharedSpace,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,etiquetteRules.0,노래 중간에 말을 끊는 것은 공개적인 도전이다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,ceremonyIds.0,practice:harpy-dawn-chorus,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,ceremonyIds.1,practice:harpy-first-flight,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.0.weight,1.13,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.1.id,culture:beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.1.weight,0.85,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.2.id,culture:demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.2.weight,0.88,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.3.id,culture:golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.3.weight,0.91,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.4.id,culture:kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.4.weight,0.97,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.5.id,culture:myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.5.weight,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.6.id,culture:orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.6.weight,1.03,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.7.id,culture:slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.7.weight,1.06,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.8.id,culture:vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.8.weight,1.09,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,assimilationDays,120,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,preferredRoles,0,FacilityRole,None,implicit-csharp-default
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,m_Name,culture_kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,stableId,culture:kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,displayName,도구씨족 문화,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,description,잘 관리된 도구를 가계의 증거로 여기며 작은 성취도 씨족 앞에서 기록한다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,authoringRevision,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,defaultSpeciesId,Kobold,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,preferredItemIds.0,food:mushroom-stew,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,forbiddenItemIds.0,item:broken-tool,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,preferredFacilityIds,[],,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,environmentalPreferences.0,compact warm workshops,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.preferredRoles,72,FacilityRole,Training | Logistics,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.idealTemperatureC,24,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.temperatureToleranceC,7,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.minimumVentilation,50,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.minimumLighting,45,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.maximumLighting,100,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.minimumCleanliness,40,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.prefersSharedSpace,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,etiquetteRules.0,도구를 빌릴 때는 돌려줄 상태를 먼저 약속한다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,ceremonyIds.0,practice:kobold-tool-naming,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,ceremonyIds.1,practice:kobold-bench-feast,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.0.weight,0.89,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.1.id,culture:beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.1.weight,0.92,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.2.id,culture:demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.2.weight,0.95,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.3.id,culture:golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.3.weight,0.98,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.4.id,culture:harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.4.weight,1.01,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.5.id,culture:myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.5.weight,1.07,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.6.id,culture:orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.6.weight,1.1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.7.id,culture:slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.7.weight,1.13,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.8.id,culture:vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.8.weight,0.85,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,assimilationDays,120,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,preferredRoles,0,FacilityRole,None,implicit-csharp-default
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,m_Name,culture_myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,stableId,culture:myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,displayName,포자정원 문화,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,description,대화와 기억을 향과 포자 리듬으로 나누며 습한 공동 정원을 지킨다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,authoringRevision,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,defaultSpeciesId,Myconid,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,preferredItemIds.0,resource:cave-mushroom,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,forbiddenItemIds.0,supply:fungicide,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,preferredFacilityIds,[],,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,environmentalPreferences.0,humid dim gardens,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,roomPreference.preferredRoles,5,FacilityRole,Meal | Rest,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,roomPreference.idealTemperatureC,20,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,roomPreference.temperatureToleranceC,5,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,roomPreference.minimumVentilation,45,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,roomPreference.minimumLighting,5,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,roomPreference.maximumLighting,35,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,roomPreference.minimumCleanliness,40,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,roomPreference.prefersSharedSpace,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,etiquetteRules.0,타인의 포자권에 불꽃을 들이지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,ceremonyIds.0,practice:myconid-shared-mist,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,ceremonyIds.1,practice:myconid-spore-return,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.0.weight,0.96,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.1.id,culture:beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.1.weight,0.99,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.2.id,culture:demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.2.weight,1.02,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.3.id,culture:golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.3.weight,1.05,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.4.id,culture:harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.4.weight,1.08,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.5.id,culture:kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.5.weight,1.11,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.6.id,culture:orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.6.weight,0.86,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.7.id,culture:slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.7.weight,0.89,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.8.id,culture:vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,otherCultureAttitudes.8.weight,0.92,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,assimilationDays,120,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:myconid-grove,culture:myconid-grove,preferredRoles,0,FacilityRole,None,implicit-csharp-default
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,m_Name,culture_orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,stableId,culture:orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,displayName,무기 철야 문화,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,description,행동으로 신뢰를 증명하며 잔치와 철야에서 공동체의 빚을 기억한다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,authoringRevision,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,defaultSpeciesId,Orc,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,preferredItemIds.0,food:salted-meat-stew,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,forbiddenItemIds.0,food:tiny-portion,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,preferredFacilityIds,[],,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,environmentalPreferences.0,robust communal halls,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.preferredRoles,9,FacilityRole,Meal | Training,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.idealTemperatureC,20,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.temperatureToleranceC,10,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.minimumVentilation,40,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.minimumLighting,25,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.maximumLighting,85,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.minimumCleanliness,30,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.prefersSharedSpace,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,etiquetteRules.0,무기를 내려놓고 한 약속은 결투로 뒤집지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,ceremonyIds.0,practice:orc-weapon-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,ceremonyIds.1,practice:orc-shared-cauldron,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.0.weight,1.03,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.1.id,culture:beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.1.weight,1.06,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.2.id,culture:demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.2.weight,1.09,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.3.id,culture:golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.3.weight,1.12,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.4.id,culture:harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.4.weight,1.15,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.5.id,culture:kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.5.weight,0.87,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.6.id,culture:myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.6.weight,0.9,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.7.id,culture:slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.7.weight,0.96,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.8.id,culture:vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.8.weight,0.99,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,assimilationDays,120,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,preferredRoles,0,FacilityRole,None,implicit-csharp-default
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,m_Name,culture_slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,stableId,culture:slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,displayName,합류수 문화,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,description,몸의 일부와 기억을 나누는 것을 친밀함으로 여기되 핵의 경계는 엄격히 지킨다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,authoringRevision,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,defaultSpeciesId,Slime,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,preferredItemIds.0,resource:clean-water,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,forbiddenItemIds.0,resource:salt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,preferredFacilityIds,[],,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,environmentalPreferences.0,clean humid pools,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,roomPreference.preferredRoles,260,FacilityRole,Rest | Hygiene,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,roomPreference.idealTemperatureC,22,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,roomPreference.temperatureToleranceC,5,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,roomPreference.minimumVentilation,40,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,roomPreference.minimumLighting,20,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,roomPreference.maximumLighting,70,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,roomPreference.minimumCleanliness,70,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,roomPreference.prefersSharedSpace,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,etiquetteRules.0,상대 핵에 닿기 전 반드시 색 변화로 동의를 구한다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,ceremonyIds.0,practice:slime-clear-water,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,ceremonyIds.1,practice:slime-core-ring,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.0.weight,1.1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.1.id,culture:beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.1.weight,1.13,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.2.id,culture:demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.2.weight,0.85,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.3.id,culture:golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.3.weight,0.88,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.4.id,culture:harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.4.weight,0.91,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.5.id,culture:kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.5.weight,0.94,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.6.id,culture:myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.6.weight,0.97,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.7.id,culture:orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.7.weight,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.8.id,culture:vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,otherCultureAttitudes.8.weight,1.06,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,assimilationDays,120,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,preferredRoles,0,FacilityRole,None,implicit-csharp-default
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,m_Name,culture_vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,stableId,culture:vampire-nightcourt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,displayName,밤궁정 문화,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,description,절제된 환대와 혈액 제공의 동의를 체면보다 중요한 규칙으로 삼는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,authoringRevision,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,defaultSpeciesId,Vampire,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,preferredItemIds.0,food:blood-reserve,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,forbiddenItemIds.0,food:garlic-tonic,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,preferredFacilityIds,[],,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,environmentalPreferences.0,dark private chambers,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.preferredRoles,516,FacilityRole,Rest | Administration,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.idealTemperatureC,18,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.temperatureToleranceC,7,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.minimumVentilation,40,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.minimumLighting,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.maximumLighting,30,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.minimumCleanliness,55,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.prefersSharedSpace,0,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.prefersPrivateSpace,1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,etiquetteRules.0,혈액과 개인 서사는 명시적 허락 없이 거래하지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,ceremonyIds.0,practice:vampire-consent-cup,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,ceremonyIds.1,practice:vampire-incense-memory,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.0.weight,0.86,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.1.id,culture:beastkin-pack,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.1.weight,0.89,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.2.id,culture:demon-contract,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.2.weight,0.92,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.3.id,culture:golem-core,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.3.weight,0.95,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.4.id,culture:harpy-aerie,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.4.weight,0.98,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.5.id,culture:kobold-toolclan,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.5.weight,1.01,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.6.id,culture:myconid-grove,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.6.weight,1.04,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.7.id,culture:orc-vigil,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.7.weight,1.07,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.8.id,culture:slime-confluence,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.8.weight,1.1,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,assimilationDays,120,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,preferredRoles,0,FacilityRole,None,implicit-csharp-default

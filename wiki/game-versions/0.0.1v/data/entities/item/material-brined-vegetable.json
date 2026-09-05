@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "20"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "염지 채소는 오래 보관하거나 다음 조리를 빠르게 시작하도록 미리 손질한 식재료다. 특히 사르베니아 내해산 염지 채소는 밀로세아 가도를 오래 지나도 상하지 않도록 작은 포대로 나뉜다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-brined-vegetable",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "염지 채소"
+}

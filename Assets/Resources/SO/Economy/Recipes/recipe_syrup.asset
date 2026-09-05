@@ -53,6 +53,10 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=MoistureEvaporation|reason=syrup-reduction-evaporation-residue|physicalByproduct=false
   inputs:
   - itemId: resource:night-grape
     amount: 3

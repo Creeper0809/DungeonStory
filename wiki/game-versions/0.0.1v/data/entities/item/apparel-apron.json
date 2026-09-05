@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.42kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "옷자락 앞을 덮어 음식물과 작업 찌꺼기가 안쪽 옷에 닿는 것을 줄인다. 크릭 제7굴에서 만든 앞치마는 광석 가루와 불티가 옷 안으로 스미지 않도록 앞섶을 두껍게 짠다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-apron",
+  "spoiler_tier": "none",
+  "summary": "앞치마 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "앞치마"
+}

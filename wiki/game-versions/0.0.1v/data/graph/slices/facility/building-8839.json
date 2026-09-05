@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8839",
+    "spoiler_tier": "none",
+    "title": "관절 지그"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-articulated-plate",
+      "label": "시설 해금",
+      "to": "facility/building-8839",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

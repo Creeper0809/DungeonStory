@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.95kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "20"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "경화 가죽은 의복, 끈과 가벼운 방어구에 맞게 손질한 가죽 재료다. 라카쉬 세갈래길에서는 경화 가죽 가장자리에 굽힘 등급을 나타내는 짧은 칼집을 내어 방어구용과 끈용을 구분한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-hardened-leather",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 경화 가죽.",
+  "title": "경화 가죽"
+}

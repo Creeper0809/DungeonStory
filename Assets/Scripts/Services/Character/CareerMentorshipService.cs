@@ -30,13 +30,15 @@ public sealed class CareerMentorshipService : ICareerMentorshipService
     private readonly IBuildingWorldQuery buildings;
     private readonly ICharacterProficiencyQuery proficiencies;
     private readonly IGameCalendar calendar;
+    private readonly ICharacterSettlementStandingQuery settlementStandings;
 
     public CareerMentorshipService(
         ICareerService careers,
         ICharacterWorldQuery characters,
         IBuildingWorldQuery buildings,
         ICharacterProficiencyQuery proficiencies,
-        IGameCalendar calendar)
+        IGameCalendar calendar,
+        ICharacterSettlementStandingQuery settlementStandings = null)
     {
         this.careers = careers ?? throw new ArgumentNullException(nameof(careers));
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
@@ -44,6 +46,7 @@ public sealed class CareerMentorshipService : ICareerMentorshipService
         this.proficiencies = proficiencies
             ?? throw new ArgumentNullException(nameof(proficiencies));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.settlementStandings = settlementStandings;
     }
 
     public void Assign(
@@ -101,6 +104,16 @@ public sealed class CareerMentorshipService : ICareerMentorshipService
         if (mentor == null || student == null)
         {
             failureReason = "멘토와 학생은 살아 있고 현재 던전에 있어야 합니다.";
+            return false;
+        }
+        if (settlementStandings != null
+            && (!settlementStandings.CanParticipateInMentoring(
+                    mentor,
+                    out failureReason)
+                || !settlementStandings.CanParticipateInMentoring(
+                    student,
+                    out failureReason)))
+        {
             return false;
         }
         if (mentorCharacterId.Equals(studentCharacterId))

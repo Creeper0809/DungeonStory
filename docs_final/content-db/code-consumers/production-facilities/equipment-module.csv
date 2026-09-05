@@ -1,0 +1,10 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+EquipmentModuleDefinitionSO,content-type,,type-reference,models:combat,runtime,structural-type-consumer,Assets/Scripts/Models/Combat/Core/EmptyCombatEquipmentCapabilities.cs
+EquipmentModuleDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentRuntime.cs
+EquipmentModuleDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentRuntimeContracts.cs
+EquipmentModuleDefinitionSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentStatProjector.cs
+EquipmentModuleDefinitionSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/EquipmentExpeditionRewardService.cs
+EquipmentModuleDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs
+EquipmentModuleDefinitionSO,content-type,,type-reference,services:combat,content-loading,structural-type-consumer,Assets/Scripts/Services/Combat/ResourceEquipmentModuleCatalog.cs
+EquipmentModuleDefinitionSO,content-type,,type-reference,services:effects,persistence,structural-type-consumer,Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs
+EquipmentModuleDefinitionSO,content-type,,type-reference; save-restore-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/EquipmentProgressionCommandPanel.cs

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-blood-drain",
+    "spoiler_tier": "none",
+    "title": "혈액 흡수"
+  },
+  "edges": [],
+  "schema_version": 1
+}

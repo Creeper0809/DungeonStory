@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-demon-2",
+  "spoiler_tier": "warning",
+  "summary": "주인의 죽음으로 서명 없는 채무가 여러 가구에 흩어진다.",
+  "title": "서명 없는 채무"
+}

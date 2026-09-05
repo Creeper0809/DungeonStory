@@ -6,6 +6,7 @@ using UnityEngine;
 
 public interface IProductionItemGateway
 {
+    bool TryGetStockCategory(string itemId, out StockCategory category);
     int CountDelivered(string itemId, string destinationId);
     int CountPending(string itemId, string destinationId);
     long CountPendingMassGrams(string destinationId);
@@ -207,6 +208,23 @@ public sealed class ProductionItemGateway :
             destinationId,
             itemId);
         return checked(worldQuantity + carriedQuantity);
+    }
+
+    public bool TryGetStockCategory(
+        string itemId,
+        out StockCategory category)
+    {
+        category = default;
+        if (string.IsNullOrWhiteSpace(itemId)
+            || !string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal)
+            || !itemCatalog.TryGetDefinition(
+                itemId,
+                out DungeonItemDefinition definition))
+        {
+            return false;
+        }
+        category = definition.StockCategory;
+        return true;
     }
 
     public long CountPendingMassGrams(string destinationId)

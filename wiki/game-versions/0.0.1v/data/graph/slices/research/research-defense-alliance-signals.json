@@ -1,0 +1,102 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-defense-alliance-signals",
+    "spoiler_tier": "none",
+    "title": "동맹 신호학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-secure-trade",
+      "target_spoiler_tier": "none",
+      "target_title": "상권 통합",
+      "to": "research/research-commerce-secure-trade",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-secure-trade",
+      "target_spoiler_tier": "none",
+      "target_title": "상권 통합",
+      "to": "research/research-commerce-secure-trade",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-secure-trade",
+      "target_spoiler_tier": "none",
+      "target_title": "상권 통합",
+      "to": "research/research-commerce-secure-trade",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-siege-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "공성 요새화",
+      "to": "research/research-defense-siege-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-siege-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "공성 요새화",
+      "to": "research/research-defense-siege-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-siege-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "공성 요새화",
+      "to": "research/research-defense-siege-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8812",
+      "target_spoiler_tier": "none",
+      "target_title": "동맹 신호기",
+      "to": "facility/building-8812",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-signal-flare",
+      "label": "필요 조건",
+      "to": "research/research-defense-alliance-signals",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-alliance-signal-kit",
+      "label": "필요 조건",
+      "to": "research/research-defense-alliance-signals",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

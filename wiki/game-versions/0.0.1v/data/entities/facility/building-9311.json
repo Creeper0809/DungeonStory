@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "제작"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-9311",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 생산 작업대이다. 건설에는 작업량 249, 재료 목재×6, 철괴×3이 필요하다.",
+  "title": "수동 방적기"
+}

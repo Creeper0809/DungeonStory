@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-twilight-beer",
+    "spoiler_tier": "none",
+    "title": "황혼 맥주 발효"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-twilight-beer",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-twilight-beer",
+      "target_spoiler_tier": "none",
+      "target_title": "황혼 맥주",
+      "to": "item/food-twilight-beer",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-twilight-beer",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-fermented-liquor",
+      "target_spoiler_tier": "none",
+      "target_title": "발효액",
+      "to": "item/material-fermented-liquor",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-twilight-beer",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

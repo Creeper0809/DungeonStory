@@ -60,7 +60,8 @@ public sealed class GameplayEffectDefinitionSO : ScriptableObject
             errors.Add($"Gameplay effect '{EffectId}' requires a target id.");
         if (AllowedSources == GameplayEffectSourceKind.None)
             errors.Add($"Gameplay effect '{EffectId}' requires an allowed source.");
-        if (float.IsNaN(MinimumResult) || float.IsNaN(MaximumResult)
+        if (float.IsNaN(MinimumResult) || float.IsInfinity(MinimumResult)
+            || float.IsNaN(MaximumResult) || float.IsInfinity(MaximumResult)
             || MinimumResult > MaximumResult)
             errors.Add($"Gameplay effect '{EffectId}' has invalid result bounds.");
         return errors;

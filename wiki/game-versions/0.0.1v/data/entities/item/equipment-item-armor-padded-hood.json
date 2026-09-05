@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "137"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "천과 충전재를 여러 겹 누벼 머리와 목의 충격을 줄이는 두건이다. 라카쉬 세갈래길의 수선공은 누비 두건을 새 주인에게 맞추되 오래된 이름은 안감 아래 남겨 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-padded-hood",
+  "spoiler_tier": "none",
+  "summary": "누비 두건 전투 장비",
+  "title": "누비 두건"
+}

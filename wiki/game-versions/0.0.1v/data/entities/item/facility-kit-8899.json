@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "420"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "방어 시설의 작동 상태와 장전 여부를 확인하고 명령을 내리는 제어반 설치 부품이다. 크릭 제7굴의 방어 제어반에서 처음 나온 근접 장비에는 대장보다 도제의 이름이 먼저 붙는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-8899",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "방어 제어반 설치 키트"
+}

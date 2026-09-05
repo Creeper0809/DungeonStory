@@ -9,8 +9,8 @@ public sealed class WildlifeEcosystemRestoreCandidate
         IWildlifeGridPort grid,
         float recentHuntPressure,
         float recentPredationPressure,
-        float nextGlobalRespawnAt,
-        Dictionary<string, float> speciesRespawnAt,
+        double nextGlobalRespawnAt,
+        Dictionary<string, double> speciesRespawnAt,
         List<WildlifeHabitatPatch> patches)
     {
         Grid = grid ?? throw new ArgumentNullException(nameof(grid));
@@ -25,8 +25,8 @@ public sealed class WildlifeEcosystemRestoreCandidate
     internal IWildlifeGridPort Grid { get; }
     internal float RecentHuntPressure { get; }
     internal float RecentPredationPressure { get; }
-    internal float NextGlobalRespawnAt { get; }
-    internal Dictionary<string, float> SpeciesRespawnAt { get; }
+    internal double NextGlobalRespawnAt { get; }
+    internal Dictionary<string, double> SpeciesRespawnAt { get; }
     internal List<WildlifeHabitatPatch> Patches { get; }
 }
 

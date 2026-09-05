@@ -211,15 +211,6 @@ public sealed class RegionalSupplyContractApplicationAdapter :
         out string failureReason) =>
         transferGateway.Acknowledge(commitId, out failureReason);
 
-    public int ReleaseDestination(
-        string destinationId,
-        Vector2Int releasePosition)
-    {
-        return itemRuntime.ReleaseStacksByDestination(
-            destinationId,
-            releasePosition);
-    }
-
     public void PrioritizeDestination(string destinationId)
     {
         foreach (WorldItemStackSnapshot stack in itemRuntime.GetAllStacks())

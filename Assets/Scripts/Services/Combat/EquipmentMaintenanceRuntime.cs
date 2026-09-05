@@ -285,7 +285,7 @@ public sealed class EquipmentMaintenancePolicyRuntime :
     private readonly IFacilityBufferDestinationLifecycleCommand destinationLifecycle;
     private readonly IFacilityBufferMassCapacityAuthorityQuery destinationCapacities;
     private readonly ICharacterAiWorldRegistry worldRegistry;
-    private readonly IDefenseEngagementRuntime defenseRuntime;
+    private readonly IDefenseEngagementStore defenseEngagements;
     private readonly IGameClock gameClock;
     private readonly IUiClock uiClock;
     private readonly EquipmentMaintenanceItemServices itemServices;
@@ -338,7 +338,7 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         destinationLifecycle = itemServices.DestinationLifecycle;
         destinationCapacities = itemServices.DestinationCapacities;
         worldRegistry = worldServices.WorldRegistry;
-        defenseRuntime = worldServices.DefenseRuntime;
+        defenseEngagements = worldServices.DefenseEngagements;
         gameClock = clocks.GameClock;
         uiClock = clocks.UiClock;
     }
@@ -1765,7 +1765,7 @@ public sealed class EquipmentMaintenancePolicyRuntime :
 
     private bool IsDefenseActive()
     {
-        return defenseRuntime.ActiveEngagements.Any(item =>
+        return defenseEngagements.Engagements.Any(item =>
             item != null && item.IsActive) == true;
     }
 

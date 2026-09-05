@@ -59,6 +59,7 @@ internal sealed class ElectricalNetworkRuntime :
         "power-generator-fuel-combustion";
 
     private readonly IIndustrialInfrastructureTopologyRuntime topologyRuntime;
+    private readonly IGridSystemProvider gridSystemProvider;
     private readonly IGameClock clock;
     private readonly IWorldItemStackRuntime items;
     private readonly IPhysicalFacilityItemSinkGateway physicalFuel;
@@ -82,6 +83,10 @@ internal sealed class ElectricalNetworkRuntime :
     private int topologyVersion = int.MinValue;
     private int automationPowerVersion = int.MinValue;
     private int projectedRestoreRevision;
+    private Grid projectedGrid;
+    private int projectedGridStructuralVersion = int.MinValue;
+    private IndustrialNodeDescriptor[] projectedLivePowerNodes =
+        Array.Empty<IndustrialNodeDescriptor>();
 
     private ElectricalNetworkAggregateState State =>
         aggregateRootStore.GetOrCreateWritable(
@@ -92,6 +97,7 @@ internal sealed class ElectricalNetworkRuntime :
 
     public ElectricalNetworkRuntime(
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
+        IGridSystemProvider gridSystemProvider,
         IGameClock clock,
         IWorldItemStackRuntime items,
         IPhysicalFacilityItemSinkGateway physicalFuel,
@@ -104,6 +110,8 @@ internal sealed class ElectricalNetworkRuntime :
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
+        this.gridSystemProvider = gridSystemProvider
+            ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.physicalFuel = physicalFuel
@@ -156,6 +164,7 @@ internal sealed class ElectricalNetworkRuntime :
 
     public bool IsPowered(BuildableObject building)
     {
+        EnsureTopology();
         if (!TryResolve(building, out string nodeId, out _))
         {
             return false;
@@ -170,6 +179,7 @@ internal sealed class ElectricalNetworkRuntime :
         BuildableObject building,
         out PowerNodeSnapshot snapshot)
     {
+        EnsureTopology();
         snapshot = null;
         if (!TryResolve(building, out string nodeId, out IndustrialNodeDescriptor node)
             || !states.TryGetValue(nodeId, out ElectricalNodeState state))
@@ -188,6 +198,7 @@ internal sealed class ElectricalNetworkRuntime :
         BuildableObject building,
         PowerPriority priority)
     {
+        EnsureTopology();
         if (!Enum.IsDefined(typeof(PowerPriority), priority)
             || !TryResolve(building, out string nodeId, out IndustrialNodeDescriptor node)
             || node.Building.BuildingData
@@ -206,6 +217,7 @@ internal sealed class ElectricalNetworkRuntime :
     public InfrastructureCommandResult ResetBreaker(
         BuildableObject building)
     {
+        EnsureTopology();
         if (!TryResolve(building, out string nodeId, out IndustrialNodeDescriptor node)
             || node.Building.BuildingData
                 .GetAbility<BuildingCircuitBreakerAbility>() == null)
@@ -232,6 +244,23 @@ internal sealed class ElectricalNetworkRuntime :
     public DungeonPowerInfrastructureSaveData Capture()
     {
         EnsureTopology();
+        // Restore publication can replace the aggregate state independently of
+        // the topology epoch.  A later capture must therefore reconcile the
+        // exact live node set even when EnsureTopology observed no version
+        // change.  Otherwise a powered fixture retired by a checkpoint restore
+        // can survive in the power DTO without a matching world.facilities row.
+        // Pending fuel remains fail-loud; it is physical custody and may not be
+        // discarded merely to make the cross-aggregate save valid.
+        int retired = ReconcilePowerNodeStateForCapture(
+            CaptureLivePowerNodes(
+                    topologyRuntime.Current,
+                    RequireLiveGridForPowerProjection())
+                .Select(node => node.NodeId)
+                .ToArray(),
+            states,
+            nextFuelRequestAt);
+        if (retired > 0)
+            Touch();
         return new DungeonPowerInfrastructureSaveData
         {
             nodes = states
@@ -309,7 +338,10 @@ internal sealed class ElectricalNetworkRuntime :
             // stages commit. Publish the power owner into the claim/profile
             // restore candidates so carried fuel can rebind at participant 225.
             topologyRuntime.MarkDirty();
-            PublishFuelBufferAuthorities(topologyRuntime.Current);
+            IndustrialTopologySnapshot stagingTopology = topologyRuntime.Current;
+            PublishFuelBufferAuthorities(CaptureLivePowerNodes(
+                stagingTopology,
+                RequireLiveGridForPowerProjection()));
         }
         else
         {
@@ -322,16 +354,22 @@ internal sealed class ElectricalNetworkRuntime :
     private void EnsureTopology()
     {
         EnsureRestoreProjectionCurrent();
+        Grid liveGrid = RequireLiveGridForPowerProjection();
+        bool gridProjectionChanged = !ReferenceEquals(projectedGrid, liveGrid)
+            || projectedGridStructuralVersion != liveGrid.StructuralVersion;
+        if (gridProjectionChanged)
+            topologyRuntime.MarkDirty();
         IndustrialTopologySnapshot topology = topologyRuntime.Current;
         bool topologyChanged = topology.SourceVersion != topologyVersion;
         bool automationChanged =
             automationPowerDemand.Version != automationPowerVersion;
-        if (!topologyChanged && !automationChanged)
+        bool liveProjectionChanged = topologyChanged || gridProjectionChanged;
+        if (!liveProjectionChanged && !automationChanged)
         {
             return;
         }
 
-        if (!topologyChanged)
+        if (!liveProjectionChanged)
         {
             EvaluateNetworks(0f);
             automationPowerVersion = automationPowerDemand.Version;
@@ -339,9 +377,21 @@ internal sealed class ElectricalNetworkRuntime :
         }
 
         networkSummaries.Clear();
-        PublishFuelBufferAuthorities(topology);
-        foreach (IndustrialNodeDescriptor node in topology.Nodes.Values
-                     .Where(node => (node.Channels & UtilityChannel.Power) != 0))
+        IndustrialNodeDescriptor[] livePowerNodes = CaptureLivePowerNodes(
+            topology,
+            liveGrid);
+        string[] livePowerNodeIds = livePowerNodes
+            .Select(node => node.NodeId)
+            .ToArray();
+        string[] stalePowerNodeIds = CaptureRetirablePowerNodeIds(
+            livePowerNodeIds,
+            states);
+        PublishFuelBufferAuthorities(livePowerNodes);
+        RetirePowerNodes(
+            stalePowerNodeIds,
+            states,
+            nextFuelRequestAt);
+        foreach (IndustrialNodeDescriptor node in livePowerNodes)
         {
             ElectricalNodeState state = EnsureState(node);
             BuildingPowerStorageAbility storage =
@@ -356,18 +406,227 @@ internal sealed class ElectricalNetworkRuntime :
             }
         }
 
+        projectedLivePowerNodes = livePowerNodes;
+        projectedGrid = liveGrid;
+        projectedGridStructuralVersion = liveGrid.StructuralVersion;
         EvaluateNetworks(0f);
         topologyVersion = topology.SourceVersion;
         automationPowerVersion = automationPowerDemand.Version;
         Touch();
     }
 
-    private void PublishFuelBufferAuthorities(IndustrialTopologySnapshot topology)
+    private static IndustrialNodeDescriptor[] CaptureLivePowerNodes(
+        IndustrialTopologySnapshot topology,
+        Grid liveGrid) =>
+        (topology?.Nodes?.Values
+             ?? Enumerable.Empty<IndustrialNodeDescriptor>())
+        .Where(node => node != null
+            && (node.Channels & UtilityChannel.Power) != 0)
+        .Where(node => IsPersistedOnGrid(node, liveGrid))
+        .OrderBy(node => node.NodeId, StringComparer.Ordinal)
+        .ToArray();
+
+    private Grid RequireLiveGridForPowerProjection()
     {
-        IEnumerable<IndustrialNodeDescriptor> topologyNodes = topology == null
-            ? Enumerable.Empty<IndustrialNodeDescriptor>()
-            : topology.Nodes.Values;
-        IndustrialNodeDescriptor[] fueledNodes = topologyNodes
+        if (!gridSystemProvider.TryGetGrid(out Grid liveGrid)
+            || liveGrid == null)
+        {
+            throw new InvalidOperationException(
+                "POWER_NODE_CAPTURE_GRID_UNAVAILABLE");
+        }
+
+        return liveGrid;
+    }
+
+    private static bool IsPersistedOnGrid(
+        IndustrialNodeDescriptor node,
+        Grid liveGrid)
+    {
+        BuildableObject building = node?.Building;
+        if (building == null
+            || liveGrid == null
+            || !ReferenceEquals(building.Grid, liveGrid)
+            || building.IsGridDestroyed
+            || building.BuildingData == null
+            || building.BuildingData.id < 0
+            || building is ConstructionSite
+            || building is ExteriorZoneMarker
+            || !building.PersistentInstanceId.IsValid
+            || !string.Equals(
+                building.PersistentInstanceId.Value,
+                node.NodeId,
+                StringComparison.Ordinal)
+            || building.buildPoses == null
+            || building.buildPoses.Count == 0)
+        {
+            return false;
+        }
+
+        GridLayer authoredLayer = building.BuildingData.Placement.Layer;
+        bool authoredRegistration = building.buildPoses.All(position =>
+            ReferenceEquals(
+                liveGrid.GetGridCell(position)?.GetOccupant(authoredLayer),
+                building));
+        bool constructionRegistration = building.buildPoses.All(position =>
+            ReferenceEquals(
+                liveGrid.GetGridCell(position)
+                    ?.GetOccupant(GridLayer.Construction),
+                building));
+        return authoredRegistration || constructionRegistration;
+    }
+
+    private static int ReconcilePowerNodeStateForCapture(
+        IReadOnlyCollection<string> livePowerNodeIds,
+        IDictionary<string, ElectricalNodeState> nodeStates,
+        IDictionary<string, float> fuelRequestSchedule)
+    {
+        if (nodeStates == null)
+            throw new ArgumentNullException(nameof(nodeStates));
+
+        string[] stale = CaptureRetirablePowerNodeIds(
+            livePowerNodeIds,
+            nodeStates as IReadOnlyDictionary<string, ElectricalNodeState>
+                ?? new Dictionary<string, ElectricalNodeState>(
+                    nodeStates,
+                    StringComparer.Ordinal));
+        return RetirePowerNodes(stale, nodeStates, fuelRequestSchedule);
+    }
+
+    private static string[] CaptureRetirablePowerNodeIds(
+        IReadOnlyCollection<string> livePowerNodeIds,
+        IReadOnlyDictionary<string, ElectricalNodeState> nodeStates)
+    {
+        HashSet<string> live = new HashSet<string>(
+            livePowerNodeIds ?? Array.Empty<string>(),
+            StringComparer.Ordinal);
+        string[] stale = (nodeStates?.Keys ?? Array.Empty<string>())
+            .Where(nodeId => !live.Contains(nodeId))
+            .OrderBy(nodeId => nodeId, StringComparer.Ordinal)
+            .ToArray();
+
+        for (int index = 0; index < stale.Length; index++)
+        {
+            string nodeId = stale[index];
+            ElectricalNodeState state = nodeStates[nodeId];
+            PowerFuelCommitPhase phase = state?.PendingFuel == null
+                ? PowerFuelCommitPhase.None
+                : (PowerFuelCommitPhase)state.PendingFuel.phase;
+            if (!Enum.IsDefined(typeof(PowerFuelCommitPhase), phase)
+                || phase != PowerFuelCommitPhase.None)
+            {
+                throw new InvalidOperationException(
+                    "POWER_NODE_RETIREMENT_PENDING_FUEL:"
+                    + nodeId + ":" + (int)phase);
+            }
+        }
+
+        return stale;
+    }
+
+    private static int RetirePowerNodes(
+        IReadOnlyList<string> stalePowerNodeIds,
+        IDictionary<string, ElectricalNodeState> nodeStates,
+        IDictionary<string, float> fuelRequestSchedule)
+    {
+        int retired = 0;
+        foreach (string nodeId in stalePowerNodeIds
+                     ?? Array.Empty<string>())
+        {
+            if (nodeStates.Remove(nodeId))
+                retired++;
+            fuelRequestSchedule?.Remove(nodeId);
+        }
+        return retired;
+    }
+
+#if UNITY_EDITOR
+    [UnityEditor.MenuItem(
+        "DungeonStory/Debug/Infrastructure/Run Power Topology Retirement Focused")]
+    private static void RunPowerTopologyRetirementFocused()
+    {
+        const string survivorId = "building:qa-power-survivor";
+        const string retiredId = "building:qa-power-retired";
+        Dictionary<string, ElectricalNodeState> fixtureStates =
+            new Dictionary<string, ElectricalNodeState>(StringComparer.Ordinal)
+            {
+                [survivorId] = new ElectricalNodeState
+                {
+                    Priority = PowerPriority.Critical,
+                    StoredPower = 17f,
+                    Fault = 3f
+                },
+                [retiredId] = new ElectricalNodeState()
+            };
+        Dictionary<string, float> fixtureRequests =
+            new Dictionary<string, float>(StringComparer.Ordinal)
+            {
+                [survivorId] = 11f,
+                [retiredId] = 13f
+            };
+
+        int retired = ReconcilePowerNodeStateForCapture(
+            new[] { survivorId },
+            fixtureStates,
+            fixtureRequests);
+        if (retired != 1
+            || fixtureStates.ContainsKey(retiredId)
+            || fixtureRequests.ContainsKey(retiredId)
+            || !fixtureStates.TryGetValue(
+                survivorId,
+                out ElectricalNodeState survivor)
+            || survivor.Priority != PowerPriority.Critical
+            || !Mathf.Approximately(survivor.StoredPower, 17f)
+            || !Mathf.Approximately(survivor.Fault, 3f)
+            || !fixtureRequests.TryGetValue(survivorId, out float requestAt)
+            || !Mathf.Approximately(requestAt, 11f)
+            || ReconcilePowerNodeStateForCapture(
+                new[] { survivorId },
+                fixtureStates,
+                fixtureRequests) != 0)
+        {
+            throw new InvalidOperationException(
+                "Power topology retirement did not preserve the live node or retire the stale consumer exactly.");
+        }
+
+        fixtureStates[retiredId] = new ElectricalNodeState
+        {
+            PendingFuel = new PowerFuelCommitSaveData
+            {
+                phase = (int)PowerFuelCommitPhase.IntentRecorded,
+                nodeId = retiredId
+            }
+        };
+        bool pendingFuelRejected = false;
+        try
+        {
+            ReconcilePowerNodeStateForCapture(
+                new[] { survivorId },
+                fixtureStates,
+                fixtureRequests);
+        }
+        catch (InvalidOperationException exception)
+        {
+            pendingFuelRejected = exception.Message.StartsWith(
+                "POWER_NODE_RETIREMENT_PENDING_FUEL:",
+                StringComparison.Ordinal);
+        }
+        if (!pendingFuelRejected
+            || !fixtureStates.ContainsKey(retiredId))
+        {
+            throw new InvalidOperationException(
+                "Power topology retirement silently discarded pending fuel authority.");
+        }
+
+        Debug.Log(
+            "POWER_TOPOLOGY_RETIREMENT_FOCUSED=PASS; retired=1; survivor=exact; noOp=1; pendingFuel=fail-loud");
+    }
+#endif
+
+    private void PublishFuelBufferAuthorities(
+        IReadOnlyList<IndustrialNodeDescriptor> livePowerNodes)
+    {
+        IndustrialNodeDescriptor[] fueledNodes = (livePowerNodes
+                ?? Array.Empty<IndustrialNodeDescriptor>())
             .Where(node => node?.Building != null)
             .Where(node => node.Building.BuildingData
                 .GetAbility<BuildingPowerProducerAbility>() is
@@ -466,15 +725,33 @@ internal sealed class ElectricalNetworkRuntime :
             return;
         }
 
+        HashSet<string> liveNodeIds = projectedLivePowerNodes
+            .Select(node => node.NodeId)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> evaluatedNetworkIds = new(StringComparer.Ordinal);
         foreach (KeyValuePair<
                      string,
                      IReadOnlyList<IndustrialNodeDescriptor>> network
                  in grouped)
         {
+            IndustrialNodeDescriptor[] liveNodes = network.Value
+                .Where(node => node != null && liveNodeIds.Contains(node.NodeId))
+                .OrderBy(node => node.NodeId, StringComparer.Ordinal)
+                .ToArray();
+            if (liveNodes.Length == 0)
+                continue;
+            evaluatedNetworkIds.Add(network.Key);
             EvaluateNetwork(
                 network.Key,
-                network.Value,
+                liveNodes,
                 deltaTime);
+        }
+
+        foreach (string staleNetworkId in networkSummaries.Keys
+                     .Where(value => !evaluatedNetworkIds.Contains(value))
+                     .ToArray())
+        {
+            networkSummaries.Remove(staleNetworkId);
         }
 
         Touch();
@@ -1033,7 +1310,9 @@ internal sealed class ElectricalNetworkRuntime :
         if (building != null
             && topology.NodeIdsByBuilding.TryGetValue(building, out nodeId)
             && topology.Nodes.TryGetValue(nodeId, out node)
-            && (node.Channels & UtilityChannel.Power) != 0)
+            && (node.Channels & UtilityChannel.Power) != 0
+            && projectedGrid != null
+            && IsPersistedOnGrid(node, projectedGrid))
         {
             return true;
         }
@@ -1126,6 +1405,9 @@ internal sealed class ElectricalNetworkRuntime :
     {
         topologyVersion = int.MinValue;
         automationPowerVersion = int.MinValue;
+        projectedGrid = null;
+        projectedGridStructuralVersion = int.MinValue;
+        projectedLivePowerNodes = Array.Empty<IndustrialNodeDescriptor>();
         accumulated = 0f;
         nextFuelRequestAt.Clear();
         networkSummaries.Clear();

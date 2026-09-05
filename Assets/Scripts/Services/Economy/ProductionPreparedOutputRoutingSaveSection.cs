@@ -4,7 +4,8 @@ using System.Collections.Generic;
 public sealed class ProductionPreparedOutputRoutingSaveSection :
     DungeonStrictJsonSaveSection<
         ProductionPreparedOutputRoutingSaveData,
-        ProductionPreparedOutputRoutingRestoreJoinPlan>
+        ProductionPreparedOutputRoutingRestoreJoinPlan>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "economy.production-prepared-output-routing";
 

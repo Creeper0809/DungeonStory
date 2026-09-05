@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8828",
+    "spoiler_tier": "none",
+    "title": "냉각 매니폴드"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "시설 해금",
+      "to": "facility/building-8828",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

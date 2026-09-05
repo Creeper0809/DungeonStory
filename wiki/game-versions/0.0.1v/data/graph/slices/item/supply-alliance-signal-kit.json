@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "supply-alliance-signal-kit",
+    "spoiler_tier": "none",
+    "title": "동맹 신호 키트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-alliance-signal-kit",
+      "label": "생산·해금",
+      "to": "item/supply-alliance-signal-kit",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

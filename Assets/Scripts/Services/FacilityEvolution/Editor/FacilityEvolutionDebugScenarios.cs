@@ -37,6 +37,15 @@ public static class FacilityEvolutionDebugScenarios
         RunScenario("Pending material V4 tamper restores atomically", VerifyPendingMaterialV4TamperRestoresAtomically, errors);
         RunScenario("Domain-applied material acknowledgement resumes without replacement replay", VerifyDomainAppliedAcknowledgementResume, errors);
         RunScenario("Relocation package Transfer restore and acknowledgement are exact", FacilityRelocationPackageOutboxFixture.Run, errors);
+        RunScenario("Relocation completion rechecks production and stock-sensor authority before world mutation", FacilityRelocationCompletionFenceFixture.Run, errors);
+        RunScenario(
+            "Relocation preserves persistent identity and closes the retarget epoch",
+            () =>
+            {
+                FacilityRelocationIdentityHandoffFixture.Verify();
+                return true;
+            },
+            errors);
         RunScenario("Recalibration material Transfer restore and acknowledgement are exact", FacilityRecalibrationMaterialOutboxFixture.Run, errors);
         RunScenario("Modification material batch Transfer restore and acknowledgement are exact", FacilityModificationMaterialOutboxFixture.Run, errors);
         RunScenario("Pending material projection resumes the exact persisted result", VerifyPendingMaterialProjectionResumesExactResult, errors);
@@ -283,8 +292,10 @@ public static class FacilityEvolutionDebugScenarios
 
     private static bool VerifyWarehouseResourcesAggregateAndConsumeAtomically()
     {
-        WarehouseInventory first = new WarehouseInventory(10);
-        WarehouseInventory second = new WarehouseInventory(10);
+        WarehouseInventory first = new WarehouseInventory(
+            10L, StockCategory.General, restrictCategory: false);
+        WarehouseInventory second = new WarehouseInventory(
+            10L, StockCategory.General, restrictCategory: false);
         first.SeedPhysicalStockForTest(StockCategory.General, 2);
         second.SeedPhysicalStockForTest(StockCategory.General, 3);
         WarehouseFacilityEvolutionResourceProvider provider =
@@ -600,6 +611,8 @@ public static class FacilityEvolutionDebugScenarios
             new CountingEvolutionCompletedListener(gameEvents);
         try
         {
+            BuildingInstanceId survivorId =
+                world.SourceFacility.RequirePersistentInstanceId();
             bool success = engine.TryEvolve(world.SourceFacility, recipe, out FacilityEvolutionResult result);
             gameEvents.Publish(new FacilityEvolutionCompletedEvent(result));
 
@@ -618,6 +631,7 @@ public static class FacilityEvolutionDebugScenarios
                 && result.Success
                 && result.ResultBuilding != null
                 && result.ResultBuilding.id == world.CombatResultData.id
+                && result.ResultBuilding.PersistentInstanceId.Equals(survivorId)
                 && occupant == result.ResultBuilding
                 && state != null
                 && state.BaseFacilityId == world.SourceData.id.ToString()
@@ -1928,7 +1942,12 @@ public static class FacilityEvolutionDebugScenarios
             building?.ConstructBuildableObject(
                 new BuildingResearchWorkPortAdapter(blueprintResearchWorkService),
                 facilityCandidateCache,
-                roomFacilityPolicy, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+                roomFacilityPolicy, combatEquipmentRuntime: null,
+                worldRegistry: (IBuildingWorldRegistryPort)
+                    CharacterAiEditorTestDependencies.WorldRegistry,
+                worldItemStackRuntime: null, abilityRuntimeDispatcher: null,
+                gameClock: null, paidFacilityContracts: null,
+                evolutionState: new FacilityEvolutionStateComponentFactory());
         }
 
         private void AddRecord(BuildableObject facility, params (string key, float value)[] metrics)

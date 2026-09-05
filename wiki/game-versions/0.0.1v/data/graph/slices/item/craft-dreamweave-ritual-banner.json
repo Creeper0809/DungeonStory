@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "craft-dreamweave-ritual-banner",
+    "spoiler_tier": "none",
+    "title": "몽직물 의식 장식"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "character/festival-dungeon-accord-day",
+      "label": "필요 조건",
+      "to": "item/craft-dreamweave-ritual-banner",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-craft-dreamweave-ritual-banner",
+      "label": "생산·해금",
+      "to": "item/craft-dreamweave-ritual-banner",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

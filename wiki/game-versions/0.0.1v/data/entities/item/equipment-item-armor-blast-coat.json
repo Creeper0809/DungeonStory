@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "7kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "539"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "두꺼운 내피와 겉판으로 폭발 파편과 충격을 받아 내는 외투형 갑옷이다. 오르데나에서 지급한 방폭 외투 안쪽에는 군영 번호가 찍혀 있다. 오래 입을수록 번호보다 수선 자국이 먼저 눈에 띈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-blast-coat",
+  "spoiler_tier": "none",
+  "summary": "방폭 외투 전투 장비",
+  "title": "방폭 외투"
+}

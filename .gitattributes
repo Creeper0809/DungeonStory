@@ -195,3 +195,9 @@ Packages/packages-lock.json linguist-generated
 
 # Exceptions for .asset files such as lightning pre-baking
 LightingData.asset     binary
+
+# V27 deterministic review and no-op evidence
+docs/game-design/v27-balance-market-review-decisions.json text eol=lf
+Artifacts/QA/v27-balance-market-application-receipts/*.json text eol=lf
+Artifacts/QA/v27-balance-market-second-apply-noop.json text eol=lf
+Artifacts/QA/v27-balance-audit-second-generation-noop.json text eol=lf

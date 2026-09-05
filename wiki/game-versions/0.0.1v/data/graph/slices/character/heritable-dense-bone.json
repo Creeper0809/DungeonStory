@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-dense-bone",
+    "spoiler_tier": "none",
+    "title": "고밀도 골격"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "82"
+    },
+    {
+      "label": "필요 연구",
+      "value": "동맹 신호학"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-signal-flare",
+      "target_spoiler_tier": "none",
+      "target_title": "신호탄",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-granulated-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "과립 화약",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-alliance-signals",
+      "target_spoiler_tier": "none",
+      "target_title": "동맹 신호학",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-rune-dust",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 가루",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cartridge-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약지",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-ammo-signal-flare",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 신호탄을(를) 생산한다.",
+  "title": "신호탄"
+}

@@ -14,14 +14,16 @@ public sealed class ProductionBillRuntime :
     IProductionFacilityDestructiveDrainPreparedOutputQuery,
     IProductionBillCoreOrderCommand,
     IProductionBillCoreWorkExecution,
-    IProductionBillPersistence,
+    IProductionBillDetachedFacilityPersistence,
+    IProductionGenericBillWipTerminalCheckpointGcPort,
     ITickable
 {
     public const string DestinationPrefix = "production:";
     public const string OutputDestinationPrefix = ProductionOutputDestinationId.Prefix;
     public const string StockSensorDestinationPrefix = "production-sensor:";
     public const string StockSensorItemId = "component:stock-sensor-panel";
-    private const float SecondsPerGameHour = 7.5f;
+    public const string GenericBillLifecycleSchema =
+        "production-generic-bill-lifecycle@2";
     private const float SafeUtilityOutageHours = 6f;
     private const float DangerousTemperatureGraceHours = 3f;
     private const float DefaultDeliverySeconds = 12f;
@@ -37,6 +39,8 @@ public sealed class ProductionBillRuntime :
     private readonly IProductionPreparedOutputExecutionPort preparedOutputExecution;
     private readonly IProductionRuinedBatchExecutionPort ruinedBatchExecution;
     private readonly IProductionPreparedOutputRoutingAuthority preparedOutputRouting;
+    private readonly IProductionRecipeExecutionReceiptAuthority
+        recipeExecutionReceipts;
     private readonly IProductionAssemblyBridge cycleUtilities;
     private readonly IProductionAssemblyBridge inputLogistics;
     private readonly IProductionStockSensorRuntime stockSensors;
@@ -47,6 +51,7 @@ public sealed class ProductionBillRuntime :
     private readonly IProductionFacilityMutationEpochQuery facilityMutationEpoch;
     private readonly IGameClock clock;
     private readonly IRecipeBalanceWorkCalculator balanceWorkCalculator;
+    private WipTerminalCheckpointGcCandidate activeWipCheckpointGcCandidate;
     private int lastOutputAuthorityBuildingVersion = int.MinValue;
     private IReadOnlyList<ProductionBillRecord> bills => stateStore.Bills;
     private int nextBillSequence
@@ -79,6 +84,7 @@ public sealed class ProductionBillRuntime :
         preparedOutputExecution = execution.PreparedOutputExecution;
         ruinedBatchExecution = execution.RuinedBatchExecution;
         preparedOutputRouting = execution.PreparedOutputRouting;
+        recipeExecutionReceipts = execution.RecipeExecutionReceipts;
         cycleUtilities = execution.Bridge;
         snapshotProjector = execution.SnapshotProjector;
         buildingWorld = execution.Bridge;
@@ -89,6 +95,167 @@ public sealed class ProductionBillRuntime :
     }
 
     public int Version => stateStore.BillVersion;
+
+    public bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionGenericBillTerminalDrainSaveData> producers,
+        out IProductionGenericBillWipTerminalCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        candidate = null;
+        failureReason = string.Empty;
+        if (activeWipCheckpointGcCandidate != null)
+        {
+            failureReason = "production-wip-checkpoint-gc-already-active";
+            return false;
+        }
+        ProductionGenericBillTerminalDrainSaveData[] ordered = (producers
+                ?? Array.Empty<ProductionGenericBillTerminalDrainSaveData>())
+            .OrderBy(value => value?.billId, StringComparer.Ordinal)
+            .ToArray();
+        if (ordered.Any(value => value == null)
+            || ordered.Select(value => value.billId)
+                .Distinct(StringComparer.Ordinal).Count() != ordered.Length)
+        {
+            failureReason = "production-wip-checkpoint-gc-producer-invalid";
+            return false;
+        }
+
+        List<ProductionWipTerminalReceiptSaveData> rows = new();
+        foreach (ProductionGenericBillTerminalDrainSaveData producer in ordered)
+        {
+            if (producer.phase != ProductionGenericBillTerminalDrainPhase
+                    .OwnerAcknowledgedAwaitingCheckpointGc
+                || !ProductionGenericBillTerminalDrainCanonical.IsValidSave(
+                    producer))
+            {
+                failureReason =
+                    "production-wip-checkpoint-gc-producer-not-terminal";
+                return false;
+            }
+            bool required = ProductionGenericBillTerminalDrainCanonical
+                .RequiresWipTerminalReceipt(producer.sourceBill);
+            if (!required)
+            {
+                if (!string.IsNullOrEmpty(producer.wipTerminalCommitId))
+                {
+                    failureReason =
+                        "production-wip-checkpoint-gc-unexpected-owner";
+                    return false;
+                }
+                continue;
+            }
+            if (!ProductionGenericBillTerminalDrainCanonical
+                    .TryCreateWipTerminalReceipt(
+                        producer.sourceBill,
+                        out ProductionWipTerminalReceiptSaveData expected,
+                        out failureReason)
+                || !string.Equals(
+                    producer.wipTerminalCommitId,
+                    expected.commitId,
+                    StringComparison.Ordinal))
+            {
+                failureReason = string.IsNullOrEmpty(failureReason)
+                    ? "production-wip-checkpoint-gc-owner-mismatch"
+                    : failureReason;
+                return false;
+            }
+            ProductionWipTerminalReceiptSaveData[] matches = stateStore
+                .WipTerminalReceipts
+                .Where(value => value != null && string.Equals(
+                    value.commitId,
+                    expected.commitId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (matches.Length != 1
+                || !ProductionGenericBillTerminalDrainCanonical.WipReceiptEquals(
+                    matches[0], expected))
+            {
+                failureReason =
+                    "production-wip-checkpoint-gc-lower-row-missing-or-conflicting";
+                return false;
+            }
+            rows.Add(expected);
+        }
+        activeWipCheckpointGcCandidate = new WipTerminalCheckpointGcCandidate(
+            stateStore.BillVersion,
+            rows);
+        candidate = activeWipCheckpointGcCandidate;
+        return true;
+    }
+
+    public bool TryPublishCheckpointGarbageCollection(
+        IProductionGenericBillWipTerminalCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        WipTerminalCheckpointGcCandidate exact = RequireWipCheckpointGcCandidate(
+            candidate);
+        if (exact.Published)
+            return true;
+        if (stateStore.BillVersion != exact.ExpectedVersion
+            || exact.Rows.Any(expected => stateStore.WipTerminalReceipts
+                .Count(value => value != null && string.Equals(
+                    value.commitId,
+                    expected.commitId,
+                    StringComparison.Ordinal)) != 1
+                || !stateStore.WipTerminalReceipts.Any(value =>
+                    ProductionGenericBillTerminalDrainCanonical.WipReceiptEquals(
+                        value, expected))))
+        {
+            failureReason = "production-wip-checkpoint-gc-live-authority-changed";
+            return false;
+        }
+        foreach (ProductionWipTerminalReceiptSaveData expected in exact.Rows)
+        {
+            if (!stateStore.TryRemoveWipTerminalReceiptExact(expected))
+                throw new InvalidOperationException(
+                    "WIP checkpoint-GC exact row vanished during publish.");
+        }
+        if (exact.Rows.Count > 0)
+            stateStore.IncrementBillVersion();
+        exact.Published = true;
+        exact.PublishedVersion = stateStore.BillVersion;
+        return true;
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionGenericBillWipTerminalCheckpointGcCandidate candidate)
+    {
+        WipTerminalCheckpointGcCandidate exact = RequireWipCheckpointGcCandidate(
+            candidate);
+        if (!exact.Published)
+            return;
+        if (stateStore.BillVersion != exact.PublishedVersion
+            || exact.Rows.Any(expected => stateStore.WipTerminalReceipts.Any(
+                value => string.Equals(value?.commitId, expected.commitId,
+                    StringComparison.Ordinal))))
+        {
+            throw new InvalidOperationException(
+                "WIP checkpoint-GC rollback encountered live authority drift.");
+        }
+        foreach (ProductionWipTerminalReceiptSaveData expected in exact.Rows)
+        {
+            if (!stateStore.AddWipTerminalReceipt(expected))
+                throw new InvalidOperationException(
+                    "WIP checkpoint-GC rollback could not restore exact row.");
+        }
+        if (exact.Rows.Count > 0
+            && !stateStore.TryRestoreBillVersionForCheckpointGc(
+                exact.PublishedVersion,
+                exact.ExpectedVersion))
+        {
+            throw new InvalidOperationException(
+                "WIP checkpoint-GC rollback could not restore version.");
+        }
+        exact.Published = false;
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionGenericBillWipTerminalCheckpointGcCandidate candidate)
+    {
+        RequireWipCheckpointGcCandidate(candidate);
+        activeWipCheckpointGcCandidate = null;
+    }
 
     public IReadOnlyList<ProductionBillSnapshot> GetBills(ProductionFacilityHandle facility)
     {
@@ -123,16 +290,28 @@ public sealed class ProductionBillRuntime :
         int publicationPreparedCount = 0;
         int physicalCommitPendingCount = 0;
         StringBuilder canonical = new StringBuilder(128 + owned.Length * 192)
+            .Append(GenericBillLifecycleSchema).Append('|')
             .Append(facilityId.Value).Append('|')
             .Append(Version).Append('|');
         StringBuilder durableCanonical = new StringBuilder(
             128 + owned.Length * 192)
+            .Append(GenericBillLifecycleSchema).Append('|')
             .Append(facilityId.Value).Append('|');
 
         foreach (ProductionBillRecord record in owned)
         {
             ProductionPreparedOutputPhase phase = record.preparedOutput?.phase
                 ?? ProductionPreparedOutputPhase.Unresolved;
+            bool exactPublicationPrepared = record.resolvedOutputs.Any(output =>
+                output != null
+                && !string.IsNullOrEmpty(output.pendingCommitId)
+                && !output.pendingCommitApplied);
+            bool exactPhysicalCommitPending = record.resolvedOutputs.Any(output =>
+                output != null
+                && !string.IsNullOrEmpty(output.pendingCommitId)
+                && output.pendingCommitApplied
+                && output.pendingOutputPublication?.phase
+                    == ProductionExactOutputPublicationPhase.Published);
             bool hasActiveWip = record.materialsConsumed
                 || record.wipInputQuantity > 0
                 || record.wipInputMassGrams > 0L
@@ -143,10 +322,12 @@ public sealed class ProductionBillRuntime :
                 activeWipCount++;
             if (phase == ProductionPreparedOutputPhase.ResolvedWaitingForOutputSpace)
                 waitingCount++;
-            else if (phase == ProductionPreparedOutputPhase.PublicationPrepared)
+            else if (phase == ProductionPreparedOutputPhase.PublicationPrepared
+                     || exactPublicationPrepared)
                 publicationPreparedCount++;
             else if (phase == ProductionPreparedOutputPhase
-                         .PhysicalBatchCommittedPublicationPending)
+                         .PhysicalBatchCommittedPublicationPending
+                     || exactPhysicalCommitPending)
                 physicalCommitPendingCount++;
 
             AppendLifecycleRecord(canonical, record);
@@ -334,19 +515,26 @@ public sealed class ProductionBillRuntime :
                 : ProductionBatchStage.None,
             DestinationPrefix + billId.Value);
         record.SetOutputDestination(ResolveOutputDestinationId(facility));
-        long inputBufferMassGrams = inputLogistics
-            .ResolveInputBufferMassCapacity(record, recipe, facility);
-        if (!inputDestinationClaims.TryClaim(
-                record,
-                facility,
-                inputBufferMassGrams,
-                out string claimFailure))
+        bool requiresInputDestination = RequiresPhysicalInputDestination(
+            record,
+            recipe,
+            facility);
+        if (requiresInputDestination)
         {
-            return ProductionBillCommandResult.Failed(
-                new DomainFailure(
-                    FailureCode.ProductionBillUnavailable,
-                    billId.Value,
-                    claimFailure));
+            long inputBufferMassGrams = inputLogistics
+                .ResolveInputBufferMassCapacity(record, recipe, facility);
+            if (!inputDestinationClaims.TryClaim(
+                    record,
+                    facility,
+                    inputBufferMassGrams,
+                    out string claimFailure))
+            {
+                return ProductionBillCommandResult.Failed(
+                    new DomainFailure(
+                        FailureCode.ProductionBillUnavailable,
+                        billId.Value,
+                        claimFailure));
+            }
         }
 
         try
@@ -361,13 +549,10 @@ public sealed class ProductionBillRuntime :
             items.ReleaseDestination(record.materialDestinationId, facility.Position);
             stateStore.RemoveBill(record);
             nextBillSequence = sequence;
-            if (!inputDestinationClaims.TryRevoke(
-                    record,
-                    out string revokeFailure))
-            {
-                throw new InvalidOperationException(
-                    $"Production bill '{billId.Value}' failed and its input destination claim could not be rolled back: {revokeFailure}");
-            }
+            RevokeInputDestinationClaimOrThrow(
+                record,
+                requiresInputDestination,
+                "rolled back after add failure");
             throw;
         }
         return ProductionBillCommandResult.Success(
@@ -390,7 +575,16 @@ public sealed class ProductionBillRuntime :
         if (TryGetFrozenMutationFailure(record, out var frozen))
             return frozen;
 
-        if (!inputDestinationClaims.TryValidateClaim(
+        ProductionRecipeSO inputRecipe = ResolveRecipe(record)
+            ?? throw new InvalidOperationException(
+                $"Production bill '{billId.Value}' recipe is missing during removal.");
+        ProductionFacilityHandle inputFacility = ResolveFacility(record);
+        bool requiresInputDestination = RequiresPhysicalInputDestination(
+            record,
+            inputRecipe,
+            inputFacility);
+        if (requiresInputDestination
+            && !inputDestinationClaims.TryValidateClaim(
                 record,
                 out string claimFailure))
         {
@@ -401,7 +595,8 @@ public sealed class ProductionBillRuntime :
                     claimFailure));
         }
 
-        if (ProductionPreparedOutputMigrationScope.Contains(record.recipeId)
+        bool usesPreparedOutput = UsesPreparedOutput(record);
+        if (usesPreparedOutput
             && !CanRetirePreparedOutputBill(record))
         {
             return ProductionBillCommandResult.Failed(
@@ -411,7 +606,7 @@ public sealed class ProductionBillRuntime :
                     "prepared-output-routing-pending"));
         }
 
-        if (ProductionPreparedOutputMigrationScope.Contains(record.recipeId))
+        if (usesPreparedOutput)
         {
             if (HasLegacyOutputAuthority(record))
             {
@@ -455,7 +650,8 @@ public sealed class ProductionBillRuntime :
                     "wip-terminal-receipt-conflict"));
         }
 
-        if (!items.TryReleaseDestinationAtomically(
+        if (requiresInputDestination
+            && !items.TryReleaseDestinationAtomically(
                 record.materialDestinationId,
                 ResolveFacility(record)?.Position ?? Vector2Int.zero,
                 out _,
@@ -468,7 +664,10 @@ public sealed class ProductionBillRuntime :
                     releaseFailure));
         }
 
-        RevokeInputDestinationClaimOrThrow(record);
+        RevokeInputDestinationClaimOrThrow(
+            record,
+            requiresInputDestination,
+            "revoked during removal");
         stateStore.RemoveBill(record);
         Touch(default, requestWorker: false);
         return ProductionBillCommandResult.Success(
@@ -751,6 +950,37 @@ public sealed class ProductionBillRuntime :
             workTypeId,
             requireDeliveredInputs: true,
             out DomainFailure failure);
+        if (record != null)
+        {
+            ProductionRecipeSO recipe = ResolveRecipe(record);
+            string utilityFailure = recipe == null
+                ? "production-recipe-missing"
+                : string.Empty;
+            bool finishingPassiveBatch = recipe != null
+                && recipe.ProcessKind == ProductionProcessKind.PassiveBatch
+                && record.batchStage == ProductionBatchStage.Finishing;
+            bool utilitiesValid = recipe != null
+                && (finishingPassiveBatch
+                    ? cycleUtilities.ValidateProcessingUtilities(
+                        record.occupiedSupportNodeId,
+                        recipe,
+                        facility,
+                        out utilityFailure)
+                    : cycleUtilities.ValidateCycleRequirements(
+                        record,
+                        recipe,
+                        facility,
+                        bills,
+                        out utilityFailure));
+            if (recipe == null
+                || !utilitiesValid)
+            {
+                failure = new DomainFailure(
+                    FailureCode.ProductionUtilitiesUnavailable,
+                    utilityFailure ?? "production-cycle-utility-missing");
+                record = null;
+            }
+        }
         return new ProductionWorkAvailabilityResult(
             record != null,
             failure,
@@ -805,8 +1035,7 @@ public sealed class ProductionBillRuntime :
         }
         ProductionPreparedOutputPhase preparedPhase = record.preparedOutput?.phase
             ?? ProductionPreparedOutputPhase.Unresolved;
-        bool usesPreparedOutput =
-            ProductionPreparedOutputMigrationScope.Contains(recipe?.RecipeId);
+        bool usesPreparedOutput = UsesPreparedOutput(recipe);
         if (usesPreparedOutput
             && !record.materialsConsumed
             && preparedPhase != ProductionPreparedOutputPhase.Unresolved)
@@ -1025,8 +1254,7 @@ public sealed class ProductionBillRuntime :
                 outcome: ProductionBillOutcomeCode.ProcessingStarted);
         }
 
-        bool usesPreparedOutput =
-            ProductionPreparedOutputMigrationScope.Contains(recipe.RecipeId);
+        bool usesPreparedOutput = UsesPreparedOutput(recipe);
         if (usesPreparedOutput)
         {
             if (HasLegacyOutputAuthority(record))
@@ -1067,6 +1295,26 @@ public sealed class ProductionBillRuntime :
                         record.billId.Value,
                         "prepared-output-completion-state-mismatch"));
             }
+            if (!recipeExecutionReceipts.TryPublishCompleted(
+                    record.billId,
+                    record.cycleSequence,
+                    record.recipeId,
+                    record.buildingInstanceId,
+                    record.wipInputCommitId,
+                    record.wipInputQuantity,
+                    record.wipInputMassGrams,
+                    record.preparedOutput,
+                    out string receiptFailure))
+            {
+                return BlockPreparedOutput(
+                    record,
+                    new DomainFailure(
+                        FailureCode.ProductionOutputUnavailable,
+                        record.billId.Value,
+                        string.IsNullOrEmpty(receiptFailure)
+                            ? "recipe-execution-receipt-publication-failed"
+                            : receiptFailure));
+            }
             record.ClearCompletedPreparedOutput();
         }
         else
@@ -1086,14 +1334,20 @@ public sealed class ProductionBillRuntime :
                     if (string.IsNullOrEmpty(output.pendingCommitId))
                     {
                         record.BeginResolvedOutputUnit(
-                            output.itemId,
+                            output.outputLineId,
                             ProductionOutputCommitIdentity.Format(
                                 record.billId,
                                 record.cycleSequence,
+                                output.outputLineId,
                                 output.itemId,
                                 output.committedAmount));
                     }
                     string commitId = output.pendingCommitId;
+                    bool captureExact = recipeExecutionReceipts
+                        .RequiresExactCapture(
+                            record.billId,
+                            record.cycleSequence);
+                    ProductionCommittedOutputSnapshot diagnosticUnit = null;
                     if (!output.pendingCommitApplied)
                     {
                         DomainFailure outputFailure = outputExecution.ProduceOne(
@@ -1103,9 +1357,18 @@ public sealed class ProductionBillRuntime :
                             output,
                             record.outputDestinationId,
                             commitId,
-                            out long committedMassGrams);
+                            out diagnosticUnit,
+                            out ProductionOutputPublicationExposure
+                                publicationExposure);
                         if (outputFailure.IsFailure)
                         {
+                            if (publicationExposure ==
+                                ProductionOutputPublicationExposure.None)
+                            {
+                                record.AbortUnpublishedResolvedOutputUnit(
+                                    output.outputLineId,
+                                    commitId);
+                            }
                             record.SetReservedWorker(string.Empty);
                             return new ProductionWorkExecutionResult(
                                 false,
@@ -1114,12 +1377,39 @@ public sealed class ProductionBillRuntime :
                                 outputFailure);
                         }
                         record.MarkResolvedOutputUnitCommitted(
-                            output.itemId,
+                            output.outputLineId,
                             commitId,
-                            committedMassGrams);
+                            diagnosticUnit);
+                    }
+                    else if (captureExact)
+                    {
+                        diagnosticUnit = output.pendingOutputPublication
+                            ?.ToRuntimeSnapshot();
+                    }
+                    if (captureExact
+                        && !recipeExecutionReceipts.TryCaptureExactCommittedUnit(
+                            record.billId,
+                            record.cycleSequence,
+                            record.recipeId,
+                            record.buildingInstanceId,
+                            output,
+                            diagnosticUnit,
+                            out string unitReceiptFailure))
+                    {
+                        record.SetReservedWorker(string.Empty);
+                        return new ProductionWorkExecutionResult(
+                            false,
+                            false,
+                            ProductionBillOutcomeCode.None,
+                            new DomainFailure(
+                                FailureCode.ProductionOutputUnavailable,
+                                record.billId.Value,
+                                string.IsNullOrEmpty(unitReceiptFailure)
+                                    ? "recipe-exact-unit-receipt-failed"
+                                    : unitReceiptFailure));
                     }
                     DomainFailure acknowledgeFailure = outputExecution.AcknowledgeOne(
-                        output.itemId,
+                        output,
                         commitId);
                     if (acknowledgeFailure.IsFailure)
                     {
@@ -1131,12 +1421,38 @@ public sealed class ProductionBillRuntime :
                             acknowledgeFailure);
                     }
                     record.ClearResolvedOutputPendingCommit(
-                        output.itemId,
+                        output.outputLineId,
                         commitId);
                 }
             }
 
             record.ClearOutputReservations();
+            if (recipeExecutionReceipts.RequiresExactCapture(
+                    record.billId,
+                    record.cycleSequence)
+                && !recipeExecutionReceipts.TryFinalizeExactCompleted(
+                    record.billId,
+                    record.cycleSequence,
+                    record.recipeId,
+                    record.buildingInstanceId,
+                    record.wipInputCommitId,
+                    record.wipInputQuantity,
+                    record.wipInputMassGrams,
+                    record.resolvedOutputs,
+                    out string exactReceiptFailure))
+            {
+                record.SetReservedWorker(string.Empty);
+                return new ProductionWorkExecutionResult(
+                    false,
+                    false,
+                    ProductionBillOutcomeCode.None,
+                    new DomainFailure(
+                        FailureCode.ProductionOutputUnavailable,
+                        record.billId.Value,
+                        string.IsNullOrEmpty(exactReceiptFailure)
+                            ? "recipe-exact-cycle-receipt-failed"
+                            : exactReceiptFailure));
+            }
             record.ClearResolvedOutputs();
         }
 
@@ -1246,9 +1562,10 @@ public sealed class ProductionBillRuntime :
         }
 
         FinalizeDeliveredStockSensors();
-        ReconcileFinishedPreparedOutputBills();
+        ReconcileFinishedOutputBills();
         ReconcileMissingFacilities();
-        float elapsedHours = clock.DeltaTime / SecondsPerGameHour;
+        float elapsedHours = clock.DeltaTime
+            / GameSimulationTimeRules.SecondsPerGameHour;
         foreach (ProductionBillRecord record in bills.ToArray())
         {
             ProductionRecipeSO recipe = ResolveRecipe(record);
@@ -1348,7 +1665,7 @@ public sealed class ProductionBillRuntime :
             else
             {
                 ExecuteWork(
-                    null,
+                    ProductionWorkerHandle.PassiveProcessor,
                     facility,
                     record.billId,
                     0f);
@@ -1364,6 +1681,13 @@ public sealed class ProductionBillRuntime :
         preparedOutputExecution.RestoreDestinationAuthorities(
             bills,
             buildingWorld.Facilities);
+        if (!stockSensors.TryReconcileDestinationAuthorities(
+                out string sensorFailure))
+        {
+            throw new InvalidOperationException(
+                "Production stock-sensor destination authorities could not be reconciled: "
+                + sensorFailure);
+        }
         lastOutputAuthorityBuildingVersion = currentVersion;
     }
 
@@ -1374,7 +1698,8 @@ public sealed class ProductionBillRuntime :
         {
             if (facilityMutationEpoch.IsFrozen(record.buildingInstanceId))
                 continue;
-            if (ProductionPreparedOutputMigrationScope.Contains(record.recipeId)
+            bool usesPreparedOutput = UsesPreparedOutput(record);
+            if (usesPreparedOutput
                 && !CanRetirePreparedOutputBill(record))
             {
                 // The durable routing authority still owns completed physical
@@ -1386,7 +1711,7 @@ public sealed class ProductionBillRuntime :
             {
                 continue;
             }
-            if (ProductionPreparedOutputMigrationScope.Contains(record.recipeId))
+            if (usesPreparedOutput)
             {
                 if (HasLegacyOutputAuthority(record))
                 {
@@ -1429,7 +1754,16 @@ public sealed class ProductionBillRuntime :
                     "wip-terminal-receipt-conflict"));
                 continue;
             }
-            if (!items.TryReleaseDestinationAtomically(
+            ProductionRecipeSO missingFacilityRecipe = ResolveRecipe(record)
+                ?? throw new InvalidOperationException(
+                    $"Production bill '{record.billId.Value}' recipe is missing while its facility is reconciled.");
+            bool hadInputDestination = RequiresPhysicalInputDestination(
+                    record,
+                    missingFacilityRecipe,
+                    facility: null)
+                || inputDestinationClaims.TryValidateClaim(record, out _);
+            if (hadInputDestination
+                && !items.TryReleaseDestinationAtomically(
                     record.materialDestinationId,
                     Vector2Int.zero,
                     out _,
@@ -1441,7 +1775,10 @@ public sealed class ProductionBillRuntime :
                     releaseFailure));
                 continue;
             }
-            RevokeInputDestinationClaimOrThrow(record);
+            RevokeInputDestinationClaimOrThrow(
+                record,
+                hadInputDestination,
+                "revoked after facility loss");
             stateStore.RemoveBill(record);
             changed = true;
         }
@@ -1451,14 +1788,14 @@ public sealed class ProductionBillRuntime :
         }
     }
 
-    private void ReconcileFinishedPreparedOutputBills()
+    private void ReconcileFinishedOutputBills()
     {
         bool changed = false;
         foreach (ProductionBillRecord record in bills.ToArray())
         {
             if (facilityMutationEpoch.IsFrozen(record.buildingInstanceId))
                 continue;
-            if (!IsTerminalPreparedOutputRepeatCount(record))
+            if (!IsTerminalOutputRepeatCount(record))
             {
                 continue;
             }
@@ -1486,13 +1823,41 @@ public sealed class ProductionBillRuntime :
         {
             return false;
         }
-        if (ProductionPreparedOutputMigrationScope.Contains(record.recipeId)
+        if (UsesPreparedOutput(record)
             && !CanRetirePreparedOutputBill(record))
         {
             return false;
         }
+        if (!UsesPreparedOutput(record) && HasBufferedExactOutput(record))
+        {
+            // Exact stateful capabilities publish a physical lot into the
+            // facility output buffer before returning success. The bill is the
+            // only routing policy owner until distribution releases that lot;
+            // retiring it here would leave a permanent orphan in the buffer.
+            // Its consumed input destination is a separate authority and must
+            // not stay claimed while only output routing remains outstanding.
+            TryReleaseTerminalExactInputAuthorities(record, facility);
+            return false;
+        }
 
-        if (!items.TryReleaseDestinationAtomically(
+        if (!UsesPreparedOutput(record))
+        {
+            if (!TryReleaseTerminalExactInputAuthorities(record, facility))
+                return false;
+
+            stateStore.RemoveBill(record);
+            return true;
+        }
+
+        ProductionRecipeSO terminalRecipe = ResolveRecipe(record)
+            ?? throw new InvalidOperationException(
+                $"Production bill '{record.billId.Value}' recipe is missing during terminal retirement.");
+        bool requiresInputDestination = RequiresPhysicalInputDestination(
+            record,
+            terminalRecipe,
+            facility);
+        if (requiresInputDestination
+            && !items.TryReleaseDestinationAtomically(
                 record.materialDestinationId,
                 facility?.Position ?? Vector2Int.zero,
                 out _,
@@ -1505,8 +1870,46 @@ public sealed class ProductionBillRuntime :
             return false;
         }
 
-        RevokeInputDestinationClaimOrThrow(record);
+        RevokeInputDestinationClaimOrThrow(
+            record,
+            requiresInputDestination,
+            "revoked during terminal retirement");
         stateStore.RemoveBill(record);
+        return true;
+    }
+
+    private bool TryReleaseTerminalExactInputAuthorities(
+        ProductionBillRecord record,
+        ProductionFacilityHandle facility)
+    {
+        bool hasInputDestination = inputDestinationClaims.TryValidateClaim(
+            record,
+            out _);
+        if (hasInputDestination
+            && !items.TryReleaseDestinationAtomically(
+                record.materialDestinationId,
+                facility?.Position ?? Vector2Int.zero,
+                out _,
+                out string releaseFailure))
+        {
+            record.SetBlockedFailure(new DomainFailure(
+                FailureCode.ProductionBillUnavailable,
+                record.billId.Value,
+                releaseFailure));
+            return false;
+        }
+
+        if (!inputDestinationClaims.TryRevokeIfPresent(
+                record,
+                out string claimFailure))
+        {
+            record.SetBlockedFailure(new DomainFailure(
+                FailureCode.ProductionBillUnavailable,
+                record.billId.Value,
+                claimFailure));
+            return false;
+        }
+
         return true;
     }
 
@@ -1553,11 +1956,26 @@ public sealed class ProductionBillRuntime :
         return !outstanding && canRetire;
     }
 
-    private static bool IsTerminalPreparedOutputRepeatCount(
+    private bool IsTerminalOutputRepeatCount(
         ProductionBillRecord record) => record != null
         && record.mode == ProductionOrderMode.RepeatCount
-        && record.remainingCycles <= 0
-        && ProductionPreparedOutputMigrationScope.Contains(record.recipeId);
+        && record.remainingCycles <= 0;
+
+    private bool HasBufferedExactOutput(ProductionBillRecord record)
+    {
+        ProductionRecipeSO recipe = ResolveRecipe(record);
+        if (recipe == null)
+            return false;
+        return recipe.CaptureCanonicalOutputs()
+            .Where(output => output != null
+                && ProductionOutputRoleRules.IsPhysical(output.Role)
+                && output.Amount > 0)
+            .Select(output => output.ItemId)
+            .Distinct(StringComparer.Ordinal)
+            .Any(itemId => items.CountBufferedOutput(
+                itemId,
+                record.outputDestinationId) > 0);
+    }
 
     private bool TryCommitWipTerminalDisposition(
         ProductionBillRecord record,
@@ -1651,7 +2069,7 @@ public sealed class ProductionBillRuntime :
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
-        if (ProductionPreparedOutputMigrationScope.Contains(recipe?.RecipeId))
+        if (UsesPreparedOutput(recipe))
         {
             if (HasLegacyOutputAuthority(record))
             {
@@ -1788,18 +2206,24 @@ public sealed class ProductionBillRuntime :
             return false;
         }
 
-        bool usesPreparedRuinedBatch = string.Equals(
-            recipe.RecipeId,
-            "recipe:silage",
-            StringComparison.Ordinal);
+        // Ruined output follows the same capability decision as successful
+        // output. A passive definition-only recipe added later therefore uses
+        // the conservative prepared-output disposition without a recipe-ID
+        // branch; stateful/custom output remains on its declared owner.
+        bool usesPreparedRuinedBatch = UsesPreparedOutput(recipe);
         if (!usesPreparedRuinedBatch)
         {
-            items.SpawnOutput(
-                recipe.SpoilageItemId,
-                Mathf.Max(
-                    1,
-                    recipe.Inputs.Sum(input => input?.Amount ?? 0)),
-                facility.Position);
+            // No implicit Loose fallback is allowed: it has no gram admission,
+            // no exact disposition receipt and can delete or create mass. A
+            // stateful/custom passive recipe must declare its own ruined-batch
+            // capability before this WIP can be terminally disposed.
+            record.SetBlockedFailure(new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                record.billId.Value,
+                "ruined-output-capability-unsupported"));
+            record.SetReservedWorker(string.Empty);
+            Touch(recipe.WorkTypeId, requestWorker: false);
+            return true;
         }
         else
         {
@@ -2145,20 +2569,94 @@ public sealed class ProductionBillRuntime :
     public ProductionBillRestoreCandidate BuildRestore(
         DungeonProductionBillSaveData snapshot)
     {
-        return ProductionBillStateCodec.CreateRestoreCandidate(
+        ProductionBillRestoreCandidate candidate =
+            ProductionBillStateCodec.CreateRestoreCandidate(
             snapshot,
             catalog,
             stateStore.BillVersion + 1,
             stateStore.StockSensorVersion + 1);
+        foreach (ProductionBillRecord record in candidate.Bills)
+        {
+            ProductionRecipeSO recipe = ResolveRecipe(record)
+                ?? throw new InvalidOperationException(
+                    "Production restore references a missing recipe: "
+                    + (record?.recipeId ?? string.Empty));
+            bool usesPreparedOutput = UsesPreparedOutput(recipe);
+            bool hasPreparedAuthority = record.preparedOutput != null
+                && record.preparedOutput.phase !=
+                    ProductionPreparedOutputPhase.Unresolved;
+            if (usesPreparedOutput
+                && ProductionPreparedOutputMigrationScope
+                    .HasLegacyOutputAuthority(record))
+            {
+                throw new InvalidOperationException(
+                    $"Production bill '{record.billId.Value}' restored legacy output authority for a standard prepared capability.");
+            }
+            if (!usesPreparedOutput && hasPreparedAuthority)
+            {
+                throw new InvalidOperationException(
+                    $"Production bill '{record.billId.Value}' restored prepared authority for a non-standard output capability.");
+            }
+        }
+        foreach (ProductionResolvedOutputSaveData output in candidate.Bills
+                     .SelectMany(record => record.resolvedOutputs))
+        {
+            DomainFailure failure = outputExecution.ValidateOne(output);
+            if (failure.IsFailure)
+            {
+                throw new InvalidOperationException(
+                    "Production resolved-output capability restore validation failed: "
+                    + failure.Code);
+            }
+        }
+        foreach (ProductionPreparedOutputLineSaveData line in candidate.Bills
+                     .Where(record => record.preparedOutput != null
+                         && record.preparedOutput.phase !=
+                            ProductionPreparedOutputPhase.Unresolved)
+                     .SelectMany(record => record.preparedOutput.lines)
+                     .Where(line => ProductionOutputRoleRules.IsPhysical(
+                         line.role)))
+        {
+            ProductionOutputCapabilityDescriptor capability = new(
+                line.outputLineId,
+                line.itemId,
+                line.outputCapabilityId,
+                line.outputCapabilityVersion,
+                line.outputComponentCodecId,
+                line.outputComponentCodecVersion,
+                line.outputCapabilityFingerprint);
+            if (!items.TryValidateOutputCapability(
+                    capability,
+                    out DomainFailure failure))
+            {
+                throw new InvalidOperationException(
+                    "Production prepared-output capability restore validation failed: "
+                    + failure.Code);
+            }
+        }
+        return candidate;
     }
 
     public void Restore(ProductionBillRestoreCandidate candidate)
     {
+        Restore(candidate, buildingWorld.Facilities);
+    }
+
+    public void Restore(
+        ProductionBillRestoreCandidate candidate,
+        IReadOnlyList<ProductionFacilityHandle> detachedFacilities)
+    {
         ProductionBillRestoreCandidate exact = candidate
             ?? throw new ArgumentNullException(nameof(candidate));
-        IReadOnlyList<ProductionFacilityHandle> facilities =
-            buildingWorld.Facilities;
-        Dictionary<string, long> inputBufferMassGramsByBillId = exact.Bills
+        IReadOnlyList<ProductionFacilityHandle> facilities = detachedFacilities
+            ?? throw new ArgumentNullException(nameof(detachedFacilities));
+        ProductionBillRecord[] inputDestinationBills = exact.Bills
+            .Where(record => RequiresPhysicalInputDestination(
+                record,
+                facilities))
+            .ToArray();
+        Dictionary<string, long> inputBufferMassGramsByBillId =
+            inputDestinationBills
             .OrderBy(record => record.billId.Value, StringComparer.Ordinal)
             .ToDictionary(
                 record => record.billId.Value,
@@ -2167,7 +2665,7 @@ public sealed class ProductionBillRuntime :
                     facilities),
                 StringComparer.Ordinal);
         if (!inputDestinationClaims.TryReplace(
-                exact.Bills,
+                inputDestinationBills,
                 facilities,
                 inputBufferMassGramsByBillId,
                 out string claimFailure))
@@ -2179,18 +2677,33 @@ public sealed class ProductionBillRuntime :
         preparedOutputExecution.RestoreDestinationAuthorities(
             exact.Bills,
             facilities);
+        if (!stockSensors.TryReconcileDestinationAuthorities(
+                out string sensorFailure))
+        {
+            throw new InvalidOperationException(
+                "Production stock-sensor destination authorities could not be restored: "
+                + sensorFailure);
+        }
         lastOutputAuthorityBuildingVersion = buildingWorld.BuildingVersion;
         stateStore.Replace(
             exact);
     }
 
     private void RevokeInputDestinationClaimOrThrow(
-        ProductionBillRecord record)
+        ProductionBillRecord record,
+        bool required,
+        string operation)
     {
-        if (!inputDestinationClaims.TryRevoke(record, out string failureReason))
+        string failureReason;
+        bool revoked = required
+            ? inputDestinationClaims.TryRevoke(record, out failureReason)
+            : inputDestinationClaims.TryRevokeIfPresent(
+                record,
+                out failureReason);
+        if (!revoked)
         {
             throw new InvalidOperationException(
-                $"Production bill '{record?.billId.Value ?? "null"}' input destination claim could not be revoked: {failureReason}");
+                $"Production bill '{record?.billId.Value ?? "null"}' input destination claim could not be {operation}: {failureReason}");
         }
     }
 
@@ -2213,6 +2726,9 @@ public sealed class ProductionBillRuntime :
         ProductionRecipeSO recipe,
         ProductionFacilityHandle facility)
     {
+        if (!RequiresPhysicalInputDestination(record, recipe, facility))
+            return;
+
         long inputBufferMassGrams = inputLogistics
             .ResolveInputBufferMassCapacity(record, recipe, facility);
         if (!inputDestinationClaims.TryEnsureCapacity(
@@ -2243,6 +2759,27 @@ public sealed class ProductionBillRuntime :
             recipe,
             facility);
     }
+
+    private bool RequiresPhysicalInputDestination(
+        ProductionBillRecord record,
+        IReadOnlyList<ProductionFacilityHandle> facilities)
+    {
+        ProductionRecipeSO recipe = ResolveRecipe(record)
+            ?? throw new InvalidOperationException(
+                $"Production bill '{record?.billId.Value ?? "null"}' recipe is missing while resolving its input-destination requirement.");
+        ProductionFacilityHandle facility = (facilities
+                ?? Array.Empty<ProductionFacilityHandle>())
+            .SingleOrDefault(value => MatchesFacility(record, value))
+            ?? throw new InvalidOperationException(
+                $"Production bill '{record.billId.Value}' facility is missing while resolving its input-destination requirement.");
+        return RequiresPhysicalInputDestination(record, recipe, facility);
+    }
+
+    private bool RequiresPhysicalInputDestination(
+        ProductionBillRecord record,
+        ProductionRecipeSO recipe,
+        ProductionFacilityHandle facility) =>
+        inputLogistics.ToCycleInputMap(record, recipe, facility).Count > 0;
 
     private void RecalculatePrefetch(
         ProductionBillRecord record,
@@ -2291,6 +2828,13 @@ public sealed class ProductionBillRuntime :
                 : null;
     }
 
+    private bool UsesPreparedOutput(ProductionBillRecord record) =>
+        UsesPreparedOutput(ResolveRecipe(record));
+
+    private bool UsesPreparedOutput(ProductionRecipeSO recipe) =>
+        ProductionPreparedOutputCapabilitySelection
+            .UsesPreparedOutputMaterializer(recipe, items);
+
     private ProductionBillRecord Find(ProductionBillId billId)
     {
         return !billId.IsValid
@@ -2315,6 +2859,40 @@ public sealed class ProductionBillRuntime :
         ProductionRecipeSO recipe)
     {
         return workshops.MatchesWorkstation(facility, recipe);
+    }
+
+    private WipTerminalCheckpointGcCandidate RequireWipCheckpointGcCandidate(
+        IProductionGenericBillWipTerminalCheckpointGcCandidate candidate)
+    {
+        if (candidate is not WipTerminalCheckpointGcCandidate exact
+            || !ReferenceEquals(activeWipCheckpointGcCandidate, exact))
+        {
+            throw new InvalidOperationException(
+                "WIP checkpoint-GC candidate is stale or foreign.");
+        }
+        return exact;
+    }
+
+    private sealed class WipTerminalCheckpointGcCandidate :
+        IProductionGenericBillWipTerminalCheckpointGcCandidate
+    {
+        internal WipTerminalCheckpointGcCandidate(
+            int expectedVersion,
+            IReadOnlyList<ProductionWipTerminalReceiptSaveData> rows)
+        {
+            ExpectedVersion = expectedVersion;
+            PublishedVersion = expectedVersion;
+            Rows = (rows ?? Array.Empty<ProductionWipTerminalReceiptSaveData>())
+                .Select(value => value.Clone())
+                .OrderBy(value => value.commitId, StringComparer.Ordinal)
+                .ToArray();
+        }
+
+        internal int ExpectedVersion { get; }
+        internal int PublishedVersion { get; set; }
+        internal IReadOnlyList<ProductionWipTerminalReceiptSaveData> Rows
+            { get; }
+        internal bool Published { get; set; }
     }
 
     private void Touch(WorkTypeId workTypeId, bool requestWorker)

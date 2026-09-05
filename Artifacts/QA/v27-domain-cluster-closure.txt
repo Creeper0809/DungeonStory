@@ -1,0 +1,12 @@
+RESULT=PASS; batch=F; structural=6/6; closed=6/6; open=0
+authority=live-source-six-link-registry+integrated-fixture
+requiredEvidence=producer>exact-input-owner>typed-consumer>terminal-drain>current-format-restore>fault
+cluster=agriculture-livestock; structural=PASS; runtime=PASS; status=PASS:current-source-integrated-fixture
+cluster=combat-expedition; structural=PASS; runtime=PASS; status=PASS:current-source-integrated-fixture
+cluster=construction-repair-demolition; structural=PASS; runtime=PASS; status=PASS:current-source-integrated-fixture
+cluster=medical; structural=PASS; runtime=PASS; status=PASS:current-source-integrated-fixture
+cluster=research-contracts-rewards; structural=PASS; runtime=PASS; status=PASS:current-source-integrated-fixture
+cluster=shop-economy; structural=PASS; runtime=PASS; status=PASS:current-source-integrated-fixture
+sourceDigest=c264036157cd296ca45e0d85482ac04ff291aea29313a7ca4bc2838e848c815e
+currentSourceDigest=444e10da91803afd572fb9bc947e1bca5ebdb8575793fdc40b8ab26cc827ee35
+gameplaySceneSha256=6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40

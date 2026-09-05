@@ -21,12 +21,25 @@ public sealed class CharacterConsumablesSaveSection :
     };
 
     private readonly ICharacterConsumablesPersistence persistence;
+    private readonly ICharacterConsumablesInputOwnerDescriptorSource
+        inputOwnerSource;
+    private readonly ICharacterConsumablesInputOwnerRuntime inputOwners;
+    private readonly ICharacterConsumablesPersistentActorQuery persistentCharacters;
 
     public CharacterConsumablesSaveSection(
-        ICharacterConsumablesPersistence persistence)
+        ICharacterConsumablesPersistence persistence,
+        ICharacterConsumablesInputOwnerDescriptorSource inputOwnerSource,
+        ICharacterConsumablesInputOwnerRuntime inputOwners,
+        ICharacterConsumablesPersistentActorQuery persistentCharacters)
     {
         this.persistence = persistence
             ?? throw new ArgumentNullException(nameof(persistence));
+        this.inputOwnerSource = inputOwnerSource
+            ?? throw new ArgumentNullException(nameof(inputOwnerSource));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
+        this.persistentCharacters = persistentCharacters
+            ?? throw new ArgumentNullException(nameof(persistentCharacters));
     }
 
     public override string SectionId => Id;
@@ -36,8 +49,23 @@ public sealed class CharacterConsumablesSaveSection :
         DungeonSaveRestorePhase.LateRuntimeState;
     public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    protected override DungeonCharacterConsumablesSaveData CapturePayload() =>
-        persistence.Capture();
+    protected override DungeonCharacterConsumablesSaveData CapturePayload()
+    {
+        persistence.ReconcilePersistentActorReferences(
+            persistentCharacters.GetPersistentActorIds()
+            ?? Array.Empty<CharacterId>());
+        if (!inputOwners.TryReconcileLive(
+                inputOwnerSource.BuildLiveInputOwnerDescriptors(),
+                CharacterConsumablesInputDestinationIdentity
+                    .CapabilityRemovedReleaseReasonCode,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Character-consumables input owner capture join failed: "
+                + failureReason);
+        }
+        return persistence.Capture();
+    }
 
     protected override void ValidateParsedPayload(
         DungeonCharacterConsumablesSaveData payload) =>
@@ -112,8 +140,20 @@ public sealed class CharacterConsumablesSaveSection :
     }
 
     protected override CharacterConsumablesRestoreCandidate BuildRestoreCandidate(
-        DungeonCharacterConsumablesSaveData payload) =>
-        persistence.BuildRestoreCandidate(payload);
+        DungeonCharacterConsumablesSaveData payload)
+    {
+        CharacterConsumablesRestoreCandidate candidate =
+            persistence.BuildRestoreCandidate(payload);
+        if (!inputOwners.TryReplaceForRestore(
+                inputOwnerSource.BuildRestoreInputOwnerDescriptors(),
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Character-consumables input owner restore join failed: "
+                + failureReason);
+        }
+        return candidate;
+    }
 
     protected override void PublishRestoreCandidate(
         CharacterConsumablesRestoreCandidate candidate) =>

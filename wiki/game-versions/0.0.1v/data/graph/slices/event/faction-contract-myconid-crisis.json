@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-myconid-crisis",
+    "spoiler_tier": "none",
+    "title": "균사정원 위기 대응 계약"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "event/faction-contract-myconid-crisis",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "supply-fungicide",
+      "target_spoiler_tier": "none",
+      "target_title": "살균제",
+      "to": "item/supply-fungicide",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "to": "event/faction-contract-myconid-crisis",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

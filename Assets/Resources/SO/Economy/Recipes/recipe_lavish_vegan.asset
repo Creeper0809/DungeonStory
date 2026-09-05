@@ -57,6 +57,10 @@ MonoBehaviour:
   wastewaterComposition: 2
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=MoistureEvaporation|reason=food-preparation-moisture-and-trimming-residue|physicalByproduct=false
   inputs:
   - itemId: material:flour
     amount: 2

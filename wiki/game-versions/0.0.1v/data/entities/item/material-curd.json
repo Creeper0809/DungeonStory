@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.45kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "13"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "응유는 식재료를 한 차례 가공해 조리와 발효에 바로 쓸 수 있게 만든 재료다. 사르베니아 내해에서 온 응유 포대에는 소금바람 냄새와 밀로세아 가도의 붉은 먼지가 함께 밴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-curd",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "응유"
+}

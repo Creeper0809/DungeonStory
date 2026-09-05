@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.09kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "100개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "9"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "철촉의 무게와 날각을 표준에 맞춰 피해와 관통의 균형을 잡은 화살이다. 아일라세라 사수는 철촉 화살을 쏘기 전 바람의 방향을 짧게 노래한다. 마지막 음이 발사 신호다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-arrow-iron",
+  "spoiler_tier": "none",
+  "summary": "표준 피해와 관통을 가진 화살.",
+  "title": "철촉 화살"
+}

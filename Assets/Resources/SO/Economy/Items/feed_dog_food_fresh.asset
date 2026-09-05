@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: feed_dog_food_fresh
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8109
+  itemId: feed:dog-food-fresh
+  displayName: "\uC2E0\uC120 \uAC1C\uBC25"
+  description: "\uC0DD\uACE0\uAE30\uC640 \uACE1\uBB3C\uC744 \uBC14\uB85C \uC11E\uC5B4 \uB9CC\uB4E0 \uC721\uC2DD\xB7\uC7A1\uC2DD \uC0AC\uB8CC."
+  stockCategory: 0
+  unitWeight: 0.525
+  maxStack: 75
+  sprite: {fileID: 0}
+  unitPrice: 6
+  features:
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
+  references:
+    version: 2
+    RefIds:
+    - rid: 1000
+      type: {class: ResearchGateItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        requiredResearchId: research:husbandry:feed
+    - rid: 1001
+      type: {class: FacilitySupplyItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        fuelValue: 0
+        nutritionValue: 14
+        feedEligible: 1
+    - rid: 1002
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 17
+        sharedIntermediate: 0
+    - rid: 1003
+      type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        saleRate: 0.5881111

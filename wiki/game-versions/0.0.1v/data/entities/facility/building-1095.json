@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "자원"
+    },
+    {
+      "label": "크기",
+      "value": "3×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1095",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 작물 재배, 생산 작업대이다. 건설에는 작업량 425, 재료 천×6, 철괴×2, 기계 부품×2이 필요하다.",
+  "title": "야외 경작지"
+}

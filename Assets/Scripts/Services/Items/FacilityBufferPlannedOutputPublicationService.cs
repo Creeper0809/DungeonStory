@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
 
@@ -21,6 +22,98 @@ public interface IFacilityBufferPlannedOutputPublicationFaultInjector
     bool FailBeforeRepositoryAdd(int zeroBasedStackIndex);
 }
 
+public interface IFacilityBufferPlannedOutputAcknowledgementFaultInjector
+{
+    bool FailBeforeRepositoryMutation(int zeroBasedStackIndex);
+}
+
+/// <summary>
+/// Immutable projection used by identity binders. Mutable repository records
+/// remain private to the publication service.
+/// </summary>
+public sealed class FacilityBufferPublishedUniqueOutputSnapshot
+{
+    private readonly IReadOnlyList<ItemInstanceComponentSaveData> components;
+
+    internal FacilityBufferPublishedUniqueOutputSnapshot(
+        WorldItemStackRecord record)
+    {
+        if (record == null)
+            throw new ArgumentNullException(nameof(record));
+        StackId = record.stackId ?? string.Empty;
+        ItemDefinitionId = (ItemDefinitionId)(record.itemId ?? string.Empty);
+        Quantity = record.quantity;
+        ItemInstanceId = record.itemInstanceId ?? string.Empty;
+        ItemInstanceComponentSaveData[] copied = (record.components
+                ?? new List<ItemInstanceComponentSaveData>())
+            .Where(value => value != null)
+            .Select(value => value.Clone())
+            .ToArray();
+        components = Array.AsReadOnly(copied);
+    }
+
+    public string StackId { get; }
+    public ItemDefinitionId ItemDefinitionId { get; }
+    public int Quantity { get; }
+    public string ItemInstanceId { get; }
+    public IReadOnlyList<ItemInstanceComponentSaveData> Components =>
+        components ?? Array.Empty<ItemInstanceComponentSaveData>();
+}
+
+/// <summary>
+/// Binds an identity-bearing prepared output component after the physical stack ID
+/// has been allocated. Implementations are selected by a canonical capability ID;
+/// the publication core never branches on an item definition ID.
+/// </summary>
+public interface IFacilityBufferPlannedUniqueOutputBinder
+{
+    string CapabilityId { get; }
+
+    bool TryBind(
+        FacilityBufferPlannedOutputSliceSnapshot line,
+        string allocatedStackId,
+        out IReadOnlyList<ItemInstanceComponentSaveData> boundComponents,
+        out string failureReason);
+
+    bool CanValidate(IReadOnlyList<ItemInstanceComponentSaveData> components);
+
+    bool MatchesPrepared(
+        FacilityBufferPlannedOutputSliceSnapshot line,
+        FacilityBufferPublishedUniqueOutputSnapshot output,
+        out string failureReason);
+
+    bool MatchesCommitted(
+        FacilityBufferPublishedUniqueOutputSnapshot output,
+        out string failureReason);
+}
+
+public readonly struct FacilityBufferAcknowledgedOutputReleaseTarget
+{
+    public FacilityBufferAcknowledgedOutputReleaseTarget(
+        string destinationId,
+        Vector2Int destinationPosition)
+    {
+        HasDestination = true;
+        DestinationId = destinationId ?? string.Empty;
+        DestinationPosition = destinationPosition;
+    }
+
+    public bool HasDestination { get; }
+    public string DestinationId { get; }
+    public Vector2Int DestinationPosition { get; }
+
+    public static FacilityBufferAcknowledgedOutputReleaseTarget Unassigned =>
+        default;
+
+    internal bool IsValid => !HasDestination
+        ? string.IsNullOrEmpty(DestinationId)
+        : !string.IsNullOrWhiteSpace(DestinationId)
+            && string.Equals(
+                DestinationId,
+                DestinationId.Trim(),
+                StringComparison.Ordinal);
+}
+
 public interface IFacilityBufferPlannedOutputPublicationService
 {
     bool TryPublishFullBatch(
@@ -36,6 +129,11 @@ public interface IFacilityBufferPlannedOutputPublicationService
         FacilityBufferPlannedOutputPublicationReceipt receipt,
         out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
         out string failureReason);
+    bool TryAcknowledgeAndReleasePublishedBatch(
+        FacilityBufferPlannedOutputPublicationReceipt receipt,
+        FacilityBufferAcknowledgedOutputReleaseTarget target,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason);
     bool TryRollbackRestoreCandidate(
         FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
         out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
@@ -44,9 +142,21 @@ public interface IFacilityBufferPlannedOutputPublicationService
         FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
         out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
         out string failureReason);
+    bool TryAcknowledgeAndReleaseRestoreCandidate(
+        FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+        FacilityBufferAcknowledgedOutputReleaseTarget target,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason);
     bool TryCapturePendingBatch(
         string batchCommitId,
         out FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason);
+    bool TryCaptureBatch(
+        string batchCommitId,
+        bool allowAcknowledged,
+        out FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+        out bool acknowledged,
         out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
         out string failureReason);
 }
@@ -112,14 +222,51 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
     private readonly IPhysicalItemMassQuery massQuery;
     private readonly IFacilityBufferMassAdmissionService admission;
     private readonly IFacilityBufferPlannedOutputPublicationFaultInjector faultInjector;
+    private readonly IFacilityBufferPlannedOutputAcknowledgementFaultInjector
+        acknowledgementFaultInjector;
+    private readonly IReadOnlyDictionary<string, IFacilityBufferPlannedUniqueOutputBinder>
+        uniqueBinders;
+    private readonly IFacilityOutputClearanceTelemetrySink
+        outputClearanceTelemetry;
+    private readonly IGameClock gameClock;
+
+    public FacilityBufferPlannedOutputPublicationService(
+        WorldItemRepository repository,
+        IDungeonItemCatalogProvider catalog,
+        IPhysicalItemMassQuery massQuery,
+        IFacilityBufferMassAdmissionService admission)
+        : this(
+            repository,
+            catalog,
+            massQuery,
+            admission,
+            null,
+            null,
+            Array.Empty<IFacilityBufferPlannedUniqueOutputBinder>(),
+            null,
+            null)
+    {
+    }
 
     [Inject]
     public FacilityBufferPlannedOutputPublicationService(
         WorldItemRepository repository,
         IDungeonItemCatalogProvider catalog,
         IPhysicalItemMassQuery massQuery,
-        IFacilityBufferMassAdmissionService admission)
-        : this(repository, catalog, massQuery, admission, null)
+        IFacilityBufferMassAdmissionService admission,
+        IEnumerable<IFacilityBufferPlannedUniqueOutputBinder> uniqueBinders,
+        IFacilityOutputClearanceTelemetrySink outputClearanceTelemetry,
+        IGameClock gameClock)
+        : this(
+            repository,
+            catalog,
+            massQuery,
+            admission,
+            null,
+            null,
+            uniqueBinders,
+            outputClearanceTelemetry,
+            gameClock)
     {
     }
 
@@ -128,13 +275,67 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         IDungeonItemCatalogProvider catalog,
         IPhysicalItemMassQuery massQuery,
         IFacilityBufferMassAdmissionService admission,
-        IFacilityBufferPlannedOutputPublicationFaultInjector faultInjector = null)
+        IFacilityBufferPlannedOutputPublicationFaultInjector faultInjector = null,
+        IFacilityBufferPlannedOutputAcknowledgementFaultInjector
+            acknowledgementFaultInjector = null)
+        : this(
+            repository,
+            catalog,
+            massQuery,
+            admission,
+            faultInjector,
+            acknowledgementFaultInjector,
+            Array.Empty<IFacilityBufferPlannedUniqueOutputBinder>(),
+            null,
+            null)
+    {
+    }
+
+    public FacilityBufferPlannedOutputPublicationService(
+        WorldItemRepository repository,
+        IDungeonItemCatalogProvider catalog,
+        IPhysicalItemMassQuery massQuery,
+        IFacilityBufferMassAdmissionService admission,
+        IFacilityBufferPlannedOutputPublicationFaultInjector faultInjector,
+        IFacilityBufferPlannedOutputAcknowledgementFaultInjector
+            acknowledgementFaultInjector,
+        IEnumerable<IFacilityBufferPlannedUniqueOutputBinder> uniqueBinders,
+        IFacilityOutputClearanceTelemetrySink outputClearanceTelemetry = null,
+        IGameClock gameClock = null)
     {
         this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.massQuery = massQuery ?? throw new ArgumentNullException(nameof(massQuery));
         this.admission = admission ?? throw new ArgumentNullException(nameof(admission));
         this.faultInjector = faultInjector;
+        this.acknowledgementFaultInjector = acknowledgementFaultInjector;
+        this.outputClearanceTelemetry = outputClearanceTelemetry;
+        this.gameClock = gameClock;
+        if (outputClearanceTelemetry != null && gameClock == null)
+        {
+            throw new ArgumentNullException(
+                nameof(gameClock),
+                "Facility output-clearance telemetry requires a game clock.");
+        }
+        IFacilityBufferPlannedUniqueOutputBinder[] ordered = (uniqueBinders
+                ?? throw new ArgumentNullException(nameof(uniqueBinders)))
+            .OrderBy(value => value?.CapabilityId, StringComparer.Ordinal)
+            .ToArray();
+        if (ordered.Any(value => value == null
+                || !IsCanonicalCapabilityId(value.CapabilityId))
+            || ordered.Select(value => value.CapabilityId)
+                .Distinct(StringComparer.Ordinal).Count() != ordered.Length)
+        {
+            throw new InvalidOperationException(
+                "Planned unique-output binders are null, noncanonical, or duplicated.");
+        }
+        this.uniqueBinders = new Dictionary<
+            string,
+            IFacilityBufferPlannedUniqueOutputBinder>(
+            ordered.ToDictionary(
+                value => value.CapabilityId,
+                StringComparer.Ordinal),
+            StringComparer.Ordinal);
     }
 
 #if UNITY_EDITOR
@@ -171,12 +372,50 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
             repository.Records,
             massQuery);
 
+    public IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
+        CaptureAcknowledgedRestoreBatchesForEditorTest() =>
+        FacilityBufferPlannedOutputRestoreCandidateFactory
+            .CaptureAcknowledgedBatches(repository.Records, massQuery);
+
+    public void SetUniqueEquipmentWorldStateForEditorTest(
+        string instanceId,
+        WorldItemStackState stackState,
+        CombatEquipmentWorldState equipmentState)
+    {
+        if (!repository.EquipmentInstances.TryGetValue(
+                instanceId ?? string.Empty,
+                out CombatEquipmentInstance equipment))
+        {
+            throw new InvalidOperationException(
+                "Planned-output Editor fixture has no matching equipment instance.");
+        }
+        WorldItemStackRecord record = repository.Records.SingleOrDefault(value =>
+            value != null
+            && string.Equals(
+                value.itemInstanceId,
+                instanceId,
+                StringComparison.Ordinal));
+        if (record == null)
+            throw new InvalidOperationException(
+                "Planned-output Editor fixture has no matching equipment stack.");
+
+        equipment.worldState = equipmentState;
+        record.state = stackState;
+        record.components = record.components
+            .Where(value => value != null
+                && value.componentTypeId != ItemInstanceComponentIds.Equipment)
+            .Select(value => value.Clone())
+            .Append(EquipmentItemStateCodec.Encode(equipment))
+            .ToList();
+    }
+
     public void DecrementFirstStackQuantityForEditorTest()
     {
         WorldItemStackRecord first = repository.Records
+            .Where(value => value.quantity > 1)
             .OrderBy(value => value.stackId, StringComparer.Ordinal)
             .FirstOrDefault();
-        if (first == null || first.quantity <= 1)
+        if (first == null)
             throw new InvalidOperationException(
                 "Planned-output Editor fixture has no decrementable stack.");
         first.quantity--;
@@ -274,6 +513,9 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
             .ToArray();
         if (!repository.TryAddBatchAtomically(
                 records,
+                publish.Where(value => value.Equipment != null)
+                    .Select(value => value.Equipment)
+                    .ToArray(),
                 index => faultInjector?.FailBeforeRepositoryAdd(index) == true,
                 out string repositoryFailure))
         {
@@ -285,6 +527,16 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         }
 
         receipt = CreateReceipt(token, publish);
+        outputClearanceTelemetry?.RecordPublication(
+            new FacilityOutputBatchPublishedObservation(
+                receipt.BatchCommitId,
+                receipt.OwnerFacilityId,
+                publish.Aggregate(
+                    0L,
+                    (total, value) => checked(
+                        total + value.Mass.Value)),
+                FacilityOutputClearanceTelemetryRuntime
+                    .CaptureMicroGameHours(gameClock)));
         return true;
     }
 
@@ -308,6 +560,7 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         if (!TryResolveReceiptBatch(
                 receipt,
                 allowAcknowledged: false,
+                requireCommittedAggregate: false,
                 out WorldItemStackRecord[] records,
                 out _,
                 out failureCode,
@@ -315,7 +568,10 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         {
             return false;
         }
-        if (!repository.TryRemoveBatchAtomically(records, out string repositoryFailure))
+        if (!repository.TryRemoveBatchAtomically(
+                records,
+                CaptureEquipmentInstanceIds(records),
+                out string repositoryFailure))
         {
             return Fail(
                 FacilityBufferPlannedOutputPublicationFailureCode.RepositoryTransactionFailed,
@@ -323,6 +579,8 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                 out failureCode,
                 out failureReason);
         }
+        outputClearanceTelemetry?.RecordPublicationRollback(
+            receipt.BatchCommitId);
         return true;
     }
 
@@ -354,6 +612,7 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         if (!TryResolveReceiptBatch(
                 receipt,
                 allowAcknowledged: true,
+                requireCommittedAggregate: true,
                 out WorldItemStackRecord[] records,
                 out bool acknowledged,
                 out failureCode,
@@ -371,6 +630,76 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
             out failureReason);
     }
 
+    public bool TryAcknowledgeAndReleasePublishedBatch(
+        FacilityBufferPlannedOutputPublicationReceipt receipt,
+        FacilityBufferAcknowledgedOutputReleaseTarget target,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason)
+    {
+        failureCode = FacilityBufferPlannedOutputPublicationFailureCode.None;
+        failureReason = string.Empty;
+        if (!target.IsValid)
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode.InvalidToken,
+                "Acknowledged output release target is invalid.",
+                out failureCode,
+                out failureReason);
+        }
+        if (!TryValidateReleaseDestinationClaim(target, out string claimFailure))
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode.InvalidToken,
+                claimFailure,
+                out failureCode,
+                out failureReason);
+        }
+        if (!admission.TryGetPlannedOutputReceipt(
+                receipt.AdmissionTokenId,
+                out FacilityBufferPlannedOutputReceipt committed)
+            || !string.Equals(
+                committed.BatchCommitId,
+                receipt.BatchCommitId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                committed.PlannedOutputFingerprint,
+                receipt.PlannedOutputFingerprint,
+                StringComparison.Ordinal))
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode.InvalidToken,
+                $"Batch '{receipt.BatchCommitId}' cannot be released before admission commit.",
+                out failureCode,
+                out failureReason);
+        }
+        if (!TryResolveReceiptBatch(
+                receipt,
+                allowAcknowledged: true,
+                requireCommittedAggregate: true,
+                out WorldItemStackRecord[] records,
+                out bool acknowledged,
+                out failureCode,
+                out failureReason))
+        {
+            return false;
+        }
+        if (acknowledged)
+        {
+            return TryRequireReleasedTarget(
+                records,
+                target,
+                receipt.BatchCommitId,
+                out failureCode,
+                out failureReason);
+        }
+        return TryConvertPendingMarkersAndRelease(
+            records,
+            receipt.BatchCommitId,
+            target,
+            out failureCode,
+            out failureReason);
+    }
+
     public bool TryRollbackRestoreCandidate(
         FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
         out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
@@ -379,6 +708,7 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         if (!TryResolveRestoreCandidate(
                 candidate,
                 allowAcknowledged: false,
+                requireCommittedAggregate: false,
                 out WorldItemStackRecord[] records,
                 out _,
                 out failureCode,
@@ -386,7 +716,10 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         {
             return false;
         }
-        if (!repository.TryRemoveBatchAtomically(records, out string repositoryFailure))
+        if (!repository.TryRemoveBatchAtomically(
+                records,
+                CaptureEquipmentInstanceIds(records),
+                out string repositoryFailure))
         {
             return Fail(
                 FacilityBufferPlannedOutputPublicationFailureCode.RepositoryTransactionFailed,
@@ -405,6 +738,7 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         if (!TryResolveRestoreCandidate(
                 candidate,
                 allowAcknowledged: true,
+                requireCommittedAggregate: true,
                 out WorldItemStackRecord[] records,
                 out bool acknowledged,
                 out failureCode,
@@ -422,22 +756,104 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
             out failureReason);
     }
 
+    public bool TryAcknowledgeAndReleaseRestoreCandidate(
+        FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+        FacilityBufferAcknowledgedOutputReleaseTarget target,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason)
+    {
+        if (!target.IsValid)
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode.InvalidToken,
+                "Acknowledged restore release target is invalid.",
+                out failureCode,
+                out failureReason);
+        }
+        if (!TryValidateReleaseDestinationClaim(target, out string claimFailure))
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode.InvalidToken,
+                claimFailure,
+                out failureCode,
+                out failureReason);
+        }
+        if (!TryResolveRestoreCandidate(
+                candidate,
+                allowAcknowledged: true,
+                requireCommittedAggregate: true,
+                out WorldItemStackRecord[] records,
+                out bool acknowledged,
+                out failureCode,
+                out failureReason))
+        {
+            return false;
+        }
+        if (acknowledged)
+        {
+            return TryRequireReleasedTarget(
+                records,
+                target,
+                candidate.BatchCommitId,
+                out failureCode,
+                out failureReason);
+        }
+        return TryConvertPendingMarkersAndRelease(
+            records,
+            candidate.BatchCommitId,
+            target,
+            out failureCode,
+            out failureReason);
+    }
+
+    private bool TryValidateReleaseDestinationClaim(
+        FacilityBufferAcknowledgedOutputReleaseTarget target,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!target.HasDestination
+            || !ReservedTargetDestinationIdentity.RequiresExactClaim(
+                target.DestinationId))
+        {
+            return true;
+        }
+        return admission.TryValidateExactDestinationClaim(
+            target.DestinationId,
+            target.DestinationPosition,
+            out failureReason);
+    }
+
     public bool TryCapturePendingBatch(
         string batchCommitId,
         out FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
         out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason) => TryCaptureBatch(
+        batchCommitId,
+        allowAcknowledged: false,
+        out candidate,
+        out _,
+        out failureCode,
+        out failureReason);
+
+    public bool TryCaptureBatch(
+        string batchCommitId,
+        bool allowAcknowledged,
+        out FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+        out bool acknowledged,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
         out string failureReason)
     {
+        acknowledged = false;
         failureCode = FacilityBufferPlannedOutputPublicationFailureCode.None;
         failureReason = string.Empty;
         if (!FacilityBufferPlannedOutputRestoreCandidateFactory.TryCaptureBatch(
                 repository.Records,
                 batchCommitId,
                 massQuery,
-                allowAcknowledged: false,
+                allowAcknowledged,
                 out candidate,
                 out _,
-                out _,
+                out acknowledged,
                 out failureReason))
         {
             failureCode =
@@ -492,9 +908,130 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         return true;
     }
 
+    private bool TryConvertPendingMarkersAndRelease(
+        IReadOnlyList<WorldItemStackRecord> records,
+        string batchCommitId,
+        FacilityBufferAcknowledgedOutputReleaseTarget target,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason)
+    {
+        failureCode = FacilityBufferPlannedOutputPublicationFailureCode.None;
+        failureReason = string.Empty;
+        Dictionary<string, IReadOnlyList<ItemInstanceComponentSaveData>>
+            replacements = new(StringComparer.Ordinal);
+        foreach (WorldItemStackRecord record in records)
+        {
+            if (!IsPendingReleaseSource(record)
+                || !PlannedOutputPublicationComponentCodec.TryRead(
+                    record.components,
+                    out PlannedOutputPublicationMetadata metadata)
+                || metadata.Acknowledged)
+            {
+                return Fail(
+                    FacilityBufferPlannedOutputPublicationFailureCode
+                        .ExistingPublicationConflict,
+                    $"Batch '{batchCommitId}' release source changed.",
+                    out failureCode,
+                    out failureReason);
+            }
+            List<ItemInstanceComponentSaveData> next = record.components
+                .Where(component => component != null
+                    && !PlannedOutputPublicationComponentCodec.IsAnyMarker(component))
+                .Select(component => component.Clone())
+                .ToList();
+            next.Add(PlannedOutputPublicationComponentCodec.CreateProvenance(metadata));
+            replacements.Add(record.stackId, next);
+        }
+        Func<int, bool> failBeforeMutation = acknowledgementFaultInjector == null
+            ? null
+            : acknowledgementFaultInjector.FailBeforeRepositoryMutation;
+        if (!repository.TryAcknowledgeAndRouteBatchAtomically(
+                records,
+                replacements,
+                target,
+                failBeforeMutation,
+                out string repositoryFailure))
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode
+                    .RepositoryTransactionFailed,
+                repositoryFailure,
+                out failureCode,
+                out failureReason);
+        }
+        return true;
+    }
+
+    private static bool TryRequireReleasedTarget(
+        IReadOnlyList<WorldItemStackRecord> records,
+        FacilityBufferAcknowledgedOutputReleaseTarget target,
+        string batchCommitId,
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason)
+    {
+        bool valid = records != null
+            && records.Count > 0
+            && records.All(record => IsReleasedTarget(record, target));
+        return valid
+            ? Pass(out failureCode, out failureReason)
+            : Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode
+                    .ExistingPublicationConflict,
+                $"Batch '{batchCommitId}' acknowledged release target changed.",
+                out failureCode,
+                out failureReason);
+    }
+
+    private static bool IsPendingReleaseSource(WorldItemStackRecord record) =>
+        record != null
+        && record.state == WorldItemStackState.FacilityOutputBuffer
+        && !record.hasDestinationPosition
+        && record.reservedQuantity == 0
+        && string.IsNullOrEmpty(record.reservedByPersistentId)
+        && string.IsNullOrEmpty(record.sourceStorageDestinationId)
+        && record.dropDisposition == WorldItemDropDisposition.None
+        && string.IsNullOrEmpty(record.recoveryOwnerOperationId)
+        && string.IsNullOrEmpty(record.recoverySourceStackId)
+        && string.IsNullOrEmpty(record.recoveryCarrierPersistentId)
+        && record.droppedAtGameTime == 0d
+        && record.recoveryDeadlineGameTime == 0d;
+
+    private static bool IsReleasedTarget(
+        WorldItemStackRecord record,
+        FacilityBufferAcknowledgedOutputReleaseTarget target) => record != null
+        && record.state == WorldItemStackState.Loose
+        && record.reservedQuantity == 0
+        && string.IsNullOrEmpty(record.reservedByPersistentId)
+        && string.IsNullOrEmpty(record.sourceStorageDestinationId)
+        && record.dropDisposition == WorldItemDropDisposition.None
+        && string.IsNullOrEmpty(record.recoveryOwnerOperationId)
+        && string.IsNullOrEmpty(record.recoverySourceStackId)
+        && string.IsNullOrEmpty(record.recoveryCarrierPersistentId)
+        && record.droppedAtGameTime == 0d
+        && record.recoveryDeadlineGameTime == 0d
+        && (target.HasDestination
+            ? string.Equals(
+                    record.destinationId,
+                    target.DestinationId,
+                    StringComparison.Ordinal)
+                && record.hasDestinationPosition
+                && record.destinationPosition == target.DestinationPosition
+            : string.IsNullOrEmpty(record.destinationId)
+                && !record.hasDestinationPosition);
+
+    private static bool Pass(
+        out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+        out string failureReason)
+    {
+        failureCode = FacilityBufferPlannedOutputPublicationFailureCode.None;
+        failureReason = string.Empty;
+        return true;
+    }
+
     private bool TryResolveRestoreCandidate(
         FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
         bool allowAcknowledged,
+        bool requireCommittedAggregate,
         out WorldItemStackRecord[] records,
         out bool acknowledged,
         out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
@@ -557,6 +1094,10 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                 || left.StackOrdinal != right.StackOrdinal
                 || !string.Equals(left.StackId, right.StackId, StringComparison.Ordinal)
                 || !string.Equals(left.ItemId, right.ItemId, StringComparison.Ordinal)
+                || !string.Equals(
+                    left.ItemInstanceId,
+                    right.ItemInstanceId,
+                    StringComparison.Ordinal)
                 || left.Quantity != right.Quantity
                 || left.MassGrams != right.MassGrams
                 || !string.Equals(left.ComponentSignature, right.ComponentSignature, StringComparison.Ordinal)
@@ -571,12 +1112,22 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                     out failureReason);
             }
         }
+        if (requireCommittedAggregate
+            && records.Any(record => !EquipmentAggregateMatches(record)))
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode.ExistingPublicationConflict,
+                $"Batch '{candidate.BatchCommitId}' equipment aggregate mismatched.",
+                out failureCode,
+                out failureReason);
+        }
         return true;
     }
 
     private bool TryResolveReceiptBatch(
         FacilityBufferPlannedOutputPublicationReceipt receipt,
         bool allowAcknowledged,
+        bool requireCommittedAggregate,
         out WorldItemStackRecord[] records,
         out bool acknowledged,
         out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
@@ -614,8 +1165,12 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                 StringComparison.Ordinal)
             || expected.Length == 0
             || expected.Length != actual.Length
-            || records.Any(record => record.position != receipt.DropPosition
-                || !string.Equals(record.destinationId, receipt.DestinationId, StringComparison.Ordinal)))
+            || !acknowledged
+                && records.Any(record => record.position != receipt.DropPosition
+                    || !string.Equals(
+                        record.destinationId,
+                        receipt.DestinationId,
+                        StringComparison.Ordinal)))
         {
             return Fail(
                 FacilityBufferPlannedOutputPublicationFailureCode.ExistingPublicationConflict,
@@ -630,6 +1185,10 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
             if (!string.Equals(left.StackId, right.StackId, StringComparison.Ordinal)
                 || !string.Equals(left.OutputLineId, right.OutputLineId, StringComparison.Ordinal)
                 || !left.ItemDefinitionId.Equals((ItemDefinitionId)right.ItemId)
+                || !string.Equals(
+                    left.ItemInstanceId,
+                    right.ItemInstanceId,
+                    StringComparison.Ordinal)
                 || left.Quantity != right.Quantity
                 || left.MassGrams != right.MassGrams)
             {
@@ -639,6 +1198,15 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                     out failureCode,
                     out failureReason);
             }
+        }
+        if (requireCommittedAggregate
+            && records.Any(record => !EquipmentAggregateMatches(record)))
+        {
+            return Fail(
+                FacilityBufferPlannedOutputPublicationFailureCode.ExistingPublicationConflict,
+                $"Batch '{receipt.BatchCommitId}' equipment aggregate mismatched.",
+                out failureCode,
+                out failureReason);
         }
         return true;
     }
@@ -669,15 +1237,24 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                         out failureCode,
                         out failureReason);
                 }
-                if (PhysicalItemIds.TryGetEquipmentDefinitionId(
+                bool equipmentOutput = PhysicalItemIds
+                    .TryGetEquipmentDefinitionId(
                         line.ItemDefinitionId.Value,
-                        out _)
-                    || PhysicalItemIds.IsEquipmentModule(
-                        line.ItemDefinitionId.Value))
+                        out string equipmentDefinitionId);
+                IFacilityBufferPlannedUniqueOutputBinder uniqueBinder = null;
+                string bindingCapabilityId =
+                    line.Source.UniqueBindingCapabilityId;
+                if (bindingCapabilityId.Length > 0
+                    && (!uniqueBinders.TryGetValue(
+                            bindingCapabilityId,
+                            out uniqueBinder)
+                        || line.Quantity != 1
+                        || string.IsNullOrEmpty(
+                            line.Source.Subject.ItemInstanceId)))
                 {
                     return Fail(
                         FacilityBufferPlannedOutputPublicationFailureCode.UnsupportedPreparedSubject,
-                        $"Planned-output definition '{line.ItemDefinitionId.Value}' requires the equipment aggregate publisher.",
+                        $"Planned-output line '{line.OutputLineId}' has an unsupported unique binding capability.",
                         out failureCode,
                         out failureReason);
                 }
@@ -695,6 +1272,18 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                     return Fail(
                         FacilityBufferPlannedOutputPublicationFailureCode.UnsupportedPreparedSubject,
                         $"Planned-output line '{line.OutputLineId}' requires runtime components not present in the immutable token.",
+                        out failureCode,
+                        out failureReason);
+                }
+                if (equipmentOutput
+                    && (line.Quantity != 1
+                        || string.IsNullOrEmpty(
+                            line.Source.Subject.ItemInstanceId)))
+                {
+                    return Fail(
+                        FacilityBufferPlannedOutputPublicationFailureCode
+                            .UnsupportedPreparedSubject,
+                        $"Equipment output line '{line.OutputLineId}' requires one frozen instance identity.",
                         out failureCode,
                         out failureReason);
                 }
@@ -720,10 +1309,44 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                     {
                         instanceId = repository.AllocateItemInstanceId();
                     }
-                    List<ItemInstanceComponentSaveData> components =
-                        line.Source.MaterializeRuntimeComponents()
+                    List<ItemInstanceComponentSaveData> components;
+                    if (uniqueBinder != null)
+                    {
+                        if (!uniqueBinder.TryBind(
+                                line,
+                                stackId,
+                                out IReadOnlyList<ItemInstanceComponentSaveData>
+                                    boundComponents,
+                                out string bindingFailure))
+                        {
+                            return Fail(
+                                FacilityBufferPlannedOutputPublicationFailureCode
+                                    .UnsupportedPreparedSubject,
+                                $"Planned-output line '{line.OutputLineId}' binding failed: {bindingFailure}",
+                                out failureCode,
+                                out failureReason);
+                        }
+                        components = (boundComponents
+                                ?? Array.Empty<ItemInstanceComponentSaveData>())
+                            .Select(component => component?.Clone())
+                            .ToList();
+                        if (components.Count == 0
+                            || components.Any(component => component == null))
+                        {
+                            return Fail(
+                                FacilityBufferPlannedOutputPublicationFailureCode
+                                    .UnsupportedPreparedSubject,
+                                $"Planned-output line '{line.OutputLineId}' binder returned invalid components.",
+                                out failureCode,
+                                out failureReason);
+                        }
+                    }
+                    else
+                    {
+                        components = line.Source.MaterializeRuntimeComponents()
                             .Select(component => component.Clone())
                             .ToList();
+                    }
                     if (components.Any(
                             PlannedOutputPublicationComponentCodec.IsAnyMarker))
                     {
@@ -744,12 +1367,84 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                         destinationId = token.Request.DestinationId,
                         components = components
                     };
+                    CombatEquipmentInstance preparedEquipment = null;
+                    if (equipmentOutput)
+                    {
+                        ItemInstanceComponentSaveData equipmentComponent =
+                            components.SingleOrDefault(value => value != null
+                                && string.Equals(
+                                    value.componentTypeId,
+                                    ItemInstanceComponentIds.Equipment,
+                                    StringComparison.Ordinal));
+                        EquipmentPhysicalStatePayload payload = null;
+                        string equipmentFailure = string.Empty;
+                        if (equipmentComponent == null
+                            || !EquipmentItemStateCodec.TryDecodeFull(
+                                equipmentComponent,
+                                out payload,
+                                out equipmentFailure)
+                            || (payload.attachedModules?.Count ?? 0) != 0
+                            || !string.Equals(
+                                payload.equipment.instanceId,
+                                instanceId,
+                                StringComparison.Ordinal)
+                            || !string.Equals(
+                                payload.equipment.definitionId,
+                                equipmentDefinitionId,
+                                StringComparison.Ordinal)
+                            || !string.IsNullOrEmpty(
+                                payload.equipment.sourceStackId))
+                        {
+                            return Fail(
+                                FacilityBufferPlannedOutputPublicationFailureCode
+                                    .UnsupportedPreparedSubject,
+                                $"Equipment output line '{line.OutputLineId}' has invalid frozen state: {equipmentFailure}",
+                                out failureCode,
+                                out failureReason);
+                        }
+                        if (allocateIdentities)
+                        {
+                            preparedEquipment = payload.equipment.Clone();
+                            preparedEquipment.sourceStackId = stackId;
+                            preparedEquipment.worldState =
+                                CombatEquipmentWorldState.Loose;
+                            preparedEquipment.ownerCharacterId = string.Empty;
+                            int componentIndex = components.IndexOf(
+                                equipmentComponent);
+                            components[componentIndex] =
+                                EquipmentItemStateCodec.Encode(
+                                    preparedEquipment);
+                            PhysicalItemMassSubject finalizedSubject =
+                                PhysicalItemMassSubjectAdapter.Create(
+                                    massQuery,
+                                    line.ItemDefinitionId,
+                                    instanceId,
+                                    components);
+                            PhysicalMassGrams finalizedMass = massQuery
+                                .GetQuantityMass(
+                                    line.ItemDefinitionId,
+                                    finalizedSubject,
+                                    quantity);
+                            if (finalizedMass.Value != mass.Value)
+                            {
+                                return Fail(
+                                    FacilityBufferPlannedOutputPublicationFailureCode
+                                        .PhysicalMassMismatch,
+                                    $"Equipment output line '{line.OutputLineId}' changed mass while binding its stack identity.",
+                                    out failureCode,
+                                    out failureReason);
+                            }
+                        }
+                    }
                     prepared.Add(new PreparedStack(
                         line.OutputLineId,
                         ordinal,
                         mass,
                         record,
-                        line.Source.PreparedComponentFingerprint));
+                        line.Source.PreparedComponentFingerprint,
+                        preparedEquipment,
+                        line,
+                        uniqueBinder));
                     remaining -= quantity;
                     ordinal++;
                 }
@@ -869,9 +1564,25 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                 || !string.Equals(record.destinationId, token.Request.DestinationId, StringComparison.Ordinal)
                 || !string.Equals(record.itemId, expectedStack.Record.itemId, StringComparison.Ordinal)
                 || record.quantity != expectedStack.Record.quantity
-                || !RuntimeComponentsMatch(
-                    expectedStack.Record.components,
-                    record.components))
+                || !string.Equals(
+                    record.itemInstanceId,
+                    expectedStack.Record.itemInstanceId,
+                    StringComparison.Ordinal)
+                || expectedStack.UniqueBinder != null
+                    && !expectedStack.UniqueBinder
+                        .MatchesPrepared(
+                            expectedStack.SourceLine,
+                            new FacilityBufferPublishedUniqueOutputSnapshot(
+                                record),
+                            out _)
+                || expectedStack.UniqueBinder == null
+                    && (!EquipmentAggregateMatches(record)
+                        || !RuntimeComponentsMatch(
+                            expectedStack.Record.components,
+                            record.components,
+                            PhysicalItemIds.TryGetEquipmentDefinitionId(
+                                record.itemId,
+                                out _))))
             {
                 return Fail(
                     FacilityBufferPlannedOutputPublicationFailureCode.ExistingPublicationConflict,
@@ -901,7 +1612,10 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                 metadata.StackOrdinal,
                 actualMass,
                 record,
-                metadata.PreparedComponentFingerprint));
+                metadata.PreparedComponentFingerprint,
+                null,
+                expectedStack.SourceLine,
+                expectedStack.UniqueBinder));
             expectedByKey.Remove(CreateLineOrdinalKey(
                 metadata.OutputLineId,
                 metadata.StackOrdinal));
@@ -939,7 +1653,8 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                 value.OutputLineId,
                 (ItemDefinitionId)value.Record.itemId,
                 value.Record.quantity,
-                value.Mass))
+                value.Mass,
+                value.Record.itemInstanceId))
             .ToArray());
 
     private static bool SubjectsMatch(
@@ -957,7 +1672,8 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
 
     private static bool RuntimeComponentsMatch(
         IEnumerable<ItemInstanceComponentSaveData> expected,
-        IEnumerable<ItemInstanceComponentSaveData> actual)
+        IEnumerable<ItemInstanceComponentSaveData> actual,
+        bool normalizeActualEquipment = false)
     {
         string[] left = (expected ?? Array.Empty<ItemInstanceComponentSaveData>())
             .Where(component => component != null
@@ -968,27 +1684,131 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         string[] right = (actual ?? Array.Empty<ItemInstanceComponentSaveData>())
             .Where(component => component != null
                 && !PlannedOutputPublicationComponentCodec.IsAnyMarker(component))
+            .Select(component => normalizeActualEquipment
+                ? NormalizeEquipmentComponent(component)
+                : component)
             .Select(CreateExactComponentSignature)
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
         return left.SequenceEqual(right, StringComparer.Ordinal);
     }
 
+    private bool EquipmentAggregateMatches(WorldItemStackRecord record)
+    {
+        IFacilityBufferPlannedUniqueOutputBinder[] matchingBinders =
+            uniqueBinders.Values
+                .Where(value => value.CanValidate(
+                    record?.components is { } recordComponents
+                        ? recordComponents
+                        : Array.Empty<ItemInstanceComponentSaveData>()))
+                .OrderBy(value => value.CapabilityId, StringComparer.Ordinal)
+                .ToArray();
+        if (matchingBinders.Length > 1)
+            return false;
+        if (matchingBinders.Length == 1)
+            return matchingBinders[0].MatchesCommitted(
+                new FacilityBufferPublishedUniqueOutputSnapshot(record),
+                out _);
+
+        if (!PhysicalItemIds.TryGetEquipmentDefinitionId(
+                record?.itemId,
+                out string definitionId))
+        {
+            return true;
+        }
+        if (string.IsNullOrEmpty(record.itemInstanceId)
+            || !repository.EquipmentInstances.TryGetValue(
+                record.itemInstanceId,
+                out CombatEquipmentInstance aggregate)
+            || !string.Equals(
+                aggregate.definitionId,
+                definitionId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                aggregate.sourceStackId,
+                record.stackId,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        ItemInstanceComponentSaveData component = (record.components
+                ?? new List<ItemInstanceComponentSaveData>())
+            .SingleOrDefault(value => value != null && string.Equals(
+                value.componentTypeId,
+                ItemInstanceComponentIds.Equipment,
+                StringComparison.Ordinal));
+        return component != null
+            && string.Equals(
+                component.ToCanonicalString(),
+                EquipmentItemStateCodec.Encode(aggregate).ToCanonicalString(),
+                StringComparison.Ordinal);
+    }
+
+    private static ItemInstanceComponentSaveData NormalizeEquipmentComponent(
+        ItemInstanceComponentSaveData component)
+    {
+        if (component == null
+            || !string.Equals(
+                component.componentTypeId,
+                ItemInstanceComponentIds.Equipment,
+                StringComparison.Ordinal)
+            || !EquipmentItemStateCodec.TryDecodeFull(
+                component,
+                out EquipmentPhysicalStatePayload payload,
+                out _))
+        {
+            return component;
+        }
+        CombatEquipmentInstance normalized = payload.equipment.Clone();
+        normalized.sourceStackId = string.Empty;
+        return EquipmentItemStateCodec.Encode(
+            normalized,
+            payload.attachedModules);
+    }
+
     private static string CreateExactComponentSignature(
         ItemInstanceComponentSaveData component) =>
         $"{(component.affectsStacking ? 1 : 0)}:{component.ToCanonicalString()}";
 
-    internal static string CreateRuntimeComponentSignature(
+    public static string CreateRuntimeComponentSignature(
         IEnumerable<ItemInstanceComponentSaveData> components) => string.Join(
         "|",
         (components ?? Array.Empty<ItemInstanceComponentSaveData>())
         .Where(component => component != null
-            && !PlannedOutputPublicationComponentCodec.IsAnyMarker(component))
+            && !PlannedOutputPublicationComponentCodec.IsAnyMarker(component)
+            && !FoodFreshnessComponentCodec.IsStrictCanonical(component))
         .Select(CreateExactComponentSignature)
         .OrderBy(value => value, StringComparer.Ordinal));
 
     private static string CreateLineOrdinalKey(string lineId, int ordinal) =>
         $"{lineId?.Length ?? 0}:{lineId}:{ordinal.ToString(CultureInfo.InvariantCulture)}";
+
+    private static bool IsCanonicalCapabilityId(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+            return false;
+        for (int index = 0; index < value.Length; index++)
+        {
+            char character = value[index];
+            if (!(character is >= 'a' and <= 'z')
+                && !(character is >= '0' and <= '9')
+                && character is not ':' and not '-' and not '_' and not '.' and not '@')
+                return false;
+        }
+        return true;
+    }
+
+    private static IReadOnlyList<string> CaptureEquipmentInstanceIds(
+        IEnumerable<WorldItemStackRecord> records) => (records
+            ?? Array.Empty<WorldItemStackRecord>())
+        .Where(value => value != null
+            && PhysicalItemIds.TryGetEquipmentDefinitionId(
+                value.itemId,
+                out _))
+        .Select(value => value.itemInstanceId)
+        .OrderBy(value => value, StringComparer.Ordinal)
+        .ToArray();
 
     private static bool Fail(
         FacilityBufferPlannedOutputPublicationFailureCode code,
@@ -1008,7 +1828,10 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
             int ordinal,
             PhysicalMassGrams mass,
             WorldItemStackRecord record,
-            string preparedComponentFingerprint)
+            string preparedComponentFingerprint,
+            CombatEquipmentInstance equipment,
+            FacilityBufferPlannedOutputSliceSnapshot sourceLine = default,
+            IFacilityBufferPlannedUniqueOutputBinder uniqueBinder = null)
         {
             OutputLineId = outputLineId;
             Ordinal = ordinal;
@@ -1016,6 +1839,9 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
             Record = record;
             PreparedComponentFingerprint = preparedComponentFingerprint
                 ?? string.Empty;
+            Equipment = equipment?.Clone();
+            SourceLine = sourceLine;
+            UniqueBinder = uniqueBinder;
         }
 
         internal string OutputLineId { get; }
@@ -1023,6 +1849,9 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         internal PhysicalMassGrams Mass { get; }
         internal WorldItemStackRecord Record { get; }
         internal string PreparedComponentFingerprint { get; }
+        internal CombatEquipmentInstance Equipment { get; }
+        internal FacilityBufferPlannedOutputSliceSnapshot SourceLine { get; }
+        internal IFacilityBufferPlannedUniqueOutputBinder UniqueBinder { get; }
     }
 }
 
@@ -1031,7 +1860,24 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
     internal static IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
         CapturePendingBatches(
             IEnumerable<WorldItemStackRecord> records,
-            IPhysicalItemMassQuery massQuery)
+            IPhysicalItemMassQuery massQuery) => CaptureBatches(
+        records,
+        massQuery,
+        acknowledged: false);
+
+    internal static IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
+        CaptureAcknowledgedBatches(
+            IEnumerable<WorldItemStackRecord> records,
+            IPhysicalItemMassQuery massQuery) => CaptureBatches(
+        records,
+        massQuery,
+        acknowledged: true);
+
+    private static IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
+        CaptureBatches(
+            IEnumerable<WorldItemStackRecord> records,
+            IPhysicalItemMassQuery massQuery,
+            bool acknowledged)
     {
         WorldItemStackRecord[] all = (records ?? Array.Empty<WorldItemStackRecord>())
             .Where(record => record != null)
@@ -1053,8 +1899,11 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
                 .Where(component => component != null
                     && string.Equals(
                         component.componentTypeId,
-                        PlannedOutputPublicationComponentCodec
-                            .PublicationComponentTypeId,
+                        acknowledged
+                            ? PlannedOutputPublicationComponentCodec
+                                .ProvenanceComponentTypeId
+                            : PlannedOutputPublicationComponentCodec
+                                .PublicationComponentTypeId,
                         StringComparison.Ordinal))
                 .SelectMany(component => component.values
                     ?? new List<ItemStateValueSaveData>())
@@ -1072,13 +1921,18 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
                     all,
                     batchId,
                     massQuery,
-                    allowAcknowledged: false,
+                    allowAcknowledged: acknowledged,
                     out FacilityBufferPlannedOutputRestoreBatchSnapshot batch,
                     out _,
-                    out _,
+                    out bool capturedAcknowledged,
                     out string failureReason))
             {
                 throw new InvalidOperationException(failureReason);
+            }
+            if (capturedAcknowledged != acknowledged)
+            {
+                throw new InvalidOperationException(
+                    $"Planned-output restore batch '{batchId}' acknowledgement state changed during capture.");
             }
             result.Add(batch);
         }
@@ -1118,7 +1972,7 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
         }
 
         List<(WorldItemStackRecord Record, PlannedOutputPublicationMetadata Metadata,
-            long ActualMass, string ActualSignature)> parsed = new();
+            long EvidenceMass, string EvidenceSignature)> parsed = new();
         foreach (WorldItemStackRecord record in records)
         {
             if (!PlannedOutputPublicationComponentCodec.TryRead(
@@ -1143,20 +1997,41 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
                 string signature =
                     FacilityBufferPlannedOutputPublicationService
                     .CreateRuntimeComponentSignature(record.components);
+                bool pendingPhysicalExact = metadata.Acknowledged
+                    || metadata.MassGrams == actualMass
+                        && string.Equals(
+                            metadata.ComponentSignature,
+                            signature,
+                            StringComparison.Ordinal)
+                        && record.state
+                            == WorldItemStackState.FacilityOutputBuffer;
                 if (!string.Equals(metadata.ItemId, record.itemId, StringComparison.Ordinal)
                     || metadata.Quantity != record.quantity
-                    || metadata.MassGrams != actualMass
-                    || !string.Equals(
-                        metadata.ComponentSignature,
-                        signature,
-                        StringComparison.Ordinal)
-                    || !metadata.Acknowledged
-                        && record.state != WorldItemStackState.FacilityOutputBuffer)
+                    || !pendingPhysicalExact)
                 {
-                    failureReason = $"planned-output-physical-mismatch:{batchCommitId}:{record.stackId}";
+                    failureReason =
+                        $"planned-output-physical-mismatch:{batchCommitId}:{record.stackId}"
+                        + $":item={record.itemId}/{metadata.ItemId}"
+                        + $":quantity={record.quantity}/{metadata.Quantity}"
+                        + $":mass={actualMass}/{metadata.MassGrams}"
+                        + $":state={record.state}"
+                        + $":signature={signature}/{metadata.ComponentSignature}"
+                        + $":acknowledged={metadata.Acknowledged}";
                     return false;
                 }
-                parsed.Add((record, metadata, actualMass, signature));
+                // An acknowledged marker is immutable production evidence, not
+                // a second writer for the item's mutable runtime state. World
+                // state, modules and ammunition may change after release; the
+                // physical restore validates their current mass/components,
+                // while the production join validates the frozen publication
+                // envelope carried by this provenance marker.
+                parsed.Add((
+                    record,
+                    metadata,
+                    metadata.Acknowledged ? metadata.MassGrams : actualMass,
+                    metadata.Acknowledged
+                        ? metadata.ComponentSignature
+                        : signature));
             }
             catch (Exception exception) when (exception is ArgumentException
                                                or InvalidOperationException
@@ -1181,7 +2056,8 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
                 || value.Metadata.BatchMassGrams != header.BatchMassGrams)
             || records.Length != header.BatchStackCount
             || records.Sum(record => record.quantity) != header.BatchQuantity
-            || parsed.Sum(value => value.ActualMass) != header.BatchMassGrams)
+            || parsed.Sum(value => value.EvidenceMass)
+                != header.BatchMassGrams)
         {
             failureReason = $"planned-output-batch-partial-or-conflicting:{batchCommitId}";
             return false;
@@ -1189,8 +2065,8 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
 
         foreach (IGrouping<string, (WorldItemStackRecord Record,
                      PlannedOutputPublicationMetadata Metadata,
-                     long ActualMass,
-                     string ActualSignature)> line in parsed.GroupBy(
+                     long EvidenceMass,
+                     string EvidenceSignature)> line in parsed.GroupBy(
                      value => value.Metadata.OutputLineId,
                      StringComparer.Ordinal))
         {
@@ -1200,7 +2076,8 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
                 || ordered.Select(value => value.Metadata.StackOrdinal)
                     .Where((ordinal, index) => ordinal != index).Any()
                 || ordered.Sum(value => value.Record.quantity) != lineHeader.LineQuantity
-                || ordered.Sum(value => value.ActualMass) != lineHeader.LineMassGrams
+                || ordered.Sum(value => value.EvidenceMass)
+                    != lineHeader.LineMassGrams
                 || ordered.Any(value =>
                     value.Metadata.LineStackCount != lineHeader.LineStackCount
                     || value.Metadata.LineQuantity != lineHeader.LineQuantity
@@ -1223,11 +2100,18 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
                 value.Record.stackId,
                 value.Record.itemId,
                 value.Record.quantity,
-                value.ActualMass,
-                value.Metadata.ComponentSignature,
+                value.EvidenceMass,
+                value.EvidenceSignature,
                 value.Record.state,
                 value.Record.position,
-                value.Record.destinationId))
+                value.Record.destinationId,
+                value.Record.itemInstanceId,
+                value.Record.components
+                    .Where(component => component != null
+                        && !PlannedOutputPublicationComponentCodec
+                            .IsAnyMarker(component))
+                    .ToArray(),
+                value.Metadata.PreparedComponentFingerprint))
             .ToArray();
         batch = new FacilityBufferPlannedOutputRestoreBatchSnapshot(
             header.BatchCommitId,

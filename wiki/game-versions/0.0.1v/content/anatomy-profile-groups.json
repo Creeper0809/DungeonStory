@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "game_version": "0.0.1v",
+  "groups": [
+    {"id":"orc","label":"오크","description":"오크 해부 구조에만 있는 엄니와 전투 심장이다.","reference_ids":["orc-tusks","orc-battle-heart"]},
+    {"id":"vampire","label":"뱀파이어","description":"뱀파이어 해부 구조의 야간안, 송곳니, 혈액낭이다.","reference_ids":["vampire-night-eyes","vampire-fangs","vampire-blood-sac"]},
+    {"id":"beastkin","label":"수인","description":"수인 해부 구조의 감각 귀, 주둥이, 균형 꼬리이다.","reference_ids":["beastkin-ears","beastkin-muzzle","beastkin-balance-tail"]},
+    {"id":"demon","label":"데몬","description":"데몬 해부 구조의 뿔, 마핵, 열낭, 꼬리이다.","reference_ids":["demon-horns","demon-mana-core","demon-heat-sac","demon-tail"]},
+    {"id":"kobold","label":"코볼트","description":"코볼트 해부 구조의 주둥이, 손, 균형 꼬리이다.","reference_ids":["kobold-muzzle","kobold-hands","kobold-balance-tail"]},
+    {"id":"quadruped","label":"사족 동물","description":"동굴쥐, 그림자토끼, 이끼멧돼지, 룬사슴, 그림자늑대, 재염소가 쓰는 앞다리와 뒷다리 구조이다.","reference_ids":["quadruped-forelegs","quadruped-hindlegs"]},
+    {"id":"slime","label":"슬라임","description":"슬라임 핵 구조의 외막, 핵, 감각 젤, 위족이다.","reference_ids":["slime-membrane","slime-core","slime-sensory-gel","slime-pseudopods"]},
+    {"id":"fungal","label":"균사 군체","description":"균사 군체 구조의 균모, 포자낭, 균사 몸통, 중심 균핵, 균사 사지이다.","reference_ids":["fungal-cap","fungal-spore-sac","fungal-mycelial-torso","fungal-hypha-core","fungal-hypha-arms","fungal-hypha-legs"]},
+    {"id":"avian","label":"조류형","description":"하피가 쓰는 조류형 구조의 기낭과 날개이다.","reference_ids":["avian-air-sacs","avian-wings"]},
+    {"id":"construct","label":"골렘","description":"골렘 기계 구조의 감응석 머리, 감응 핵, 주조 몸체, 동력핵, 작업 사지이다.","reference_ids":["construct-sensor-head","construct-sensor-core","construct-cast-body","construct-power-core","construct-work-arms","construct-support-legs"]}
+  ]
+}

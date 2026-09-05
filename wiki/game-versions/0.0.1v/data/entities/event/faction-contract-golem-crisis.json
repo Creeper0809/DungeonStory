@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "성공 효과",
+      "value": "2개"
+    },
+    {
+      "label": "실패 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-maintenance-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 키트",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-contract-golem-crisis",
+  "spoiler_tier": "none",
+  "summary": "돌맥 주조소이 실제 물자와 작업 결과를 요구하는 위기 대응 계약이다.",
+  "title": "돌맥 주조소 위기 대응 계약"
+}

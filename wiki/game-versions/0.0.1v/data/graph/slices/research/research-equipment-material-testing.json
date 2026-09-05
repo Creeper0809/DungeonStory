@@ -1,0 +1,158 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-material-testing",
+    "spoiler_tier": "none",
+    "title": "재료 시험학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-material-testing",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8826",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험기",
+      "to": "facility/building-8826",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-material-test-coupon",
+      "label": "필요 조건",
+      "to": "research/research-equipment-material-testing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-prototype-engineering",
+      "label": "선행 연구",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-prototype-engineering",
+      "label": "선행 연구",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-prototype-engineering",
+      "label": "선행 연구",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-gerontology",
+      "label": "선행 연구",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

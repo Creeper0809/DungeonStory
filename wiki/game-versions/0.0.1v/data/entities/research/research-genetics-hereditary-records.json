@@ -1,0 +1,94 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "691"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Records And Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8878",
+      "target_spoiler_tier": "none",
+      "target_title": "유전 기록고",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8879",
+      "target_spoiler_tier": "none",
+      "target_title": "형질 분석기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-genetics-hereditary-records",
+  "spoiler_tier": "none",
+  "summary": "유전 기록과 형질 분석에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "유전 기록과 형질 분석"
+}

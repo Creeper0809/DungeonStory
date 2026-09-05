@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "124"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "두께와 넓이를 맞춰 잘라 갑옷판과 기계 외피로 가공하기 전의 판금 소재다. 특히 제4주조도시산 판금 소재판의 옆면에는 주조 순서와 식힌 시간가 얕은 홈으로 새겨져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-plate-blank",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 판금 소재판.",
+  "title": "판금 소재판"
+}

@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-siege-counterweight",
+    "spoiler_tier": "none",
+    "title": "공성 균형추 조립품"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-siege-arbalest",
+      "label": "필요 조건",
+      "to": "item/component-siege-counterweight",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-siege-counterweight",
+      "label": "생산·해금",
+      "to": "item/component-siege-counterweight",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

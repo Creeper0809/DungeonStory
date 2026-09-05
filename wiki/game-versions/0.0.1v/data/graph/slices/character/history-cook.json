@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "history-cook",
+    "spoiler_tier": "none",
+    "title": "조리 담당"
+  },
+  "edges": [],
+  "schema_version": 1
+}

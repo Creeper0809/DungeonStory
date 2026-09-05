@@ -63,7 +63,8 @@ public static class DungeonAiRegistration
         builder.Register<RoomEnvironmentEvaluator>(Lifetime.Singleton)
             .As<IRoomEnvironmentEvaluator>();
         builder.Register<RoomEnvironmentQuery>(Lifetime.Singleton)
-            .As<IRoomEnvironmentQuery>();
+            .As<IRoomEnvironmentQuery>()
+            .As<IWorkEnvironmentDefinitionMaximumQuery>();
         builder.Register<RoomEnvironmentExperienceService>(Lifetime.Singleton)
             .As<IRoomEnvironmentExperienceService>();
         builder.Register<RoomInspectionInteractionContext>(Lifetime.Singleton)

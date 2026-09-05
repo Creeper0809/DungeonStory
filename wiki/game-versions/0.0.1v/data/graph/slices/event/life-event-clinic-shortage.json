@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "life-event-clinic-shortage",
+    "spoiler_tier": "warning",
+    "title": "누구를 먼저 치료할 것인가"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "event/life-event-clinic-shortage",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-clinic-shortage",
+      "target_spoiler_tier": "warning",
+      "target_title": "누구를 먼저 치료할 것인가",
+      "to": "event/life-event-clinic-shortage",
+      "type": "changes-health"
+    },
+    {
+      "amount": "8",
+      "from": "event/life-event-clinic-shortage",
+      "label": "연결",
+      "to": "event/life-event-clinic-shortage",
+      "type": "changes-health"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tallow",
+    "spoiler_tier": "none",
+    "title": "지방 정제"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tallow",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-tallow",
+      "target_spoiler_tier": "none",
+      "target_title": "정제 지방",
+      "to": "item/material-tallow",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tallow",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-fat",
+      "target_spoiler_tier": "none",
+      "target_title": "지방",
+      "to": "item/resource-fat",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tallow",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

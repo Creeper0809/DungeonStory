@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-elevated-gallery",
+    "spoiler_tier": "none",
+    "title": "고가 회랑"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-03",
+      "label": "관련",
+      "to": "world/battlefield-elevated-gallery",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-15",
+      "label": "관련",
+      "to": "world/battlefield-elevated-gallery",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-27",
+      "label": "관련",
+      "to": "world/battlefield-elevated-gallery",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

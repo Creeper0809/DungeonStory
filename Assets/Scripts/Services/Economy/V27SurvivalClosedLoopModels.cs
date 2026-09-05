@@ -23,7 +23,10 @@ namespace DungeonStory.Balance
             long cookingWaterMilliUnitsPerBatch,
             int mealMaxStack,
             int grainMaxStack,
-            int waterMaxStack)
+            int waterMaxStack,
+            long mealUnitMassGrams,
+            long grainUnitMassGrams,
+            long waterUnitMassGrams)
         {
             Population = RequirePositive(population, nameof(population));
             HungerMilliUnitsPerAdultDay = RequirePositive(
@@ -63,6 +66,15 @@ namespace DungeonStory.Balance
             MealMaxStack = RequirePositive(mealMaxStack, nameof(mealMaxStack));
             GrainMaxStack = RequirePositive(grainMaxStack, nameof(grainMaxStack));
             WaterMaxStack = RequirePositive(waterMaxStack, nameof(waterMaxStack));
+            MealUnitMassGrams = RequirePositive(
+                mealUnitMassGrams,
+                nameof(mealUnitMassGrams));
+            GrainUnitMassGrams = RequirePositive(
+                grainUnitMassGrams,
+                nameof(grainUnitMassGrams));
+            WaterUnitMassGrams = RequirePositive(
+                waterUnitMassGrams,
+                nameof(waterUnitMassGrams));
         }
 
         public int Population { get; }
@@ -83,6 +95,9 @@ namespace DungeonStory.Balance
         public int MealMaxStack { get; }
         public int GrainMaxStack { get; }
         public int WaterMaxStack { get; }
+        public long MealUnitMassGrams { get; }
+        public long GrainUnitMassGrams { get; }
+        public long WaterUnitMassGrams { get; }
 
         private static int RequirePositive(int value, string name) => value > 0
             ? value
@@ -123,7 +138,10 @@ namespace DungeonStory.Balance
             int immediateMealUnits,
             int sevenDayGrainUnits,
             int sevenDayWaterUnits,
-            int storageCells,
+            long requiredStorageMassGrams,
+            long maximumRelevantStackMassGrams,
+            long grossGrainMassGramsPerDay,
+            long grossMealMassGramsPerDay,
             bool passed,
             string failureCode)
         {
@@ -149,7 +167,10 @@ namespace DungeonStory.Balance
             ImmediateMealUnits = immediateMealUnits;
             SevenDayGrainUnits = sevenDayGrainUnits;
             SevenDayWaterUnits = sevenDayWaterUnits;
-            StorageCells = storageCells;
+            RequiredStorageMassGrams = requiredStorageMassGrams;
+            MaximumRelevantStackMassGrams = maximumRelevantStackMassGrams;
+            GrossGrainMassGramsPerDay = grossGrainMassGramsPerDay;
+            GrossMealMassGramsPerDay = grossMealMassGramsPerDay;
             Passed = passed;
             FailureCode = failureCode ?? string.Empty;
         }
@@ -176,7 +197,10 @@ namespace DungeonStory.Balance
         public int ImmediateMealUnits { get; }
         public int SevenDayGrainUnits { get; }
         public int SevenDayWaterUnits { get; }
-        public int StorageCells { get; }
+        public long RequiredStorageMassGrams { get; }
+        public long MaximumRelevantStackMassGrams { get; }
+        public long GrossGrainMassGramsPerDay { get; }
+        public long GrossMealMassGramsPerDay { get; }
         public bool Passed { get; }
         public string FailureCode { get; }
     }
@@ -271,10 +295,21 @@ namespace DungeonStory.Balance
                 definition.MealNutritionMilliUnits
                     * definition.MealOutputUnitsPerBatch));
             int sevenDayWater = checked((int)CeilRatio(totalWater * 7L, 1L, 1000L));
-            int storageCells = checked(
-                CeilInt(sevenDayGrain, definition.GrainMaxStack)
-                + CeilInt(immediateMeals, definition.MealMaxStack)
-                + CeilInt(sevenDayWater, definition.WaterMaxStack));
+            long requiredStorageMassGrams = checked(
+                sevenDayGrain * definition.GrainUnitMassGrams
+                + immediateMeals * definition.MealUnitMassGrams
+                + sevenDayWater * definition.WaterUnitMassGrams);
+            long maximumRelevantStackMassGrams = Math.Max(
+                checked(definition.MealMaxStack * definition.MealUnitMassGrams),
+                Math.Max(
+                    checked(definition.GrainMaxStack * definition.GrainUnitMassGrams),
+                    checked(definition.WaterMaxStack * definition.WaterUnitMassGrams)));
+            long grossGrainMassGramsPerDay = checked(
+                CeilRatio(grossGrain, 1L, 1000L)
+                * definition.GrainUnitMassGrams);
+            long grossMealMassGramsPerDay = checked(
+                CeilRatio(grossMeals, 1L, 1000L)
+                * definition.MealUnitMassGrams);
 
             long grossNutritionProduced = checked(
                 grossGrain * definition.MealOutputUnitsPerBatch
@@ -322,15 +357,13 @@ namespace DungeonStory.Balance
                 immediateMeals,
                 sevenDayGrain,
                 sevenDayWater,
-                storageCells,
+                requiredStorageMassGrams,
+                maximumRelevantStackMassGrams,
+                grossGrainMassGramsPerDay,
+                grossMealMassGramsPerDay,
                 failure.Length == 0,
                 failure);
         }
-
-        private static int CeilInt(int value, int divisor) => checked((int)CeilRatio(
-            value,
-            1L,
-            divisor));
 
         private static long CeilRatio(long value, long numerator, long denominator)
         {

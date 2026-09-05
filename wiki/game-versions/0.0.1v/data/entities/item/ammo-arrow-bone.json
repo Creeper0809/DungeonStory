@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "100개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "5"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "뼈를 깎은 가벼운 촉을 달아 값은 낮췄지만 관통력도 낮은 화살이다. 아일라세라의 푸른 깃매듭은 뼈촉 화살이 바람 절벽의 세 횡풍을 버텼다는 표시다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-arrow-bone",
+  "spoiler_tier": "none",
+  "summary": "가볍지만 관통이 낮은 화살.",
+  "title": "뼈촉 화살"
+}

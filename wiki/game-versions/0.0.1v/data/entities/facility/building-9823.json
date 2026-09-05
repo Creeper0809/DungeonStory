@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "특수"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-9823",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 욕구 회복이다. 건설에는 작업량 389, 재료 석재 블록×3, 철괴×2, 기계 부품×2이 필요하다.",
+  "title": "샤워 시설"
+}

@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-soap",
+    "spoiler_tier": "none",
+    "title": "비누"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-soap",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-tallow",
+      "target_spoiler_tier": "none",
+      "target_title": "정제 지방",
+      "to": "item/material-tallow",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-soap",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-soap",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-soap",
+      "target_spoiler_tier": "none",
+      "target_title": "비누",
+      "to": "item/craft-soap",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-soap",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "to": "research/research-survival-sanitation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

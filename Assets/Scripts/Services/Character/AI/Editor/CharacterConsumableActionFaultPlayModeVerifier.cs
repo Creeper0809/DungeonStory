@@ -729,8 +729,9 @@ public sealed class CharacterConsumableActionFaultPlayModeRunner : MonoBehaviour
             .ToArray();
         foreach (Facility candidate in candidates)
         {
-            string destinationId = "facility-input:meal:"
-                + candidate.RequirePersistentInstanceId().Value;
+            string destinationId = CharacterConsumablesRuntime.GetMealDestinationId(
+                candidate.RequirePersistentInstanceId(),
+                new ConsumableItemDefinitionId(MealId));
             WorldItemStackSnapshot seeded = SeedBuffer(
                 MealId,
                 candidate.centerPos,

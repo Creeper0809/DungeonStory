@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2721"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "흑강 판을 갑각처럼 포개 전신의 빈틈을 줄인 무거운 갑옷이다. 특히 제4주조도시산 흑강 갑각에는 충격 시험 자국을 일부러 남긴다. 흠집이 없는 물건은 아직 검사를 마치지 못한 것이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-blacksteel-carapace",
+  "spoiler_tier": "none",
+  "summary": "흑강 갑각 전투 장비",
+  "title": "흑강 갑각"
+}

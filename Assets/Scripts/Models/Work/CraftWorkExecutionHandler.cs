@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.Scripting.APIUpdating;
 
 public sealed class CraftWorkerHandle
@@ -36,19 +37,25 @@ public enum CraftWorkOperationKind
     EquipmentReforge = 3,
     EquipmentReattunement = 4,
     ProductionBill = 5,
-    LegacyEquipmentCraft = 6
+    LegacyEquipmentCraft = 6,
+    RegisteredCapability = 7
 }
 
 public readonly struct CraftWorkAvailability
 {
-    public CraftWorkAvailability(bool available, string failureCode)
+    public CraftWorkAvailability(
+        bool available,
+        string failureCode,
+        bool blocksLegacyFallback = false)
     {
         Available = available;
         FailureCode = failureCode?.Trim() ?? string.Empty;
+        BlocksLegacyFallback = blocksLegacyFallback;
     }
 
     public bool Available { get; }
     public string FailureCode { get; }
+    public bool BlocksLegacyFallback { get; }
 }
 
 public readonly struct CraftWorkExecutionPlan
@@ -58,11 +65,27 @@ public readonly struct CraftWorkExecutionPlan
         string operationId,
         float requiredWork,
         float completedWork,
-        string label)
+        string label,
+        string contributorId = "")
     {
         if (kind == CraftWorkOperationKind.None)
         {
             throw new ArgumentOutOfRangeException(nameof(kind));
+        }
+
+        string exactContributorId = contributorId ?? string.Empty;
+        bool registered = kind == CraftWorkOperationKind.RegisteredCapability;
+        if (registered != exactContributorId.Length > 0
+            || exactContributorId.Length > 0
+                && (!string.Equals(
+                        exactContributorId,
+                        exactContributorId.Trim(),
+                        StringComparison.Ordinal)
+                    || exactContributorId.Any(char.IsWhiteSpace)))
+        {
+            throw new ArgumentException(
+                "Registered craft operations require one canonical contributor ID.",
+                nameof(contributorId));
         }
 
         Kind = kind;
@@ -70,6 +93,7 @@ public readonly struct CraftWorkExecutionPlan
         RequiredWork = requiredWork;
         CompletedWork = completedWork;
         Label = label ?? string.Empty;
+        ContributorId = exactContributorId;
     }
 
     public CraftWorkOperationKind Kind { get; }
@@ -77,6 +101,7 @@ public readonly struct CraftWorkExecutionPlan
     public float RequiredWork { get; }
     public float CompletedWork { get; }
     public string Label { get; }
+    public string ContributorId { get; }
     public bool IsPersistent => Kind != CraftWorkOperationKind.LegacyEquipmentCraft;
     public bool RequiresCycleCompletionForSuccess =>
         Kind != CraftWorkOperationKind.FacilityRelocation;
@@ -92,6 +117,20 @@ public readonly struct CraftWorkProgressResult
 
     public bool Succeeded { get; }
     public bool CycleCompleted { get; }
+}
+
+public interface ICraftPersistentOperationContributor
+{
+    string ContributorId { get; }
+
+    bool TryCapturePlan(
+        CraftFacilityHandle facility,
+        out CraftWorkExecutionPlan plan);
+
+    CraftWorkProgressResult ApplyProgress(
+        CraftFacilityHandle facility,
+        CraftWorkExecutionPlan plan,
+        float amount);
 }
 
 public interface IBuildingCraftWorkRuntimePort
@@ -111,6 +150,9 @@ public interface IBuildingCraftWorkRuntimePort
     bool TryGetEquipmentReattunement(
         CraftFacilityHandle facility,
         out CraftWorkExecutionPlan plan);
+    bool TryGetRegisteredPersistentOperation(
+        CraftFacilityHandle facility,
+        out CraftWorkExecutionPlan plan);
 
     CraftWorkAvailability CheckProductionAvailability(
         CraftFacilityHandle facility);
@@ -125,6 +167,10 @@ public interface IBuildingCraftWorkRuntimePort
 
     CraftWorkProgressResult ApplyProgress(
         CraftWorkerHandle worker,
+        CraftFacilityHandle facility,
+        CraftWorkExecutionPlan plan,
+        float amount);
+    CraftWorkProgressResult ApplyRegisteredPersistentOperation(
         CraftFacilityHandle facility,
         CraftWorkExecutionPlan plan,
         float amount);
@@ -160,7 +206,8 @@ public sealed class CraftWorkExecutionHandler
         if (runtime.TryGetFacilityRelocation(facility, out _)
             || runtime.TryGetFacilityEvolution(facility, out _)
             || runtime.TryGetEquipmentReforge(facility, out _)
-            || runtime.TryGetEquipmentReattunement(facility, out _))
+            || runtime.TryGetEquipmentReattunement(facility, out _)
+            || runtime.TryGetRegisteredPersistentOperation(facility, out _))
         {
             return true;
         }
@@ -173,6 +220,10 @@ public sealed class CraftWorkExecutionHandler
         }
 
         reason = availability.FailureCode;
+        if (availability.BlocksLegacyFallback)
+        {
+            return false;
+        }
         return runtime.HasPendingLegacyEquipmentCraft(facility);
     }
 
@@ -191,9 +242,24 @@ public sealed class CraftWorkExecutionHandler
             || runtime.TryGetFacilityEvolution(facility, out plan)
             || runtime.TryGetEquipmentReforge(facility, out plan)
             || runtime.TryGetEquipmentReattunement(facility, out plan)
-            || runtime.TryBeginProduction(worker, facility, out plan))
+            || runtime.TryGetRegisteredPersistentOperation(facility, out plan))
         {
             return true;
+        }
+
+        CraftWorkAvailability availability =
+            runtime.CheckProductionAvailability(facility);
+        if (availability.Available
+            && runtime.TryBeginProduction(worker, facility, out plan))
+        {
+            return true;
+        }
+        if (availability.BlocksLegacyFallback
+            || runtime.CheckProductionAvailability(facility)
+                .BlocksLegacyFallback)
+        {
+            plan = default;
+            return false;
         }
 
         if (!runtime.HasPendingLegacyEquipmentCraft(facility))
@@ -218,7 +284,9 @@ public sealed class CraftWorkExecutionHandler
                 "Legacy equipment crafting does not use persistent progress.");
         }
 
-        return runtime.ApplyProgress(worker, facility, plan, amount);
+        return plan.Kind == CraftWorkOperationKind.RegisteredCapability
+            ? runtime.ApplyRegisteredPersistentOperation(facility, plan, amount)
+            : runtime.ApplyProgress(worker, facility, plan, amount);
     }
 
     public int CompleteLegacyEquipmentCraft(

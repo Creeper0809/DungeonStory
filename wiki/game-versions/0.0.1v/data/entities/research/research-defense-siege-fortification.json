@@ -1,0 +1,112 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "115"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Defense And Tactics"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-ranged-positions",
+      "target_spoiler_tier": "none",
+      "target_title": "사격 방책",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-remote-control",
+      "target_spoiler_tier": "none",
+      "target_title": "원격 통제",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-remote-control",
+      "target_spoiler_tier": "none",
+      "target_title": "원격 통제",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-remote-control",
+      "target_spoiler_tier": "none",
+      "target_title": "원격 통제",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1805",
+      "target_spoiler_tier": "none",
+      "target_title": "벽면 발사구",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-defense-siege-fortification",
+  "spoiler_tier": "none",
+  "summary": "강화 낙하문과 벽면 발사구를 공성 장비와 중장갑 침입자에 맞게 보강한다.",
+  "title": "공성 요새화"
+}

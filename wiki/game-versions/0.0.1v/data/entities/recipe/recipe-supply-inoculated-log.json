@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "22"
+    },
+    {
+      "label": "필요 연구",
+      "value": "실내 균목림"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "supply-inoculated-log",
+      "target_spoiler_tier": "none",
+      "target_title": "접종 원목",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-treated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "처리 목재",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-supply-inoculated-log",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 접종 원목을(를) 생산한다.",
+  "title": "접종 원목"
+}

@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-grape-juice",
+    "spoiler_tier": "none",
+    "title": "포도즙"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-grape-syrup",
+      "label": "필요 조건",
+      "to": "item/material-grape-juice",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-grape-juice",
+      "label": "생산·해금",
+      "to": "item/material-grape-juice",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-young-wine",
+      "label": "필요 조건",
+      "to": "item/material-grape-juice",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

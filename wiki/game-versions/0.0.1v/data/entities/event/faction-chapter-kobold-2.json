@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-field-repair-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "야전 수리 키트",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-field-repair-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "야전 수리 키트",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-kobold-2",
+  "spoiler_tier": "warning",
+  "summary": "씨족 공방이 죽은 도제의 설계를 장로 이름으로 등록한다.",
+  "title": "도제의 이름 없는 설계"
+}

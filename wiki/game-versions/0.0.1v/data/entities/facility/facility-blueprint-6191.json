@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-commerce-secure-trade",
+      "target_spoiler_tier": "none",
+      "target_title": "상권 통합",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facility-blueprint-6191",
+  "spoiler_tier": "none",
+  "summary": "진열과 보관 부품을 결합해 잠금진열장으로 개조하는 희귀 조합식이다.",
+  "title": "상권 통합 설계도"
+}

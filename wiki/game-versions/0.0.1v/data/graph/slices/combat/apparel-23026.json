@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "apparel-23026",
+    "spoiler_tier": "none",
+    "title": "룬 방한복"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/apparel-23026",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-environment-rune-insulation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 단열학",
+      "to": "research/research-environment-rune-insulation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

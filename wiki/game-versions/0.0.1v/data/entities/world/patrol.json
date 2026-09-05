@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "최소 강도",
+      "value": "2"
+    },
+    {
+      "label": "최대 강도",
+      "value": "5"
+    },
+    {
+      "label": "최소 유지 기간",
+      "value": "2일"
+    },
+    {
+      "label": "최대 유지 기간",
+      "value": "5일"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "patrol",
+  "spoiler_tier": "none",
+  "summary": "병력의 이동 거점으로 쓰이는 임시 야영지이다.",
+  "title": "순찰대 야영지"
+}

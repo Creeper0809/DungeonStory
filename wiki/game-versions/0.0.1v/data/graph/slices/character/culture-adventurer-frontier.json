@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "culture-adventurer-frontier",
+    "spoiler_tier": "none",
+    "title": "개척자 연맹 문화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/culture-adventurer-frontier",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-adventurer-name-token",
+      "target_spoiler_tier": "none",
+      "target_title": "이름패 걸기",
+      "to": "event/practice-adventurer-name-token",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-adventurer-frontier",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-adventurer-return-table",
+      "target_spoiler_tier": "none",
+      "target_title": "귀환자의 식탁",
+      "to": "event/practice-adventurer-return-table",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-adventurer-frontier",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "food-preserved-ration",
+      "target_spoiler_tier": "none",
+      "target_title": "보존 배급식",
+      "to": "item/food-preserved-ration",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

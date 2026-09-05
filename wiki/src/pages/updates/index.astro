@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../../components/BaseLayout.astro';
+import { getCurrentVersion, getVersions } from '../../lib/wiki-data';
+const current = getCurrentVersion();
+const versions = getVersions().slice().reverse();
+---
+
+<BaseLayout title="업데이트 기록" version={current}>
+  <section class="update-list" data-pagefind-body>
+    <header class="page-header"><p class="eyebrow">게임 버전 기록</p><h1>업데이트 기록</h1><p>게임 버전을 기준으로 문서 범위를 관리한다. 위키 배포 번호는 문서 범위와 별도로 기록한다.</p></header>
+    {versions.map((version) => <article><p class="eyebrow">{version.status}</p><h2><a href={`/updates/${version.game_version}/`}>{version.game_version}</a></h2><p>{version.game_version === current ? '현재 게임 버전의 문서 기준선이다.' : '보관된 게임 버전 문서이다.'}</p></article>)}
+  </section>
+</BaseLayout>

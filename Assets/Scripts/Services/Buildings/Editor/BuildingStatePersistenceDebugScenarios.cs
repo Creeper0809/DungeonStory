@@ -40,12 +40,14 @@ public static class BuildingStatePersistenceDebugScenarios
 
     private static string VerifyGenericStockCategories()
     {
-        WarehouseInventory source = new WarehouseInventory(200);
+        WarehouseInventory source = new WarehouseInventory(
+            200L, StockCategory.General, restrictCategory: false);
         source.SeedPhysicalStockForTest(StockCategory.Food, 11);
 
         string json = JsonUtility.ToJson(source.CreateSnapshot());
         WarehouseInventorySnapshot parsed = JsonUtility.FromJson<WarehouseInventorySnapshot>(json);
-        WarehouseInventory restored = new WarehouseInventory();
+        WarehouseInventory restored = new WarehouseInventory(
+            200L, StockCategory.General, restrictCategory: false);
         Require(restored.TryApplySnapshot(parsed, out string restoreError), restoreError);
         Require(restored.TotalStock == 0,
             "warehouse configuration snapshot illegally restored aggregate stock");

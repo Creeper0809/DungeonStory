@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facility-blueprint-6193",
+  "spoiler_tier": "none",
+  "summary": "룬 안정과 의식 조명을 결합해 의식초점석을 조율하는 희귀 조합식이다.",
+  "title": "비전 공명 설계도"
+}

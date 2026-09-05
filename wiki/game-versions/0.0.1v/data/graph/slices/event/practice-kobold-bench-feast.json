@@ -1,0 +1,54 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "practice-kobold-bench-feast",
+    "spoiler_tier": "none",
+    "title": "작업대 잔치"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/practice-kobold-bench-feast",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-kobold-bench-feast",
+      "target_spoiler_tier": "none",
+      "target_title": "작업대 잔치",
+      "to": "event/practice-kobold-bench-feast",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-kobold-bench-feast",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-kobold-bench-feast",
+      "target_spoiler_tier": "none",
+      "target_title": "작업대 잔치",
+      "to": "event/practice-kobold-bench-feast",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "-2",
+      "from": "event/practice-kobold-bench-feast",
+      "label": "연결",
+      "to": "event/practice-kobold-bench-feast",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-kobold-bench-feast",
+      "label": "연결",
+      "to": "event/practice-kobold-bench-feast",
+      "type": "changes-mood"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-kobold-toolclan",
+      "label": "관련",
+      "to": "event/practice-kobold-bench-feast",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-bolt-iron",
+    "spoiler_tier": "none",
+    "title": "철촉 볼트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-iron",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "to": "item/material-iron-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-iron",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-iron",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-fang",
+      "target_spoiler_tier": "none",
+      "target_title": "송곳니",
+      "to": "item/resource-fang",
+      "type": "requires"
+    },
+    {
+      "amount": "10",
+      "from": "recipe/recipe-bolt-iron",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철촉 볼트",
+      "to": "item/ammo-bolt-iron",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bolt-iron",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

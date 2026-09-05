@@ -1,0 +1,221 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-metallurgy-steel",
+    "spoiler_tier": "none",
+    "title": "제강"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-steel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "to": "research/research-forestry-charcoal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-steel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "to": "research/research-forestry-charcoal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-steel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "to": "research/research-forestry-charcoal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-steel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-steel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-steel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-steel",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1080",
+      "target_spoiler_tier": "none",
+      "target_title": "제강로",
+      "to": "facility/building-1080",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-estoc",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-greatsword",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-pollaxe",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-arrow-steel",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bolt-steel",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-steel-ingot",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-siege-fortification",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-lifts",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-powered-tools",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-advanced",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-advanced",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-advanced",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-steel",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "world/material-steel-ingot",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-steel",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

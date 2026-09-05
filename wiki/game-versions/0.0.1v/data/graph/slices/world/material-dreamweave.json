@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "material-dreamweave",
+    "spoiler_tier": "none",
+    "title": "몽직물"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/material-dreamweave",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물",
+      "to": "research/research-textile-dreamweave",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

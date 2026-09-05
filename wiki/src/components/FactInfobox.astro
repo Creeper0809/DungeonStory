@@ -1,0 +1,14 @@
+---
+import type { Fact } from '../lib/wiki-data';
+interface Props { facts: Fact[] }
+const { facts } = Astro.props;
+---
+
+{facts.length > 0 && (
+  <aside class="fact-box" aria-label="핵심 사실">
+    <h2>핵심 사실</h2>
+    <dl>
+      {facts.map((fact) => <div><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}
+    </dl>
+  </aside>
+)}

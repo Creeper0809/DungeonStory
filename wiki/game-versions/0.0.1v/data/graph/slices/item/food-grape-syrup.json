@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-grape-syrup",
+    "spoiler_tier": "none",
+    "title": "포도 시럽"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-grape-syrup",
+      "label": "생산·해금",
+      "to": "item/food-grape-syrup",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

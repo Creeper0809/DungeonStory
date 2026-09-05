@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-fermented-liquor",
+    "spoiler_tier": "none",
+    "title": "발효액"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-fermented-vinegar",
+      "label": "필요 조건",
+      "to": "item/material-fermented-liquor",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-alcohol",
+      "label": "필요 조건",
+      "to": "item/material-fermented-liquor",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-fermented-liquor",
+      "label": "생산·해금",
+      "to": "item/material-fermented-liquor",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-twilight-beer",
+      "label": "필요 조건",
+      "to": "item/material-fermented-liquor",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

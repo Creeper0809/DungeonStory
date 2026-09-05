@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Family"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-raise-family",
+  "spoiler_tier": "none",
+  "summary": "가족이 굶거나 피난하지 않아도 되는 집을 만들려 한다.",
+  "title": "안전한 가족"
+}

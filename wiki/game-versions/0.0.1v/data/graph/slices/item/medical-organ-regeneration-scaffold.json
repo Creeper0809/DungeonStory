@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medical-organ-regeneration-scaffold",
+    "spoiler_tier": "none",
+    "title": "장기 재생 골격"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-organ-regeneration-scaffold",
+      "label": "생산·해금",
+      "to": "item/medical-organ-regeneration-scaffold",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-organ-regeneration",
+      "label": "관련",
+      "to": "item/medical-organ-regeneration-scaffold",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "textilematerial-23108",
+    "spoiler_tier": "none",
+    "title": "심층 염소모직"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/textilematerial-23108",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

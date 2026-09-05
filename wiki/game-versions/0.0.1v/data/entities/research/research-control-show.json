@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Captivity And Entertainment"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-labor",
+      "target_spoiler_tier": "none",
+      "target_title": "노역 감독",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-labor",
+      "target_spoiler_tier": "none",
+      "target_title": "노역 감독",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-labor",
+      "target_spoiler_tier": "none",
+      "target_title": "노역 감독",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8811",
+      "target_spoiler_tier": "none",
+      "target_title": "공연 소품 보관대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-control-show",
+  "spoiler_tier": "none",
+  "summary": "무대와 관객, 공연자를 실제 운영 흐름으로 묶는다.",
+  "title": "흥행 운영"
+}

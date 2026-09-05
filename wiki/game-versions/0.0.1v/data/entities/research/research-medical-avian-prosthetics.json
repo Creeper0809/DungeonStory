@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Surgery And Transplant"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-medical-avian-prosthetics",
+  "spoiler_tier": "none",
+  "summary": "기낭과 날개의 하중을 보존하는 경량 고정술을 개발한다.",
+  "title": "조류 보철학"
+}

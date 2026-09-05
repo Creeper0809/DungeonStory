@@ -2427,6 +2427,20 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 08914626698d2d74cadd1168727fb31c, type: 2}
   - {fileID: 11400000, guid: 6ca2b1a3420d0d047b1134758556ffe5, type: 2}
   - {fileID: 11400000, guid: 3df2aae293ce6e947be576552432cbf5, type: 2}
+  - {fileID: 11400000, guid: 650cb7f5e730c0b46bc5dc495f7d1586, type: 2}
+  - {fileID: 11400000, guid: 7aceac644d3d00d4bb23b8b446cd20ec, type: 2}
+  - {fileID: 11400000, guid: ad0a376957a1b5b42bfbd2975864c730, type: 2}
+  - {fileID: 11400000, guid: ba0a979776169d34597d6d5c9e4e2d8e, type: 2}
+  - {fileID: 11400000, guid: 798519265bdbcb44e8d7179997823082, type: 2}
+  - {fileID: 11400000, guid: e824443ce8b009943965055bb5c84cce, type: 2}
+  - {fileID: 11400000, guid: f663257780e25da4985e8411e2d66bbd, type: 2}
+  - {fileID: 11400000, guid: 3e6c3de3dbac42342ac392f653a710be, type: 2}
+  - {fileID: 11400000, guid: c4320a922f47a944bac98c577c493f0b, type: 2}
+  - {fileID: 11400000, guid: 65206679fe515374e90ed42156a79020, type: 2}
+  - {fileID: 11400000, guid: 9646fe5d20b2ffb4691924f2c54f043c, type: 2}
+  - {fileID: 11400000, guid: bf0c7ee266c94734491fabbefc56f3bd, type: 2}
+  - {fileID: 11400000, guid: 7294ccb39b7adea47aadcc65dde9b29e, type: 2}
+  - {fileID: 11400000, guid: e505e4d6c6b105d41920604fab29dd97, type: 2}
   metaUpgrades:
   - id: meta:starting-facility-candidate
     branch: 0
@@ -3049,7 +3063,7 @@ MonoBehaviour:
     seedWeight: 0.4
     deliveryItemId: food:preserved-ration
     dailyBaseAmount: 20
-    dailyUnitCost: 17.798845
+    dailyUnitCost: 23.826595
     dailyGrowthDivisor: 1
   - id: stock:water
     category: 4
@@ -3069,7 +3083,7 @@ MonoBehaviour:
     seedWeight: 0.25
     deliveryItemId: material:lumber
     dailyBaseAmount: 14
-    dailyUnitCost: 6.0731997
+    dailyUnitCost: 5.87205
     dailyGrowthDivisor: 1
   - id: stock:medicine
     category: 5
@@ -3079,7 +3093,7 @@ MonoBehaviour:
     seedWeight: 0.08
     deliveryItemId: medicine:standard
     dailyBaseAmount: 6
-    dailyUnitCost: 33.7968
+    dailyUnitCost: 46.197895
     dailyGrowthDivisor: 2
   - id: stock:weapon
     category: 2
@@ -3099,7 +3113,7 @@ MonoBehaviour:
     seedWeight: 0.18
     deliveryItemId: ammo:arrow-iron
     dailyBaseAmount: 12
-    dailyUnitCost: 9.10755
+    dailyUnitCost: 11.981695
     dailyGrowthDivisor: 2
   - id: stock:fuel
     category: 6
@@ -3109,7 +3123,7 @@ MonoBehaviour:
     seedWeight: 0.16
     deliveryItemId: material:charcoal
     dailyBaseAmount: 12
-    dailyUnitCost: 8.6769
+    dailyUnitCost: 8.22375
     dailyGrowthDivisor: 1
   - id: stock:mana
     category: 3
@@ -3119,7 +3133,7 @@ MonoBehaviour:
     seedWeight: 0.1
     deliveryItemId: resource:mana-crystal
     dailyBaseAmount: 10
-    dailyUnitCost: 4.20075
+    dailyUnitCost: 230.98495
     dailyGrowthDivisor: 2
   - id: stock:biological
     category: 8

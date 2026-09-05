@@ -1,0 +1,79 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-pharmacology-stimulants",
+    "spoiler_tier": "none",
+    "title": "각성제"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-stimulants",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-stimulants",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-stimulants",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-blood-stimulant",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-stimulants",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-mana-awakener",
+      "label": "필요 조건",
+      "to": "research/research-pharmacology-stimulants",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-advanced",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-stimulants",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-advanced",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-stimulants",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-advanced",
+      "label": "선행 연구",
+      "to": "research/research-pharmacology-stimulants",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

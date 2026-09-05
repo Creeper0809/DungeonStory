@@ -23,11 +23,12 @@ public sealed class BlueprintResearchSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "research.blueprints";
-    private const int CurrentVersion = 5;
+    private const int CurrentVersion = 6;
 
     private static readonly string[] Dependencies =
     {
-        WorkOrdersSaveSection.Id
+        WorkOrdersSaveSection.Id,
+        PhysicalItemsSaveSection.Id
     };
 
     private readonly BlueprintResearchRuntime runtime;
@@ -35,7 +36,10 @@ public sealed class BlueprintResearchSaveSection :
     private readonly IKnowledgeResidueProcessingRuntime knowledgeProcessing;
     private readonly IResearchProjectCatalog projectCatalog;
     private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
-    private readonly IFacilityBufferDestinationClaimCommand destinationClaims;
+    private readonly IFacilityBufferDestinationLifecycleCommand archiveDestinations;
+    private readonly IPhysicalItemMassQuery physicalMass;
+    private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
+    private readonly IKnowledgeResidueDestinationRuntime knowledgeDestinations;
 
     public BlueprintResearchSaveSection(
         ProgressionSceneRuntimeReferences runtimeReferences,
@@ -43,7 +47,10 @@ public sealed class BlueprintResearchSaveSection :
         IKnowledgeResidueProcessingRuntime knowledgeProcessing,
         IResearchProjectCatalog projectCatalog,
         IRestoreWorldCandidateQuery restoreWorldCandidates,
-        IFacilityBufferDestinationClaimCommand destinationClaims)
+        IFacilityBufferDestinationLifecycleCommand archiveDestinations,
+        IPhysicalItemMassQuery physicalMass,
+        IPhysicalItemRestoreCandidateQuery physicalCandidates,
+        IKnowledgeResidueDestinationRuntime knowledgeDestinations)
     {
         runtime = (runtimeReferences
                 ?? throw new ArgumentNullException(nameof(runtimeReferences)))
@@ -58,8 +65,14 @@ public sealed class BlueprintResearchSaveSection :
             ?? throw new ArgumentNullException(nameof(projectCatalog));
         this.restoreWorldCandidates = restoreWorldCandidates
             ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
-        this.destinationClaims = destinationClaims
-            ?? throw new ArgumentNullException(nameof(destinationClaims));
+        this.archiveDestinations = archiveDestinations
+            ?? throw new ArgumentNullException(nameof(archiveDestinations));
+        this.physicalMass = physicalMass
+            ?? throw new ArgumentNullException(nameof(physicalMass));
+        this.physicalCandidates = physicalCandidates
+            ?? throw new ArgumentNullException(nameof(physicalCandidates));
+        this.knowledgeDestinations = knowledgeDestinations
+            ?? throw new ArgumentNullException(nameof(knowledgeDestinations));
     }
 
     public override string SectionId => Id;
@@ -129,11 +142,31 @@ public sealed class BlueprintResearchSaveSection :
     protected override BlueprintResearchRestoreCandidate BuildRestoreCandidate(
         DungeonResearchSaveData source)
     {
+        BlueprintResearchState restored =
+            ValidateAndBuildResearchState(source);
+        ReconcileKnowledgeResiduePhysicalCandidate(
+            source.knowledgeTasks,
+            physicalCandidates);
+        KnowledgeResidueRestoreCandidate knowledge =
+            knowledgeProcessing.PrepareRestore(source.knowledgeTasks);
+        return new BlueprintResearchRestoreCandidate(restored, knowledge);
+    }
+
+    protected override void ValidateParsedPayload(
+        DungeonResearchSaveData source)
+    {
+        _ = ValidateAndBuildResearchState(source);
+        _ = knowledgeProcessing.PrepareRestore(source.knowledgeTasks);
+    }
+
+    private BlueprintResearchState ValidateAndBuildResearchState(
+        DungeonResearchSaveData source)
+    {
         RequireCollections(source);
         if (source.materializeLegacyBlueprintItems)
         {
             throw new InvalidOperationException(
-                "Research V5 cannot materialize legacy blueprint items.");
+                "Research V6 cannot materialize legacy blueprint items.");
         }
 
         Dictionary<int, FacilityBlueprintSO> blueprints = BuildBlueprintIndex();
@@ -147,9 +180,7 @@ public sealed class BlueprintResearchSaveSection :
         BlueprintResearchState restored = new BlueprintResearchState();
         RestoreBlueprintState(source, restored, blueprints, buildings, recipes);
         RestoreProjectState(source, restored, projects);
-        KnowledgeResidueRestoreCandidate knowledge =
-            knowledgeProcessing.PrepareRestore(source.knowledgeTasks);
-        return new BlueprintResearchRestoreCandidate(restored, knowledge);
+        return restored;
     }
 
     protected override void PublishRestoreCandidate(
@@ -178,19 +209,165 @@ public sealed class BlueprintResearchSaveSection :
                         out RoomInstance room)
                     && ResearchBlueprintArchiveDestinationAuthority
                         .IsEligibleRoom(room)));
-        if (!destinationClaims.TryReplaceOwnedClaims(
+        FacilityBufferCapacityProfile[] archiveProfiles =
+            ResearchBlueprintArchiveDestinationAuthority.BuildProfiles(
+                candidateBuildings.Where(building =>
+                    building != null
+                    && building.IsDetachedRestoreCandidate
+                    && ResearchBlueprintArchiveDestinationAuthority
+                        .IsAuthoredArchiveFacility(building)
+                    && candidateRooms.TryGetRoom(
+                        building,
+                        out RoomInstance room)
+                    && ResearchBlueprintArchiveDestinationAuthority
+                        .IsEligibleRoom(room)),
+                facilityCatalog.Blueprints,
+                physicalMass);
+        if (!knowledgeDestinations.TryReplace(
+                required.Knowledge.CaptureTasks(),
+                candidateBuildings,
+                out string knowledgeFailure))
+        {
+            throw new InvalidOperationException(
+                "Knowledge residue destination restore failed: "
+                + knowledgeFailure);
+        }
+        if (!archiveDestinations.TryReplaceOwnedAuthorities(
                 ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
                 archiveClaims,
-                out FacilityBufferDestinationClaimFailureCode failureCode,
+                archiveProfiles,
                 out string failureReason))
         {
             throw new InvalidOperationException(
                 "Research archive destination restore failed: "
-                + $"{failureCode}: {failureReason}");
+                + failureReason);
         }
 
         runtime.ReplaceStateFromRestore(required.Research);
         knowledgeProcessing.Restore(required.Knowledge);
+    }
+
+    public static void ReconcileKnowledgeResiduePhysicalCandidate(
+        IReadOnlyList<KnowledgeResidueTaskSaveData> tasks,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        if (query == null || !query.IsCandidateAvailable)
+        {
+            throw new InvalidOperationException(
+                "Research restore requires the incoming physical-item candidate.");
+        }
+
+        Dictionary<string, KnowledgeResidueTaskSaveData> owners =
+            (tasks ?? Array.Empty<KnowledgeResidueTaskSaveData>())
+            .Where(task => task != null)
+            .ToDictionary(
+                task => task.sinkOperationId,
+                StringComparer.Ordinal);
+        foreach (KnowledgeResidueTaskSaveData task in owners.Values
+                     .OrderBy(value => value.sinkOperationId,
+                         StringComparer.Ordinal))
+        {
+            bool hasReceipt = query.TryGetPendingBatchDisposition(
+                task.sinkOperationId,
+                out PhysicalItemRestoreCandidateDispositionSnapshot receipt);
+            if (task.dispositionPhase ==
+                KnowledgeResidueDispositionPhase.AwaitingInput)
+            {
+                if (hasReceipt)
+                {
+                    RequireKnowledgeResidueReceipt(task, receipt, false);
+                    task.sinkRequestFingerprint = receipt.RequestFingerprint;
+                    task.sinkSourceStackIds = receipt.SourceStackIds
+                        .OrderBy(value => value, StringComparer.Ordinal)
+                        .ToList();
+                    task.sinkInputMassGrams = receipt.InputMassGrams;
+                    task.sinkCommitId = receipt.CommitId;
+                    task.dispositionPhase =
+                        KnowledgeResidueDispositionPhase.InputCommitted;
+                }
+                continue;
+            }
+
+            if (!hasReceipt)
+            {
+                throw new InvalidOperationException(
+                    "Knowledge residue task has no exact incoming Sink receipt: "
+                    + task.sinkOperationId);
+            }
+            RequireKnowledgeResidueReceipt(task, receipt, true);
+        }
+
+        foreach (PhysicalItemRestoreCandidateDispositionSnapshot receipt in
+                 query.PendingBatchDispositions
+                 ?? Array.Empty<PhysicalItemRestoreCandidateDispositionSnapshot>())
+        {
+            if (receipt == null
+                || !receipt.OperationId.StartsWith(
+                    "research-knowledge-residue-sink:",
+                    StringComparison.Ordinal)
+                    && !string.Equals(
+                        receipt.ReasonCode,
+                        KnowledgeResidueDestinationAuthority.SinkReasonCode,
+                        StringComparison.Ordinal))
+            {
+                continue;
+            }
+            if (!owners.TryGetValue(receipt.OperationId, out var owner))
+            {
+                throw new InvalidOperationException(
+                    "Incoming knowledge residue Sink has no exact research owner: "
+                    + receipt.OperationId);
+            }
+            RequireKnowledgeResidueReceipt(
+                owner,
+                receipt,
+                owner.dispositionPhase !=
+                    KnowledgeResidueDispositionPhase.AwaitingInput);
+        }
+    }
+
+    private static void RequireKnowledgeResidueReceipt(
+        KnowledgeResidueTaskSaveData task,
+        PhysicalItemRestoreCandidateDispositionSnapshot receipt,
+        bool requireStoredReceipt)
+    {
+        bool matches = task != null
+            && receipt != null
+            && receipt.Kind == PhysicalItemDispositionKind.Sink
+            && string.Equals(receipt.OperationId, task.sinkOperationId,
+                StringComparison.Ordinal)
+            && string.Equals(receipt.ReasonCode, task.sinkReasonCode,
+                StringComparison.Ordinal)
+            && receipt.Quantity == 1
+            && receipt.InputMassGrams == task.inputCapacityGrams
+            && receipt.InputMassGrams > 0L
+            && !string.IsNullOrWhiteSpace(receipt.RequestFingerprint)
+            && !string.IsNullOrWhiteSpace(receipt.CommitId)
+            && receipt.SourceStackIds.Count > 0;
+        if (matches && requireStoredReceipt)
+        {
+            matches = string.Equals(
+                    receipt.RequestFingerprint,
+                    task.sinkRequestFingerprint,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    receipt.CommitId,
+                    task.sinkCommitId,
+                    StringComparison.Ordinal)
+                && receipt.InputMassGrams == task.sinkInputMassGrams
+                && receipt.SourceStackIds
+                    .OrderBy(value => value, StringComparer.Ordinal)
+                    .SequenceEqual(
+                        (task.sinkSourceStackIds ?? new List<string>())
+                        .OrderBy(value => value, StringComparer.Ordinal),
+                        StringComparer.Ordinal);
+        }
+        if (!matches)
+        {
+            throw new InvalidOperationException(
+                "Knowledge residue Sink receipt does not match its research owner: "
+                + (task?.sinkOperationId ?? "<missing>"));
+        }
     }
 
     private Dictionary<int, FacilityBlueprintSO> BuildBlueprintIndex()
@@ -427,7 +604,7 @@ public sealed class BlueprintResearchSaveSection :
             || source.activeProjectId == null)
         {
             throw new InvalidOperationException(
-                "Research V5 payload is missing a required field or collection.");
+                "Research V6 payload is missing a required field or collection.");
         }
     }
 

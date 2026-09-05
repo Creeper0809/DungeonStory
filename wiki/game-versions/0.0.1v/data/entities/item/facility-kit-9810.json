@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "165"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "증기 발전기에서 시설망에 공급할 동력을 만들어 내는 설치 부품이다. 제4주조도시식 증기 발전기의 네모 홈은 출력이 흔들릴수록 깊어져 골렘이 손끝으로 고장 지점을 찾게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-9810",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "증기 발전기 설치 키트"
+}

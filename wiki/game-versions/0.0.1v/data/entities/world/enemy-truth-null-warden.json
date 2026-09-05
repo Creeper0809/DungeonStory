@@ -1,0 +1,49 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-rune-ward",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 보호막",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-arcane-null",
+      "target_spoiler_tier": "none",
+      "target_title": "마법 차단",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-core-repair",
+      "target_spoiler_tier": "none",
+      "target_title": "핵 긴급수리",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "enemy-truth-null-warden",
+  "spoiler_tier": "none",
+  "summary": "방벽과 주문을 지우며 봉인 장치를 지킨다.",
+  "title": "진실 무효감시자"
+}

@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-shield-blacksteel",
+    "spoiler_tier": "none",
+    "title": "흑강 방패"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-shield-blacksteel",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-blacksteel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "흑강",
+      "to": "item/material-blacksteel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-blacksteel",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-dark-foundry",
+      "target_spoiler_tier": "none",
+      "target_title": "심연 공장",
+      "to": "research/research-industry-dark-foundry",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

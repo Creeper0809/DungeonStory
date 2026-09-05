@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8823",
+    "spoiler_tier": "none",
+    "title": "룬 버스 결합기"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "시설 해금",
+      "to": "facility/building-8823",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

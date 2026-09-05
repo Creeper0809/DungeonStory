@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-shield-wall",
+      "target_spoiler_tier": "none",
+      "target_title": "방패벽",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "enemy-settler-barricadier",
+  "spoiler_tier": "none",
+  "summary": "임시 방벽 뒤에서 약한 동료를 지킨다.",
+  "title": "자유개척 바리케이드병"
+}

@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "festival-weapon-vigil",
+    "spoiler_tier": "none",
+    "title": "무기 철야제"
+  },
+  "edges": [
+    {
+      "amount": "12",
+      "from": "character/festival-weapon-vigil",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

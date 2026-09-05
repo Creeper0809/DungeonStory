@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "120"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "수술로 적출한 왼쪽 폐이다. 기증자 정보와 신선도가 남아 있어 이식 전까지 보존해야 한다. 므네실라의 적출 왼쪽 폐는 눌리지 않도록 낮은 압력으로 부풀린 채 보관하며, 공기가 새면 포자막 색이 변한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-organ-lung-left",
+  "spoiler_tier": "none",
+  "summary": "기증자와 신선도가 보존되는 고유 수술 장기",
+  "title": "적출 왼쪽 폐"
+}

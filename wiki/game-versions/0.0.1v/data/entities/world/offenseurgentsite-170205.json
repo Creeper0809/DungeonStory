@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "최대 강도",
+      "value": "1"
+    },
+    {
+      "label": "완화 작업",
+      "value": "24"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "offenseurgentsite-170205",
+  "spoiler_tier": "warning",
+  "summary": "침공 경로와 방어 사각을 관측해 다음 공격을 돕는다.",
+  "title": "공성 관측소"
+}

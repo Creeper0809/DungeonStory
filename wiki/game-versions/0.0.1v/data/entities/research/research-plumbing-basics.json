@@ -1,0 +1,112 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "130"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Water And Sanitation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9819",
+      "target_spoiler_tier": "none",
+      "target_title": "물통 충전소",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9817",
+      "target_spoiler_tier": "none",
+      "target_title": "상수 탱크",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9802",
+      "target_spoiler_tier": "none",
+      "target_title": "상수관",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9816",
+      "target_spoiler_tier": "none",
+      "target_title": "전동 양수 펌프",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-plumbing-basics",
+  "spoiler_tier": "none",
+  "summary": "기초 배관과 펌프 급수에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "기초 배관과 펌프 급수"
+}

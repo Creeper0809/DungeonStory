@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using UnityEngine.Scripting.APIUpdating;
 
@@ -15,15 +16,117 @@ public interface IProductionStockSensorRuntime
     IReadOnlyCollection<ProductionStockSensorRemovalSaveData>
         PendingRemovals { get; }
     bool Has(ProductionFacilityHandle facility);
+    bool HasOwnedPhysicalState(ProductionFacilityHandle facility);
     bool IsAcknowledged(ProductionFacilityHandle facility);
     ProductionBillCommandResult RequestInstallation(ProductionFacilityHandle facility);
     ProductionBillCommandResult Remove(ProductionFacilityHandle facility);
     ProductionBillCommandResult Acknowledge(ProductionFacilityHandle facility);
+    bool TryReconcileDestinationAuthorities(out string failureReason);
     void FinalizeDeliveredSensors();
 }
 
+/// <summary>
+/// Producer-side durable boundary for an installed sensor participating in a
+/// facility destructive drain. The existing removal DTO is the outbox; the
+/// upper journal owns when its published receipt may be acknowledged and GC'd.
+/// </summary>
+public interface IProductionStockSensorDestructiveDrainPort
+{
+    bool TryCapturePendingInstallation(
+        BuildingInstanceId facilityId,
+        out ProductionStockSensorPhysicalCommitSaveData pendingInstallation,
+        out string failureReason);
+
+    bool TryStabilizePendingInstallation(
+        BuildingInstanceId facilityId,
+        string expectedOperationId,
+        string expectedRequestFingerprint,
+        string expectedCommitId,
+        out ProductionInstalledStockSensorSaveData installed,
+        out string failureReason);
+
+    bool TryCapture(
+        BuildingInstanceId facilityId,
+        out ProductionInstalledStockSensorSaveData installed,
+        out ProductionStockSensorRemovalSaveData removal,
+        out string failureReason);
+
+    bool TryPrepareDurable(
+        BuildingInstanceId facilityId,
+        out ProductionStockSensorRemovalSaveData removal,
+        out string failureReason);
+
+    bool TryPublish(
+        BuildingInstanceId facilityId,
+        out ProductionStockSensorRemovalSaveData removal,
+        out string failureReason);
+
+    bool TryAcknowledge(
+        BuildingInstanceId facilityId,
+        string expectedOutputCommitId,
+        out ProductionStockSensorRemovalSaveData removal,
+        out string failureReason);
+
+}
+
+public interface IProductionStockSensorRemovalCheckpointGcCandidate
+{
+}
+
+public interface IProductionStockSensorRemovalCheckpointGcPort
+{
+    bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionStockSensorRemovalSaveData> removals,
+        out IProductionStockSensorRemovalCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    bool TryPublishCheckpointGarbageCollection(
+        IProductionStockSensorRemovalCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    void RollbackCheckpointGarbageCollection(
+        IProductionStockSensorRemovalCheckpointGcCandidate candidate);
+
+    void CompleteCheckpointGarbageCollection(
+        IProductionStockSensorRemovalCheckpointGcCandidate candidate);
+}
+
+/// <summary>
+/// Scene-bound adapter for the permanent, one-panel physical delivery socket
+/// of every stock-sensor-capable production facility. Capacity is derived from
+/// the authored installation item and is therefore recomputed rather than
+/// persisted by the production aggregate.
+/// </summary>
+public interface IProductionStockSensorDestinationAuthorityRuntime
+{
+    bool TryEnsure(
+        ProductionFacilityHandle facility,
+        out long capacityMassGrams,
+        out string failureReason);
+
+    bool TryValidate(
+        ProductionFacilityHandle facility,
+        out long capacityMassGrams,
+        out string failureReason);
+
+    bool TryReplaceProjected(
+        IReadOnlyList<ProductionFacilityHandle> facilities,
+        out string failureReason);
+
+    bool TryRequireEmpty(
+        ProductionFacilityHandle facility,
+        out string failureReason);
+
+    bool TryRevoke(
+        BuildingInstanceId facilityId,
+        out string failureReason);
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
+public sealed class ProductionStockSensorRuntime :
+    IProductionStockSensorRuntime,
+    IProductionStockSensorDestructiveDrainPort,
+    IProductionStockSensorRemovalCheckpointGcPort
 {
     private const string DestinationPrefix = "production-sensor:";
     public const string PhysicalOperationPrefix =
@@ -37,6 +140,11 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
 
     private readonly IProductionAssemblyBridge bridge;
     private readonly IProductionStockSensorRemovalOutputGateway removalOutputs;
+    private readonly IProductionStockSensorDestinationAuthorityRuntime
+        destinationAuthorities;
+    private readonly IProductionFacilityDestructiveDrainOpenOperationQuery
+        destructiveDrains;
+    private RemovalCheckpointGcCandidate activeRemovalCheckpointGcCandidate;
 
     private readonly ProductionAggregateStateStore stateStore;
 
@@ -48,13 +156,20 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
     public ProductionStockSensorRuntime(
         IProductionAssemblyBridge bridge,
         ProductionAggregateStateStore stateStore,
-        IProductionStockSensorRemovalOutputGateway removalOutputs)
+        IProductionStockSensorRemovalOutputGateway removalOutputs,
+        IProductionStockSensorDestinationAuthorityRuntime
+            destinationAuthorities,
+        IProductionFacilityDestructiveDrainOpenOperationQuery destructiveDrains)
     {
         this.bridge = bridge ?? throw new ArgumentNullException(nameof(bridge));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.removalOutputs = removalOutputs
             ?? throw new ArgumentNullException(nameof(removalOutputs));
+        this.destinationAuthorities = destinationAuthorities
+            ?? throw new ArgumentNullException(nameof(destinationAuthorities));
+        this.destructiveDrains = destructiveDrains
+            ?? throw new ArgumentNullException(nameof(destructiveDrains));
     }
 
     public int Version => stateStore.StockSensorVersion;
@@ -80,9 +195,149 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
             .Select(owner => owner.Clone())
             .ToArray();
 
+    public bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionStockSensorRemovalSaveData> removals,
+        out IProductionStockSensorRemovalCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        candidate = null;
+        failureReason = string.Empty;
+        if (activeRemovalCheckpointGcCandidate != null)
+        {
+            failureReason = "production-stock-sensor-checkpoint-gc-already-active";
+            return false;
+        }
+        ProductionStockSensorRemovalSaveData[] ordered = (removals
+                ?? Array.Empty<ProductionStockSensorRemovalSaveData>())
+            .OrderBy(value => value?.facilityId, StringComparer.Ordinal)
+            .ToArray();
+        if (ordered.Any(value => value == null)
+            || ordered.Select(value => value.facilityId)
+                .Distinct(StringComparer.Ordinal).Count() != ordered.Length)
+        {
+            failureReason = "production-stock-sensor-checkpoint-gc-row-invalid";
+            return false;
+        }
+        foreach (ProductionStockSensorRemovalSaveData expected in ordered)
+        {
+            if (expected.phase != ProductionStockSensorRemovalPhase
+                    .OwnerAcknowledgedAwaitingCheckpointGc
+                || installed.Contains(expected.facilityId)
+                || acknowledged.Contains(expected.facilityId)
+                || stateStore.TryGetInstalledStockSensor(
+                    expected.facilityId, out _)
+                || !stateStore.TryGetPendingStockSensorRemoval(
+                    expected.facilityId,
+                    out ProductionStockSensorRemovalSaveData current)
+                || !RemovalEquals(current, expected))
+            {
+                failureReason =
+                    "production-stock-sensor-checkpoint-gc-row-missing-or-conflicting:"
+                    + (expected.facilityId ?? string.Empty);
+                return false;
+            }
+        }
+        activeRemovalCheckpointGcCandidate = new RemovalCheckpointGcCandidate(
+            stateStore.StockSensorVersion,
+            ordered);
+        candidate = activeRemovalCheckpointGcCandidate;
+        return true;
+    }
+
+    public bool TryPublishCheckpointGarbageCollection(
+        IProductionStockSensorRemovalCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        RemovalCheckpointGcCandidate exact = RequireRemovalCheckpointGcCandidate(
+            candidate);
+        if (exact.Published)
+            return true;
+        if (stateStore.StockSensorVersion != exact.ExpectedVersion
+            || exact.Rows.Any(expected =>
+                !stateStore.TryGetPendingStockSensorRemoval(
+                    expected.facilityId,
+                    out ProductionStockSensorRemovalSaveData current)
+                || !RemovalEquals(current, expected)))
+        {
+            failureReason =
+                "production-stock-sensor-checkpoint-gc-live-authority-changed";
+            return false;
+        }
+        foreach (ProductionStockSensorRemovalSaveData expected in exact.Rows)
+        {
+            if (!stateStore.RemovePendingStockSensorRemoval(expected.facilityId))
+                throw new InvalidOperationException(
+                    "Stock-sensor checkpoint-GC exact row vanished during publish.");
+        }
+        if (exact.Rows.Count > 0)
+            stateStore.IncrementStockSensorVersion();
+        exact.Published = true;
+        exact.PublishedVersion = stateStore.StockSensorVersion;
+        return true;
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionStockSensorRemovalCheckpointGcCandidate candidate)
+    {
+        RemovalCheckpointGcCandidate exact = RequireRemovalCheckpointGcCandidate(
+            candidate);
+        if (!exact.Published)
+            return;
+        if (stateStore.StockSensorVersion != exact.PublishedVersion
+            || exact.Rows.Any(expected =>
+                stateStore.TryGetPendingStockSensorRemoval(
+                    expected.facilityId, out _)))
+        {
+            throw new InvalidOperationException(
+                "Stock-sensor checkpoint-GC rollback encountered live authority drift.");
+        }
+        foreach (ProductionStockSensorRemovalSaveData expected in exact.Rows)
+            stateStore.SetPendingStockSensorRemoval(expected.Clone());
+        if (exact.Rows.Count > 0
+            && !stateStore.TryRestoreStockSensorVersionForCheckpointGc(
+                exact.PublishedVersion,
+                exact.ExpectedVersion))
+        {
+            throw new InvalidOperationException(
+                "Stock-sensor checkpoint-GC rollback could not restore version.");
+        }
+        exact.Published = false;
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionStockSensorRemovalCheckpointGcCandidate candidate)
+    {
+        RequireRemovalCheckpointGcCandidate(candidate);
+        activeRemovalCheckpointGcCandidate = null;
+    }
+
     public bool Has(ProductionFacilityHandle facility)
     {
-        return facility != null && installed.Contains(GetFacilityId(facility));
+        if (facility == null)
+            return false;
+        string facilityId = GetFacilityId(facility);
+        return installed.Contains(facilityId)
+            && (!stateStore.TryGetPendingStockSensorRemoval(
+                    facilityId,
+                    out ProductionStockSensorRemovalSaveData removal)
+                || removal.phase == ProductionStockSensorRemovalPhase.Prepared);
+    }
+
+    public bool HasOwnedPhysicalState(ProductionFacilityHandle facility)
+    {
+        if (facility == null || !facility.InstanceId.IsValid)
+            return false;
+        string facilityId = GetFacilityId(facility);
+        return installed.Contains(facilityId)
+            || acknowledged.Contains(facilityId)
+            || stateStore.TryGetPendingStockSensorInstall(facilityId, out _)
+            || stateStore.TryGetInstalledStockSensor(facilityId, out _)
+            || stateStore.TryGetPendingStockSensorRemoval(
+                facilityId,
+                out ProductionStockSensorRemovalSaveData removal)
+                && removal.phase != ProductionStockSensorRemovalPhase
+                    .OwnerAcknowledgedAwaitingCheckpointGc;
     }
 
     public bool IsAcknowledged(ProductionFacilityHandle facility)
@@ -100,11 +355,25 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
         }
 
         string facilityId = GetFacilityId(facility);
+        if (destructiveDrains.IsOpen(facility.InstanceId))
+        {
+            return ProductionBillCommandResult.Failed(
+                new DomainFailure(FailureCode.ProductionSupportUnavailable));
+        }
         string itemId = GetInstallationItemId(facility);
         if (string.IsNullOrWhiteSpace(itemId))
         {
             return ProductionBillCommandResult.Failed(
                 new DomainFailure(FailureCode.ProductionSupportUnavailable));
+        }
+        if (!destinationAuthorities.TryEnsure(
+                facility,
+                out _,
+                out string authorityFailure))
+        {
+            throw new InvalidOperationException(
+                "Stock-sensor destination authority could not be published for '"
+                + facilityId + "': " + authorityFailure);
         }
         if (stateStore.TryGetPendingStockSensorInstall(facilityId, out _))
         {
@@ -184,6 +453,11 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
         }
 
         string facilityId = GetFacilityId(facility);
+        if (destructiveDrains.IsOpen(facility.InstanceId))
+        {
+            return ProductionBillCommandResult.Failed(
+                new DomainFailure(FailureCode.ProductionSupportUnavailable));
+        }
         if (stateStore.TryGetPendingStockSensorInstall(facilityId, out _))
         {
             return ProductionBillCommandResult.Failed(
@@ -193,7 +467,7 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
         }
         if (stateStore.TryGetPendingStockSensorRemoval(facilityId, out _))
         {
-            return ResumePendingRemoval(facilityId)
+            return ResumeManualRemoval(facilityId)
                 ? ProductionBillCommandResult.Success(
                     default,
                     ProductionBillOutcomeCode.StockSensorRemoved)
@@ -222,22 +496,8 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
                 "Installed stock-sensor item conflicts with facility authoring: "
                 + facilityId);
         }
-        stateStore.SetPendingStockSensorRemoval(new()
-        {
-            phase = ProductionStockSensorRemovalPhase.Prepared,
-            facilityId = facilityId,
-            itemId = installedRecord.itemId,
-            outputPositionX = facility.Position.x,
-            outputPositionY = facility.Position.y,
-            operationId = BuildRemovalOperationId(
-                facilityId,
-                installedRecord.inputSourceStackId),
-            reasonCode = RemovalReasonCode,
-            installationSourceStackId = installedRecord.inputSourceStackId,
-            expectedOutputMassGrams = installedRecord.embeddedMassGrams
-        });
-        Touch();
-        if (!ResumePendingRemoval(facilityId))
+        if (!TryPrepareRemoval(facility, out _, out _)
+            || !ResumeManualRemoval(facilityId))
             return ProductionBillCommandResult.Failed(
                 new DomainFailure(
                     FailureCode.ProductionOutputUnavailable,
@@ -257,6 +517,11 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
         }
 
         string facilityId = GetFacilityId(facility);
+        if (destructiveDrains.IsOpen(facility.InstanceId))
+        {
+            return ProductionBillCommandResult.Failed(
+                new DomainFailure(FailureCode.ProductionSupportUnavailable));
+        }
         stateStore.AddAcknowledgedSensor(facilityId);
         Touch();
         return ProductionBillCommandResult.Success(
@@ -266,9 +531,17 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
 
     public void FinalizeDeliveredSensors()
     {
+        if (!TryReconcileDestinationAuthorities(out string authorityFailure))
+        {
+            throw new InvalidOperationException(
+                "Stock-sensor destination authorities could not be reconciled: "
+                + authorityFailure);
+        }
         foreach (ProductionStockSensorRemovalSaveData owner in PendingRemovals)
         {
-            ResumePendingRemoval(owner.facilityId);
+            BuildingInstanceId facilityId = (BuildingInstanceId)owner.facilityId;
+            if (!destructiveDrains.IsOpen(facilityId))
+                ResumeManualRemoval(owner.facilityId);
         }
         Dictionary<string, ProductionFacilityHandle> liveFacilities =
             (bridge.Facilities ?? Array.Empty<ProductionFacilityHandle>())
@@ -277,7 +550,8 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
         foreach (ProductionStockSensorPhysicalCommitSaveData owner in
                  PendingInstallations)
         {
-            if (liveFacilities.ContainsKey(owner.facilityId))
+            if (liveFacilities.TryGetValue(owner.facilityId, out var facility)
+                && !destructiveDrains.IsOpen(facility.InstanceId))
                 ResumePendingInstallation(owner.facilityId);
         }
         foreach (ProductionFacilityHandle facility in bridge.Facilities
@@ -289,6 +563,8 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
             }
 
             string facilityId = GetFacilityId(facility);
+            if (destructiveDrains.IsOpen(facility.InstanceId))
+                continue;
             string destinationId = DestinationPrefix + facilityId;
             string itemId = GetInstallationItemId(facility);
             if (!installed.Contains(facilityId)
@@ -305,13 +581,20 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
         }
     }
 
+    public bool TryReconcileDestinationAuthorities(out string failureReason) =>
+        destinationAuthorities.TryReplaceProjected(
+            bridge.Facilities ?? Array.Empty<ProductionFacilityHandle>(),
+            out failureReason);
+
     private bool TryBeginInstallation(
         string facilityId,
         string destinationId,
         string itemId,
         out string failureReason)
     {
-        string operationId = BuildPhysicalOperationId(facilityId);
+        string operationId = BuildPhysicalOperationId(
+            facilityId,
+            checked(stateStore.StockSensorVersion + 1));
         if (!bridge.CommitStockSensorInstallPending(
             destinationId,
             itemId,
@@ -398,13 +681,370 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
         return true;
     }
 
-    private bool ResumePendingRemoval(string facilityId)
+    public bool TryCapture(
+        BuildingInstanceId facilityId,
+        out ProductionInstalledStockSensorSaveData installedRecord,
+        out ProductionStockSensorRemovalSaveData removal,
+        out string failureReason)
     {
+        installedRecord = null;
+        removal = null;
+        failureReason = string.Empty;
+        if (!facilityId.IsValid)
+        {
+            failureReason = "production-stock-sensor-destructive-facility-invalid";
+            return false;
+        }
+
+        bool hasInstalled = stateStore.TryGetInstalledStockSensor(
+            facilityId.Value,
+            out ProductionInstalledStockSensorSaveData foundInstalled);
+        bool hasRemoval = stateStore.TryGetPendingStockSensorRemoval(
+            facilityId.Value,
+            out ProductionStockSensorRemovalSaveData foundRemoval);
+        if (hasRemoval
+            && foundRemoval.phase != ProductionStockSensorRemovalPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc
+            && (!hasInstalled || !Matches(foundRemoval, foundInstalled)))
+        {
+            failureReason =
+                "production-stock-sensor-destructive-source-conflict";
+            return false;
+        }
+        if (hasRemoval
+            && foundRemoval.phase == ProductionStockSensorRemovalPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc
+            && (hasInstalled
+                || installed.Contains(facilityId.Value)
+                || acknowledged.Contains(facilityId.Value)))
+        {
+            failureReason =
+                "production-stock-sensor-destructive-terminal-state-conflict";
+            return false;
+        }
+
+        installedRecord = foundInstalled?.Clone();
+        removal = foundRemoval?.Clone();
+        return true;
+    }
+
+    public bool TryCapturePendingInstallation(
+        BuildingInstanceId facilityId,
+        out ProductionStockSensorPhysicalCommitSaveData pendingInstallation,
+        out string failureReason)
+    {
+        pendingInstallation = null;
+        failureReason = string.Empty;
+        if (!facilityId.IsValid)
+        {
+            failureReason =
+                "production-stock-sensor-destructive-facility-invalid";
+            return false;
+        }
+        if (!stateStore.TryGetPendingStockSensorInstall(
+                facilityId.Value,
+                out ProductionStockSensorPhysicalCommitSaveData pending))
+        {
+            return true;
+        }
+        if (!string.Equals(
+                pending.facilityId,
+                facilityId.Value,
+                StringComparison.Ordinal)
+            || !IsPhysicalOperationIdForFacility(
+                pending.operationId,
+                facilityId.Value))
+        {
+            failureReason =
+                "production-stock-sensor-destructive-install-invalid";
+            return false;
+        }
+        pendingInstallation = pending.Clone();
+        return true;
+    }
+
+    public bool TryStabilizePendingInstallation(
+        BuildingInstanceId facilityId,
+        string expectedOperationId,
+        string expectedRequestFingerprint,
+        string expectedCommitId,
+        out ProductionInstalledStockSensorSaveData installedRecord,
+        out string failureReason)
+    {
+        installedRecord = null;
+        failureReason = string.Empty;
+        if (!TryCapturePendingInstallation(
+                facilityId,
+                out ProductionStockSensorPhysicalCommitSaveData pending,
+                out failureReason)
+            || pending == null
+            || !string.Equals(
+                pending.operationId,
+                expectedOperationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                pending.requestFingerprint,
+                expectedRequestFingerprint,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                pending.commitId,
+                expectedCommitId,
+                StringComparison.Ordinal))
+        {
+            failureReason = string.IsNullOrEmpty(failureReason)
+                ? "production-stock-sensor-destructive-install-drift"
+                : failureReason;
+            return false;
+        }
+
+        try
+        {
+            if (!ResumePendingInstallation(facilityId.Value))
+            {
+                failureReason =
+                    "production-stock-sensor-destructive-install-deferred";
+                return false;
+            }
+        }
+        catch (Exception exception)
+        {
+            failureReason =
+                "production-stock-sensor-destructive-install-failed:"
+                + exception.GetType().Name;
+            return false;
+        }
+
+        if (stateStore.TryGetPendingStockSensorInstall(
+                facilityId.Value,
+                out _)
+            || !stateStore.TryGetInstalledStockSensor(
+                facilityId.Value,
+                out ProductionInstalledStockSensorSaveData installed)
+            || !string.Equals(
+                installed.inputOperationId,
+                pending.operationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                installed.inputCommitId,
+                pending.commitId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                installed.itemId,
+                pending.itemId,
+                StringComparison.Ordinal)
+            || installed.embeddedMassGrams != pending.inputMassGrams
+            || pending.sourceStackIds == null
+            || pending.sourceStackIds.Count != 1
+            || !string.Equals(
+                installed.inputSourceStackId,
+                pending.sourceStackIds[0],
+                StringComparison.Ordinal))
+        {
+            failureReason =
+                "production-stock-sensor-destructive-install-result-conflict";
+            return false;
+        }
+
+        installedRecord = installed.Clone();
+        return true;
+    }
+
+    public bool TryPrepareDurable(
+        BuildingInstanceId facilityId,
+        out ProductionStockSensorRemovalSaveData removal,
+        out string failureReason)
+    {
+        removal = null;
+        failureReason = string.Empty;
+        if (!TryResolveFacility(facilityId, out ProductionFacilityHandle facility))
+        {
+            failureReason =
+                "production-stock-sensor-destructive-live-facility-missing";
+            return false;
+        }
+        return TryPrepareRemoval(facility, out removal, out failureReason);
+    }
+
+    public bool TryPublish(
+        BuildingInstanceId facilityId,
+        out ProductionStockSensorRemovalSaveData removal,
+        out string failureReason)
+    {
+        removal = null;
+        failureReason = string.Empty;
+        if (!facilityId.IsValid)
+        {
+            failureReason = "production-stock-sensor-destructive-facility-invalid";
+            return false;
+        }
+        return TryPublishRemoval(facilityId.Value, out removal, out failureReason);
+    }
+
+    public bool TryAcknowledge(
+        BuildingInstanceId facilityId,
+        string expectedOutputCommitId,
+        out ProductionStockSensorRemovalSaveData removal,
+        out string failureReason)
+    {
+        removal = null;
+        failureReason = string.Empty;
+        if (!facilityId.IsValid
+            || string.IsNullOrEmpty(expectedOutputCommitId)
+            || !string.Equals(
+                expectedOutputCommitId,
+                expectedOutputCommitId.Trim(),
+                StringComparison.Ordinal)
+            || !stateStore.TryGetPendingStockSensorRemoval(
+                facilityId.Value,
+                out ProductionStockSensorRemovalSaveData owner))
+        {
+            failureReason =
+                "production-stock-sensor-destructive-ack-request-invalid";
+            return false;
+        }
+
+        if (owner.phase == ProductionStockSensorRemovalPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc)
+        {
+            if (!string.Equals(
+                    owner.outputCommitIds.SingleOrDefault(),
+                    expectedOutputCommitId,
+                    StringComparison.Ordinal))
+            {
+                failureReason =
+                    "production-stock-sensor-destructive-ack-replay-conflict";
+                return false;
+            }
+            removal = owner.Clone();
+            return true;
+        }
+
+        if (owner.phase != ProductionStockSensorRemovalPhase.OutputPublished
+            || owner.outputCommitIds.Count != 1
+            || !string.Equals(
+                owner.outputCommitIds[0],
+                expectedOutputCommitId,
+                StringComparison.Ordinal)
+            || !stateStore.TryGetInstalledStockSensor(
+                facilityId.Value,
+                out ProductionInstalledStockSensorSaveData installedRecord)
+            || !Matches(owner, installedRecord))
+        {
+            failureReason =
+                "production-stock-sensor-destructive-ack-state-conflict";
+            return false;
+        }
+
+        stateStore.RemoveInstalledSensor(facilityId.Value);
+        stateStore.RemoveAcknowledgedSensor(facilityId.Value);
+        stateStore.RemoveInstalledStockSensor(facilityId.Value);
+        owner.phase = ProductionStockSensorRemovalPhase
+            .OwnerAcknowledgedAwaitingCheckpointGc;
+        Touch();
+        removal = owner.Clone();
+        return true;
+    }
+
+    private bool TryCollectManualRemoval(
+        BuildingInstanceId facilityId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!facilityId.IsValid
+            || !stateStore.TryGetPendingStockSensorRemoval(
+                facilityId.Value,
+                out ProductionStockSensorRemovalSaveData owner)
+            || owner.phase != ProductionStockSensorRemovalPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc
+            || installed.Contains(facilityId.Value)
+            || acknowledged.Contains(facilityId.Value)
+            || stateStore.TryGetInstalledStockSensor(facilityId.Value, out _))
+        {
+            failureReason =
+                "production-stock-sensor-destructive-checkpoint-gc-invalid";
+            return false;
+        }
+
+        stateStore.RemovePendingStockSensorRemoval(facilityId.Value);
+        Touch();
+        return true;
+    }
+
+    private bool TryPrepareRemoval(
+        ProductionFacilityHandle facility,
+        out ProductionStockSensorRemovalSaveData removal,
+        out string failureReason)
+    {
+        removal = null;
+        failureReason = string.Empty;
+        string facilityId = GetFacilityId(facility);
+        if (stateStore.TryGetPendingStockSensorInstall(facilityId, out _))
+        {
+            failureReason =
+                "production-stock-sensor-destructive-install-pending";
+            return false;
+        }
+        if (stateStore.TryGetPendingStockSensorRemoval(facilityId, out _))
+        {
+            return TryCapture(
+                facility.InstanceId,
+                out _,
+                out removal,
+                out failureReason);
+        }
+        if (!installed.Contains(facilityId)
+            || !stateStore.TryGetInstalledStockSensor(
+                facilityId,
+                out ProductionInstalledStockSensorSaveData installedRecord))
+        {
+            return true;
+        }
+
+        string itemId = GetInstallationItemId(facility);
+        if (!string.Equals(itemId, installedRecord.itemId, StringComparison.Ordinal))
+        {
+            failureReason =
+                "production-stock-sensor-destructive-authoring-conflict";
+            return false;
+        }
+        ProductionStockSensorRemovalSaveData created = new()
+        {
+            phase = ProductionStockSensorRemovalPhase.Prepared,
+            facilityId = facilityId,
+            itemId = installedRecord.itemId,
+            outputPositionX = facility.Position.x,
+            outputPositionY = facility.Position.y,
+            operationId = BuildRemovalOperationId(
+                facilityId,
+                installedRecord.inputSourceStackId),
+            reasonCode = RemovalReasonCode,
+            installationSourceStackId = installedRecord.inputSourceStackId,
+            expectedOutputMassGrams = installedRecord.embeddedMassGrams
+        };
+        stateStore.SetPendingStockSensorRemoval(created);
+        Touch();
+        removal = created.Clone();
+        return true;
+    }
+
+    private bool TryPublishRemoval(
+        string facilityId,
+        out ProductionStockSensorRemovalSaveData removal,
+        out string failureReason)
+    {
+        removal = null;
+        failureReason = string.Empty;
         if (!stateStore.TryGetPendingStockSensorRemoval(
                 facilityId,
                 out ProductionStockSensorRemovalSaveData owner))
         {
             return !installed.Contains(facilityId);
+        }
+        if (owner.phase == ProductionStockSensorRemovalPhase
+            .OwnerAcknowledgedAwaitingCheckpointGc)
+        {
+            removal = owner.Clone();
+            return true;
         }
         if (!installed.Contains(facilityId)
             || !stateStore.TryGetInstalledStockSensor(
@@ -412,9 +1052,9 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
                 out ProductionInstalledStockSensorSaveData installedRecord)
             || !Matches(owner, installedRecord))
         {
-            throw new InvalidOperationException(
-                "Stock-sensor removal owner conflicts with installed mass: "
-                + facilityId);
+            failureReason =
+                "production-stock-sensor-removal-installed-mass-conflict";
+            return false;
         }
 
         if (!removalOutputs.TryEnsureRemovalOutput(
@@ -425,7 +1065,7 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
                 owner.operationId,
                 owner.reasonCode,
                 out ProductionStockSensorRemovalReceipt receipt,
-                out _)
+                out failureReason)
             || !Matches(owner, receipt))
         {
             return false;
@@ -449,17 +1089,78 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
                  || owner.outputQuantity != receipt.OutputQuantity
                  || owner.outputMassGrams != receipt.OutputMassGrams)
         {
-            throw new InvalidOperationException(
-                "Stock-sensor removal output conflicts with persisted receipt: "
-                + facilityId);
+            failureReason =
+                "production-stock-sensor-removal-output-receipt-conflict";
+            return false;
         }
 
-        stateStore.RemoveInstalledSensor(facilityId);
-        stateStore.RemoveAcknowledgedSensor(facilityId);
-        stateStore.RemoveInstalledStockSensor(facilityId);
-        stateStore.RemovePendingStockSensorRemoval(facilityId);
-        Touch();
+        removal = owner.Clone();
         return true;
+    }
+
+    private bool ResumeManualRemoval(string facilityId)
+    {
+        BuildingInstanceId id = (BuildingInstanceId)facilityId;
+        if (!TryPublishRemoval(facilityId, out var owner, out _))
+            return false;
+        if (owner == null)
+            return true;
+        string commitId = owner.outputCommitIds.SingleOrDefault();
+        if (!TryAcknowledge(id, commitId, out _, out _))
+            return false;
+        return TryCollectManualRemoval(id, out _);
+    }
+
+    private bool TryResolveFacility(
+        BuildingInstanceId facilityId,
+        out ProductionFacilityHandle facility)
+    {
+        facility = (bridge.Facilities ?? Array.Empty<ProductionFacilityHandle>())
+            .SingleOrDefault(value => value != null
+                && !value.IsDestroyed
+                && value.InstanceId.Equals(facilityId));
+        return facility != null;
+    }
+
+    private RemovalCheckpointGcCandidate RequireRemovalCheckpointGcCandidate(
+        IProductionStockSensorRemovalCheckpointGcCandidate candidate)
+    {
+        if (candidate is not RemovalCheckpointGcCandidate exact
+            || !ReferenceEquals(activeRemovalCheckpointGcCandidate, exact))
+            throw new InvalidOperationException(
+                "Stock-sensor checkpoint-GC candidate is stale or foreign.");
+        return exact;
+    }
+
+    private static bool RemovalEquals(
+        ProductionStockSensorRemovalSaveData left,
+        ProductionStockSensorRemovalSaveData right) => left != null
+        && right != null
+        && string.Equals(
+            UnityEngine.JsonUtility.ToJson(left),
+            UnityEngine.JsonUtility.ToJson(right),
+            StringComparison.Ordinal);
+
+    private sealed class RemovalCheckpointGcCandidate :
+        IProductionStockSensorRemovalCheckpointGcCandidate
+    {
+        internal RemovalCheckpointGcCandidate(
+            int expectedVersion,
+            IReadOnlyList<ProductionStockSensorRemovalSaveData> rows)
+        {
+            ExpectedVersion = expectedVersion;
+            PublishedVersion = expectedVersion;
+            Rows = (rows ?? Array.Empty<ProductionStockSensorRemovalSaveData>())
+                .Select(value => value.Clone())
+                .OrderBy(value => value.facilityId, StringComparer.Ordinal)
+                .ToArray();
+        }
+
+        internal int ExpectedVersion { get; }
+        internal int PublishedVersion { get; set; }
+        internal IReadOnlyList<ProductionStockSensorRemovalSaveData> Rows
+            { get; }
+        internal bool Published { get; set; }
     }
 
     private static bool Matches(
@@ -526,8 +1227,38 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
     public static string BuildDestinationId(string facilityId) =>
         DestinationPrefix + (facilityId ?? string.Empty);
 
-    public static string BuildPhysicalOperationId(string facilityId) =>
-        PhysicalOperationPrefix + (facilityId ?? string.Empty);
+    public static string BuildPhysicalOperationId(
+        string facilityId,
+        int operationSequence)
+    {
+        if (string.IsNullOrEmpty(facilityId)
+            || operationSequence <= 0)
+        {
+            throw new ArgumentException(
+                "A stock-sensor installation operation requires a facility and positive sequence.");
+        }
+        return PhysicalOperationPrefix + facilityId + ":"
+            + operationSequence.ToString(CultureInfo.InvariantCulture);
+    }
+
+    public static bool IsPhysicalOperationIdForFacility(
+        string operationId,
+        string facilityId)
+    {
+        if (string.IsNullOrEmpty(operationId)
+            || string.IsNullOrEmpty(facilityId))
+        {
+            return false;
+        }
+        string prefix = PhysicalOperationPrefix + facilityId + ":";
+        return operationId.StartsWith(prefix, StringComparison.Ordinal)
+            && int.TryParse(
+                operationId.AsSpan(prefix.Length),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out int sequence)
+            && sequence > 0;
+    }
 
     public static string BuildRemovalOperationId(
         string facilityId,

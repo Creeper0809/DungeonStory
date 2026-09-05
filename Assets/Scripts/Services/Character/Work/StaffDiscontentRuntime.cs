@@ -23,6 +23,7 @@ public class StaffDiscontentRuntime : MonoBehaviour
     private StaffDiscontentState state =>
         aggregateRootStore.GetOrCreate(() => new StaffDiscontentState());
     private ICharacterWorldQuery characterWorldQuery;
+    private ICharacterSettlementStandingQuery settlementStandings;
     private DungeonStory.Foundation.IGameEventBus gameEventBus;
     private IDisposable operatingDayEndedSubscription;
 
@@ -33,7 +34,8 @@ public class StaffDiscontentRuntime : MonoBehaviour
     public void Construct(
         ICharacterWorldQuery characterWorldQuery,
         DungeonStory.Foundation.IGameEventBus gameEventBus,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        ICharacterSettlementStandingQuery settlementStandings)
     {
         this.characterWorldQuery = characterWorldQuery
             ?? throw new ArgumentNullException(nameof(characterWorldQuery));
@@ -41,6 +43,8 @@ public class StaffDiscontentRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.settlementStandings = settlementStandings
+            ?? throw new ArgumentNullException(nameof(settlementStandings));
         SubscribeToScopedEvents();
     }
 
@@ -51,6 +55,12 @@ public class StaffDiscontentRuntime : MonoBehaviour
 
     public StaffDiscontentRecord ProcessStaff(CharacterActor staff, out StaffDiscontentOutcome outcome)
     {
+        if (settlementStandings?.IsMinion(staff) == true)
+        {
+            outcome = StaffDiscontentOutcome.None;
+            return null;
+        }
+
         StaffDiscontentRecord record = state.ProcessStaff(staff, rules, out outcome);
         if (record == null)
         {
@@ -99,13 +109,17 @@ public class StaffDiscontentRuntime : MonoBehaviour
         IReadOnlyList<CharacterActor> actors = RequireCharacterWorldQuery().Characters;
         foreach (CharacterActor staff in actors)
         {
-            ProcessStaff(staff, out _);
+            if (settlementStandings?.IsFormalResident(staff) == true)
+            {
+                ProcessStaff(staff, out _);
+            }
         }
     }
 
     public float GetWorkEfficiencyMultiplier(CharacterActor staff)
     {
-        if (!StaffDiscontentService.IsTrackableStaff(staff))
+        if (settlementStandings?.IsMinion(staff) == true
+            || !StaffDiscontentService.IsTrackableStaff(staff))
         {
             return 1f;
         }
@@ -119,7 +133,8 @@ public class StaffDiscontentRuntime : MonoBehaviour
     public bool ShouldBlockWork(CharacterActor staff, out string reason)
     {
         reason = string.Empty;
-        if (!StaffDiscontentService.IsTrackableStaff(staff))
+        if (settlementStandings?.IsMinion(staff) == true
+            || !StaffDiscontentService.IsTrackableStaff(staff))
         {
             return false;
         }
@@ -138,7 +153,8 @@ public class StaffDiscontentRuntime : MonoBehaviour
 
     public bool IsRebellionTarget(CharacterActor target)
     {
-        return state.TryGetRecord(target, out StaffDiscontentRecord record)
+        return settlementStandings?.IsMinion(target) != true
+            && state.TryGetRecord(target, out StaffDiscontentRecord record)
             && record.IsInLocalRebellion
             && !record.IsDeparted
             && !record.IsSuppressed;

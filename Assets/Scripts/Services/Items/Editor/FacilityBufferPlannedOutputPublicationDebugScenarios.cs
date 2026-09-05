@@ -14,6 +14,8 @@ public static class FacilityBufferPlannedOutputPublicationDebugScenarios
         VerifyExactRestoreCandidateAndPartialFailure();
         VerifyExactRollbackAndDurableAcknowledgement();
         VerifyRestoreCandidateRollbackAndAcknowledgement();
+        VerifyUniqueEquipmentAtomicPublicationAndRestore();
+        VerifyGenericMaxStackOneAllocatesAndCommitsIdentity();
     }
 
     private static void VerifyAtomicPublicationAndReplay()
@@ -282,7 +284,211 @@ public static class FacilityBufferPlannedOutputPublicationDebugScenarios
             "Restored batch acknowledgement was not exact and idempotent.");
     }
 
-    private sealed class Fixture
+    private static void VerifyUniqueEquipmentAtomicPublicationAndRestore()
+    {
+        const string InstanceId = "item-instance:planned-output:dagger:001";
+        Fixture failureFixture = new(new FailAtStackIndex(0));
+        FacilityBufferPlannedOutputToken failureToken =
+            failureFixture.ReserveUnique(
+                "batch:unique:repository-failure",
+                InstanceId + ":failed");
+        Require(
+            !failureFixture.Publication.TryPublishFullBatch(
+                failureToken,
+                out _,
+                out FacilityBufferPlannedOutputPublicationFailureCode failure,
+                out _)
+            && failure == FacilityBufferPlannedOutputPublicationFailureCode
+                .RepositoryTransactionFailed
+            && failureFixture.Publication.CaptureEditorTestSnapshot().Stacks.Count
+                == 0
+            && failureFixture.Repository.EquipmentInstances.Count == 0
+            && failureFixture.Admission.TryValidatePlannedOutputReservation(
+                failureToken,
+                out _,
+                out _),
+            "Unique publication failure did not roll back stack and equipment aggregate together.");
+
+        Fixture fixture = new();
+        FacilityBufferPlannedOutputToken token = fixture.ReserveUnique(
+            "batch:unique:success",
+            InstanceId);
+        Require(
+            fixture.Publication.TryPublishFullBatch(
+                token,
+                out FacilityBufferPlannedOutputPublicationReceipt receipt,
+                out _,
+                out _)
+            && receipt.Stacks.Count == 1
+            && receipt.Stacks[0].ItemInstanceId == InstanceId
+            && fixture.Repository.EquipmentInstances.TryGetValue(
+                InstanceId,
+                out CombatEquipmentInstance aggregate)
+            && aggregate.sourceStackId == receipt.Stacks[0].StackId,
+            "Unique publication did not atomically bind stack and equipment identity.");
+        WorldItemStackSnapshot published = fixture.Query.GetAllStacks().Single();
+        Require(
+            published.ItemInstanceId == InstanceId
+            && EquipmentItemStateCodec.TryDecode(
+                published.Components.Single(value => value != null
+                    && value.componentTypeId == ItemInstanceComponentIds.Equipment),
+                out CombatEquipmentInstance decoded,
+                out _)
+            && decoded.sourceStackId == published.StackId
+            && decoded.instanceId == InstanceId,
+            "Unique publication stack component did not match its aggregate.");
+        Require(
+            fixture.Publication.TryPublishFullBatch(
+                token,
+                out FacilityBufferPlannedOutputPublicationReceipt replay,
+                out _,
+                out _)
+            && replay.Stacks[0].StackId == receipt.Stacks[0].StackId
+            && replay.Stacks[0].ItemInstanceId == InstanceId
+            && fixture.Repository.EquipmentInstances.Count == 1,
+            "Unique publication replay duplicated or changed aggregate identity.");
+
+        FacilityBufferPlannedOutputRestoreBatchSnapshot candidate = fixture
+            .Publication.CapturePendingRestoreBatchesForEditorTest().Single();
+        FacilityBufferPlannedOutputRestoreStackSnapshot stack =
+            candidate.Stacks.Single();
+        FacilityBufferPlannedOutputRestoreBatchSnapshot tampered = new(
+            candidate.BatchCommitId,
+            candidate.OutcomeFingerprint,
+            candidate.PlannedOutputFingerprint,
+            candidate.TotalQuantity,
+            candidate.TotalMassGrams,
+            new[]
+            {
+                new FacilityBufferPlannedOutputRestoreStackSnapshot(
+                    stack.BatchCommitId,
+                    stack.OutcomeFingerprint,
+                    stack.PlannedOutputFingerprint,
+                    stack.OutputLineId,
+                    stack.StackOrdinal,
+                    stack.StackId,
+                    stack.ItemId,
+                    stack.Quantity,
+                    stack.MassGrams,
+                    stack.ComponentSignature,
+                    stack.State,
+                    stack.Position,
+                    stack.DestinationId,
+                    InstanceId + ":tampered")
+            });
+        Require(
+            !fixture.Publication.TryAcknowledgeRestoreCandidate(
+                tampered,
+                out FacilityBufferPlannedOutputPublicationFailureCode
+                    tamperedFailure,
+                out _)
+            && tamperedFailure == FacilityBufferPlannedOutputPublicationFailureCode
+                .ExistingPublicationConflict,
+            "Unique restore candidate accepted a mismatched item-instance identity.");
+
+        Require(
+            fixture.Admission.TryCommitPlannedOutput(
+                token,
+                receipt,
+                out _,
+                out _,
+                out _),
+            "Unique fixture could not commit planned admission.");
+        CombatEquipmentInstance exact = fixture.Repository.EquipmentInstances[
+            InstanceId].Clone();
+        fixture.Repository.EquipmentInstances[InstanceId].sourceStackId =
+            "stack:tampered";
+        Require(
+            !fixture.Publication.TryAcknowledgePublishedBatch(
+                receipt,
+                out FacilityBufferPlannedOutputPublicationFailureCode
+                    aggregateFailure,
+                out _)
+            && aggregateFailure == FacilityBufferPlannedOutputPublicationFailureCode
+                .ExistingPublicationConflict,
+            "Unique acknowledgement accepted equipment aggregate drift.");
+        fixture.Repository.EquipmentInstances[InstanceId] = exact;
+        Require(
+            fixture.Publication.TryAcknowledgePublishedBatch(
+                receipt,
+                out _,
+                out _)
+            && fixture.Publication.TryAcknowledgePublishedBatch(
+                receipt,
+                out _,
+                out _)
+            && fixture.Repository.EquipmentInstances.Count == 1
+            && fixture.Publication.CaptureEditorTestSnapshot().Stacks.Count == 1,
+            "Unique acknowledgement was not idempotent or removed physical authority.");
+
+        fixture.Publication.SetUniqueEquipmentWorldStateForEditorTest(
+            InstanceId,
+            WorldItemStackState.Stored,
+            CombatEquipmentWorldState.Stored);
+        IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
+            acknowledgedCandidates = fixture.Publication
+                .CaptureAcknowledgedRestoreBatchesForEditorTest();
+        Require(
+            acknowledgedCandidates.Count == 1
+            && acknowledgedCandidates[0].Stacks.Count == 1
+            && acknowledgedCandidates[0].Stacks[0].State
+                == WorldItemStackState.Stored
+            && acknowledgedCandidates[0].Stacks[0].MassGrams
+                == receipt.Stacks[0].Mass.Value,
+            "Acknowledged provenance became a second writer for mutable equipment world state.");
+
+        Fixture rollbackFixture = new();
+        FacilityBufferPlannedOutputToken rollbackToken =
+            rollbackFixture.ReserveUnique(
+                "batch:unique:restore-rollback",
+                InstanceId + ":rollback");
+        Require(
+            rollbackFixture.Publication.TryPublishFullBatch(
+                rollbackToken,
+                out _,
+                out _,
+                out _),
+            "Unique restore rollback fixture did not publish.");
+        FacilityBufferPlannedOutputRestoreBatchSnapshot rollbackCandidate =
+            rollbackFixture.Publication
+                .CapturePendingRestoreBatchesForEditorTest().Single();
+        Require(
+            rollbackFixture.Publication.TryRollbackRestoreCandidate(
+                rollbackCandidate,
+                out _,
+                out _)
+            && rollbackFixture.Publication.CaptureEditorTestSnapshot().Stacks.Count
+                == 0
+            && rollbackFixture.Repository.EquipmentInstances.Count == 0,
+            "Unique restore rollback did not remove stack and aggregate atomically.");
+    }
+
+    private static void VerifyGenericMaxStackOneAllocatesAndCommitsIdentity()
+    {
+        Fixture fixture = new();
+        FacilityBufferPlannedOutputToken token =
+            fixture.ReserveGenericMaxStackOne("batch:generic-unique:001");
+        Require(
+            fixture.Publication.TryPublishFullBatch(
+                token,
+                out FacilityBufferPlannedOutputPublicationReceipt publication,
+                out _,
+                out _)
+            && publication.Stacks.Count == 1
+            && ((ItemInstanceId)publication.Stacks[0].ItemInstanceId).IsValid,
+            "Generic max-stack-one publication did not allocate a physical instance identity.");
+        Require(
+            fixture.Admission.TryCommitPlannedOutput(
+                token,
+                publication,
+                out FacilityBufferPlannedOutputReceipt receipt,
+                out _,
+                out _)
+            && receipt.CommittedMassGrams == 2_350L,
+            "Generic max-stack-one publication identity was rejected by planned admission.");
+    }
+
+    internal sealed class Fixture
     {
         internal const string DestinationId = "production:qa:output-buffer";
         internal const string OwnerDomain = "production.generic";
@@ -296,6 +502,11 @@ public static class FacilityBufferPlannedOutputPublicationDebugScenarios
             Repository = new WorldItemRepository(
                 new GuidPersistentIdGenerator(),
                 new DungeonRuntimeAggregateRootStore());
+            Query = new WorldItemQueryService(
+                catalog,
+                Mass,
+                Repository,
+                EditorNullItemMarkerPresenter.Instance);
             FacilityBufferDestinationClaimRegistry claims = new();
             Require(
                 claims.TryClaim(
@@ -339,6 +550,7 @@ public static class FacilityBufferPlannedOutputPublicationDebugScenarios
         }
 
         internal WorldItemRepository Repository { get; }
+        internal WorldItemQueryService Query { get; }
         internal FacilityBufferMassAdmissionService Admission { get; }
         internal FacilityBufferPlannedOutputPublicationService Publication { get; }
         internal IPhysicalItemMassQuery Mass { get; }
@@ -375,9 +587,96 @@ public static class FacilityBufferPlannedOutputPublicationDebugScenarios
                 "Publication fixture failed to reserve planned mass.");
             return token;
         }
+
+        internal FacilityBufferPlannedOutputToken ReserveUnique(
+            string batchCommitId,
+            string instanceId)
+        {
+            string itemId = PhysicalItemIds.ForEquipment("weapon:dagger");
+            CombatEquipmentInstance prepared = new()
+            {
+                instanceId = instanceId,
+                definitionId = "weapon:dagger",
+                materialId = "material:iron",
+                quality = CombatEquipmentQuality.Normal,
+                durabilityRatio = 1f,
+                worldState = CombatEquipmentWorldState.Loose,
+                ownerCharacterId = string.Empty,
+                sourceStackId = string.Empty,
+                evolution = new EquipmentEvolutionState(),
+                moduleSlots = new List<EquipmentModuleSlotState>()
+            };
+            ItemInstanceComponentSaveData component =
+                EquipmentItemStateCodec.Encode(prepared);
+            PhysicalItemMassSubject subject = PhysicalItemMassSubjectAdapter
+                .Create(
+                    Mass,
+                    (ItemDefinitionId)itemId,
+                    instanceId,
+                    new[] { component });
+            FacilityBufferPlannedOutputRequest request = new(
+                $"operation:{batchCommitId}",
+                batchCommitId,
+                $"outcome:{batchCommitId}",
+                DestinationId,
+                DropPosition,
+                OwnerDomain,
+                DestinationId,
+                "building:qa:production",
+                1L,
+                new[]
+                {
+                    new FacilityBufferPlannedOutputSlice(
+                        "line:equipment",
+                        subject,
+                        1,
+                        new[] { component })
+                });
+            bool reserved = Admission.TryReservePlannedOutput(
+                request,
+                out FacilityBufferPlannedOutputToken token,
+                out FacilityBufferMassAdmissionFailureCode failure,
+                out string failureReason);
+            Require(
+                reserved,
+                "Unique publication fixture failed to reserve planned mass: "
+                + failure + "/" + failureReason);
+            return token;
+        }
+
+        internal FacilityBufferPlannedOutputToken ReserveGenericMaxStackOne(
+            string batchCommitId)
+        {
+            FacilityBufferPlannedOutputRequest request = new(
+                $"operation:{batchCommitId}",
+                batchCommitId,
+                $"outcome:{batchCommitId}",
+                DestinationId,
+                DropPosition,
+                OwnerDomain,
+                DestinationId,
+                "building:qa:production",
+                1L,
+                new[]
+                {
+                    new FacilityBufferPlannedOutputSlice(
+                        "line:generic-unique",
+                        PhysicalItemMassSubject.ForDefinition(
+                            (ItemDefinitionId)"item:qa:generic-unique"),
+                        1)
+                });
+            Require(
+                Admission.TryReservePlannedOutput(
+                    request,
+                    out FacilityBufferPlannedOutputToken token,
+                    out _,
+                    out _),
+                "Generic max-stack-one fixture failed to reserve planned mass.");
+            return token;
+        }
     }
 
-    private sealed class FakeCatalog : IDungeonItemCatalogProvider
+    internal sealed class FakeCatalog : IDungeonItemCatalogProvider
     {
         private readonly Dictionary<string, DungeonItemDefinition> definitions = new(
             StringComparer.Ordinal)
@@ -387,7 +686,13 @@ public static class FacilityBufferPlannedOutputPublicationDebugScenarios
                 1, null, 1f, 2),
             ["item:qa:b"] = new DungeonItemDefinition(
                 "item:qa:b", "B", string.Empty, StockCategory.General,
-                1, null, 0.5f, 3)
+                1, null, 0.5f, 3),
+            ["item:qa:generic-unique"] = new DungeonItemDefinition(
+                "item:qa:generic-unique", "Generic Unique", string.Empty,
+                StockCategory.General, 1, null, 2.35f, 1),
+            ["equipment-item:weapon:dagger"] = new DungeonItemDefinition(
+                "equipment-item:weapon:dagger", "Dagger", string.Empty,
+                StockCategory.Weapon, 1, null, 1.5f, 1)
         };
 
         public IReadOnlyList<DungeonItemDefinition> All => definitions.Values.ToArray();
@@ -396,13 +701,23 @@ public static class FacilityBufferPlannedOutputPublicationDebugScenarios
             definitions.TryGetValue(itemId ?? string.Empty, out definition);
     }
 
-    private sealed class FakeMassQuery : IPhysicalItemMassQuery
+    internal sealed class FakeMassQuery : IPhysicalItemMassQuery
     {
         public long AuthorityRevision => 1L;
         public PhysicalMassGrams GetDefinitionUnitMass(ItemDefinitionId itemId) =>
-            new(string.Equals(itemId.Value, "item:qa:a", StringComparison.Ordinal)
-                ? 1_000L
-                : 500L);
+            new(string.Equals(
+                    itemId.Value,
+                    "equipment-item:weapon:dagger",
+                    StringComparison.Ordinal)
+                ? 1_500L
+                : string.Equals(itemId.Value, "item:qa:a", StringComparison.Ordinal)
+                    ? 1_000L
+                    : string.Equals(
+                        itemId.Value,
+                        "item:qa:generic-unique",
+                        StringComparison.Ordinal)
+                        ? 2_350L
+                        : 500L);
         public PhysicalMassGrams GetPreparedStackUnitMass(PhysicalItemMassSubject subject) =>
             GetDefinitionUnitMass(subject.ItemId);
         public PhysicalMassGrams GetStackUnitMass(
@@ -416,7 +731,7 @@ public static class FacilityBufferPlannedOutputPublicationDebugScenarios
             int quantity) => GetDefinitionUnitMass(itemId).Multiply(quantity);
     }
 
-    private sealed class EmptyOccupancy : IFacilityBufferPhysicalOccupancyQuery
+    internal sealed class EmptyOccupancy : IFacilityBufferPhysicalOccupancyQuery
     {
         public FacilityBufferPhysicalOccupancySnapshot Capture(string destinationId) =>
             new(0L, 0L);

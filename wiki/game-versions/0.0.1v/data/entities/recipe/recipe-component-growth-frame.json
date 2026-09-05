@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "40"
+    },
+    {
+      "label": "필요 연구",
+      "value": "모듈식 장비 골격"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-modular-frames",
+      "target_spoiler_tier": "none",
+      "target_title": "모듈식 장비 골격",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-treated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "처리 목재",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-component-growth-frame",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 성장형 장비 골격을(를) 생산한다.",
+  "title": "성장형 장비 골격"
+}

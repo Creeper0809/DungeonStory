@@ -1,0 +1,31 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "17"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Authority And Housing"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1029",
+      "target_spoiler_tier": "none",
+      "target_title": "침실용책장",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-authority-quarters",
+  "spoiler_tier": "none",
+  "summary": "직원과 영주의 생활 구역을 분리한다.",
+  "title": "기본 숙소"
+}

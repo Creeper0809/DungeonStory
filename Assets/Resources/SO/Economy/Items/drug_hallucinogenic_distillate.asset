@@ -27,8 +27,8 @@ MonoBehaviour:
   description: "\uAC15\uD55C \uD658\uAC01\uACFC \uC624\uB77D \uD6A8\uACFC\uB97C \uC8FC\uB294
     \uC720\uD765 \uC57D\uBB3C."
   stockCategory: 5
-  unitWeight: 0.15
-  maxStack: 25
+  unitWeight: 0.9
+  maxStack: 12
   sprite: {fileID: 0}
   unitPrice: 37
   features:
@@ -52,7 +52,7 @@ MonoBehaviour:
     - rid: 1002
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.59002703
+        saleRate: 0.591036
     - rid: 1003
       type: {class: SubstanceItemFeature, ns: , asm: DungeonStory.Economy}
       data:

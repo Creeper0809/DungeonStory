@@ -62,12 +62,19 @@ public sealed class CharacterMoodMemory
     [SerializeField] private float valuePerStack;
     [SerializeField] private int stacks = 1;
     [SerializeField] private int maxStacks = 1;
-    [SerializeField] private float expiresAt;
+    // Keep the absolute deadline in double precision. The game clock and the
+    // persisted remaining-duration token are floats; composing those values in
+    // double lets an immediate save -> restore -> save round trip reproduce the
+    // original float token exactly instead of losing a few float ULPs.
+    [SerializeField] private double expiresAt;
 
     public string Id => id;
-    public float ExpiresAt => expiresAt;
+    public float ExpiresAt => (float)expiresAt;
     public float TotalValue =>
         Mathf.Clamp(valuePerStack * stacks, -25f, 25f);
+
+    public CharacterMoodMemory DeepClone() =>
+        (CharacterMoodMemory)MemberwiseClone();
 
     public CharacterMoodMemory(
         string factorId,
@@ -79,6 +86,49 @@ public sealed class CharacterMoodMemory
     {
         id = factorId;
         Apply(factorLabel, value, durationSeconds, stackLimit, now, resetStacks: true);
+    }
+
+    private CharacterMoodMemory()
+    {
+    }
+
+    /// <summary>
+    /// Restores an already validated remaining-duration token without applying
+    /// the minimum duration used when new gameplay effects are authored. A
+    /// factor captured immediately before expiry must not gain lifetime during
+    /// a save/restore round trip.
+    /// </summary>
+    public static CharacterMoodMemory RestoreExact(
+        string factorId,
+        string factorLabel,
+        float value,
+        float remainingSeconds,
+        float now)
+    {
+        if (string.IsNullOrWhiteSpace(factorId))
+            throw new ArgumentException("A restored mood factor requires an id.", nameof(factorId));
+        if (string.IsNullOrWhiteSpace(factorLabel))
+            throw new ArgumentException("A restored mood factor requires a label.", nameof(factorLabel));
+        if (float.IsNaN(value) || float.IsInfinity(value))
+            throw new ArgumentOutOfRangeException(nameof(value));
+        if (float.IsNaN(remainingSeconds)
+            || float.IsInfinity(remainingSeconds)
+            || remainingSeconds <= 0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(remainingSeconds));
+        }
+        if (float.IsNaN(now) || float.IsInfinity(now))
+            throw new ArgumentOutOfRangeException(nameof(now));
+
+        return new CharacterMoodMemory
+        {
+            id = factorId,
+            label = factorLabel,
+            valuePerStack = Mathf.Clamp(value, -25f, 25f),
+            stacks = 1,
+            maxStacks = 1,
+            expiresAt = (double)now + remainingSeconds
+        };
     }
 
     public void Apply(
@@ -109,12 +159,12 @@ public sealed class CharacterMoodMemory
         valuePerStack = Mathf.Clamp(value, -25f, 25f);
         maxStacks = nextLimit;
         stacks = Mathf.Clamp(stacks, 1, maxStacks);
-        expiresAt = now + Mathf.Max(0.25f, durationSeconds);
+        expiresAt = (double)now + Mathf.Max(0.25f, durationSeconds);
     }
 
     public bool IsExpired(float now)
     {
-        return now >= expiresAt;
+        return (double)now >= expiresAt;
     }
 
     public CharacterMoodFactorSnapshot CreateSnapshot(float now)
@@ -125,7 +175,7 @@ public sealed class CharacterMoodMemory
             displayLabel,
             TotalValue,
             CharacterMoodFactorKind.Interaction,
-            expiresAt - now);
+            (float)(expiresAt - (double)now));
     }
 }
 

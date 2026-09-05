@@ -250,10 +250,32 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
                     "Assets/Resources/SO/Factions/Dungeons")
                 .OrderBy(value => value.StableId, StringComparer.Ordinal)
                 .ToArray();
+        IDungeonItemCatalogProvider itemCatalog =
+            EditorItemCatalogFactory.Create();
+        IFactionRouteEconomicPolicyRegistry economicPolicies =
+            CreateFactionEconomicPolicies(itemCatalog);
+        FactionDefinitionSnapshot firstDefinition =
+            definitions.FirstOrDefault()?.ToSnapshot()
+            ?? throw new InvalidOperationException(
+                "Faction save fixture requires an authored faction definition.");
+        if (!economicPolicies.TryCreateQuote(
+                firstDefinition,
+                FactionRouteKind.TradeCaravan,
+                out FactionRouteQuoteSnapshot tradeQuote,
+                out string quoteFailure))
+            throw new InvalidOperationException(
+                "Faction save fixture could not create a trade quote: "
+                + quoteFailure);
         DungeonFactionSaveData valid = new DungeonFactionSaveData
         {
             currentDay = 3,
             routeSequence = 1,
+            routeSettlementOperationSequence = 1,
+            allianceBenefitBalanceMilliEwu = 39142546L,
+            allianceBenefitRefillRemainder = 0L,
+            allianceBenefitLastRefillDay = 3,
+            allianceBenefitAuthorityDigest =
+                "c539c892bb0b8355801c923c3a86da8f2a331ed459414684aa2dc60d0767fe15",
             factions = definitions
                 .Select(value => new DungeonFactionState
                 {
@@ -282,19 +304,35 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
                     strength = 100,
                     createdDay = 1,
                     estimatedArrivalDay = 2,
-                    actorsSpawned = true,
-                    reinforcementActorIds = new List<string>
+                    actorsSpawned = false,
+                    reinforcementActorIds = new List<string>(),
+                    cargo = firstDefinition.TradeCargo
+                        .Select(value => value.Clone())
+                        .OrderBy(value => value.itemId, StringComparer.Ordinal)
+                        .ToList(),
+                    cargoDelivery = new FactionRouteCargoDeliveryReceipt
                     {
-                        CharacterId.FromStableSuffix(
-                            "faction-route:1:ally:1").Value
+                        state = FactionRouteCargoDeliveryState.Ready
                     },
-                    cargo = new List<FactionCargoLine>
+                    settlement = new FactionRouteSettlementReceipt
                     {
-                        new FactionCargoLine
-                        {
-                            itemId = "material:iron-ingot",
-                            amount = 2
-                        }
+                        state = FactionRouteSettlementState.Paid,
+                        capabilityId = tradeQuote.CapabilityId,
+                        capabilityVersion = tradeQuote.CapabilityVersion,
+                        operationSequence = 1,
+                        cargoAuthoredGold = tradeQuote.CargoAuthoredGold,
+                        paymentGold = tradeQuote.PaymentGold,
+                        quoteLines = tradeQuote.QuoteLines
+                            .Select(value => value.Clone())
+                            .ToList(),
+                        sourceDigest = tradeQuote.SourceDigest,
+                        quoteDigest = tradeQuote.QuoteDigest,
+                        transactionId = "economy-transaction:faction-save-fixture",
+                        transactionSourceId =
+                            "faction-route-settlement:00000001",
+                        transactionTargetId = firstDefinition.StableId,
+                        balanceBefore = 10000,
+                        balanceAfter = 10000 - tradeQuote.PaymentGold
                     }
                 }
             }
@@ -303,7 +341,7 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
             new StrictFactionSaveRuntime(definitions, valid);
         FactionSaveSection section = new FactionSaveSection(
             runtime,
-            EditorItemCatalogFactory.Create());
+            itemCatalog);
         string canonicalJson = JsonUtility.ToJson(valid);
         if (canonicalJson.Contains("\"trust\"", StringComparison.Ordinal))
         {
@@ -339,10 +377,26 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
             canonicalJson);
         invalid.factions.Reverse();
         invalid.routes[0].cargo[0].itemId = "item:missing-faction-cargo";
+        DungeonFactionSaveData tamperedQuote =
+            JsonUtility.FromJson<DungeonFactionSaveData>(canonicalJson);
+        tamperedQuote.routes[0].settlement.quoteLines[0].unitPriceGold++;
+        DungeonFactionSaveData tamperedDigest =
+            JsonUtility.FromJson<DungeonFactionSaveData>(canonicalJson);
+        tamperedDigest.routes[0].settlement.sourceDigest = new string('0', 64);
         string beforeInvalid = section.Capture();
         if (!RejectsStrictWithoutMutation(
                 section,
                 JsonUtility.ToJson(invalid),
+                section.SectionVersion,
+                beforeInvalid)
+            || !RejectsStrictWithoutMutation(
+                section,
+                JsonUtility.ToJson(tamperedQuote),
+                section.SectionVersion,
+                beforeInvalid)
+            || !RejectsStrictWithoutMutation(
+                section,
+                JsonUtility.ToJson(tamperedDigest),
                 section.SectionVersion,
                 beforeInvalid)
             || !RejectsStrictWithoutMutation(
@@ -388,8 +442,14 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
         DungeonFactionSaveData legacy =
             JsonUtility.FromJson<DungeonFactionSaveData>(
                 JsonUtility.ToJson(canonical));
-        legacy.routes[0].reinforcementActorIds[0] =
-            "faction-route:1:ally:1";
+        legacy.routes[0].kind = FactionRouteKind.Reinforcement;
+        legacy.routes[0].cargo.Clear();
+        legacy.routes[0].cargoDelivery =
+            new FactionRouteCargoDeliveryReceipt();
+        legacy.routes[0].settlement = new FactionRouteSettlementReceipt();
+        legacy.routes[0].actorsSpawned = true;
+        legacy.routes[0].reinforcementActorIds.Add(
+            "faction-route:1:ally:1");
         string legacyBefore = JsonUtility.ToJson(legacy);
         IReadOnlyList<string> validationErrors =
             FactionPayloadValidation.Validate(
@@ -443,9 +503,11 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
     {
         DungeonRuntimeAggregateRootStore store = new();
         StrictFactionSaveRuntime runtime = new(definitions, valid, store);
+        IDungeonItemCatalogProvider itemCatalog =
+            EditorItemCatalogFactory.Create();
         FactionSaveSection section = new(
             runtime,
-            EditorItemCatalogFactory.Create());
+            itemCatalog);
         RequiredDependencyStubSection offense = new(
             OffenseAggregateSaveSection.Id,
             DungeonSaveRestorePhase.LateRuntimeState);
@@ -803,7 +865,18 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
             FactionAggregateState candidateState = new()
             {
                 CurrentDay = payload.currentDay,
-                RouteSequence = payload.routeSequence
+                RouteSequence = payload.routeSequence,
+                RouteSettlementOperationSequence =
+                    payload.routeSettlementOperationSequence,
+                GoodwillOperationSequence = payload.goodwillOperationSequence,
+                AllianceBenefitBalanceMilliEwu =
+                    payload.allianceBenefitBalanceMilliEwu,
+                AllianceBenefitRefillRemainder =
+                    payload.allianceBenefitRefillRemainder,
+                AllianceBenefitLastRefillDay =
+                    payload.allianceBenefitLastRefillDay,
+                AllianceBenefitAuthorityDigest =
+                    payload.allianceBenefitAuthorityDigest ?? string.Empty
             };
             foreach (DungeonFactionState faction in payload.factions)
             {
@@ -945,5 +1018,14 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
             .Where(value => value != null)
             .ToArray();
     }
+
+    private static IFactionRouteEconomicPolicyRegistry
+        CreateFactionEconomicPolicies(IDungeonItemCatalogProvider itemCatalog) =>
+        new FactionRouteEconomicPolicyRegistry(
+            new IFactionRouteEconomicPolicy[]
+            {
+                new PaidMarketPurchaseFactionRouteEconomicPolicy(itemCatalog),
+                new AllianceBenefitFactionRouteEconomicPolicy(itemCatalog)
+            });
 }
 #endif

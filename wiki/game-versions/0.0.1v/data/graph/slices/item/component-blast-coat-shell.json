@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-blast-coat-shell",
+    "spoiler_tier": "none",
+    "title": "방폭 외투 내피"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-blast-coat",
+      "label": "필요 조건",
+      "to": "item/component-blast-coat-shell",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-blast-coat-shell",
+      "label": "생산·해금",
+      "to": "item/component-blast-coat-shell",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

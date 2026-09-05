@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "120개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "119"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "흑강 촉의 무게를 굵은 자루가 받쳐 단단한 표적을 꿰뚫는 석궁 볼트다. 크릭 제7굴에서 만든 흑강 볼트는 좁은 갱도에서도 꺼내기 쉽도록 자루와 꼬리깃을 짧게 맞춘다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-blacksteel-bolt",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 흑강 볼트.",
+  "title": "흑강 볼트"
+}

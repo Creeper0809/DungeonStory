@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "72개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "14"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "약물을 넣은 가는 침으로 야생동물과 포획 대상을 진정시키는 다트다. 무기 철야를 지키는 하르나크 사냥꾼은 진정 다트의 깃 색으로 약물의 세기와 사용 대상을 구분한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-tranquilizer-dart",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 진정 다트.",
+  "title": "진정 다트"
+}

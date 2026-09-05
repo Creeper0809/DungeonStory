@@ -59,17 +59,9 @@ public sealed class CombatCoverDurabilityRegistry :
         BuildableObject building = durability.Building;
         if (building == null || building.isDestroy)
             return false;
-        string operationId = "production-mutation:cover-loss:"
-            + building.PersistentInstanceId.Value;
-        if (!destructiveLoss.TryPrepare(
-                building,
-                operationId,
-                out BuildingDestructiveLossCandidate candidate,
-                out _))
-        {
-            return false;
-        }
-        BuildingDestructiveLossResult result = destructiveLoss.TryCommit(candidate);
+        BuildingDestructiveLossResult result = destructiveLoss.Apply(
+            building,
+            ProductionFacilityDestructiveDrainCause.CombatCover);
         if (!result.Removed)
             return false;
         Unregister(durability);

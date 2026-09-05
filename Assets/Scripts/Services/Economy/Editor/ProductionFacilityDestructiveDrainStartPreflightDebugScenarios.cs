@@ -5,7 +5,7 @@ using System.Linq;
 public static class ProductionFacilityDestructiveDrainStartPreflightDebugScenarios
 {
     private static readonly BuildingInstanceId FacilityId =
-        (BuildingInstanceId)"building-instance:qa-drain-preflight";
+        (BuildingInstanceId)"building:qa-drain-preflight";
     private static readonly string DestinationId =
         ProductionOutputDestinationId.FromFacility(FacilityId).Value;
 
@@ -15,6 +15,7 @@ public static class ProductionFacilityDestructiveDrainStartPreflightDebugScenari
         VerifyLatentPhysicalPublicationDefers();
         VerifyCompletedRequiresExactDurableRoutingOwner();
         VerifyInvalidPendingMarkerConflicts();
+        VerifyActiveDomainOutputOwnerDefers();
         VerifyInputOrderDoesNotChangeFingerprint();
         return "PRODUCTION_DESTRUCTIVE_DRAIN_START_PREFLIGHT_PASS";
     }
@@ -89,6 +90,25 @@ public static class ProductionFacilityDestructiveDrainStartPreflightDebugScenari
             "Malformed planned-output marker was not rejected.");
     }
 
+    private static void VerifyActiveDomainOutputOwnerDefers()
+    {
+        FixedDomainOwnerQuery domain = new(new(
+            "economy.qa-domain-output",
+            "qa-domain-output-owner:1",
+            FacilityId,
+            Digest('d')));
+        Fixture fixture = new(
+            new IProductionDomainOutputFacilityLifecycleQuery[] { domain });
+        ProductionFacilityDestructiveDrainStartPreflightResult result =
+            fixture.Preflight.Assess(FacilityId);
+        Require(result.Status ==
+                ProductionFacilityDestructiveDrainStartPreflightStatus.Deferred
+            && result.ReasonCode.StartsWith(
+                "domain-output-owner-active:",
+                StringComparison.Ordinal),
+            "An active custom domain output owner did not defer destruction.");
+    }
+
     private static void VerifyInputOrderDoesNotChangeFingerprint()
     {
         ProductionFacilityDestructiveDrainPreparedOutputOwner first =
@@ -147,6 +167,16 @@ public static class ProductionFacilityDestructiveDrainStartPreflightDebugScenari
     {
         internal Fixture(
             params ProductionFacilityDestructiveDrainPreparedOutputOwner[] owners)
+            : this(
+                Array.Empty<IProductionDomainOutputFacilityLifecycleQuery>(),
+                owners)
+        {
+        }
+
+        internal Fixture(
+            IReadOnlyList<IProductionDomainOutputFacilityLifecycleQuery>
+                domainOwners,
+            params ProductionFacilityDestructiveDrainPreparedOutputOwner[] owners)
         {
             Query = new FixedOwnerQuery(owners);
             Routing = new FixedRoutingQuery();
@@ -154,13 +184,30 @@ public static class ProductionFacilityDestructiveDrainStartPreflightDebugScenari
             Preflight = new ProductionFacilityDestructiveDrainStartPreflight(
                 Query,
                 Routing,
-                Publication);
+                Publication,
+                domainOwners);
         }
 
         internal FixedOwnerQuery Query { get; }
         internal FixedRoutingQuery Routing { get; }
         internal FixedPublication Publication { get; }
         internal ProductionFacilityDestructiveDrainStartPreflight Preflight { get; }
+    }
+
+    private sealed class FixedDomainOwnerQuery :
+        IProductionDomainOutputFacilityLifecycleQuery
+    {
+        private readonly ProductionDomainOutputFacilityOwnerSnapshot owner;
+
+        internal FixedDomainOwnerQuery(
+            ProductionDomainOutputFacilityOwnerSnapshot owner) =>
+            this.owner = owner;
+
+        public IReadOnlyList<ProductionDomainOutputFacilityOwnerSnapshot>
+            CaptureActiveOutputOwners(BuildingInstanceId facilityId) =>
+            owner != null && owner.FacilityId.Equals(facilityId)
+                ? new[] { owner }
+                : Array.Empty<ProductionDomainOutputFacilityOwnerSnapshot>();
     }
 
     private sealed class FixedOwnerQuery :
@@ -227,6 +274,22 @@ public static class ProductionFacilityDestructiveDrainStartPreflightDebugScenari
             return false;
         }
 
+        public bool TryCaptureBatch(
+            string batchCommitId,
+            bool allowAcknowledged,
+            out FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+            out bool acknowledged,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason)
+        {
+            acknowledged = false;
+            return TryCapturePendingBatch(
+                batchCommitId,
+                out candidate,
+                out failureCode,
+                out failureReason);
+        }
+
         public bool TryPublishFullBatch(
             FacilityBufferPlannedOutputToken token,
             out FacilityBufferPlannedOutputPublicationReceipt receipt,
@@ -250,6 +313,14 @@ public static class ProductionFacilityDestructiveDrainStartPreflightDebugScenari
             out failureCode,
             out failureReason);
 
+        public bool TryAcknowledgeAndReleasePublishedBatch(
+            FacilityBufferPlannedOutputPublicationReceipt receipt,
+            FacilityBufferAcknowledgedOutputReleaseTarget target,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason) => Unsupported(
+            out failureCode,
+            out failureReason);
+
         public bool TryRollbackRestoreCandidate(
             FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
             out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
@@ -259,6 +330,14 @@ public static class ProductionFacilityDestructiveDrainStartPreflightDebugScenari
 
         public bool TryAcknowledgeRestoreCandidate(
             FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason) => Unsupported(
+            out failureCode,
+            out failureReason);
+
+        public bool TryAcknowledgeAndReleaseRestoreCandidate(
+            FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+            FacilityBufferAcknowledgedOutputReleaseTarget target,
             out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
             out string failureReason) => Unsupported(
             out failureCode,

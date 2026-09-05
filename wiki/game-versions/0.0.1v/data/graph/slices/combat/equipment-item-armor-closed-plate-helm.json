@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-armor-closed-plate-helm",
+    "spoiler_tier": "none",
+    "title": "폐쇄형 판금 투구"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-closed-plate-helm",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-articulated-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "관절식 판금",
+      "to": "research/research-equipment-articulated-plate",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

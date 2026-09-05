@@ -1,0 +1,112 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "255"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Surgery And Transplant"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-reception",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 접수",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8885",
+      "target_spoiler_tier": "none",
+      "target_title": "상담실",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-medical-trauma-medicine",
+  "spoiler_tier": "none",
+  "summary": "의료 접수와 고급 약학, 가구 기록으로 심리 외상을 상담한다.",
+  "title": "트라우마 의학"
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-boots",
+    "spoiler_tier": "none",
+    "title": "장화"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-boots",
+      "label": "생산·해금",
+      "to": "item/apparel-boots",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

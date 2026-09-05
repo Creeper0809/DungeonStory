@@ -1,0 +1,116 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-climate-weather-observation",
+    "spoiler_tier": "none",
+    "title": "기상 관측"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-climate-weather-observation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-weather-observation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-weather-observation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-weather-observation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "to": "research/research-life-seasonal-calendar",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-weather-observation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "to": "research/research-life-seasonal-calendar",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-weather-observation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "to": "research/research-life-seasonal-calendar",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-weather-observation",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8851",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측탑",
+      "to": "facility/building-8851",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-weather-observation-kit",
+      "label": "필요 조건",
+      "to": "research/research-climate-weather-observation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "to": "research/research-climate-weather-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "to": "research/research-climate-weather-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "to": "research/research-climate-weather-observation",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,158 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-black-powder",
+    "spoiler_tier": "none",
+    "title": "흑색화약 배합"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-black-powder",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "to": "research/research-forestry-charcoal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-black-powder",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "to": "research/research-forestry-charcoal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-black-powder",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "to": "research/research-forestry-charcoal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-black-powder",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-black-powder",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-black-powder",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-black-powder",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8840",
+      "target_spoiler_tier": "none",
+      "target_title": "화약 분쇄소",
+      "to": "facility/building-8840",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-incendiary-arrow",
+      "label": "필요 조건",
+      "to": "research/research-equipment-black-powder",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-incendiary-bolt",
+      "label": "필요 조건",
+      "to": "research/research-equipment-black-powder",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-black-powder",
+      "label": "필요 조건",
+      "to": "research/research-equipment-black-powder",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-niter",
+      "label": "필요 조건",
+      "to": "research/research-equipment-black-powder",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ignition-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-equipment-black-powder",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ignition-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-equipment-black-powder",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-ignition-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-equipment-black-powder",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-standard-ammunition",
+      "label": "선행 연구",
+      "to": "research/research-equipment-black-powder",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-standard-ammunition",
+      "label": "선행 연구",
+      "to": "research/research-equipment-black-powder",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-standard-ammunition",
+      "label": "선행 연구",
+      "to": "research/research-equipment-black-powder",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

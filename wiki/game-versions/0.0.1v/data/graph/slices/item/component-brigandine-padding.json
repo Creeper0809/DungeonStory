@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-brigandine-padding",
+    "spoiler_tier": "none",
+    "title": "브리간딘 안감"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-brigandine",
+      "label": "필요 조건",
+      "to": "item/component-brigandine-padding",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-brigandine-padding",
+      "label": "생산·해금",
+      "to": "item/component-brigandine-padding",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

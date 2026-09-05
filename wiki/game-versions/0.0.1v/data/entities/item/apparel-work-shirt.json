@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.48kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "소매를 걷어 고정할 수 있고 잦은 세탁과 수선을 견디는 작업용 셔츠다. 크릭 제7굴에서 만든 작업 셔츠는 팔꿈치와 어깨를 덧대 반복 작업과 잦은 수선을 버틴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-work-shirt",
+  "spoiler_tier": "none",
+  "summary": "작업 셔츠 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "작업 셔츠"
+}

@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-craft-toxic-trap-coating",
+    "spoiler_tier": "none",
+    "title": "독성 함정 도포제"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-craft-toxic-trap-coating",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-toxic-trap-coating",
+      "target_spoiler_tier": "none",
+      "target_title": "독성 함정 도포제",
+      "to": "item/craft-toxic-trap-coating",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-craft-toxic-trap-coating",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rot-toxin",
+      "target_spoiler_tier": "none",
+      "target_title": "부패 독소",
+      "to": "item/material-rot-toxin",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-craft-toxic-trap-coating",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-craft-toxic-trap-coating",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "to": "research/research-arcane-alchemy",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

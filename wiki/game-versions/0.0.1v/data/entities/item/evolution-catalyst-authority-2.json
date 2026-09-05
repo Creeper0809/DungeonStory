@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "240"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "불순물을 걷어 내고 흐름을 한쪽으로 모은 적동 분말이다. 오르데나의 조율사는 권위 촉매 진행 2 · 1등급을 명령 인장을 새기는 권위 계통의 1등급 개조에 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "evolution-catalyst-authority-2",
+  "spoiler_tier": "none",
+  "summary": "시설 개조와 장비 조율에 사용하는 진화 촉매.",
+  "title": "권위 촉매 진행 2 · 1등급"
+}

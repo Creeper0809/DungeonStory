@@ -1,0 +1,60 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "supply-fungicide",
+    "spoiler_tier": "none",
+    "title": "살균제"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-fungicide",
+      "label": "생산·해금",
+      "to": "item/supply-fungicide",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-myconid-2",
+      "label": "필요 조건",
+      "to": "item/supply-fungicide",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-myconid-5",
+      "label": "필요 조건",
+      "to": "item/supply-fungicide",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-contract-myconid-crisis",
+      "label": "필요 조건",
+      "to": "item/supply-fungicide",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-myconid-2",
+      "label": "필요 조건",
+      "to": "item/supply-fungicide",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-chapter-myconid-5",
+      "label": "필요 조건",
+      "to": "item/supply-fungicide",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-myconid-grove",
+      "label": "관련",
+      "to": "item/supply-fungicide",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

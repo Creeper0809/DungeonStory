@@ -31,6 +31,19 @@ public static class V27BalanceLaborFacilityDebugScenarios
     [MenuItem("DungeonStory/V27/Verify Applied Labor and Facility Authority")]
     public static void VerifyAppliedFromMenu() => RunAndWrite(requireApplied: true);
 
+    [MenuItem("DungeonStory/V27/Verify Construction Applied Candidate Separation")]
+    public static void VerifyConstructionAppliedCandidateSeparationFromMenu()
+    {
+        V27BalanceAuditOutput audit = V27BalanceAudit.Generate(
+            BalanceLedgerExecutionMode.AuditOnly);
+        int candidateCount = RequireConstructionAppliedCandidateSeparation(
+            audit.Ledger.Records);
+        Debug.Log(
+            "V27 construction previous-applied/candidate separation PASS; "
+            + $"candidates={candidateCount}; integrityFailures="
+            + $"{audit.IntegrityFailures.Count}; no asset mutation performed.");
+    }
+
     public static void RequireIntegrity(
         V27BalanceAuditOutput audit,
         bool requireApplied,
@@ -38,6 +51,7 @@ public static class V27BalanceLaborFacilityDebugScenarios
     {
         if (audit == null)
             throw new ArgumentNullException(nameof(audit));
+        RequireConstructionAppliedCandidateSeparation(audit.Ledger.Records);
         if (audit.IntegrityFailures.Count != 0
             || (!allowUnapprovedCritical && audit.CriticalCount != 0))
         {
@@ -162,6 +176,226 @@ public static class V27BalanceLaborFacilityDebugScenarios
             Require(long.Parse(cycle.After, CultureInfo.InvariantCulture) <= -1L,
                 $"Non-lossy dismantle/rebuild cycle: {cycle.StableId}={cycle.After}mEWU.");
         }
+    }
+
+    internal static int RequireOnlyTypedPostRebaseCriticals(
+        V27BalanceAuditOutput audit)
+    {
+        if (audit == null)
+            throw new ArgumentNullException(nameof(audit));
+        if (audit.IntegrityFailures.Count != 0)
+        {
+            throw new InvalidOperationException(
+                "Post-rebase staged review cannot retain ledger integrity failures: "
+                + string.Join(" | ", audit.IntegrityFailures));
+        }
+
+        RequireConstructionAppliedCandidateSeparation(audit.Ledger.Records);
+        V27BalanceMarketDebugScenarios.RequireAppliedCandidateSeparation(
+            audit.Ledger.Records);
+
+        BalanceAnomalyNode[] emitted = audit.Anomalies
+            .Where(value => value.EmitsCiAnnotation)
+            .OrderBy(value => value.StableId, StringComparer.Ordinal)
+            .ThenBy(value => value.Metric, StringComparer.Ordinal)
+            .ToArray();
+        if (emitted.Length != audit.CriticalCount)
+        {
+            throw new InvalidOperationException(
+                "Post-rebase staged Critical count diverged from the manifest: "
+                + $"nodes={emitted.Length}; manifest={audit.CriticalCount}.");
+        }
+
+        Dictionary<string, CanonicalBalanceMetricRecord[]> recordsByIdentity =
+            audit.Ledger.Records
+                .GroupBy(
+                    value => value.StableId + "\u001f" + value.Metric,
+                    StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.ToArray(),
+                    StringComparer.Ordinal);
+        foreach (BalanceAnomalyNode anomaly in emitted)
+        {
+            string identity = anomaly.StableId + "\u001f" + anomaly.Metric;
+            if (!recordsByIdentity.TryGetValue(
+                    identity,
+                    out CanonicalBalanceMetricRecord[] matches)
+                || matches.Length != 1)
+            {
+                throw new InvalidOperationException(
+                    "Every staged Critical must map to exactly one immutable ledger row: "
+                    + $"{anomaly.StableId}:{anomaly.Metric}; "
+                    + $"matches={(matches == null ? 0 : matches.Length)}.");
+            }
+
+            CanonicalBalanceMetricRecord record = matches[0];
+            bool marketCandidate = anomaly.Metric.StartsWith(
+                    V27BalanceAudit.MarketRecalibrationCandidateMetricPrefix,
+                    StringComparison.Ordinal)
+                && (string.Equals(
+                        anomaly.ReasonCode,
+                        "previous-applied-market-recalibration-review-required",
+                        StringComparison.Ordinal)
+                    || string.Equals(
+                        anomaly.ReasonCode,
+                        "market-authority-provenance-missing",
+                        StringComparison.Ordinal))
+                && IsExactReviewOnlyCandidate(record);
+            bool constructionCandidate = (string.Equals(
+                        anomaly.Metric,
+                        V27BalanceAudit.ConstructionRecalibrationCandidateWuMetric,
+                        StringComparison.Ordinal)
+                    || anomaly.Metric.StartsWith(
+                        V27BalanceAudit.ConstructionRecalibrationCandidateMaterialMetricPrefix,
+                        StringComparison.Ordinal))
+                && string.Equals(
+                    anomaly.ReasonCode,
+                    "previous-applied-recalibration-review-required",
+                    StringComparison.Ordinal)
+                && IsExactReviewOnlyCandidate(record);
+            bool derivedAcquisitionRoot = string.Equals(
+                    anomaly.Metric,
+                    "acquisition-cost",
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    anomaly.ReasonCode,
+                    "v27-duration-preserving-first-candidate",
+                    StringComparison.Ordinal)
+                && anomaly.Disposition == BalanceAnomalyDisposition.RootCritical
+                && anomaly.RootCauseIds.Count == 0
+                && string.Equals(record.Domain, "items", StringComparison.Ordinal)
+                && string.Equals(record.DefinitionKind, "item", StringComparison.Ordinal)
+                && string.Equals(record.SourcePropertyPath, "recipe graph", StringComparison.Ordinal)
+                && string.Equals(record.AnomalyDisposition, "root-critical", StringComparison.Ordinal)
+                && string.Equals(record.ReviewStatus, "pending", StringComparison.Ordinal)
+                && string.Equals(record.AssetApplied, "false", StringComparison.Ordinal)
+                && record.ApprovalKey.Length != 0;
+
+            if (!marketCandidate && !constructionCandidate && !derivedAcquisitionRoot)
+            {
+                throw new InvalidOperationException(
+                    "Post-rebase validation encountered an untyped unresolved Critical: "
+                    + $"{anomaly.StableId}:{anomaly.Metric}; "
+                    + $"reason={anomaly.ReasonCode}; disposition={anomaly.Disposition}.");
+            }
+        }
+
+        return emitted.Length;
+    }
+
+    private static bool IsExactReviewOnlyCandidate(
+        CanonicalBalanceMetricRecord record) =>
+        string.Equals(record.AnomalyDisposition, "local-critical", StringComparison.Ordinal)
+        && string.Equals(record.ReviewStatus, "pending-explicit-review", StringComparison.Ordinal)
+        && string.Equals(record.AssetApplied, "false", StringComparison.Ordinal)
+        && record.ApprovalKey.Length == 0;
+
+    internal static int RequireConstructionAppliedCandidateSeparation(
+        IReadOnlyList<CanonicalBalanceMetricRecord> records)
+    {
+        if (records == null)
+            throw new ArgumentNullException(nameof(records));
+
+        CanonicalBalanceMetricRecord[] candidates = records
+            .Where(value => string.Equals(
+                    value.Metric,
+                    V27BalanceAudit.ConstructionRecalibrationCandidateWuMetric,
+                    StringComparison.Ordinal)
+                || value.Metric.StartsWith(
+                    V27BalanceAudit.ConstructionRecalibrationCandidateMaterialMetricPrefix,
+                    StringComparison.Ordinal))
+            .ToArray();
+        foreach (CanonicalBalanceMetricRecord candidate in candidates)
+        {
+            string appliedMetric = string.Equals(
+                    candidate.Metric,
+                    V27BalanceAudit.ConstructionRecalibrationCandidateWuMetric,
+                    StringComparison.Ordinal)
+                ? ConstructionMetric
+                : ConstructionMaterialMetricPrefix
+                    + candidate.Metric.Substring(
+                        V27BalanceAudit.ConstructionRecalibrationCandidateMaterialMetricPrefix.Length);
+            CanonicalBalanceMetricRecord[] appliedMatches = records
+                .Where(value => string.Equals(
+                        value.StableId,
+                        candidate.StableId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        value.Metric,
+                        appliedMetric,
+                        StringComparison.Ordinal))
+                .ToArray();
+            Require(appliedMatches.Length == 1,
+                $"Construction candidate requires one applied custody row: "
+                + $"{candidate.StableId}:{candidate.Metric}; matches={appliedMatches.Length}.");
+            CanonicalBalanceMetricRecord applied = appliedMatches[0];
+            Require(string.Equals(applied.After, candidate.Before, StringComparison.Ordinal),
+                $"Construction candidate must start at exact applied authority: "
+                + $"{candidate.StableId}:{candidate.Metric}; "
+                + $"appliedAfter={applied.After}; candidateBefore={candidate.Before}.");
+            Require(string.Equals(applied.AssetApplied, "true", StringComparison.Ordinal)
+                    && applied.ApprovalKey.Length > 0,
+                $"Construction applied custody is not exactly approved: "
+                + $"{candidate.StableId}:{appliedMetric}.");
+            Require(string.Equals(candidate.AssetApplied, "false", StringComparison.Ordinal)
+                    && candidate.ApprovalKey.Length == 0,
+                $"Construction review-only candidate became mutation-eligible: "
+                + $"{candidate.StableId}:{candidate.Metric}.");
+            Require(string.Equals(
+                    candidate.ReviewStatus,
+                    "pending-explicit-review",
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    candidate.AnomalyDisposition,
+                    "local-critical",
+                    StringComparison.Ordinal),
+                $"Construction candidate lost its explicit review gate: "
+                + $"{candidate.StableId}:{candidate.Metric}.");
+            Require(string.Equals(
+                    applied.SourceAuthority,
+                    candidate.SourceAuthority,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    applied.SourcePropertyPath,
+                    candidate.SourcePropertyPath,
+                    StringComparison.Ordinal),
+                $"Construction candidate does not target the applied property: "
+                + $"{candidate.StableId}:{candidate.Metric}.");
+            Require(string.Equals(
+                    candidate.SaveAuthority,
+                    "derived optimizer proposal + explicit review authority",
+                    StringComparison.Ordinal),
+                $"Construction candidate was mislabeled as authored save authority: "
+                + $"{candidate.StableId}:{candidate.Metric}.");
+            if (candidate.Metric.StartsWith(
+                    V27BalanceAudit.ConstructionRecalibrationCandidateMaterialMetricPrefix,
+                    StringComparison.Ordinal))
+            {
+                int historical = int.Parse(applied.Before, CultureInfo.InvariantCulture);
+                int proposed = int.Parse(candidate.After, CultureInfo.InvariantCulture);
+                int upper = (historical * 3 + 1) / 2;
+                Require(proposed >= historical && proposed <= upper,
+                    $"Construction material candidate escaped its historical 50% bound: "
+                    + $"{candidate.StableId}:{candidate.Metric}; "
+                    + $"historical={historical}; proposed={proposed}; upper={upper}.");
+                Require(candidate.ExactFormula.Contains(
+                        "historicalBaseline=" + historical.ToString(CultureInfo.InvariantCulture),
+                        StringComparison.Ordinal),
+                    $"Construction material candidate formula lost historical authority: "
+                    + $"{candidate.StableId}:{candidate.Metric}.");
+            }
+        }
+
+        CanonicalBalanceMetricRecord d12Applied = records.Single(value =>
+            string.Equals(value.StableId, "building:1011", StringComparison.Ordinal)
+            && string.Equals(
+                value.Metric,
+                ConstructionMaterialMetricPrefix + "material:treated-lumber",
+                StringComparison.Ordinal));
+        Require(d12Applied.Before == "4" && d12Applied.After == "6",
+            "building:1011 treated-lumber must remain exact 4->6 applied evidence.");
+        return candidates.Length;
     }
 
     private static void RunAndWrite(bool requireApplied)

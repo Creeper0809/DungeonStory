@@ -14,7 +14,139 @@ public interface ICertifiedSeedCommand
         string facilityInstanceId,
         out DomainFailure failure);
 
-    int CompleteDeliveredPlans();
+    int CompleteDeliveredPlans(int operatingDay);
+}
+
+public sealed class CertifiedSeedPlanExecutionReceipt
+{
+    internal CertifiedSeedPlanExecutionReceipt(
+        CertifiedSeedOrderSaveData order)
+        : this(
+            order?.actionId,
+            order?.orderId,
+            order?.orderSequence ?? -1,
+            order?.destinationId,
+            order?.facilityInstanceId,
+            order?.cropId)
+    {
+        if (order == null) throw new ArgumentNullException(nameof(order));
+    }
+
+    private CertifiedSeedPlanExecutionReceipt(
+        string actionId,
+        string orderId,
+        int orderSequence,
+        string destinationId,
+        string facilityInstanceId,
+        string cropId)
+    {
+        RequireCanonical(actionId, nameof(actionId));
+        RequireCanonical(orderId, nameof(orderId));
+        RequireCanonical(destinationId, nameof(destinationId));
+        RequireCanonical(facilityInstanceId, nameof(facilityInstanceId));
+        RequireCanonical(cropId, nameof(cropId));
+        if (orderSequence < 0)
+            throw new ArgumentOutOfRangeException(nameof(orderSequence));
+
+        ActionId = actionId;
+        OrderId = orderId;
+        OrderSequence = orderSequence;
+        DestinationId = destinationId;
+        FacilityInstanceId = facilityInstanceId;
+        CropId = cropId;
+        InputOperationId =
+            CropPhysicalTransactionOutbox.FormatCertifiedOperationId(OrderId);
+        OutputOwnerId = OrderId;
+        OutputBatchCommitId =
+            CertifiedSeedRuntime.CertifiedOutputBatchCommitPrefix + OrderId;
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("certified-seed-plan-execution-receipt@1");
+        digest.Append(ActionId);
+        digest.Append(OrderId);
+        digest.Append(OrderSequence);
+        digest.Append(DestinationId);
+        digest.Append(FacilityInstanceId);
+        digest.Append(CropId);
+        digest.Append(InputOperationId);
+        digest.Append(OutputOwnerId);
+        digest.Append(OutputBatchCommitId);
+        SourceDigest = digest.ComputeSha256();
+    }
+
+    public static CertifiedSeedPlanExecutionReceipt CaptureIdentifiers(
+        string actionId,
+        string orderId,
+        int orderSequence,
+        string destinationId,
+        string facilityInstanceId,
+        string cropId) => new(
+        actionId,
+        orderId,
+        orderSequence,
+        destinationId,
+        facilityInstanceId,
+        cropId);
+
+    public string ActionId { get; }
+    public string OrderId { get; }
+    public int OrderSequence { get; }
+    public string DestinationId { get; }
+    public string FacilityInstanceId { get; }
+    public string CropId { get; }
+    public string InputOperationId { get; }
+    public string OutputOwnerId { get; }
+    public string OutputBatchCommitId { get; }
+    public string SourceDigest { get; }
+
+    private static void RequireCanonical(string value, string name)
+    {
+        if (string.IsNullOrWhiteSpace(value)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Certified-seed receipt requires canonical identifiers.",
+                name);
+        }
+    }
+}
+
+public interface ICertifiedSeedExecutionReceiptQuery
+{
+    bool TryCapturePlanReceipt(
+        string actionId,
+        out CertifiedSeedPlanExecutionReceipt receipt);
+
+    bool IsPlanReadyForCompletion(string actionId);
+}
+
+public static class CertifiedSeedOperatingDayGate
+{
+    public static bool TryAdvance(
+        int lastProcessedOperatingDay,
+        int requestedOperatingDay,
+        out int nextProcessedOperatingDay)
+    {
+        if (lastProcessedOperatingDay < 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(lastProcessedOperatingDay));
+        if (requestedOperatingDay <= 0)
+            throw new ArgumentOutOfRangeException(nameof(requestedOperatingDay));
+        if (requestedOperatingDay <= lastProcessedOperatingDay)
+        {
+            nextProcessedOperatingDay = lastProcessedOperatingDay;
+            return false;
+        }
+        nextProcessedOperatingDay = requestedOperatingDay;
+        return true;
+    }
+}
+
+internal sealed class CertifiedSeedRuntimeState
+{
+    internal Dictionary<string, CertifiedSeedOrderSaveData> Orders { get; } =
+        new(StringComparer.Ordinal);
+    internal int NextOrderSequence { get; set; }
+    internal int LastProcessedOperatingDay { get; set; }
 }
 
 /// <summary>
@@ -24,37 +156,267 @@ public interface ICertifiedSeedCommand
 /// </summary>
 public sealed class CertifiedSeedRuntime :
     ICertifiedSeedCommand,
-    ICertifiedSeedPersistence
+    ICertifiedSeedExecutionReceiptQuery,
+    ICertifiedSeedPersistence,
+    ICertifiedSeedInputOwnerDescriptorSource,
+    IProductionDomainOutputRestoreOwnerSource,
+    IProductionDomainOutputFacilityLifecycleQuery
 {
-    private const string FacilityDefinitionId = "building:8893";
-    private const string CertificationKitItemId = "supply:certified-seed-kit";
+    public const string CertifiedOutputBatchCommitPrefix =
+        ProductionDomainOutputPublicationIdentity.BatchCommitPrefix
+        + "certified-seed:";
+    public const string OutputPublicationOperationPrefix =
+        ProductionDomainOutputPublicationIdentity.PublicationOperationPrefix
+        + "certified-seed:";
+    private const string CertificationKitItemId =
+        CertifiedSeedPhysicalTransformAuthority.CertificationKitItemId;
     private readonly IFacilityCapabilityQuery facilities;
+    private readonly IBuildingWorldQuery buildingWorld;
     private readonly IResourceEconomyContentCatalog crops;
     private readonly IStockQuery stock;
+    private readonly IProductionItemGateway items;
     private readonly IItemTransferService transfers;
     private readonly IPhysicalSeedLotGateway seedLots;
-    private readonly Dictionary<string, CertifiedSeedOrderSaveData> orders =
-        new(StringComparer.Ordinal);
-    private int nextOrderSequence;
+    private readonly IProductionOutputCapabilityRegistry outputCapabilities;
+    private readonly IProductionDomainOutputPublicationService outputPublication;
+    private readonly IProductionFacilityMutationEpochQuery facilityMutations;
+    private readonly ICertifiedSeedInputOwnerRuntime inputOwners;
+    private readonly DungeonRuntimeAggregateRootStore rootStore;
+    private CertifiedSeedRuntimeState State => rootStore.GetOrCreate(
+        () => new CertifiedSeedRuntimeState());
+    private Dictionary<string, CertifiedSeedOrderSaveData> orders => State.Orders;
+    private int nextOrderSequence
+    {
+        get => State.NextOrderSequence;
+        set => State.NextOrderSequence = value;
+    }
+    private int lastProcessedOperatingDay
+    {
+        get => State.LastProcessedOperatingDay;
+        set => State.LastProcessedOperatingDay = value;
+    }
 
     internal IReadOnlyCollection<CertifiedSeedOrderSaveData> PhysicalOrders =>
         orders.Values;
 
+    public bool TryCapturePlanReceipt(
+        string actionId,
+        out CertifiedSeedPlanExecutionReceipt receipt)
+    {
+        string canonicalAction = actionId ?? string.Empty;
+        if (canonicalAction.Length == 0
+            || !string.Equals(
+                canonicalAction,
+                canonicalAction.Trim(),
+                StringComparison.Ordinal))
+        {
+            receipt = null;
+            return false;
+        }
+        CertifiedSeedOrderSaveData[] matches = orders.Values
+            .Where(value => value != null
+                && string.Equals(
+                    value.actionId,
+                    canonicalAction,
+                    StringComparison.Ordinal))
+            .OrderBy(value => value.orderId, StringComparer.Ordinal)
+            .ToArray();
+        if (matches.Length == 0)
+        {
+            receipt = null;
+            return false;
+        }
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Certified-seed action ID resolved multiple live orders: "
+                + canonicalAction);
+        }
+        receipt = new CertifiedSeedPlanExecutionReceipt(matches[0]);
+        return true;
+    }
+
+    public bool IsPlanReadyForCompletion(string actionId)
+    {
+        if (!TryResolveUniqueActionOrder(actionId, out CertifiedSeedOrderSaveData order)
+            || order.phase != CertifiedSeedOrderPhase.Planned
+            || !crops.TryGetCrop(order.cropId, out CropDefinitionSO crop)
+            || crop == null)
+        {
+            return false;
+        }
+
+        Dictionary<string, int> inputs = new(StringComparer.Ordinal)
+        {
+            [crop.SeedItemId] =
+                CertifiedSeedPhysicalTransformAuthority.SeedInputQuantity,
+            [CertificationKitItemId] = CertifiedSeedPhysicalTransformAuthority
+                .CertificationKitInputQuantity
+        };
+        return HasDelivered(order.destinationId, inputs);
+    }
+
+    private bool TryResolveUniqueActionOrder(
+        string actionId,
+        out CertifiedSeedOrderSaveData order)
+    {
+        string canonicalAction = actionId ?? string.Empty;
+        if (canonicalAction.Length == 0
+            || !string.Equals(
+                canonicalAction,
+                canonicalAction.Trim(),
+                StringComparison.Ordinal))
+        {
+            order = null;
+            return false;
+        }
+
+        CertifiedSeedOrderSaveData[] matches = orders.Values
+            .Where(value => value != null
+                && string.Equals(
+                    value.actionId,
+                    canonicalAction,
+                    StringComparison.Ordinal))
+            .OrderBy(value => value.orderId, StringComparer.Ordinal)
+            .ToArray();
+        if (matches.Length == 0)
+        {
+            order = null;
+            return false;
+        }
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Certified-seed action ID resolved multiple live orders: "
+                + canonicalAction);
+        }
+        order = matches[0];
+        return true;
+    }
+
+    public string OutputOwnerDomainId => "economy.certified-seed";
+    public string OutputBatchCommitPrefix =>
+        CertifiedOutputBatchCommitPrefix;
+
+    public IReadOnlyList<ProductionDomainOutputRestoreOwnerSnapshot>
+        CapturePendingOutputOwners() => orders.Values
+        .Where(value => value != null
+            && (value.phase == CertifiedSeedOrderPhase.OutputPublished
+                    && value.outputPublication is { outputAcknowledged: false }
+                || value.phase == CertifiedSeedOrderPhase
+                        .OutputRestoredAwaitingInputAcknowledgement
+                    && value.outputPublication is
+                    {
+                        outputAcknowledged: true,
+                        restoredInCurrentTransaction: true
+                    }))
+        .OrderBy(value => value.orderId, StringComparer.Ordinal)
+        .Select(value => new ProductionDomainOutputRestoreOwnerSnapshot(
+            value.orderId,
+            value.outputPublication,
+            new[]
+            {
+                new ProductionDomainOutputMaximumMassClaim(
+                    value.outputCapability.ToDescriptor(),
+                    1)
+            }))
+        .ToArray();
+
+    public IReadOnlyList<ProductionDomainOutputFacilityOwnerSnapshot>
+        CaptureActiveOutputOwners(BuildingInstanceId facilityId)
+    {
+        if (!facilityId.IsValid)
+            throw new ArgumentException(
+                "A valid facility ID is required.",
+                nameof(facilityId));
+        return orders.Values
+            .Where(value => value != null
+                && value.phase is CertifiedSeedOrderPhase.OutputPublished
+                    or CertifiedSeedOrderPhase
+                        .OutputRestoredAwaitingInputAcknowledgement
+                && string.Equals(
+                    value.facilityInstanceId,
+                    facilityId.Value,
+                    StringComparison.Ordinal))
+            .OrderBy(value => value.orderId, StringComparer.Ordinal)
+            .Select(value =>
+            {
+                if (!ProductionDomainOutputPublicationService
+                        .TryValidateCommittedOwner(
+                            value.outputPublication,
+                            out string failureReason)
+                    || (value.phase == CertifiedSeedOrderPhase.OutputPublished)
+                        == value.outputPublication.outputAcknowledged
+                    || value.pendingInput?.phase
+                        != CropPhysicalCommitPhase.OutcomePublished
+                    || !seedLots.TryGetPendingBatchPhysicalDisposition(
+                        value.pendingInput.operationId,
+                        out _))
+                {
+                    throw new InvalidOperationException(
+                        "Certified-seed active output owner is invalid: "
+                        + value.orderId + ":" + failureReason);
+                }
+                return new ProductionDomainOutputFacilityOwnerSnapshot(
+                    OutputOwnerDomainId,
+                    value.orderId,
+                    facilityId,
+                    CreateLifecycleFingerprint(value));
+            })
+            .ToArray();
+    }
+
+    private static string CreateLifecycleFingerprint(
+        CertifiedSeedOrderSaveData order)
+    {
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("certified-seed-facility-lifecycle@1");
+        digest.Append(order.orderId);
+        digest.Append(order.facilityInstanceId);
+        digest.Append((int)order.phase);
+        digest.Append(order.pendingInput?.commitId ?? string.Empty);
+        digest.Append(order.outputCapability?.fingerprint ?? string.Empty);
+        digest.Append(order.outputPublication?.batchCommitId ?? string.Empty);
+        digest.Append(order.outputPublication?.outcomeFingerprint
+            ?? string.Empty);
+        return digest.ComputeSha256();
+    }
+
     public CertifiedSeedRuntime(
         IFacilityCapabilityQuery facilities,
+        IBuildingWorldQuery buildingWorld,
         IResourceEconomyContentCatalog crops,
         IStockQuery stock,
+        IProductionItemGateway items,
         IItemTransferService transfers,
-        IPhysicalSeedLotGateway seedLots)
+        IPhysicalSeedLotGateway seedLots,
+        IProductionOutputCapabilityRegistry outputCapabilities,
+        IProductionDomainOutputPublicationService outputPublication,
+        DungeonRuntimeAggregateRootStore rootStore,
+        IProductionFacilityMutationEpochQuery facilityMutations,
+        ICertifiedSeedInputOwnerRuntime inputOwners)
     {
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
+        this.buildingWorld = buildingWorld
+            ?? throw new ArgumentNullException(nameof(buildingWorld));
         this.crops = crops ?? throw new ArgumentNullException(nameof(crops));
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
+        this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.transfers = transfers
             ?? throw new ArgumentNullException(nameof(transfers));
         this.seedLots = seedLots
             ?? throw new ArgumentNullException(nameof(seedLots));
+        this.outputCapabilities = outputCapabilities
+            ?? throw new ArgumentNullException(nameof(outputCapabilities));
+        this.outputPublication = outputPublication
+            ?? throw new ArgumentNullException(nameof(outputPublication));
+        this.rootStore = rootStore
+            ?? throw new ArgumentNullException(nameof(rootStore));
+        this.facilityMutations = facilityMutations
+            ?? throw new ArgumentNullException(nameof(facilityMutations));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
     }
 
     public bool TryPlan(
@@ -84,7 +446,7 @@ public sealed class CertifiedSeedRuntime :
             return false;
         }
 
-        string destinationId = DestinationId(
+        string destinationId = CertifiedSeedInputOwnerAuthority.BuildDestinationId(
             facility.PersistentInstanceId.Value,
             normalizedCrop,
             nextOrderSequence);
@@ -98,7 +460,19 @@ public sealed class CertifiedSeedRuntime :
         {
             // A persistent domain order, rather than a transient destination,
             // is the sole duplicate-planning authority.
-            return true;
+            return existing.phase != CertifiedSeedOrderPhase.Planned
+                || TryEnsurePlannedInputDeliveries(
+                    existing,
+                    crop,
+                    facility,
+                    out failure);
+        }
+        if (!ProductionFacilityMutationWorkPolicy.TryRequireMutable(
+                facilityMutations,
+                facility.RequirePersistentInstanceId(),
+                out failure))
+        {
+            return false;
         }
 
         int orderSequence = nextOrderSequence;
@@ -111,45 +485,52 @@ public sealed class CertifiedSeedRuntime :
             facilityInstanceId = facility.PersistentInstanceId.Value,
             cropId = normalizedCrop,
             destinationId = destinationId,
+            destinationX = facility.centerPos.x,
+            destinationY = facility.centerPos.y,
             phase = CertifiedSeedOrderPhase.Planned
         };
         orders.Add(orderId, order);
         nextOrderSequence = checked(nextOrderSequence + 1);
 
-        if (!seedLots.RequestBestSeedLot(
-                crop.SeedItemId,
-                normalizedCrop,
-                facility.centerPos,
-                destinationId,
-                out int requestedSeed,
-                out failure)
-            || requestedSeed != 1)
+        CertifiedSeedInputOwnerDescriptor inputOwner =
+            CreateInputOwnerDescriptor(order, crop, facility);
+        if (!inputOwners.TryEnsure(inputOwner, out string ownerFailure))
         {
             orders.Remove(orderId);
             nextOrderSequence = orderSequence;
+            failure = new DomainFailure(
+                FailureCode.ExternalInfluenceUnavailable,
+                orderId,
+                ownerFailure);
             return false;
         }
 
-        if (!transfers.TryRequestItemDelivery(
-                CertificationKitItemId,
-                1,
-                facility.centerPos,
-                destinationId,
-                out int requestedKit,
-                out failure)
-            || requestedKit != 1)
+        if (!TryEnsurePlannedInputDeliveries(
+                order,
+                crop,
+                facility,
+                out failure))
         {
-            transfers.ReleaseDestination(destinationId, facility.centerPos);
+            RetireAbortedInputOwnerOrThrow(order, inputOwner);
             orders.Remove(orderId);
             nextOrderSequence = orderSequence;
             return false;
         }
-        transfers.PrioritizeDestination(destinationId);
         return true;
     }
 
-    public int CompleteDeliveredPlans()
+    public int CompleteDeliveredPlans(int operatingDay)
     {
+        if (!CertifiedSeedOperatingDayGate.TryAdvance(
+                lastProcessedOperatingDay,
+                operatingDay,
+                out int nextProcessedDay))
+            return 0;
+
+        // Commit the monotonic gate before attempting any order. A repeated
+        // day event must not create another completion opportunity even when
+        // no delivered order was ready during the first dispatch.
+        lastProcessedOperatingDay = nextProcessedDay;
         int completed = 0;
         foreach (CertifiedSeedOrderSaveData order in orders.Values
                      .OrderBy(value => value.orderId, StringComparer.Ordinal)
@@ -162,23 +543,56 @@ public sealed class CertifiedSeedRuntime :
 
     private bool TryComplete(CertifiedSeedOrderSaveData order)
     {
-        if (order == null
-            || !crops.TryGetCrop(order.cropId, out CropDefinitionSO crop)
+        if (order == null)
+            return false;
+
+        if (order.phase is CertifiedSeedOrderPhase.OutputPublished
+                or CertifiedSeedOrderPhase
+                    .OutputRestoredAwaitingInputAcknowledgement)
+        {
+            return TryFinalizePublishedOutput(order);
+        }
+        if (order.phase == CertifiedSeedOrderPhase.FacilityDestroyedLossPending)
+        {
+            return TryFinalizeDestroyedFacilityLoss(order);
+        }
+        if (!crops.TryGetCrop(order.cropId, out CropDefinitionSO crop)
             || crop == null)
         {
             return false;
         }
+
+        BuildableObject anyFacility = FindAnyFacility(order.facilityInstanceId);
+        if (anyFacility == null || anyFacility.IsBuildingDestroyed)
+        {
+            return TryResolveDestroyedFacility(order);
+        }
         BuildableObject facility = FindFacility(order.facilityInstanceId);
-        if (facility == null) return false;
+        if (facility == null)
+            return false;
+        if (!ProductionFacilityMutationWorkPolicy.TryRequireMutable(
+                facilityMutations,
+                facility.RequirePersistentInstanceId(),
+                out _))
+        {
+            return false;
+        }
 
         Dictionary<string, int> inputs = new(StringComparer.Ordinal)
         {
-            [crop.SeedItemId] = 1,
-            [CertificationKitItemId] = 1
+            [crop.SeedItemId] =
+                CertifiedSeedPhysicalTransformAuthority.SeedInputQuantity,
+            [CertificationKitItemId] = CertifiedSeedPhysicalTransformAuthority
+                .CertificationKitInputQuantity
         };
         if (order.phase == CertifiedSeedOrderPhase.Planned)
         {
-            if (!HasDelivered(order.destinationId, inputs)
+            if (!TryEnsurePlannedInputDeliveries(
+                    order,
+                    crop,
+                    facility,
+                    out _)
+                || !HasDelivered(order.destinationId, inputs)
                 || !CropPhysicalTransactionOutbox.TryCommitOrResume(
                     order.pendingInput,
                     CropPhysicalTransactionOutbox.FormatCertifiedOperationId(
@@ -195,40 +609,66 @@ public sealed class CertifiedSeedRuntime :
             {
                 return false;
             }
-            SeedLotState certified = source.Clone();
-            certified.pathogenLoad = Mathf.Clamp(
-                certified.pathogenLoad - 30f,
-                0f,
-                100f);
+            SeedLotState certified =
+                CertifiedSeedPhysicalTransformAuthority.Project(source);
+            ProductionOutputCapabilityDescriptor outputCapability =
+                outputCapabilities.CaptureDeclaredDescriptor(
+                    CertifiedSeedOutputCapability.OutputLineId,
+                    crop.SeedItemId,
+                    ProductionOutputCapabilityIds.CertifiedSeed);
             order.certifiedSeedLot = certified;
+            order.outputCapability =
+                ProductionOutputCapabilitySaveData.Freeze(outputCapability);
+            order.phase = CertifiedSeedOrderPhase
+                .InputCommittedAwaitingDestinationRetirement;
+        }
+
+        if (order.phase == CertifiedSeedOrderPhase
+                .InputCommittedAwaitingDestinationRetirement)
+        {
+            CertifiedSeedInputOwnerDescriptor inputOwner =
+                CreateInputOwnerDescriptor(order, crop, facility);
+            if (!inputOwners.TryRetire(
+                    inputOwner,
+                    CertifiedSeedInputOwnerAuthority
+                        .CompletionReleaseReasonCode,
+                    out _))
+            {
+                return false;
+            }
             order.phase = CertifiedSeedOrderPhase.InputCommitted;
         }
 
         if (order.phase == CertifiedSeedOrderPhase.InputCommitted)
         {
-            string outputOperationId = "certified-seed-output:"
-                + order.orderId;
-            string outputDestinationId = "certified-seed-output|"
-                + Uri.EscapeDataString(order.facilityInstanceId);
-            if (!seedLots.TryEnsureSeedLotOutput(
+            if (!TryValidateOutputCapability(
+                    order,
                     crop.SeedItemId,
-                    order.certifiedSeedLot,
-                    facility.centerPos,
-                    WorldItemStackState.FacilityOutputBuffer,
-                    outputDestinationId,
-                    outputOperationId,
-                    out string outputCommitId,
                     out _))
             {
                 return false;
             }
-            order.outputOperationId = outputOperationId;
-            order.outputCommitId = outputCommitId;
+            ProductionDomainOutputPublicationPlan outputPlan =
+                CreateOutputPlan(order, crop.SeedItemId, facility);
+            ProductionDomainOutputPublicationResult publicationResult =
+                outputPublication.EnsureCommitted(
+                    order.outputPublication,
+                    outputPlan);
+            if (!publicationResult.IsCommitted)
+            {
+                return false;
+            }
             order.phase = CertifiedSeedOrderPhase.OutputPublished;
             order.pendingInput.phase = CropPhysicalCommitPhase.OutcomePublished;
         }
+        return TryFinalizePublishedOutput(order);
+    }
 
-        if (order.phase != CertifiedSeedOrderPhase.OutputPublished
+    private bool TryFinalizePublishedOutput(CertifiedSeedOrderSaveData order)
+    {
+        if (order?.pendingInput == null
+            || order.pendingInput.phase
+                != CropPhysicalCommitPhase.OutcomePublished
             || !CropPhysicalTransactionOutbox.TryAcknowledgeOutcome(
                 order.pendingInput,
                 seedLots,
@@ -236,7 +676,147 @@ public sealed class CertifiedSeedRuntime :
         {
             return false;
         }
+
+        switch (order.phase)
+        {
+            case CertifiedSeedOrderPhase.OutputPublished:
+                if (order.outputPublication?.outputAcknowledged == true
+                    || !outputPublication.TryAcknowledge(
+                        order.outputPublication,
+                        out _))
+                {
+                    return false;
+                }
+                break;
+
+            case CertifiedSeedOrderPhase
+                    .OutputRestoredAwaitingInputAcknowledgement:
+                if (order.outputPublication?.outputAcknowledged != true)
+                    return false;
+                break;
+
+            default:
+                return false;
+        }
         return orders.Remove(order.orderId);
+    }
+
+    private bool TryResolveDestroyedFacility(
+        CertifiedSeedOrderSaveData order)
+    {
+        Vector2Int destination = new(order.destinationX, order.destinationY);
+        switch (order.phase)
+        {
+            case CertifiedSeedOrderPhase.Planned:
+                if (!crops.TryGetCrop(
+                        order.cropId,
+                        out CropDefinitionSO plannedCrop)
+                    || plannedCrop == null
+                    || !inputOwners.TryRetire(
+                        CreateInputOwnerDescriptor(
+                            order,
+                            plannedCrop,
+                            null,
+                            destination),
+                        CertifiedSeedInputOwnerAuthority
+                            .FacilityLostReleaseReasonCode,
+                        out _))
+                {
+                    return false;
+                }
+                return orders.Remove(order.orderId);
+
+            case CertifiedSeedOrderPhase
+                    .InputCommittedAwaitingDestinationRetirement:
+                if (!crops.TryGetCrop(
+                        order.cropId,
+                        out CropDefinitionSO committedCrop)
+                    || committedCrop == null
+                    || !inputOwners.TryRetire(
+                        CreateInputOwnerDescriptor(
+                            order,
+                            committedCrop,
+                            null,
+                            destination),
+                        CertifiedSeedInputOwnerAuthority
+                            .FacilityLostReleaseReasonCode,
+                        out _))
+                {
+                    return false;
+                }
+                order.phase = CertifiedSeedOrderPhase.InputCommitted;
+                goto case CertifiedSeedOrderPhase.InputCommitted;
+
+            case CertifiedSeedOrderPhase.InputCommitted:
+                order.phase =
+                    CertifiedSeedOrderPhase.FacilityDestroyedLossPending;
+                return TryFinalizeDestroyedFacilityLoss(order);
+
+            default:
+                return false;
+        }
+    }
+
+    private bool TryFinalizeDestroyedFacilityLoss(
+        CertifiedSeedOrderSaveData order)
+    {
+        if (order?.pendingInput == null
+            || !CropPhysicalTransactionOutbox
+                .TryAcknowledgeDestroyedFacilityLoss(
+                    order.pendingInput,
+                    seedLots,
+                    out _))
+        {
+            return false;
+        }
+        return orders.Remove(order.orderId);
+    }
+
+    private static ProductionDomainOutputPublicationPlan CreateOutputPlan(
+        CertifiedSeedOrderSaveData order,
+        string seedItemId,
+        BuildableObject facility)
+    {
+        ItemInstanceComponentSaveData seedState =
+            SeedLotItemStateCodec.Encode(order.certifiedSeedLot);
+        string outcomeFingerprint = CreateOutputOutcomeFingerprint(
+            order,
+            seedItemId,
+            seedState);
+        return new ProductionDomainOutputPublicationPlan(
+            OutputPublicationOperationPrefix,
+            order.orderId,
+            CertifiedOutputBatchCommitPrefix + order.orderId,
+            outcomeFingerprint,
+            facility,
+            new[]
+            {
+                new ProductionDomainOutputLine(
+                    CertifiedSeedOutputCapability.OutputLineId,
+                    seedItemId,
+                    CertifiedSeedPhysicalTransformAuthority.OutputQuantity,
+                    string.Empty,
+                    new[] { seedState },
+                    order.outputCapability.ToDescriptor())
+            });
+    }
+
+    public static string CreateOutputOutcomeFingerprint(
+        CertifiedSeedOrderSaveData order,
+        string seedItemId,
+        ItemInstanceComponentSaveData seedState)
+    {
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("certified-seed-domain-output@1");
+        digest.Append(order.orderId);
+        digest.Append(order.facilityInstanceId);
+        digest.Append(order.cropId);
+        digest.Append(CertifiedSeedOutputCapability.OutputLineId);
+        digest.Append(seedItemId);
+        digest.Append(1);
+        digest.Append(order.outputCapability?.fingerprint ?? string.Empty);
+        digest.Append(seedState?.ToCanonicalString() ?? string.Empty);
+        return digest.ComputeSha256();
     }
 
     private bool HasDelivered(
@@ -256,9 +836,86 @@ public sealed class CertifiedSeedRuntime :
                     StringComparison.Ordinal))
             .Sum(value => value.Quantity) >= requirement.Value);
 
+    private bool TryEnsurePlannedInputDeliveries(
+        CertifiedSeedOrderSaveData order,
+        CropDefinitionSO crop,
+        BuildableObject facility,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (order == null || crop == null || facility == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemTransferRequestFailed,
+                "certified-seed-input-maintenance-invalid");
+            return false;
+        }
+        if (!seedLots.TryReleaseUnreachableSeedDelivery(
+                crop.SeedItemId,
+                order.cropId,
+                facility.centerPos,
+                order.destinationId,
+                out _,
+                out failure))
+        {
+            return false;
+        }
+
+        bool requestedAny = false;
+        int requiredSeed = CertifiedSeedPhysicalTransformAuthority
+            .SeedInputQuantity;
+        int pendingSeed = items.CountPending(
+            crop.SeedItemId,
+            order.destinationId);
+        if (pendingSeed < requiredSeed)
+        {
+            int missingSeed = requiredSeed - pendingSeed;
+            if (missingSeed != 1
+                || !seedLots.RequestBestSeedLot(
+                    crop.SeedItemId,
+                    order.cropId,
+                    facility.centerPos,
+                    order.destinationId,
+                    out int requestedSeed,
+                    out failure)
+                || requestedSeed != missingSeed)
+            {
+                return false;
+            }
+            requestedAny = true;
+        }
+
+        int requiredKit = CertifiedSeedPhysicalTransformAuthority
+            .CertificationKitInputQuantity;
+        int pendingKit = items.CountPending(
+            CertificationKitItemId,
+            order.destinationId);
+        if (pendingKit < requiredKit)
+        {
+            int missingKit = requiredKit - pendingKit;
+            if (!transfers.TryRequestItemDelivery(
+                    CertificationKitItemId,
+                    missingKit,
+                    facility.centerPos,
+                    order.destinationId,
+                    out int requestedKit,
+                    out failure)
+                || requestedKit != missingKit)
+            {
+                return false;
+            }
+            requestedAny = true;
+        }
+
+        if (requestedAny)
+            transfers.PrioritizeDestination(order.destinationId);
+        return true;
+    }
+
     public CertifiedSeedWorldSaveData Capture() => new()
     {
         nextOrderSequence = nextOrderSequence,
+        lastProcessedOperatingDay = lastProcessedOperatingDay,
         orders = orders.Values
             .OrderBy(value => value.orderId, StringComparer.Ordinal)
             .Select(value => value.DeepClone())
@@ -271,6 +928,7 @@ public sealed class CertifiedSeedRuntime :
         if (snapshot == null
             || snapshot.version != CertifiedSeedWorldSaveData.CurrentVersion
             || snapshot.nextOrderSequence < 0
+            || snapshot.lastProcessedOperatingDay < 0
             || snapshot.orders == null
             || snapshot.orders.Count > 256)
             throw new InvalidOperationException(
@@ -293,17 +951,56 @@ public sealed class CertifiedSeedRuntime :
                 "Certified-seed next sequence does not dominate active orders.");
         return new CertifiedSeedRestoreCandidate(
             snapshot.nextOrderSequence,
-            restored);
+            restored,
+            lastProcessedOperatingDay:
+                snapshot.lastProcessedOperatingDay);
     }
 
     public void Restore(CertifiedSeedRestoreCandidate candidate)
     {
         if (candidate == null)
             throw new ArgumentNullException(nameof(candidate));
-        orders.Clear();
+        CertifiedSeedRuntimeState restored = new()
+        {
+            NextOrderSequence = candidate.NextOrderSequence,
+            LastProcessedOperatingDay = candidate.LastProcessedOperatingDay
+        };
         foreach (CertifiedSeedOrderSaveData order in candidate.Orders)
-            orders.Add(order.orderId, order.DeepClone());
-        nextOrderSequence = candidate.NextOrderSequence;
+            restored.Orders.Add(order.orderId, order.DeepClone());
+        rootStore.Replace(restored);
+    }
+
+    public IReadOnlyList<CertifiedSeedInputOwnerDescriptor>
+        BuildInputOwnerDescriptors(
+            IReadOnlyList<CertifiedSeedOrderSaveData> candidateOrders)
+    {
+        List<CertifiedSeedInputOwnerDescriptor> descriptors = new();
+        foreach (CertifiedSeedOrderSaveData order in (candidateOrders
+                     ?? Array.Empty<CertifiedSeedOrderSaveData>())
+                 .Where(value => value != null
+                     && CertifiedSeedInputOwnerAuthority
+                         .RequiresDestinationAuthority(value.phase))
+                 .OrderBy(value => value.destinationId, StringComparer.Ordinal))
+        {
+            if (!crops.TryGetCrop(order.cropId, out CropDefinitionSO crop)
+                || crop == null)
+            {
+                throw new InvalidOperationException(
+                    "Certified-seed input owner crop is missing: "
+                    + order.cropId);
+            }
+            BuildableObject facility = FindAnyFacility(order.facilityInstanceId);
+            if (!CertifiedSeedFacilityEligibility.IsEligible(facility)
+                || facility.centerPos.x != order.destinationX
+                || facility.centerPos.y != order.destinationY)
+            {
+                throw new InvalidOperationException(
+                    "Certified-seed input owner facility is missing or stale: "
+                    + order.facilityInstanceId);
+            }
+            descriptors.Add(CreateInputOwnerDescriptor(order, crop, facility));
+        }
+        return descriptors;
     }
 
     private void ValidateOrder(CertifiedSeedOrderSaveData order)
@@ -331,19 +1028,43 @@ public sealed class CertifiedSeedRuntime :
         {
             if (order.pendingInput.phase != CropPhysicalCommitPhase.None
                 || order.certifiedSeedLot != null
-                || order.outputOperationId.Length != 0
-                || order.outputCommitId.Length != 0)
+                || order.outputCapability is { IsEmpty: false }
+                || order.outputPublication is { IsEmpty: false })
                 throw new InvalidOperationException(
                     "Planned certified-seed order contains committed state.");
             return;
         }
         Dictionary<string, int> requirements = new(StringComparer.Ordinal)
         {
-            [crop.SeedItemId] = 1,
-            [CertificationKitItemId] = 1
+            [crop.SeedItemId] =
+                CertifiedSeedPhysicalTransformAuthority.SeedInputQuantity,
+            [CertificationKitItemId] = CertifiedSeedPhysicalTransformAuthority
+                .CertificationKitInputQuantity
         };
+        bool facilityLoss = order.phase
+            == CertifiedSeedOrderPhase.FacilityDestroyedLossPending;
+        CropPhysicalCommitSaveData provenanceOwner = order.pendingInput;
+        if (facilityLoss)
+        {
+            if (!CropPhysicalTransactionOutbox.ValidateDestroyedFacilityLoss(
+                    order.pendingInput,
+                    out string terminalFailure))
+            {
+                throw new InvalidOperationException(
+                    "Certified-seed terminal loss owner is invalid: "
+                    + terminalFailure);
+            }
+            provenanceOwner = order.pendingInput.DeepClone();
+            provenanceOwner.phase = CropPhysicalCommitPhase.InputCommitted;
+            provenanceOwner.terminalDisposition =
+                CropWipTerminalDisposition.None;
+            provenanceOwner.terminalOperationId = string.Empty;
+            provenanceOwner.terminalReasonCode = string.Empty;
+            provenanceOwner.terminalLossQuantity = 0;
+            provenanceOwner.terminalLossMassGrams = 0L;
+        }
         if (!CropPhysicalTransactionOutbox.ValidateProvenance(
-                order.pendingInput,
+                provenanceOwner,
                 CropPhysicalTransactionOutbox.FormatCertifiedOperationId(
                     order.orderId),
                 CropPhysicalTransactionOutbox.CertifiedReasonCode,
@@ -356,37 +1077,163 @@ public sealed class CertifiedSeedRuntime :
             || order.certifiedSeedLot == null)
             throw new InvalidOperationException(
                 "Certified-seed physical owner is invalid: " + failureReason);
-        bool outputPublished = order.phase == CertifiedSeedOrderPhase.OutputPublished;
-        if (outputPublished !=
-                (order.pendingInput.phase == CropPhysicalCommitPhase.OutcomePublished)
-            || outputPublished != IsCanonical(order.outputOperationId)
-            || outputPublished != IsCanonical(order.outputCommitId))
+        if (!TryValidateOutputCapability(
+                order,
+                crop.SeedItemId,
+                out DomainFailure outputFailure))
+        {
             throw new InvalidOperationException(
-                "Certified-seed output state contradicts its input owner.");
+                "Certified-seed output capability is invalid: "
+                + outputFailure.ToString());
+        }
+        bool outputPublished = order.phase is
+            CertifiedSeedOrderPhase.OutputPublished
+            or CertifiedSeedOrderPhase
+                .OutputRestoredAwaitingInputAcknowledgement;
+        bool outputAcknowledged = order.phase == CertifiedSeedOrderPhase
+            .OutputRestoredAwaitingInputAcknowledgement;
+        if (!facilityLoss
+            && order.phase is not CertifiedSeedOrderPhase.InputCommitted
+                and not CertifiedSeedOrderPhase
+                    .InputCommittedAwaitingDestinationRetirement
+                and not CertifiedSeedOrderPhase.OutputPublished
+                and not CertifiedSeedOrderPhase
+                    .OutputRestoredAwaitingInputAcknowledgement)
+        {
+            throw new InvalidOperationException(
+                "Certified-seed order phase is unsupported.");
+        }
+        if (outputPublished !=
+            (order.pendingInput.phase == CropPhysicalCommitPhase.OutcomePublished))
+        {
+            throw new InvalidOperationException(
+                "Certified-seed output state contradicts its input owner: "
+                + "certified-seed-input-output-phase-mismatch");
+        }
+        if (!TryValidateOutputPublicationOwner(
+                order,
+                crop.SeedItemId,
+                outputPublished,
+                outputAcknowledged,
+                out string outputOwnerFailure))
+        {
+            throw new InvalidOperationException(
+                "Certified-seed output state contradicts its input owner: "
+                + outputOwnerFailure);
+        }
+    }
+
+    private static bool TryValidateOutputPublicationOwner(
+        CertifiedSeedOrderSaveData order,
+        string seedItemId,
+        bool outputPublished,
+        bool outputAcknowledged,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        ProductionDomainOutputPublicationSaveData owner =
+            order?.outputPublication;
+        if (!ProductionDomainOutputPublicationService.TryValidateRestorableOwner(
+                owner,
+                out bool committed,
+                out failureReason))
+        {
+            return false;
+        }
+        if (outputPublished != committed)
+        {
+            failureReason =
+                "certified-seed-output-owner-phase-mismatch";
+            return false;
+        }
+        if ((owner?.outputAcknowledged ?? false) != outputAcknowledged)
+        {
+            failureReason =
+                "certified-seed-output-acknowledgement-phase-mismatch";
+            return false;
+        }
+        if (owner == null || owner.IsEmpty)
+            return true;
+        ItemInstanceComponentSaveData seedState =
+            SeedLotItemStateCodec.Encode(order.certifiedSeedLot);
+        bool matches = string.Equals(
+                owner.batchCommitId,
+                CertifiedOutputBatchCommitPrefix + order.orderId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                owner.outcomeFingerprint,
+                CreateOutputOutcomeFingerprint(order, seedItemId, seedState),
+                StringComparison.Ordinal)
+            && string.Equals(
+                owner.ownerFacilityId,
+                order.facilityInstanceId,
+                StringComparison.Ordinal)
+            && (!committed
+                || owner.stacks.Count == 1
+                && string.Equals(
+                    owner.stacks[0].outputLineId,
+                    CertifiedSeedOutputCapability.OutputLineId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    owner.stacks[0].itemId,
+                    seedItemId,
+                    StringComparison.Ordinal)
+                && owner.stacks[0].quantity == 1);
+        failureReason = matches
+            ? string.Empty
+            : "certified-seed-output-owner-provenance-drift";
+        return matches;
+    }
+
+    private bool TryValidateOutputCapability(
+        CertifiedSeedOrderSaveData order,
+        string expectedItemId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        ProductionOutputCapabilitySaveData frozen = order?.outputCapability;
+        if (frozen == null
+            || frozen.IsEmpty
+            || !string.Equals(
+                frozen.outputLineId,
+                CertifiedSeedOutputCapability.OutputLineId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                frozen.itemId,
+                expectedItemId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                frozen.capabilityId,
+                ProductionOutputCapabilityIds.CertifiedSeed,
+                StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(
+                FailureCode.ProductionOutputUnavailable,
+                expectedItemId ?? string.Empty,
+                "certified-seed-output-capability-owner-mismatch");
+            return false;
+        }
+        return outputCapabilities.TryValidateExact(
+            frozen.ToDescriptor(),
+            out _,
+            out failure);
     }
 
     private BuildableObject FindFacility(string facilityInstanceId) =>
-        facilities.FindOperational(
-                FacilityCapabilityKind.None,
-                FacilityDefinitionId)
+        CertifiedSeedFacilityEligibility.FindOperational(facilities)
             .FirstOrDefault(value => string.IsNullOrWhiteSpace(facilityInstanceId)
                 || string.Equals(
                     value.PersistentInstanceId.Value,
                     facilityInstanceId,
                     StringComparison.Ordinal));
 
-    private static string DestinationId(
-        string facilityId,
-        string cropId,
-        int sequence) =>
-        string.Join(
-            "|",
-            "certified-seed",
-            Uri.EscapeDataString(facilityId?.Trim() ?? string.Empty),
-            Uri.EscapeDataString(cropId?.Trim() ?? string.Empty),
-            Math.Max(0, sequence).ToString(
-                "D8",
-                System.Globalization.CultureInfo.InvariantCulture));
+    private BuildableObject FindAnyFacility(string facilityInstanceId) =>
+        (buildingWorld.Buildings ?? Array.Empty<BuildableObject>())
+            .FirstOrDefault(value => value != null
+                && string.Equals(
+                    value.PersistentInstanceId.Value,
+                    facilityInstanceId,
+                    StringComparison.Ordinal));
 
     private static bool TryParseDestination(
         string destinationId,
@@ -397,20 +1244,25 @@ public sealed class CertifiedSeedRuntime :
         facilityId = string.Empty;
         cropId = string.Empty;
         sequence = -1;
-        string[] parts = (destinationId ?? string.Empty).Split('|');
-        if (parts.Length != 4
-            || !string.Equals(parts[0], "certified-seed", StringComparison.Ordinal))
+        const string prefix = ReservedTargetDestinationIdentity
+            .ExactFacilityInputPrefix + CertifiedSeedInputOwnerAuthority
+            .OwnerDomain + ":";
+        string value = destinationId ?? string.Empty;
+        if (!value.StartsWith(prefix, StringComparison.Ordinal))
         {
             return false;
         }
+        string[] parts = value.Substring(prefix.Length).Split(':');
+        if (parts.Length != 3)
+            return false;
         try
         {
-            facilityId = Uri.UnescapeDataString(parts[1]);
-            cropId = Uri.UnescapeDataString(parts[2]);
+            facilityId = Uri.UnescapeDataString(parts[0]);
+            cropId = Uri.UnescapeDataString(parts[1]);
             return facilityId.Length > 0
                 && cropId.Length > 0
                 && int.TryParse(
-                    parts[3],
+                    parts[2],
                     System.Globalization.NumberStyles.None,
                     System.Globalization.CultureInfo.InvariantCulture,
                     out sequence)
@@ -428,6 +1280,36 @@ public sealed class CertifiedSeedRuntime :
     private static bool IsCanonical(string value) =>
         !string.IsNullOrWhiteSpace(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static CertifiedSeedInputOwnerDescriptor
+        CreateInputOwnerDescriptor(
+            CertifiedSeedOrderSaveData order,
+            CropDefinitionSO crop,
+            BuildableObject facility,
+            Vector2Int? detachedPosition = null) => new(
+        order.orderId,
+        order.facilityInstanceId,
+        facility?.centerPos
+            ?? detachedPosition
+            ?? new Vector2Int(order.destinationX, order.destinationY),
+        order.destinationId,
+        crop.SeedItemId);
+
+    private void RetireAbortedInputOwnerOrThrow(
+        CertifiedSeedOrderSaveData order,
+        CertifiedSeedInputOwnerDescriptor descriptor)
+    {
+        if (inputOwners.TryRetire(
+                descriptor,
+                CertifiedSeedInputOwnerAuthority.AbortedReleaseReasonCode,
+                out string failureReason))
+        {
+            return;
+        }
+        throw new InvalidOperationException(
+            "Certified-seed input owner abort failed: "
+            + order.orderId + ":" + failureReason);
+    }
 }
 
 /// <summary>
@@ -467,10 +1349,9 @@ public sealed class CertifiedSeedApplicationAdapter : IStartable, IDisposable
 
     private void OnDayStarted(OperatingDayStartedEvent started)
     {
-        commands.CompleteDeliveredPlans();
-        BuildableObject facility = facilities.FindOperational(
-                FacilityCapabilityKind.None,
-                FacilityDefinitionId)
+        commands.CompleteDeliveredPlans(started.day);
+        BuildableObject facility = CertifiedSeedFacilityEligibility
+            .FindOperational(facilities)
             .FirstOrDefault();
         if (facility == null) return;
 
@@ -498,6 +1379,4 @@ public sealed class CertifiedSeedApplicationAdapter : IStartable, IDisposable
                 $"certified-seed:{facility.PersistentInstanceId.Value}:{offset / 4}")));
         }
     }
-
-    private const string FacilityDefinitionId = "building:8893";
 }

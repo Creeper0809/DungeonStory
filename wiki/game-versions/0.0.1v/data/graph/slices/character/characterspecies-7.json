@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "characterspecies-7",
+    "spoiler_tier": "none",
+    "title": "균사인"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-7",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-myconid",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Myconid",
+      "to": "character/funeral-culture-myconid",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-7",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-myconid",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Myconid",
+      "to": "character/life-history-myconid",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-7",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-myconid",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Myconid",
+      "to": "character/reproduction-myconid",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-9007",
+      "label": "관련",
+      "to": "character/characterspecies-7",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

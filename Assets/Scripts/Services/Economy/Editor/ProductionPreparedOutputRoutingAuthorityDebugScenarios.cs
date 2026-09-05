@@ -17,10 +17,97 @@ public static class ProductionPreparedOutputRoutingAuthorityDebugScenarios
     [MenuItem("DungeonStory/Debug/Economy/Run Prepared Output Routing Authority")]
     public static void RunAll()
     {
+        VerifyExternalInputDispositionRoundTrip();
         VerifyDurableRouteOutboxAndCheckpointGc();
         VerifyDeliveryRevisionRerouteAuthority();
         VerifyRestoreTransactionRollback();
         Debug.Log("V27_PRODUCTION_PREPARED_OUTPUT_ROUTING_AUTHORITY=PASS");
+    }
+
+    private static void VerifyExternalInputDispositionRoundTrip()
+    {
+        ProductionPreparedOutputBatchSaveData batch = CreateCompletedBatch();
+        ProductionPreparedOutputLineSaveData externalInput = new()
+        {
+            outputLineId = "output:declared-external-input",
+            role = ProductionOutputRole.DeclaredExternalInput,
+            itemId = string.Empty,
+            quantity = 0,
+            componentPayload =
+                "process-addition@1|mode=residual|externalInputKind="
+                + "AbstractProcessAddition|reason=fixture-addition|"
+                + "physicalSource=false|equation=" + Digest('7'),
+            componentFingerprint = Digest('6'),
+            qualityPermille = 1000,
+            rollKind = "process-addition",
+            rollValue = 0L,
+            rollUpperExclusive = 1L,
+            rollSucceeded = true,
+            exactMassGrams = 200L
+        };
+        externalInput.lineCommitId =
+            ProductionPreparedOutputIdentity.BuildLineCommitId(
+                batch.batchCommitId,
+                externalInput.outputLineId);
+        batch.totalDeclaredExternalInputMassGrams = 200L;
+        batch.lines.Add(externalInput);
+        batch.lines = batch.lines
+            .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+            .ToList();
+        ProductionPreparedOutputContract.ValidateForBill(
+            batch,
+            BillId,
+            batch.recipeId,
+            batch.cycleSequence,
+            batch.destinationId);
+
+        ProductionPreparedOutputRoutingAuthority authority = new();
+        authority.PublishCommittedBatch(batch, FacilityId);
+        IProductionPreparedOutputRoutingBatchQuery query = authority;
+        Require(
+            query.TryCaptureBatch(
+                batch.batchCommitId,
+                out ProductionPreparedOutputRoutingBatchSnapshot snapshot)
+            && snapshot.Lines.Count == 1
+            && snapshot.NonPhysicalDispositions.Count == 2
+            && snapshot.TotalDeclaredLossMassGrams == 90L
+            && snapshot.TotalDeclaredExternalInputMassGrams == 200L
+            && snapshot.NonPhysicalDispositions.Single(value =>
+                    value.Role == ProductionOutputRole.DeclaredExternalInput)
+                .ExactMassGrams == 200L,
+            "declared external input entered physical routing or lost its exact receipt");
+
+        ProductionPreparedOutputRoutingSaveData saved = authority.Capture();
+        string canonical = JsonUtility.ToJson(saved);
+        ProductionPreparedOutputRoutingSaveData decoded =
+            JsonUtility.FromJson<ProductionPreparedOutputRoutingSaveData>(
+                canonical);
+        ProductionPreparedOutputRoutingAuthority restored = new();
+        restored.Restore(restored.BuildRestoreCandidate(decoded));
+        Require(
+            string.Equals(
+                canonical,
+                JsonUtility.ToJson(restored.Capture()),
+                StringComparison.Ordinal)
+            && ((IProductionPreparedOutputRoutingBatchQuery)restored)
+                .TryCaptureBatch(batch.batchCommitId, out var restoredBatch)
+            && restoredBatch.TotalDeclaredExternalInputMassGrams == 200L,
+            "declared external-input routing receipt did not round-trip exactly");
+
+        ProductionPreparedOutputRoutingSaveData drift = authority.Capture();
+        drift.batches[0].totalDeclaredExternalInputMassGrams++;
+        RequireThrows(
+            () => restored.BuildRestoreCandidate(drift),
+            "declared external-input total drift was accepted");
+
+        ProductionPreparedOutputRoutingSaveData receiptDrift =
+            authority.Capture();
+        receiptDrift.batches[0].nonPhysicalDispositions.Single(value =>
+                value.role == ProductionOutputRole.DeclaredExternalInput)
+            .exactMassGrams++;
+        RequireThrows(
+            () => restored.BuildRestoreCandidate(receiptDrift),
+            "declared external-input receipt drift was accepted");
     }
 
     private static void VerifyDeliveryRevisionRerouteAuthority()
@@ -248,13 +335,29 @@ public static class ProductionPreparedOutputRoutingAuthorityDebugScenarios
                 && line.RoutedMassGrams == 0L
                 && line.CycleSequence == 1
                 && line.ComponentFingerprint == Digest('c')
+                && line.OutputCapabilityId ==
+                    ProductionOutputCapabilityIds.StandardDefinition
+                && line.OutputCapabilityVersion ==
+                    ProductionOutputCapabilityIds.StandardDefinitionVersion
+                && line.OutputComponentCodecId ==
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodec
+                && line.OutputComponentCodecVersion ==
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion
+                && line.OutputCapabilityFingerprint ==
+                    ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                        "output:main",
+                        "feed:silage",
+                        ProductionOutputCapabilityIds.StandardDefinition,
+                        ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion)
                 && line.OwnerBillId == BillId.Value
                 && line.OwnerFacilityId == FacilityId.Value,
             "physical Main line was not retained exactly");
         Require(authority.CaptureBill(BillId).Count == 1,
             "bill-owned routing query did not isolate its exact batch");
         Require(authority.CaptureDestination(DestinationId)
-                .All(value => value.Role != ProductionOutputRole.DeclaredLoss),
+                .All(value => ProductionOutputRoleRules.IsPhysical(value.Role)),
             "DeclaredLoss entered physical routing authority");
         IProductionPreparedOutputRoutingBatchQuery batchQuery = authority;
         Require(batchQuery.TryCaptureBatch(
@@ -266,6 +369,14 @@ public static class ProductionPreparedOutputRoutingAuthorityDebugScenarios
                 && initialBatch.Lines.Count == 1
                 && initialBatch.RouteOperations.Count == 0
                 && initialBatch.PhysicalReceipts.Count == 0
+                && initialBatch.NonPhysicalDispositions.Count == 1
+                && initialBatch.TotalDeclaredLossMassGrams == 90L
+                && initialBatch.NonPhysicalDispositions[0].Role ==
+                    ProductionOutputRole.DeclaredLoss
+                && initialBatch.NonPhysicalDispositions[0].CanonicalPayload ==
+                    "declared-loss"
+                && initialBatch.NonPhysicalDispositions[0]
+                    .DispositionFingerprint == Digest('b')
                 && initialBatch.RemainingQuantity == 3
                 && initialBatch.RemainingMassGrams == 600L
                 && !initialBatch.IsDrainAcknowledged,
@@ -381,6 +492,17 @@ public static class ProductionPreparedOutputRoutingAuthorityDebugScenarios
             "immutable batch query lost exact physical route receipt custody");
 
         ProductionPreparedOutputRoutingSaveData saved = authority.Capture();
+        Require(saved.version == 8
+                && saved.batches.Single().totalDeclaredLossMassGrams == 90L
+                && saved.batches.Single().nonPhysicalDispositions.Count == 1,
+            "routing save omitted the frozen non-physical disposition receipt");
+        ProductionPreparedOutputRoutingSaveData tamperedDisposition =
+            authority.Capture();
+        tamperedDisposition.batches.Single().nonPhysicalDispositions.Single()
+            .exactMassGrams++;
+        RequireThrows(
+            () => authority.BuildRestoreCandidate(tamperedDisposition),
+            "routing restore accepted a tampered non-physical disposition");
         ProductionPreparedOutputRoutingAuthority restored = new();
         restored.Restore(restored.BuildRestoreCandidate(saved));
         ProductionPreparedOutputRouteRequestSnapshot restoredFirst = restored
@@ -428,6 +550,8 @@ public static class ProductionPreparedOutputRoutingAuthorityDebugScenarios
                     out ProductionPreparedOutputRoutingBatchSnapshot drainedBatch)
                 && drainedBatch.RouteOperations.Count == 2
                 && drainedBatch.PhysicalReceipts.Count == 2
+                && drainedBatch.NonPhysicalDispositions.Count == 1
+                && drainedBatch.TotalDeclaredLossMassGrams == 90L
                 && drainedBatch.RemainingQuantity == 0
                 && drainedBatch.RemainingMassGrams == 0L
                 && drainedBatch.IsDrainAcknowledged,
@@ -496,6 +620,22 @@ public static class ProductionPreparedOutputRoutingAuthorityDebugScenarios
         Require(authority.CaptureAll().Count == 1
                 && authority.Capture().lastConfirmedCheckpointSequence == 0L,
             "restore rollback did not restore routing owners and checkpoint");
+
+        ProductionPreparedOutputRoutingSaveData fingerprintDrift =
+            authority.Capture();
+        fingerprintDrift.batches[0].lines[0].outputCapabilityFingerprint =
+            Digest('9');
+        RequireThrows(
+            () => authority.BuildRestoreCandidate(fingerprintDrift),
+            "routing restore accepted output capability fingerprint drift");
+        ProductionPreparedOutputRoutingSaveData versionDrift = authority.Capture();
+        versionDrift.batches[0].lines[0].outputCapabilityVersion++;
+        RequireThrows(
+            () => authority.BuildRestoreCandidate(versionDrift),
+            "routing restore accepted output capability version drift");
+        Require(authority.CaptureAll().Count == 1
+                && authority.Capture().lastConfirmedCheckpointSequence == 0L,
+            "invalid routing restore mutated live capability provenance");
     }
 
     private static ProductionPreparedOutputPhysicalRouteReceipt CreateReceipt(
@@ -577,6 +717,21 @@ public static class ProductionPreparedOutputRoutingAuthorityDebugScenarios
             outputLineId = "output:main",
             role = ProductionOutputRole.Main,
             itemId = "feed:silage",
+            outputCapabilityId = ProductionOutputCapabilityIds.StandardDefinition,
+            outputCapabilityVersion =
+                ProductionOutputCapabilityIds.StandardDefinitionVersion,
+            outputComponentCodecId =
+                ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+            outputComponentCodecVersion =
+                ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+            outputCapabilityFingerprint =
+                ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                    "output:main",
+                    "feed:silage",
+                    ProductionOutputCapabilityIds.StandardDefinition,
+                    ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                    ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
             quantity = 3,
             componentPayload = "generic-silage",
             componentFingerprint = Digest('c'),
@@ -601,9 +756,11 @@ public static class ProductionPreparedOutputRoutingAuthorityDebugScenarios
             recipeId = "recipe:silage",
             destinationId = DestinationId,
             recipeDefinitionDigest = Digest('d'),
-            migrationProfileDigest = ProductionPreparedOutputMigrationScope
-                .CaptureProfileDigest("recipe:silage"),
+            migrationProfileDigest = Digest('a'),
             capacitySourceDigest = Digest('f'),
+            maximumMassProofDigest = Digest('9'),
+            maximumBatchMassGrams = 600L,
+            capacityClaimDigest = Digest('8'),
             outputBufferCycleCapacity = 4,
             projectedPortfolioCapacityGrams = 2_400L,
             requiredMinimumCapacityGrams = 2_400L,

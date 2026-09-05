@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-warhammer",
+    "spoiler_tier": "none",
+    "title": "전투망치"
+  },
+  "edges": [],
+  "schema_version": 1
+}

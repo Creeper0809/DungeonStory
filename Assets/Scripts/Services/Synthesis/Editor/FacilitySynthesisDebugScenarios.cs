@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -28,6 +29,7 @@ public static class FacilitySynthesisDebugScenarios
         RunScenario("공개 6개와 희귀 3개 가시성", VerifyRecipeVisibility, errors);
         RunScenario("세 전략의 배치 시설 합성", VerifyStrategySynthesis, errors);
         RunScenario("역순 선택에서도 선언 재료가 결과 앵커", VerifyDeclaredAnchorWinsSelectionOrder, errors);
+        RunScenario("생산 권위 반영 실패 시 모든 재료와 epoch 복구", VerifyRetargetCommitFailureRestoresAllMaterials, errors);
         RunScenario("모듈 시설 레벨 계승", VerifyLevelInheritance, errors);
         RunScenario("파손 모듈 재료 거부", VerifyDamagedMaterialRejected, errors);
         RunScenario("세 희귀 조합식 연구 해금", VerifyRareRecipesRequireResearch, errors);
@@ -139,6 +141,8 @@ public static class FacilitySynthesisDebugScenarios
         FacilitySynthesisRuntime runtime = world.CreateRuntime();
         BuildableObject first = world.Place(firstMaterialAssetName, new Vector2Int(4, 0));
         BuildableObject second = world.Place(secondMaterialAssetName, new Vector2Int(11, 0));
+        BuildingInstanceId anchorId = first.RequirePersistentInstanceId();
+        BuildingInstanceId consumedId = second.RequirePersistentInstanceId();
 
         bool success = runtime.TrySynthesize(
             LoadRecipe(recipeAssetName),
@@ -150,6 +154,11 @@ public static class FacilitySynthesisDebugScenarios
             && result.ResultBuilding != null
             && result.ResultBuilding.id == LoadBuilding(resultAssetName).id
             && result.ResultBuilding.centerPos == new Vector2Int(4, 0)
+            && result.ResultBuilding.RequirePersistentInstanceId().Equals(anchorId)
+            && CharacterAiEditorTestDependencies.WorldRegistry.Buildings.Count(building =>
+                building.BuildingInstanceId.Equals(anchorId)) == 1
+            && CharacterAiEditorTestDependencies.WorldRegistry.Buildings.All(building =>
+                !building.BuildingInstanceId.Equals(consumedId))
             && first.isDestroy
             && second.isDestroy;
     }
@@ -161,6 +170,7 @@ public static class FacilitySynthesisDebugScenarios
         BuildableObject declaredFirst = world.Place("D01_간이화덕", new Vector2Int(5, 0));
         BuildableObject selectedFirst = world.Place("D03_조리손질대", new Vector2Int(13, 0));
         Vector2Int declaredAnchorPosition = declaredFirst.centerPos;
+        BuildingInstanceId declaredAnchorId = declaredFirst.RequirePersistentInstanceId();
 
         bool success = runtime.TrySynthesize(
             LoadRecipe("RS_CommercialGrill"),
@@ -169,7 +179,8 @@ public static class FacilitySynthesisDebugScenarios
 
         return success
             && result.ResultBuilding != null
-            && result.ResultBuilding.centerPos == declaredAnchorPosition;
+            && result.ResultBuilding.centerPos == declaredAnchorPosition
+            && result.ResultBuilding.RequirePersistentInstanceId().Equals(declaredAnchorId);
     }
 
     private static bool VerifyLevelInheritance()
@@ -209,6 +220,43 @@ public static class FacilitySynthesisDebugScenarios
             && result.Message.Contains("파손")
             && !desk.isDestroy
             && !bookcase.isDestroy;
+    }
+
+    private static bool VerifyRetargetCommitFailureRestoresAllMaterials()
+    {
+        using SynthesisScenarioWorld world = new SynthesisScenarioWorld(
+            failRetargetCommit: true);
+        FacilitySynthesisRuntime runtime = world.CreateRuntime();
+        BuildableObject hearth = world.Place("D01_간이화덕", new Vector2Int(5, 0));
+        BuildableObject prep = world.Place("D03_조리손질대", new Vector2Int(13, 0));
+        BuildingInstanceId hearthId = hearth.RequirePersistentInstanceId();
+        BuildingInstanceId prepId = prep.RequirePersistentInstanceId();
+
+        bool rejected = !runtime.TrySynthesize(
+            LoadRecipe("RS_CommercialGrill"),
+            new[] { prep, hearth },
+            out FacilitySynthesisResult result);
+
+        return rejected
+            && result.Message.Contains("생산 권위")
+            && !hearth.isDestroy
+            && !prep.isDestroy
+            && ReferenceEquals(hearth.Grid, world.Grid)
+            && ReferenceEquals(prep.Grid, world.Grid)
+            && ReferenceEquals(
+                world.Grid.GetGridCell(hearth.centerPos)?.GetOccupant(
+                    hearth.BuildingData.Placement.Layer),
+                hearth)
+            && ReferenceEquals(
+                world.Grid.GetGridCell(prep.centerPos)?.GetOccupant(
+                    prep.BuildingData.Placement.Layer),
+                prep)
+            && CharacterAiEditorTestDependencies.WorldRegistry.Buildings.Count(building =>
+                building.BuildingInstanceId.Equals(hearthId)) == 1
+            && CharacterAiEditorTestDependencies.WorldRegistry.Buildings.Count(building =>
+                building.BuildingInstanceId.Equals(prepId)) == 1
+            && !world.IsMutationFrozen(hearthId)
+            && !world.IsMutationFrozen(prepId);
     }
 
     private static bool VerifyRareRecipesRequireResearch()
@@ -344,11 +392,12 @@ public static class FacilitySynthesisDebugScenarios
         private readonly GridSystemManager previousGridSystem;
         private readonly List<GameObject> objects = new List<GameObject>();
         private readonly BlueprintResearchState fallbackResearchState = new BlueprintResearchState();
-        private readonly ScenarioObjectResolver objectResolver = new ScenarioObjectResolver();
+        private readonly ScenarioObjectResolver objectResolver;
         private BlueprintResearchRuntime researchRuntime;
 
-        public SynthesisScenarioWorld()
+        public SynthesisScenarioWorld(bool failRetargetCommit = false)
         {
+            objectResolver = new ScenarioObjectResolver(failRetargetCommit);
             previousGridSystem = GridSystemInstanceField?.GetValue(null) as GridSystemManager;
             Grid = new Grid(24, 1);
             for (int x = 0; x < Grid.width; x++)
@@ -369,6 +418,9 @@ public static class FacilitySynthesisDebugScenarios
         }
 
         public Grid Grid { get; }
+
+        public bool IsMutationFrozen(BuildingInstanceId facilityId) =>
+            objectResolver.IsMutationFrozen(facilityId);
 
         public FacilitySynthesisRuntime CreateRuntime()
         {
@@ -481,8 +533,25 @@ public static class FacilitySynthesisDebugScenarios
 
         private sealed class ScenarioObjectResolver : IObjectResolver
         {
+            private readonly ProductionFacilityMutationEpochRuntime mutationEpochs = new();
+            private readonly IProductionFacilityRetargetTransaction retargetTransaction;
             private readonly IProductionFacilityMutationFence productionFence =
                 new EmptyProductionFacilityMutationFence();
+
+            public ScenarioObjectResolver(bool failRetargetCommit)
+            {
+                retargetTransaction = new ProductionFacilityRetargetTransaction(
+                    new ProductionFacilityRetargetParticipantRegistry(
+                        new IProductionFacilityRetargetParticipant[]
+                        {
+                            new ScenarioRetargetParticipant(failRetargetCommit)
+                        }),
+                    mutationEpochs);
+            }
+
+            public bool IsMutationFrozen(BuildingInstanceId facilityId) =>
+                mutationEpochs.IsFrozen(facilityId);
+
             public object ApplicationOrigin => null;
             public DiagnosticsCollector Diagnostics { get; set; }
 
@@ -493,6 +562,11 @@ public static class FacilitySynthesisDebugScenarios
 
             public bool TryResolve(Type type, out object resolved, object key = null)
             {
+                if (type == typeof(IProductionFacilityRetargetTransaction))
+                {
+                    resolved = retargetTransaction;
+                    return true;
+                }
                 if (type == typeof(IProductionFacilityMutationFence))
                 {
                     resolved = productionFence;
@@ -534,6 +608,15 @@ public static class FacilitySynthesisDebugScenarios
         private sealed class EmptyProductionFacilityMutationFence :
             IProductionFacilityMutationFence
         {
+            public bool TryRequireNoAuthority(
+                BuildableObject facility,
+                ProductionFacilityMutationKind kind,
+                out string failureReason)
+            {
+                failureReason = string.Empty;
+                return true;
+            }
+
             public bool TryPrepareEmpty(
                 BuildableObject facility,
                 ProductionFacilityMutationKind kind,
@@ -542,7 +625,7 @@ public static class FacilitySynthesisDebugScenarios
                 out string failureReason)
             {
                 candidate = null;
-                failureReason = "synthesis-fixture-does-not-run-demolition";
+                failureReason = "unused";
                 return false;
             }
 
@@ -550,7 +633,7 @@ public static class FacilitySynthesisDebugScenarios
                 ProductionFacilityEmptyMutationCandidate candidate,
                 out string failureReason)
             {
-                failureReason = "synthesis-fixture-does-not-run-demolition";
+                failureReason = "unused";
                 return false;
             }
 
@@ -558,7 +641,7 @@ public static class FacilitySynthesisDebugScenarios
                 ProductionFacilityEmptyMutationCandidate candidate,
                 out string failureReason)
             {
-                failureReason = "synthesis-fixture-does-not-run-demolition";
+                failureReason = "unused";
                 return false;
             }
 
@@ -566,15 +649,87 @@ public static class FacilitySynthesisDebugScenarios
                 ProductionFacilityEmptyMutationCandidate candidate,
                 out string failureReason)
             {
-                failureReason = "synthesis-fixture-does-not-run-demolition";
+                failureReason = "unused";
                 return false;
             }
+        }
 
-            public bool TryRequireNoAuthority(
-                BuildableObject facility,
-                ProductionFacilityMutationKind kind,
+        private sealed class ScenarioRetargetParticipantState
+        {
+            public bool Committed { get; set; }
+        }
+
+        private sealed class ScenarioRetargetParticipant :
+            IProductionFacilityRetargetParticipant
+        {
+            private const string PreparedFingerprint =
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            private const string CommittedFingerprint =
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+            private readonly bool failCommit;
+
+            public ScenarioRetargetParticipant(bool failCommit)
+            {
+                this.failCommit = failCommit;
+            }
+
+            public string ParticipantId => "synthesis-fixture-authority";
+
+            public bool TryPrepare(
+                IReadOnlyList<ProductionFacilityRetargetRequest> orderedRequests,
+                string operationId,
+                out ProductionFacilityRetargetParticipantPlan plan,
                 out string failureReason)
             {
+                plan = ProductionFacilityRetargetParticipantPlan.Create(
+                    ParticipantId,
+                    PreparedFingerprint,
+                    new ScenarioRetargetParticipantState());
+                failureReason = string.Empty;
+                return true;
+            }
+
+            public bool TryCommit(
+                ProductionFacilityRetargetParticipantPlan plan,
+                IReadOnlyList<ProductionFacilityRetargetBinding> orderedBindings,
+                out string committedFingerprint,
+                out string failureReason)
+            {
+                ScenarioRetargetParticipantState state =
+                    (ScenarioRetargetParticipantState)plan.ParticipantState;
+                if (failCommit)
+                {
+                    committedFingerprint = string.Empty;
+                    failureReason = "fixture-forced-commit-failure";
+                    return false;
+                }
+                state.Committed = true;
+                committedFingerprint = CommittedFingerprint;
+                failureReason = string.Empty;
+                return true;
+            }
+
+            public bool TryRollback(
+                ProductionFacilityRetargetParticipantPlan plan,
+                out string rolledBackFingerprint,
+                out string failureReason)
+            {
+                ((ScenarioRetargetParticipantState)plan.ParticipantState).Committed = false;
+                rolledBackFingerprint = PreparedFingerprint;
+                failureReason = string.Empty;
+                return true;
+            }
+
+            public bool TryCaptureCurrentFingerprint(
+                ProductionFacilityRetargetParticipantPlan plan,
+                out string currentFingerprint,
+                out string failureReason)
+            {
+                bool committed = ((ScenarioRetargetParticipantState)plan.ParticipantState)
+                    .Committed;
+                currentFingerprint = committed
+                    ? CommittedFingerprint
+                    : PreparedFingerprint;
                 failureReason = string.Empty;
                 return true;
             }

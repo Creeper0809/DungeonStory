@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-deep-shaft-hoist",
+    "spoiler_tier": "none",
+    "title": "심부 승강기"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-deep-shaft-hoist",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-deep-shaft-hoist",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 승강기",
+      "to": "item/tool-deep-shaft-hoist",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-deep-shaft-hoist",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-lead-counterweight",
+      "target_spoiler_tier": "none",
+      "target_title": "납 균형추",
+      "to": "item/component-lead-counterweight",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-deep-shaft-hoist",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-deep-shaft-hoist",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "to": "item/material-rope",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-deep-shaft-hoist",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-mining-deep",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 채굴",
+      "to": "research/research-mining-deep",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

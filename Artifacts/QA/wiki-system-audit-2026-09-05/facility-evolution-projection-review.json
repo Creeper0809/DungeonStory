@@ -1,0 +1,188 @@
+{
+  "scope": "All six authored FacilityEvolutionRecipeSO assets and their six public entries; static field and non-Editor command-path review",
+  "common": {
+    "requiredStarGrade": 1,
+    "resultStarGrade": 2,
+    "publicByDefault": true,
+    "requireUsableRoom": true,
+    "requiredResearchRecipeId": "",
+    "requiredMaterials": [],
+    "requiredRecordTokens": [],
+    "requiredRoomMetrics": [],
+    "requiredRoomTags": [],
+    "consumeRecordTokens": false
+  },
+  "projection": {
+    "facts": 0,
+    "sourceAndResultRelation": "Both references: direction lost",
+    "fixtureRelation": "requires: preserved",
+    "missing": [
+      "room score thresholds",
+      "identity weights and minimum",
+      "grade requirements and result grade",
+      "allowed mutations"
+    ]
+  },
+  "evidence": [
+    "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs:Validate",
+    "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs:ScoreRecipe",
+    "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs:TryEvolve",
+    "Assets/Scripts/Views/FacilityEvolution/UI/FacilityEvolutionPanel.cs:TryEvolve"
+  ],
+  "rows": [
+    {
+      "id": 9101,
+      "asset": "EV_CommercialGrill",
+      "from": 1000,
+      "to": 1001,
+      "scores": {
+        "Dining": 20,
+        "Cooking": 14
+      },
+      "fixtures": [
+        1002
+      ],
+      "weights": {
+        "Service": 0.6,
+        "Logistics": 0.4
+      },
+      "minimum": 0.1,
+      "mutations": [
+        "Service",
+        "Logistics"
+      ],
+      "source": "Assets/Resources/SO/FacilityEvolution/P1/EV_CommercialGrill.asset",
+      "entry": "wiki/game-versions/0.0.1v/data/entities/facility/facilityevolutionrecipe-9101.json"
+    },
+    {
+      "id": 9102,
+      "asset": "EV_SecureDisplay",
+      "from": 1013,
+      "to": 1014,
+      "scores": {
+        "Shop": 22,
+        "Service": 5,
+        "Luxury": 3
+      },
+      "fixtures": [
+        1012,
+        1070
+      ],
+      "weights": {
+        "Luxury": 0.45,
+        "Service": 0.35,
+        "Security": 0.2
+      },
+      "minimum": 0.1,
+      "mutations": [
+        "Luxury",
+        "Service"
+      ],
+      "source": "Assets/Resources/SO/FacilityEvolution/P1/EV_SecureDisplay.asset",
+      "entry": "wiki/game-versions/0.0.1v/data/entities/facility/facilityevolutionrecipe-9102.json"
+    },
+    {
+      "id": 9103,
+      "asset": "EV_TacticalTable",
+      "from": 1044,
+      "to": 1047,
+      "scores": {
+        "Training": 22,
+        "Combat": 10,
+        "Defense": 2
+      },
+      "fixtures": [
+        1040
+      ],
+      "weights": {
+        "Combat": 0.6,
+        "Security": 0.4
+      },
+      "minimum": 0.2,
+      "mutations": [
+        "Brutal",
+        "Security"
+      ],
+      "source": "Assets/Resources/SO/FacilityEvolution/P1/EV_TacticalTable.asset",
+      "entry": "wiki/game-versions/0.0.1v/data/entities/facility/facilityevolutionrecipe-9103.json"
+    },
+    {
+      "id": 9104,
+      "asset": "EV_ArcheryTarget",
+      "from": 1040,
+      "to": 1041,
+      "scores": {
+        "Combat": 10,
+        "Defense": 4,
+        "Security": 5
+      },
+      "fixtures": [
+        1044,
+        1045
+      ],
+      "weights": {
+        "Combat": 0.55,
+        "Security": 0.45
+      },
+      "minimum": 0.2,
+      "mutations": [
+        "Combat",
+        "Security"
+      ],
+      "source": "Assets/Resources/SO/FacilityEvolution/P1/EV_ArcheryTarget.asset",
+      "entry": "wiki/game-versions/0.0.1v/data/entities/facility/facilityevolutionrecipe-9104.json"
+    },
+    {
+      "id": 9105,
+      "asset": "EV_AlchemyBench",
+      "from": 1030,
+      "to": 1031,
+      "scores": {
+        "Research": 24,
+        "Mana": 2,
+        "Security": 2.5
+      },
+      "fixtures": [
+        1032,
+        1038
+      ],
+      "weights": {
+        "Ritual": 0.8,
+        "Security": 0.2
+      },
+      "minimum": 0.2,
+      "mutations": [
+        "Research",
+        "Ritual"
+      ],
+      "source": "Assets/Resources/SO/FacilityEvolution/P1/EV_AlchemyBench.asset",
+      "entry": "wiki/game-versions/0.0.1v/data/entities/facility/facilityevolutionrecipe-9105.json"
+    },
+    {
+      "id": 9106,
+      "asset": "EV_RitualFocus",
+      "from": 1036,
+      "to": 1039,
+      "scores": {
+        "Mana": 24,
+        "Research": 2,
+        "Luxury": 3
+      },
+      "fixtures": [
+        1033,
+        1070
+      ],
+      "weights": {
+        "Ritual": 0.8,
+        "Luxury": 0.2
+      },
+      "minimum": 0.2,
+      "mutations": [
+        "Mana",
+        "Ritual"
+      ],
+      "source": "Assets/Resources/SO/FacilityEvolution/P1/EV_RitualFocus.asset",
+      "entry": "wiki/game-versions/0.0.1v/data/entities/facility/facilityevolutionrecipe-9106.json"
+    }
+  ]
+}

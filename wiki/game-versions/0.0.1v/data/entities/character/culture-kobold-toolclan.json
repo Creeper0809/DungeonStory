@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-kobold-bench-feast",
+      "target_spoiler_tier": "none",
+      "target_title": "작업대 잔치",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-kobold-tool-naming",
+      "target_spoiler_tier": "none",
+      "target_title": "첫 도구 이름짓기",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "culture-kobold-toolclan",
+  "spoiler_tier": "none",
+  "summary": "잘 관리된 도구를 가계의 증거로 여기며 작은 성취도 씨족 앞에서 기록한다.",
+  "title": "도구씨족 문화"
+}

@@ -10,6 +10,9 @@ using UnityEngine;
 
 public static class PhysicalItemDebugScenarios
 {
+    public static string VerifyQualityRejectedSaleForEditor() =>
+        VerifyQualityRejectedUniqueDeliveryIdentity();
+
     private sealed class MutableGameClock : IGameClock
     {
         public float CurrentTime { get; set; }
@@ -34,6 +37,8 @@ public static class PhysicalItemDebugScenarios
         "Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset";
     private const string HaulingHarnessWorkwearPath =
         "Assets/Resources/SO/Environment/Workwear/HaulingHarness.asset";
+    private const string EquipmentForgeFacilityPath =
+        "Assets/Resources/SO/Building/Modular/S08_대장작업대.asset";
 
     [MenuItem("DungeonStory/Debug/Items/Run Physical Item Contracts")]
     public static void RunAll()
@@ -54,6 +59,10 @@ public static class PhysicalItemDebugScenarios
         Run("facility_delivery_buffer", VerifyFacilityDeliveryBuffer, lines, errors);
         Run("loose_material_delivery_request", VerifyLooseMaterialDeliveryRequest, lines, errors);
         Run("physical_craft_material_gate", VerifyPhysicalCraftMaterialGate, lines, errors);
+        Run("combat_rejected_recovery_runtime_restore_exact",
+            VerifyCombatRejectedRecoveryRuntimeRestoreExact,
+            lines,
+            errors);
         Run("customer_floor_theft", VerifyCustomerFloorTheft, lines, errors);
         Run("stack_delete_fallback", VerifyStackDeleteFallback, lines, errors);
         Run("warehouse_aggregate_view", VerifyWarehouseAggregateView, lines, errors);
@@ -152,6 +161,56 @@ public static class PhysicalItemDebugScenarios
                 $"Physical item contracts failed ({errors.Count}). See {ReportPath}.");
         }
     }
+
+    [MenuItem("DungeonStory/Debug/Items/Run Combat Rejected Recovery Runtime Restore")]
+    public static void RunCombatRejectedRecoveryRuntimeRestore()
+    {
+        const string focusedReportPath =
+            "Temp/combat-rejected-recovery-runtime-restore.tsv";
+        Directory.CreateDirectory("Temp");
+        string details = VerifyCombatRejectedRecoveryRuntimeRestoreExact();
+        File.WriteAllLines(focusedReportPath, new[]
+        {
+            "case\tresult\tdetails",
+            "combat_rejected_recovery_runtime_restore_exact\tPASS\t" + details
+        });
+        Debug.Log(
+            "Combat rejected recovery runtime restore PASS. Report: "
+            + focusedReportPath);
+    }
+
+    [MenuItem("DungeonStory/Debug/Items/Run Lineage Craft Operation Focused")]
+    public static void RunLineageCraftOperationFocused()
+    {
+        const string focusedReportPath =
+            "Artifacts/QA/v27-lineage-craft-operation-focused.tsv";
+        Directory.CreateDirectory("Artifacts/QA");
+        string details = VerifyEquipmentLineageTransferPhysicalAuthority();
+        V27BalanceArtifactWriter.WriteIfDifferent(
+            focusedReportPath,
+            stream =>
+            {
+                using StreamWriter writer = new(
+                    stream,
+                    new System.Text.UTF8Encoding(false, true),
+                    4096,
+                    leaveOpen: true);
+                writer.NewLine = "\n";
+                writer.WriteLine("case\tresult\tdetails");
+                writer.Write("equipment_lineage_registered_craft\tPASS\t");
+                writer.Write(details);
+                writer.Write('\n');
+            });
+        Debug.Log(
+            "Lineage registered Craft operation PASS. Report: "
+            + focusedReportPath);
+    }
+
+    public static string VerifyPhysicalCraftMaterialGateForEditor() =>
+        VerifyPhysicalCraftMaterialGate();
+
+    public static string VerifyUniqueRetailTransferForEditor() =>
+        VerifyUniqueRetailTransferCommitAndRollback();
 
     [MenuItem("DungeonStory/Debug/Items/Run Existing Equipment Atomic Drop Capture")]
     public static void RunExistingEquipmentAtomicDropCapture()
@@ -594,7 +653,7 @@ public static class PhysicalItemDebugScenarios
     private static string VerifyPhysicalCraftMaterialGate()
     {
         GameObject warehouseObject = new GameObject("PhysicalCraftWarehouse");
-        GameObject facilityObject = new GameObject("PhysicalCraftFacility");
+        List<GameObject> createdObjects = new();
         WorldItemStackRuntime itemRuntime = null;
         TestWarehouseFacility warehouse = null;
         try
@@ -619,8 +678,12 @@ public static class PhysicalItemDebugScenarios
                     + warehouse.PersistentInstanceId.Value);
             Require(!string.IsNullOrWhiteSpace(materialStackId),
                 "physical craft material seed failed");
-            BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
-            facility.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            BuildableObject facility = CreateEquipmentFacility(
+                EquipmentForgeFacilityPath,
+                "PhysicalCraftFacility",
+                new Vector2Int(2, 0),
+                "workstation:forge-basic",
+                createdObjects);
 
             Require(equipmentRuntime.TryQueueCraft("weapon:dagger", facility, out string queueReason),
                 $"physical craft queue failed: {queueReason}");
@@ -660,7 +723,8 @@ public static class PhysicalItemDebugScenarios
         {
             itemRuntime?.Dispose();
             CharacterAiEditorTestDependencies.WorldRegistry.UnregisterWarehouse(warehouse);
-            UnityEngine.Object.DestroyImmediate(facilityObject);
+            foreach (GameObject createdObject in createdObjects)
+                UnityEngine.Object.DestroyImmediate(createdObject);
             UnityEngine.Object.DestroyImmediate(warehouseObject);
         }
     }
@@ -764,7 +828,7 @@ public static class PhysicalItemDebugScenarios
                 "warehouse policy snapshot still duplicates immutable capacity");
             Require(typeof(WarehouseInventorySnapshot).GetField("stocks") == null,
                 "warehouse policy snapshot still owns stock quantities");
-            return $"derivedStock={warehouse.Inventory.TotalStock}; capacity={warehouse.Inventory.MaxCapacity}";
+            return $"derivedStock={warehouse.Inventory.TotalStock}; capacityGrams={warehouse.Inventory.MaxMassGrams}";
         }
         finally
         {
@@ -2344,6 +2408,23 @@ public static class PhysicalItemDebugScenarios
     }
 
     internal static WorldItemStackRuntime CreateRuntimeForCrossDomainFixture(
+        out IDungeonRestoreTransactionParticipant exactRouteRestoreParticipant)
+    {
+        IDungeonRestoreTransactionParticipant captured = null;
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out _,
+            out _,
+            out _,
+            out _,
+            out _,
+            exactRouteRestoreParticipantObserver: value => captured = value);
+        exactRouteRestoreParticipant = captured
+            ?? throw new InvalidOperationException(
+                "Cross-domain fixture did not expose its exact-route restore participant.");
+        return runtime;
+    }
+
+    internal static WorldItemStackRuntime CreateRuntimeForCrossDomainFixture(
         out WorldItemRepository repository,
         out CombatEquipmentRuntime equipmentRuntime)
     {
@@ -2361,6 +2442,23 @@ public static class PhysicalItemDebugScenarios
             out equipmentRuntime,
             out quantityReservations,
             out reservedTransfer);
+    }
+
+    internal static WorldItemStackRuntime CreateRuntimeForCrossDomainFixture(
+        IGridSystemProvider gridProvider,
+        out WorldItemRepository repository,
+        out CombatEquipmentRuntime equipmentRuntime,
+        out ItemQuantityReservationService quantityReservations,
+        out IReservedItemTransferService reservedTransfer)
+    {
+        return CreateRuntime(
+            out repository,
+            out equipmentRuntime,
+            out quantityReservations,
+            out reservedTransfer,
+            out _,
+            gridProvider: gridProvider
+                ?? throw new ArgumentNullException(nameof(gridProvider)));
     }
 
     private static string VerifyExpiredCommittedCarryRestore()
@@ -2490,6 +2588,320 @@ public static class PhysicalItemDebugScenarios
         }
     }
 
+    private static string VerifyCombatRejectedRecoveryRuntimeRestoreExact()
+    {
+        const string DefinitionId = "weapon:greatsword";
+        List<GameObject> createdObjects = new();
+        WorldItemStackRuntime sourceItems = null;
+        WorldItemStackRuntime missingItems = null;
+        WorldItemStackRuntime restoredItems = null;
+        ICharacterAiWorldRegistry world =
+            CharacterAiEditorTestDependencies.WorldRegistry;
+        TestWarehouseFacility warehouse = null;
+        CharacterActor maker = null;
+        CharacterActor dismantler = null;
+        try
+        {
+            BuildableObject facility = CreateEquipmentFacility(
+                EquipmentForgeFacilityPath,
+                "CombatRejectedRecoveryS08",
+                new Vector2Int(12, 7),
+                "workstation:forge-basic",
+                createdObjects);
+            GameObject makerObject = new("CombatRejectedRecoveryMaker");
+            GameObject dismantlerObject = new("CombatRejectedRecoveryDismantler");
+            createdObjects.Add(makerObject);
+            createdObjects.Add(dismantlerObject);
+            GameObject warehouseObject = new("CombatRejectedRecoveryWarehouse");
+            createdObjects.Add(warehouseObject);
+            warehouse = warehouseObject.AddComponent<TestWarehouseFacility>();
+            world.RegisterWarehouse(warehouse);
+            maker = InitializeFixtureActor(makerObject);
+            dismantler = InitializeFixtureActor(dismantlerObject);
+            if (!world.Characters.Contains(maker))
+                world.RegisterCharacter(maker);
+            if (!world.Characters.Contains(dismantler))
+                world.RegisterCharacter(dismantler);
+
+            EditorEquipmentPhysicalItemGatewayProxy sourceGateway = new();
+            sourceItems = CreateRuntime(
+                out WorldItemRepository sourceRepository,
+                out CombatEquipmentRuntime sourceEquipment,
+                out _,
+                out _,
+                out _,
+                equipmentGatewayOverride: sourceGateway,
+                enableRejectedRecovery: true,
+                craftQualityResolver: FixedRejectedCraftQualityResolver.Instance,
+                characterWorld: world);
+            warehouse.BindPhysicalStock(new PhysicalStockQuery(
+                sourceRepository,
+                sourceItems.CatalogProvider,
+                sourceItems.MassQuery));
+            sourceItems.Start();
+            string materialStackId = WorldItemRepositoryEditorAccess.AddStack(
+                sourceRepository,
+                "material:iron-ingot",
+                20,
+                WorldItemStackState.Stored,
+                destinationId: WorldItemStackRuntime
+                    .WarehouseStorageDestinationPrefix
+                    + warehouse.PersistentInstanceId.Value);
+            Require(!string.IsNullOrWhiteSpace(materialStackId),
+                "combat recovery material seed failed");
+            string componentStackId = WorldItemRepositoryEditorAccess.AddStack(
+                sourceRepository,
+                "component:growth-frame",
+                1,
+                WorldItemStackState.Stored,
+                destinationId: WorldItemStackRuntime
+                    .WarehouseStorageDestinationPrefix
+                    + warehouse.PersistentInstanceId.Value);
+            Require(!string.IsNullOrWhiteSpace(componentStackId),
+                "combat recovery component seed failed");
+            Require(sourceEquipment.TryQueueCraft(
+                    DefinitionId,
+                    facility,
+                    out string queueFailure),
+                $"combat recovery craft queue failed: {queueFailure}");
+            CombatEquipmentCraftOrderSaveData order =
+                sourceEquipment.CraftQueue.Single();
+            Require(sourceEquipment.SetCraftQualityTarget(
+                    order.orderId,
+                    CraftsmanshipQualityTier.Good,
+                    RejectedOutputDisposition.AutoDismantle,
+                    QualityRepeatLimitMode.SafeLimits,
+                    3,
+                    10000f,
+                    1,
+                    out string targetFailure),
+                $"combat recovery quality target failed: {targetFailure}");
+
+            foreach (WorldItemStackSnapshot stack in
+                     sourceItems.GetAllStacks().ToArray())
+            {
+                Require(sourceItems.SpawnItemAt(
+                        stack.ItemId,
+                        stack.Quantity,
+                        new Vector2Int(order.destinationX, order.destinationY),
+                        WorldItemStackState.FacilityBuffer,
+                        order.materialDestinationId,
+                        out int spawned)
+                    && spawned == stack.Quantity
+                    && sourceItems.DeleteStack(stack.StackId),
+                    "combat recovery concrete input delivery failed");
+            }
+
+            int firstCompleted = sourceEquipment.ApplyCraftWork(
+                new[] { DefinitionId },
+                999f,
+                maker,
+                5f,
+                out _,
+                out _,
+                out _);
+            Require(firstCompleted == 0
+                    && order.dismantlingRejectedOutput
+                    && !string.IsNullOrWhiteSpace(order.rejectedInstanceId)
+                    && !string.IsNullOrWhiteSpace(order.rejectedStackId),
+                "quality-rejected dagger did not enter physical dismantling");
+            Require(!order.rejectedRecoveryFactorsCaptured
+                    && !order.rejectedRecoveryProjected
+                    && order.recoveryOutputs.Count == 0
+                    && string.IsNullOrEmpty(order.rejectedDismantleOperationId),
+                "recovery factors or receipt were frozen before dismantling work");
+
+            int acknowledgementAttemptsBefore =
+                sourceGateway.AcknowledgementAttempts;
+            sourceGateway.FailNextAcknowledgement = true;
+            int secondCompleted = sourceEquipment.ApplyCraftWork(
+                new[] { DefinitionId },
+                999f,
+                dismantler,
+                73f,
+                out _,
+                out _,
+                out _);
+            Require(secondCompleted == 0
+                    && order.dismantlingRejectedOutput
+                    && order.rejectedOutputConsumed
+                    && order.rejectedRecoveryFactorsCaptured
+                    && order.rejectedRecoveryProjected
+                    && order.rejectedRecoveryPublished
+                    && !order.rejectedDismantleAcknowledged,
+                "rejected recovery did not stop at the injected acknowledgement boundary");
+            Require(Mathf.Approximately(
+                        order.rejectedRecoveryWorkerSkill,
+                        73f)
+                    && Mathf.Approximately(
+                        order.rejectedRecoverySalvageMultiplier,
+                        1f)
+                    && sourceGateway.AcknowledgementAttempts
+                        == acknowledgementAttemptsBefore + 1,
+                "actual dismantling worker factors were not frozen exactly once");
+            Require(order.recoveryOutputs.Count > 0
+                    && order.spawnedRecoveryAmounts.SequenceEqual(
+                        order.recoveryOutputs.Select(value => value.amount)),
+                "recovery output vector was not published exactly");
+
+            string frozenDigest = order.rejectedRecoverySourceDigest;
+            long frozenInputMass = order.rejectedDismantleInputMassGrams;
+            int frozenAttempt = order.qualityAttemptIndex;
+            string[] recoveryCommitIds = order.recoveryOutputs
+                .Select((output, index) =>
+                {
+                    string operationId = CombatEquipmentRejectedDismantleOutbox
+                        .FormatRecoveryOperationId(
+                            order.orderId,
+                            order.qualityAttemptIndex,
+                            index);
+                    return CombatEquipmentCraftOutputOutbox.FormatCommitId(
+                        operationId,
+                        output.itemId,
+                        output.amount);
+                })
+                .ToArray();
+            Require(CountExactRecoveryCommits(sourceItems, recoveryCommitIds)
+                    == recoveryCommitIds.Length,
+                "source runtime did not publish each recovery commit once");
+
+            DungeonPhysicalItemSaveData physicalSave = sourceItems.Capture();
+            DungeonCombatEquipmentSaveData combatSave = sourceEquipment.Capture();
+
+            DungeonPhysicalItemSaveData missingOutputSave =
+                UnityEngine.JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                    UnityEngine.JsonUtility.ToJson(physicalSave));
+            missingOutputSave.stacks.RemoveAll(stack =>
+                recoveryCommitIds.Any(commitId =>
+                    ProductionOutputCommitComponentCodec.Matches(
+                        stack.components,
+                        commitId)));
+            EditorEquipmentPhysicalItemGatewayProxy missingGateway = new();
+            missingItems = CreateRuntime(
+                out _,
+                out CombatEquipmentRuntime missingEquipment,
+                out _,
+                out _,
+                out _,
+                equipmentGatewayOverride: missingGateway,
+                enableRejectedRecovery: true,
+                craftQualityResolver: FixedRejectedCraftQualityResolver.Instance,
+                characterWorld: world);
+            _ = missingItems.StageTransactionalRestore(
+                missingOutputSave,
+                new FixedRestoreWorldCandidates(new[] { facility }));
+            _ = missingEquipment.BuildRestoreCandidate(combatSave);
+            bool missingOutputRejected = false;
+            try
+            {
+                ValidateCombatCraftRestoreOwners(
+                    combatSave.craftOrders,
+                    combatSave.craftTerminalEffects,
+                    missingItems);
+            }
+            catch (InvalidOperationException)
+            {
+                missingOutputRejected = true;
+            }
+            Require(missingOutputRejected,
+                "combat restore accepted a missing physical recovery commit");
+            missingItems.Dispose();
+            missingItems = null;
+
+            EditorEquipmentPhysicalItemGatewayProxy restoredGateway = new();
+            restoredItems = CreateRuntime(
+                out _,
+                out CombatEquipmentRuntime restoredEquipment,
+                out _,
+                out _,
+                out _,
+                equipmentGatewayOverride: restoredGateway,
+                enableRejectedRecovery: true,
+                craftQualityResolver: FixedRejectedCraftQualityResolver.Instance,
+                characterWorld: world);
+            IDungeonSaveRestoreStage physicalStage =
+                restoredItems.StageTransactionalRestore(
+                    physicalSave,
+                    new FixedRestoreWorldCandidates(new[] { facility }));
+            CombatEquipmentRestoreCandidate combatCandidate =
+                restoredEquipment.BuildRestoreCandidate(combatSave);
+            ValidateCombatCraftRestoreOwners(
+                combatSave.craftOrders,
+                combatSave.craftTerminalEffects,
+                restoredItems);
+            restoredItems.BeginRestoreCandidate();
+            physicalStage.Commit(new DungeonGameRestoreReport());
+            restoredEquipment.PublishRestoreCandidate(combatCandidate);
+            restoredItems.PublishRestoreCandidate();
+            restoredItems.CompleteRestoreCandidate();
+            restoredItems.Start();
+
+            CombatEquipmentCraftOrderSaveData restoredOrder =
+                restoredEquipment.CraftQueue.Single();
+            Require(restoredOrder.rejectedRecoveryFactorsCaptured
+                    && Mathf.Approximately(
+                        restoredOrder.rejectedRecoveryWorkerSkill,
+                        73f)
+                    && string.Equals(
+                        restoredOrder.rejectedRecoverySourceDigest,
+                        frozenDigest,
+                        StringComparison.Ordinal)
+                    && restoredOrder.rejectedDismantleInputMassGrams
+                        == frozenInputMass,
+                "combat restore did not preserve the frozen recovery authority");
+            Require(CountExactRecoveryCommits(restoredItems, recoveryCommitIds)
+                    == recoveryCommitIds.Length,
+                "combat restore lost or duplicated recovery commits");
+
+            int retryCompleted = restoredEquipment.ApplyCraftWork(
+                new[] { DefinitionId },
+                1f,
+                dismantler,
+                1f,
+                out _,
+                out _,
+                out _);
+            Require(retryCompleted == 0,
+                "recovery acknowledgement retry unexpectedly completed an accepted craft");
+            CombatEquipmentCraftOrderSaveData nextAttempt =
+                restoredEquipment.CraftQueue.Single();
+            Require(nextAttempt.qualityAttemptIndex == frozenAttempt + 1
+                    && !nextAttempt.dismantlingRejectedOutput
+                    && !nextAttempt.rejectedOutputConsumed
+                    && !nextAttempt.rejectedRecoveryFactorsCaptured
+                    && !nextAttempt.rejectedRecoveryProjected
+                    && !nextAttempt.rejectedRecoveryPublished
+                    && string.IsNullOrEmpty(nextAttempt.rejectedInstanceId)
+                    && string.IsNullOrEmpty(nextAttempt.rejectedStackId)
+                    && nextAttempt.recoveryOutputs.Count == 0
+                    && nextAttempt.spawnedRecoveryAmounts.Count == 0
+                    && string.IsNullOrEmpty(
+                        nextAttempt.rejectedDismantleOperationId),
+                "recovery acknowledgement retry did not advance and clear exactly once");
+            Require(CountExactRecoveryCommits(restoredItems, recoveryCommitIds)
+                    == recoveryCommitIds.Length,
+                "recovery acknowledgement retry minted duplicate output");
+            return $"order={order.orderId}; workerSkill=73; inputMass={frozenInputMass}; outputs={recoveryCommitIds.Length}";
+        }
+        finally
+        {
+            sourceItems?.Dispose();
+            missingItems?.Dispose();
+            restoredItems?.Dispose();
+            if (warehouse != null)
+                world.UnregisterWarehouse(warehouse);
+            if (maker != null)
+                world.UnregisterCharacter(maker);
+            if (dismantler != null)
+                world.UnregisterCharacter(dismantler);
+            for (int index = createdObjects.Count - 1; index >= 0; index--)
+            {
+                if (createdObjects[index] != null)
+                    UnityEngine.Object.DestroyImmediate(createdObjects[index]);
+            }
+        }
+    }
+
     internal static WorldItemStackRuntime CreateRuntimeForCrossDomainFixture(
         out WorldItemRepository repository,
         out CombatEquipmentRuntime equipmentRuntime,
@@ -2538,6 +2950,29 @@ public static class PhysicalItemDebugScenarios
         out IReservedPhysicalItemBatchDispositionService reservedBatch,
         out IPhysicalItemBatchDispositionService batch)
     {
+        return CreateRuntimeForCrossDomainFixture(
+            itemCatalog,
+            aggregateRootStore,
+            out repository,
+            out equipmentRuntime,
+            out quantityReservations,
+            out reservedTransfer,
+            out reservedBatch,
+            out batch,
+            out _);
+    }
+
+    internal static WorldItemStackRuntime CreateRuntimeForCrossDomainFixture(
+        IDungeonItemCatalogProvider itemCatalog,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        out WorldItemRepository repository,
+        out CombatEquipmentRuntime equipmentRuntime,
+        out ItemQuantityReservationService quantityReservations,
+        out IReservedItemTransferService reservedTransfer,
+        out IReservedPhysicalItemBatchDispositionService reservedBatch,
+        out IPhysicalItemBatchDispositionService batch,
+        out IDungeonRestoreTransactionParticipant exactRouteRestoreParticipant)
+    {
         if (itemCatalog == null)
         {
             throw new ArgumentNullException(nameof(itemCatalog));
@@ -2546,6 +2981,7 @@ public static class PhysicalItemDebugScenarios
         {
             aggregateRootStore = new DungeonRuntimeAggregateRootStore();
         }
+        IDungeonRestoreTransactionParticipant captured = null;
         WorldItemStackRuntime runtime = CreateRuntime(
             out repository,
             out equipmentRuntime,
@@ -2553,7 +2989,8 @@ public static class PhysicalItemDebugScenarios
             out reservedTransfer,
             out _,
             itemCatalogOverride: itemCatalog,
-            aggregateRootStoreOverride: aggregateRootStore);
+            aggregateRootStoreOverride: aggregateRootStore,
+            exactRouteRestoreParticipantObserver: value => captured = value);
         PhysicalItemBatchDispositionService service = new(
             repository,
             runtime.MassQuery,
@@ -2561,6 +2998,9 @@ public static class PhysicalItemDebugScenarios
             quantityReservations);
         reservedBatch = service;
         batch = service;
+        exactRouteRestoreParticipant = captured
+            ?? throw new InvalidOperationException(
+                "Cross-domain fixture did not expose its exact-route restore participant.");
         return runtime;
     }
 
@@ -2599,12 +3039,19 @@ public static class PhysicalItemDebugScenarios
         IGameClock gameClock = null,
         EditorEquipmentPhysicalItemGatewayProxy equipmentGatewayOverride = null,
         IDungeonItemCatalogProvider itemCatalogOverride = null,
-        DungeonRuntimeAggregateRootStore aggregateRootStoreOverride = null)
+        DungeonRuntimeAggregateRootStore aggregateRootStoreOverride = null,
+        bool enableRejectedRecovery = false,
+        ICraftQualityResolver craftQualityResolver = null,
+        ICharacterWorldQuery characterWorld = null,
+        Action<IDungeonRestoreTransactionParticipant>
+            exactRouteRestoreParticipantObserver = null)
     {
         IGameContentCatalog gameContent = new ResourceGameContentCatalog(
             new UnityGameContentRootLoader());
         ICombatEquipmentCatalog combatCatalog =
             new ResourceCombatEquipmentCatalog(gameContent);
+        IResourceEconomyContentCatalog economyCatalog =
+            new ResourceEconomyContentCatalog(gameContent);
         gridProvider ??= new NoGridProvider();
         gameClock ??= new UnityGameClock();
         IDungeonItemCatalogProvider itemCatalog =
@@ -2643,6 +3090,16 @@ public static class PhysicalItemDebugScenarios
             EditorNullItemMarkerPresenter.Instance);
         IPhysicalItemMassQuery massQuery =
             new PhysicalItemMassQuery(itemCatalog);
+        ICombatRejectedRecoveryProjector rejectedRecoveryProjector =
+            enableRejectedRecovery
+                ? new CombatRejectedRecoveryProjector(
+                    combatCatalog,
+                    economyCatalog,
+                    new V23MaterialSalvageCalculator(
+                        new ResourceMaterialEconomicProfileCatalog(gameContent)),
+                    massQuery,
+                    new GameplayEffectResultBoundsCatalog(gameContent))
+                : null;
         WorldItemQueryService query = new WorldItemQueryService(
             itemCatalog,
             massQuery,
@@ -2669,9 +3126,12 @@ public static class PhysicalItemDebugScenarios
             new CharacterCarryInventoryRegistry(),
             researchProvider: EditorAllResearchRuntimeProvider.Instance,
             moduleCatalog: new ResourceEquipmentModuleCatalog(gameContent),
-            materialCatalog: new ResourceEconomyContentCatalog(gameContent),
+            materialCatalog: economyCatalog,
             evolutionModules: EmptyEvolutionModuleRegistry.Instance,
-            itemStackRuntime: equipmentItemGateway);
+            itemStackRuntime: equipmentItemGateway,
+            rejectedRecoveryProjector: rejectedRecoveryProjector,
+            characterWorld: characterWorld,
+            qualityResolver: craftQualityResolver);
         IRetailStockPhysicalRuntime retailStockPhysical =
             new RetailStockPhysicalRuntime(
                 new CombatEquipmentRuntimeRetailAuthorityAdapter(equipmentRuntime));
@@ -2682,7 +3142,8 @@ public static class PhysicalItemDebugScenarios
             query,
             EditorNullItemMarkerPresenter.Instance,
             new EditorCharacterAiPerformanceRecorder(),
-            DisabledDungeonDebugRuleQuery.Instance);
+            DisabledDungeonDebugRuleQuery.Instance,
+            new FacilityOutputClearanceTelemetryRuntime());
         ItemTransferService itemTransferService = new ItemTransferService(
             readServices,
             idRegistry,
@@ -2709,6 +3170,16 @@ public static class PhysicalItemDebugScenarios
             warehouseMassAdmission: null,
             retailStockPhysical: retailStockPhysical);
         reservedTransfer = itemTransferService;
+        IFacilityOutputExactRouteOutboxPersistence exactRouteAuthority = null;
+        if (exactRouteRestoreParticipantObserver != null)
+        {
+            FacilityOutputExactRouteService exactRoute = new(
+                repository,
+                massQuery,
+                EditorNullItemMarkerPresenter.Instance);
+            exactRouteAuthority = exactRoute;
+            exactRouteRestoreParticipantObserver(exactRoute);
+        }
         WorldItemStackRuntime runtime = WorldItemEditorTestFactory.Create(
             gridProvider,
             itemCatalog,
@@ -2727,7 +3198,8 @@ public static class PhysicalItemDebugScenarios
             itemMarkerPresenter: EditorNullItemMarkerPresenter.Instance,
             itemTransferService: itemTransferService,
             performanceRecorder: new EditorCharacterAiPerformanceRecorder(),
-            reservationPersistence: quantityReservations);
+            reservationPersistence: quantityReservations,
+            exactRouteOutboxPersistence: exactRouteAuthority);
         equipmentItemGateway.Attach(runtime);
         return runtime;
     }
@@ -2955,7 +3427,7 @@ public static class PhysicalItemDebugScenarios
     private static string VerifyQualityRejectedUniqueDeliveryIdentity()
     {
         WorldItemStackRuntime items = CreateRuntime(
-            out _,
+            out WorldItemRepository repository,
             out CombatEquipmentRuntime equipment);
         try
         {
@@ -3008,8 +3480,9 @@ public static class PhysicalItemDebugScenarios
                     out CombatEquipmentInstance linked)
                     && linked.sourceStackId == stackId,
                 "equipment source-stack authority changed during market routing");
-            Require(!equipment.TryConsumeForMarketSale(
+            Require(!equipment.TryBeginMarketSale(
                     stackId,
+                    QualityRejectedSaleContract.FormatOperationId(1, stackId),
                     out _,
                     out _),
                 "market command consumed equipment before physical delivery");
@@ -3023,11 +3496,69 @@ public static class PhysicalItemDebugScenarios
                     saleDropoff,
                     out string routeFailure),
                 $"quality-rejected output could not enter the market buffer: {routeFailure}");
-            Require(equipment.TryConsumeForMarketSale(
+            WorldItemStackSnapshot delivered = items.GetAllStacks()
+                .Single(stack => stack.StackId == stackId);
+            FacilityBufferAcknowledgedOutputReleaseTarget target = new(
+                QualityRejectedOutputRules.MarketDestinationId,
+                saleDropoff);
+            QualityRejectedSalePending pending =
+                QualityRejectedSaleOutbox.CreatePrepared(
+                    sequence: 1,
+                    delivered,
+                    proceeds: 1,
+                    target,
+                    requiresCombatAuthority: true);
+            Require(equipment.TryBeginMarketSale(
                     stackId,
-                    out CombatEquipmentInstance sold,
-                    out string saleFailure),
-                $"market command could not consume the delivered equipment: {saleFailure}");
+                    pending.operationId,
+                    out CombatEquipmentInstance marketPending,
+                    out string beginFailure),
+                $"market custody could not begin: {beginFailure}");
+            Require(marketPending.worldState
+                    == CombatEquipmentWorldState.MarketSalePending
+                && !equipment.TryMarkLost(created.instanceId)
+                && !equipment.TryUpdateEvolutionState(
+                    created.instanceId,
+                    new EquipmentEvolutionState())
+                && !equipment.TryRestoreDurability(created.instanceId, 1f)
+                && !repository.TrySetEquipmentWorldStateBySourceStack(
+                    pending.operationId,
+                    CombatEquipmentWorldState.Loose),
+                "MarketSalePending equipment accepted an out-of-band mutation.");
+            bool physicalCommitted =
+                items.TryCommitPendingBatchPhysicalDisposition(
+                    new[] { new PhysicalItemTransformInput(stackId, 1) },
+                    PhysicalItemDispositionKind.Transfer,
+                    pending.operationId,
+                    pending.reasonCode,
+                    out PhysicalItemBatchDispositionReceipt physicalReceipt,
+                    out string physicalFailure);
+            string receiptFailure = string.Empty;
+            bool receiptApplied = physicalCommitted
+                && QualityRejectedSaleOutbox.TryApplyPhysicalReceipt(
+                    pending,
+                    physicalReceipt,
+                    out receiptFailure);
+            CombatEquipmentInstance sold = null;
+            string saleFailure = string.Empty;
+            bool uniqueReleased = receiptApplied
+                && equipment.TryFinalizeMarketSale(
+                    created.instanceId,
+                    pending.operationId,
+                    out sold,
+                    out saleFailure);
+            string acknowledgementFailure = string.Empty;
+            bool acknowledged = uniqueReleased
+                && items.AcknowledgeBatchPhysicalDisposition(
+                    pending.commitId,
+                    out acknowledgementFailure);
+            Require(physicalCommitted
+                    && receiptApplied
+                    && uniqueReleased
+                    && acknowledged,
+                "market command could not settle the delivered equipment: "
+                    + $"physical={physicalFailure};receipt={receiptFailure};"
+                    + $"sale={saleFailure};ack={acknowledgementFailure}");
             Require(sold.instanceId == created.instanceId
                     && sold.definitionId == created.definitionId
                     && sold.quality == created.quality,
@@ -3635,14 +4166,42 @@ public static class PhysicalItemDebugScenarios
                     out EquipmentHistoryTransferOrder order,
                     out DomainFailure queueFailure),
                 $"lineage transfer queue failed: {queueFailure.Code}");
-            Require(equipment.ApplyHistoryTransferWork(
-                    order.orderId,
-                    order.requiredWork,
-                    lineageFacility,
-                    out bool completed,
-                    out DomainFailure workFailure)
-                && completed,
-                $"lineage transfer work failed: {workFailure.Code}");
+            LineageTransferCraftOperationContributor contributor = new(equipment);
+            CraftFacilityHandle facilityHandle = new(
+                lineageFacility,
+                lineageFacility.RequirePersistentInstanceId().Value);
+            Require(contributor.TryCapturePlan(
+                    facilityHandle,
+                    out CraftWorkExecutionPlan firstPlan)
+                && firstPlan.Kind
+                    == CraftWorkOperationKind.RegisteredCapability
+                && firstPlan.OperationId == order.orderId
+                && firstPlan.ContributorId == contributor.ContributorId
+                && Mathf.Approximately(firstPlan.CompletedWork, 0f),
+                "lineage transfer was not exposed through the registered Craft operation");
+            CraftWorkProgressResult partial = contributor.ApplyProgress(
+                facilityHandle,
+                firstPlan,
+                order.requiredWork * 0.5f);
+            Require(partial.Succeeded && !partial.CycleCompleted,
+                "lineage Craft operation incorrectly completed the partial work slice");
+            Require(contributor.TryCapturePlan(
+                    facilityHandle,
+                    out CraftWorkExecutionPlan resumedPlan),
+                "lineage Craft operation disappeared after partial progress");
+            Require(resumedPlan.OperationId == order.orderId
+                    && Mathf.Approximately(
+                        resumedPlan.CompletedWork,
+                        order.requiredWork * 0.5f),
+                "lineage Craft operation did not preserve partial persistent progress");
+            CraftWorkProgressResult final = contributor.ApplyProgress(
+                facilityHandle,
+                resumedPlan,
+                order.requiredWork - resumedPlan.CompletedWork);
+            Require(final.Succeeded
+                    && final.CycleCompleted
+                    && !contributor.TryCapturePlan(facilityHandle, out _),
+                "lineage Craft operation did not complete exactly once");
 
             WorldItemStackSnapshot remainingSeal = items.GetAllStacks()
                 .SingleOrDefault(stack => stack.StackId == seal.StackId);
@@ -3670,9 +4229,12 @@ public static class PhysicalItemDebugScenarios
                     && transferred.evolution.activeHistoricalNodeIds.SequenceEqual(
                         inherited.activeHistoricalNodeIds),
                 "lineage target did not receive the source evolution history");
-            return $"sourceConsumed={source.instanceId}; target={target.instanceId}; "
-                + $"sealStack={seal.StackId}; sealRemaining={remainingSeal.Quantity}; "
-                + $"facility={lineageFacility.PersistentInstanceId.Value}";
+            return "requiredWork=" + Mathf.RoundToInt(order.requiredWork)
+                + ";partialWork=" + Mathf.RoundToInt(order.requiredWork * 0.5f)
+                + ";sourceConsumed=true;targetHistoryInherited=true"
+                + ";sealRemaining=" + remainingSeal.Quantity
+                + ";registeredContributor="
+                + LineageTransferCraftOperationContributor.StableContributorId;
         }
         finally
         {
@@ -3825,6 +4387,148 @@ public static class PhysicalItemDebugScenarios
                 expectedWorkstationTag),
             $"equipment facility runtime contract mismatch: {assetPath}");
         return facility;
+    }
+
+    private static int CountExactRecoveryCommits(
+        WorldItemStackRuntime runtime,
+        IEnumerable<string> commitIds)
+    {
+        WorldItemStackSnapshot[] stacks = runtime.GetAllStacks().ToArray();
+        return (commitIds ?? Array.Empty<string>()).Count(commitId =>
+            stacks.Any(stack => ProductionOutputCommitComponentCodec.Matches(
+                stack.Components,
+                commitId)));
+    }
+
+    private static void ValidateCombatCraftRestoreOwners(
+        IReadOnlyList<CombatEquipmentCraftOrderSaveData> orders,
+        IEnumerable<CombatEquipmentCraftTerminalEffectSaveData> terminalEffects,
+        WorldItemStackRuntime physicalCandidate)
+    {
+        CombatEquipmentCraftMaterialRestoreGuard.ValidateOwnerSet(
+            orders,
+            (terminalEffects ?? Array.Empty<
+                CombatEquipmentCraftTerminalEffectSaveData>()).ToArray(),
+            TryGetCombatCraftRequirements,
+            (IPhysicalItemRestoreCandidateQuery)physicalCandidate,
+            (IPhysicalItemRestoreCandidateOutputQuery)physicalCandidate);
+    }
+
+    private static bool TryGetCombatCraftRequirements(
+        CombatEquipmentCraftOrderSaveData order,
+        out IReadOnlyDictionary<string, int> requirements)
+    {
+        requirements = new Dictionary<string, int>();
+        if (order == null)
+            return false;
+        IGameContentCatalog content = new ResourceGameContentCatalog(
+            new UnityGameContentRootLoader());
+        ICombatEquipmentCatalog equipment =
+            new ResourceCombatEquipmentCatalog(content);
+        IResourceEconomyContentCatalog economy =
+            new ResourceEconomyContentCatalog(content);
+        if (!equipment.TryGet(
+                order.definitionId,
+                out CombatEquipmentDefinitionSO definition))
+        {
+            return false;
+        }
+        CraftMaterialDefinitionSO material = string.IsNullOrEmpty(order.materialId)
+            ? null
+            : economy.Materials.SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.MaterialId,
+                    order.materialId,
+                    StringComparison.Ordinal));
+        if (!CombatCraftConcreteInputProjection.TryCapture(
+                definition,
+                order.definitionId,
+                material,
+                out CombatCraftConcreteInputSnapshot snapshot,
+                out _))
+        {
+            return false;
+        }
+        requirements = snapshot.Inputs.ToDictionary(
+            value => value.ItemId,
+            value => value.Amount,
+            StringComparer.Ordinal);
+        return true;
+    }
+
+    private sealed class FixedRejectedCraftQualityResolver :
+        ICraftQualityResolver
+    {
+        internal static readonly FixedRejectedCraftQualityResolver Instance =
+            new();
+        private readonly DeterministicCraftQualityResolver inner = new();
+
+        public CraftQualityRollSaveData Roll(
+            ulong runSeed,
+            string pipelineId,
+            string definitionId,
+            int attemptIndex) => new()
+        {
+            attemptIndex = Mathf.Max(0, attemptIndex),
+            randomA = -10,
+            randomB = -10,
+            randomC = -10
+        };
+
+        public CraftQualityResolution Resolve(
+            CraftQualityRollSaveData roll,
+            float weightedSkill,
+            float facilityBonus,
+            float toolBonus,
+            float complexityPenalty) => inner.Resolve(
+            roll,
+            weightedSkill,
+            facilityBonus,
+            toolBonus,
+            complexityPenalty);
+    }
+
+    private sealed class FixedRestoreWorldCandidates :
+        IRestoreWorldCandidateQuery
+    {
+        private readonly IReadOnlyList<BuildableObject> buildings;
+
+        internal FixedRestoreWorldCandidates(
+            IReadOnlyList<BuildableObject> buildings)
+        {
+            this.buildings = buildings
+                ?? throw new ArgumentNullException(nameof(buildings));
+        }
+
+        public int Revision => 1;
+        public bool TryGetGrid(out Grid grid)
+        {
+            grid = null;
+            return false;
+        }
+        public bool TryGetBuildings(
+            out IReadOnlyList<BuildableObject> values)
+        {
+            values = buildings;
+            return true;
+        }
+        public bool TryGetCharacters(
+            out IReadOnlyList<CharacterActor> values)
+        {
+            values = null;
+            return false;
+        }
+        public bool TryGetWildlife(out IReadOnlyList<WildlifeActor> values)
+        {
+            values = null;
+            return false;
+        }
+        public bool TryGetExteriorZones(
+            out IReadOnlyList<ExteriorZoneMarker> values)
+        {
+            values = null;
+            return false;
+        }
     }
 
     private static void Run(
@@ -4533,7 +5237,8 @@ public static class PhysicalItemDebugScenarios
                 runtime.MassQuery,
                 runtime.HaulingSettingsProvider,
                 new CharacterCarryInventoryRegistry());
-            string actorId = $"test:{actor.GetInstanceID()}";
+            string actorId = new TestIdRegistry()
+                .GetOrAssignPersistentId(actor);
 
             ReservedRetailStockTransferReceipt TakeOne(
                 int ordinal,
@@ -4792,7 +5497,8 @@ public static class PhysicalItemDebugScenarios
 
     private sealed class TestWarehouseFacility : MonoBehaviour, IWarehouseFacility
     {
-        private readonly WarehouseInventory inventory = new WarehouseInventory(200);
+        private readonly WarehouseInventory inventory = new WarehouseInventory(
+            200_000L, StockCategory.General, restrictCategory: false);
 
         public WarehouseInventory Inventory => inventory;
         public BuildingInstanceId PersistentInstanceId =>
@@ -4812,13 +5518,17 @@ public static class PhysicalItemDebugScenarios
     {
         public bool TryGetPersistentId(CharacterActor actor, out string persistentId)
         {
-            persistentId = actor != null ? $"test:{actor.GetInstanceID()}" : string.Empty;
+            persistentId = actor?.Identity?.PersistentId;
+            if (string.IsNullOrWhiteSpace(persistentId) && actor != null)
+                persistentId = $"test:{actor.GetInstanceID()}";
             return actor != null;
         }
 
         public string GetOrAssignPersistentId(CharacterActor actor)
         {
-            return actor != null ? $"test:{actor.GetInstanceID()}" : "test:null";
+            return TryGetPersistentId(actor, out string persistentId)
+                ? persistentId
+                : "test:null";
         }
     }
 

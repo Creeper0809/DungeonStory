@@ -1,0 +1,120 @@
+<details class="document-toc" data-document-toc hidden>
+  <summary>이 문서의 목차</summary>
+  <nav aria-label="이 문서의 목차"><ol></ol></nav>
+</details>
+
+<script is:inline>
+  (() => {
+    const toc = document.querySelector('[data-document-toc]');
+    const article = document.querySelector('#main > article');
+    if (!(toc instanceof HTMLDetailsElement) || !(article instanceof HTMLElement)) return;
+
+    const pageHeader = article.querySelector(':scope > .page-header');
+    if (!(pageHeader instanceof HTMLElement)) return;
+
+    const excludedAncestor = 'aside, .system-index, .guide-reveal, .document-toc, [data-document-toc]';
+    const headings = Array.from(article.querySelectorAll('h2, h3')).filter((heading) => !heading.closest(excludedAncestor));
+    if (headings.length === 0) return;
+
+    const usedIds = new Set(Array.from(document.querySelectorAll('[id]')).map((element) => element.id));
+    const generatedIds = new Map();
+    const makeId = (heading) => {
+      if (heading.id) return heading.id;
+      const base = `section-${heading.textContent.trim().toLocaleLowerCase('ko-KR')
+        .normalize('NFKC')
+        .replace(/[^0-9a-z가-힣]+/gi, '-')
+        .replace(/^-+|-+$/g, '') || 'content'}`;
+      const count = generatedIds.get(base) || 0;
+      generatedIds.set(base, count + 1);
+      let id = count ? `${base}-${count + 1}` : base;
+      while (usedIds.has(id)) {
+        const next = (generatedIds.get(base) || 1) + 1;
+        generatedIds.set(base, next);
+        id = `${base}-${next}`;
+      }
+      heading.id = id;
+      usedIds.add(id);
+      return id;
+    };
+
+    const list = toc.querySelector('ol');
+    if (!(list instanceof HTMLOListElement)) return;
+    const links = [];
+
+    headings.forEach((heading) => {
+      const id = makeId(heading);
+      const anchor = document.createElement('a');
+      anchor.className = 'heading-anchor';
+      anchor.href = `#${encodeURIComponent(id)}`;
+      anchor.setAttribute('aria-label', `${heading.textContent.trim()} 항목 주소`);
+      anchor.textContent = '#';
+      heading.append(anchor);
+
+      const item = document.createElement('li');
+      if (heading.tagName === 'H3') item.className = 'document-toc__subsection';
+      const link = document.createElement('a');
+      link.href = `#${encodeURIComponent(id)}`;
+      link.textContent = heading.textContent.replace('#', '').trim();
+      item.append(link);
+      list.append(item);
+      links.push({ id, link });
+    });
+    if (links.length < 2) return;
+
+    const rail = article.querySelector('aside[class*="rail"]');
+    if (rail instanceof HTMLElement) rail.classList.add('document-toc-rail');
+    const guideRail = rail instanceof HTMLElement && rail.classList.contains('guide-page__rail');
+    const compact = window.matchMedia('(max-width: 850px)');
+    const placeToc = () => {
+      if (compact.matches || !(rail instanceof HTMLElement)) {
+        pageHeader.after(toc);
+        if (guideRail) rail.hidden = true;
+        toc.open = false;
+      } else {
+        rail.prepend(toc);
+        if (guideRail) rail.hidden = false;
+        toc.open = true;
+      }
+    };
+    placeToc();
+    compact.addEventListener('change', placeToc);
+    toc.hidden = false;
+
+    const setCurrent = (id) => {
+      links.forEach(({ id: linkId, link }) => {
+        if (linkId === id) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
+    };
+    const openRevealForHash = () => {
+      const hash = decodeURIComponent(window.location.hash.slice(1));
+      if (!hash) return;
+      const target = document.getElementById(hash);
+      const reveal = target instanceof HTMLDetailsElement && target.matches('[data-guide-reveal]')
+        ? target
+        : target?.closest('[data-guide-reveal]');
+      if (reveal instanceof HTMLDetailsElement) {
+        reveal.open = true;
+        requestAnimationFrame(() => target?.scrollIntoView({ block: 'start' }));
+      }
+    };
+    openRevealForHash();
+    const fromHash = decodeURIComponent(window.location.hash.slice(1));
+    if (fromHash) setCurrent(fromHash);
+    else setCurrent(links[0].id);
+
+    const updateFromScroll = () => {
+      let current = headings[0];
+      headings.forEach((heading) => {
+        if (heading.getBoundingClientRect().top <= 112) current = heading;
+      });
+      setCurrent(current.id);
+    };
+    window.addEventListener('scroll', updateFromScroll, { passive: true });
+    window.addEventListener('hashchange', () => {
+      openRevealForHash();
+      setCurrent(decodeURIComponent(window.location.hash.slice(1)));
+    });
+    updateFromScroll();
+  })();
+</script>

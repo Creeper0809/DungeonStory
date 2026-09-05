@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "material-stone-block",
+    "spoiler_tier": "none",
+    "title": "석재"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/material-stone-block",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-mining-stonecutting",
+      "target_spoiler_tier": "none",
+      "target_title": "석재 가공",
+      "to": "research/research-mining-stonecutting",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "4개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "32"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "암반과 구조물을 깨뜨리도록 화약을 한 번의 폭발량으로 밀봉한 장약이다. 오르데나에서 지급한 발파 장약 포장에는 폭약량과 안전 거리가 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-blasting-charge",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 발파 장약.",
+  "title": "발파 장약"
+}

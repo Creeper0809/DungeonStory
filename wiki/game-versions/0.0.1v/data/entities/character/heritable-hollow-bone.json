@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Anatomy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-hollow-bone",
+  "spoiler_tier": "none",
+  "summary": "가볍고 민첩하지만 압궤 손상에 취약하다.",
+  "title": "공동 골격"
+}

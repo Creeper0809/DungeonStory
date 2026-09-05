@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "fixed-truth-core",
+    "spoiler_tier": "none",
+    "title": "봉인 기록 심장부"
+  },
+  "edges": [],
+  "schema_version": 1
+}

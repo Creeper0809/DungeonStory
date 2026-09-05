@@ -1,0 +1,49 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1030",
+      "target_spoiler_tier": "none",
+      "target_title": "연구책상",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1031",
+      "target_spoiler_tier": "none",
+      "target_title": "연금술작업대",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1038",
+      "target_spoiler_tier": "none",
+      "target_title": "룬안정기",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1032",
+      "target_spoiler_tier": "none",
+      "target_title": "연구용책장",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facilityevolutionrecipe-9105",
+  "spoiler_tier": "none",
+  "summary": "마력 안정 장치가 있는 연구실에서 연구책상을 연금술작업대로 진화시킨다.",
+  "title": "비전 연구 진화"
+}

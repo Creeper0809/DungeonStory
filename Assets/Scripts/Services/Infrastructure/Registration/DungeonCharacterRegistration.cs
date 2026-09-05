@@ -32,12 +32,15 @@ public static class DungeonCharacterRegistration
             .As<ICharacterRuntimeProfileFactory>();
         builder.Register<CharacterNarrativeCatalog>(Lifetime.Singleton)
             .As<ICharacterNarrativeCatalog>();
+        builder.Register<WorkCompletionIdentityDeliveryLedger>(
+            Lifetime.Singleton);
         builder.Register<CharacterNarrativeRuntime>(Lifetime.Singleton)
             .As<ICharacterNarrativeQuery>()
             .As<ICharacterNarrativeCommand>()
             .As<ICharacterNarrativePersistence>()
             .As<ICharacterProficiencyQuery>()
-            .As<ICharacterProficiencyCommand>();
+            .As<ICharacterProficiencyCommand>()
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<WorkerNarrativeQualificationQuery>(Lifetime.Singleton)
             .As<IWorkerNarrativeQualificationQuery>();
         builder.Register<TraitAnalysisCommandRuntime>(Lifetime.Singleton)
@@ -150,14 +153,18 @@ public static class DungeonCharacterRegistration
             .As<ICharacterApologyCommand>();
         builder.Register<CharacterIdentityEventPublisher>(Lifetime.Singleton);
         builder.Register<ExtremeCraftInspirationRuntime>(Lifetime.Singleton);
-        builder.Register<ExtremeTraitRuntime>(Lifetime.Singleton);
+        builder.Register<ExtremeTraitRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IGoldenHarvestPreparedResolutionQuery>()
+            .As<ICharacterIdentityDeathStateRetentionPolicy>();
         builder.RegisterEntryPoint<ExtremeTraitLeaseClock>(Lifetime.Singleton);
         builder.Register<ArcaneOverchargeCommandRuntime>(Lifetime.Singleton)
             .As<IArcaneOverchargeCommand>();
         builder.RegisterEntryPoint<CombatIdentityEventAdapter>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterDeathIdentityEventAdapter>(Lifetime.Singleton);
         builder.RegisterEntryPoint<MealIdentityEventAdapter>(Lifetime.Singleton);
-        builder.RegisterEntryPoint<WorkIdentityEventAdapter>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<WorkIdentityEventAdapter>(Lifetime.Singleton)
+            .As<IWorkCompletionIdentityDeliveryCommand>();
         builder.RegisterEntryPoint<RestIdentityEventAdapter>(Lifetime.Singleton);
         builder.RegisterEntryPoint<ProductIdentityEventAdapter>(Lifetime.Singleton);
         builder.RegisterEntryPoint<ResearchIdentityEventAdapter>(Lifetime.Singleton);
@@ -249,8 +256,20 @@ public static class DungeonCharacterRegistration
         builder.Register<CharacterProgressionProfileProjector>(
             Lifetime.Transient);
         builder.Register<CharacterPerformanceFormulaCatalog>(Lifetime.Singleton);
+        builder.Register<CharacterFunctionalCapacityDefinitionBoundsQuery>(
+                Lifetime.Singleton)
+            .As<ICharacterFunctionalCapacityDefinitionBoundsQuery>();
+        builder.Register<CharacterPerformanceDefinitionMaximumQuery>(
+                Lifetime.Singleton)
+            .As<ICharacterPerformanceDefinitionMaximumQuery>();
+        builder.Register<CharacterWorkContextDefinitionMaximumQuery>(
+                Lifetime.Singleton)
+            .As<ICharacterWorkContextDefinitionMaximumQuery>();
         builder.Register<CharacterPerformanceQuery>(Lifetime.Singleton)
             .As<ICharacterPerformanceQuery>();
+        builder.RegisterFactory<ICharacterPerformanceQuery>(
+            resolver => () => resolver.Resolve<ICharacterPerformanceQuery>(),
+            Lifetime.Singleton);
         builder.Register<CharacterWorkPerformanceContextResolver>(Lifetime.Singleton);
         builder.Register<CharacterProgressionNotificationApplicationAdapter>(
             Lifetime.Singleton);
@@ -263,7 +282,8 @@ public static class DungeonCharacterRegistration
         builder.Register<CharacterStatsMaintenanceSchedule>(Lifetime.Transient);
         builder.Register<CharacterPopulationApplicationAdapter>(Lifetime.Singleton);
         builder.Register<CharacterPopulationService>(Lifetime.Singleton)
-            .As<ICharacterPopulationService>();
+            .As<ICharacterPopulationService>()
+            .As<ICharacterSettlementStandingQuery>();
         builder.Register<PreparedStartPartyCharacterContext>(Lifetime.Singleton);
         builder.Register<PreparedStartPartyWorldContext>(Lifetime.Singleton);
         builder.Register<PreparedStartPartyGameplayApplier>(Lifetime.Singleton)
@@ -284,4 +304,5 @@ public static class DungeonCharacterRegistration
             .AsSelf()
             .As<ICharacterLogNarrativeService>();
     }
+
 }

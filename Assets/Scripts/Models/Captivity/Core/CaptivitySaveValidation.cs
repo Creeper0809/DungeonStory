@@ -200,6 +200,8 @@ public static class CaptivitySaveValidation
                 captiveId,
                 StringComparison.Ordinal)
             || !IsOptionalBuildingId(captive.housingBuildingId)
+            || !IsOptionalBuildingId(
+                captive.rehabilitationFacilityBuildingId)
             || !IsOptionalStackId(captive.restraintStackId)
             || !IsOptionalItemId(captive.restraintItemId))
         {
@@ -241,6 +243,13 @@ public static class CaptivitySaveValidation
             || captive.assignedLaborToolDurability
                 > captive.assignedLaborToolMaximumDurability
             || !IsFiniteAtLeast(captive.nextLaborToolWearAt, 0f)
+            || captive.capturedAbsoluteDay < 0
+            || captive.rehabilitationDays < 0
+            || captive.lastRehabilitationAbsoluteDay < -1
+            || !IsFiniteAtLeast(captive.completedRehabilitationWork, 0f)
+            || captive.completedRehabilitationWork
+                >= CaptivityStateTransitionRules.RehabilitationRequiredWork
+            || captive.lastMinionSocialAbsoluteDay < -1
             || captive.completedInteractionWork
                 > captive.requiredInteractionWork
             || captive.performerInjuries < 0
@@ -265,7 +274,8 @@ public static class CaptivitySaveValidation
                     || captive.interactionMaterialDestinationId.Length == 0
                     || captive.requiredInteractionWork <= 0f))
             || (!hasInteraction
-                && (captive.reservedWardenId.Length > 0
+                && ((captive.reservedWardenId.Length > 0
+                        && !captive.rehabilitationInProgress)
                     || captive.interactionMaterialDestinationId.Length > 0
                     || captive.interactionMaterialsConsumed)))
         {
@@ -273,11 +283,36 @@ public static class CaptivitySaveValidation
                 $"Captive '{captiveId}' has incoherent interaction state.");
         }
 
+        bool hasRehabilitationFacility =
+            captive.rehabilitationFacilityBuildingId.Length > 0;
+        if (captive.rehabilitationInProgress
+            != (captive.IsMinion
+                && captive.reservedWardenId.Length > 0
+                && hasRehabilitationFacility)
+            || (!captive.rehabilitationInProgress
+                && hasRehabilitationFacility))
+        {
+            report.AddError(
+                $"Minion '{captiveId}' has incoherent rehabilitation assignment state.");
+        }
+
         if (RequiresHousing(captive.status)
             && captive.housingBuildingId.Length == 0)
         {
             report.AddError(
                 $"Captive '{captiveId}' requires a housing building.");
+        }
+        if (captive.IsMinion
+            && (captive.housingBuildingId.Length > 0
+                || captive.restraintStackId.Length > 0
+                || captive.assignedRestraintItemId.Length > 0
+                || captive.laborPermissions != CaptiveLaborPermission.None
+                || captive.pendingLaborPermissions != CaptiveLaborPermission.None
+                || captive.assignedLaborToolItemId.Length > 0
+                || captive.currentInteractionId.Length > 0))
+        {
+            report.AddError(
+                $"Minion '{captiveId}' still owns captive-only housing, restraint, labor-tool, or interaction state.");
         }
         bool transportActive = captive.status is CaptivityStatus.Stabilizing
             or CaptivityStatus.AwaitingEscort
@@ -411,6 +446,7 @@ public static class CaptivitySaveValidation
             || captive.reservedCarrierId == null
             || captive.reservedWardenId == null
             || captive.housingBuildingId == null
+            || captive.rehabilitationFacilityBuildingId == null
             || captive.restraintStackId == null
             || captive.restraintItemId == null
             || captive.assignedRestraintItemId == null

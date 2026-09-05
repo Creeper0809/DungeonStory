@@ -553,11 +553,7 @@ public static class CharacterWorldSaveValidation
             return;
         }
 
-        bool isDefaultEmptyIntent = string.IsNullOrWhiteSpace(intent.operationId)
-            && string.IsNullOrWhiteSpace(intent.ownerCharacterId)
-            && string.IsNullOrWhiteSpace(intent.destinationId)
-            && (intent.commitments == null || intent.commitments.Count == 0);
-        if (isDefaultEmptyIntent)
+        if (intent.IsDefaultEmptyProjection)
         {
             if (haulCarried.Length > 0)
                 report.AddError($"{label} has carried haul items without a delivery intent.");

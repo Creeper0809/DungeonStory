@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "180"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손상되거나 잃은 감각 젤의 기능을 대신하도록 신체에 연결하는 보철 부품이다. 하르나크의 맑은물 합류 치료사는 감각 젤 보철을 맑은 물에 한 방울 풀어 색이 핵 쪽으로 번지는지 먼저 본다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-prosthetic-sensory-gel",
+  "spoiler_tier": "none",
+  "summary": "수술로 설치하는 고유 보철 부품",
+  "title": "감각 젤 보철"
+}

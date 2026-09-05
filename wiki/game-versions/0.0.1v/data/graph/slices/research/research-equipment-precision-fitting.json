@@ -1,0 +1,165 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-precision-fitting",
+    "spoiler_tier": "none",
+    "title": "정밀 부품 장착"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-material-testing",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험학",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-material-testing",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험학",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-material-testing",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험학",
+      "to": "research/research-equipment-material-testing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-relic-appraisal",
+      "target_spoiler_tier": "none",
+      "target_title": "유물 부품 감정과 복원",
+      "to": "research/research-equipment-relic-appraisal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-relic-appraisal",
+      "target_spoiler_tier": "none",
+      "target_title": "유물 부품 감정과 복원",
+      "to": "research/research-equipment-relic-appraisal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-relic-appraisal",
+      "target_spoiler_tier": "none",
+      "target_title": "유물 부품 감정과 복원",
+      "to": "research/research-equipment-relic-appraisal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-precision-fitting",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8844",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 장착대",
+      "to": "facility/building-8844",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-precision-parts",
+      "label": "필요 조건",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-inspection-gauge",
+      "label": "필요 조건",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-modular-frames",
+      "label": "선행 연구",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-modular-frames",
+      "label": "선행 연구",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-modular-frames",
+      "label": "선행 연구",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-powered-armor",
+      "label": "선행 연구",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

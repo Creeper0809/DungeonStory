@@ -1,0 +1,53 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-arrow-steel",
+    "spoiler_tier": "none",
+    "title": "강철촉 화살"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "recipe/recipe-arrow-steel",
+      "label": "생산·해금",
+      "to": "item/ammo-arrow-steel",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-ammo-incendiary-arrow",
+      "label": "필요 조건",
+      "to": "item/ammo-arrow-steel",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "관련",
+      "to": "item/ammo-arrow-steel",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-longbow",
+      "label": "관련",
+      "to": "item/ammo-arrow-steel",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "관련",
+      "to": "item/ammo-arrow-steel",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-shortbow",
+      "label": "관련",
+      "to": "item/ammo-arrow-steel",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

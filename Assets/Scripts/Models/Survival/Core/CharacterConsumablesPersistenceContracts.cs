@@ -400,6 +400,8 @@ public sealed class CharacterConsumablesRestoreCandidate
 
 public interface ICharacterConsumablesPersistence
 {
+    void ReconcilePersistentActorReferences(
+        IReadOnlyCollection<CharacterId> persistentActorIds);
     DungeonCharacterConsumablesSaveData Capture();
     void ValidateRestorePayload(
         DungeonCharacterConsumablesSaveData saveData,
@@ -408,4 +410,9 @@ public interface ICharacterConsumablesPersistence
         DungeonCharacterConsumablesSaveData saveData);
     void PublishRestoreCandidate(
         CharacterConsumablesRestoreCandidate candidate);
+}
+
+public interface ICharacterConsumablesPersistentActorQuery
+{
+    IReadOnlyCollection<CharacterId> GetPersistentActorIds();
 }

@@ -21,6 +21,9 @@ public static class DungeonCoreInfrastructureRegistration
             .As<IRoomEnvironmentAuthoredContentPort>()
             .As<IOffenseAuthoredContentPort>()
             .As<ICoreSessionRulesProvider>();
+        builder.Register<IInGameNarrativeTextQuery>(
+            _ => new ResourceInGameNarrativeTextQuery(),
+            Lifetime.Singleton);
     }
 
     public static void RegisterDungeonCoreInfrastructure(
@@ -81,9 +84,11 @@ public static class DungeonCoreInfrastructureRegistration
             .AsSelf()
             .As<IEconomyTransactionLedger>();
         builder.Register<GameMoneyAccount>(Lifetime.Singleton)
-            .As<IGameMoneyAccount>();
+            .As<IGameMoneyAccount>()
+            .As<IIdempotentGameMoneyAccount>();
         builder.Register<EmploymentContractRuntime>(Lifetime.Singleton)
             .AsSelf()
+            .As<IEmploymentStandingCommand>()
             .As<IEmploymentContractRuntime>();
         builder.Register<PaidFacilityContractRuntime>(Lifetime.Singleton)
             .AsSelf()
@@ -196,6 +201,7 @@ public static class DungeonCoreInfrastructureRegistration
         builder.Register<CharacterWorldSaveService>(Lifetime.Singleton)
             .As<ICharacterWorldSaveService>()
             .As<ICharacterWorldPersistenceIdentityQuery>()
+            .As<ICharacterConsumablesPersistentActorQuery>()
             .As<ICharacterHaulDeliveryRestoreQuery>()
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<HaulDeliveryIntentRestoreCoordinator>(Lifetime.Singleton)

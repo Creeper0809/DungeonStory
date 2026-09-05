@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-spin-cave-silk",
+    "spoiler_tier": "none",
+    "title": "동굴 비단 방적"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-spin-cave-silk",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "yarn-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 원사",
+      "to": "item/yarn-cave-silk",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-cave-silk",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "fiber-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 원섬유",
+      "to": "item/fiber-cave-silk",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-cave-silk",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-spin-cave-silk",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-armor-break",
+      "target_spoiler_tier": "none",
+      "target_title": "갑주 파쇄",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-core-repair",
+      "target_spoiler_tier": "none",
+      "target_title": "핵 긴급수리",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "enemy-rival-siege-frame",
+  "spoiler_tier": "none",
+  "summary": "갑주를 파쇄하고 스스로 핵을 수리한다.",
+  "title": "경쟁 던전 공성골렘"
+}

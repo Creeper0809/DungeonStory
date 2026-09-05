@@ -54,11 +54,19 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:cloth
-    amount: 2
+    amount: 5
   - itemId: material:leather
-    amount: 1
+    amount: 2
   outputs:
   - outputLineId: output:recipe:textile:insulating-cloth/000/main/textile:insulating-cloth
     role: 0

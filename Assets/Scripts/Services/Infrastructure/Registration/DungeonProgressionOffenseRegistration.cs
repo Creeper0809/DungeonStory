@@ -64,7 +64,8 @@ public static class DungeonProgressionOffenseRegistration
             .As<IBlueprintResearchStateService>();
         builder.RegisterEntryPoint<DungeonSpaceExpansionRuntime>(Lifetime.Singleton)
             .AsSelf()
-            .As<IDungeonSpaceExpansionQuery>();
+            .As<IDungeonSpaceExpansionQuery>()
+            .As<IDungeonSpaceExpansionCommand>();
 
         builder.Register<MetaProgressionRuntimeReader>(Lifetime.Singleton)
             .As<IMetaProgressionRuntimeReader>();
@@ -129,6 +130,9 @@ public static class DungeonProgressionOffenseRegistration
             .As<IOffenseStrategicTravelEventHandler>();
         builder.Register<OffenseExpeditionBattleCompletionHandler>(Lifetime.Singleton)
             .As<IOffenseExpeditionBattleCompletionHandler>();
+        builder.Register<OffenseUrgentMitigationInputOwnerRuntime>(
+                Lifetime.Singleton)
+            .As<IOffenseUrgentMitigationInputOwnerRuntime>();
         builder.RegisterEntryPoint<OffenseUrgentMitigationRuntime>(
                 Lifetime.Singleton)
             .AsSelf()
@@ -168,6 +172,8 @@ public static class DungeonProgressionOffenseRegistration
         builder.Register<OffenseDecisionEffectExecutor>(Lifetime.Singleton)
             .As<IOffenseDecisionEffectExecutor>();
         builder.Register<KnowledgeResidueExecutionServices>(Lifetime.Singleton);
+        builder.Register<KnowledgeResidueDestinationRuntime>(Lifetime.Singleton)
+            .As<IKnowledgeResidueDestinationRuntime>();
         builder.RegisterEntryPoint<KnowledgeResidueProcessingRuntime>(
                 Lifetime.Singleton)
             .As<IKnowledgeResidueProcessingRuntime>();

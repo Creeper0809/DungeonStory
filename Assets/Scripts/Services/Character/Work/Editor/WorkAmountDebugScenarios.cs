@@ -58,6 +58,14 @@ public static class WorkAmountDebugScenarios
             "work-order late participant failure restores live construction site",
             VerifyLateParticipantFailureRestoresLiveConstructionSite,
             errors);
+        RunScenario(
+            "deferred dismantle cancellation preserves salvage across restore",
+            VerifyDeferredDismantleCancellationRecovery,
+            errors);
+        RunScenario(
+            "destructive-drain work-order save contract",
+            VerifyDestructiveDrainSaveContract,
+            errors);
 
         if (errors.Count > 0)
         {
@@ -241,6 +249,9 @@ public static class WorkAmountDebugScenarios
             (BuildingInstanceId)"building:test:work-amount-construction");
         CharacterAiEditorTestDependencies.Inject(site);
         FakeWorldItemStackRuntime itemRuntime = new FakeWorldItemStackRuntime();
+        ConstructionInputOwnerFixture constructionInputs = new(
+            itemRuntime,
+            site);
         TrackingWorkforceReplanService workforceReplan = new TrackingWorkforceReplanService();
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
@@ -249,7 +260,8 @@ public static class WorkAmountDebugScenarios
             new ScenarioObjectResolver(),
             CreateExecutionServices(workforceReplan),
             CreateStateStore(),
-            new FakePhysicalItemSourcePublicationService(itemRuntime));
+            new FakePhysicalItemSourcePublicationService(itemRuntime),
+            constructionInputs.Runtime);
         bool placed = false;
         bool removed = false;
         try
@@ -403,6 +415,9 @@ public static class WorkAmountDebugScenarios
         FakeWorldItemStackRuntime itemRuntime = new FakeWorldItemStackRuntime();
         FakePhysicalItemSourcePublicationService materialSources =
             new FakePhysicalItemSourcePublicationService(itemRuntime);
+        ConstructionInputOwnerFixture constructionInputs = new(
+            itemRuntime,
+            site);
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
             itemRuntime,
@@ -410,7 +425,8 @@ public static class WorkAmountDebugScenarios
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
             CreateStateStore(),
-            materialSources);
+            materialSources,
+            constructionInputs.Runtime);
         try
         {
             site.Initialization(building, new Vector2Int(5, 0));
@@ -490,6 +506,9 @@ public static class WorkAmountDebugScenarios
         string kitItemId =
             FacilityInstallationKitItemIds.ForBuilding(building);
         itemRuntime.AddAvailableItem(kitItemId, 1);
+        ConstructionInputOwnerFixture constructionInputs = new(
+            itemRuntime,
+            site);
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
             itemRuntime,
@@ -497,7 +516,8 @@ public static class WorkAmountDebugScenarios
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
             CreateStateStore(),
-            new FakePhysicalItemSourcePublicationService(itemRuntime));
+            new FakePhysicalItemSourcePublicationService(itemRuntime),
+            constructionInputs.Runtime);
         try
         {
             site.Initialization(building, new Vector2Int(4, 0));
@@ -570,6 +590,9 @@ public static class WorkAmountDebugScenarios
             (BuildingInstanceId)"building:test:work-amount-orphan");
         CharacterAiEditorTestDependencies.Inject(site);
         FakeWorldItemStackRuntime itemRuntime = new FakeWorldItemStackRuntime();
+        ConstructionInputOwnerFixture constructionInputs = new(
+            itemRuntime,
+            site);
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
             itemRuntime,
@@ -577,7 +600,8 @@ public static class WorkAmountDebugScenarios
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
             CreateStateStore(),
-            new FakePhysicalItemSourcePublicationService(itemRuntime));
+            new FakePhysicalItemSourcePublicationService(itemRuntime),
+            constructionInputs.Runtime);
         try
         {
             site.Initialization(building, new Vector2Int(6, 0));
@@ -591,7 +615,41 @@ public static class WorkAmountDebugScenarios
                 return false;
             }
 
+            WorkOrderSaveData owner = runtime.Capture().orders.Single();
+            WorkConstructionInputOwnerDescriptor ownerDescriptor = new(
+                owner.workOrderId,
+                owner.materialDestinationId,
+                owner.constructionSitePersistentId,
+                new Vector2Int(owner.gridX, owner.gridY),
+                owner.itemMaterials.ToDictionary(
+                    value => value.itemId,
+                    value => value.required,
+                    StringComparer.Ordinal),
+                owner.materialBufferCapacityGrams,
+                owner.materialMassAuthorityRevision,
+                owner.materialCapacityFingerprint);
             UnityEngine.Object.DestroyImmediate(siteObject);
+            bool activeMutationRejected =
+                !constructionInputs.Runtime.TryValidateAuthority(
+                    ownerDescriptor,
+                    out string activeFailure)
+                && string.Equals(
+                    activeFailure,
+                    "work-construction-input-descriptor-invalid",
+                    StringComparison.Ordinal);
+            bool terminalReleaseAccepted =
+                constructionInputs.Runtime.TryPrepareTerminalRelease(
+                    ownerDescriptor,
+                    "work-construction-orphaned-fixture",
+                    out string terminalFailure);
+            if (!activeMutationRejected || !terminalReleaseAccepted)
+            {
+                Debug.LogWarning(
+                    "Orphan construction terminal authority diagnostic "
+                    + $"activeFailure={activeFailure} "
+                    + $"terminalFailure={terminalFailure}");
+                return false;
+            }
             runtime.Tick();
             return runtime.Capture().orders.Count == 0
                 && itemRuntime.ReleasedQuantity == 2;
@@ -622,6 +680,7 @@ public static class WorkAmountDebugScenarios
             (BuildingInstanceId)"building:test:work-order-preflight");
         CharacterAiEditorTestDependencies.Inject(site);
         FakeWorldItemStackRuntime items = new FakeWorldItemStackRuntime();
+        ConstructionInputOwnerFixture constructionInputs = new(items, site);
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
             items,
@@ -629,7 +688,8 @@ public static class WorkAmountDebugScenarios
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
             CreateStateStore(),
-            new FakePhysicalItemSourcePublicationService(items));
+            new FakePhysicalItemSourcePublicationService(items),
+            constructionInputs.Runtime);
         try
         {
             site.Initialization(building, new Vector2Int(2, 0));
@@ -706,6 +766,7 @@ public static class WorkAmountDebugScenarios
         RestoreWorldCandidateIndex candidateIndex =
             new RestoreWorldCandidateIndex();
         Grid liveGrid = new Grid(12, 4);
+        ConstructionInputOwnerFixture constructionInputs = new(items, liveSite);
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
             items,
@@ -713,7 +774,8 @@ public static class WorkAmountDebugScenarios
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
             new WorkOrderAggregateStateStore(rootStore, candidateIndex),
-            new FakePhysicalItemSourcePublicationService(items));
+            new FakePhysicalItemSourcePublicationService(items),
+            constructionInputs.Runtime);
         CandidateFacilitySection facilitySection =
             new CandidateFacilitySection(candidateIndex, new Grid(12, 4));
         PassiveSaveSection physicalItems = new PassiveSaveSection(
@@ -774,6 +836,8 @@ public static class WorkAmountDebugScenarios
                     {
                         facilitySection,
                         runtime,
+                        constructionInputs.Claims,
+                        constructionInputs.Capacities,
                         successProbe
                     });
             List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
@@ -885,7 +949,10 @@ public static class WorkAmountDebugScenarios
                     requiredWork = 5f,
                     completedWork = 1f,
                     materialDestinationId =
-                        $"{WorkOrderRuntime.ConstructionDestinationPrefix}{building.id}:{position.x}:{position.y}",
+                        WorkConstructionInputOwnerAuthority.DestinationFor(
+                            orderId),
+                    constructionSitePersistentId =
+                        "building:test:work-order-restored:" + orderId,
                     reservedWorkerPersistentId = string.Empty,
                     qualityRoll = new CraftQualityRollSaveData
                     {
@@ -925,6 +992,7 @@ public static class WorkAmountDebugScenarios
             new RestoreWorldCandidateIndex();
         Grid liveGrid = new Grid(12, 4);
         FakeWorldItemStackRuntime items = new FakeWorldItemStackRuntime();
+        ConstructionInputOwnerFixture constructionInputs = new(items, liveSite);
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
             items,
@@ -932,7 +1000,8 @@ public static class WorkAmountDebugScenarios
             new ScenarioObjectResolver(),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
             new WorkOrderAggregateStateStore(rootStore, candidateIndex),
-            new FakePhysicalItemSourcePublicationService(items));
+            new FakePhysicalItemSourcePublicationService(items),
+            constructionInputs.Runtime);
         CandidateFacilitySection facilitySection =
             new CandidateFacilitySection(candidateIndex, new Grid(12, 4));
         PassiveSaveSection physicalItems = new PassiveSaveSection(
@@ -998,6 +1067,8 @@ public static class WorkAmountDebugScenarios
                     {
                         facilitySection,
                         runtime,
+                        constructionInputs.Claims,
+                        constructionInputs.Capacities,
                         lateProbe
                     });
             List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
@@ -1032,6 +1103,20 @@ public static class WorkAmountDebugScenarios
                     liveOrder.WorkOrderId,
                     liveOrderId,
                     StringComparison.Ordinal);
+            string liveDestination =
+                WorkConstructionInputOwnerAuthority.DestinationFor(
+                    liveOrderId);
+            bool liveInputAuthorityPreserved =
+                constructionInputs.Claims.CaptureAuthorityClaims()
+                    .Count(value => value != null && string.Equals(
+                        value.DestinationId,
+                        liveDestination,
+                        StringComparison.Ordinal)) == 1
+                && constructionInputs.Capacities.CaptureAuthorityProfiles()
+                    .Count(value => value != null && string.Equals(
+                        value.DestinationId,
+                        liveDestination,
+                        StringComparison.Ordinal)) == 1;
             bool passed = !restored
                 && !report.Success
                 && lateProbe.PublishCount == 1
@@ -1041,6 +1126,7 @@ public static class WorkAmountDebugScenarios
                 && !incomingLeaked
                 && ReferenceEquals(survivingSite, liveSite)
                 && liveOrderPreserved
+                && liveInputAuthorityPreserved
                 && liveSiteObject.activeSelf
                 && liveGrid.GetGridCell(liveSite.centerPos)
                     ?.ContainsOccupant(
@@ -1068,6 +1154,7 @@ public static class WorkAmountDebugScenarios
                     + $"completes={lateProbe.CompleteCount} "
                     + $"sameLive={ReferenceEquals(survivingSite, liveSite)} "
                     + $"liveOrder={liveOrderPreserved} "
+                    + $"liveInputAuthority={liveInputAuthorityPreserved} "
                     + $"liveActive={liveSiteObject.activeSelf} "
                     + $"liveRegistered={liveGrid.GetGridCell(liveSite.centerPos)?.ContainsOccupant(GridLayer.Construction, liveSite) == true} "
                     + $"expected={expectedLiveJson} actual={JsonUtility.ToJson(captured)} "
@@ -1104,12 +1191,13 @@ public static class WorkAmountDebugScenarios
     }
 
     private static WorkOrderExecutionServices CreateExecutionServices(
-        IWorkforceReplanService workforce)
+        IWorkforceReplanService workforce,
+        DungeonStory.Foundation.IUiClock uiClock = null)
     {
         return new WorkOrderExecutionServices(
             workforce,
             new FixedGameClock(),
-            new FixedUiClock(),
+            uiClock ?? new FixedUiClock(),
             DisabledDungeonDebugRuleQuery.Instance);
     }
 
@@ -1127,6 +1215,20 @@ public static class WorkAmountDebugScenarios
     {
         public float DeltaTime => 0.02f;
         public float Time => 0f;
+    }
+
+    private sealed class ManualUiClock :
+        DungeonStory.Foundation.IUiClock
+    {
+        private float time;
+
+        public float DeltaTime => 0.02f;
+        public float Time => time;
+
+        public void Advance(float seconds)
+        {
+            time += Mathf.Max(0f, seconds);
+        }
     }
 
     private static int CountDetachedConstructionSites()
@@ -1531,13 +1633,166 @@ public static class WorkAmountDebugScenarios
         }
     }
 
+    /// <summary>
+    /// Wires the production construction input-owner runtime to the same paired
+    /// destination-claim and gram-capacity authorities used by gameplay. Tests
+    /// may keep their lightweight physical world, but may not bypass the owner
+    /// contract that production restore and construction creation require.
+    /// </summary>
+    private sealed class ConstructionInputOwnerFixture
+    {
+        internal ConstructionInputOwnerFixture(
+            FakeWorldItemStackRuntime items,
+            params BuildableObject[] buildings)
+        {
+            if (items == null)
+            {
+                throw new ArgumentNullException(nameof(items));
+            }
+
+            FixedConstructionMassQuery mass = new();
+            Claims = new FacilityBufferDestinationClaimRegistry();
+            Capacities = new FacilityBufferMassAdmissionService(
+                Claims,
+                EmptyFacilityBufferOccupancy.Instance,
+                mass);
+            FacilityBufferDestinationLifecycleService lifecycle = new(
+                Claims,
+                Claims,
+                Capacities,
+                Capacities);
+            Runtime = new WorkConstructionInputOwnerRuntime(
+                mass,
+                items,
+                new FixedBuildingWorldQuery(buildings),
+                Claims,
+                Capacities,
+                lifecycle,
+                new FixtureFacilityBufferRelease(items));
+        }
+
+        internal WorkConstructionInputOwnerRuntime Runtime { get; }
+        internal FacilityBufferDestinationClaimRegistry Claims { get; }
+        internal FacilityBufferMassAdmissionService Capacities { get; }
+    }
+
+    private sealed class FixedBuildingWorldQuery : IBuildingWorldQuery
+    {
+        private readonly IReadOnlyList<BuildableObject> buildings;
+
+        internal FixedBuildingWorldQuery(
+            IEnumerable<BuildableObject> buildings)
+        {
+            this.buildings = (buildings ?? Array.Empty<BuildableObject>())
+                .Where(value => value != null)
+                .Distinct()
+                .ToArray();
+        }
+
+        public int BuildingVersion => 1;
+        public IReadOnlyList<BuildableObject> Buildings => buildings
+            .Where(value => value != null)
+            .ToArray();
+    }
+
+    private sealed class FixedConstructionMassQuery : IPhysicalItemMassQuery
+    {
+        private const long UnitMassGrams = 1_000L;
+
+        public long AuthorityRevision => 1L;
+
+        public PhysicalMassGrams GetDefinitionUnitMass(
+            ItemDefinitionId itemId) => new(UnitMassGrams);
+
+        public PhysicalMassGrams GetPreparedStackUnitMass(
+            PhysicalItemMassSubject subject) => new(UnitMassGrams);
+
+        public PhysicalMassGrams GetStackUnitMass(
+            ItemDefinitionId itemId,
+            PhysicalItemMassSubject subject) => new(UnitMassGrams);
+
+        public PhysicalMassGrams GetStackTotalMass(
+            PhysicalItemLotSnapshot lot) => new(checked(
+            UnitMassGrams * lot.Quantity));
+
+        public PhysicalMassGrams GetQuantityMass(
+            ItemDefinitionId itemId,
+            PhysicalItemMassSubject subject,
+            int quantity) => new(checked(UnitMassGrams * quantity));
+    }
+
+    private sealed class EmptyFacilityBufferOccupancy :
+        IFacilityBufferPhysicalOccupancyQuery
+    {
+        internal static readonly EmptyFacilityBufferOccupancy Instance = new();
+
+        public FacilityBufferPhysicalOccupancySnapshot Capture(
+            string destinationId) => new(0L, 0L);
+
+        public bool TryCaptureExactLot(
+            IReadOnlyList<FacilityBufferMassLotSlice> slices,
+            out FacilityBufferExactLotSnapshot lot,
+            out string failureReason)
+        {
+            lot = default;
+            failureReason = "work-amount-fixture-has-no-admission-lot";
+            return false;
+        }
+    }
+
+    private sealed class FixtureFacilityBufferRelease :
+        IFacilityBufferDestinationReleaseService
+    {
+        private readonly FakeWorldItemStackRuntime items;
+
+        internal FixtureFacilityBufferRelease(
+            FakeWorldItemStackRuntime items)
+        {
+            this.items = items
+                ?? throw new ArgumentNullException(nameof(items));
+        }
+
+        public bool TryReleaseAtOwnerPosition(
+            string destinationId,
+            Vector2Int ownerPosition,
+            string reasonCode,
+            out int releasedQuantity,
+            out string failureReason)
+        {
+            if (string.IsNullOrWhiteSpace(destinationId)
+                || string.IsNullOrWhiteSpace(reasonCode))
+            {
+                releasedQuantity = 0;
+                failureReason = "work-amount-fixture-release-invalid";
+                return false;
+            }
+
+            releasedQuantity = items.ReleaseStacksByDestination(
+                destinationId,
+                ownerPosition);
+            failureReason = string.Empty;
+            return true;
+        }
+    }
+
     private sealed class ScenarioObjectResolver : IObjectResolver
     {
+        private readonly IReadOnlyList<object> services;
+
+        public ScenarioObjectResolver(params object[] services)
+        {
+            this.services = (services ?? Array.Empty<object>())
+                .Where(value => value != null)
+                .ToArray();
+        }
+
         public object ApplicationOrigin => null;
         public DiagnosticsCollector Diagnostics { get; set; }
 
         public object Resolve(Type type, object key = null)
         {
+            if (TryResolve(type, out object resolved, key))
+                return resolved;
             throw new InvalidOperationException(
                 $"Work-order scenario cannot resolve {type?.Name ?? "null"}.");
         }
@@ -1547,8 +1802,9 @@ public static class WorkAmountDebugScenarios
             out object resolved,
             object key = null)
         {
-            resolved = null;
-            return false;
+            resolved = services.FirstOrDefault(value =>
+                type != null && type.IsInstanceOfType(value));
+            return resolved != null;
         }
 
         public object Resolve(Registration registration)
@@ -1621,6 +1877,497 @@ public static class WorkAmountDebugScenarios
         {
             disposition = null;
             return false;
+        }
+    }
+
+    private sealed class FixedGridProvider : IGridSystemProvider
+    {
+        public FixedGridProvider(Grid grid)
+        {
+            Grid = grid ?? throw new ArgumentNullException(nameof(grid));
+        }
+
+        public GridSystemManager Manager => null;
+        public Grid Grid { get; }
+
+        public bool TryGetManager(out GridSystemManager manager)
+        {
+            manager = null;
+            return false;
+        }
+
+        public bool TryGetGrid(out Grid grid)
+        {
+            grid = Grid;
+            return true;
+        }
+    }
+
+    private sealed class FakeMaterialSalvageCalculator :
+        IMaterialSalvageCalculator
+    {
+        private readonly IReadOnlyList<ItemAmountDefinition> recovered;
+
+        public FakeMaterialSalvageCalculator(
+            params ItemAmountDefinition[] recovered)
+        {
+            this.recovered = (recovered
+                    ?? Array.Empty<ItemAmountDefinition>())
+                .Where(value => value != null && value.Amount > 0)
+                .OrderBy(value => value.ItemId, StringComparer.Ordinal)
+                .ToArray();
+        }
+
+        public MaterialSalvageResult Calculate(
+            DismantleTargetKind targetKind,
+            float originalWork,
+            IEnumerable<ItemAmountDefinition> originalInputs,
+            float workerSkill) => new(
+                Mathf.Max(0.1f, originalWork * 0.25f),
+                recovered);
+    }
+
+    private sealed class FakeDeferredBuildingDestructiveLoss :
+        IBuildingDestructiveLossRuntime
+    {
+        private BuildableObject pending;
+
+        public int ApplyCount { get; private set; }
+
+        public BuildingDestructiveLossResult Apply(
+            BuildableObject building,
+            ProductionFacilityDestructiveDrainCause cause)
+        {
+            if (building == null
+                || cause != ProductionFacilityDestructiveDrainCause
+                    .ExplicitDemolition)
+            {
+                return new BuildingDestructiveLossResult(
+                    BuildingDestructiveLossDisposition.Conflict,
+                    "invalid deferred demolition fixture request");
+            }
+            ApplyCount++;
+            if (pending != null && !ReferenceEquals(pending, building))
+            {
+                return new BuildingDestructiveLossResult(
+                    BuildingDestructiveLossDisposition.Conflict,
+                    "another deferred demolition is pending");
+            }
+            pending = building;
+            return new BuildingDestructiveLossResult(
+                BuildingDestructiveLossDisposition.DeferredAccepted,
+                "injected deferred demolition");
+        }
+
+        public void CompleteRemoval()
+        {
+            BuildableObject building = pending
+                ?? throw new InvalidOperationException(
+                    "No deferred demolition is pending.");
+            pending = null;
+            building.DestroySelf();
+        }
+    }
+
+    private static bool VerifyDeferredDismantleCancellationRecovery()
+    {
+        const string orderId = "work:000001";
+        const string pipelineId = "quality:work:000001";
+        Vector2Int position = new Vector2Int(3, 1);
+        BuildingSO building = CreateTestBuilding(
+            991_205,
+            "Deferred dismantle recovery",
+            1,
+            1,
+            constructionWork: 4f,
+            materialAmount: 2);
+        Grid grid = new Grid(12, 4);
+        GameObject buildingObject = new GameObject(
+            "DeferredDismantleRecoveryBuilding");
+        BuildableObject live = buildingObject.AddComponent<BuildableObject>();
+        CharacterAiEditorTestDependencies.Inject(live);
+        live.RestorePersistentIdentity(
+            (BuildingInstanceId)"building:test:deferred-dismantle");
+        live.SetGrid(grid);
+        live.Initialization(building, position);
+        if (!grid.RegisterOccupant(
+                live,
+                building.layer,
+                building.GetGridPosList(position),
+                building.Placement.IsMovement))
+        {
+            UnityEngine.Object.DestroyImmediate(buildingObject);
+            UnityEngine.Object.DestroyImmediate(building);
+            return false;
+        }
+
+        RestoreWorldCandidateIndex candidateIndex =
+            new RestoreWorldCandidateIndex();
+        WorkOrderAggregateStateStore stateStore =
+            new WorkOrderAggregateStateStore(
+                new DungeonRuntimeAggregateRootStore(),
+                candidateIndex);
+        FakeWorldItemStackRuntime items = new FakeWorldItemStackRuntime
+        {
+            AllowLooseSpawns = true
+        };
+        FakeMaterialSalvageCalculator salvage =
+            new FakeMaterialSalvageCalculator(
+                new ItemAmountDefinition("material:lumber", 2));
+        ScenarioObjectResolver resolver =
+            new ScenarioObjectResolver(salvage);
+        FixedGridProvider gridProvider = new FixedGridProvider(grid);
+        ManualUiClock uiClock = new ManualUiClock();
+        ConstructionInputOwnerFixture constructionInputs = new(items, live);
+        WorkOrderRuntime runtime = new WorkOrderRuntime(
+            gridProvider,
+            items,
+            new SingleBuildingLookup(building),
+            resolver,
+            CreateExecutionServices(
+                new TrackingWorkforceReplanService(),
+                uiClock),
+            stateStore,
+            new FakePhysicalItemSourcePublicationService(items),
+            constructionInputs.Runtime);
+        FakeDeferredBuildingDestructiveLoss destructiveLoss =
+            new FakeDeferredBuildingDestructiveLoss();
+        GridBuildingPlacementService placement =
+            new GridBuildingPlacementService(
+                grid,
+                null,
+                id => id == building.id ? building : null,
+                new GridBuildingFactory(new GridBuildingObjectFactory()),
+                new BuildingPlacementValidator(),
+                runtime,
+                _ => { },
+                warehouseLifecycle: null,
+                destructiveLoss: destructiveLoss);
+
+        CraftQualityRollSaveData roll = new CraftQualityRollSaveData
+        {
+            attemptIndex = 0,
+            randomA = 0,
+            randomB = 0,
+            randomC = 0
+        };
+        DungeonWorkOrderSaveData initial = new DungeonWorkOrderSaveData
+        {
+            nextOrderSequence = 2,
+            orders = new List<WorkOrderSaveData>
+            {
+                new WorkOrderSaveData
+                {
+                    workOrderId = orderId,
+                    workTypeId = BuiltInWorkTypeIds.Dismantle.Value,
+                    targetBuildingId = building.id,
+                    gridX = position.x,
+                    gridY = position.y,
+                    requiredWork = 1f,
+                    completedWork = 0f,
+                    qualityRoll = roll.Clone(),
+                    qualityPipelineId = pipelineId,
+                    qualityAttemptIndex = 0,
+                    status = WorkOrderStatus.Ready
+                }
+            },
+            qualityPipelines = new List<QualityTargetPipelineSaveData>
+            {
+                new QualityTargetPipelineSaveData
+                {
+                    pipelineId = pipelineId,
+                    definitionId = building.id.ToString(),
+                    facilityPipeline = true,
+                    requiredAcceptedCount = 1,
+                    maximumAttempts = 2,
+                    attemptIndex = 0,
+                    currentRoll = roll.Clone(),
+                    stage = QualityTargetPipelineStage.Dismantling,
+                    footprintX = position.x,
+                    footprintY = position.y,
+                    footprintWidth = 1,
+                    footprintHeight = 1
+                }
+            }
+        };
+
+        try
+        {
+            PublishWorkOrderSnapshot(
+                runtime,
+                candidateIndex,
+                grid,
+                new[] { live },
+                initial);
+            bool completionAccepted = runtime.DebugCompleteOrder(
+                orderId,
+                out string completionMessage);
+            if (!completionAccepted || destructiveLoss.ApplyCount != 1)
+            {
+                throw new InvalidOperationException(
+                    "Deferred dismantle was not accepted exactly once: accepted="
+                    + completionAccepted + "; applyCount="
+                    + destructiveLoss.ApplyCount + "; message="
+                    + completionMessage);
+            }
+
+            DungeonWorkOrderSaveData deferred = runtime.Capture();
+            WorkOrderSaveData pending = deferred.orders.SingleOrDefault();
+            string expectedOperation =
+                ProductionFacilityDestructiveDrainOperationId.FromFacility(
+                    live.PersistentInstanceId).Value;
+            bool capturedRetained =
+                ProductionFacilityDestructiveDrainOperationId.TryParse(
+                    expectedOperation,
+                    out ProductionFacilityDestructiveDrainOperationId
+                        retainedOperation)
+                && runtime.TryCaptureRetention(
+                    retainedOperation,
+                    out WorkOrderDestructiveDrainRetentionSnapshot
+                        retainedSnapshot,
+                    out _)
+                && retainedSnapshot.HasOwner
+                && retainedSnapshot.OwnerIds.Count == 1
+                && string.Equals(
+                    retainedSnapshot.OwnerIds[0],
+                    orderId,
+                    StringComparison.Ordinal);
+            if (pending == null
+                || pending.status != WorkOrderStatus.Blocked
+                || pending.facilityRemovedForRetry
+                || !capturedRetained
+                || !string.Equals(
+                    pending.destructiveDrainOperationId,
+                    expectedOperation,
+                    StringComparison.Ordinal)
+                || deferred.qualityPipelines.Single().stage
+                    != QualityTargetPipelineStage.Recovering
+                || !runtime.CancelQualityPipeline(pipelineId, out _))
+            {
+                throw new InvalidOperationException(
+                    "Deferred dismantle did not persist/cancel canonically: order="
+                    + (pending == null ? "missing" : pending.status.ToString())
+                    + "; removed=" + (pending?.facilityRemovedForRetry ?? false)
+                    + "; operation="
+                    + (pending?.destructiveDrainOperationId ?? "missing")
+                    + "; expected=" + expectedOperation + "; pipeline="
+                    + deferred.qualityPipelines.Single().stage);
+            }
+
+            DungeonWorkOrderSaveData cancelledPending = runtime.Capture();
+            WorkOrderSaveData cancelledOrder =
+                cancelledPending.orders.SingleOrDefault();
+            if (cancelledOrder == null
+                || !cancelledOrder.cancelRebuildAfterDestructiveDrain
+                || cancelledOrder.facilityRemovedForRetry
+                || cancelledPending.qualityPipelines.Single().stage
+                    != QualityTargetPipelineStage.Cancelled)
+            {
+                throw new InvalidOperationException(
+                    "Cancelled deferred dismantle lost its salvage owner: order="
+                    + (cancelledOrder == null ? "missing" : cancelledOrder.status.ToString())
+                    + "; cancelCleanup="
+                    + (cancelledOrder?.cancelRebuildAfterDestructiveDrain ?? false)
+                    + "; removed="
+                    + (cancelledOrder?.facilityRemovedForRetry ?? false)
+                    + "; pipeline="
+                    + cancelledPending.qualityPipelines.Single().stage);
+            }
+
+            // Re-publish the current-format checkpoint to prove the event
+            // observation is rebuilt from the exact operation/facility join.
+            PublishWorkOrderSnapshot(
+                runtime,
+                candidateIndex,
+                grid,
+                new[] { live },
+                cancelledPending);
+            runtime.Tick();
+            destructiveLoss.CompleteRemoval();
+            uiClock.Advance(1f);
+            runtime.Tick();
+            uiClock.Advance(1f);
+            runtime.Tick();
+
+            int recovered = items.GetAllStacks()
+                .Where(stack => stack != null
+                    && stack.State == WorldItemStackState.Loose
+                    && string.Equals(
+                        stack.ItemId,
+                        "material:lumber",
+                        StringComparison.Ordinal))
+                .Sum(stack => stack.Quantity);
+            DungeonWorkOrderSaveData completed = runtime.Capture();
+            bool capturedReleased = runtime.TryCaptureRetention(
+                    retainedOperation,
+                    out WorkOrderDestructiveDrainRetentionSnapshot
+                        releasedSnapshot,
+                    out _)
+                && !releasedSnapshot.HasOwner;
+            bool worldRemoved = !grid.GetGridCell(position)
+                .GetAllOccupants()
+                .OfType<BuildableObject>()
+                .Any(value => value != null
+                    && value.id == building.id);
+            if (recovered != 2
+                || completed.orders.Count != 0
+                || completed.qualityPipelines.Count != 1
+                || completed.qualityPipelines[0].stage
+                    != QualityTargetPipelineStage.Cancelled
+                || !capturedReleased
+                || !worldRemoved)
+            {
+                throw new InvalidOperationException(
+                    "Deferred dismantle salvage did not close exactly once: recovered="
+                    + recovered + "; orders=" + completed.orders.Count
+                    + "; pipelines=" + completed.qualityPipelines.Count
+                    + "; stage="
+                    + (completed.qualityPipelines.Count == 1
+                        ? completed.qualityPipelines[0].stage.ToString()
+                        : "missing")
+                    + "; worldRemoved=" + worldRemoved);
+            }
+            return true;
+        }
+        finally
+        {
+            if (candidateIndex.TryGetGrid(out _))
+                candidateIndex.ClearFacilityCandidate();
+            if (live != null)
+                UnityEngine.Object.DestroyImmediate(live.gameObject);
+            UnityEngine.Object.DestroyImmediate(building);
+        }
+    }
+
+    private static bool VerifyDestructiveDrainSaveContract()
+    {
+        DungeonWorkOrderSaveData valid =
+            CreateDestructiveDrainValidationPayload(
+                BuiltInWorkTypeIds.Dismantle.Value,
+                includeOperation: true,
+                removed: true,
+                cancelledCleanup: true);
+        if (!TryValidateWorkOrderPayload(valid))
+            return false;
+
+        DungeonWorkOrderSaveData wrongWorkType =
+            CreateDestructiveDrainValidationPayload(
+                BuiltInWorkTypeIds.Repair.Value,
+                includeOperation: true,
+                removed: true,
+                cancelledCleanup: false);
+        DungeonWorkOrderSaveData missingOperation =
+            CreateDestructiveDrainValidationPayload(
+                BuiltInWorkTypeIds.Dismantle.Value,
+                includeOperation: false,
+                removed: true,
+                cancelledCleanup: true);
+        return !TryValidateWorkOrderPayload(wrongWorkType)
+            && !TryValidateWorkOrderPayload(missingOperation);
+    }
+
+    private static bool TryValidateWorkOrderPayload(
+        DungeonWorkOrderSaveData payload)
+    {
+        FakeWorldItemStackRuntime items = new FakeWorldItemStackRuntime();
+        ConstructionInputOwnerFixture constructionInputs = new(items);
+        WorkOrderRuntime runtime = new WorkOrderRuntime(
+            new NoGridProvider(),
+            items,
+            new SingleBuildingLookup(null),
+            new ScenarioObjectResolver(),
+            CreateExecutionServices(new TrackingWorkforceReplanService()),
+            CreateStateStore(),
+            new FakePhysicalItemSourcePublicationService(items),
+            constructionInputs.Runtime);
+        try
+        {
+            runtime.ValidateRestorePayload(payload);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    private static DungeonWorkOrderSaveData
+        CreateDestructiveDrainValidationPayload(
+            string workTypeId,
+            bool includeOperation,
+            bool removed,
+            bool cancelledCleanup)
+    {
+        const string pipelineId = "quality:work:000001";
+        CraftQualityRollSaveData roll = new CraftQualityRollSaveData
+        {
+            attemptIndex = 0
+        };
+        return new DungeonWorkOrderSaveData
+        {
+            nextOrderSequence = 2,
+            orders = new List<WorkOrderSaveData>
+            {
+                new WorkOrderSaveData
+                {
+                    workOrderId = "work:000001",
+                    workTypeId = workTypeId,
+                    targetBuildingId = 991_205,
+                    requiredWork = 1f,
+                    completedWork = 1f,
+                    qualityRoll = roll.Clone(),
+                    qualityPipelineId = pipelineId,
+                    destructiveDrainOperationId = includeOperation
+                        ? "production-facility-destructive-drain:building:test:save-contract"
+                        : string.Empty,
+                    facilityRemovedForRetry = removed,
+                    cancelRebuildAfterDestructiveDrain = cancelledCleanup,
+                    status = WorkOrderStatus.Blocked
+                }
+            },
+            qualityPipelines = new List<QualityTargetPipelineSaveData>
+            {
+                new QualityTargetPipelineSaveData
+                {
+                    pipelineId = pipelineId,
+                    definitionId = "991205",
+                    facilityPipeline = true,
+                    currentRoll = roll.Clone(),
+                    requiredAcceptedCount = 1,
+                    maximumAttempts = 2,
+                    stage = cancelledCleanup
+                        ? QualityTargetPipelineStage.Cancelled
+                        : QualityTargetPipelineStage.Recovering
+                }
+            }
+        };
+    }
+
+    private static void PublishWorkOrderSnapshot(
+        WorkOrderRuntime runtime,
+        RestoreWorldCandidateIndex candidateIndex,
+        Grid grid,
+        IReadOnlyList<BuildableObject> buildings,
+        DungeonWorkOrderSaveData snapshot)
+    {
+        runtime.BeginRestoreCandidate();
+        candidateIndex.SetFacilityCandidate(grid, buildings);
+        try
+        {
+            WorkOrderRestoreCandidate candidate =
+                runtime.PrepareRestoreCandidate(snapshot);
+            runtime.PublishRestoreCandidate(candidate);
+            runtime.PublishRestoreCandidate();
+            runtime.CompleteRestoreCandidate();
+        }
+        catch
+        {
+            runtime.DiscardRestoreCandidate();
+            throw;
+        }
+        finally
+        {
+            candidateIndex.ClearFacilityCandidate();
         }
     }
 
@@ -1881,6 +2628,7 @@ public static class WorkAmountDebugScenarios
         public int PhysicalCommitCount { get; private set; }
         public int PhysicalAcknowledgementCount { get; private set; }
         public bool FailNextAcknowledgement { get; set; }
+        public bool AllowLooseSpawns { get; set; }
 
         public IDungeonItemCatalogProvider CatalogProvider => catalogProvider;
         public IPhysicalItemMassQuery MassQuery => null;
@@ -2087,8 +2835,19 @@ public static class WorkAmountDebugScenarios
             string destinationId,
             out int spawned)
         {
-            spawned = 0;
-            return false;
+            spawned = AllowLooseSpawns ? Mathf.Max(0, amount) : 0;
+            if (spawned <= 0)
+                return false;
+            stacks.Add(new WorldItemStackSnapshot
+            {
+                StackId = $"fake-loose-output:{stacks.Count + 1}",
+                ItemId = itemId ?? string.Empty,
+                Quantity = spawned,
+                State = state,
+                Position = position,
+                DestinationId = destinationId ?? string.Empty
+            });
+            return true;
         }
 
         public bool SpawnWasteAt(
@@ -2495,6 +3254,15 @@ public static class WorkAmountDebugScenarios
         public bool TrySetInstanceComponent(
             string stackId,
             ItemInstanceComponentSaveData component) => false;
+        public bool TrySetFoodFreshness(
+            string stackId,
+            double remainingSeconds,
+            bool preserved,
+            out string failureReason)
+        {
+            failureReason = "unsupported-work-fixture";
+            return false;
+        }
         public bool SetEmergencyButcheryAllowed(string stackId, bool allowed) => false;
         public int RemoveStacksByStateAndDestination(WorldItemStackState state, string destinationId) => 0;
         public int ReleaseStacksByDestination(

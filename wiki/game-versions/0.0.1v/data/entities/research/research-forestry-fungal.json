@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Forestry"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-treated",
+      "target_spoiler_tier": "none",
+      "target_title": "목재 처리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-treated",
+      "target_spoiler_tier": "none",
+      "target_title": "목재 처리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-treated",
+      "target_spoiler_tier": "none",
+      "target_title": "목재 처리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-indoor",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 재배",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-indoor",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 재배",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-indoor",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 재배",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8813",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 재배 선반",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-forestry-fungal",
+  "spoiler_tier": "none",
+  "summary": "지하 균목을 재배해 목재와 버섯을 함께 생산한다.",
+  "title": "실내 균목림"
+}

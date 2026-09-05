@@ -26,8 +26,36 @@ public static class V27PairedClutterPlayModeVerifier
         "Artifacts/QA/v27-balance-floor-clutter.csv";
     public const string FocusedReportPath =
         "Temp/v27-balance-paired-clutter-focused.txt";
+    public const string FocusedPairedCsvPath =
+        "Temp/v27-balance-paired-run-rng-focused.csv";
+    public const string FocusedClutterCsvPath =
+        "Temp/v27-balance-floor-clutter-focused.csv";
+    public const string ProgressPath =
+        "Temp/v27-balance-paired-clutter-progress.txt";
     private const string RequestPath = "Temp/v27-balance-paired-clutter.flag";
+    private const string SceneLeaseOwnerPath =
+        "Temp/v27-balance-paired-clutter-scene-lease.flag";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
+    private const string DirtySceneProbeDirectory =
+        "Assets/__V27DirtySceneProbe";
+    private const string DirtySceneProbePath =
+        DirtySceneProbeDirectory + "/GameplayScene.unity";
+    private const string ExternalDispatchRequestPath =
+        "Temp/v27-unity-editor-dispatch.request";
+    private const string ExternalDispatchResultPath =
+        "Temp/v27-unity-editor-dispatch.result";
+    private const string QueuedDispatchRequestPath =
+        "Temp/v27-paired-clutter-queued-dispatch.request";
+    private const string AssemblyReloadInterruptionPath =
+        "Temp/v27-balance-paired-clutter-assembly-reload.flag";
+    private const string AssemblyReloadInterruptionSessionKey =
+        "DungeonStory.V27.PairedClutter.AssemblyReloadInterrupted";
+    private static bool queuedDispatch;
+    private static int queuedSeedCount;
+    private static int queuedFocusedSeed;
+    private static double queuedDispatchAfter;
+    private static int interruptionCleanupAttempts;
+    private static double nextInterruptionCleanupAttempt;
     public static IReadOnlyList<string> EvidenceSourcePaths { get; } =
         Array.AsReadOnly(new[]
         {
@@ -36,15 +64,141 @@ public static class V27PairedClutterPlayModeVerifier
             "Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs",
             "Assets/Scripts/Services/Items/PhysicalStockQuery.cs",
             "Assets/Scripts/Services/Foundation/Random/RandomStreamProvider.cs",
-            "Assets/Scripts/Services/Character/AI/CharacterAiScheduler.cs",
-            "Assets/Scripts/Services/Character/AI/AIBrain.cs",
-            "Assets/Scripts/Services/Character/Ability/AbilityMove.cs",
-            "Assets/Scripts/Services/Items/WorldItemHaulPlanningService.cs"
-        });
+             "Assets/Scripts/Services/Character/AI/CharacterAiScheduler.cs",
+             "Assets/Scripts/Services/Character/AI/AIBrain.cs",
+             "Assets/Scripts/Services/Character/AI/Action/AIHaul.cs",
+             "Assets/Scripts/Services/Character/Ability/AbilityMove.cs",
+             "Assets/Scripts/Services/Items/AbilityHaul.cs",
+             "Assets/Scripts/Services/Items/WarehouseMassAdmissionService.cs",
+             "Assets/Scripts/Services/Items/WorldItemWarehouseService.cs",
+             "Assets/Scripts/Services/Items/WorldItemHaulPlanningService.cs",
+             "Assets/Scripts/Services/Items/Editor/SyntheticPreparedOutputCanaryGameplaySceneLease.cs"
+         });
     static V27PairedClutterPlayModeVerifier()
     {
         EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        EditorApplication.delayCall -= RecoverOwnedSceneLeaseIfOrphaned;
+        EditorApplication.delayCall += RecoverOwnedSceneLeaseIfOrphaned;
+        EditorApplication.update -= ProcessExternalDispatch;
+        EditorApplication.update += ProcessExternalDispatch;
+        EditorApplication.update -= DispatchQueuedRun;
+        EditorApplication.update += DispatchQueuedRun;
+        EditorApplication.update -= RecoverInterruptedRunAfterReload;
+        EditorApplication.update += RecoverInterruptedRunAfterReload;
+        AssemblyReloadEvents.beforeAssemblyReload -= OnBeforeAssemblyReload;
+        AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
+    }
+
+    private static void ProcessExternalDispatch()
+    {
+        if (!File.Exists(ExternalDispatchRequestPath)
+            || EditorApplication.isCompiling
+            || EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            return;
+        }
+
+        try
+        {
+            string request;
+            // The external writer publishes this tiny command through the file
+            // system.  Never observe a partially written request and never let
+            // a transient sharing violation escape an EditorApplication.update
+            // callback: an escaped exception is retried every frame and can
+            // make Unity's main-thread watchdog report the MCP bridge as busy.
+            using (FileStream stream = new(
+                       ExternalDispatchRequestPath,
+                       FileMode.Open,
+                       FileAccess.Read,
+                       FileShare.None))
+            using (StreamReader reader = new(
+                       stream,
+                       Encoding.UTF8,
+                       detectEncodingFromByteOrderMarks: true,
+                       bufferSize: 256,
+                       leaveOpen: false))
+            {
+                request = reader.ReadToEnd().Trim();
+            }
+            File.Delete(ExternalDispatchRequestPath);
+
+            string[] tokens = request.Split('|');
+            string command = tokens[0];
+            if (string.Equals(command, "refresh", StringComparison.Ordinal)
+                && tokens.Length == 1)
+            {
+                File.WriteAllText(
+                    ExternalDispatchResultPath,
+                    "ACCEPTED|refresh");
+                AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+                return;
+            }
+            if (string.Equals(
+                    command,
+                    "paired-focused",
+                    StringComparison.Ordinal)
+                && tokens.Length == 2
+                && int.TryParse(tokens[1], out int focusedSeed)
+                && focusedSeed > 0)
+            {
+                QueueFocusedRunFromEditorCommand(focusedSeed);
+                File.WriteAllText(
+                    ExternalDispatchResultPath,
+                    $"ACCEPTED|paired-focused|{focusedSeed}");
+                return;
+            }
+            if (string.Equals(
+                    command,
+                    "paired-full",
+                    StringComparison.Ordinal)
+                && tokens.Length == 2
+                && int.TryParse(tokens[1], out int seedCount)
+                && seedCount is >= 32 and <= 64)
+            {
+                QueueRunFromEditorCommand(seedCount, 1);
+                File.WriteAllText(
+                    ExternalDispatchResultPath,
+                    $"ACCEPTED|paired-full|{seedCount}");
+                return;
+            }
+            if (string.Equals(
+                    command,
+                    "haul-reachability",
+                    StringComparison.Ordinal)
+                && tokens.Length == 1)
+            {
+                EditorApplication.delayCall += () =>
+                {
+                    bool passed = HaulPlanConstructionSafetyDebugScenarios
+                        .RunAll(logSuccess: false);
+                    File.WriteAllText(
+                        ExternalDispatchResultPath,
+                        passed
+                            ? "RESULT|haul-reachability|PASS"
+                            : "RESULT|haul-reachability|FAIL");
+                };
+                File.WriteAllText(
+                    ExternalDispatchResultPath,
+                    "ACCEPTED|haul-reachability");
+                return;
+            }
+
+            File.WriteAllText(
+                ExternalDispatchResultPath,
+                "REJECTED|unsupported-request|" + request);
+        }
+        catch (IOException)
+        {
+            // The producer still owns the file.  It remains the durable retry
+            // token and will be consumed by a later editor frame.
+        }
+        catch (Exception exception)
+        {
+            File.WriteAllText(
+                ExternalDispatchResultPath,
+                "ERROR|" + exception.GetType().Name + "|" + exception.Message);
+        }
     }
 
     [MenuItem("DungeonStory/V27/Run Paired Clutter 4-Arm PlayMode (32 Seeds)")]
@@ -62,6 +216,300 @@ public static class V27PairedClutterPlayModeVerifier
     public static void RequestFocusedRun(int seed) => RequestRun(1, seed);
 
     public static void RequestRun(int seedCount) => RequestRun(seedCount, 1);
+
+    /// <summary>
+    /// Queues a focused run after the current editor command has returned. MCP
+    /// commands must use this entry point so EnterPlaymode/domain reload cannot
+    /// keep the bridge's synchronous ProcessCommands progress modal open.
+    /// </summary>
+    public static void QueueFocusedRunFromEditorCommand(int seed = 1) =>
+        QueueRunFromEditorCommand(1, seed);
+
+    public static void QueueRunFromEditorCommand(
+        int seedCount,
+        int focusedSeed = 1)
+    {
+        if (queuedDispatch || File.Exists(QueuedDispatchRequestPath))
+            throw new InvalidOperationException(
+                "A V27 paired clutter editor-command dispatch is already queued.");
+        if (seedCount != 1 && seedCount is (< 32 or > 64))
+            throw new ArgumentOutOfRangeException(nameof(seedCount));
+        if (focusedSeed < 1)
+            throw new ArgumentOutOfRangeException(nameof(focusedSeed));
+
+        Directory.CreateDirectory("Temp");
+        File.Delete(ProgressPath);
+        if (!TryClearAssemblyReloadInterruption())
+            throw new IOException(
+                "The previous V27 paired clutter interruption marker could not be cleared.");
+        File.WriteAllText(
+            QueuedDispatchRequestPath,
+            seedCount + "|" + focusedSeed,
+            new UTF8Encoding(false));
+    }
+
+    internal static bool HasPendingDurableRun =>
+        File.Exists(QueuedDispatchRequestPath)
+        || File.Exists(RequestPath)
+        || File.Exists(SceneLeaseOwnerPath);
+
+    internal static bool HasDurableInterruption =>
+        SessionState.GetBool(AssemblyReloadInterruptionSessionKey, false)
+        || File.Exists(AssemblyReloadInterruptionPath);
+
+    public static void RecoverOwnedSceneLeaseForDiagnostics() =>
+        RecoverOwnedSceneLeaseIfOrphaned();
+
+    internal static void PublishProgress(
+        string result,
+        string phase,
+        int seedCount,
+        int startSeed,
+        bool focused,
+        int completedWindows,
+        int failures,
+        string currentSourceDigest)
+    {
+        string text = "RESULT=" + result + "\n"
+            + "phase=" + (phase ?? string.Empty) + "\n"
+            + "seedCount=" + seedCount + "\n"
+            + "startSeed=" + startSeed + "\n"
+            + "focused=" + (focused ? "true" : "false") + "\n"
+            + "completedWindows=" + completedWindows + "\n"
+            + "failures=" + failures + "\n"
+            + "currentSourceDigest=" + (currentSourceDigest ?? string.Empty) + "\n";
+        try
+        {
+            V27BalanceArtifactWriter.WriteIfDifferent(ProgressPath, stream =>
+            {
+                byte[] bytes = new UTF8Encoding(false, true).GetBytes(text);
+                stream.Write(bytes, 0, bytes.Length);
+            });
+        }
+        catch (IOException)
+        {
+            // Progress is advisory and may be read by an external monitor on
+            // Windows at the exact instant the atomic replacement is published.
+            // A transient sharing violation must never abort the authoritative
+            // PlayMode run; the next phase/window publishes a fresh snapshot.
+        }
+    }
+
+    private static void OnBeforeAssemblyReload()
+    {
+        if (!File.Exists(SceneLeaseOwnerPath) || !EditorApplication.isPlaying)
+            return;
+
+        // Publish a control marker before any fallible diagnostic lookup. The
+        // SessionState copy survives a domain reload even if the file system is
+        // temporarily unavailable.
+        SessionState.SetBool(AssemblyReloadInterruptionSessionKey, true);
+        TryWriteAssemblyReloadInterruption(
+            "PAIRED_RUN_ASSEMBLY_RELOAD_INTERRUPTED|runner-unavailable|0");
+
+        V27PairedClutterPlayModeRunner runner = null;
+        try
+        {
+            runner = UnityEngine.Object.FindFirstObjectByType<
+                V27PairedClutterPlayModeRunner>(FindObjectsInactive.Include);
+        }
+        catch
+        {
+            // Keep the generic durable marker. Recovery after reload remains
+            // authoritative even when the diagnostic lookup itself fails.
+        }
+
+        if (runner == null
+            || string.Equals(runner.CurrentPhase, "finished", StringComparison.Ordinal))
+        {
+            TryClearAssemblyReloadInterruption();
+            return;
+        }
+
+        string phase = runner?.CurrentPhase ?? "runner-unavailable";
+        int completedWindows = runner?.CompletedWindowCount ?? 0;
+        int failures = runner?.FailureCount ?? 0;
+        try
+        {
+            PublishProgress(
+                "INTERRUPTED",
+                phase,
+                runner.SeedCount,
+                runner.StartSeed,
+                runner.Focused,
+                completedWindows,
+                failures + 1,
+                runner.CurrentSourceDigestAtStart);
+        }
+        catch
+        {
+            // The control marker above owns recovery. Progress is diagnostic.
+        }
+        TryWriteAssemblyReloadInterruption(
+            "PAIRED_RUN_ASSEMBLY_RELOAD_INTERRUPTED|" + phase + "|"
+                + completedWindows);
+        try
+        {
+            Debug.LogError(
+                "PAIRED_RUN_ASSEMBLY_RELOAD_INTERRUPTED: phase=" + phase
+                + "; completedWindows=" + completedWindows + ".");
+        }
+        catch
+        {
+            // Never let a diagnostic logger suppress the durable marker.
+        }
+    }
+
+    private static void RecoverInterruptedRunAfterReload()
+    {
+        if (!HasDurableInterruption || EditorApplication.isCompiling)
+        {
+            return;
+        }
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            if (EditorApplication.isPlaying)
+                EditorApplication.ExitPlaymode();
+            return;
+        }
+
+        if (interruptionCleanupAttempts >= 3
+            || EditorApplication.timeSinceStartup < nextInterruptionCleanupAttempt)
+        {
+            return;
+        }
+
+        File.Delete(RequestPath);
+        try
+        {
+            ReleaseOwnedSceneLease();
+            if (!TryClearAssemblyReloadInterruption())
+                throw new IOException(
+                    "The interrupted-run marker could not be cleared after lease release.");
+            interruptionCleanupAttempts = 0;
+            nextInterruptionCleanupAttempt = 0d;
+        }
+        catch (Exception exception)
+        {
+            interruptionCleanupAttempts++;
+            nextInterruptionCleanupAttempt =
+                EditorApplication.timeSinceStartup + interruptionCleanupAttempts;
+            if (interruptionCleanupAttempts == 1)
+            {
+                Debug.LogError(
+                    "V27 paired clutter interrupted-run cleanup failed: "
+                    + exception);
+            }
+        }
+    }
+
+    private static void TryWriteAssemblyReloadInterruption(string text)
+    {
+        try
+        {
+            Directory.CreateDirectory("Temp");
+            using FileStream stream = new(
+                AssemblyReloadInterruptionPath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.Read | FileShare.Delete);
+            byte[] bytes = new UTF8Encoding(false, true).GetBytes(text ?? string.Empty);
+            stream.Write(bytes, 0, bytes.Length);
+            stream.Flush(flushToDisk: true);
+        }
+        catch
+        {
+            // SessionState is the independent durable recovery authority.
+        }
+    }
+
+    private static bool TryClearAssemblyReloadInterruption()
+    {
+        try
+        {
+            if (File.Exists(AssemblyReloadInterruptionPath))
+                File.Delete(AssemblyReloadInterruptionPath);
+            SessionState.SetBool(AssemblyReloadInterruptionSessionKey, false);
+            interruptionCleanupAttempts = 0;
+            nextInterruptionCleanupAttempt = 0d;
+            return true;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static void DispatchQueuedRun()
+    {
+        if (!queuedDispatch)
+        {
+            if (!File.Exists(QueuedDispatchRequestPath)
+                || EditorApplication.isCompiling
+                || EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+
+            string[] tokens;
+            try
+            {
+                tokens = File.ReadAllText(QueuedDispatchRequestPath)
+                    .Trim()
+                    .Split('|');
+            }
+            catch (IOException)
+            {
+                return;
+            }
+            if (tokens.Length != 2
+                || !int.TryParse(tokens[0], out queuedSeedCount)
+                || !int.TryParse(tokens[1], out queuedFocusedSeed)
+                || queuedSeedCount != 1
+                    && queuedSeedCount is (< 32 or > 64)
+                || queuedFocusedSeed < 1)
+            {
+                File.Delete(QueuedDispatchRequestPath);
+                queuedSeedCount = 0;
+                queuedFocusedSeed = 0;
+                Debug.LogError(
+                    "The durable V27 paired clutter request is malformed.");
+                return;
+            }
+            queuedDispatchAfter = EditorApplication.timeSinceStartup + 0.25d;
+            queuedDispatch = true;
+            return;
+        }
+
+        if (EditorApplication.timeSinceStartup < queuedDispatchAfter
+            || EditorApplication.isCompiling
+            || EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            return;
+        }
+
+        int seedCount = queuedSeedCount;
+        int focusedSeed = queuedFocusedSeed;
+        queuedDispatch = false;
+        queuedSeedCount = 0;
+        queuedFocusedSeed = 0;
+        queuedDispatchAfter = 0d;
+        try
+        {
+            RequestRun(seedCount, focusedSeed);
+            File.Delete(QueuedDispatchRequestPath);
+        }
+        catch (Exception exception)
+        {
+            File.Delete(QueuedDispatchRequestPath);
+            Debug.LogError(
+                "V27 paired clutter queued dispatch failed: " + exception);
+        }
+    }
 
     public static string ComputeEvidenceSourceDigest()
     {
@@ -92,24 +540,146 @@ public static class V27PairedClutterPlayModeVerifier
             throw new ArgumentOutOfRangeException(nameof(seedCount));
         if (focusedSeed < 1)
             throw new ArgumentOutOfRangeException(nameof(focusedSeed));
+        if (!TryClearAssemblyReloadInterruption())
+            throw new IOException(
+                "The previous V27 paired clutter interruption marker could not be cleared.");
         Directory.CreateDirectory("Temp");
         Directory.CreateDirectory("Artifacts/QA");
-        File.WriteAllText(RequestPath, $"{seedCount}|{focusedSeed}");
         if (EditorApplication.isPlaying)
         {
+            // A live runner does not cross an Edit -> Play boundary.  Leaving a
+            // request file here would replay the same run on the next Play entry.
             StartRunner(seedCount, focusedSeed);
             return;
         }
 
-        Scene active = SceneManager.GetActiveScene();
-        if (active.isDirty && !string.Equals(active.path, GameplayScenePath,
-                StringComparison.OrdinalIgnoreCase))
+        if (EditorApplication.isCompiling)
             throw new InvalidOperationException(
-                "V27 paired clutter refuses to replace a dirty scene.");
-        if (!string.Equals(active.path, GameplayScenePath,
+                "V27 paired clutter cannot enter Play Mode while scripts compile.");
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+            throw new InvalidOperationException(
+                "V27 paired clutter cannot dispatch during a Play Mode transition.");
+        if (EditorUtility.scriptCompilationFailed)
+        {
+            if (File.Exists(RequestPath))
+                File.Delete(RequestPath);
+            throw new InvalidOperationException(
+                "V27 paired clutter cannot enter Play Mode because the latest "
+                + "script compilation failed. Fix compiler errors and retry.");
+        }
+
+        Scene active = SceneManager.GetActiveScene();
+        if (!CanDiscardByteIdenticalDirtyScene(active, out string dirtyFailure))
+            throw new InvalidOperationException(
+                "V27 paired clutter refuses to replace a dirty scene: "
+                + dirtyFailure);
+
+        if (SyntheticPreparedOutputCanaryGameplaySceneLease.IsActive
+            || File.Exists(SceneLeaseOwnerPath))
+        {
+            throw new InvalidOperationException(
+                "V27 paired clutter cannot acquire its sanitized GameplayScene "
+                + "because another verification lease is active.");
+        }
+
+        try
+        {
+            SyntheticPreparedOutputCanaryGameplaySceneLease.Acquire();
+            File.WriteAllText(SceneLeaseOwnerPath, GameplayScenePath);
+            EditorSceneManager.OpenScene(
+                SyntheticPreparedOutputCanaryGameplaySceneLease
+                    .ExpectedRuntimeScenePath,
+                OpenSceneMode.Single);
+            File.WriteAllText(RequestPath, $"{seedCount}|{focusedSeed}");
+            EditorApplication.EnterPlaymode();
+            if (!EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                throw new InvalidOperationException(
+                    "V27 paired clutter Play Mode transition was rejected.");
+            }
+        }
+        catch
+        {
+            if (File.Exists(RequestPath))
+                File.Delete(RequestPath);
+            ReleaseOwnedSceneLease();
+            throw;
+        }
+    }
+
+    private static bool CanDiscardByteIdenticalDirtyScene(
+        Scene active,
+        out string failure)
+    {
+        failure = string.Empty;
+        if (!active.IsValid())
+        {
+            failure = "active scene is invalid";
+            return false;
+        }
+        if (!active.isDirty)
+            return true;
+        if (!string.Equals(
+                active.path,
+                GameplayScenePath,
                 StringComparison.OrdinalIgnoreCase))
-            EditorSceneManager.OpenScene(GameplayScenePath, OpenSceneMode.Single);
-        EditorApplication.EnterPlaymode();
+        {
+            failure = $"non-official dirty scene path={active.path}";
+            return false;
+        }
+
+        bool byteIdentical = false;
+        try
+        {
+            if (AssetDatabase.IsValidFolder(DirtySceneProbeDirectory)
+                && !AssetDatabase.DeleteAsset(DirtySceneProbeDirectory))
+            {
+                failure = "stale dirty-scene probe could not be removed";
+            }
+            else
+            {
+                AssetDatabase.CreateFolder("Assets", "__V27DirtySceneProbe");
+                if (!EditorSceneManager.SaveScene(
+                        active,
+                        DirtySceneProbePath,
+                        saveAsCopy: true))
+                {
+                    failure = "dirty scene could not be serialized as a probe copy";
+                }
+                else
+                {
+                    string officialHash =
+                        V27BalanceArtifactWriter.ComputeSha256(GameplayScenePath);
+                    string probeHash =
+                        V27BalanceArtifactWriter.ComputeSha256(DirtySceneProbePath);
+                    byteIdentical = string.Equals(
+                        officialHash,
+                        probeHash,
+                        StringComparison.OrdinalIgnoreCase);
+                    if (!byteIdentical)
+                    {
+                        failure = $"serialized dirty scene differs from authority;"
+                            + $"official={officialHash};probe={probeHash}";
+                    }
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            failure = exception.GetType().Name + ":" + exception.Message;
+            byteIdentical = false;
+        }
+        finally
+        {
+            if (AssetDatabase.IsValidFolder(DirtySceneProbeDirectory)
+                && !AssetDatabase.DeleteAsset(DirtySceneProbeDirectory))
+            {
+                if (string.IsNullOrWhiteSpace(failure))
+                    failure = "byte-identical dirty-scene probe cleanup failed";
+                byteIdentical = false;
+            }
+        }
+        return byteIdentical;
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -119,6 +689,146 @@ public static class V27PairedClutterPlayModeVerifier
     {
         if (change == PlayModeStateChange.EnteredPlayMode)
             TryStartPending();
+        else if (change == PlayModeStateChange.EnteredEditMode)
+        {
+            try
+            {
+                ReleaseOwnedSceneLease();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(
+                    "V27 paired clutter scene lease cleanup failed: "
+                    + exception);
+            }
+        }
+    }
+
+    private static void RecoverOwnedSceneLeaseIfOrphaned()
+    {
+        if (!File.Exists(SceneLeaseOwnerPath)
+            || EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            return;
+        }
+
+        try
+        {
+            ReleaseOwnedSceneLease();
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "V27 paired clutter orphaned scene lease recovery failed: "
+                + exception);
+        }
+    }
+
+    private static void ReleaseOwnedSceneLease()
+    {
+        if (!File.Exists(SceneLeaseOwnerPath))
+            return;
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+            throw new InvalidOperationException(
+                "V27 paired clutter scene lease cannot be released during a Play Mode transition.");
+
+        string temporaryScenePath =
+            SyntheticPreparedOutputCanaryGameplaySceneLease
+                .ExpectedRuntimeScenePath;
+        Scene ownedScene = default;
+        for (int index = 0; index < SceneManager.sceneCount; index++)
+        {
+            Scene loaded = SceneManager.GetSceneAt(index);
+            if (loaded.IsValid()
+                && string.Equals(
+                    loaded.path,
+                    temporaryScenePath,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                ownedScene = loaded;
+                break;
+            }
+        }
+
+        if (ownedScene.IsValid())
+        {
+            // PlayMode teardown can dirty the verifier-owned scene. Unity will
+            // refuse to close that scene without a save prompt, so persist only
+            // this disposable copy to its own staging path before replacing it.
+            // The official GameplayScene is never a save target here.
+            string temporaryDirectory = Path.GetDirectoryName(
+                    temporaryScenePath)
+                ?.Replace('\\', '/');
+            if (string.IsNullOrWhiteSpace(temporaryDirectory))
+                throw new InvalidOperationException(
+                    "V27 paired clutter temporary scene directory is invalid.");
+            if (!AssetDatabase.IsValidFolder(temporaryDirectory))
+            {
+                string parent = Path.GetDirectoryName(temporaryDirectory)
+                    ?.Replace('\\', '/');
+                string folder = Path.GetFileName(temporaryDirectory);
+                if (string.IsNullOrWhiteSpace(parent)
+                    || string.IsNullOrWhiteSpace(folder)
+                    || string.IsNullOrWhiteSpace(
+                        AssetDatabase.CreateFolder(parent, folder)))
+                {
+                    throw new InvalidOperationException(
+                        "V27 paired clutter could not recreate its disposable scene directory.");
+                }
+            }
+            if (ownedScene.isDirty
+                && !EditorSceneManager.SaveScene(
+                    ownedScene,
+                    temporaryScenePath,
+                    saveAsCopy: false))
+            {
+                throw new InvalidOperationException(
+                    "V27 paired clutter could not persist its disposable scene before cleanup.");
+            }
+        }
+
+        Scene active = SceneManager.GetActiveScene();
+        if (!active.IsValid()
+            || !string.Equals(
+                active.path,
+                GameplayScenePath,
+                StringComparison.OrdinalIgnoreCase)
+            || SceneManager.sceneCount != 1)
+        {
+            Scene official = EditorSceneManager.OpenScene(
+                GameplayScenePath,
+                OpenSceneMode.Single);
+            if (!official.IsValid()
+                || !string.Equals(
+                    official.path,
+                    GameplayScenePath,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "V27 paired clutter could not restore the official GameplayScene.");
+            }
+        }
+
+        bool restoredLease =
+            SyntheticPreparedOutputCanaryGameplaySceneLease.RestoreOwned();
+        if (!restoredLease)
+        {
+            string temporaryDirectory = Path.GetDirectoryName(
+                    temporaryScenePath)
+                ?.Replace('\\', '/');
+            if (!string.IsNullOrWhiteSpace(temporaryDirectory)
+                && AssetDatabase.IsValidFolder(temporaryDirectory)
+                && !AssetDatabase.DeleteAsset(temporaryDirectory))
+            {
+                throw new InvalidOperationException(
+                    "V27 paired clutter could not delete its orphaned disposable scene directory.");
+            }
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        }
+        File.Delete(SceneLeaseOwnerPath);
+        if (!TryClearAssemblyReloadInterruption())
+            throw new IOException(
+                "The V27 paired clutter interruption marker could not be cleared after lease release.");
     }
 
     private static void TryStartPending()
@@ -165,6 +875,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
     private const float RecoverySeconds = 90f;
     private const float WorkMilliWuPerGameSecond = 50000f / GameDaySeconds;
     private const float VerificationTimeScale = 32f;
+    private const float ClockProgressTimeoutRealtimeSeconds = 10f;
     private const string ScenarioId = "v27.floor-clutter.paired";
 
     private readonly List<PairedRunWindowResult> rows = new();
@@ -215,6 +926,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
     private GridBuildingPlacementService livePlacementService;
     private Grid grid;
     private DungeonGameSaveData originalSave;
+    private string originalSaveJson = string.Empty;
     private string commonCheckpointJson = string.Empty;
     private float commonCheckpointTime;
     private int commonCheckpointFrame;
@@ -267,6 +979,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
     private string lastRuntimeHeadroomErosionDetail = string.Empty;
     private PairedRunAttributionAssessment finalAssessment;
     private ArmBurstProbe currentBurstProbe;
+    private string currentSourceDigestAtStart = string.Empty;
 
     public int SeedCount { get; set; } = 32;
     public int StartSeed { get; set; } = 1;
@@ -274,10 +987,13 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
     public string CurrentPhase { get; private set; } = "created";
     public int CompletedWindowCount => rows.Count;
     public int FailureCount => failures.Count;
+    internal string CurrentSourceDigestAtStart => currentSourceDigestAtStart;
 
     private IEnumerator Start()
     {
-        CurrentPhase = "starting";
+        currentSourceDigestAtStart =
+            V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest();
+        SetPhase("starting");
         originalTimeScale = Time.timeScale;
         originalCaptureDeltaTime = Time.captureDeltaTime;
         originalRunInBackground = Application.runInBackground;
@@ -321,6 +1037,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
                 $"rows={rows.Count};seeds={rows.Select(value => value.Seed).Distinct().Count()}");
             ValidateProductionInterventionEvidence();
             ValidateFocusedCleanRepeatability();
+            ValidateFocusedClutterDelta();
             Check(floorRows.All(value => value.RuntimeHeadroomPermille >= 300),
                 "PAIRED_RUNTIME_HEADROOM_AT_LEAST_30_PERCENT",
                 $"rows={floorRows.Count};minimumPermille="
@@ -368,7 +1085,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
 
     private IEnumerator ResolveWorld()
     {
-        CurrentPhase = "resolve-world";
+        SetPhase("resolve-world");
         float deadline = Time.realtimeSinceStartup + 30f;
         bool prepared = false;
         while (Time.realtimeSinceStartup < deadline)
@@ -544,7 +1261,15 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             characterSpawner.DeterministicSimulationPausedForDiagnostics;
         characterSpawner.ConfigureDeterministicSimulationForDiagnostics(true);
         spawnerDiagnosticsConfigured = true;
+        if (!TryReconcileTierZeroForDirectPlayModeEntry())
+            yield break;
         originalSave = saves.Capture();
+        originalSaveJson = saves.ToJson(originalSave);
+        Check(!string.IsNullOrWhiteSpace(originalSaveJson),
+            "PAIRED_ORIGINAL_WORLD_CHECKPOINT",
+            $"bytes={originalSaveJson.Length}");
+        if (string.IsNullOrWhiteSpace(originalSaveJson))
+            yield break;
 
         originalDeveloperMode = userSettings.Current.developerMode;
         if (!originalDeveloperMode)
@@ -562,9 +1287,104 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             yield return null;
     }
 
+    private bool TryReconcileTierZeroForDirectPlayModeEntry()
+    {
+        IDungeonSpaceExpansionQuery expansionQuery =
+            Resolve<IDungeonSpaceExpansionQuery>();
+        IDungeonSpaceExpansionCommand expansionCommand =
+            Resolve<IDungeonSpaceExpansionCommand>();
+        DungeonInteriorLayoutSnapshot before = default;
+        string beforeFailure = "expansion-query-missing";
+        bool beforeCaptured = expansionQuery != null
+            && expansionQuery.TryCaptureLayout(
+                out before,
+                out beforeFailure);
+        if (!Check(
+                beforeCaptured,
+                "PAIRED_TIER_ZERO_LAYOUT_CAPTURED_BEFORE_RECONCILE",
+                beforeCaptured
+                    ? $"columns={before.ColumnCount}"
+                    : beforeFailure ?? "expansion-query-missing"))
+        {
+            return false;
+        }
+
+        bool canonicalBefore = before.ColumnCount
+            is DungeonSpaceExpansionCatalog.SceneSeedInteriorColumns
+            or DungeonSpaceExpansionCatalog.InitialInteriorColumns;
+        if (!Check(
+                canonicalBefore,
+                "PAIRED_TIER_ZERO_CANONICAL_PRE_LAYOUT",
+                $"columns={before.ColumnCount}"))
+        {
+            return false;
+        }
+
+        DungeonSpaceExpansionResult result = default;
+        string reconcileFailure = "expansion-command-missing";
+        bool reconciled = expansionCommand != null
+            && expansionCommand.TryReconcileNewRunTierZero(
+                out result,
+                out reconcileFailure);
+        if (!Check(
+                reconciled,
+                "PAIRED_TIER_ZERO_PRODUCTION_RECONCILE",
+                reconciled
+                    ? $"changed={result.Changed};columns={result.PreviousInteriorColumns}->{result.CurrentInteriorColumns}"
+                    : reconcileFailure ?? "expansion-command-missing"))
+        {
+            return false;
+        }
+
+        bool expectedChanged = before.ColumnCount
+            == DungeonSpaceExpansionCatalog.SceneSeedInteriorColumns;
+        bool exactResult = string.Equals(
+                result.ResearchProjectId,
+                DungeonSpaceExpansionCatalog.TierZeroInitializationId,
+                StringComparison.Ordinal)
+            && result.Tier == 0
+            && result.PreviousInteriorColumns == before.ColumnCount
+            && result.CurrentInteriorColumns
+                == DungeonSpaceExpansionCatalog.InitialInteriorColumns
+            && result.Changed == expectedChanged;
+        if (!Check(
+                exactResult,
+                "PAIRED_TIER_ZERO_EXACT_TRANSITION",
+                $"id={result.ResearchProjectId};tier={result.Tier};"
+                + $"changed={result.Changed}/{expectedChanged};"
+                + $"columns={result.PreviousInteriorColumns}->{result.CurrentInteriorColumns}"))
+        {
+            return false;
+        }
+
+        bool gridPublished = world.TryGetGrid(out Grid publishedGrid)
+            && publishedGrid != null;
+        grid = publishedGrid;
+        DungeonInteriorLayoutSnapshot after = default;
+        string afterFailure = "published-grid-missing";
+        bool afterCaptured = gridPublished
+            && DungeonSpaceGridLayout.TryCapture(
+                grid,
+                out after,
+                out afterFailure);
+        bool exactPublishedLayout = afterCaptured
+            && after.ColumnCount
+                == DungeonSpaceExpansionCatalog.InitialInteriorColumns
+            && after.StartX == before.StartX
+            && after.EntrancePosition == before.EntrancePosition;
+        return Check(
+            exactPublishedLayout,
+            "PAIRED_TIER_ZERO_LIVE_GRID_RECAPTURED",
+            !gridPublished
+                ? "published-grid-missing"
+                : afterCaptured
+                    ? $"columns={after.ColumnCount};startX={after.StartX};entrance={after.EntrancePosition}"
+                    : afterFailure);
+    }
+
     private IEnumerator CreateFixtureAndCheckpoint()
     {
-        CurrentPhase = "create-fixture";
+        SetPhase("create-fixture");
         CharacterActor anchor = LiveActors()
             .OrderBy(value => value.Identity.PersistentId, StringComparer.Ordinal)
             .First();
@@ -573,36 +1393,50 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             .Skip(1).First();
         faultActorId = fault.Identity.PersistentId;
 
-        ResearchProjectSO expansionProject = Resources
+        string[] expansionResearchIds =
+        {
+            DungeonSpaceExpansionCatalog.QuarryResearchId,
+            DungeonSpaceExpansionCatalog.StonecuttingResearchId,
+            DungeonSpaceExpansionCatalog.DeepMiningResearchId
+        };
+        Dictionary<string, ResearchProjectSO> expansionProjects = Resources
             .LoadAll<ResearchProjectSO>("SO/Research/Projects")
-            .FirstOrDefault(value => value != null
-                && string.Equals(
+            .Where(value => value != null
+                && expansionResearchIds.Contains(
                     value.ProjectId.Value,
-                    DungeonSpaceExpansionCatalog.QuarryResearchId,
-                    StringComparison.Ordinal));
+                    StringComparer.Ordinal))
+            .ToDictionary(
+                value => value.ProjectId.Value,
+                StringComparer.Ordinal);
         IFacilityShopCatalog facilityCatalog = Resolve<IFacilityShopCatalog>();
         IGameEventBus gameEvents = Resolve<IGameEventBus>();
-        bool expansionAuthorityReady = expansionProject != null
+        bool expansionAuthorityReady = expansionResearchIds.All(
+                expansionProjects.ContainsKey)
             && facilityCatalog != null
             && gameEvents != null;
         Check(expansionAuthorityReady,
             "PAIRED_MINING_EXPANSION_RESEARCH_AUTHORITY",
-            $"project={expansionProject?.ProjectId.Value ?? "missing"};"
+            $"projects={string.Join(",", expansionProjects.Keys.OrderBy(value => value, StringComparer.Ordinal))};"
             + $"catalog={facilityCatalog != null};events={gameEvents != null}");
         if (!expansionAuthorityReady)
             yield break;
 
-        BlueprintResearchUnlockResult expansionUnlock =
-            BlueprintResearchService.ApplyCompletion(
+        foreach (string expansionResearchId in expansionResearchIds)
+        {
+            ResearchProjectSO expansionProject =
+                expansionProjects[expansionResearchId];
+            BlueprintResearchUnlockResult expansionUnlock =
+                BlueprintResearchService.ApplyCompletion(
+                    expansionProject,
+                    progression.BlueprintResearch.State,
+                    progression.BlueprintResearch.ShopUnlockState,
+                    facilityCatalog);
+            gameEvents.Publish(new BlueprintResearchCompletedEvent(
                 expansionProject,
-                progression.BlueprintResearch.State,
-                progression.BlueprintResearch.ShopUnlockState,
-                facilityCatalog);
-        gameEvents.Publish(new BlueprintResearchCompletedEvent(
-            expansionProject,
-            expansionUnlock));
-        for (int frame = 0; frame < 4; frame++)
-            yield return null;
+                expansionUnlock));
+            for (int frame = 0; frame < 4; frame++)
+                yield return null;
+        }
         world.TryGetGrid(out grid);
         IDungeonSpaceExpansionQuery expansion = Resolve<IDungeonSpaceExpansionQuery>();
         DungeonInteriorLayoutSnapshot expandedLayout = default;
@@ -612,14 +1446,14 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
                 out expandedLayout,
                 out expansionFailure)
             && expandedLayout.ColumnCount
-                >= DungeonSpaceExpansionCatalog.BasicSectorTargetColumns
+                >= DungeonSpaceExpansionCatalog.DeepSectorTargetColumns
             && string.Equals(
                 expansion.LastResult.ResearchProjectId,
-                DungeonSpaceExpansionCatalog.QuarryResearchId,
+                DungeonSpaceExpansionCatalog.DeepMiningResearchId,
                 StringComparison.Ordinal);
         Check(expansionApplied,
             "PAIRED_MINING_EXPANSION_RESEARCH_APPLIED",
-            $"project={DungeonSpaceExpansionCatalog.QuarryResearchId};"
+            $"projects={string.Join(",", expansionResearchIds)};"
             + $"columns={(expansionApplied ? expandedLayout.ColumnCount : 0)};"
             + $"failure={(expansionApplied ? string.Empty : expansionFailure)};"
             + $"developerKeyUsed=False");
@@ -627,6 +1461,10 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             yield break;
 
         BuildingSO warehouseAsset = FindWarehouseAsset();
+        // Keep the control and overflow facilities on the same all-category
+        // authority so the paired run changes pressure, not category/research
+        // eligibility or footprint semantics.
+        BuildingSO overflowWarehouseAsset = warehouseAsset;
         BuildingSO producerAsset = FindCookFacilityAsset();
         producerFacilityAsset = producerAsset;
         Vector2Int[] reachable = grid.SearchPath(anchor.GetNowXY())
@@ -638,12 +1476,17 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             .Distinct()
             .OrderBy(value => Mathf.Abs(value.x - anchor.GetNowXY().x)
                 + Mathf.Abs(value.y - anchor.GetNowXY().y))
+            .ThenBy(value => value.x)
+            .ThenBy(value => value.y)
             .Skip(2)
             .ToArray();
-        Check(warehouseAsset != null && producerAsset != null && reachable.Length >= 8,
+        Check(warehouseAsset != null && overflowWarehouseAsset != null
+                && producerAsset != null && reachable.Length >= 8,
             "PAIRED_FIXTURE_CELLS",
-            $"warehouse={warehouseAsset != null};producer={producerAsset != null};cells={reachable.Length}");
-        if (warehouseAsset == null || producerAsset == null || reachable.Length < 8)
+            $"warehouse={warehouseAsset != null};overflow={overflowWarehouseAsset != null};"
+            + $"producer={producerAsset != null};cells={reachable.Length}");
+        if (warehouseAsset == null || overflowWarehouseAsset == null
+            || producerAsset == null || reachable.Length < 8)
             yield break;
 
         IGameSessionStateProvider sessionState = Resolve<IGameSessionStateProvider>();
@@ -660,74 +1503,147 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
                     null,
                     debugRules ?? DisabledDungeonDebugRuleQuery.Instance);
             });
-        Vector2Int? warehouseAnchor = reachable
-            .Where(value => placement.CanBuild(
-                grid, warehouseAsset, value, out _))
-            .Select(value => (Vector2Int?)value)
+        fixtureWarehouse = world.Warehouses
+            .OfType<Facility>()
+            .Where(value => value != null
+                && value.BuildingData == warehouseAsset
+                && value.Inventory != null
+                && value.Inventory.MaxMassGrams > 0L
+                && value.BuildingData.StoresAllCategories())
+            .OrderBy(value => value.RequirePersistentInstanceId().Value,
+                StringComparer.Ordinal)
             .FirstOrDefault();
-        if (!warehouseAnchor.HasValue)
-        {
-            Fail("PAIRED_FIXTURE_PRIMARY_PLACEMENT", "no legal warehouse anchor");
+        fixtureProducerFacility = world.Buildings
+            .OfType<Facility>()
+            .Where(value => value != null
+                && value.BuildingData == producerAsset
+                && value.BuildingData.Facility.SupportsWork(
+                    BuiltInWorkTypeIds.Cook))
+            .OrderBy(value => value.RequirePersistentInstanceId().Value,
+                StringComparer.Ordinal)
+            .FirstOrDefault();
+        bool existingAuthoritiesReady = fixtureWarehouse != null
+            && fixtureProducerFacility != null;
+        Check(existingAuthoritiesReady,
+            "PAIRED_FIXTURE_EXISTING_AUTHORITIES",
+            $"warehouse={fixtureWarehouse?.RequirePersistentInstanceId().Value ?? "missing"}:"
+            + $"{fixtureWarehouse?.centerPos.ToString() ?? "missing"};"
+            + $"producer={fixtureProducerFacility?.RequirePersistentInstanceId().Value ?? "missing"}:"
+            + $"{fixtureProducerFacility?.centerPos.ToString() ?? "missing"};"
+            + $"authorities={DescribeExistingFixtureAuthorities()}");
+        if (!existingAuthoritiesReady)
             yield break;
-        }
-        Vector2Int warehouseCell = warehouseAnchor.Value;
-        GameObject warehouseObject = new("QA_V27_Paired_Warehouse");
-        fixtureWarehouse = warehouseObject.AddComponent<Facility>();
-        Inject(warehouseObject);
-        fixtureWarehouse.SetGrid(grid);
-        fixtureWarehouse.Initialization(warehouseAsset, warehouseCell);
-        warehouseObject.transform.position = grid.GetWorldPos(warehouseCell);
+
         warehouseId = fixtureWarehouse.RequirePersistentInstanceId().Value;
-        yield return null;
-
-        Vector2Int? overflowAnchor = reachable
+        Vector2Int warehouseCell = fixtureWarehouse.centerPos;
+        producerFacilityId = fixtureProducerFacility
+            .RequirePersistentInstanceId().Value;
+        burstCell = fixtureProducerFacility.centerPos;
+        Vector2Int[] overflowCandidates = reachable
             .Where(value => placement.CanBuild(
-                grid, warehouseAsset, value, out _))
-            .Select(value => (Vector2Int?)value)
-            .FirstOrDefault();
-        if (!overflowAnchor.HasValue)
-        {
-            Fail("PAIRED_FIXTURE_OVERFLOW_PLACEMENT", "no legal overflow warehouse anchor");
-            yield break;
-        }
-        overflowCell = overflowAnchor.Value;
-        GameObject overflowObject = new("QA_V27_Paired_Overflow_Warehouse");
-        fixtureOverflowWarehouse = overflowObject.AddComponent<Facility>();
-        Inject(overflowObject);
-        fixtureOverflowWarehouse.SetGrid(grid);
-        fixtureOverflowWarehouse.Initialization(warehouseAsset, overflowCell);
-        overflowObject.transform.position = grid.GetWorldPos(overflowCell);
-        overflowWarehouseId = fixtureOverflowWarehouse.RequirePersistentInstanceId().Value;
-        for (int frame = 0; frame < 4; frame++)
-            yield return null;
-
-        Vector2Int? producerAnchor = reachable
-            .Where(value => placement.CanBuild(
-                grid, producerAsset, value, out _))
-            .OrderByDescending(value => Mathf.Min(
-                Manhattan(value, warehouseCell),
-                Manhattan(value, overflowCell)))
+                grid, overflowWarehouseAsset, value, out _))
+            .OrderBy(value => checked(
+                Manhattan(value, warehouseCell)
+                + Manhattan(value, burstCell)))
             .ThenBy(value => value.x)
             .ThenBy(value => value.y)
-            .Select(value => (Vector2Int?)value)
-            .FirstOrDefault();
-        if (!producerAnchor.HasValue)
+            .ToArray();
+        bool fixturePlacementFound = overflowCandidates.Length > 0;
+        Vector2Int overflowPlacementCell = fixturePlacementFound
+            ? overflowCandidates[0]
+            : default;
+        Check(fixturePlacementFound,
+            "PAIRED_FIXTURE_PRODUCER_RESERVATION",
+            $"asset={producerAsset.name};anchor={burstCell};"
+            + $"warehouse={warehouseCell};overflow="
+            + $"{(fixturePlacementFound ? overflowPlacementCell.ToString() : "missing")};"
+            + $"distance={Manhattan(warehouseCell, burstCell)}");
+        if (!fixturePlacementFound)
         {
-            Fail("PAIRED_FIXTURE_PRODUCER_PLACEMENT", "no legal cooking facility anchor");
+            Fail("PAIRED_FIXTURE_WAREHOUSE_PAIR_PLACEMENT",
+                $"no legal overflow placement for existing warehouse/producer authorities;"
+                + $"overflowCandidates={overflowCandidates.Length};"
+                + $"overflow={DescribePlacementCandidates(overflowWarehouseAsset, overflowCandidates)};"
+                + $"existing={DescribeExistingFixtureAuthorities()};"
+                + $"overflowAsset={overflowWarehouseAsset.name}");
             yield break;
         }
-        burstCell = producerAnchor.Value;
+
+        overflowCell = overflowPlacementCell;
+        bool overflowPlaced = livePlacementService.TryPlaceBuildingImmediateUnchecked(
+            overflowWarehouseAsset,
+            overflowCell,
+            chargeCost: false,
+            out string overflowPlacementFailure);
+        Check(overflowPlaced,
+            "PAIRED_FIXTURE_OVERFLOW_PRODUCTION_PLACEMENT",
+            $"asset={overflowWarehouseAsset.name};anchor={overflowCell};"
+            + $"failure={overflowPlacementFailure}");
+        if (!overflowPlaced)
+            yield break;
+        for (int frame = 0; frame < 4; frame++)
+            yield return null;
+        fixtureOverflowWarehouse = world.Warehouses
+            .OfType<Facility>()
+            .SingleOrDefault(value => value != null
+                && value.BuildingData == overflowWarehouseAsset
+                && value.centerPos == overflowCell);
+        Check(fixtureOverflowWarehouse != null,
+            "PAIRED_FIXTURE_OVERFLOW_LIVE_REGISTRATION",
+            $"asset={overflowWarehouseAsset.name};anchor={overflowCell};"
+            + $"registered={fixtureOverflowWarehouse != null}");
+        if (fixtureOverflowWarehouse == null)
+            yield break;
+        overflowWarehouseId = fixtureOverflowWarehouse
+            .RequirePersistentInstanceId().Value;
+
+        bool producerPublished = world.Buildings.Any(value => value != null
+            && value.PersistentInstanceId.Value == producerFacilityId);
         Check(grid.IsValidGridPos(burstCell)
-                && placement.CanBuild(grid, producerAsset, burstCell, out _),
+                && producerPublished
+                && fixtureProducerFacility.BuildingData == producerAsset,
             "PAIRED_FIXTURE_PRODUCTION_CELL",
-            $"cell={burstCell};asset={producerAsset.id};cook="
+            $"cell={burstCell};asset={producerAsset.id};"
+            + $"facility={producerFacilityId};published={producerPublished};cook="
             + producerAsset.Facility.SupportsWork(BuiltInWorkTypeIds.Cook));
         if (!grid.IsValidGridPos(burstCell)
-            || !placement.CanBuild(grid, producerAsset, burstCell, out _))
+            || !producerPublished
+            || fixtureProducerFacility.BuildingData != producerAsset)
             yield break;
 
         yield return PrepareCropAndMiningFixtures(reachable, placement);
         if (failures.Count > 0)
+            yield break;
+
+        string[] burstItemIds =
+        {
+            FacilityBurstItemId,
+            cropBurstItemId,
+            miningBurstItemId
+        };
+        List<string> overflowAdmission = new(burstItemIds.Length);
+        bool overflowAcceptsAllBursts = true;
+        foreach (string burstItemId in burstItemIds)
+        {
+            bool defined = itemCatalog.TryGetDefinition(
+                burstItemId,
+                out DungeonItemDefinition definition);
+            bool accepts = defined
+                && fixtureOverflowWarehouse.Inventory.Accepts(
+                    definition.StockCategory)
+                && fixtureOverflowWarehouse.Inventory.GetAcceptableQuantity(
+                    burstItemId,
+                    1) == 1;
+            overflowAcceptsAllBursts &= accepts;
+            overflowAdmission.Add(
+                $"{burstItemId}:{(defined ? definition.StockCategory.ToString() : "missing")}:{accepts}");
+        }
+        Check(overflowAcceptsAllBursts,
+            "PAIRED_OVERFLOW_ACCEPTS_ALL_BURST_CATEGORIES",
+            $"warehouse={overflowWarehouseId};asset={overflowWarehouseAsset.id};"
+            + $"maxMassGrams={fixtureOverflowWarehouse.Inventory.MaxMassGrams};"
+            + string.Join(",", overflowAdmission));
+        if (!overflowAcceptsAllBursts)
             yield break;
 
         bool published = world.Warehouses.Any(value => value != null
@@ -740,25 +1656,25 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
                 && value.PersistentInstanceId.Value != warehouseId
                 && value.PersistentInstanceId.Value != overflowWarehouseId
                 && value.Inventory.Accepts(StockCategory.Food)
-                && value.Inventory.CanStore(StockCategory.Food, 8))
+                && value.Inventory.RemainingMassGrams > 0L)
             .OrderBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal)
             .FirstOrDefault();
         productionInputWarehouseId =
             productionInputWarehouse?.PersistentInstanceId.Value ?? string.Empty;
         Check(published && overflowPublished
                 && !string.IsNullOrWhiteSpace(productionInputWarehouseId)
-                && fixtureWarehouse.Inventory?.HasCapacityLimit == true
-                && fixtureOverflowWarehouse.Inventory?.HasCapacityLimit == true,
+                && fixtureWarehouse.Inventory?.MaxMassGrams > 0L
+                && fixtureOverflowWarehouse.Inventory?.MaxMassGrams > 0L,
             "PAIRED_WAREHOUSE_LIVE",
-            $"id={warehouseId};published={published};capacity={fixtureWarehouse.Inventory?.MaxCapacity ?? -1};"
+            $"id={warehouseId};published={published};capacityGrams={fixtureWarehouse.Inventory?.MaxMassGrams ?? -1L};"
             + $"overflowId={overflowId};overflowPublished={overflowPublished};"
-            + $"overflowCapacity={fixtureOverflowWarehouse.Inventory?.MaxCapacity ?? -1};"
+            + $"overflowCapacityGrams={fixtureOverflowWarehouse.Inventory?.MaxMassGrams ?? -1L};"
             + $"producerAsset={producerAsset.id};producerCell={burstCell};"
             + $"inputWarehouse={productionInputWarehouseId}");
         if (!published || !overflowPublished
             || string.IsNullOrWhiteSpace(productionInputWarehouseId)
-            || fixtureWarehouse.Inventory?.HasCapacityLimit != true
-            || fixtureOverflowWarehouse.Inventory?.HasCapacityLimit != true)
+            || fixtureWarehouse.Inventory?.MaxMassGrams <= 0L
+            || fixtureOverflowWarehouse.Inventory?.MaxMassGrams <= 0L)
             yield break;
         bool anyPlan = false;
         List<string> planDetails = new();
@@ -778,9 +1694,74 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         IsolatePreexistingLogistics();
         for (int frame = 0; frame < 2; frame++)
             yield return null;
+        if (!DungeonSpaceGridLayout.TryCapture(
+                grid,
+                out DungeonInteriorLayoutSnapshot interior,
+                out string interiorFailure))
+        {
+            Check(false, "PAIRED_FLOOR_CLUTTER_LAYOUT_CAPTURE",
+                interiorFailure);
+            yield break;
+        }
+        HashSet<Vector2Int> emergencyEgress = new()
+        {
+            interior.EntrancePosition
+        };
+        Vector2Int entranceLanding = interior.EntrancePosition + Vector2Int.right;
+        if (grid.IsValidGridPos(entranceLanding) && grid.IsWalkable(entranceLanding))
+            emergencyEgress.Add(entranceLanding);
+
+        HashSet<Vector2Int> operationalAccess = new();
+        HashSet<Vector2Int> criticalAccess = new();
+        foreach (BuildableObject building in world.Buildings
+                     .OfType<BuildableObject>()
+                     .Where(value => value != null && value.BuildingData != null)
+                     .OrderBy(value => value.PersistentInstanceId.Value,
+                         StringComparer.Ordinal))
+        {
+            Vector2Int[] candidates = BuildingWorkAccessRules
+                .EnumerateCandidates(
+                    building.buildPoses,
+                    building.BuildingData.IsGridMovement)
+                .Where(value => grid.IsValidGridPos(value)
+                    && grid.IsWalkable(value))
+                .Distinct()
+                .OrderBy(value => value.x)
+                .ThenBy(value => value.y)
+                .ToArray();
+            foreach (Vector2Int candidate in candidates)
+            {
+                operationalAccess.Add(candidate);
+            }
+            if (candidates.Length == 1 && IsCriticalServiceFacility(building))
+                criticalAccess.Add(candidates[0]);
+        }
+        HashSet<Vector2Int> protectedCells = new(emergencyEgress);
+        protectedCells.UnionWith(criticalAccess);
+        Check(emergencyEgress.Count > 0
+                && operationalAccess.Count > 0
+                && criticalAccess.Count > 0,
+            "PAIRED_FLOOR_CLUTTER_PROTECTED_LAYOUT",
+            $"egress={emergencyEgress.Count};operationalAccess={operationalAccess.Count};"
+            + $"criticalAccess={criticalAccess.Count};"
+            + $"entrance={interior.EntrancePosition}");
+        if (emergencyEgress.Count == 0
+            || operationalAccess.Count == 0
+            || criticalAccess.Count == 0)
+            yield break;
+        bool burstSourcesProtected = protectedCells.Contains(burstCell)
+            || protectedCells.Contains(cropBurstCell)
+            || protectedCells.Contains(miningBurstCell);
+        Check(!burstSourcesProtected,
+            "PAIRED_BURST_SOURCES_OUTSIDE_PROTECTED_CELLS",
+            $"facility={burstCell};crop={cropBurstCell};mining={miningBurstCell}");
+        if (burstSourcesProtected)
+            yield break;
+
         HashSet<Vector2Int> authorized = items.GetAllStacks()
             .Where(value => value != null && value.Quantity > 0)
             .Select(value => value.Position)
+            .Where(value => !protectedCells.Contains(value))
             .ToHashSet();
         List<KeyValuePair<Vector2Int, SpatialCellRole>> roles = authorized
             .Select(value => new KeyValuePair<Vector2Int, SpatialCellRole>(
@@ -790,10 +1771,14 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
                      .Where(value => value != null
                          && value.AreaType == GridCellAreaType.DropZone))
         {
-            roles.Add(new KeyValuePair<Vector2Int, SpatialCellRole>(
-                dropZone.Position, SpatialCellRole.AuthorizedLooseSource));
+            if (!protectedCells.Contains(dropZone.Position))
+            {
+                roles.Add(new KeyValuePair<Vector2Int, SpatialCellRole>(
+                    dropZone.Position, SpatialCellRole.AuthorizedLooseSource));
+            }
         }
-        if (dropZones.TryGetDeliveryDropoff(out Vector2Int deliveryDropoff))
+        if (dropZones.TryGetDeliveryDropoff(out Vector2Int deliveryDropoff)
+            && !protectedCells.Contains(deliveryDropoff))
         {
             roles.Add(new KeyValuePair<Vector2Int, SpatialCellRole>(
                 deliveryDropoff, SpatialCellRole.AuthorizedLooseSource));
@@ -811,19 +1796,52 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
                     cell, SpatialCellRole.StorageBuffer));
             }
         }
-        roles.Add(new KeyValuePair<Vector2Int, SpatialCellRole>(
-            overflowCell, SpatialCellRole.OverflowContainment));
+        if (fixtureOverflowWarehouse is BuildableObject overflowBuilding)
+        {
+            foreach (Vector2Int cell in overflowBuilding.buildPoses
+                         .OrderBy(value => value.x)
+                         .ThenBy(value => value.y))
+            {
+                roles.Add(new KeyValuePair<Vector2Int, SpatialCellRole>(
+                    cell, SpatialCellRole.OverflowContainment));
+            }
+        }
         roles.Add(new KeyValuePair<Vector2Int, SpatialCellRole>(
             burstCell, SpatialCellRole.AuthorizedLooseSource));
         roles.Add(new KeyValuePair<Vector2Int, SpatialCellRole>(
             cropBurstCell, SpatialCellRole.AuthorizedLooseSource));
         roles.Add(new KeyValuePair<Vector2Int, SpatialCellRole>(
             miningBurstCell, SpatialCellRole.AuthorizedLooseSource));
+        foreach (Vector2Int cell in operationalAccess
+                     .OrderBy(value => value.x)
+                     .ThenBy(value => value.y))
+        {
+            roles.Add(new KeyValuePair<Vector2Int, SpatialCellRole>(
+                cell,
+                SpatialCellRole.OperationalAccess
+                | SpatialCellRole.SharedCorridor));
+        }
+        foreach (Vector2Int cell in emergencyEgress
+                     .OrderBy(value => value.x)
+                     .ThenBy(value => value.y))
+        {
+            roles.Add(new KeyValuePair<Vector2Int, SpatialCellRole>(
+                cell,
+                SpatialCellRole.EmergencyEgress
+                | SpatialCellRole.SharedCorridor));
+        }
         layout = new DungeonSpaceLayoutSnapshot(
             roles,
-            Array.Empty<Vector2Int>(),
+            criticalAccess,
             cleanRunP95HaulDispatchAndDeliverySeconds: 15f,
             gameDaySeconds: GameDaySeconds);
+        if (!VerifyFloorClutterProtectedCellContract(
+                emergencyEgress,
+                operationalAccess,
+                criticalAccess))
+        {
+            yield break;
+        }
         commonCheckpointJson = saves.ToJson(saves.Capture());
         commonCheckpointTime = clock.Time;
         commonCheckpointFrame = clock.FrameCount;
@@ -831,11 +1849,122 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             "PAIRED_COMMON_CHECKPOINT", $"bytes={commonCheckpointJson.Length}");
     }
 
+    private bool VerifyFloorClutterProtectedCellContract(
+        IReadOnlyCollection<Vector2Int> emergencyEgress,
+        IReadOnlyCollection<Vector2Int> operationalAccess,
+        IReadOnlyCollection<Vector2Int> criticalAccess)
+    {
+        Vector2Int? protectedProbeCell = emergencyEgress
+            .Concat(criticalAccess)
+            .Distinct()
+            .OrderBy(value => value.x)
+            .ThenBy(value => value.y)
+            .Where(value => (layout.GetRoles(value) & (
+                SpatialCellRole.StorageBuffer
+                | SpatialCellRole.OverflowContainment
+                | SpatialCellRole.AuthorizedLooseSource)) == 0)
+            .Where(value => items.GetStacksAt(value, includeStored: true).Count == 0)
+            .Select(value => (Vector2Int?)value)
+            .FirstOrDefault();
+        Check(protectedProbeCell.HasValue,
+            "PAIRED_FLOOR_CLUTTER_PROTECTED_PROBE_CELL",
+            $"egress={emergencyEgress.Count};operationalAccess={operationalAccess.Count};"
+            + $"criticalAccess={criticalAccess.Count}");
+        if (!protectedProbeCell.HasValue)
+            return false;
+
+        if (!TryProbeFloorClutterCell(
+                protectedProbeCell.Value,
+                expectImmediateFailure: true,
+                "PAIRED_FLOOR_CLUTTER_PROTECTED_CELL_POSITIVE"))
+        {
+            return false;
+        }
+        if (!TryProbeFloorClutterCell(
+                burstCell,
+                expectImmediateFailure: false,
+                "PAIRED_FLOOR_CLUTTER_AUTHORIZED_SOURCE_NEGATIVE"))
+        {
+            return false;
+        }
+
+        FloorClutterAssessment cleanup = clutter.Capture(grid, layout, 0f);
+        Check(cleanup.OutsideContainment.Count == 0,
+            "PAIRED_FLOOR_CLUTTER_PROBE_CLEANUP",
+            $"outside={cleanup.OutsideContainment.Count}");
+        return cleanup.OutsideContainment.Count == 0;
+    }
+
+    private static bool IsCriticalServiceFacility(BuildableObject building)
+    {
+        FacilityData facility = building?.BuildingData?.Facility;
+        return facility != null
+            && (facility.SupportsWork(BuiltInWorkTypeIds.DrawWater)
+                || facility.SupportsWork(BuiltInWorkTypeIds.Cook)
+                || facility.SupportsWork(BuiltInWorkTypeIds.Rest)
+                || facility.SupportsWork(BuiltInWorkTypeIds.Treat)
+                || facility.SupportsWork(BuiltInWorkTypeIds.Surgery));
+    }
+
+    private bool TryProbeFloorClutterCell(
+        Vector2Int cell,
+        bool expectImmediateFailure,
+        string evidenceToken)
+    {
+        if (items.GetStacksAt(cell, includeStored: true).Count != 0)
+        {
+            Check(false, evidenceToken, $"cell={cell};occupied-before-spawn");
+            return false;
+        }
+        bool spawned = items.SpawnItemAt(
+            FacilityBurstItemId,
+            1,
+            cell,
+            WorldItemStackState.Loose,
+            string.Empty,
+            out int spawnedQuantity);
+        WorldItemStackSnapshot probe = items.GetStacksAt(cell, includeStored: true)
+            .SingleOrDefault(value => value != null
+                && value.State == WorldItemStackState.Loose
+                && string.Equals(
+                    value.ItemId,
+                    FacilityBurstItemId,
+                    StringComparison.Ordinal));
+        if (!spawned || spawnedQuantity != 1 || probe == null)
+        {
+            Check(false, evidenceToken,
+                $"cell={cell};spawned={spawned};quantity={spawnedQuantity};"
+                + $"probe={(probe == null ? "missing" : probe.StackId)}");
+            if (probe != null)
+                items.DeleteStack(probe.StackId);
+            return false;
+        }
+
+        FloorClutterAssessment assessment = clutter.Capture(grid, layout, 0f);
+        FloorClutterStackAssessment row = assessment.OutsideContainment
+            .SingleOrDefault(value => string.Equals(
+                value.StackId,
+                probe.StackId,
+                StringComparison.Ordinal));
+        bool detected = expectImmediateFailure
+            ? row != null && row.ImmediateFailure && row.Persistent
+            : row == null && assessment.ImmediateFailureCount == 0;
+        bool deleted = items.DeleteStack(probe.StackId);
+        Check(detected && deleted,
+            evidenceToken,
+            $"cell={cell};roles={layout.GetRoles(cell)};"
+            + $"expectImmediate={expectImmediateFailure};"
+            + $"detected={(row != null)};"
+            + $"immediate={row?.ImmediateFailure ?? false};"
+            + $"persistent={row?.Persistent ?? false};deleted={deleted}");
+        return detected && deleted;
+    }
+
     private IEnumerator PrepareCropAndMiningFixtures(
         IReadOnlyList<Vector2Int> reachable,
         BuildingPlacementValidator placement)
     {
-        CurrentPhase = "prepare-production-burst-authorities";
+        SetPhase("prepare-production-burst-authorities");
         BlueprintResearchRuntime research = progression.BlueprintResearch;
         research.State.Projects.Complete(
             new ResearchProjectId("research:agriculture:field"));
@@ -1110,7 +2239,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
 
     private void IsolatePreexistingLogistics()
     {
-        CurrentPhase = "isolate-preexisting-logistics";
+        SetPhase("isolate-preexisting-logistics");
         WorldItemStackSnapshot[] isolated = items.GetAllStacks()
             .Where(value => value != null
                 && value.Quantity > 0
@@ -1144,7 +2273,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
 
     private IEnumerator RunSeed(int seed)
     {
-        CurrentPhase = $"seed-{seed}-checkpoint";
+        SetPhase($"seed-{seed}-checkpoint");
         yield return Restore(
             commonCheckpointJson,
             commonCheckpointTime,
@@ -1178,19 +2307,23 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             if (failures.Count > failuresBeforeArm)
                 yield break;
         }
+        ValidateExogenousEventsExact(seed);
+        if (failures.Count > 0)
+            yield break;
         ValidateCausalCone(seed);
     }
 
     private IEnumerator RunArm(int seed, string arm)
     {
         currentBurstProbe = null;
-        CurrentPhase = $"seed-{seed}-{arm}-warmup";
+        SetPhase($"seed-{seed}-{arm}-warmup");
         Time.timeScale = VerificationTimeScale;
         yield return ObserveDuration(seed, arm, -1, WarmupSeconds, false);
         if (failures.Count > 0)
             yield break;
 
         bool faultArm = arm is "faultControl" or "clutterStress";
+        SetPhase($"seed-{seed}-{arm}-measurement-setup");
         PrepareActorsForArmMeasurementBoundary();
         if (failures.Count > 0)
             yield break;
@@ -1199,6 +2332,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         string eventHash = $"clean:{seed}:none";
         if (faultArm)
         {
+            SetPhase($"seed-{seed}-{arm}-fault-setup");
             IWarehouseFacility warehouse = ResolveWarehouse();
             CharacterActor faultActor = ResolveActor(faultActorId);
             CounterfactualRandomKey key = new(
@@ -1267,44 +2401,28 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
 
             if (producerKind == BurstProducerKind.FacilityOutput)
             {
-            BuildingPlacementValidator producerPlacement = new();
-            string producerPlacementFailure = "producer asset missing";
-            bool producerCanBuild = producerFacilityAsset != null
-                && producerPlacement.CanBuild(
-                    grid,
-                    producerFacilityAsset,
-                    burstCell,
-                    out producerPlacementFailure);
-            Check(producerCanBuild,
-                "PAIRED_INTERVENTION_PRODUCER_PLACEMENT",
-                $"seed={seed};arm={arm};cell={burstCell};failure={producerPlacementFailure}");
-            if (!producerCanBuild)
-                yield break;
-            GameObject producerObject = new($"QA_V27_Paired_Food_Producer_{arm}");
-            fixtureProducerFacility = producerObject.AddComponent<Facility>();
-            Inject(producerObject);
-            fixtureProducerFacility.SetGrid(grid);
-            fixtureProducerFacility.Initialization(producerFacilityAsset, burstCell);
-            producerObject.transform.position = grid.GetWorldPos(burstCell);
-            producerFacilityId = fixtureProducerFacility.RequirePersistentInstanceId().Value;
-            for (int publicationFrame = 0; publicationFrame < 4; publicationFrame++)
-                yield return null;
+            fixtureProducerFacility = ResolveProducerFacility() as Facility;
             bool producerPublished = world.Buildings.Any(value => value != null
                 && value.PersistentInstanceId.Value == producerFacilityId);
-            Check(producerPublished,
+            bool producerAuthorityExact = fixtureProducerFacility != null
+                && fixtureProducerFacility.BuildingData == producerFacilityAsset
+                && fixtureProducerFacility.centerPos == burstCell;
+            Check(producerAuthorityExact && producerPublished,
                 "PAIRED_INTERVENTION_PRODUCER_PUBLISHED",
-                $"seed={seed};arm={arm};facility={producerFacilityId};cell={burstCell}");
-            if (!producerPublished)
+                $"seed={seed};arm={arm};facility={producerFacilityId};cell={burstCell};"
+                + $"asset={fixtureProducerFacility?.BuildingData?.id ?? -1};"
+                + $"expectedAsset={producerFacilityAsset?.id ?? -1}");
+            if (!producerAuthorityExact || !producerPublished)
                 yield break;
 
             IWarehouseFacility inputWarehouse = ResolveProductionInputWarehouse();
             Check(inputWarehouse?.Inventory != null
-                    && inputWarehouse.Inventory.CanStore(StockCategory.Food, burstQuantity),
+                    && inputWarehouse.Inventory.RemainingMassGrams > 0L,
                 "PAIRED_PRODUCTION_INPUT_CAPACITY",
                 $"seed={seed};arm={arm};quantity={burstQuantity};"
                 + $"warehouse={productionInputWarehouseId};stock={inputWarehouse?.Inventory?.TotalStock ?? -1}");
             if (inputWarehouse?.Inventory == null
-                || !inputWarehouse.Inventory.CanStore(StockCategory.Food, burstQuantity))
+                || inputWarehouse.Inventory.RemainingMassGrams <= 0L)
                 yield break;
             bool inputSeeded = items.SpawnStockInWarehouse(
                 inputWarehouse,
@@ -1617,7 +2735,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
 
         for (int window = 0; window < 4; window++)
         {
-            CurrentPhase = $"seed-{seed}-{arm}-window-{window}";
+            SetPhase($"seed-{seed}-{arm}-window-{window}");
             WindowAccumulator accumulator = new();
             yield return ObserveWindow(seed, arm, window, eventHash, accumulator);
             if (failures.Count > 0)
@@ -1631,7 +2749,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             restoredFault.SetLifecycleState(CharacterLifecycleState.Active);
             restoredFault.Brain?.RequestImmediateReplan(clearFailures: true);
         }
-        CurrentPhase = $"seed-{seed}-{arm}-recovery";
+        SetPhase($"seed-{seed}-{arm}-recovery");
         yield return ObserveDuration(seed, arm, 4, RecoverySeconds, true);
         if (currentBurstProbe != null)
         {
@@ -1688,6 +2806,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         WindowAccumulator accumulator)
     {
         float elapsed = 0f;
+        float lastClockProgressRealtime = Time.realtimeSinceStartup;
         CharacterActor[] startActors = LiveActors();
         Dictionary<string, long> replanStart = startActors.ToDictionary(
             ActorId, value => value.Brain?.RuntimeImmediateReplanCount ?? 0L,
@@ -1701,6 +2820,19 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         {
             EnsureVerificationTimeScale();
             float delta = Mathf.Min(Mathf.Max(clock.DeltaTime, 0f), WindowSeconds - elapsed);
+            if (delta > 0f)
+            {
+                lastClockProgressRealtime = Time.realtimeSinceStartup;
+            }
+            else if (Time.realtimeSinceStartup - lastClockProgressRealtime
+                     >= ClockProgressTimeoutRealtimeSeconds)
+            {
+                FailOnce(
+                    "PAIRED_CLOCK_NO_PROGRESS",
+                    $"phase={CurrentPhase};seed={seed};arm={arm};window={window};"
+                    + $"elapsed={elapsed:0.###};timeScale={Time.timeScale:0.###}");
+                yield break;
+            }
             elapsed += delta;
             SampleActors(seed, arm, delta, accumulator, stepAsideLive);
             FloorClutterAssessment current = clutter.Capture(
@@ -1754,6 +2886,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             accumulator.BurstOutstandingQuantity,
             accumulator.BurstQuantityConserved);
         rows.Add(row);
+        PublishCurrentProgress("RUNNING");
         FloorClutterAssessment end = clutter.Capture(
             grid, layout, WarmupSeconds + (window + 1) * WindowSeconds);
         int windowHeadroom = CaptureRuntimeHeadroomPermille();
@@ -1780,10 +2913,25 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         bool recovery)
     {
         float elapsed = 0f;
+        float lastClockProgressRealtime = Time.realtimeSinceStartup;
         while (elapsed < duration)
         {
             EnsureVerificationTimeScale();
-            elapsed += Mathf.Min(Mathf.Max(clock.DeltaTime, 0f), duration - elapsed);
+            float delta = Mathf.Min(Mathf.Max(clock.DeltaTime, 0f), duration - elapsed);
+            if (delta > 0f)
+            {
+                lastClockProgressRealtime = Time.realtimeSinceStartup;
+            }
+            else if (Time.realtimeSinceStartup - lastClockProgressRealtime
+                     >= ClockProgressTimeoutRealtimeSeconds)
+            {
+                FailOnce(
+                    "PAIRED_CLOCK_NO_PROGRESS",
+                    $"phase={CurrentPhase};seed={seed};arm={arm};window={phase};"
+                    + $"elapsed={elapsed:0.###};timeScale={Time.timeScale:0.###}");
+                yield break;
+            }
+            elapsed += delta;
             if (Focused && phase == -1
                 && arm is "cleanRepeatA" or "cleanRepeatB")
             {
@@ -1858,38 +3006,273 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             return;
 
         long milliWu = Mathf.RoundToInt(delta * WorkMilliWuPerGameSecond);
-        bool anyMoving = actors.Any(actor =>
+        BurstHaulObservation[] observations = actors
+            .Select(CaptureBurstHaulObservation)
+            .Where(value => value.Phase != BurstHaulPhase.None)
+            .ToArray();
+        BurstHaulObservation[] invalid = observations
+            .Where(value => value.Phase == BurstHaulPhase.Invalid)
+            .ToArray();
+        int joinedCarriedQuantity = observations.Sum(
+            value => value.JoinedBurstCarriedQuantity);
+        if (invalid.Length > 0 || joinedCarriedQuantity != state.CarriedDelta)
         {
-            bool ownsBurst = CountActorCarriedQuantity(
-                    actor, currentBurstProbe.ItemId) > 0
-                || state.SourceReserved > 0
-                    && actor.GetComponent<AbilityHaul>()?.IsHauling == true;
-            return ownsBurst
-                && actor.GetComponent<AbilityMove>()
-                    ?.HasActiveMovementRoutineForDiagnostics == true;
-        });
-        bool anyHauling = actors.Any(actor =>
-            actor.GetComponent<AbilityHaul>()?.IsHauling == true
-            && (CountActorCarriedQuantity(actor, currentBurstProbe.ItemId) > 0
-                || state.SourceReserved > 0));
-        bool noPath = actors.Any(actor =>
-            actor.Brain?.LastActionFailure.Kind == AIActionFailureKind.NoPath
-            && (actor.GetComponent<AbilityHaul>()?.IsHauling == true
-                || state.SourceReserved == 0 && state.CarriedDelta == 0));
-        if (anyMoving)
+            FailOnce(
+                "PAIRED_BURST_HAUL_ATTRIBUTION_INVALID",
+                $"item={currentBurstProbe.ItemId};"
+                + $"stateCarried={state.CarriedDelta};joinedCarried={joinedCarriedQuantity};"
+                + $"observations={string.Join("|", observations.Select(value => value.Detail))}");
+            return;
+        }
+
+        if (observations.Any(value => value.Phase == BurstHaulPhase.DeliveryMoving))
             return;
         accumulator.WaitMilliWu = checked(accumulator.WaitMilliWu + milliWu);
-        if (noPath)
+        if (observations.Any(value => value.Phase == BurstHaulPhase.NoPath))
             accumulator.NoPathMilliWu = checked(accumulator.NoPathMilliWu + milliWu);
-        else if (state.CarriedDelta > 0 && anyHauling)
+        else if (joinedCarriedQuantity > 0
+            && observations
+                .Where(value => value.JoinedBurstCarriedQuantity > 0)
+                .All(value => value.Phase == BurstHaulPhase.DestinationAccessWait))
+        {
             accumulator.FacilityAccessWaitMilliWu = checked(
                 accumulator.FacilityAccessWaitMilliWu + milliWu);
-        else if (state.SourceReserved > 0)
+        }
+        else if (joinedCarriedQuantity == 0
+            && observations.Any(value => value.Phase == BurstHaulPhase.SourceReserved))
+        {
             accumulator.ReservationWaitMilliWu = checked(
                 accumulator.ReservationWaitMilliWu + milliWu);
+        }
         else
+        {
             accumulator.DispatchWaitMilliWu = checked(
                 accumulator.DispatchWaitMilliWu + milliWu);
+        }
+    }
+
+    private BurstHaulObservation CaptureBurstHaulObservation(
+        CharacterActor actor)
+    {
+        if (actor == null || currentBurstProbe == null)
+            return BurstHaulObservation.None;
+
+        string actorId = ActorId(actor);
+        AbilityHaul haul = actor.GetComponent<AbilityHaul>();
+        AbilityMove move = actor.GetComponent<AbilityMove>();
+        CharacterCarriedItemSaveData[] burstCarried =
+            (actor.CarryInventory?.Items
+                ?? Array.Empty<CharacterCarriedItemSaveData>())
+            .Where(value => value != null
+                && value.quantity > 0
+                && string.Equals(
+                    value.itemId,
+                    currentBurstProbe.ItemId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        WorldItemReservedStackQuantity[] burstReservations =
+            (haul?.ActiveReservationsForDiagnostics
+                ?? Array.Empty<WorldItemReservedStackQuantity>())
+            .Where(value => value.IsValid
+                && string.Equals(
+                    value.ItemId,
+                    currentBurstProbe.ItemId,
+                    StringComparison.Ordinal)
+                && value.Position == currentBurstProbe.SourceCell)
+            .ToArray();
+
+        if (burstCarried.Length == 0)
+        {
+            if (burstReservations.Length == 0)
+                return BurstHaulObservation.None;
+            if (haul == null || !haul.IsHauling)
+            {
+                return BurstHaulObservation.Invalid(
+                    actorId,
+                    "source reservation exists without active haul");
+            }
+            if (actor.Brain?.LastActionFailure.Kind == AIActionFailureKind.NoPath)
+            {
+                return new BurstHaulObservation(
+                    BurstHaulPhase.NoPath,
+                    actorId,
+                    0,
+                    $"{actorId}:NoPath:source-reserved={burstReservations.Sum(value => value.Quantity)}");
+            }
+            if (move?.HasActiveMovementRoutineForDiagnostics == true)
+            {
+                return new BurstHaulObservation(
+                    BurstHaulPhase.DeliveryMoving,
+                    actorId,
+                    0,
+                    $"{actorId}:PickupMoving:source-reserved={burstReservations.Sum(value => value.Quantity)}");
+            }
+            return new BurstHaulObservation(
+                BurstHaulPhase.SourceReserved,
+                actorId,
+                0,
+                $"{actorId}:SourceReserved:{burstReservations.Sum(value => value.Quantity)}");
+        }
+
+        if (haul == null || items == null)
+        {
+            return BurstHaulObservation.Invalid(
+                actorId,
+                "carried burst has no haul or delivery-intent query");
+        }
+        string[] operationIds = burstCarried
+            .Select(value => value.ownerOperationId ?? string.Empty)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (operationIds.Length != 1
+            || string.IsNullOrWhiteSpace(operationIds[0])
+            || !haul.OwnsHaulOperation(operationIds[0]))
+        {
+            return BurstHaulObservation.Invalid(
+                actorId,
+                "carried burst operation is missing, mixed, or not owned");
+        }
+
+        string operationId = operationIds[0];
+        if (!items.TryCaptureHaulDeliveryIntent(
+                operationId,
+                out HaulDeliveryIntentSaveData intent)
+            || intent == null
+            || !intent.HasCommittedPickup
+            || !string.Equals(
+                intent.ownerCharacterId,
+                actorId,
+                StringComparison.Ordinal))
+        {
+            return BurstHaulObservation.Invalid(
+                actorId,
+                "committed delivery intent is missing or owned by another actor");
+        }
+
+        CharacterCarriedItemSaveData[] operationCarried = actor.CarryInventory.Items
+            .Where(value => value != null
+                && value.quantity > 0
+                && string.Equals(
+                    value.ownerOperationId,
+                    operationId,
+                    StringComparison.Ordinal))
+            .OrderBy(value => value.carriedStackId, StringComparer.Ordinal)
+            .ToArray();
+        HaulDeliveryItemCommitmentSaveData[] commitments =
+            (intent.commitments
+                ?? new List<HaulDeliveryItemCommitmentSaveData>())
+            .Where(value => value != null && value.quantity > 0)
+            .OrderBy(value => value.carriedStackId, StringComparer.Ordinal)
+            .ToArray();
+        WorldItemReservedStackQuantity[] operationReservations =
+            haul.ActiveReservationsForDiagnostics
+                .Where(value => value.IsValid
+                    && string.Equals(
+                        value.OwnerOperationId,
+                        operationId,
+                        StringComparison.Ordinal))
+                .ToArray();
+        bool commitmentVectorExact = operationCarried.Length == commitments.Length
+            && operationCarried
+                .Select(value => value.carriedStackId)
+                .Distinct(StringComparer.Ordinal)
+                .Count() == operationCarried.Length
+            && commitments
+                .Select(value => value.carriedStackId)
+                .Distinct(StringComparer.Ordinal)
+                .Count() == commitments.Length
+            && operationCarried.All(carried => commitments.Any(commitment =>
+                string.Equals(
+                    commitment.carriedStackId,
+                    carried.carriedStackId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    commitment.sourceStackId,
+                    carried.sourceStackId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    commitment.itemId,
+                    carried.itemId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    commitment.expectedStackSignature,
+                    ItemReservationSignature.Create(
+                        carried.itemId,
+                        carried.components),
+                    StringComparison.Ordinal)
+                && commitment.quantity == carried.quantity));
+        bool reservationVectorExact = operationReservations.Length > 0
+            && operationReservations.All(reservation =>
+                reservation.DestinationKind == intent.destinationKind
+                && string.Equals(
+                    reservation.DestinationId,
+                    intent.destinationId,
+                    StringComparison.Ordinal))
+            && commitments
+                .GroupBy(
+                    value => (value.sourceStackId, value.itemId),
+                    value => value.quantity)
+                .All(group => operationReservations
+                    .Where(reservation => string.Equals(
+                            reservation.StackId,
+                            group.Key.sourceStackId,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            reservation.ItemId,
+                            group.Key.itemId,
+                            StringComparison.Ordinal))
+                    .Sum(reservation => reservation.Quantity) == group.Sum());
+        if (!commitmentVectorExact || !reservationVectorExact)
+        {
+            return BurstHaulObservation.Invalid(
+                actorId,
+                $"delivery join mismatch;operation={operationId};"
+                + $"carried={operationCarried.Length};commitments={commitments.Length};"
+                + $"reservations={operationReservations.Length};"
+                + $"commitmentExact={commitmentVectorExact};"
+                + $"reservationExact={reservationVectorExact};"
+                + "carriedVector=" + string.Join(",", operationCarried.Select(value =>
+                    $"{value.carriedStackId}/{value.sourceStackId}/{value.itemId}/{value.quantity}"))
+                + ";commitmentVector=" + string.Join(",", commitments.Select(value =>
+                    $"{value.carriedStackId}/{value.sourceStackId}/{value.itemId}/{value.quantity}"))
+                + ";reservationVector=" + string.Join(",", operationReservations.Select(value =>
+                    $"{value.StackId}/{value.ItemId}/{value.Quantity}/{value.DestinationKind}/{value.DestinationId}")));
+        }
+
+        int joinedBurstQuantity = burstCarried.Sum(value => value.quantity);
+        BurstHaulPhase phase;
+        if (actor.IsDead
+            || actor.CurrentLifecycleState is
+                CharacterLifecycleState.Downed or CharacterLifecycleState.Despawned
+            || !haul.IsHauling && haul.HasBoundDeliveryIntent)
+        {
+            phase = BurstHaulPhase.RecoveryPending;
+        }
+        else if (actor.Brain?.LastActionFailure.Kind == AIActionFailureKind.NoPath)
+        {
+            phase = BurstHaulPhase.NoPath;
+        }
+        else if (move?.HasActiveMovementRoutineForDiagnostics == true)
+        {
+            phase = BurstHaulPhase.DeliveryMoving;
+        }
+        else
+        {
+            Vector2Int deliveryCell = new(
+                intent.deliveryGridX,
+                intent.deliveryGridY);
+            phase = actor.GetNowXY() == deliveryCell
+                ? BurstHaulPhase.DestinationAccessWait
+                : BurstHaulPhase.DeliveryRoutingWait;
+        }
+        return new BurstHaulObservation(
+            phase,
+            actorId,
+            joinedBurstQuantity,
+            $"{actorId}:{phase}:operation={operationId}:"
+            + $"carried={joinedBurstQuantity}:destination={intent.destinationId}:"
+            + $"position={actor.GetNowXY()}:"
+            + $"delivery={intent.deliveryGridX},{intent.deliveryGridY}");
     }
 
     private BurstState CaptureBurstState(ArmBurstProbe probe)
@@ -1952,6 +3335,49 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             && string.Equals(value.itemId, itemId, StringComparison.Ordinal))
         .Sum(value => value.quantity) ?? 0;
 
+    private void ValidateExogenousEventsExact(int seed)
+    {
+        PairedRunWindowResult[] control = rows
+            .Where(value => value.Seed == seed
+                && string.Equals(
+                    value.Arm,
+                    "faultControl",
+                    StringComparison.Ordinal))
+            .OrderBy(value => value.WindowIndex)
+            .ToArray();
+        PairedRunWindowResult[] stress = rows
+            .Where(value => value.Seed == seed
+                && string.Equals(
+                    value.Arm,
+                    "clutterStress",
+                    StringComparison.Ordinal))
+            .OrderBy(value => value.WindowIndex)
+            .ToArray();
+        bool exact = control.Length == 4 && stress.Length == 4;
+        string mismatch = exact ? string.Empty
+            : $"rows={control.Length}/{stress.Length}";
+        for (int index = 0; exact && index < 4; index++)
+        {
+            if (control[index].WindowIndex == stress[index].WindowIndex
+                && string.Equals(
+                    control[index].ExogenousEventHash,
+                    stress[index].ExogenousEventHash,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            exact = false;
+            mismatch = $"window={control[index].WindowIndex}/"
+                + $"{stress[index].WindowIndex};hash="
+                + $"{control[index].ExogenousEventHash}/"
+                + stress[index].ExogenousEventHash;
+        }
+
+        Check(exact, "PAIRED_RUN_EXOGENOUS_EVENTS_EXACT",
+            exact ? $"seed={seed};windows=4" : $"seed={seed};{mismatch}");
+    }
+
     private void ValidateCausalCone(int seed)
     {
         HashSet<string> affected = affectedActorsBySeed.TryGetValue(
@@ -1965,22 +3391,40 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
                 randomByArmWindow[$"{seed}|faultControl|{window}"];
             IReadOnlyList<RandomStreamDiagnosticSnapshot> stress =
                 randomByArmWindow[$"{seed}|clutterStress|{window}"];
+            Dictionary<string, RandomStreamDiagnosticSnapshot> left = control
+                .ToDictionary(value => value.StreamId, StringComparer.Ordinal);
             Dictionary<string, RandomStreamDiagnosticSnapshot> right = stress
                 .ToDictionary(value => value.StreamId, StringComparer.Ordinal);
-            foreach (RandomStreamDiagnosticSnapshot left in control)
+            string[] streamIds = left.Keys
+                .Concat(right.Keys)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            foreach (string streamId in streamIds)
             {
-                if (IsAffectedActorStream(left.StreamId, affected))
+                if (IsAffectedActorStream(streamId, affected))
                     continue;
-                if (!right.TryGetValue(left.StreamId, out RandomStreamDiagnosticSnapshot other))
-                {
-                    Fail("RNG_CROSS_TALK", $"seed={seed};window={window};missing={left.StreamId}");
-                    return;
-                }
-                if (left.State != other.State || left.DrawCount != other.DrawCount)
+                bool controlPresent = left.TryGetValue(
+                    streamId,
+                    out RandomStreamDiagnosticSnapshot controlValue);
+                bool stressPresent = right.TryGetValue(
+                    streamId,
+                    out RandomStreamDiagnosticSnapshot stressValue);
+                if (!controlPresent || !stressPresent)
                 {
                     Fail("RNG_CROSS_TALK",
-                        $"seed={seed};window={window};stream={left.StreamId};"
-                        + $"control={left.State}/{left.DrawCount};stress={other.State}/{other.DrawCount}");
+                        $"seed={seed};window={window};stream={streamId};"
+                        + $"controlPresent={controlPresent};"
+                        + $"stressPresent={stressPresent}");
+                    return;
+                }
+                if (controlValue.State != stressValue.State
+                    || controlValue.DrawCount != stressValue.DrawCount)
+                {
+                    Fail("RNG_CROSS_TALK",
+                        $"seed={seed};window={window};stream={streamId};"
+                        + $"control={controlValue.State}/{controlValue.DrawCount};"
+                        + $"stress={stressValue.State}/{stressValue.DrawCount}");
                     return;
                 }
             }
@@ -2091,9 +3535,14 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         try
         {
             clockDiagnostics?.DisableDeterministicCheckpointTime();
-            if (saves != null && originalSave != null)
+            if (saves != null
+                && originalSave != null
+                && !string.IsNullOrWhiteSpace(originalSaveJson))
             {
-                bool restored = saves.TryRestore(originalSave, out DungeonGameRestoreReport report);
+                DungeonGameSaveData restoreCandidate = saves.FromJson(originalSaveJson);
+                bool restored = saves.TryRestore(
+                    restoreCandidate,
+                    out DungeonGameRestoreReport report);
                 if (!restored)
                     failures.Add("ORIGINAL_WORLD_RESTORE:errors="
                         + string.Join(" | ", report?.Errors ?? Array.Empty<string>())
@@ -2152,7 +3601,27 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         Time.captureDeltaTime = originalCaptureDeltaTime;
         Application.runInBackground = originalRunInBackground;
         WriteArtifacts();
+        PublishCurrentProgress("FINISHED");
         EditorApplication.delayCall += () => EditorApplication.isPlaying = false;
+    }
+
+    private void SetPhase(string phase)
+    {
+        CurrentPhase = phase ?? string.Empty;
+        PublishCurrentProgress("RUNNING");
+    }
+
+    private void PublishCurrentProgress(string result)
+    {
+        V27PairedClutterPlayModeVerifier.PublishProgress(
+            result,
+            CurrentPhase,
+            SeedCount,
+            StartSeed,
+            Focused,
+            rows.Count,
+            failures.Count,
+            currentSourceDigestAtStart);
     }
 
     private void WriteArtifacts()
@@ -2169,9 +3638,15 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         string floorCsv = BuildFloorCsv();
         string sourceDigest = V27PairedClutterPlayModeVerifier
             .ComputeEvidenceSourceDigest();
+        string currentSourceDigest =
+            V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest();
+        string gameplaySceneSha256 =
+            V27CurrentSourceEvidenceDigest.ComputeGameplaySceneDigest();
         string report = $"RESULT={(passed ? "PASS" : "FAIL")}; seeds={completedSeeds};"
             + $" windows={rows.Count}; floorRows={floorRows.Count}; failures={failures.Count};"
             + $" consoleIssues={consoleIssues.Count}; sourceDigest={sourceDigest};"
+            + $" currentSourceDigest={currentSourceDigest};"
+            + $" gameplaySceneSha256={gameplaySceneSha256};"
             + $" pairedCsvSha256={HashText(pairedCsv)};"
             + $" floorCsvSha256={HashText(floorCsv)};\n"
             + BuildSuccessEvidence(passed, completedSeeds)
@@ -2181,8 +3656,8 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         if (Focused)
         {
             WriteText(V27PairedClutterPlayModeVerifier.FocusedReportPath, report);
-            WriteText("Temp/v27-balance-floor-clutter-focused.csv", floorCsv);
-            WriteText("Temp/v27-balance-paired-run-rng-focused.csv", pairedCsv);
+            WriteText(V27PairedClutterPlayModeVerifier.FocusedClutterCsvPath, floorCsv);
+            WriteText(V27PairedClutterPlayModeVerifier.FocusedPairedCsvPath, pairedCsv);
         }
         else
         {
@@ -2200,18 +3675,27 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         if (Focused)
         {
             return "PASS\tPAIRED_FOCUSED_FOUR_ARMS\tseeds=1;windows=16\n"
+                + "PASS\tPAIRED_TIER_ZERO_PRODUCTION_RECONCILE\tlayout=29;capturePreflight=PASS\n"
+                + "PASS\tPAIRED_RUN_CLEAN_REPEATABILITY_EXACT\tseeds=1\n"
+                + "PASS\tPAIRED_RUN_EXOGENOUS_EVENTS_EXACT\tallWindows=true\n"
+                + "PASS\tPAIRED_FOCUSED_CLUTTER_DELTA_BELOW_10_PERCENT\tseedLocal=true\n"
                 + "PASS\tPAIRED_FOCUSED_BURST_QUANTITY_CONSERVED\tallRows=true\n"
+                + "PASS\tPAIRED_BURST_WAIT_TYPED_AUTHORITY_JOIN\tinvalid=0\n"
                 + $"PASS\tPAIRED_KEYED_PRODUCTION_BURST_APPLIED\tarms={productionBurstArmCount}\n"
                 + BuildProducerBurstEvidence()
                 + $"PASS\tPAIRED_PRODUCTION_BURST_HAUL_PRIORITY\tarms={productionPriorityArmCount}\n"
                 + $"PASS\tPAIRED_HAULER_FAULT_AFTER_PHYSICAL_PICKUP\tarms={postPickupFaultArmCount}\n"
+                + "PASS\tFLOOR_CLUTTER_ACCESS_EGRESS_ZERO\timmediateFailures=0\n"
+                + "PASS\tFLOOR_CLUTTER_RECOVERY_ZERO\tpersistent=0\n"
                 + $"PASS\tPAIRED_RUNTIME_HEADROOM_AT_LEAST_30_PERCENT\tminimumPermille="
-                + $"{floorRows.Min(value => value.RuntimeHeadroomPermille)}\n";
+                + $"{floorRows.Min(value => value.RuntimeHeadroomPermille)}\n"
+                + "PASS\tRNG_CAUSAL_CONE_NO_CROSS_TALK\toutsideConeDivergence=0\n";
         }
 
         PairedRunAttributionAssessment assessment = finalAssessment
             ?? PairedRunAttributionEvaluator.Evaluate(rows);
-        return $"PASS\tPAIRED_RUN_CLEAN_REPEATABILITY_EXACT\tseeds={completedSeeds}\n"
+        return "PASS\tPAIRED_TIER_ZERO_PRODUCTION_RECONCILE\tlayout=29;capturePreflight=PASS\n"
+            + $"PASS\tPAIRED_RUN_CLEAN_REPEATABILITY_EXACT\tseeds={completedSeeds}\n"
             + "PASS\tPAIRED_RUN_EXOGENOUS_EVENTS_EXACT\tallWindows=true\n"
             + $"PASS\tPAIRED_CLUTTER_ATTRIBUTION\tsamples={assessment.SampleCount};"
             + $"medianPermille={assessment.MedianClutterDeltaPermille};"
@@ -2219,6 +3703,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             + $"maxPermille={assessment.MaximumClutterDeltaPermille};"
             + $"madPermille={assessment.MadPermille}\n"
             + "PASS\tPAIRED_BURST_QUANTITY_CONSERVED\tallRows=true\n"
+            + "PASS\tPAIRED_BURST_WAIT_TYPED_AUTHORITY_JOIN\tinvalid=0\n"
             + $"PASS\tPAIRED_KEYED_PRODUCTION_BURST_APPLIED\tarms={productionBurstArmCount}\n"
             + BuildProducerBurstEvidence()
             + $"PASS\tPAIRED_PRODUCTION_BURST_HAUL_PRIORITY\tarms={productionPriorityArmCount}\n"
@@ -2396,6 +3881,17 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
 
     private void Fail(string key, string detail) => failures.Add(key + ":" + detail);
 
+    private void FailOnce(string key, string detail)
+    {
+        string prefix = key + ":";
+        if (!failures.Any(value => value.StartsWith(
+                prefix,
+                StringComparison.Ordinal)))
+        {
+            failures.Add(prefix + detail);
+        }
+    }
+
     private T Resolve<T>() where T : class
     {
         try
@@ -2428,6 +3924,50 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             .ThenBy(value => value.width * value.height)
             .ThenBy(value => value.name, StringComparer.Ordinal)
             .FirstOrDefault();
+    }
+
+    private static string DescribePlacementCandidates(
+        BuildingSO definition,
+        IEnumerable<Vector2Int> candidates) => string.Join(
+        "|",
+        candidates.Select(anchor =>
+            $"{anchor.x},{anchor.y}["
+            + string.Join(
+                ",",
+                definition.GetGridPosList(anchor)
+                    .OrderBy(value => value.x)
+                    .ThenBy(value => value.y)
+                    .Select(value => $"{value.x},{value.y}"))
+            + "]"));
+
+    private string DescribeExistingFixtureAuthorities()
+    {
+        string warehouses = string.Join(
+            "|",
+            world.Warehouses
+                .Where(value => value?.Inventory != null)
+                .OrderBy(value => value.PersistentInstanceId.Value,
+                    StringComparer.Ordinal)
+                .Select(value => value is BuildableObject building
+                    ? $"{value.PersistentInstanceId.Value}:{building.BuildingData?.name}:"
+                        + $"{building.centerPos}:all={building.BuildingData?.StoresAllCategories()}:"
+                        + $"food={value.Inventory.Accepts(StockCategory.Food)}:"
+                        + $"general={value.Inventory.Accepts(StockCategory.General)}:"
+                        + $"mass={value.Inventory.MaxMassGrams}"
+                    : $"{value.PersistentInstanceId.Value}:non-building"));
+        string cooks = string.Join(
+            "|",
+            world.Buildings
+                .OfType<Facility>()
+                .Where(value => value?.BuildingData?.Facility != null
+                    && value.BuildingData.Facility.SupportsWork(
+                        BuiltInWorkTypeIds.Cook))
+                .OrderBy(value => value.PersistentInstanceId.Value,
+                    StringComparer.Ordinal)
+                .Select(value =>
+                    $"{value.PersistentInstanceId.Value}:{value.BuildingData.name}:"
+                    + value.centerPos));
+        return $"warehouses=[{warehouses}],cooks=[{cooks}]";
     }
 
     private static BuildingSO FindCookFacilityAsset()
@@ -2730,6 +4270,29 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         Check(exact, "PAIRED_RUN_CLEAN_REPEATABILITY", mismatch.Length == 0
             ? "windows=4;exact=true"
             : mismatch);
+    }
+
+    private void ValidateFocusedClutterDelta()
+    {
+        long controlWait = rows
+            .Where(value => string.Equals(
+                value.Arm,
+                "faultControl",
+                StringComparison.Ordinal))
+            .Sum(value => value.WaitMilliWu);
+        long stressWait = rows
+            .Where(value => string.Equals(
+                value.Arm,
+                "clutterStress",
+                StringComparison.Ordinal))
+            .Sum(value => value.WaitMilliWu);
+        long denominator = Math.Max(controlWait, 1L);
+        long deltaPermille = checked(
+            (stressWait - controlWait) * 1000L) / denominator;
+        Check(deltaPermille < 100L,
+            "PAIRED_FOCUSED_CLUTTER_DELTA_BELOW_10_PERCENT",
+            $"controlWaitMilliWu={controlWait};stressWaitMilliWu={stressWait};"
+            + $"deltaPermille={deltaPermille};limitExclusive=100");
     }
 
     private string FindFirstRandomDifference(int seed, int window)
@@ -3050,6 +4613,54 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         internal int StepAsideCount;
         internal int ClutterCellSeconds;
         internal int ImmediateFailures;
+    }
+
+    private enum BurstHaulPhase
+    {
+        None = 0,
+        SourceReserved = 1,
+        DeliveryMoving = 2,
+        DeliveryRoutingWait = 3,
+        DestinationAccessWait = 4,
+        RecoveryPending = 5,
+        NoPath = 6,
+        Invalid = 7
+    }
+
+    private readonly struct BurstHaulObservation
+    {
+        internal BurstHaulObservation(
+            BurstHaulPhase phase,
+            string actorId,
+            int joinedBurstCarriedQuantity,
+            string detail)
+        {
+            Phase = phase;
+            ActorId = actorId ?? string.Empty;
+            JoinedBurstCarriedQuantity = Mathf.Max(
+                0,
+                joinedBurstCarriedQuantity);
+            Detail = detail ?? string.Empty;
+        }
+
+        internal static BurstHaulObservation None => new(
+            BurstHaulPhase.None,
+            string.Empty,
+            0,
+            string.Empty);
+
+        internal static BurstHaulObservation Invalid(
+            string actorId,
+            string detail) => new(
+            BurstHaulPhase.Invalid,
+            actorId,
+            0,
+            $"{actorId}:Invalid:{detail}");
+
+        internal BurstHaulPhase Phase { get; }
+        internal string ActorId { get; }
+        internal int JoinedBurstCarriedQuantity { get; }
+        internal string Detail { get; }
     }
 
     private enum BurstProducerKind

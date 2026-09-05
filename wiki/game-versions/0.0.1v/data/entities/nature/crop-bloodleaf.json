@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "약초학"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "genome-bloodleaf-base",
+      "target_spoiler_tier": "none",
+      "target_title": "Genome_bloodleaf",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-herbalism",
+      "target_spoiler_tier": "none",
+      "target_title": "약초학",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "crop-bloodleaf",
+  "spoiler_tier": "none",
+  "summary": "혈엽 종자를 46시간 재배해 혈엽 4개를 생산하며 하루 물 0.35를 소비한다. 약초학가 재배 시점을 제한한다.",
+  "title": "혈엽"
+}

@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-administrative-seal",
+    "spoiler_tier": "none",
+    "title": "행정 인장"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-administrative-seal",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-administrative-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "행정 인장",
+      "to": "item/tool-administrative-seal",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-administrative-seal",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "to": "item/material-iron-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-administrative-seal",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-tool-administrative-seal",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-administrative-seal",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-authority-office",
+      "target_spoiler_tier": "none",
+      "target_title": "영주 집무",
+      "to": "research/research-authority-office",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

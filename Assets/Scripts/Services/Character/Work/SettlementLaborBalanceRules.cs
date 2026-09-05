@@ -33,6 +33,11 @@ public static class SettlementLaborBalanceRules
     public const float BaselineRecreationSeconds = 10f;
     public const float BaselineActiveWorkSeconds = 100f;
     public const float WorkTransitionEfficiency = 0.99f;
+    // Corrected five-day, three-seed live routine measurement with exact
+    // consumable destinations produced 60.494 actual WU/adult-day. Keep the
+    // authored 50 WU authority by normalizing the single runtime work-rate
+    // boundary instead of retuning every content definition.
+    public const float RuntimeLaborCalibrationMultiplier = 0.8265f;
     public const float ActualLaborUtilization =
         SettlementLaborAuthority.ActualWuPerAdultDay
         / SettlementLaborAuthority.HistoricalTheoreticalCapacityWuPerAdultDay;

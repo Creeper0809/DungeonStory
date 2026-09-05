@@ -54,9 +54,15 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=CuttingWaste|reason=v22-apparel-cutting-thread-and-unusable-offcut|physicalByproduct=false
   inputs:
   - itemId: material:cloth
     amount: 2
+  - itemId: material:sewing-thread
+    amount: 3
   outputs:
   - outputLineId: output:recipe:v22:apparel:wing-harness/000/main/apparel:wing-harness
     role: 0

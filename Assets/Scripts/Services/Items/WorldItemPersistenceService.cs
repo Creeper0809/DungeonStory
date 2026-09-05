@@ -31,6 +31,12 @@ public sealed class WorldItemPersistenceService
     private IHaulDeliveryIntentQuery HaulDeliveryIntents =>
         repository.HaulDeliveryIntents;
 
+    internal IDungeonRestoreTransactionParticipant
+        ExactRouteRestoreParticipant =>
+        exactRouteOutboxPersistence as IDungeonRestoreTransactionParticipant
+        ?? throw new InvalidOperationException(
+            "Exact-route outbox persistence must own a restore transaction participant.");
+
     public WorldItemPersistenceService(
         IDungeonItemCatalogProvider catalogProvider,
         IItemHaulingSettingsProvider haulingSettings,
@@ -434,10 +440,8 @@ public sealed class WorldItemPersistenceService
             .ToHashSet(StringComparer.Ordinal);
         foreach (CombatEquipmentInstance instance in equipment.Values)
         {
-            bool expectsStack = instance.worldState is CombatEquipmentWorldState.Stored
-                or CombatEquipmentWorldState.Loose
-                or CombatEquipmentWorldState.Carried
-                or CombatEquipmentWorldState.MaintenanceBuffer;
+            bool expectsStack = CombatEquipmentWorldStateRules.RequiresPhysicalStack(
+                instance.worldState);
             if (expectsStack
                 && (!stackedUniqueIds.Contains(instance.instanceId)
                     || string.IsNullOrWhiteSpace(instance.sourceStackId)))

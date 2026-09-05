@@ -51,18 +51,21 @@ public sealed class WarehouseStockSummary
     public WarehouseStockSummary(
         string warehouseName,
         int totalStock,
-        int maxCapacity,
+        long storedMassGrams,
+        long maxMassGrams,
         IReadOnlyList<StockConsumptionSummary> stocks)
     {
         this.warehouseName = warehouseName ?? string.Empty;
         this.totalStock = Mathf.Max(0, totalStock);
-        this.maxCapacity = Mathf.Max(0, maxCapacity);
+        this.storedMassGrams = Math.Max(0L, storedMassGrams);
+        this.maxMassGrams = Math.Max(0L, maxMassGrams);
         this.stocks = EventPayloadSnapshot.Copy(stocks);
     }
 
     public string warehouseName { get; }
     public int totalStock { get; }
-    public int maxCapacity { get; }
+    public long storedMassGrams { get; }
+    public long maxMassGrams { get; }
     public IReadOnlyList<StockConsumptionSummary> stocks { get; }
 
     public string ToSummaryText()
@@ -71,7 +74,8 @@ public sealed class WarehouseStockSummary
             ? "비어 있음"
             : string.Join(", ", stocks.Select((item) =>
                 $"{StockCategoryPersistenceId.ToId(item.category)} {item.amount}"));
-        return $"{warehouseName}: {totalStock}/{maxCapacity} ({stockText})";
+        return $"{warehouseName}: {WarehouseMassUiFormatter.FormatKilograms(storedMassGrams)}"
+            + $"/{WarehouseMassUiFormatter.FormatKilograms(maxMassGrams)} · {totalStock}개 ({stockText})";
     }
 }
 

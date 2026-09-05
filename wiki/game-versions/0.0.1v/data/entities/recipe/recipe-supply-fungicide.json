@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "40"
+    },
+    {
+      "label": "필요 연구",
+      "value": "토양 순환과 작물 보호"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "supply-fungicide",
+      "target_spoiler_tier": "none",
+      "target_title": "살균제",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독제",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-soil-cycles",
+      "target_spoiler_tier": "none",
+      "target_title": "토양 순환과 작물 보호",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-supply-fungicide",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 살균제을(를) 생산한다.",
+  "title": "살균제"
+}

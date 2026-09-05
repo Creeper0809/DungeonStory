@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "해충이 좋아하는 냄새로 작물에서 멀어진 덫 쪽으로 끌어들이는 유인제다. 므네실라의 해충 유인제는 용기 색으로 유인할 해충과 밭에서 띄워 놓을 거리를 구분한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-pest-lure",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 해충 유인제.",
+  "title": "해충 유인제"
+}

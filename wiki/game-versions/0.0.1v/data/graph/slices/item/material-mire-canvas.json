@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-mire-canvas",
+    "spoiler_tier": "none",
+    "title": "습지 캔버스"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-weave-mire-canvas",
+      "label": "생산·해금",
+      "to": "item/material-mire-canvas",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

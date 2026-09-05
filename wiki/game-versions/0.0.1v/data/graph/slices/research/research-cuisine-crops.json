@@ -1,0 +1,82 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-cuisine-crops",
+    "spoiler_tier": "none",
+    "title": "농산 조리"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-crops",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1087",
+      "target_spoiler_tier": "none",
+      "target_title": "조리대",
+      "to": "facility/building-1087",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-crops",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1607",
+      "target_spoiler_tier": "none",
+      "target_title": "화덕·가마솥",
+      "to": "facility/building-1607",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-grain-porridge",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-crops",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-malt-porridge",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-crops",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-mushroom-soup",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-crops",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-root-stew",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-crops",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-milling",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-crops",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-milling",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-crops",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-milling",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-crops",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

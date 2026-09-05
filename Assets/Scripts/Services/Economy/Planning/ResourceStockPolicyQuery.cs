@@ -10,7 +10,8 @@ using System.Linq;
 /// </summary>
 public sealed class ResourceStockPolicyQuery : IResourceStockPolicyQuery
 {
-    private const string SellDestinationPrefix = "stock-policy:sell:";
+    private const string SellDestinationPrefix =
+        ResourceStockPolicySaleOutbox.DestinationPrefix;
 
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IStockQuery stock;

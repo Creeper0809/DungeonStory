@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-niter",
+    "spoiler_tier": "none",
+    "title": "초석"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-nitrate-fertilizer",
+      "label": "필요 조건",
+      "to": "item/material-niter",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-niter",
+      "label": "생산·해금",
+      "to": "item/material-niter",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-material-black-powder",
+      "label": "필요 조건",
+      "to": "item/material-niter",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

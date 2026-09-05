@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "360"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "방어시설 장전기에서 원거리 장비와 탄약을 다루는 공정을 맡기 위해 준비한 설치 부품이다. 아일라세라산 방어시설 장전기의 부품 상자는 하늘길 한 구간을 날아 나를 수 있는 무게를 넘지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-8824",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "방어시설 장전기 설치 키트"
+}

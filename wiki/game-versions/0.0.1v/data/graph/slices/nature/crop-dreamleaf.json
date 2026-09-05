@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "crop-dreamleaf",
+    "spoiler_tier": "none",
+    "title": "몽엽"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-dreamleaf",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "genome-dreamleaf-base",
+      "target_spoiler_tier": "none",
+      "target_title": "Genome_dreamleaf",
+      "to": "nature/genome-dreamleaf-base",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-dreamleaf",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-anesthesia",
+      "target_spoiler_tier": "none",
+      "target_title": "진통·마취",
+      "to": "research/research-pharmacology-anesthesia",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

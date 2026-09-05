@@ -1,0 +1,45 @@
+{
+  "facts": [
+    {
+      "label": "성공 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "-2",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-demon-oath-embers",
+      "target_spoiler_tier": "none",
+      "target_title": "맹세의 잿불",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-demon-oath-embers",
+      "target_spoiler_tier": "none",
+      "target_title": "맹세의 잿불",
+      "type": "sets-world-flag"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "practice-demon-oath-embers",
+  "spoiler_tier": "none",
+  "summary": "중요한 약속을 종이에 쓰고 한쪽 사본만 태운다.",
+  "title": "맹세의 잿불"
+}

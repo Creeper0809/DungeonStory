@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.82kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "25"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "회의와 접견에 입도록 어깨선과 앞섶을 단정하게 잡은 정장 외투다. 베르사디온의 정장 외투는 매듭 수로 계약 당사자를, 안감 색으로 증인과 애도 기간을 드러낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-formal-coat",
+  "spoiler_tier": "none",
+  "summary": "정장 외투 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "정장 외투"
+}

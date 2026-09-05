@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-windlass-crossbow",
+    "spoiler_tier": "none",
+    "title": "권양 석궁"
+  },
+  "edges": [],
+  "schema_version": 1
+}

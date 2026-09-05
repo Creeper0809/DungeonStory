@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "계약 당사자의 소속과 책임을 드러내도록 어깨에서 허리로 두르는 띠다. 베르사디온의 계약 어깨띠는 매듭 수로 계약 당사자를, 안감 색으로 증인과 애도 기간을 드러낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-contract-sash",
+  "spoiler_tier": "none",
+  "summary": "계약 어깨띠 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "계약 어깨띠"
+}

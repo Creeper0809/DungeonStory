@@ -22,14 +22,23 @@ public static class WorldItemEditorTestFactory
         IItemMarkerPresenter itemMarkerPresenter,
         IItemTransferService itemTransferService,
         ICharacterAiPerformanceRecorder performanceRecorder,
-        IItemQuantityReservationPersistence reservationPersistence = null)
+        IItemQuantityReservationPersistence reservationPersistence = null,
+        IFacilityOutputExactRouteOutboxPersistence
+            exactRouteOutboxPersistence = null)
     {
         _ = pathSearch ?? throw new ArgumentNullException(nameof(pathSearch));
+        IPhysicalItemMassQuery massQuery = new PhysicalItemMassQuery(catalog);
+        IFacilityOutputExactRouteOutboxPersistence exactRouteAuthority =
+            exactRouteOutboxPersistence
+            ?? new FacilityOutputExactRouteService(
+                repository,
+                massQuery,
+                itemMarkerPresenter);
         WorldItemPersistenceService persistence = new WorldItemPersistenceService(
             catalog,
             haulingSettings,
             repository,
-            EmptyFacilityOutputExactRouteOutboxPersistence.Instance,
+            exactRouteAuthority,
             reservationPersistence,
             reservationPersistence as IItemReservationMutationGate);
         WorldItemWarehouseService warehouses = new WorldItemWarehouseService(
@@ -49,7 +58,6 @@ public static class WorldItemEditorTestFactory
             repository,
             queries,
             itemMarkerPresenter);
-        IPhysicalItemMassQuery massQuery = new PhysicalItemMassQuery(catalog);
         WorldItemReadServices reads = new WorldItemReadServices(
             catalog,
             massQuery,
@@ -57,7 +65,8 @@ public static class WorldItemEditorTestFactory
             queries,
             itemMarkerPresenter,
             performanceRecorder,
-            DisabledDungeonDebugRuleQuery.Instance);
+            DisabledDungeonDebugRuleQuery.Instance,
+            new FacilityOutputClearanceTelemetryRuntime());
         WorldItemMutationServices mutations = new WorldItemMutationServices(
             repository,
             reservations,

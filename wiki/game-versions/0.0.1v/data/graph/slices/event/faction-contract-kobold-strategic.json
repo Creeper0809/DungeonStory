@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-kobold-strategic",
+    "spoiler_tier": "none",
+    "title": "깊은톱니 굴 장기 전략 계약"
+  },
+  "edges": [
+    {
+      "amount": "18",
+      "from": "event/faction-contract-kobold-strategic",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-engineering-drawing",
+      "target_spoiler_tier": "none",
+      "target_title": "공학 도면",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-kobold",
+      "label": "관련",
+      "to": "event/faction-contract-kobold-strategic",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

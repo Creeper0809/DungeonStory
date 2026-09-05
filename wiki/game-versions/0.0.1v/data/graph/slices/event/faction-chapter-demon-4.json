@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-demon-4",
+    "spoiler_tier": "warning",
+    "title": "계약을 고치는 손"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-demon-4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "7",
+      "from": "event/faction-chapter-demon-4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-demon",
+      "label": "관련",
+      "to": "event/faction-chapter-demon-4",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

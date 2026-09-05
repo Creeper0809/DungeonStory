@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "14"
+    },
+    {
+      "label": "필요 연구",
+      "value": "저온 작업 보호"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "equipment-cold-work-suit",
+      "target_spoiler_tier": "none",
+      "target_title": "방한 작업복",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-environment-cold-work",
+      "target_spoiler_tier": "none",
+      "target_title": "저온 작업 보호",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-cold-work-suit",
+  "spoiler_tier": "none",
+  "summary": "방한 작업복 생산 주문",
+  "title": "방한 작업복"
+}

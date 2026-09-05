@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-reinforced-restraint",
+    "spoiler_tier": "none",
+    "title": "강화 구속구"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-reinforced-restraint",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-reinforced-restraint",
+      "target_spoiler_tier": "none",
+      "target_title": "강화 구속구",
+      "to": "item/tool-reinforced-restraint",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-reinforced-restraint",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-chain-mesh",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 망",
+      "to": "item/material-chain-mesh",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-reinforced-restraint",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-hardened-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "경화 가죽",
+      "to": "item/material-hardened-leather",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-reinforced-restraint",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-control-restraints",
+      "target_spoiler_tier": "none",
+      "target_title": "구속 관리",
+      "to": "research/research-control-restraints",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

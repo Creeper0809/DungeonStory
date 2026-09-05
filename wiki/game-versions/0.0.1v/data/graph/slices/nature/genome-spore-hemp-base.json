@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "genome-spore-hemp-base",
+    "spoiler_tier": "none",
+    "title": "genome_spore-hemp_base"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-spore-hemp",
+      "label": "관련",
+      "to": "nature/genome-spore-hemp-base",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

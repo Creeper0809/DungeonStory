@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.55kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "55"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "관통 무기와 사냥에 바르는 독액이다. 베르사디온의 송곳니 독액은 동의가 확인된 사냥에만 쓰라는 뜻으로 병목에 동의의 잔에서 가져온 검은 실을 한 번 감는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "craft-fang-poison",
+  "spoiler_tier": "none",
+  "summary": "관통 무기와 사냥에 바르는 독액.",
+  "title": "송곳니 독액"
+}

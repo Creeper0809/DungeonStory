@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Commerce And Craft"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-service-flow",
+      "target_spoiler_tier": "none",
+      "target_title": "서비스 동선",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-service-flow",
+      "target_spoiler_tier": "none",
+      "target_title": "서비스 동선",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-service-flow",
+      "target_spoiler_tier": "none",
+      "target_title": "서비스 동선",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8848",
+      "target_spoiler_tier": "none",
+      "target_title": "배식 운영판",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-service-dining-operations",
+  "spoiler_tier": "none",
+  "summary": "배식과 좌석 회전, 위생 점검을 하나의 서비스 작업으로 표준화한다.",
+  "title": "식당 운영학"
+}

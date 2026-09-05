@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.12kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "17"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "초경량과 정신 저항을 제공하는 비전 직물이다. 특히 베르사디온산 몽직물의 봉인에는 마나가 새면 가장 먼저 빛을 잃는 세 번째 매듭이 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-dreamweave",
+  "spoiler_tier": "none",
+  "summary": "초경량과 정신 저항을 제공하는 비전 직물.",
+  "title": "몽직물"
+}

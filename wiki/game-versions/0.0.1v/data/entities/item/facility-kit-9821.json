@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "165"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "소독 정수기에서 오수를 걸러 다시 쓰거나 안전하게 배출하도록 만든 설치 부품이다. 므네실라의 소독 정수기에서 거른 물은 깨끗하면 초록 포자막이 피고, 오염이 남으면 검게 가라앉는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-9821",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "소독 정수기 설치 키트"
+}

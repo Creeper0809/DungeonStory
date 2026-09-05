@@ -1,0 +1,74 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-sterile-composite",
+    "spoiler_tier": "none",
+    "title": "무균 복합재"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-golem-core-case",
+      "label": "필요 조건",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-cross-lineage-medium",
+      "label": "필요 조건",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-fertility-treatment",
+      "label": "필요 조건",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-organ-preservation-canister",
+      "label": "필요 조건",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-rejuvenation-serum",
+      "label": "필요 조건",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-rune-hibernation-catalyst",
+      "label": "필요 조건",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-trait-analysis-kit",
+      "label": "필요 조건",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-sterile-composite",
+      "label": "생산·해금",
+      "to": "item/material-sterile-composite",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-organ-regeneration-scaffold",
+      "label": "필요 조건",
+      "to": "item/material-sterile-composite",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

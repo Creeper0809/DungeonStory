@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "자원"
+    },
+    {
+      "label": "크기",
+      "value": "2×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1037",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 욕구 회복, 생산 공정, 재고 보관이다. 건설에는 작업량 216, 재료 석재 블록×6, 룬 도체×3이 필요하다.",
+  "title": "마력저장조"
+}

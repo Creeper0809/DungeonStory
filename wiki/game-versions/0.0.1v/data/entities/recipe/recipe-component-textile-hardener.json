@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "22"
+    },
+    {
+      "label": "필요 연구",
+      "value": "층상 방어구"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-textile-hardener",
+      "target_spoiler_tier": "none",
+      "target_title": "직물 경화제",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-starch",
+      "target_spoiler_tier": "none",
+      "target_title": "전분",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-component-textile-hardener",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 직물 경화제을(를) 생산한다.",
+  "title": "직물 경화제"
+}

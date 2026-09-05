@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "source-animal-wool",
+    "spoiler_tier": "none",
+    "title": "가축 털깎기"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "recipe/source-animal-wool",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "털",
+      "to": "item/resource-wool",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/source-animal-wool",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "to": "research/research-husbandry-selective",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

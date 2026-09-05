@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "60개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "7"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "축사 위생과 휴식을 유지하는 바닥재이다. 라카쉬 세갈래길의 짐승지기는 깔짚을 갈아 낸 날과 짐승이 무리에서 떨어져 잠든 날을 같은 축사 장부에 적는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "husbandry-bedding",
+  "spoiler_tier": "none",
+  "summary": "축사 위생과 휴식을 유지하는 바닥재.",
+  "title": "깔짚"
+}

@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-powder-smoke",
+    "spoiler_tier": "none",
+    "title": "화약 연무"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-10",
+      "label": "관련",
+      "to": "world/battlefield-powder-smoke",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-22",
+      "label": "관련",
+      "to": "world/battlefield-powder-smoke",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-34",
+      "label": "관련",
+      "to": "world/battlefield-powder-smoke",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

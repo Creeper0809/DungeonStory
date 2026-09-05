@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "condition-age-cardiac-degeneration",
+    "spoiler_tier": "none",
+    "title": "심장 기능 퇴행"
+  },
+  "edges": [],
+  "schema_version": 1
+}

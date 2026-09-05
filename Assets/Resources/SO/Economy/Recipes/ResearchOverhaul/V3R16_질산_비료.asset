@@ -54,10 +54,20 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=FermentationGasLoss|reason=nitrate-fertilizer-composting-and-screening-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:niter
     amount: 1
   - itemId: material:compost
+    amount: 2
+  - itemId: resource:manure
     amount: 2
   outputs:
   - outputLineId: output:recipe:supply:nitrate-fertilizer/000/main/supply:nitrate-fertilizer

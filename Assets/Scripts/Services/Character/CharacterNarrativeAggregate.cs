@@ -931,12 +931,20 @@ public sealed class CharacterNarrativeAggregateState
 {
     internal Dictionary<CharacterId, CharacterNarrativeRecord> Characters { get; } = new();
     internal List<CharacterIdentityRuntimeStateSaveData> IdentityStates { get; } = new();
+    internal List<WorkCompletionIdentityDeliveryCursorSaveData>
+        WorkCompletionDeliveries { get; } = new();
 
     public static CharacterNarrativeAggregateState Restore(CharacterNarrativeWorldSaveData data, ICharacterNarrativeCatalog catalog)
     {
         if (data == null || data.version != CharacterNarrativeWorldSaveData.CurrentVersion)
             throw new InvalidOperationException("Character narrative save version is invalid.");
         if (data.characters == null) throw new InvalidOperationException("Character narrative collection is required.");
+        if (data.identityStates == null)
+            throw new InvalidOperationException(
+                "Character identity-state collection is required.");
+        if (data.workCompletionDeliveries == null)
+            throw new InvalidOperationException(
+                "Work-completion delivery collection is required.");
         CharacterNarrativeAggregateState state = new();
         foreach (CharacterNarrativeSaveData recordData in data.characters)
         {
@@ -944,10 +952,12 @@ public sealed class CharacterNarrativeAggregateState
             if (!state.Characters.TryAdd(record.CharacterId, record))
                 throw new InvalidOperationException($"Duplicate narrative character '{record.CharacterId.Value}'.");
         }
-        state.IdentityStates.AddRange((data.identityStates
-                ?? new List<CharacterIdentityRuntimeStateSaveData>())
+        state.IdentityStates.AddRange(data.identityStates
             .Where(value => value != null)
             .Select(value => value.Clone()));
+        state.WorkCompletionDeliveries.AddRange(
+            WorkCompletionIdentityDeliveryLedger.ValidateAndClone(
+                data.workCompletionDeliveries));
         return state;
     }
 
@@ -955,6 +965,9 @@ public sealed class CharacterNarrativeAggregateState
     {
         characters = Characters.Values.OrderBy(value => value.CharacterId.Value, StringComparer.Ordinal)
             .Select(value => value.Capture()).ToList(),
-        identityStates = IdentityStates.Select(value => value.Clone()).ToList()
+        identityStates = IdentityStates.Select(value => value.Clone()).ToList(),
+        workCompletionDeliveries = WorkCompletionDeliveries
+            .Select(value => value.Clone())
+            .ToList()
     };
 }

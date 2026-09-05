@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "condition-age-neural-degeneration",
+    "spoiler_tier": "none",
+    "title": "신경 기능 퇴행"
+  },
+  "edges": [],
+  "schema_version": 1
+}

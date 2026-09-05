@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "crop-night-grape",
+    "spoiler_tier": "none",
+    "title": "밤포도"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crop-night-grape",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "genome-night-grape-base",
+      "target_spoiler_tier": "none",
+      "target_title": "Genome_night-grape",
+      "to": "nature/genome-night-grape-base",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-night-grape",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "to": "research/research-agriculture-irrigation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

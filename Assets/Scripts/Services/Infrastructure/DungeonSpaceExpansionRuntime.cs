@@ -76,14 +76,16 @@ public readonly struct DungeonSpaceExpansionResult
 
 public static class DungeonSpaceExpansionCatalog
 {
+    public const string TierZeroInitializationId = "start:dungeon-space:tier-zero";
     public const string QuarryResearchId = "research:mining:quarry";
     public const string StonecuttingResearchId = "research:mining:stonecutting";
     public const string DeepMiningResearchId = "research:mining:deep";
 
-    public const int InitialInteriorColumns = 27;
-    public const int BasicSectorTargetColumns = 49;
-    public const int SupportedSectorTargetColumns = 65;
-    public const int DeepSectorTargetColumns = 81;
+    public const int SceneSeedInteriorColumns = 27;
+    public const int InitialInteriorColumns = 29;
+    public const int BasicSectorTargetColumns = 51;
+    public const int SupportedSectorTargetColumns = 71;
+    public const int DeepSectorTargetColumns = 87;
     public const int MaximumSupportedGridWidth = 104;
     public const int SupportedGridHeight = 3;
 
@@ -107,6 +109,13 @@ public static class DungeonSpaceExpansionCatalog
     };
 
     public static IReadOnlyList<DungeonSpaceExpansionDefinition> All => Definitions;
+
+    public static DungeonSpaceExpansionDefinition TierZeroInitialization =>
+        new(
+            TierZeroInitializationId,
+            tier: 0,
+            targetInteriorColumns: InitialInteriorColumns,
+            expectedPopulation: 6);
 
     public static bool TryGet(
         string researchProjectId,
@@ -323,10 +332,18 @@ public interface IDungeonSpaceExpansionQuery
     DungeonSpaceExpansionResult LastResult { get; }
 }
 
+public interface IDungeonSpaceExpansionCommand
+{
+    bool TryReconcileNewRunTierZero(
+        out DungeonSpaceExpansionResult result,
+        out string failureReason);
+}
+
 public sealed class DungeonSpaceExpansionRuntime :
     IStartable,
     IDisposable,
-    IDungeonSpaceExpansionQuery
+    IDungeonSpaceExpansionQuery,
+    IDungeonSpaceExpansionCommand
 {
     private readonly IGameEventBus gameEvents;
     private readonly IGridSystemProvider gridSystem;
@@ -511,6 +528,37 @@ public sealed class DungeonSpaceExpansionRuntime :
         LastResult = result;
         failureReason = string.Empty;
         return true;
+    }
+
+    public bool TryReconcileNewRunTierZero(
+        out DungeonSpaceExpansionResult result,
+        out string failureReason)
+    {
+        result = default;
+        if (!TryCaptureLayout(
+                out DungeonInteriorLayoutSnapshot current,
+                out failureReason))
+        {
+            return false;
+        }
+
+        if (current.ColumnCount
+                != DungeonSpaceExpansionCatalog.SceneSeedInteriorColumns
+            && current.ColumnCount
+                != DungeonSpaceExpansionCatalog.InitialInteriorColumns)
+        {
+            failureReason =
+                "New-run Tier-0 reconciliation accepts only the canonical "
+                + $"{DungeonSpaceExpansionCatalog.SceneSeedInteriorColumns}-column scene seed "
+                + $"or idempotent {DungeonSpaceExpansionCatalog.InitialInteriorColumns}-column layout; "
+                + $"found {current.ColumnCount}.";
+            return false;
+        }
+
+        return TryApply(
+            DungeonSpaceExpansionCatalog.TierZeroInitialization,
+            out result,
+            out failureReason);
     }
 
     private static bool HasBlockingExpansionOccupant(

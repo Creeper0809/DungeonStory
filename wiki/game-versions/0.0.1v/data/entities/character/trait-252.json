@@ -1,0 +1,25 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "비일반"
+    },
+    {
+      "label": "성향",
+      "value": "상충"
+    },
+    {
+      "label": "효과",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-252",
+  "spoiler_tier": "none",
+  "summary": "의료 손놀림은 안정적이지만 거친 시공에는 약하다.",
+  "title": "신중한 손"
+}

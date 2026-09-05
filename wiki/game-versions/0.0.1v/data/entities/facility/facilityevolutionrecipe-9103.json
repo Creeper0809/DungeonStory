@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1044",
+      "target_spoiler_tier": "none",
+      "target_title": "경비초소책상",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1047",
+      "target_spoiler_tier": "none",
+      "target_title": "전술지도탁자",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1040",
+      "target_spoiler_tier": "none",
+      "target_title": "훈련허수아비",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facilityevolutionrecipe-9103",
+  "spoiler_tier": "none",
+  "summary": "훈련 시설과 함께 운영된 경비초소책상을 전술지도탁자로 진화시킨다.",
+  "title": "경비 지휘 진화"
+}

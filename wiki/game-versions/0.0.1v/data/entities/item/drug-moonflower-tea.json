@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "9"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "의존성 없이 집중과 기분을 조금 높이는 차이다. 므네실라의 월화차 병에는 사람의 종족보다 몸이 보인 반응을 먼저 표시하는 색점이 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "drug-moonflower-tea",
+  "spoiler_tier": "none",
+  "summary": "의존성 없이 집중과 기분을 조금 높이는 차.",
+  "title": "월화차"
+}

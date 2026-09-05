@@ -109,7 +109,8 @@ public sealed class CharacterCarryInventoryRegistry :
         RequireCharacterId(characterId);
         CharacterSkillState state = GetOrCreateSkillState(characterId);
         state.ActiveWorkTypeId = workTypeId;
-        state.WorkSpeedMultiplier = Mathf.Max(0.1f, speedMultiplier);
+        state.WorkSpeedMultiplier = CharacterSkillWorkSpeedAuthority
+            .RequireRuntimeMultiplier(speedMultiplier);
     }
 
     public void EndWork(CharacterId characterId)
@@ -138,7 +139,8 @@ public sealed class CharacterCarryInventoryRegistry :
         return characterId.IsValid
             && skillStates.TryGetValue(characterId, out CharacterSkillState state)
             && state.ActiveWorkTypeId.IsValid
-                ? Mathf.Max(0.1f, state.WorkSpeedMultiplier)
+                ? CharacterSkillWorkSpeedAuthority.RequireRuntimeMultiplier(
+                    state.WorkSpeedMultiplier)
                 : 1f;
     }
 

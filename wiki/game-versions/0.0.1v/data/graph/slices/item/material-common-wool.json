@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-common-wool",
+    "spoiler_tier": "none",
+    "title": "일반 모직"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-weave-common-wool",
+      "label": "생산·해금",
+      "to": "item/material-common-wool",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

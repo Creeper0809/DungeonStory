@@ -1,0 +1,12 @@
+---
+import BaseLayout from '../../../components/BaseLayout.astro';
+import DirectoryBoard from '../../../components/DirectoryBoard.astro';
+import { hasGameVersion } from '../../../lib/wiki-data';
+const version = Astro.params.version ?? '';
+if (!hasGameVersion(version)) return new Response(null, { status: 404 });
+---
+
+<BaseLayout title={`${version} 문서`} version={version} historical>
+  <header class="page-header"><p class="eyebrow">게임 버전 보관 문서</p><h1>{version}</h1><p>이 게임 버전에 고정된 공개 문서와 탐색 구조이다.</p></header>
+  <DirectoryBoard version={version} historical />
+</BaseLayout>

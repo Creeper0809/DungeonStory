@@ -90,6 +90,8 @@ public sealed class SurgeryResourceServices
         IEnvironmentalFieldQuery environmentalField,
         IFacilityBufferDestinationClaimQuery destinationClaims,
         IFacilityBufferDestinationClaimCommand destinationClaimCommands,
+        ISurgeryMaterialDestinationRuntime materialDestinations,
+        ISurgeryMaterialTerminalRuntime materialTerminal,
         IPhysicalItemBatchDispositionService batchDispositions,
         IPhysicalItemMassQuery physicalMass,
         IPackagedLotTareDispositionService tareDispositions)
@@ -106,6 +108,10 @@ public sealed class SurgeryResourceServices
             ?? throw new ArgumentNullException(nameof(destinationClaims));
         DestinationClaimCommands = destinationClaimCommands
             ?? throw new ArgumentNullException(nameof(destinationClaimCommands));
+        MaterialDestinations = materialDestinations
+            ?? throw new ArgumentNullException(nameof(materialDestinations));
+        MaterialTerminal = materialTerminal
+            ?? throw new ArgumentNullException(nameof(materialTerminal));
         BatchDispositions = batchDispositions
             ?? throw new ArgumentNullException(nameof(batchDispositions));
         PhysicalMass = physicalMass
@@ -124,6 +130,8 @@ public sealed class SurgeryResourceServices
     public IEnvironmentalFieldQuery EnvironmentalField { get; }
     public IFacilityBufferDestinationClaimQuery DestinationClaims { get; }
     public IFacilityBufferDestinationClaimCommand DestinationClaimCommands { get; }
+    public ISurgeryMaterialDestinationRuntime MaterialDestinations { get; }
+    public ISurgeryMaterialTerminalRuntime MaterialTerminal { get; }
     public IPhysicalItemBatchDispositionService BatchDispositions { get; }
     public IPhysicalItemMassQuery PhysicalMass { get; }
     public IPackagedLotTareDispositionService TareDispositions { get; }
@@ -132,6 +140,7 @@ public sealed class SurgeryResourceServices
 public static class SurgeryMaterialDestinationAuthority
 {
     public const string OwnerDomain = "medical.surgery";
+    public const long InputBufferCapacitySchemaRevision = 1L;
 
     internal static string BuildDestinationId(string orderId) =>
         ReservedTargetDestinationIdentity.SurgeryMaterialsPrefix
@@ -159,7 +168,8 @@ public static class SurgeryMaterialDestinationAuthority
             OwnerDomain,
             order.orderId,
             order.facilityId,
-            FacilityBufferDestinationAnchorKind.LiveFacility);
+            FacilityBufferDestinationAnchorKind.LiveFacility,
+            FacilityBufferDestinationAdmissionPolicy.ExactGramRequired);
     }
 
     internal static bool TryGetOwnedClaim(

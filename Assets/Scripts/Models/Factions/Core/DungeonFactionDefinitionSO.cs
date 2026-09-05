@@ -49,6 +49,8 @@ public sealed class DungeonFactionDefinitionSO : ScriptableObject
     public Sprite crest;
     public List<FactionCargoLine> tradeCargo = new List<FactionCargoLine>();
     public List<FactionCargoLine> supplyCargo = new List<FactionCargoLine>();
+    public FactionRouteEconomicPolicyDescriptor tradeEconomicPolicy;
+    public FactionRouteEconomicPolicyDescriptor supplyEconomicPolicy;
     [Min(1)] public int tradeCooldownDays = 7;
     [Min(1)] public int supplyCooldownDays = 20;
     [Min(1)] public int reinforcementCooldownDays = 10;
@@ -73,6 +75,8 @@ public sealed class DungeonFactionDefinitionSO : ScriptableObject
                 .Where(value => value != null)
                 .Select(value => value.Clone())
                 .ToArray(),
+            tradeEconomicPolicy,
+            supplyEconomicPolicy,
             tradeCooldownDays,
             supplyCooldownDays,
             reinforcementCooldownDays);

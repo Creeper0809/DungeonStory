@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "food-grain-porridge",
+    "spoiler_tier": "none",
+    "title": "황혼곡죽"
+  },
+  "edges": [
+    {
+      "amount": "6",
+      "from": "recipe/recipe-grain-porridge",
+      "label": "생산·해금",
+      "to": "item/food-grain-porridge",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

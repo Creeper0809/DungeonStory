@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.475kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "17"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손질한 채소와 양념 속을 반죽으로 감싸 한 조각씩 나누기 좋은 파이다. 사르베니아 내해에서 채소 파이는 내해 농가가 장거리 운송에 상처 난 작물을 남기지 않으려 굽는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-vegetable-pie",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "채소 파이"
+}

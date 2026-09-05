@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "죽, 빵, 술과 사료의 바탕이 되는 검푸른 곡물이다. 하르나크 장터의 황혼곡 값은 사르베니아 내해의 수위와 밀로세아 가도의 통행세에 따라 먼저 움직인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-twilight-grain",
+  "spoiler_tier": "none",
+  "summary": "죽, 빵, 술과 사료의 바탕이 되는 검푸른 곡물.",
+  "title": "황혼곡"
+}

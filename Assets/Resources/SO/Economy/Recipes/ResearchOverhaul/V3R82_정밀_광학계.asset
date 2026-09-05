@@ -54,11 +54,19 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=ExtractionResidue|reason=research-rune-tuning-and-catalyst-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:gold-ingot
     amount: 1
   - itemId: resource:mana-crystal
-    amount: 1
+    amount: 3
   outputs:
   - outputLineId: output:recipe:component:precision-optics/000/main/component:precision-optics
     role: 0

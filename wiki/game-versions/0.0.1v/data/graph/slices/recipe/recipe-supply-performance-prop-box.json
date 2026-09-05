@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-supply-performance-prop-box",
+    "spoiler_tier": "none",
+    "title": "공연 소품 상자"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-performance-prop-box",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "supply-performance-prop-box",
+      "target_spoiler_tier": "none",
+      "target_title": "공연 소품 상자",
+      "to": "item/supply-performance-prop-box",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-performance-prop-box",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-performance-prop-box",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-performance-prop-box",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-control-show",
+      "target_spoiler_tier": "none",
+      "target_title": "흥행 운영",
+      "to": "research/research-control-show",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

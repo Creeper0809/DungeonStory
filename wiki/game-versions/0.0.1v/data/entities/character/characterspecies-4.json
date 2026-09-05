@@ -1,0 +1,45 @@
+{
+  "facts": [
+    {
+      "label": "효과",
+      "value": "15개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-beastkin",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Beastkin",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-beastkin",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Beastkin",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-beastkin",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Beastkin",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "characterspecies-4",
+  "spoiler_tier": "none",
+  "summary": "수인은(는) 붉은발 역참을 대표하는 종족이다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다.",
+  "title": "수인"
+}

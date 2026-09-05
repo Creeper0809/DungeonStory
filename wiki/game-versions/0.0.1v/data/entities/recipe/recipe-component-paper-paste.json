@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "44"
+    },
+    {
+      "label": "필요 연구",
+      "value": "제분·제빵"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-paper-paste",
+      "target_spoiler_tier": "none",
+      "target_title": "종이 풀칠",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-starch",
+      "target_spoiler_tier": "none",
+      "target_title": "전분",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-component-paper-paste",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 종이 풀칠을(를) 생산한다.",
+  "title": "종이 풀칠"
+}

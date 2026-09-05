@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "7"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "납탄은 무기, 방어구와 정밀 부품의 형태를 잡는 금속 재료다. 오르데나의 붉은 봉랍이 없는 납탄 묶음은 밀로세아 검문소를 통과하지 못한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-lead-shot",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 납탄.",
+  "title": "납탄"
+}

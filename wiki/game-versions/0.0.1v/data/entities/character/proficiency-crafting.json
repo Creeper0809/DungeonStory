@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "proficiency-crafting",
+  "spoiler_tier": "none",
+  "summary": "일반 제작, 의복, 무기·방어구, 목공·단조, 수선과 개조의 숙련이다.",
+  "title": "제작"
+}

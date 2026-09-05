@@ -1,0 +1,182 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-genetics-cross-lineage-stabilization",
+    "spoiler_tier": "none",
+    "title": "교차계통 안정화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-controlled-heredity",
+      "target_spoiler_tier": "none",
+      "target_title": "통제 유전",
+      "to": "research/research-genetics-controlled-heredity",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-controlled-heredity",
+      "target_spoiler_tier": "none",
+      "target_title": "통제 유전",
+      "to": "research/research-genetics-controlled-heredity",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-controlled-heredity",
+      "target_spoiler_tier": "none",
+      "target_title": "통제 유전",
+      "to": "research/research-genetics-controlled-heredity",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-regenerative-culture",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-regenerative-culture",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-regenerative-culture",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양",
+      "to": "research/research-medical-regenerative-culture",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-xenotransplant",
+      "target_spoiler_tier": "none",
+      "target_title": "이종 이식",
+      "to": "research/research-medical-xenotransplant",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-xenotransplant",
+      "target_spoiler_tier": "none",
+      "target_title": "이종 이식",
+      "to": "research/research-medical-xenotransplant",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-xenotransplant",
+      "target_spoiler_tier": "none",
+      "target_title": "이종 이식",
+      "to": "research/research-medical-xenotransplant",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8881",
+      "target_spoiler_tier": "none",
+      "target_title": "교차계통 배양기",
+      "to": "facility/building-8881",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-cross-lineage-medium",
+      "label": "필요 조건",
+      "to": "research/research-genetics-cross-lineage-stabilization",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-temporal-stasis",
+      "label": "선행 연구",
+      "to": "research/research-genetics-cross-lineage-stabilization",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-temporal-stasis",
+      "label": "선행 연구",
+      "to": "research/research-genetics-cross-lineage-stabilization",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-temporal-stasis",
+      "label": "선행 연구",
+      "to": "research/research-genetics-cross-lineage-stabilization",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-spore-bloom",
+    "spoiler_tier": "none",
+    "title": "포자 개화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-11",
+      "label": "관련",
+      "to": "world/battlefield-spore-bloom",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-23",
+      "label": "관련",
+      "to": "world/battlefield-spore-bloom",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-35",
+      "label": "관련",
+      "to": "world/battlefield-spore-bloom",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

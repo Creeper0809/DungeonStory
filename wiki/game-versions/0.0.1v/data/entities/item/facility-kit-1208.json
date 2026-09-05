@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "90"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "공연 치료 구역에서 환자를 살피고 필요한 처치를 이어 갈 수 있게 꾸린 설치 부품이다. 므네실라식 공연 치료 구역에는 약방의 흰 포자점과 공동 정원의 초록 포자점이 함께 박혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-1208",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "공연 치료 구역 설치 키트"
+}

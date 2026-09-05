@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "외부 경작"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "genome-ember-root-base",
+      "target_spoiler_tier": "none",
+      "target_title": "Genome_ember-root",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "crop-ember-root",
+  "spoiler_tier": "none",
+  "summary": "잿불뿌리 종자를 42시간 재배해 잿불뿌리 5개를 생산하며 하루 물 0.25를 소비한다. 외부 경작가 재배 시점을 제한한다.",
+  "title": "잿불뿌리"
+}

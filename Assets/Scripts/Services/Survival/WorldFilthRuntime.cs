@@ -68,10 +68,10 @@ public sealed class WorldFilthGameplayDependencies
 {
     public WorldFilthGameplayDependencies(
         IBuildingResearchWorkPort blueprintResearchWorkService,
-        ICombatEquipmentRuntime combatEquipmentRuntime,
+        Func<IBuildingEquipmentCraftingRuntimePort> combatEquipmentRuntime,
         IBuildingWorldRegistryPort worldRegistry,
         IBuildingItemStackPort worldItems,
-        IBuildingAbilityRuntimeDispatcher abilityDispatcher,
+        Func<IBuildingAbilityRuntimeDispatcher> abilityDispatcher,
         IBuildingEvolutionStatePort evolutionState)
     {
         BlueprintResearchWorkService = blueprintResearchWorkService
@@ -88,10 +88,11 @@ public sealed class WorldFilthGameplayDependencies
     }
 
     public IBuildingResearchWorkPort BlueprintResearchWorkService { get; }
-    public ICombatEquipmentRuntime CombatEquipmentRuntime { get; }
+    public Func<IBuildingEquipmentCraftingRuntimePort> CombatEquipmentRuntime
+    { get; }
     public IBuildingWorldRegistryPort WorldRegistry { get; }
     public IBuildingItemStackPort WorldItems { get; }
-    public IBuildingAbilityRuntimeDispatcher AbilityDispatcher { get; }
+    public Func<IBuildingAbilityRuntimeDispatcher> AbilityDispatcher { get; }
     public IBuildingEvolutionStatePort EvolutionState { get; }
 }
 
@@ -213,10 +214,11 @@ public sealed class WorldFilthRuntime :
     private readonly IBuildingResearchWorkPort blueprintResearchWorkService;
     private readonly IBuildingFacilityStateChangePort facilityCandidateCache;
     private readonly IRoomFacilityPolicy roomFacilityPolicy;
-    private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
+    private readonly Func<IBuildingEquipmentCraftingRuntimePort>
+        combatEquipmentRuntime;
     private readonly IBuildingWorldRegistryPort worldRegistry;
     private readonly IBuildingItemStackPort worldItems;
-    private readonly IBuildingAbilityRuntimeDispatcher abilityDispatcher;
+    private readonly Func<IBuildingAbilityRuntimeDispatcher> abilityDispatcher;
     private readonly IBuildingEvolutionStatePort evolutionState;
     private readonly IPaidFacilityContractRuntime paidFacilityContracts;
     private readonly IGameClock gameClock;
@@ -521,6 +523,14 @@ public sealed class WorldFilthRuntime :
             return;
         }
 
+        IBuildingEquipmentCraftingRuntimePort equipmentCrafting =
+            combatEquipmentRuntime()
+            ?? throw new InvalidOperationException(
+                "World filth work-target construction requires the building equipment-crafting runtime.");
+        IBuildingAbilityRuntimeDispatcher dispatcher = abilityDispatcher()
+            ?? throw new InvalidOperationException(
+                "World filth work-target construction requires the building ability dispatcher.");
+
         GameObject targetObject = new GameObject($"Filth Work ({position.x}, {position.y})");
         WorldFilthWorkTarget target = targetObject.AddComponent<WorldFilthWorkTarget>();
         target.RestorePersistentIdentity(new BuildingInstanceId(
@@ -529,10 +539,10 @@ public sealed class WorldFilthRuntime :
             blueprintResearchWorkService,
             facilityCandidateCache,
             roomFacilityPolicy,
-            combatEquipmentRuntime,
+            equipmentCrafting,
             worldRegistry,
             worldItems,
-            abilityDispatcher,
+            dispatcher,
             gameClock,
             paidFacilityContracts,
             evolutionState);

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-golem-core-case",
+    "spoiler_tier": "none",
+    "title": "골렘 핵 케이스"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-golem-core-case",
+      "label": "생산·해금",
+      "to": "item/component-golem-core-case",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

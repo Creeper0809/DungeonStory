@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.175kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "64개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "11"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "맞은 자리에 짙은 연막을 펼쳐 시야와 사선을 끊는 탄약이다. 오르데나에서 지급한 연막 탄약 겉면에는 연막이 퍼지는 거리와 지속 시간이 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-smoke-cartridge",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 연막 탄약.",
+  "title": "연막 탄약"
+}

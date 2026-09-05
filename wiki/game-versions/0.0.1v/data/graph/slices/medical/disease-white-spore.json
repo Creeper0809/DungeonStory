@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "disease-white-spore",
+    "spoiler_tier": "none",
+    "title": "백색포자병"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/spore-elk",
+      "label": "관련",
+      "to": "medical/disease-white-spore",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

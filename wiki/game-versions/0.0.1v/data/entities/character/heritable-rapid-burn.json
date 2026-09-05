@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Metabolism"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-rapid-burn",
+  "spoiler_tier": "none",
+  "summary": "순간 작업 능률이 높지만 식량 요구가 늘어난다.",
+  "title": "고속 대사"
+}

@@ -1,0 +1,45 @@
+{
+  "facts": [
+    {
+      "label": "효과",
+      "value": "15개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-slime",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Slime",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-slime",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Slime",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-slime",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Slime",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "characterspecies-1",
+  "spoiler_tier": "none",
+  "summary": "낮은 소비와 빠른 회전으로 초반 던전을 채우지만, 불만이 쌓이면 오염 사고를 만든다.",
+  "title": "슬라임"
+}

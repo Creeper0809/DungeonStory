@@ -1,0 +1,27 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Career"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-quiet-promotion",
+      "target_spoiler_tier": "warning",
+      "target_title": "조용한 승급",
+      "type": "changes-mood"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-quiet-promotion",
+  "spoiler_tier": "warning",
+  "summary": "꾸준히 일한 직원이 다음 숙련 등급에 도달했다.",
+  "title": "조용한 승급"
+}

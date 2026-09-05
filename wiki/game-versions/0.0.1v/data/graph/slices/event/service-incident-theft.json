@@ -1,0 +1,65 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "service-incident-theft",
+    "spoiler_tier": "warning",
+    "title": "절도"
+  },
+  "edges": [
+    {
+      "amount": "-100",
+      "from": "event/service-incident-theft",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-theft",
+      "target_spoiler_tier": "warning",
+      "target_title": "절도",
+      "to": "event/service-incident-theft",
+      "type": "changes-money"
+    },
+    {
+      "amount": "1",
+      "from": "event/service-incident-theft",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-theft",
+      "target_spoiler_tier": "warning",
+      "target_title": "절도",
+      "to": "event/service-incident-theft",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "1",
+      "from": "event/service-incident-theft",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-theft",
+      "target_spoiler_tier": "warning",
+      "target_title": "절도",
+      "to": "event/service-incident-theft",
+      "type": "sets-world-flag"
+    },
+    {
+      "amount": "-100",
+      "from": "event/service-incident-theft",
+      "label": "연결",
+      "to": "event/service-incident-theft",
+      "type": "changes-money"
+    },
+    {
+      "amount": "1",
+      "from": "event/service-incident-theft",
+      "label": "연결",
+      "to": "event/service-incident-theft",
+      "type": "adds-work-delay"
+    },
+    {
+      "amount": "1",
+      "from": "event/service-incident-theft",
+      "label": "연결",
+      "to": "event/service-incident-theft",
+      "type": "sets-world-flag"
+    }
+  ],
+  "schema_version": 1
+}

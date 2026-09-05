@@ -361,7 +361,24 @@ public static class ProductionGenericBillTerminalDrainSaveSectionDebugScenarios
                 {
                     new()
                     {
+                        outputLineId = "output:qa-generic-save",
                         itemId = "material:qa:generic-save-output",
+                        outputCapabilityId =
+                            ProductionOutputCapabilityIds.StandardDefinition,
+                        outputCapabilityVersion =
+                            ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                        outputComponentCodecId =
+                            ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                        outputComponentCodecVersion =
+                            ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+                        outputCapabilityFingerprint =
+                            ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                                "output:qa-generic-save",
+                                "material:qa:generic-save-output",
+                                ProductionOutputCapabilityIds.StandardDefinition,
+                                ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                                ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                                ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
                         amount = 2,
                         committedAmount = 2,
                         committedMassGrams = 2_000L

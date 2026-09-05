@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "apparel-23024",
+    "spoiler_tier": "none",
+    "title": "보온 점액 패드"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "combat/apparel-23024",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-environment-cold-work",
+      "target_spoiler_tier": "none",
+      "target_title": "저온 작업 보호",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

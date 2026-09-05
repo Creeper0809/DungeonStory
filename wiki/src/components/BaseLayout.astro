@@ -1,0 +1,64 @@
+---
+import '../styles/global.css';
+import DocumentToc from './DocumentToc.astro';
+import { getCurrentVersion, getVersions } from '../lib/wiki-data';
+
+interface Props {
+  title: string;
+  description?: string;
+  version?: string;
+  historical?: boolean;
+  currentHref?: string;
+}
+
+const { title, description = 'DungeonStory 공식 위키', version = getCurrentVersion(), historical = false, currentHref = '/' } = Astro.props;
+const versions = getVersions();
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).toString() : undefined;
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#202522" />
+    {historical ? <meta name="robots" content="noindex,follow" /> : canonical && <link rel="canonical" href={canonical} />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} | DungeonStory 위키</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="wordmark" href="/" aria-label="DungeonStory 위키 홈">
+          <span class="wordmark__mark">DS</span><span>DungeonStory</span><small>공식 위키</small>
+        </a>
+        <nav class="primary-nav" aria-label="주요 탐색">
+          <a href="/directory/">둘러보기</a>
+          <a href="/category/facilities/">시설·방</a>
+          <a href="/category/research/">연구</a>
+          <a href="/download/">다운로드</a>
+          <a href="/search/">검색</a>
+          <a href="/updates/">업데이트</a>
+        </nav>
+        <details class="version-switcher">
+          <summary>{version}</summary>
+          <ul>
+            {versions.map((item) => <li><a href={`/game-versions/${item.game_version}/`}>{item.game_version} <span>{item.status}</span></a></li>)}
+          </ul>
+        </details>
+      </div>
+    </header>
+    {historical && <aside class="historical-notice">이 페이지는 보관 문서이다. <a href={currentHref}>현재 문서 보기</a></aside>}
+    <main id="main" class="site-main" data-pagefind-ignore={historical ? true : undefined}>
+      <slot />
+    </main>
+    <DocumentToc />
+    <footer class="site-footer">
+      <div><strong>DungeonStory 위키</strong><small>© DungeonStory. All rights reserved.</small></div>
+      <div><a href="/status/">공개 상태</a><span aria-hidden="true"> · </span><a href="/updates/">업데이트 기록</a><span aria-hidden="true"> · </span><a href="/directory/">전체 둘러보기</a></div>
+    </footer>
+    <script is:inline src="/scripts/site-interactions.js" defer></script>
+  </body>
+</html>

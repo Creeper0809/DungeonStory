@@ -1,0 +1,6 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+EnvironmentalWorkwearSO,content-type,,type-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
+EnvironmentalWorkwearSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs
+EnvironmentalWorkwearSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs
+EnvironmentalWorkwearSO,content-type,,type-reference; save-restore-reference,services:items,runtime,structural-type-consumer,Assets/Scripts/Services/Items/CharacterCarryInventory.cs
+EnvironmentalWorkwearSO,stable-id,workwear:hauling-harness,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/CharacterCarryInventory.cs

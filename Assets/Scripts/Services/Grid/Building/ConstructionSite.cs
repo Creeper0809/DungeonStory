@@ -6,6 +6,7 @@ using UnityEngine;
 
 public sealed class ConstructionSite : BuildableObject,
     IWorkableFacility,
+    IAllocatedWorkerOccupancyQuery,
     IParallelWorkerReservationFacility
 {
     private const float WorkerStandOffsetY = 0.15f;
@@ -36,6 +37,7 @@ public sealed class ConstructionSite : BuildableObject,
     public ConstructionSafetyResult LastSafetyResult => lastSafetyResult;
     public IBuildingVisitorPort ActiveWorker => workers.Count > 0 ? workers[0] : null;
     public int ActiveWorkerCount => workers.Count;
+    public bool HasAllocatedWorker => workers.Count > 0;
     public int OccupiedWorkerSlotCount
     {
         get

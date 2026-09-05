@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ending-surface-hegemony",
+  "spoiler_tier": "warning",
+  "summary": "인간 다섯 전쟁 계통의 핵심 전력을 무너뜨리고 지상 진입로를 장악한다.",
+  "title": "지상 패권"
+}

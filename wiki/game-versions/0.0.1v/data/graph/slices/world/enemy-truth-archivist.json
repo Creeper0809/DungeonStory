@@ -1,0 +1,77 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-truth-archivist",
+    "spoiler_tier": "none",
+    "title": "진실 기록집행자"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-truth-archivist",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-rally",
+      "target_spoiler_tier": "none",
+      "target_title": "전열 재정비",
+      "to": "world/enemy-ability-rally",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-archivist",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-summon-minion",
+      "target_spoiler_tier": "none",
+      "target_title": "지원체 소환",
+      "to": "world/enemy-ability-summon-minion",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-archivist",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-summon-minion",
+      "target_spoiler_tier": "none",
+      "target_title": "지원체 소환",
+      "to": "world/enemy-ability-summon-minion",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-archivist",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-truth-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "진실 봉인",
+      "to": "world/enemy-ability-truth-seal",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-archivist",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-truth-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "진실 봉인",
+      "to": "world/enemy-ability-truth-seal",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-truth-archivist",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-armor-gambeson",
+    "spoiler_tier": "none",
+    "title": "누비옷"
+  },
+  "edges": [],
+  "schema_version": 1
+}

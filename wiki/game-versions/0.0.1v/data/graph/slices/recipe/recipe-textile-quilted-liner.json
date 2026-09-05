@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-textile-quilted-liner",
+    "spoiler_tier": "none",
+    "title": "층상 충전재"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-textile-quilted-liner",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "textile-quilted-liner",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 충전재",
+      "to": "item/textile-quilted-liner",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-textile-quilted-liner",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "털",
+      "to": "item/resource-wool",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-textile-quilted-liner",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-textile-quilted-liner",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "to": "research/research-textile-layered",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

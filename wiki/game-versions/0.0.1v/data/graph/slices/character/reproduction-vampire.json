@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "reproduction-vampire",
+    "spoiler_tier": "none",
+    "title": "Reproduction_Vampire"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-3",
+      "label": "관련",
+      "to": "character/reproduction-vampire",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "type": "requires"
+    },
+    {
+      "amount": "7",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-myconid-4",
+  "spoiler_tier": "warning",
+  "summary": "던전은 격리 절단, 치료 배양, 기억 백업 중 방식을 정한다.",
+  "title": "어디까지 잘라낼까"
+}

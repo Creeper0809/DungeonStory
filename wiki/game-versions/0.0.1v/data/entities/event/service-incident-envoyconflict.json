@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-envoyconflict",
+      "target_spoiler_tier": "warning",
+      "target_title": "외교 사절 충돌",
+      "type": "adds-work-delay"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "service-incident-envoyconflict",
+  "spoiler_tier": "warning",
+  "summary": "적대 세력 사절이 같은 객실 구역에서 마주쳤다.",
+  "title": "외교 사절 충돌"
+}

@@ -1,0 +1,67 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-saltstone",
+    "spoiler_tier": "none",
+    "title": "소금석"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-antiseptic",
+      "label": "필요 조건",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-brined-vegetable",
+      "label": "필요 조건",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-curd",
+      "label": "필요 조건",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-leather",
+      "label": "필요 조건",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ration-mixture",
+      "label": "필요 조건",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-salted-meat",
+      "label": "필요 조건",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-textile-sterile-cloth",
+      "label": "필요 조건",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/source-saltstone",
+      "label": "생산·해금",
+      "to": "item/resource-saltstone",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

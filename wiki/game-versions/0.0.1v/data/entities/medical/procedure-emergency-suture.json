@@ -1,0 +1,44 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "12"
+    },
+    {
+      "label": "필요 연구",
+      "value": "의료 회복"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "procedure-emergency-suture",
+  "spoiler_tier": "none",
+  "summary": "열린 상처를 닫고 출혈과 감염 위험을 낮춘다.",
+  "title": "응급 봉합"
+}

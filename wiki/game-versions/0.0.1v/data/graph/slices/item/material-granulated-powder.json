@@ -1,0 +1,88 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-granulated-powder",
+    "spoiler_tier": "none",
+    "title": "과립 화약"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-armor-piercing-cartridge",
+      "label": "필요 조건",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-incendiary-arrow",
+      "label": "필요 조건",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-incendiary-bolt",
+      "label": "필요 조건",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-rune-cartridge",
+      "label": "필요 조건",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-scatter-cartridge",
+      "label": "필요 조건",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-signal-flare",
+      "label": "필요 조건",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-ammo-smoke-cartridge",
+      "label": "필요 조건",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-corridor-detonator",
+      "label": "필요 조건",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-alliance-signal-kit",
+      "label": "필요 조건",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-defense-mixed-ammo-box",
+      "label": "필요 조건",
+      "to": "item/material-granulated-powder",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-material-granulated-powder",
+      "label": "생산·해금",
+      "to": "item/material-granulated-powder",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

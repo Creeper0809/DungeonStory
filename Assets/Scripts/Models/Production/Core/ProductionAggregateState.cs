@@ -161,6 +161,15 @@ public sealed class ProductionBillRecord
     }
     public void ClearResolvedOutputs()
     {
+        if (mutableResolvedOutputs.Any(output => output != null
+            && (!string.IsNullOrEmpty(output.pendingCommitId)
+                || output.pendingCommitApplied
+                || output.pendingOutputPublication?.phase
+                    != ProductionExactOutputPublicationPhase.None)))
+        {
+            throw new InvalidOperationException(
+                "Resolved production outputs still own pending physical publication state.");
+        }
         mutableResolvedOutputs.Clear();
         outputOutcomeResolved = false;
     }
@@ -266,73 +275,129 @@ public sealed class ProductionBillRecord
         }
     }
     public void BeginResolvedOutputUnit(
-        string itemId,
+        string outputLineId,
         string commitId)
     {
         ProductionResolvedOutputSaveData output = mutableResolvedOutputs.Single(
             candidate => string.Equals(
-                candidate.itemId,
-                itemId,
+                candidate.outputLineId,
+                outputLineId,
                 StringComparison.Ordinal));
         if (output.committedAmount >= output.amount
             || !string.IsNullOrEmpty(output.pendingCommitId)
+            || output.pendingCommitApplied
+            || output.pendingOutputPublication == null
+            || output.pendingOutputPublication.phase
+                != ProductionExactOutputPublicationPhase.None
             || string.IsNullOrEmpty(commitId)
             || !string.Equals(commitId, commitId.Trim(), StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Resolved output '{itemId}' cannot begin commit '{commitId}'.");
+                $"Resolved output '{outputLineId}' cannot begin commit '{commitId}'.");
         }
         output.pendingCommitId = commitId;
         output.pendingCommitApplied = false;
+        output.pendingOutputPublication =
+            ProductionExactOutputPublicationSaveData.Empty();
     }
 
     public void MarkResolvedOutputUnitCommitted(
-        string itemId,
+        string outputLineId,
         string commitId,
-        long committedMassGrams)
+        ProductionCommittedOutputSnapshot committedOutput)
     {
         ProductionResolvedOutputSaveData output = mutableResolvedOutputs.Single(
             candidate => string.Equals(
-                candidate.itemId,
-                itemId,
+                candidate.outputLineId,
+                outputLineId,
                 StringComparison.Ordinal));
         if (output.committedAmount >= output.amount
             || output.pendingCommitApplied
-            || committedMassGrams <= 0L
+            || committedOutput == null
+            || committedOutput.ExactMassGrams <= 0L
+            || !string.Equals(
+                committedOutput.CommitId,
+                commitId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                committedOutput.OutputCapabilityId,
+                output.outputCapabilityId,
+                StringComparison.Ordinal)
+            || committedOutput.OutputCapabilityVersion
+                != output.outputCapabilityVersion
+            || !string.Equals(
+                committedOutput.OutputComponentCodecId,
+                output.outputComponentCodecId,
+                StringComparison.Ordinal)
+            || committedOutput.OutputComponentCodecVersion
+                != output.outputComponentCodecVersion
             || !string.Equals(
                 output.pendingCommitId,
                 commitId,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Resolved output '{itemId}' is already fully committed.");
+                $"Resolved output '{outputLineId}' is already fully committed.");
         }
         output.committedAmount++;
         output.committedMassGrams = checked(
-            output.committedMassGrams + committedMassGrams);
+            output.committedMassGrams + committedOutput.ExactMassGrams);
+        output.pendingOutputPublication =
+            ProductionExactOutputPublicationSaveData.FromRuntime(
+                billId.Value,
+                committedOutput);
         output.pendingCommitApplied = true;
     }
 
     public void ClearResolvedOutputPendingCommit(
-        string itemId,
+        string outputLineId,
         string commitId)
     {
         ProductionResolvedOutputSaveData output = mutableResolvedOutputs.Single(
             candidate => string.Equals(
-                candidate.itemId,
-                itemId,
+                candidate.outputLineId,
+                outputLineId,
                 StringComparison.Ordinal));
         if (!output.pendingCommitApplied
+            || output.pendingOutputPublication == null
+            || output.pendingOutputPublication.phase
+                != ProductionExactOutputPublicationPhase.Published
             || !string.Equals(
                 output.pendingCommitId,
                 commitId,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Resolved output '{itemId}' cannot acknowledge commit '{commitId}'.");
+                $"Resolved output '{outputLineId}' cannot acknowledge commit '{commitId}'.");
         }
         output.pendingCommitId = string.Empty;
         output.pendingCommitApplied = false;
+        output.pendingOutputPublication =
+            ProductionExactOutputPublicationSaveData.Empty();
+    }
+
+    public void AbortUnpublishedResolvedOutputUnit(
+        string outputLineId,
+        string commitId)
+    {
+        ProductionResolvedOutputSaveData output = mutableResolvedOutputs.Single(
+            candidate => string.Equals(
+                candidate.outputLineId,
+                outputLineId,
+                StringComparison.Ordinal));
+        if (output.pendingCommitApplied
+            || output.pendingOutputPublication == null
+            || output.pendingOutputPublication.phase
+                != ProductionExactOutputPublicationPhase.None
+            || !string.Equals(
+                output.pendingCommitId,
+                commitId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Resolved output '{outputLineId}' cannot abort unpublished commit '{commitId}'.");
+        }
+        output.pendingCommitId = string.Empty;
     }
     public void SetProcessFluidConsumed(bool value) => processFluidConsumed = value;
     public void SetProcessFluid(ProductionProcessFluidReceipt receipt)
@@ -526,34 +591,22 @@ public sealed class ProductionAggregateStateSession
                 receipt.commitId,
                 StringComparison.Ordinal));
         if (existing != null)
-        {
-            return string.Equals(existing.billId, receipt.billId, StringComparison.Ordinal)
-                && string.Equals(existing.recipeId, receipt.recipeId, StringComparison.Ordinal)
-                && string.Equals(
-                    existing.buildingInstanceId,
-                    receipt.buildingInstanceId,
-                    StringComparison.Ordinal)
-                && existing.cycleSequence == receipt.cycleSequence
-                && string.Equals(
-                    existing.inputCommitId,
-                    receipt.inputCommitId,
-                    StringComparison.Ordinal)
-                && existing.inputQuantity == receipt.inputQuantity
-                && existing.inputMassGrams == receipt.inputMassGrams
-                && existing.processCleanWaterMassGrams
-                    == receipt.processCleanWaterMassGrams
-                && existing.processWastewaterMassGrams
-                    == receipt.processWastewaterMassGrams
-                && WastewaterComponentsEqual(
-                    existing.wastewaterComponents,
-                    receipt.wastewaterComponents)
-                && existing.committedOutputMassGrams
-                    == receipt.committedOutputMassGrams
-                && existing.declaredLossMassGrams == receipt.declaredLossMassGrams
-                && existing.reason == receipt.reason
-                && existing.lossKind == receipt.lossKind;
-        }
+            return WipTerminalReceiptEquals(existing, receipt);
         Current.WipTerminalReceipts.Add(receipt.Clone());
+        return true;
+    }
+    public bool TryRemoveWipTerminalReceiptExact(
+        ProductionWipTerminalReceiptSaveData expected)
+    {
+        if (expected == null || string.IsNullOrEmpty(expected.commitId))
+            return false;
+        int index = Current.WipTerminalReceipts.FindIndex(value =>
+            string.Equals(value?.commitId, expected.commitId,
+                StringComparison.Ordinal));
+        if (index < 0 || !WipTerminalReceiptEquals(
+                Current.WipTerminalReceipts[index], expected))
+            return false;
+        Current.WipTerminalReceipts.RemoveAt(index);
         return true;
     }
     public void MoveBill(
@@ -579,6 +632,28 @@ public sealed class ProductionAggregateStateSession
     }
     public void IncrementBillVersion() => Current.BillVersion++;
     public void IncrementStockSensorVersion() => Current.StockSensorVersion++;
+    public bool TryRestoreBillVersionForCheckpointGc(
+        int expectedCurrentVersion,
+        int restoredVersion)
+    {
+        if (Current.BillVersion != expectedCurrentVersion
+            || restoredVersion < 0
+            || restoredVersion > expectedCurrentVersion)
+            return false;
+        Current.BillVersion = restoredVersion;
+        return true;
+    }
+    public bool TryRestoreStockSensorVersionForCheckpointGc(
+        int expectedCurrentVersion,
+        int restoredVersion)
+    {
+        if (Current.StockSensorVersion != expectedCurrentVersion
+            || restoredVersion < 0
+            || restoredVersion > expectedCurrentVersion)
+            return false;
+        Current.StockSensorVersion = restoredVersion;
+        return true;
+    }
     public bool HasInstalledSensor(string id) =>
         Current.InstalledStockSensorFacilityIds.Contains(id);
     public bool HasAcknowledgedSensor(string id) =>
@@ -794,4 +869,32 @@ public sealed class ProductionAggregateStateSession
                 && a.authoredUnits.Equals(b.authoredUnits)
                 && a.massGrams == b.massGrams).All(value => value);
     }
+
+    private static bool WipTerminalReceiptEquals(
+        ProductionWipTerminalReceiptSaveData left,
+        ProductionWipTerminalReceiptSaveData right) => left != null
+        && right != null
+        && string.Equals(left.commitId, right.commitId, StringComparison.Ordinal)
+        && string.Equals(left.billId, right.billId, StringComparison.Ordinal)
+        && string.Equals(left.recipeId, right.recipeId, StringComparison.Ordinal)
+        && string.Equals(
+            left.buildingInstanceId,
+            right.buildingInstanceId,
+            StringComparison.Ordinal)
+        && left.cycleSequence == right.cycleSequence
+        && string.Equals(
+            left.inputCommitId,
+            right.inputCommitId,
+            StringComparison.Ordinal)
+        && left.inputQuantity == right.inputQuantity
+        && left.inputMassGrams == right.inputMassGrams
+        && left.processCleanWaterMassGrams == right.processCleanWaterMassGrams
+        && left.processWastewaterMassGrams == right.processWastewaterMassGrams
+        && WastewaterComponentsEqual(
+            left.wastewaterComponents,
+            right.wastewaterComponents)
+        && left.committedOutputMassGrams == right.committedOutputMassGrams
+        && left.declaredLossMassGrams == right.declaredLossMassGrams
+        && left.reason == right.reason
+        && left.lossKind == right.lossKind;
 }

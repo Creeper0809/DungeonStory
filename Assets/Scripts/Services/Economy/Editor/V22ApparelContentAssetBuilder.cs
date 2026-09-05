@@ -16,6 +16,9 @@ public static class V22ApparelContentAssetBuilder
     private const string CropRoot = "Assets/Resources/SO/Economy/Crops/V22Textiles";
     private const string GenomeRoot = "Assets/Resources/SO/Economy/CropGenomes/V22Textiles";
     private const string RecipeRoot = "Assets/Resources/SO/Economy/Recipes/V22Apparel";
+    private const float ClothUnitMassKilograms = .2f;
+    private const float YarnUnitMassKilograms = .08f;
+    private const float SewingThreadUnitMassKilograms = .05f;
 
     private readonly struct MaterialSpec
     {
@@ -125,7 +128,8 @@ public static class V22ApparelContentAssetBuilder
             string research,
             string workstation,
             ResearchFacilityCommandKind command,
-            FacilityUseClassification classification)
+            FacilityUseClassification classification,
+            string deferredOutputReason = "")
         {
             Id = id;
             Name = name;
@@ -133,6 +137,7 @@ public static class V22ApparelContentAssetBuilder
             Workstation = workstation;
             Command = command;
             Classification = classification;
+            DeferredOutputReason = deferredOutputReason;
         }
 
         public int Id { get; }
@@ -141,6 +146,7 @@ public static class V22ApparelContentAssetBuilder
         public string Workstation { get; }
         public ResearchFacilityCommandKind Command { get; }
         public FacilityUseClassification Classification { get; }
+        public string DeferredOutputReason { get; }
     }
 
     [MenuItem("Tools/DungeonStory/V22/Rebuild Apparel And Textile Content")]
@@ -165,6 +171,14 @@ public static class V22ApparelContentAssetBuilder
         GameContentCatalogAssetBuilder.ReindexV22ApparelDefinitions();
         V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
         AssetDatabase.SaveAssets();
+    }
+
+    [MenuItem("Tools/DungeonStory/V22/Patch Apparel Facility Execution Contracts")]
+    public static void PatchFacilityExecutionContractsFromMenu()
+    {
+        BuildFacilities();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
     }
 
     public static IReadOnlyDictionary<string, int[]> GetFacilityUnlockIds() =>
@@ -336,6 +350,7 @@ public static class V22ApparelContentAssetBuilder
             string slug = material.Id.Substring("textile:".Length);
             string rawItemId = RawFiberItemId(slug);
             string yarnItemId = "yarn:" + slug;
+            string weaveRecipeId = "recipe:v22:weave:" + slug;
             EnsureFiberItem(rawItemId, material.Name + " 원섬유", 200, false);
             EnsureFiberItem(yarnItemId, material.Name + " 원사", 200, false);
             BuildRecipe(
@@ -362,28 +377,36 @@ public static class V22ApparelContentAssetBuilder
                 2);
             BuildRecipe(
                 numericId++,
-                "recipe:v22:weave:" + slug,
+                weaveRecipeId,
                 material.Name + " 직조",
                 "workstation:v22:powered-weaving",
                 material.Research,
                 24f,
                 yarnItemId,
-                3,
+                ResolveWeavingYarnAmount(weaveRecipeId, material),
                 material.ItemId,
                 2);
         }
 
-        foreach (ApparelSpec apparel in Apparel())
+        ApparelSpec[] apparelSpecs = Apparel();
+        IReadOnlyDictionary<string, PhysicalMassGrams>
+            tailoringPhysicalOutputMasses =
+                CaptureTailoringPhysicalOutputMasses(apparelSpecs);
+        foreach (ApparelSpec apparel in apparelSpecs)
         {
+            string recipeId = "recipe:v22:apparel:"
+                + apparel.Id.Substring("apparel:".Length);
             BuildRecipe(
                 numericId++,
-                "recipe:v22:apparel:" + apparel.Id.Substring("apparel:".Length),
+                recipeId,
                 apparel.Name + " 재단",
                 "workstation:v22:tailoring",
                 apparel.Research,
                 22f * Mathf.Max(.5f, apparel.Coefficient),
-                "material:cloth",
-                Mathf.Max(1, Mathf.CeilToInt(2f * apparel.Coefficient)),
+                BuildTailoringInputs(
+                    recipeId,
+                    apparel,
+                    tailoringPhysicalOutputMasses),
                 apparel.ItemId,
                 1);
         }
@@ -396,7 +419,7 @@ public static class V22ApparelContentAssetBuilder
             "research:textile:fiber",
             8f,
             "yarn:shade-cloth",
-            2,
+            4,
             "material:sewing-thread",
             6);
         BuildRecipe(
@@ -473,7 +496,7 @@ public static class V22ApparelContentAssetBuilder
             kind,
             ResourceIngredientTag.Fiber,
             existing != null ? existing.UnitPrice : unitPrice,
-            existing != null ? existing.UnitWeight : .05f,
+            ResolveMaintenanceUnitWeight(itemId, existing),
             maxStack,
             researchId);
         if (existing != null)
@@ -485,6 +508,18 @@ public static class V22ApparelContentAssetBuilder
         }
     }
 
+    private static float ResolveMaintenanceUnitWeight(
+        string itemId,
+        ResourceItemDefinitionSO existing) =>
+        string.Equals(itemId, "tool:sewing-kit", StringComparison.Ordinal)
+            ? 2f
+            : string.Equals(
+                itemId,
+                "material:sewing-thread",
+                StringComparison.Ordinal)
+                ? SewingThreadUnitMassKilograms
+            : existing != null ? existing.UnitWeight : .05f;
+
     private static void BuildRecipe(
         int numericId,
         string recipeId,
@@ -495,6 +530,27 @@ public static class V22ApparelContentAssetBuilder
         string inputId,
         int inputAmount,
         string outputId,
+        int outputAmount) =>
+        BuildRecipe(
+            numericId,
+            recipeId,
+            displayName,
+            workstationTag,
+            researchId,
+            work,
+            new[] { new ItemAmountDefinition(inputId, inputAmount) },
+            outputId,
+            outputAmount);
+
+    private static void BuildRecipe(
+        int numericId,
+        string recipeId,
+        string displayName,
+        string workstationTag,
+        string researchId,
+        float work,
+        IReadOnlyList<ItemAmountDefinition> inputs,
+        string outputId,
         int outputAmount)
     {
         string assetPath = $"{RecipeRoot}/{Sanitize(recipeId)}.asset";
@@ -504,38 +560,170 @@ public static class V22ApparelContentAssetBuilder
             ? existing.RequiredWork
             : 0f;
         ProductionRecipeSO recipe = GetOrCreate<ProductionRecipeSO>(assetPath);
-        recipe.id = numericId;
-        recipe.Configure(
-            recipeId,
-            displayName,
-            "원섬유→원사→원단→의복의 V22 물리 생산 단계다.",
-            workstationTag,
-            "work:craft",
-            researchId,
-            work,
-            new[] { new ItemAmountDefinition(inputId, inputAmount) },
-            new[]
+        ProductionOutputDefinition[] stableOutputs =
+            ProductionOutputLineAuthoring.ResolveStableOutputs(
+                recipeId,
+                existing?.Outputs,
+                new[]
+                {
+                    new ProductionOutputDefinition(
+                        "output:main",
+                        ProductionOutputRole.Main,
+                        outputId,
+                        outputAmount)
+                });
+        void ConfigureRecipe(ProductionRecipeSO target)
+        {
+            target.id = numericId;
+            target.Configure(
+                recipeId,
+                displayName,
+                "원섬유→원사→원단→의복의 V22 물리 생산 단계다.",
+                workstationTag,
+                "work:craft",
+                researchId,
+                work,
+                inputs,
+                stableOutputs);
+            target.ConfigureWorkshop(
+                workstationTag,
+                Array.Empty<string>(),
+                ProductionProcessKind.WorkOnly);
+            target.ConfigureFlowRole(ProductionFlowRole.Transform);
+            target.ConfigureProcessClass(
+                ProductionProcessClass.SpinningWeavingWoodworking);
+            V27ReviewedProductionMassExplanationCatalog.ApplyIfReviewed(target);
+            target.ConfigureBalanceWork(
+                existing != null
+                    ? preservedRequiredWork
+                    : V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                        target,
+                        ProductionProcessClass.SpinningWeavingWoodworking));
+        }
+        if (existing != null)
+            ApplyIfChanged(recipe, ConfigureRecipe);
+        else
+        {
+            ConfigureRecipe(recipe);
+            EditorUtility.SetDirty(recipe);
+        }
+    }
+
+    private static int ResolveWeavingYarnAmount(
+        string recipeId,
+        MaterialSpec material)
+    {
+        if (!V27ReviewedProductionMassExplanationCatalog
+                .RequiresV22WeavingPhysicalBom(recipeId))
+        {
+            return 3;
+        }
+
+        float outputMass = 2f * ClothUnitMassKilograms * material.Weight;
+        int yarnAmount = Mathf.Max(3, Mathf.CeilToInt(
+            outputMass / YarnUnitMassKilograms));
+        return yarnAmount * YarnUnitMassKilograms <= outputMass
+            ? yarnAmount + 1
+            : yarnAmount;
+    }
+
+    private static ItemAmountDefinition[] BuildTailoringInputs(
+        string recipeId,
+        ApparelSpec apparel,
+        IReadOnlyDictionary<string, PhysicalMassGrams>
+            physicalOutputMasses)
+    {
+        if (!V27ReviewedProductionMassExplanationCatalog
+                .RequiresV22TailoringPhysicalBom(recipeId))
+        {
+            return new[]
             {
-                new ProductionOutputDefinition(
-                    "output:main",
-                    ProductionOutputRole.Main,
-                    outputId,
-                    outputAmount)
-            });
-        recipe.ConfigureWorkshop(
-            workstationTag,
-            Array.Empty<string>(),
-            ProductionProcessKind.WorkOnly);
-        recipe.ConfigureFlowRole(ProductionFlowRole.Transform);
-        recipe.ConfigureProcessClass(
-            ProductionProcessClass.SpinningWeavingWoodworking);
-        recipe.ConfigureBalanceWork(
-            existing != null
-                ? preservedRequiredWork
-                : V23BalanceWorkCalculator.CalculateRecipeBaseWork(
-                    recipe,
-                    ProductionProcessClass.SpinningWeavingWoodworking));
-        EditorUtility.SetDirty(recipe);
+                new ItemAmountDefinition(
+                    "material:cloth",
+                    Mathf.Max(1, Mathf.CeilToInt(2f * apparel.Coefficient)))
+            };
+        }
+
+        if (!physicalOutputMasses.TryGetValue(
+                apparel.ItemId,
+                out PhysicalMassGrams physicalOutputMass))
+        {
+            throw new InvalidOperationException(
+                $"V22 tailoring recipe '{recipeId}' is missing physical "
+                + $"item mass authority for '{apparel.ItemId}'.");
+        }
+
+        long clothUnitGrams = PhysicalMassGrams
+            .FromCanonicalKilograms(ClothUnitMassKilograms)
+            .Value;
+        long threadUnitGrams = PhysicalMassGrams
+            .FromCanonicalKilograms(SewingThreadUnitMassKilograms)
+            .Value;
+        int clothAmount = checked((int)Math.Max(
+            1L,
+            physicalOutputMass.Value / clothUnitGrams));
+        long residualWithAuthoredRoundingGram = checked(
+            physicalOutputMass.Value
+            - checked(clothAmount * clothUnitGrams)
+            + 1L);
+        long positiveResidual = Math.Max(0L, residualWithAuthoredRoundingGram);
+        int threadAmount = checked((int)Math.Max(
+            1L,
+            checked(positiveResidual + threadUnitGrams - 1L)
+            / threadUnitGrams));
+        return new[]
+        {
+            new ItemAmountDefinition("material:cloth", clothAmount),
+            new ItemAmountDefinition("material:sewing-thread", threadAmount)
+        };
+    }
+
+    private static IReadOnlyDictionary<string, PhysicalMassGrams>
+        CaptureTailoringPhysicalOutputMasses(
+            IReadOnlyList<ApparelSpec> apparelSpecs)
+    {
+        HashSet<string> expectedItemIds = apparelSpecs
+            .Select(value => value.ItemId)
+            .ToHashSet(StringComparer.Ordinal);
+        Dictionary<string, List<ResourceItemDefinitionSO>> matches =
+            AssetDatabase
+            .FindAssets(
+                "t:ResourceItemDefinitionSO",
+                new[] { "Assets/Resources/SO/Economy" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .Select(AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>)
+            .Where(value => value != null
+                && expectedItemIds.Contains(value.ItemId))
+            .GroupBy(value => value.ItemId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.ToList(),
+                StringComparer.Ordinal);
+        Dictionary<string, PhysicalMassGrams> result =
+            new(StringComparer.Ordinal);
+        foreach (string itemId in expectedItemIds.OrderBy(
+                     value => value,
+                     StringComparer.Ordinal))
+        {
+            int count = matches.TryGetValue(
+                itemId,
+                out List<ResourceItemDefinitionSO> definitions)
+                ? definitions.Count
+                : 0;
+            if (count != 1)
+            {
+                throw new InvalidOperationException(
+                    "V22 tailoring requires exactly one physical item mass "
+                    + $"authority for '{itemId}', found {count}.");
+            }
+
+            result.Add(
+                itemId,
+                PhysicalMassGrams.FromCanonicalKilograms(
+                    definitions[0].UnitWeight));
+        }
+        return result;
     }
 
     private static string RawFiberItemId(string slug) => slug switch
@@ -644,16 +832,31 @@ public static class V22ApparelContentAssetBuilder
             {
                 tags = new[] { "v22-apparel", spec.Research, spec.Workstation }
             });
-            abilities.Add(new BuildingProductionWorkstationAbility
-            {
-                workstationTag = spec.Workstation,
-                stockSensorInstallationItemId = "component:stock-sensor-panel"
-            });
+             abilities.Add(new BuildingProductionWorkstationAbility
+             {
+                 workstationTag = spec.Workstation,
+                 stockSensorInstallationItemId = "component:stock-sensor-panel",
+                 lanePolicy = ProductionWorkstationLanePolicy
+                     .ManualWithDetachedBatchProcessors,
+                 manualWorkLaneCount = 1,
+                 automaticWorkLaneCount = 0
+             });
             abilities.Add(new BuildingProductionBufferAbility
             {
                 defaultBatchCapacity = 12,
                 physicalOutputBufferCycleCapacity = 4
             });
+            if (!string.IsNullOrWhiteSpace(spec.DeferredOutputReason))
+            {
+                abilities.Add(new BuildingProductionOutputDispositionAbility
+                {
+                    dispositionKind =
+                        ProductionOutputDispositionAuthoringKind.DeclaredNoOutput,
+                    ownerCapabilityId =
+                        "apparel-textile:deferred-facility-output",
+                    reasonCode = spec.DeferredOutputReason
+                });
+            }
             asset.ReplaceAbilities(abilities);
     }
 
@@ -979,17 +1182,17 @@ public static class V22ApparelContentAssetBuilder
     private static FacilitySpec[] Facilities() => new[]
     {
         F(9301,"재단·재봉 작업대","research:textile:tailoring","workstation:v22:tailoring",ResearchFacilityCommandKind.ApparelTailoring,FacilityUseClassification.Production),
-        F(9302,"문양·장식 작업대","research:textile:tailoring","workstation:v22:decoration",ResearchFacilityCommandKind.ApparelDecoration,FacilityUseClassification.Production),
+        F(9302,"문양·장식 작업대","research:textile:tailoring","workstation:v22:decoration",ResearchFacilityCommandKind.None,FacilityUseClassification.Production,"content-gap:missing-apparel-decoration-runtime"),
         F(9303,"손세탁 수조","research:textile:fiber","workstation:v22:hand-laundry",ResearchFacilityCommandKind.HandLaundry,FacilityUseClassification.DomainCommand),
         F(9304,"실내 건조대","research:textile:fiber","workstation:v22:indoor-drying",ResearchFacilityCommandKind.IndoorDrying,FacilityUseClassification.DomainCommand),
         F(9305,"동력 세탁·건조기","research:industry:automatic-sanitation","workstation:v22:powered-laundry",ResearchFacilityCommandKind.PoweredLaundry,FacilityUseClassification.DomainCommand),
-        F(9306,"의복 진열대","research:textile:tailoring","workstation:v22:apparel-display",ResearchFacilityCommandKind.ApparelDisplay,FacilityUseClassification.Storage),
+        F(9306,"의복 진열대","research:textile:tailoring","workstation:v22:apparel-display",ResearchFacilityCommandKind.None,FacilityUseClassification.Storage,"content-gap:missing-apparel-display-runtime"),
         F(9307,"탈의 칸막이","research:textile:tailoring","workstation:v22:dressing",ResearchFacilityCommandKind.DressingChange,FacilityUseClassification.DomainCommand),
         F(9308,"수선 접수대","research:equipment:field-maintenance","workstation:v22:repair",ResearchFacilityCommandKind.ApparelRepair,FacilityUseClassification.DomainCommand),
-        F(9309,"섬유 선별대","research:textile:fiber","workstation:v22:fiber-sorting",ResearchFacilityCommandKind.FiberSorting,FacilityUseClassification.Production),
-        F(9310,"침지·정련조","research:textile:fiber","workstation:v22:fiber-scouring",ResearchFacilityCommandKind.FiberScouring,FacilityUseClassification.Production),
+        F(9309,"섬유 선별대","research:textile:fiber","workstation:v22:fiber-sorting",ResearchFacilityCommandKind.None,FacilityUseClassification.Production,"content-gap:missing-fiber-sorting-runtime"),
+        F(9310,"침지·정련조","research:textile:fiber","workstation:v22:fiber-scouring",ResearchFacilityCommandKind.None,FacilityUseClassification.Production,"content-gap:missing-fiber-scouring-runtime"),
         F(9311,"수동 방적기","research:textile:fiber","workstation:v22:manual-spinning",ResearchFacilityCommandKind.ManualSpinning,FacilityUseClassification.Production),
-        F(9312,"축융·마감대","research:textile:layered","workstation:v22:textile-finishing",ResearchFacilityCommandKind.TextileFinishing,FacilityUseClassification.Production),
+        F(9312,"축융·마감대","research:textile:layered","workstation:v22:textile-finishing",ResearchFacilityCommandKind.None,FacilityUseClassification.Production,"content-gap:missing-textile-finishing-runtime"),
         F(9313,"동력 방적기","research:industry:assisted-processing","workstation:v22:powered-spinning",ResearchFacilityCommandKind.PoweredSpinning,FacilityUseClassification.Production),
         F(9314,"동력 직조기","research:industry:assisted-processing","workstation:v22:powered-weaving",ResearchFacilityCommandKind.PoweredWeaving,FacilityUseClassification.Production)
     };
@@ -1000,8 +1203,8 @@ public static class V22ApparelContentAssetBuilder
         new($"apparel:{slug}",$"apparel:{slug}",name,body,layer,fit,required,occupied,sealedPoints,modifications,tags,materials,coefficient,weight,research);
     private static ApparelSpec Existing(string slug,string item,string name,ApparelLayer layer,ApparelFitMode fit,AnatomyAttachmentPoint required,AnatomyAttachmentPoint occupied,ApparelUseTag tags,TextileMaterialTag materials,float coefficient,float weight,string research,AnatomyAttachmentPoint sealedPoints = AnatomyAttachmentPoint.None,ApparelModificationKind modifications = ApparelModificationKind.None) =>
         new($"apparel:{slug}",item,name,ApparelBodyForm.Humanoid,layer,fit,required,occupied,sealedPoints,modifications,tags,materials,coefficient,weight,research);
-    private static FacilitySpec F(int id,string name,string research,string workstation,ResearchFacilityCommandKind command,FacilityUseClassification classification) =>
-        new(id,name,research,workstation,command,classification);
+    private static FacilitySpec F(int id,string name,string research,string workstation,ResearchFacilityCommandKind command,FacilityUseClassification classification,string deferredOutputReason = "") =>
+        new(id,name,research,workstation,command,classification,deferredOutputReason);
 
     private static T GetOrCreate<T>(string path) where T : ScriptableObject
     {
@@ -1021,12 +1224,25 @@ public static class V22ApparelContentAssetBuilder
         {
             candidate.name = asset.name;
             configure(candidate);
+            if (asset is ProductionRecipeSO beforeRecipe
+                && candidate is ProductionRecipeSO afterRecipe)
+            {
+                if (ProductionRecipeAuthoringComparison.AreEquivalent(
+                        beforeRecipe,
+                        afterRecipe))
+                {
+                    return;
+                }
+            }
+            else
+            {
             string after = EditorJsonUtility.ToJson(candidate, false);
             if (string.Equals(
                     CanonicalizeSemanticJson(before),
                     CanonicalizeSemanticJson(after),
                     StringComparison.Ordinal))
                 return;
+            }
 
             configure(asset);
             EditorUtility.SetDirty(asset);

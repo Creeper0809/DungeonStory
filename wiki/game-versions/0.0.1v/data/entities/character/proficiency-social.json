@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "proficiency-social",
+  "spoiler_tier": "none",
+  "summary": "접객, 외교, 공연, 포로 설득과 관리의 숙련이다.",
+  "title": "사교"
+}

@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "30"
+    },
+    {
+      "label": "필요 연구",
+      "value": "경력 기록"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "record-career-ledger",
+      "target_spoiler_tier": "none",
+      "target_title": "경력 장부",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-society-career-records",
+      "target_spoiler_tier": "none",
+      "target_title": "경력 기록",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-record-career-ledger",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 경력 장부을(를) 생산한다.",
+  "title": "경력 장부"
+}

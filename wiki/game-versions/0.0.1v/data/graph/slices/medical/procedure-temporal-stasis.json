@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-temporal-stasis",
+    "spoiler_tier": "none",
+    "title": "시간 고정"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-temporal-stasis",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "component-temporal-stasis-seal",
+      "target_spoiler_tier": "none",
+      "target_title": "시간 고정 인장",
+      "to": "item/component-temporal-stasis-seal",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-temporal-stasis",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-temporal-stasis",
+      "target_spoiler_tier": "none",
+      "target_title": "시간 고정",
+      "to": "research/research-medical-temporal-stasis",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

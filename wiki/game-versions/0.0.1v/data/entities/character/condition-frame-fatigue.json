@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "condition-frame-fatigue",
+  "spoiler_tier": "none",
+  "summary": "구조체의 노화가 해부 부위 5곳에 남기는 기능 저하를 정의해 나이 증가를 의료·작업 능력 변화에 연결한다.",
+  "title": "골격 피로"
+}

@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-shield-iron",
+    "spoiler_tier": "none",
+    "title": "철 방패"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-shield-iron",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-iron",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

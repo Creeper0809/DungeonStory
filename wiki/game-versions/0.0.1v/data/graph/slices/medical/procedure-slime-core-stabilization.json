@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-slime-core-stabilization",
+    "spoiler_tier": "none",
+    "title": "응집핵 안정화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-slime-core-stabilization",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medical-slime-coagulation-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "점액 응고틀",
+      "to": "item/medical-slime-coagulation-frame",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-slime-core-stabilization",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-slime-bioengineering",
+      "target_spoiler_tier": "none",
+      "target_title": "점액 생체공학",
+      "to": "research/research-medical-slime-bioengineering",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

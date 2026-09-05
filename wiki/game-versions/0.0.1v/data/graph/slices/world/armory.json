@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "armory",
+    "spoiler_tier": "none",
+    "title": "전진 무기고"
+  },
+  "edges": [],
+  "schema_version": 1
+}

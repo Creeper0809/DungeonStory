@@ -53,6 +53,7 @@ public static class IndustrialPowerFuelOutboxContractProbe
         DungeonRuntimeAggregateRootStore firstStore = new();
         ElectricalNetworkRuntime first = new(
             topology,
+            new FixedGridSystemProvider(building.Grid),
             clock,
             items,
             physicalFuel,
@@ -98,6 +99,7 @@ public static class IndustrialPowerFuelOutboxContractProbe
         DungeonRuntimeAggregateRootStore restoredStore = new();
         ElectricalNetworkRuntime restored = new(
             restoredTopology,
+            new FixedGridSystemProvider(building.Grid),
             clock,
             items,
             physicalFuel,
@@ -197,6 +199,31 @@ public static class IndustrialPowerFuelOutboxContractProbe
             Current = current ?? throw new ArgumentNullException(nameof(current));
         public void MarkDirty()
         {
+        }
+    }
+
+    private sealed class FixedGridSystemProvider : IGridSystemProvider
+    {
+        private readonly Grid grid;
+
+        internal FixedGridSystemProvider(Grid grid)
+        {
+            this.grid = grid
+                ?? throw new ArgumentNullException(nameof(grid));
+        }
+
+        public GridSystemManager Manager => throw new NotSupportedException();
+        public Grid Grid => grid;
+        public bool TryGetManager(out GridSystemManager manager)
+        {
+            manager = null;
+            return false;
+        }
+
+        public bool TryGetGrid(out Grid value)
+        {
+            value = grid;
+            return true;
         }
     }
 

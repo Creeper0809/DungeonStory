@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-gold-ore",
+    "spoiler_tier": "none",
+    "title": "금광석"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-gold-leaf",
+      "label": "필요 조건",
+      "to": "item/resource-gold-ore",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/source-quarry",
+      "label": "생산·해금",
+      "to": "item/resource-gold-ore",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-gold-ingot",
+      "label": "필요 조건",
+      "to": "item/resource-gold-ore",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

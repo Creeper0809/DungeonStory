@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medicine-vaccine-slime-blight",
+    "spoiler_tier": "none",
+    "title": "점액역병 백신"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "recipe/recipe-medicine-vaccine-slime-blight",
+      "label": "생산·해금",
+      "to": "item/medicine-vaccine-slime-blight",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

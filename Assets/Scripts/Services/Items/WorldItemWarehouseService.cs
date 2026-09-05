@@ -91,6 +91,8 @@ public sealed class WorldItemWarehouseService
     private readonly IItemQuantityReservationService quantityReservations;
     private readonly IWarehouseMassAdmissionService massAdmission;
     private readonly IFacilityBufferMassAdmissionService facilityBufferMassAdmission;
+    private readonly IFacilityBufferDestinationClaimQuery
+        facilityBufferDestinationClaims;
     private long nextMassIngressSequence = 1L;
     private long nextFacilityBufferAdmissionSequence = 1L;
 
@@ -105,7 +107,9 @@ public sealed class WorldItemWarehouseService
         IItemReservationService reservations,
         IItemQuantityReservationService quantityReservations = null,
         IWarehouseMassAdmissionService massAdmission = null,
-        IFacilityBufferMassAdmissionService facilityBufferMassAdmission = null)
+        IFacilityBufferMassAdmissionService facilityBufferMassAdmission = null,
+        IFacilityBufferDestinationClaimQuery
+            facilityBufferDestinationClaims = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.repository = repository
@@ -123,6 +127,8 @@ public sealed class WorldItemWarehouseService
         this.quantityReservations = quantityReservations;
         this.massAdmission = massAdmission;
         this.facilityBufferMassAdmission = facilityBufferMassAdmission;
+        this.facilityBufferDestinationClaims =
+            facilityBufferDestinationClaims;
     }
 
     internal bool TryCapturePreparedOutputAuthority(
@@ -1052,13 +1058,11 @@ public sealed class WorldItemWarehouseService
 
         if (!warehouse.Inventory.HasMassCapacityAuthority)
         {
-            int accepted = warehouse.Inventory.GetAcceptableQuantity(
-                definition.ItemId,
-                amount);
-            spawned = accepted > 0
-                ? AddStoredItems(warehouse, definition.ItemId, accepted)
-                : 0;
-            return spawned == amount;
+            failure = new DomainFailure(
+                FailureCode.WarehouseMassAdmissionOwnerUnavailable,
+                warehouse.PersistentInstanceId.Value,
+                "missing-positive-gram-capacity");
+            return false;
         }
 
         if (massAdmission == null)
@@ -1414,8 +1418,10 @@ public sealed class WorldItemWarehouseService
                 // token id. Preserve it exactly across token reconstruction.
                 expectedSourceRevision: admission.sourceRevision,
                 massSubject: massSubject);
-            bool reserved = massAdmission.TryReserve(
+            bool reserved = massAdmission.TryRestoreReserved(
+                    admission.tokenId,
                     request,
+                    admission.reservedMassGrams,
                     out WarehouseMassAdmissionToken token,
                     out DomainFailure failure);
             if (!string.IsNullOrEmpty(token.TokenId))
@@ -1427,6 +1433,8 @@ public sealed class WorldItemWarehouseService
                     admission.itemInstanceId, StringComparison.Ordinal)
                 || !string.Equals(token.LotFingerprint,
                     admission.lotFingerprint, StringComparison.Ordinal)
+                || !string.Equals(token.TokenId,
+                    admission.tokenId, StringComparison.Ordinal)
                 || token.AcceptedQuantity != admission.quantity
                 || token.ReservedMassGrams != admission.reservedMassGrams
                 || token.CatalogRevision != admission.catalogRevision
@@ -1437,9 +1445,6 @@ public sealed class WorldItemWarehouseService
                     $"restored warehouse haul admission rebuild failed:{failure.Code}";
                 return false;
             }
-            // TokenId is intentionally reissued by the current runtime. All
-            // stable physical/provenance fields above must remain exact.
-            admission.tokenId = token.TokenId;
         }
         return true;
     }
@@ -1806,11 +1811,20 @@ public sealed class WorldItemWarehouseService
             return false;
         }
 
-        bool requiresMassAdmission = destinationId.StartsWith(
+        bool requiresMassAdmission = RequiresFacilityBufferMassAdmission(
+                destinationId,
+                destinationPosition)
+            || destinationId.StartsWith(
                 ReservedTargetDestinationIdentity.PowerFuelPrefix,
                 StringComparison.Ordinal)
             || destinationId.StartsWith(
                 ReservedTargetDestinationIdentity.ProductionInputPrefix,
+                StringComparison.Ordinal)
+            || destinationId.StartsWith(
+                ReservedTargetDestinationIdentity.ProductionStockSensorPrefix,
+                StringComparison.Ordinal)
+            || destinationId.StartsWith(
+                ReservedTargetDestinationIdentity.ExpeditionPrefix,
                 StringComparison.Ordinal);
         FacilityBufferMassCapacitySnapshot capacity = default;
         bool hasMassAdmission = facilityBufferMassAdmission != null
@@ -2315,8 +2329,20 @@ public sealed class WorldItemWarehouseService
         }
         int available = GetAvailableQuantity(source);
         int moved = Mathf.Min(amount, available);
-        if (destination.StartsWith(
+        bool hasExactMassProfile = facilityBufferMassAdmission != null
+            && facilityBufferMassAdmission.TryGetCapacity(
+                destination,
+                destinationPosition,
+                out _);
+        if (hasExactMassProfile
+            || RequiresFacilityBufferMassAdmission(
+                destination,
+                destinationPosition)
+            || destination.StartsWith(
                 ReservedTargetDestinationIdentity.PowerFuelPrefix,
+                StringComparison.Ordinal)
+            || destination.StartsWith(
+                ReservedTargetDestinationIdentity.ProductionStockSensorPrefix,
                 StringComparison.Ordinal))
         {
             DeliveryRetargetSlice[] exactPlan =
@@ -2615,6 +2641,19 @@ public sealed class WorldItemWarehouseService
         return worldRegistry.Warehouses.Where(warehouse => warehouse != null
             && warehouse.HasWarehouseInventory
             && warehouse.Inventory != null);
+    }
+
+    private bool RequiresFacilityBufferMassAdmission(
+        string destinationId,
+        Vector2Int destinationPosition)
+    {
+        return facilityBufferDestinationClaims != null
+            && facilityBufferDestinationClaims.TryGetClaim(
+                destinationId,
+                destinationPosition,
+                out FacilityBufferDestinationClaim claim)
+            && claim.AdmissionPolicy
+                == FacilityBufferDestinationAdmissionPolicy.ExactGramRequired;
     }
 
     private static string NormalizeStorageId(

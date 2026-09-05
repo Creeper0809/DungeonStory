@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-weather-observation-kit",
+    "spoiler_tier": "none",
+    "title": "기상 관측 도구함"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-weather-observation-kit",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-weather-observation-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측 도구함",
+      "to": "item/tool-weather-observation-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-weather-observation-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-optics",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 광학계",
+      "to": "item/component-precision-optics",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-weather-observation-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-treated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "처리 목재",
+      "to": "item/material-treated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-weather-observation-kit",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-climate-weather-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측",
+      "to": "research/research-climate-weather-observation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

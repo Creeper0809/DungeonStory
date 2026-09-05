@@ -1,0 +1,103 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Cuisine"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1611",
+      "target_spoiler_tier": "none",
+      "target_title": "냉장 준비대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1610",
+      "target_spoiler_tier": "none",
+      "target_title": "세척·전처리 싱크",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1612",
+      "target_spoiler_tier": "none",
+      "target_title": "향신료 선반",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-cuisine-kitchen-hygiene",
+  "spoiler_tier": "none",
+  "summary": "상수와 배수에 연결한 전처리 싱크로 고급식 재료를 안전하게 세척한다.",
+  "title": "주방 위생"
+}

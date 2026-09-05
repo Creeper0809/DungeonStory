@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Mastery"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-master-smith",
+  "spoiler_tier": "none",
+  "summary": "자신의 이름으로 남을 장비 계보를 완성하려 한다.",
+  "title": "대장장이의 대가"
+}

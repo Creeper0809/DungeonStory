@@ -8,6 +8,7 @@ using VContainer.Unity;
 
 public sealed class CaptivityRuntime :
     ICaptivityRuntime,
+    ICaptivityRestoreStateQuery,
     ICaptivityPersistence,
     ICaptivityRestoreCandidateSource,
     ICaptiveLaborQuery,
@@ -15,6 +16,7 @@ public sealed class CaptivityRuntime :
     ICaptivityCommandService,
     ICaptivityEscortRuntime,
     ICaptivityEscapeRuntime,
+    IMinionSettlementCommand,
     ICharacterCarePriorityQuery,
     IDungeonRestoreTransactionParticipant,
     IStartable,
@@ -44,6 +46,11 @@ public sealed class CaptivityRuntime :
     private readonly IGameEventBus gameEventBus;
     private readonly IRandomStream random;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IEmploymentStandingCommand employmentStanding;
+    private readonly CharacterMoodPolicyService moodPolicy;
+    private readonly IFactionCampaignCommand factionCampaign;
+    private readonly ISurvivalFoodCommand survivalFood;
+    private readonly ICharacterSettlementStandingQuery settlementStandings;
     private readonly CaptivityActorAccess actorAccess;
     private readonly CaptivityPolicyRuntime policyRuntime;
     private readonly CaptivityPerformerRuntime performerRuntime;
@@ -53,6 +60,9 @@ public sealed class CaptivityRuntime :
     private readonly CaptivityStateRuntime stateRuntime;
     private readonly CaptivityRestoreCoordinator restoreCoordinator;
     private readonly CaptivityQueryView queryView;
+    private readonly CaptivityInteractionMaterialLifecycleRuntime
+        interactionMaterialLifecycle;
+    private readonly ICaptivityCareLaborInputOwnerRuntime careLaborInputOwner;
     private IDisposable downedSubscription;
     private IDisposable recoveredSubscription;
     private IDisposable deathSubscription;
@@ -62,7 +72,11 @@ public sealed class CaptivityRuntime :
     public CaptivityRuntime(
         CaptivityCharacterContext characters,
         CaptivityWorldContext world,
-        CaptivitySessionContext session)
+        CaptivitySessionContext session,
+        ICaptivityInteractionMaterialRuntime interactionMaterials,
+        CaptivityInteractionMaterialLifecycleRuntime
+            interactionMaterialLifecycle,
+        ICaptivityCareLaborInputOwnerRuntime careLaborInputOwner)
     {
         characters = characters
             ?? throw new ArgumentNullException(nameof(characters));
@@ -75,6 +89,10 @@ public sealed class CaptivityRuntime :
         itemRuntime = characters.ItemRuntime;
         batchDispositions = characters.BatchDispositions;
         characterPopulation = characters.Population;
+        settlementStandings = characters.Population
+            as ICharacterSettlementStandingQuery
+            ?? throw new InvalidOperationException(
+                $"{nameof(CaptivityRuntime)} requires the population service to expose {nameof(ICharacterSettlementStandingQuery)}.");
         narratives = characters.Narratives;
         gridProvider = world.GridProvider;
         pathSearchBroker = world.PathSearchBroker;
@@ -89,6 +107,15 @@ public sealed class CaptivityRuntime :
             .Get("captivity.security");
         gameEventBus = session.GameEventBus;
         aggregateRootStore = session.AggregateRootStore;
+        employmentStanding = session.EmploymentStanding;
+        moodPolicy = session.MoodPolicy;
+        factionCampaign = session.FactionCampaign;
+        survivalFood = session.SurvivalFood;
+        this.interactionMaterialLifecycle = interactionMaterialLifecycle
+            ?? throw new ArgumentNullException(
+                nameof(interactionMaterialLifecycle));
+        this.careLaborInputOwner = careLaborInputOwner
+            ?? throw new ArgumentNullException(nameof(careLaborInputOwner));
         actorAccess = new CaptivityActorAccess(
             this.aggregateRootStore,
             RecalculateCaptiveState);
@@ -97,7 +124,6 @@ public sealed class CaptivityRuntime :
         CaptivityUnityEffectsAdapter captivityEffects =
             new CaptivityUnityEffectsAdapter(
                 FindActor,
-                itemRuntime,
                 gameEventBus);
         policyRuntime = new CaptivityPolicyRuntime(
             actorAccess,
@@ -109,13 +135,13 @@ public sealed class CaptivityRuntime :
             TryRelease,
             new CaptivityPerformerDefaultPort(
                 captivityEffects,
-                captivityEffects,
                 captivityEffects));
         interactionRuntime = new CaptivityInteractionRuntime(
             actorAccess,
             actorRuntime,
             interactions,
             itemRuntime,
+            interactionMaterials,
             TryGetHousing);
         escortRuntime = new CaptivityEscortRuntime(
             actorAccess,
@@ -128,7 +154,8 @@ public sealed class CaptivityRuntime :
             policyRuntime,
             interactionRuntime,
             escortRuntime,
-            doorSubjectRegistry);
+            doorSubjectRegistry,
+            gameClock);
         escapeRuntime = new CaptivityEscapeRuntime(
             actorAccess,
             actorRuntime,
@@ -151,7 +178,12 @@ public sealed class CaptivityRuntime :
     public IReadOnlyList<CaptivePolicyData> Policies => queryView.Policies;
     public string ParticipantId => restoreCoordinator.ParticipantId;
 
-    public CaptivitySaveData Capture() => stateRuntime.Capture();
+    public CaptivitySaveData Capture()
+    {
+        RequireCareLaborInputOwner("capture");
+        interactionMaterialLifecycle.ValidateBeforeCapture(Captives);
+        return stateRuntime.Capture();
+    }
 
     public CaptivityRestoreCandidate BuildRestore(CaptivitySaveData saveData) =>
         restoreCoordinator.BuildRestore(saveData);
@@ -166,16 +198,17 @@ public sealed class CaptivityRuntime :
     public void BeginRestoreCandidate() =>
         restoreCoordinator.BeginRestoreCandidate();
 
-    public void PublishRestoreCandidate() =>
-        restoreCoordinator.PublishRestoreCandidate();
+    public void PublishRestoreCandidate()
+        => restoreCoordinator.PublishRestoreCandidate();
 
-    public void RollbackPublishedRestoreCandidate() =>
-        restoreCoordinator.RollbackPublishedRestoreCandidate();
+    public void RollbackPublishedRestoreCandidate()
+        => restoreCoordinator.RollbackPublishedRestoreCandidate();
 
     public void CompleteRestoreCandidate()
     {
         restoreCoordinator.CompleteRestoreCandidate();
         escapeRuntime.ClearPendingInvasionEscapes();
+        RestoreSettlementStandingProjection();
     }
 
     public void DiscardRestoreCandidate() =>
@@ -239,6 +272,7 @@ public sealed class CaptivityRuntime :
 
     private void TickRuntime()
     {
+        RequireCareLaborInputOwner("tick");
         if (gameClock.IsPaused || gameClock.DeltaTime <= 0f)
         {
             return;
@@ -250,7 +284,7 @@ public sealed class CaptivityRuntime :
         {
             CaptiveState state = captives[index];
             if (state == null
-                || !state.IsActive
+                || !state.IsInCustody
                 || (state.status != CaptivityStatus.Confined
                     && state.status != CaptivityStatus.Labor))
             {
@@ -309,7 +343,17 @@ public sealed class CaptivityRuntime :
             return;
         }
 
-        string destinationId = $"captive-care:{state.captiveId}";
+        if (!TryGetHousing(state.captiveId, out BuildableObject housing)
+            || housing.BuildingData?.GetCaptiveHousingAbility()
+                is not { IsValid: true })
+        {
+            state.nextCareSupplyAt = gameClock.Time + 5f;
+            state.lastResult = "포로 특혜 배급 시설을 찾을 수 없습니다.";
+            return;
+        }
+
+        string destinationId = CaptivityCareLaborInputOwnerAuthority
+            .FormatCareDestinationId(state.captiveId);
         Dictionary<StockCategory, int> foodCost = new Dictionary<StockCategory, int>
         {
             [StockCategory.Food] = 1
@@ -360,6 +404,18 @@ public sealed class CaptivityRuntime :
             return;
         }
 
+        if (!TryGetHousing(state.captiveId, out BuildableObject housing)
+            || housing.BuildingData?.GetCaptiveHousingAbility()
+                is not { IsValid: true })
+        {
+            if (!CancelLaborToolPreparation(state))
+            {
+                state.lastResult =
+                    "소실된 감방의 포로 작업 도구 소유권을 정리할 수 없습니다.";
+            }
+            return;
+        }
+
         if (CaptivityLaborToolAssignmentOutbox.RequiresFinalization(state))
         {
             if (CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
@@ -367,7 +423,7 @@ public sealed class CaptivityRuntime :
                     batchDispositions,
                     out _))
             {
-                CompleteLaborToolAssignment(state);
+                TryCompleteLaborToolAssignment(state, out _);
             }
             return;
         }
@@ -436,16 +492,34 @@ public sealed class CaptivityRuntime :
                 $"Validated captive labor tool '{delivered.ItemInstanceId}' could not be finalized after physical transfer: {finalizeFailure}");
         }
 
-        CompleteLaborToolAssignment(state);
+        if (!TryCompleteLaborToolAssignment(
+                state,
+                out string closeFailure))
+        {
+            state.lastResult =
+                "포로 작업 도구 배송 종결 대기: " + closeFailure;
+        }
     }
 
-    private void CompleteLaborToolAssignment(CaptiveState state)
+    private bool TryCompleteLaborToolAssignment(
+        CaptiveState state,
+        out string failureReason)
     {
         CaptiveLaborPermission permissions = state.pendingLaborPermissions;
+        string destinationId = state.laborToolDestinationId;
         state.pendingLaborPermissions = CaptiveLaborPermission.None;
         state.laborToolDestinationId = string.Empty;
+        if (!careLaborInputOwner.TryReconcileLive(
+                captives,
+                out failureReason))
+        {
+            state.pendingLaborPermissions = permissions;
+            state.laborToolDestinationId = destinationId;
+            return false;
+        }
         state.nextLaborToolWearAt = gameClock.Time + 60f;
         ApplyLaborPermissions(state, permissions);
+        return true;
     }
 
     private void TickLaborToolWear(
@@ -521,27 +595,32 @@ public sealed class CaptivityRuntime :
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(state.laborToolDestinationId))
-        {
-            itemRuntime.ReleaseStacksByDestination(
-                state.laborToolDestinationId,
-                state.housingPosition);
-        }
+        CaptiveLaborPermission previousPermissions =
+            state.pendingLaborPermissions;
+        string previousDestination = state.laborToolDestinationId;
         state.pendingLaborPermissions = CaptiveLaborPermission.None;
         state.laborToolDestinationId = string.Empty;
+        if (!careLaborInputOwner.TryReconcileLive(
+                captives,
+                out _))
+        {
+            state.pendingLaborPermissions = previousPermissions;
+            state.laborToolDestinationId = previousDestination;
+            return false;
+        }
         return true;
     }
 
-    private void ReturnAssignedCaptivityTools(CaptiveState state)
+    private bool ReturnAssignedCaptivityTools(CaptiveState state)
     {
         if (state == null)
         {
-            return;
+            return true;
         }
 
         if (!CancelLaborToolPreparation(state))
         {
-            return;
+            return false;
         }
         CaptivityDurableToolRuntime.TryReturnLaborTool(
             itemRuntime,
@@ -551,6 +630,7 @@ public sealed class CaptivityRuntime :
             itemRuntime,
             state,
             state.housingPosition);
+        return true;
     }
 
     public bool TryGetCaptive(string captiveId, out CaptiveState captive)
@@ -583,10 +663,27 @@ public sealed class CaptivityRuntime :
         return housing != null;
     }
 
+    public bool TryGetRehabilitationFacility(
+        string captiveId,
+        out BuildableObject facility)
+    {
+        CaptiveState state = FindState(captiveId);
+        string facilityId = state?.rehabilitationFacilityBuildingId
+            ?? string.Empty;
+        facility = worldRegistry.Buildings.FirstOrDefault(candidate =>
+            candidate != null
+            && !candidate.isDestroy
+            && string.Equals(
+                GetHousingId(candidate),
+                facilityId,
+                StringComparison.Ordinal));
+        return facility != null;
+    }
+
     public bool IsCaptive(string persistentId)
     {
         CaptiveState state = FindState(persistentId);
-        return state != null && state.IsActive;
+        return state != null && state.IsInCustody;
     }
 
 public bool IsWorkAllowed(
@@ -596,7 +693,7 @@ public bool IsWorkAllowed(
     {
         reason = string.Empty;
         CaptiveState state = FindState(GetCharacterId(actor));
-        if (state == null || !state.IsActive)
+        if (state == null || !state.IsInCustody)
         {
             return true;
         }
@@ -643,7 +740,7 @@ public bool IsWorkAllowed(
                 candidate.BuildingData.GetCaptiveHousingAbility();
             string housingId = GetHousingId(candidate);
             int assigned = captives.Count(state =>
-                state.IsActive
+                state.IsInCustody
                 && string.Equals(
                     state.housingBuildingId,
                     housingId,
@@ -791,7 +888,7 @@ public bool IsWorkAllowed(
     public bool CancelCapture(string captiveId, string reason)
     {
         CaptiveState state = FindState(captiveId);
-        if (state == null || !state.IsActive)
+        if (state == null || !state.IsInCustody)
         {
             return false;
         }
@@ -853,7 +950,7 @@ public bool IsWorkAllowed(
     {
         failureReason = string.Empty;
         CaptiveState state = FindState(captiveId);
-        if (state == null || !state.IsActive)
+        if (state == null || !state.IsInCustody)
         {
             failureReason = "포로를 찾을 수 없습니다.";
             return false;
@@ -892,7 +989,26 @@ public bool IsWorkAllowed(
             return true;
         }
 
-        string destinationId = $"captive-labor-tool:{state.captiveId}";
+        string destinationId = CaptivityCareLaborInputOwnerAuthority
+            .FormatLaborToolDestinationId(state.captiveId);
+        CaptivityStatus previousStatus = state.status;
+        string previousResult = state.lastResult;
+        state.pendingLaborPermissions = requested;
+        state.laborToolDestinationId = destinationId;
+        state.status = CaptivityStatus.Confined;
+        state.lastResult = "포로 작업 도구 운반 대기";
+        if (!careLaborInputOwner.TryReconcileLive(
+                captives,
+                out failureReason))
+        {
+            state.pendingLaborPermissions = CaptiveLaborPermission.None;
+            state.laborToolDestinationId = string.Empty;
+            state.status = previousStatus;
+            state.lastResult = previousResult;
+            failureReason = "포로 작업 도구의 물리 소유권을 열 수 없습니다: "
+                + failureReason;
+            return false;
+        }
         if (!itemRuntime.TryRequestItemDelivery(
                 CaptivityItemDefinitions.PrisonerWorkKitItemId,
                 1,
@@ -902,16 +1018,23 @@ public bool IsWorkAllowed(
                 out failureReason)
             || requestedAmount < 1)
         {
+            state.pendingLaborPermissions = CaptiveLaborPermission.None;
+            state.laborToolDestinationId = string.Empty;
+            state.status = previousStatus;
+            state.lastResult = previousResult;
+            if (!careLaborInputOwner.TryReconcileLive(
+                    captives,
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Captive labor-tool delivery failed and exact owner rollback failed: "
+                    + rollbackFailure);
+            }
             failureReason = string.IsNullOrWhiteSpace(failureReason)
                 ? "포로 작업 도구를 감방으로 운반할 수 없습니다."
                 : failureReason;
             return false;
         }
-
-        state.pendingLaborPermissions = requested;
-        state.laborToolDestinationId = destinationId;
-        state.status = CaptivityStatus.Confined;
-        state.lastResult = "포로 작업 도구 운반 대기";
         return true;
     }
 
@@ -949,9 +1072,25 @@ public bool IsWorkAllowed(
         CaptiveState state = FindState(captiveId);
         CharacterActor actor = FindActor(captiveId);
         CaptivePolicyData policy = policyRuntime.Find(state?.policyId);
-        if (state == null || actor == null || !state.CanRecruit)
+        int currentDay = CurrentAbsoluteDay;
+        bool eligible = state?.IsMinion == true
+            ? MinionIntegrationRules.CanRecruitRehabilitated(
+                state.trust,
+                state.grudge,
+                state.corruption,
+                state.rehabilitationDays)
+            : state?.IsInCustody == true
+                && MinionIntegrationRules.CanRecruitDirectly(
+                    state.trust,
+                    state.grudge,
+                    state.corruption,
+                    state.capturedAbsoluteDay,
+                    currentDay);
+        if (state == null || actor == null || !eligible)
         {
-            failureReason = "신뢰 70 이상, 원한 30 이하, 타락 60 미만이 필요합니다.";
+            failureReason = state?.IsMinion == true
+                ? "재사회화 15일, 신뢰 70 이상, 원한 30 이하, 타락 30 이하가 필요합니다."
+                : "포획 10일, 신뢰 70 이상, 원한 30 이하, 타락 60 미만이 필요합니다.";
             return false;
         }
 
@@ -961,15 +1100,20 @@ public bool IsWorkAllowed(
             return false;
         }
 
-        characterPopulation.PromoteToStaff(actor);
-        ReturnAssignedCaptivityTools(state);
-        state.status = CaptivityStatus.Recruited;
-        state.lastResult = "정식 직원으로 영입됨";
-        actor.characterType = CharacterType.NPC;
-        actor.Identity?.SetCharacterType(CharacterType.NPC);
-        actor.SetAiPaused(false);
-        actor.SetLifecycleState(CharacterLifecycleState.Active);
-        doorSubjectRegistry.SetCaptive(state.captiveId, false);
+        if (!TryPrepareTerminalPhysicalInputs(state, out failureReason))
+        {
+            return false;
+        }
+        if (!TryCommitSettlementStanding(
+                state,
+                actor,
+                CharacterSettlementStanding.Resident,
+                CaptivityStatus.Recruited,
+                "정식 주민으로 영입됨",
+                out failureReason))
+        {
+            return false;
+        }
         PublishPrisonerDecision(actor, "recruit");
         return true;
     }
@@ -980,9 +1124,15 @@ public bool IsWorkAllowed(
         CaptiveState state = FindState(captiveId);
         CharacterActor actor = FindActor(captiveId);
         CaptivePolicyData policy = policyRuntime.Find(state?.policyId);
-        if (state == null || actor == null || !state.CanBecomeMinion)
+        if (state == null
+            || actor == null
+            || !state.IsInCustody
+            || !MinionIntegrationRules.CanConvertToMinion(
+                state.corruption,
+                state.capturedAbsoluteDay,
+                CurrentAbsoluteDay))
         {
-            failureReason = "타락 80 이상부터 하수인으로 전환할 수 있습니다.";
+            failureReason = "포획 3일과 타락 80 이상이 필요합니다.";
             return false;
         }
 
@@ -992,15 +1142,255 @@ public bool IsWorkAllowed(
             return false;
         }
 
-        ReturnAssignedCaptivityTools(state);
-        state.status = CaptivityStatus.Minion;
-        state.lastResult = "타락한 하수인으로 전환됨";
-        actor.characterType = CharacterType.NPC;
-        actor.SetAiPaused(false);
-        actor.SetLifecycleState(CharacterLifecycleState.Active);
-        doorSubjectRegistry.SetCaptive(state.captiveId, false);
+        if (!TryPrepareTerminalPhysicalInputs(state, out failureReason))
+        {
+            return false;
+        }
+        if (!TryCommitSettlementStanding(
+                state,
+                actor,
+                CharacterSettlementStanding.Minion,
+                CaptivityStatus.Minion,
+                "하수인으로 전환됨",
+                out failureReason))
+        {
+            return false;
+        }
+        ApplyMinionConversionConsequences(state, actor);
         PublishPrisonerDecision(actor, "convert-minion");
         return true;
+    }
+
+    public bool TryStartRehabilitation(
+        string captiveId,
+        CharacterActor warden,
+        BuildableObject facility,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CaptiveState state = FindState(captiveId);
+        CharacterActor subject = FindActor(captiveId);
+        if (state?.IsMinion != true || subject == null || subject.IsDead)
+        {
+            failureReason = "재사회화할 하수인을 찾을 수 없습니다.";
+            return false;
+        }
+        if (state.lastRehabilitationAbsoluteDay == CurrentAbsoluteDay)
+        {
+            failureReason = "오늘 재사회화는 이미 끝냈습니다.";
+            return false;
+        }
+        if (warden == null
+            || warden.IsDead
+            || warden.CurrentLifecycleState != CharacterLifecycleState.Active
+            || !settlementStandings.IsFormalResident(warden)
+            || ReferenceEquals(warden, subject)
+            || !warden.TryGetAbility(out AbilityWork _))
+        {
+            failureReason = "재사회화를 맡을 정식 주민이 필요합니다.";
+            return false;
+        }
+        if (facility == null
+            || facility.isDestroy
+            || facility.BuildingData.GetCaptiveHousingAbility()?.IsValid != true
+            || !worldRegistry.Buildings.Contains(facility))
+        {
+            failureReason = "재사회화를 진행할 수용 시설이 필요합니다.";
+            return false;
+        }
+
+        if (state.rehabilitationInProgress)
+        {
+            CharacterActor assigned = worldRegistry.AllCharacters
+                .FirstOrDefault(candidate => candidate != null
+                    && string.Equals(
+                        GetCharacterId(candidate),
+                        state.reservedWardenId,
+                        StringComparison.Ordinal));
+            if (assigned != null
+                && !assigned.IsDead
+                && assigned.CurrentLifecycleState == CharacterLifecycleState.Active)
+            {
+                failureReason = "이미 재사회화 작업이 진행 중입니다.";
+                return false;
+            }
+        }
+
+        state.rehabilitationInProgress = true;
+        state.reservedWardenId = GetCharacterId(warden);
+        state.rehabilitationFacilityBuildingId = GetHousingId(facility);
+        state.rehabilitationPosition = facility.centerPos;
+        state.lastResult = state.completedRehabilitationWork > 0f
+            ? $"재사회화 재개 {state.completedRehabilitationWork:0.#}/{MinionIntegrationRules.RehabilitationRequiredWork:0.#} WU"
+            : "재사회화 작업 배정";
+        warden.Brain?.RequestImmediateReplan(clearFailures: false);
+        return true;
+    }
+
+    public bool AdvanceRehabilitation(
+        string captiveId,
+        CharacterActor warden,
+        float approvedWork,
+        out string status)
+    {
+        CaptiveState state = FindState(captiveId);
+        if (state?.IsMinion != true
+            || !state.rehabilitationInProgress
+            || warden == null
+            || !string.Equals(
+                state.reservedWardenId,
+                GetCharacterId(warden),
+                StringComparison.Ordinal))
+        {
+            status = "배정된 재사회화 작업을 찾을 수 없습니다.";
+            return false;
+        }
+        if (state.lastRehabilitationAbsoluteDay == CurrentAbsoluteDay)
+        {
+            status = "오늘 재사회화는 이미 끝냈습니다.";
+            return false;
+        }
+
+        float work = Mathf.Max(0f, approvedWork);
+        if (work <= 0f)
+        {
+            status = "승인된 작업량이 필요합니다.";
+            return false;
+        }
+
+        float nextWork = state.completedRehabilitationWork + work;
+        if (nextWork + 0.001f
+            < MinionIntegrationRules.RehabilitationRequiredWork)
+        {
+            state.completedRehabilitationWork = nextWork;
+            status = $"재사회화 {nextWork:0.#}/{MinionIntegrationRules.RehabilitationRequiredWork:0.#} WU";
+            state.lastResult = status;
+            return true;
+        }
+
+        if (survivalFood.TryConsumeStoredStock(
+                StockCategory.Food,
+                MinionIntegrationRules.RehabilitationFoodCost)
+            < MinionIntegrationRules.RehabilitationFoodCost)
+        {
+            status = "재사회화에 쓸 음식 1개가 부족합니다.";
+            return false;
+        }
+
+        state.completedRehabilitationWork = 0f;
+        state.rehabilitationInProgress = false;
+        state.reservedWardenId = string.Empty;
+        state.rehabilitationFacilityBuildingId = string.Empty;
+        state.rehabilitationPosition = default;
+        state.lastRehabilitationAbsoluteDay = CurrentAbsoluteDay;
+        state.rehabilitationDays++;
+        state.trust = ClampStat(
+            state.trust + MinionIntegrationRules.RehabilitationTrustDelta);
+        state.grudge = ClampStat(
+            state.grudge + MinionIntegrationRules.RehabilitationGrudgeDelta);
+        state.corruption = ClampStat(
+            state.corruption + MinionIntegrationRules.RehabilitationCorruptionDelta);
+        status = $"재사회화 {state.rehabilitationDays}/{MinionIntegrationRules.RequiredRehabilitationDays}일 완료";
+        state.lastResult = status;
+        return true;
+    }
+
+    public bool TryBeginDailySocialEvaluation(
+        string minionId,
+        int absoluteDay,
+        out CaptiveState state)
+    {
+        CaptiveState current = FindState(minionId);
+        int day = Mathf.Max(0, absoluteDay);
+        if (current?.IsMinion != true
+            || current.lastMinionSocialAbsoluteDay == day)
+        {
+            state = current?.Clone();
+            return false;
+        }
+
+        current.lastMinionSocialAbsoluteDay = day;
+        state = current.Clone();
+        return true;
+    }
+
+    public void RecordSocialConflict(string minionId, string result)
+    {
+        CaptiveState state = FindState(minionId);
+        if (state?.IsMinion == true)
+        {
+            state.lastResult = string.IsNullOrWhiteSpace(result)
+                ? "주민과 충돌함"
+                : result.Trim();
+        }
+    }
+
+    public bool TryBreakMinionControl(
+        string minionId,
+        string reason,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CaptiveState state = FindState(minionId);
+        CharacterActor actor = FindActor(minionId);
+        if (state?.IsMinion != true || actor == null)
+        {
+            failureReason = "통제 이탈 대상인 하수인을 찾을 수 없습니다.";
+            return false;
+        }
+
+        CharacterType previousActorType = actor.characterType;
+        CharacterType previousIdentityType = actor.Identity?.CharacterType
+            ?? previousActorType;
+        CharacterLifecycleState previousLifecycle = actor.CurrentLifecycleState;
+        bool previousAiPaused = actor.IsAiPaused();
+        EmploymentStandingState employmentSnapshot =
+            employmentStanding.CaptureStandingState(state.captiveId);
+        CharacterSettlementStandingTransaction populationTransaction = null;
+        try
+        {
+            populationTransaction = characterPopulation
+                .BeginSettlementStandingTransition(
+                    actor,
+                    CharacterSettlementStanding.PreparedCandidate);
+            employmentStanding.ApplyStanding(
+                state.captiveId,
+                CharacterSettlementStanding.PreparedCandidate);
+            actor.characterType = CharacterType.Intruder;
+            actor.Identity?.SetCharacterType(CharacterType.Intruder);
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            actor.SetAiPaused(false);
+            actor.Brain?.RequestImmediateReplan(clearFailures: true);
+            doorSubjectRegistry.SetCaptive(state.captiveId, false);
+            characterPopulation.CompleteSettlementStandingTransition(
+                populationTransaction);
+            CaptivityStateTransitionRules.ClearRehabilitationState(state);
+            state.status = CaptivityStatus.Escaped;
+            state.lastResult = string.IsNullOrWhiteSpace(reason)
+                ? "통제에서 벗어남"
+                : reason.Trim();
+            gameEventBus.Publish(new CaptiveEscapedEvent(
+                state.captiveId,
+                state.lastResult,
+                betrayal: true));
+            return true;
+        }
+        catch (Exception exception)
+        {
+            employmentStanding.RestoreStandingState(employmentSnapshot);
+            if (populationTransaction?.IsActive == true)
+            {
+                characterPopulation.RollbackSettlementStandingTransition(
+                    populationTransaction);
+            }
+            actor.characterType = previousActorType;
+            actor.Identity?.SetCharacterType(previousIdentityType);
+            actor.SetLifecycleState(previousLifecycle);
+            actor.SetAiPaused(previousAiPaused);
+            failureReason = "통제 이탈 상태를 적용하지 못했습니다: "
+                + exception.Message;
+            return false;
+        }
     }
 
     public bool TryRansom(
@@ -1015,7 +1405,7 @@ public bool IsWorkAllowed(
         CaptivePolicyData policy = state != null
             ? policyRuntime.Find(state.policyId)
             : null;
-        if (state == null || actor == null || !state.IsActive)
+        if (state == null || actor == null || !state.IsInCustody)
         {
             failureReason = "포로를 찾을 수 없습니다.";
             return false;
@@ -1036,6 +1426,10 @@ public bool IsWorkAllowed(
             return false;
         }
 
+        if (!TryPrepareTerminalPhysicalInputs(state, out failureReason))
+        {
+            return false;
+        }
         paidAmount = state.RansomValue;
         state.status = CaptivityStatus.Ransom;
         state.retaliationPressure = ClampStat(
@@ -1048,7 +1442,7 @@ public bool IsWorkAllowed(
                 actor.Identity?.PersistentId ?? state.captiveId,
                 "포로 몸값"));
         PublishPrisonerDecision(actor, "ransom");
-        ReleaseCaptive(
+        FinalizeReleaseCaptive(
             state,
             actor,
             $"몸값 {paidAmount:N0}을 받고 석방");
@@ -1064,15 +1458,18 @@ public bool IsWorkAllowed(
         failureReason = string.Empty;
         CaptiveState state = FindState(captiveId);
         CharacterActor actor = FindActor(captiveId);
-        if (state != null && actor != null)
-            PublishPrisonerDecision(actor, "release");
-        if (state == null || actor == null)
+        if (state == null || actor == null || !state.IsInCustody)
         {
             failureReason = "포로를 찾을 수 없습니다.";
             return false;
         }
+        PublishPrisonerDecision(actor, "release");
 
-        ReleaseCaptive(state, actor, "석방됨");
+        if (!TryPrepareTerminalPhysicalInputs(state, out failureReason))
+        {
+            return false;
+        }
+        FinalizeReleaseCaptive(state, actor, "석방됨");
         return true;
     }
 
@@ -1096,6 +1493,170 @@ public bool IsWorkAllowed(
             day));
     }
 
+    private bool TryCommitSettlementStanding(
+        CaptiveState state,
+        CharacterActor actor,
+        CharacterSettlementStanding targetStanding,
+        CaptivityStatus targetStatus,
+        string result,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CharacterType previousActorType = actor.characterType;
+        CharacterType previousIdentityType = actor.Identity?.CharacterType
+            ?? previousActorType;
+        CharacterLifecycleState previousLifecycle = actor.CurrentLifecycleState;
+        bool previousAiPaused = actor.IsAiPaused();
+        bool previousDoorCaptive = state.IsInCustody;
+        string captivityStateSnapshot =
+            CaptivityStateTransitionRules.CaptureStateSnapshot(state);
+        EmploymentStandingState employmentSnapshot =
+            employmentStanding.CaptureStandingState(state.captiveId);
+        CharacterSettlementStandingTransaction populationTransaction = null;
+        try
+        {
+            populationTransaction = characterPopulation
+                .BeginSettlementStandingTransition(actor, targetStanding);
+            employmentStanding.ApplyStanding(state.captiveId, targetStanding);
+
+            actor.characterType = CharacterType.NPC;
+            actor.Identity?.SetCharacterType(CharacterType.NPC);
+            actor.SetAiPaused(false);
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            doorSubjectRegistry.SetCaptive(state.captiveId, false);
+            state.status = targetStatus;
+            state.lastResult = result ?? string.Empty;
+            CaptivityStateTransitionRules.ClearCaptiveOnlyState(state);
+            if (targetStanding != CharacterSettlementStanding.Minion)
+            {
+                CaptivityStateTransitionRules.ClearRehabilitationState(state);
+            }
+            characterPopulation.CompleteSettlementStandingTransition(
+                populationTransaction);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            CaptivityStateTransitionRules.RestoreStateSnapshot(
+                captivityStateSnapshot,
+                state);
+            employmentStanding.RestoreStandingState(employmentSnapshot);
+            if (populationTransaction?.IsActive == true)
+            {
+                characterPopulation.RollbackSettlementStandingTransition(
+                    populationTransaction);
+            }
+            actor.characterType = previousActorType;
+            actor.Identity?.SetCharacterType(previousIdentityType);
+            actor.SetAiPaused(previousAiPaused);
+            actor.SetLifecycleState(previousLifecycle);
+            doorSubjectRegistry.SetCaptive(
+                state.captiveId,
+                previousDoorCaptive);
+            failureReason = "정착 신분 전환을 완료하지 못했습니다: "
+                + exception.Message;
+            return false;
+        }
+    }
+
+    private void ApplyMinionConversionConsequences(
+        CaptiveState state,
+        CharacterActor converted)
+    {
+        foreach (CharacterActor resident in worldRegistry.AllCharacters
+                     .Where(candidate => candidate != null
+                         && candidate != converted
+                         && !candidate.IsDead
+                         && settlementStandings.IsFormalResident(candidate))
+                     .OrderBy(
+                         candidate => candidate.Identity?.PersistentId,
+                         StringComparer.Ordinal))
+        {
+            moodPolicy.Apply(
+                resident,
+                "captivity:minion-conversion",
+                MinionIntegrationRules.ConversionResidentMoodDelta,
+                MinionIntegrationRules.ConversionResidentMoodDays,
+                "하수인 전환을 지켜봄");
+        }
+
+        if (narratives.TryGet(
+                new CharacterId(state.captiveId),
+                out CharacterNarrativeSnapshot narrative)
+            && !string.IsNullOrWhiteSpace(narrative.OriginFactionId))
+        {
+            factionCampaign.ApplyFactionChange(
+                narrative.OriginFactionId,
+                0,
+                MinionIntegrationRules.OriginFactionGrievanceDelta,
+                0);
+        }
+    }
+
+    private void RestoreSettlementStandingProjection()
+    {
+        foreach (CaptiveState state in captives.Where(candidate =>
+                     candidate?.IsMinion == true))
+        {
+            CharacterActor actor = FindActor(state.captiveId);
+            if (actor == null || actor.IsDead)
+            {
+                continue;
+            }
+
+            CharacterType previousActorType = actor.characterType;
+            CharacterType previousIdentityType = actor.Identity?.CharacterType
+                ?? previousActorType;
+            CharacterLifecycleState previousLifecycle =
+                actor.CurrentLifecycleState;
+            bool previousAiPaused = actor.IsAiPaused();
+            EmploymentStandingState employmentSnapshot =
+                employmentStanding.CaptureStandingState(state.captiveId);
+            CharacterSettlementStandingTransaction transition = null;
+            try
+            {
+                transition = characterPopulation
+                    .BeginSettlementStandingTransition(
+                        actor,
+                        CharacterSettlementStanding.Minion);
+                employmentStanding.ApplyStanding(
+                    state.captiveId,
+                    CharacterSettlementStanding.Minion);
+                actor.characterType = CharacterType.NPC;
+                actor.Identity?.SetCharacterType(CharacterType.NPC);
+                actor.SetAiPaused(false);
+                actor.SetLifecycleState(CharacterLifecycleState.Active);
+                doorSubjectRegistry.SetCaptive(state.captiveId, false);
+                characterPopulation.CompleteSettlementStandingTransition(
+                    transition);
+                if (state.rehabilitationInProgress)
+                {
+                    worldRegistry.AllCharacters.FirstOrDefault(candidate =>
+                            candidate != null
+                            && string.Equals(
+                                GetCharacterId(candidate),
+                                state.reservedWardenId,
+                                StringComparison.Ordinal))
+                        ?.Brain?.RequestImmediateReplan(clearFailures: false);
+                }
+            }
+            catch
+            {
+                employmentStanding.RestoreStandingState(employmentSnapshot);
+                if (transition?.IsActive == true)
+                {
+                    characterPopulation.RollbackSettlementStandingTransition(
+                        transition);
+                }
+                actor.characterType = previousActorType;
+                actor.Identity?.SetCharacterType(previousIdentityType);
+                actor.SetLifecycleState(previousLifecycle);
+                actor.SetAiPaused(previousAiPaused);
+                throw;
+            }
+        }
+    }
+
     public bool TryTriggerBetrayal(
         string captiveId,
         string trigger,
@@ -1104,7 +1665,7 @@ public bool IsWorkAllowed(
         failureReason = string.Empty;
         CaptiveState state = FindState(captiveId);
         CharacterActor actor = FindActor(captiveId);
-        if (state == null || actor == null || !state.IsActive)
+        if (state == null || actor == null || !state.IsInCustody)
         {
             failureReason = "포로를 찾을 수 없습니다.";
             return false;
@@ -1313,12 +1874,11 @@ public bool IsWorkAllowed(
             + state.failedEscapeAttempts * 8f);
     }
 
-    private void ReleaseCaptive(
+    private void FinalizeReleaseCaptive(
         CaptiveState state,
         CharacterActor actor,
         string result)
     {
-        ReturnAssignedCaptivityTools(state);
         state.status = CaptivityStatus.Released;
         state.restrained = false;
         state.lastResult = result ?? "석방됨";
@@ -1327,6 +1887,35 @@ public bool IsWorkAllowed(
         actor.SetAiPaused(false);
         doorSubjectRegistry.SetCaptive(state.captiveId, false);
         actor.GetAbility<AbilityMove>()?.StartSystemExitDungeon();
+    }
+
+    private int CurrentAbsoluteDay => Mathf.Max(
+        0,
+        Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+
+    private bool TryPrepareTerminalPhysicalInputs(
+        CaptiveState state,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!ReturnAssignedCaptivityTools(state))
+        {
+            failureReason = "포로 작업 도구 소유권을 정리할 수 없습니다.";
+            return false;
+        }
+
+        CaptivityStatus previousStatus = state.status;
+        state.status = CaptivityStatus.Released;
+        bool retired = careLaborInputOwner.TryReconcileLive(
+            captives,
+            out failureReason);
+        state.status = previousStatus;
+        if (!retired)
+        {
+            failureReason = "포로 care/labor 물리 입력을 종결할 수 없습니다: "
+                + failureReason;
+        }
+        return retired;
     }
 
     private bool TryGetHousingRoom(
@@ -1492,6 +2081,19 @@ public bool IsWorkAllowed(
     private static float ClampStat(float value)
     {
         return Mathf.Clamp(value, 0f, 100f);
+    }
+
+    private void RequireCareLaborInputOwner(string boundary)
+    {
+        if (careLaborInputOwner.TryReconcileLive(
+                captives,
+                out string failureReason))
+        {
+            return;
+        }
+        throw new InvalidOperationException(
+            "Captivity care/labor input ownership failed at "
+            + boundary + ": " + failureReason);
     }
 
     private static CaptiveLaborPermission GetLaborPermission(WorkTypeId workTypeId)

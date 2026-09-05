@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "12개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "59"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "전투력을 끌어올리지만 중독과 과다 복용 위험이 높다. 하르나크 밤궁정의 혈화 촉진제에는 동의의 잔에서 떼어 낸 검은 실과 환자의 흰 실이 함께 묶인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "drug-blood-stimulant",
+  "spoiler_tier": "none",
+  "summary": "전투력을 끌어올리지만 중독과 과다 복용 위험이 높다.",
+  "title": "혈화 촉진제"
+}

@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-field-repair-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "야전 수리 키트",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-field-repair-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "야전 수리 키트",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-kobold-5",
+  "spoiler_tier": "warning",
+  "summary": "누군가 대가의 도장을 복제해 불량 시설을 대량 납품한다.",
+  "title": "복제된 대가의 도장"
+}

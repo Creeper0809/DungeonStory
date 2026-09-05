@@ -139,6 +139,17 @@ public interface IDungeonRestoreTransactionParticipant
     void DiscardRestoreCandidate();
 }
 
+/// <summary>
+/// Marks a shared restore authority whose detached candidate must exist before
+/// save sections build their stages. Only authorities that accept staging-time
+/// projection writes may implement this contract; world and physical-index
+/// participants remain in the normal post-stage phase.
+/// </summary>
+public interface IDungeonPreStageRestoreTransactionParticipant :
+    IDungeonRestoreTransactionParticipant
+{
+}
+
 public sealed class DungeonDelegateSaveRestoreStage : IDungeonSaveRestoreStage
 {
     private readonly Action<DungeonGameRestoreReport> commit;
@@ -434,6 +445,10 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IReadOnlyList<IDungeonRestoreTransactionParticipant>
         transactionParticipants;
+    private readonly IReadOnlyList<IDungeonRestoreTransactionParticipant>
+        preStageTransactionParticipants;
+    private readonly IReadOnlyList<IDungeonRestoreTransactionParticipant>
+        postStageTransactionParticipants;
     private readonly IReadOnlyList<IDungeonSaveRegistryPreflightValidator>
         registryPreflightValidators;
     private readonly bool rollbackFree;
@@ -512,6 +527,14 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         orderedSections = TopologicalSort(source);
         this.transactionParticipants = ValidateTransactionParticipants(
             transactionParticipants);
+        preStageTransactionParticipants = this.transactionParticipants
+            .Where(participant =>
+                participant is IDungeonPreStageRestoreTransactionParticipant)
+            .ToArray();
+        postStageTransactionParticipants = this.transactionParticipants
+            .Where(participant =>
+                participant is not IDungeonPreStageRestoreTransactionParticipant)
+            .ToArray();
         this.registryPreflightValidators = (registryPreflightValidators
                 ?? Array.Empty<IDungeonSaveRegistryPreflightValidator>())
             .Where(value => value != null)
@@ -549,22 +572,35 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             return false;
         }
 
-        if (!TryStageAll(savedById, report, out List<IDungeonSaveRestoreStage> stages))
-        {
-            DiscardStages(stages, report);
-            return false;
-        }
-
-        // Rollback remains only as a transitional safety net while a registry contains
-        // legacy sections. An all-marker V19 registry has already completed every
-        // fallible parse/build step against detached candidates, so taking another full
-        // live-world snapshot here would add cost without protecting any live mutation.
+        // Capture the live rollback image before any participant exposes a
+        // candidate view through its authority query.
         List<DungeonSaveSectionEnvelope> rollbackImage = rollbackFree
             ? null
             : CaptureAll();
-        if (!TryBeginTransactionParticipants(report))
+        if (!TryBeginTransactionParticipants(
+                preStageTransactionParticipants,
+                report))
+        {
+            return false;
+        }
+
+        if (!TryStageAll(savedById, report, out List<IDungeonSaveRestoreStage> stages))
         {
             DiscardStages(stages, report);
+            DiscardTransactionParticipants(
+                preStageTransactionParticipants,
+                report);
+            return false;
+        }
+
+        if (!TryBeginTransactionParticipants(
+                postStageTransactionParticipants,
+                report))
+        {
+            DiscardStages(stages, report);
+            DiscardTransactionParticipants(
+                preStageTransactionParticipants,
+                report);
             return false;
         }
 
@@ -597,13 +633,43 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
 
         DungeonGameRestoreReport rollbackReport = new DungeonGameRestoreReport();
         List<IDungeonSaveRestoreStage> rollbackStages = null;
-        bool rollbackPrepared =
-            TryPreflight(rollbackImage, rollbackReport, out Dictionary<string, DungeonSaveSectionEnvelope> rollbackById)
-            && TryStageAll(rollbackById, rollbackReport, out rollbackStages);
+        bool rollbackPrepared = TryPreflight(
+            rollbackImage,
+            rollbackReport,
+            out Dictionary<string, DungeonSaveSectionEnvelope> rollbackById);
+        if (rollbackPrepared)
+        {
+            rollbackPrepared = TryBeginTransactionParticipants(
+                preStageTransactionParticipants,
+                rollbackReport);
+        }
+        if (rollbackPrepared)
+        {
+            rollbackPrepared = TryStageAll(
+                rollbackById,
+                rollbackReport,
+                out rollbackStages);
+            if (!rollbackPrepared)
+            {
+                DiscardStages(rollbackStages, rollbackReport);
+                DiscardTransactionParticipants(
+                    preStageTransactionParticipants,
+                    rollbackReport);
+            }
+        }
         bool rollbackCommitted = false;
         if (rollbackPrepared)
         {
-            rollbackPrepared = TryBeginTransactionParticipants(rollbackReport);
+            rollbackPrepared = TryBeginTransactionParticipants(
+                postStageTransactionParticipants,
+                rollbackReport);
+            if (!rollbackPrepared)
+            {
+                DiscardStages(rollbackStages, rollbackReport);
+                DiscardTransactionParticipants(
+                    preStageTransactionParticipants,
+                    rollbackReport);
+            }
         }
 
         if (rollbackPrepared)
@@ -679,15 +745,16 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         return ordered;
     }
 
-    private bool TryBeginTransactionParticipants(
+    private static bool TryBeginTransactionParticipants(
+        IReadOnlyList<IDungeonRestoreTransactionParticipant> participants,
         DungeonGameRestoreReport report)
     {
         int begunCount = 0;
         try
         {
-            for (; begunCount < transactionParticipants.Count; begunCount++)
+            for (; begunCount < participants.Count; begunCount++)
             {
-                transactionParticipants[begunCount]
+                participants[begunCount]
                     .BeginRestoreCandidate();
             }
 
@@ -695,15 +762,15 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         }
         catch (Exception exception)
         {
-            string id = begunCount < transactionParticipants.Count
-                ? transactionParticipants[begunCount].ParticipantId
+            string id = begunCount < participants.Count
+                ? participants[begunCount].ParticipantId
                 : "unknown";
             report.AddError(
                 $"Failed to begin restore transaction participant '{id}': {exception.Message}");
             for (int index = begunCount - 1; index >= 0; index--)
             {
                 TryDiscardTransactionParticipant(
-                    transactionParticipants[index],
+                    participants[index],
                     report);
             }
 
@@ -794,13 +861,18 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
 
     private void DiscardTransactionParticipants(
         DungeonGameRestoreReport report)
+        => DiscardTransactionParticipants(transactionParticipants, report);
+
+    private static void DiscardTransactionParticipants(
+        IReadOnlyList<IDungeonRestoreTransactionParticipant> participants,
+        DungeonGameRestoreReport report)
     {
-        for (int index = transactionParticipants.Count - 1;
+        for (int index = participants.Count - 1;
              index >= 0;
              index--)
         {
             TryDiscardTransactionParticipant(
-                transactionParticipants[index],
+                participants[index],
                 report);
         }
     }

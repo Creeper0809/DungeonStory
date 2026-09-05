@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Immunity Longevity"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-rapid-repair",
+  "spoiler_tier": "none",
+  "summary": "감염 후 장기 손상 회복이 빠르지만 세포 노화 부담이 늘어난다.",
+  "title": "고속 면역 복구"
+}

@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "26"
+    },
+    {
+      "label": "필요 연구",
+      "value": "외과술"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "textile-sterile-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 천",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-saltstone",
+      "target_spoiler_tier": "none",
+      "target_title": "소금석",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-surgery",
+      "target_spoiler_tier": "none",
+      "target_title": "외과술",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-textile-sterile-cloth",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 무균 천을(를) 생산한다.",
+  "title": "무균 천"
+}

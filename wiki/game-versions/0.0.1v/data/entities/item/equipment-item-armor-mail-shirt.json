@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "7.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "428"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "수많은 금속 고리를 맞물려 몸통과 어깨를 유연하게 덮는 사슬갑옷이다. 특히 제4주조도시산 사슬 갑옷에는 충격 시험 자국을 일부러 남긴다. 흠집이 없는 물건은 아직 검사를 마치지 못한 것이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-mail-shirt",
+  "spoiler_tier": "none",
+  "summary": "사슬 갑옷 전투 장비",
+  "title": "사슬 갑옷"
+}

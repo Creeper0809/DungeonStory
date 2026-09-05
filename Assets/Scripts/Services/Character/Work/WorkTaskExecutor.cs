@@ -150,6 +150,7 @@ public sealed class WorkTaskExecutor
     private readonly IEmergencyWorkAccountingService emergencyWorkAccounting;
     private readonly ISettlementLaborAccountingService settlementLaborAccounting;
     private readonly IReservedItemTransferService reservedItemTransfers;
+    private readonly ICharacterSettlementStandingQuery settlementStandings;
     private float nextEnvironmentRecheckAt;
     private bool environmentInterrupted;
     private float approvedProficiencyWork;
@@ -216,7 +217,8 @@ public sealed class WorkTaskExecutor
         ICharacterSpeciesCommand speciesCommands = null,
         IEmergencyWorkAccountingService emergencyWorkAccounting = null,
         ISettlementLaborAccountingService settlementLaborAccounting = null,
-        IReservedItemTransferService reservedItemTransfers = null)
+        IReservedItemTransferService reservedItemTransfers = null,
+        ICharacterSettlementStandingQuery settlementStandings = null)
     {
         core = core ?? throw new ArgumentNullException(nameof(core));
         execution = execution ?? throw new ArgumentNullException(nameof(execution));
@@ -250,6 +252,7 @@ public sealed class WorkTaskExecutor
         this.emergencyWorkAccounting = emergencyWorkAccounting;
         this.settlementLaborAccounting = settlementLaborAccounting;
         this.reservedItemTransfers = reservedItemTransfers;
+        this.settlementStandings = settlementStandings;
     }
 
     public IEnumerator Work(int runId)
@@ -3197,7 +3200,7 @@ public sealed class WorkTaskExecutor
             target,
             workTypeId,
             environmentDurationMultiplier);
-        return Mathf.Clamp(baseRate, 0.05f, 8f);
+        return WorkRateBoundsAuthority.Clamp(baseRate);
     }
 
     private void AwardApprovedWork(
@@ -3219,10 +3222,13 @@ public sealed class WorkTaskExecutor
         }
 
         proficiencyAwarded = true;
+        float standingExperienceMultiplier = settlementStandings
+            ?.GetApprovedWorkExperienceMultiplier(actor) ?? 1f;
         proficiencyCommands.AddApprovedWork(
             characterId,
             profile,
-            approvedProficiencyWork,
+            approvedProficiencyWork * Mathf.Clamp01(
+                standingExperienceMultiplier),
             difficultyMultiplier: ResolveDifficultyMultiplier(
                 actor,
                 work.assignedShop,

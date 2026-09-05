@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.6kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "조리하거나 보존하지 않으면 금방 상하는 식재료다. 하르나크 장터는 날 식재료의 종족별 소유 구분을 버리고 조리 가능 시간과 오염 위험에 따라 나눈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "survival-raw-food",
+  "spoiler_tier": "none",
+  "summary": "조리하거나 보존하지 않으면 금방 상하는 식재료이다.",
+  "title": "날 식재료"
+}

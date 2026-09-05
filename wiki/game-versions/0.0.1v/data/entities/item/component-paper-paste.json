@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "13"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "종이 풀칠을 바르거나 섞어 천과 종이 재료가 다음 제작 공정을 견디게 한다. 크릭 제7굴에서 만든 종이 풀칠은 굳기 전에 색이 바뀌어 다음 공정의 때를 알려 준다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-paper-paste",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 종이 풀칠.",
+  "title": "종이 풀칠"
+}

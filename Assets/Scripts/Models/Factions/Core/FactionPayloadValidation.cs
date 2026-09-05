@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace DungeonStory.Factions
 {
@@ -36,9 +39,16 @@ public static class FactionPayloadValidation
         }
         if (data.currentDay < 1
             || data.routeSequence < 0
-            || data.goodwillOperationSequence < 0)
+            || data.routeSettlementOperationSequence < 0
+            || data.goodwillOperationSequence < 0
+            || data.allianceBenefitBalanceMilliEwu < 0
+            || data.allianceBenefitRefillRemainder < 0
+            || data.allianceBenefitLastRefillDay < 1
+            || data.allianceBenefitLastRefillDay > data.currentDay
+            || !IsSha256(data.allianceBenefitAuthorityDigest))
         {
-            report.AddError("Faction payload has an invalid day or route sequence.");
+            report.AddError(
+                "Faction payload has an invalid sequence or alliance-benefit budget state.");
         }
 
         ValidateFactions(data, definitions, report);
@@ -284,6 +294,7 @@ public static class FactionPayloadValidation
         }
 
         int previousSequence = 0;
+        HashSet<int> settlementSequences = new();
         for (int index = 0; index < data.routes.Count; index++)
         {
             FactionRouteState route = data.routes[index];
@@ -302,6 +313,9 @@ public static class FactionPayloadValidation
                 route,
                 sequence,
                 data.currentDay,
+                data.routeSettlementOperationSequence,
+                data.allianceBenefitAuthorityDigest,
+                settlementSequences,
                 factionIds,
                 itemExists,
                 report);
@@ -319,6 +333,9 @@ public static class FactionPayloadValidation
         FactionRouteState route,
         int sequence,
         int currentDay,
+        int globalSettlementSequence,
+        string globalAllianceBenefitAuthorityDigest,
+        HashSet<int> settlementSequences,
         HashSet<string> factionIds,
         Func<string, bool> itemExists,
         ValidationErrors report)
@@ -377,6 +394,273 @@ public static class FactionPayloadValidation
 
         ValidateReinforcementActors(route, sequence, report);
         ValidateCargo(route, itemExists, report);
+        ValidateCargoDelivery(route, report);
+        ValidateSettlement(
+            route,
+            globalSettlementSequence,
+            globalAllianceBenefitAuthorityDigest,
+            settlementSequences,
+            report);
+    }
+
+    private static void ValidateSettlement(
+        FactionRouteState route,
+        int globalSequence,
+        string globalAllianceBenefitAuthorityDigest,
+        HashSet<int> seenSequences,
+        ValidationErrors report)
+    {
+        FactionRouteSettlementReceipt receipt = route.settlement;
+        if (receipt == null)
+        {
+            report.AddError(
+                $"Faction route '{route.routeId}' has no settlement receipt.");
+            return;
+        }
+
+        bool economicRoute = route.kind is FactionRouteKind.TradeCaravan
+            or FactionRouteKind.SupplyCaravan;
+        if (!economicRoute)
+        {
+            if (receipt.state != FactionRouteSettlementState.NotApplicable
+                || HasSettlementPayload(receipt))
+            {
+                report.AddError(
+                    $"Faction route '{route.routeId}' has settlement data for a non-economic route.");
+            }
+            return;
+        }
+
+        if (receipt.operationSequence <= 0
+            || receipt.operationSequence > globalSequence
+            || !seenSequences.Add(receipt.operationSequence)
+            || !IsCanonical(receipt.capabilityId)
+            || receipt.capabilityVersion <= 0
+            || receipt.cargoAuthoredGold <= 0
+            || !IsSha256(receipt.sourceDigest)
+            || !IsSha256(receipt.quoteDigest)
+            || !TryCalculateSettlementDigests(
+                route.factionId,
+                route.kind,
+                receipt.capabilityId,
+                receipt.capabilityVersion,
+                receipt.quoteLines,
+                receipt.paymentGold,
+                out int frozenCargoGold,
+                out string frozenSourceDigest,
+                out string frozenQuoteDigest)
+            || frozenCargoGold != receipt.cargoAuthoredGold
+            || !string.Equals(
+                frozenSourceDigest,
+                receipt.sourceDigest,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                frozenQuoteDigest,
+                receipt.quoteDigest,
+                StringComparison.Ordinal)
+            || !QuoteLinesMatchCargo(receipt.quoteLines, route.cargo))
+        {
+            report.AddError(
+                $"Faction route '{route.routeId}' has invalid quote settlement provenance.");
+            return;
+        }
+
+        if (route.kind == FactionRouteKind.TradeCaravan)
+        {
+            string expectedSource =
+                $"faction-route-settlement:{receipt.operationSequence:D8}";
+            if (receipt.state != FactionRouteSettlementState.Paid
+                || receipt.paymentGold <= 0
+                || receipt.paymentGold != receipt.cargoAuthoredGold
+                || !IsCanonical(receipt.transactionId)
+                || !string.Equals(
+                    receipt.transactionSourceId,
+                    expectedSource,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.transactionTargetId,
+                    route.factionId,
+                    StringComparison.Ordinal)
+                || receipt.balanceBefore < receipt.paymentGold
+                || receipt.balanceAfter
+                    != receipt.balanceBefore - receipt.paymentGold
+                || !string.IsNullOrEmpty(
+                    receipt.allianceBenefitAuthorityDigest)
+                || !string.IsNullOrEmpty(
+                    receipt.allianceBenefitReservationId)
+                || receipt.allianceBenefitDebitMilliEwu != 0
+                || receipt.allianceBenefitBalanceBeforeMilliEwu != 0
+                || receipt.allianceBenefitBalanceAfterMilliEwu != 0)
+            {
+                report.AddError(
+                    $"Faction route '{route.routeId}' has an invalid paid settlement receipt.");
+            }
+            return;
+        }
+
+        string expectedReservation =
+            $"faction-alliance-benefit:{receipt.operationSequence:D8}";
+        if (receipt.state
+                != FactionRouteSettlementState.AllianceBenefitDebited
+            || receipt.paymentGold != 0
+            || !string.IsNullOrEmpty(receipt.transactionId)
+            || !string.IsNullOrEmpty(receipt.transactionSourceId)
+            || !string.IsNullOrEmpty(receipt.transactionTargetId)
+            || receipt.balanceBefore != 0
+            || receipt.balanceAfter != 0
+            || !IsSha256(receipt.allianceBenefitAuthorityDigest)
+            || !string.Equals(
+                receipt.allianceBenefitAuthorityDigest,
+                globalAllianceBenefitAuthorityDigest,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.allianceBenefitReservationId,
+                expectedReservation,
+                StringComparison.Ordinal)
+            || receipt.allianceBenefitDebitMilliEwu <= 0
+            || receipt.allianceBenefitBalanceBeforeMilliEwu
+                < receipt.allianceBenefitDebitMilliEwu
+            || receipt.allianceBenefitBalanceAfterMilliEwu
+                != receipt.allianceBenefitBalanceBeforeMilliEwu
+                    - receipt.allianceBenefitDebitMilliEwu)
+        {
+            report.AddError(
+                $"Faction route '{route.routeId}' has an invalid alliance-benefit settlement receipt.");
+        }
+    }
+
+    private static bool HasSettlementPayload(
+        FactionRouteSettlementReceipt receipt) =>
+        receipt.operationSequence != 0
+        || receipt.capabilityVersion != 0
+        || receipt.cargoAuthoredGold != 0
+        || receipt.paymentGold != 0
+        || (receipt.quoteLines?.Count ?? 0) != 0
+        || receipt.balanceBefore != 0
+        || receipt.balanceAfter != 0
+        || receipt.allianceBenefitDebitMilliEwu != 0
+        || receipt.allianceBenefitBalanceBeforeMilliEwu != 0
+        || receipt.allianceBenefitBalanceAfterMilliEwu != 0
+        || !string.IsNullOrEmpty(receipt.capabilityId)
+        || !string.IsNullOrEmpty(receipt.sourceDigest)
+        || !string.IsNullOrEmpty(receipt.quoteDigest)
+        || !string.IsNullOrEmpty(receipt.transactionId)
+        || !string.IsNullOrEmpty(receipt.transactionSourceId)
+        || !string.IsNullOrEmpty(receipt.transactionTargetId)
+        || !string.IsNullOrEmpty(receipt.allianceBenefitAuthorityDigest)
+        || !string.IsNullOrEmpty(receipt.allianceBenefitReservationId);
+
+    private static bool IsSha256(string value) =>
+        value != null
+        && value.Length == 64
+        && value.All(character => character is >= '0' and <= '9'
+            or >= 'a' and <= 'f');
+
+    public static bool TryCalculateSettlementDigests(
+        string factionId,
+        FactionRouteKind routeKind,
+        string capabilityId,
+        int capabilityVersion,
+        IReadOnlyList<FactionRouteQuoteLineReceipt> quoteLines,
+        int paymentGold,
+        out int cargoAuthoredGold,
+        out string sourceDigest,
+        out string quoteDigest)
+    {
+        cargoAuthoredGold = 0;
+        sourceDigest = string.Empty;
+        quoteDigest = string.Empty;
+        if (!IsCanonical(factionId)
+            || !IsCanonical(capabilityId)
+            || capabilityVersion <= 0
+            || quoteLines == null
+            || quoteLines.Count == 0
+            || paymentGold < 0)
+            return false;
+
+        string previousId = string.Empty;
+        StringBuilder source = new();
+        try
+        {
+            for (int index = 0; index < quoteLines.Count; index++)
+            {
+                FactionRouteQuoteLineReceipt line = quoteLines[index];
+                if (line == null
+                    || !IsCanonical(line.itemId)
+                    || line.amount <= 0
+                    || line.unitPriceGold <= 0
+                    || (index > 0 && string.Compare(
+                        previousId,
+                        line.itemId,
+                        StringComparison.Ordinal) >= 0))
+                    return false;
+                if (index > 0)
+                    source.Append('\n');
+                source.Append(line.itemId)
+                    .Append('|')
+                    .Append(line.amount.ToString(CultureInfo.InvariantCulture))
+                    .Append('|')
+                    .Append(line.unitPriceGold.ToString(
+                        CultureInfo.InvariantCulture));
+                cargoAuthoredGold = checked(cargoAuthoredGold
+                    + checked(line.amount * line.unitPriceGold));
+                previousId = line.itemId;
+            }
+        }
+        catch (OverflowException)
+        {
+            cargoAuthoredGold = 0;
+            return false;
+        }
+
+        sourceDigest = Sha256(source.ToString());
+        string quoteCanonical = string.Join("|", new[]
+        {
+            capabilityId,
+            capabilityVersion.ToString(CultureInfo.InvariantCulture),
+            factionId,
+            ((int)routeKind).ToString(CultureInfo.InvariantCulture),
+            cargoAuthoredGold.ToString(CultureInfo.InvariantCulture),
+            paymentGold.ToString(CultureInfo.InvariantCulture),
+            sourceDigest
+        });
+        quoteDigest = Sha256(quoteCanonical);
+        return true;
+    }
+
+    private static bool QuoteLinesMatchCargo(
+        IReadOnlyList<FactionRouteQuoteLineReceipt> quoteLines,
+        IReadOnlyList<FactionCargoLine> cargo)
+    {
+        if (quoteLines == null || cargo == null || quoteLines.Count != cargo.Count)
+            return false;
+        FactionCargoLine[] orderedCargo = cargo
+            .Where(value => value != null)
+            .OrderBy(value => value.itemId, StringComparer.Ordinal)
+            .ToArray();
+        if (orderedCargo.Length != cargo.Count)
+            return false;
+        for (int index = 0; index < quoteLines.Count; index++)
+        {
+            if (!string.Equals(
+                    quoteLines[index].itemId,
+                    orderedCargo[index].itemId,
+                    StringComparison.Ordinal)
+                || quoteLines[index].amount != orderedCargo[index].amount)
+                return false;
+        }
+        return true;
+    }
+
+    private static string Sha256(string value)
+    {
+        using SHA256 sha = SHA256.Create();
+        byte[] digest = sha.ComputeHash(
+            new UTF8Encoding(false, true).GetBytes(value ?? string.Empty));
+        StringBuilder result = new(digest.Length * 2);
+        foreach (byte part in digest)
+            result.Append(part.ToString("x2", CultureInfo.InvariantCulture));
+        return result.ToString();
     }
 
     private static void ValidateReinforcementActors(
@@ -444,6 +728,169 @@ public static class FactionPayloadValidation
                     $"Faction route '{route.routeId}' has null, nonpositive, or unknown cargo.");
             }
         }
+    }
+
+    private static void ValidateCargoDelivery(
+        FactionRouteState route,
+        ValidationErrors report)
+    {
+        FactionRouteCargoDeliveryReceipt receipt = route.cargoDelivery;
+        if (receipt == null)
+        {
+            report.AddError(
+                $"Faction route '{route.routeId}' has no cargo-delivery receipt.");
+            return;
+        }
+        bool hasCargo = (route.cargo?.Count ?? 0) > 0;
+        bool hasPayload = !string.IsNullOrEmpty(receipt.batchCommitId)
+            || !string.IsNullOrEmpty(receipt.destinationId)
+            || !string.IsNullOrEmpty(receipt.outcomeFingerprint)
+            || receipt.totalMassGrams != 0
+            || (receipt.stacks?.Count ?? 0) != 0;
+        if (!hasCargo)
+        {
+            if (receipt.state != FactionRouteCargoDeliveryState.NotApplicable
+                || hasPayload)
+            {
+                report.AddError(
+                    $"Faction route '{route.routeId}' has delivery state without cargo.");
+            }
+            return;
+        }
+        if (receipt.state == FactionRouteCargoDeliveryState.Publishing)
+        {
+            report.AddError(
+                $"Faction route '{route.routeId}' captured a transient cargo publication.");
+            return;
+        }
+        if (receipt.state == FactionRouteCargoDeliveryState.Ready)
+        {
+            if (hasPayload)
+            {
+                report.AddError(
+                    $"Faction route '{route.routeId}' has terminal cargo data while ready.");
+            }
+            return;
+        }
+        if (receipt.state != FactionRouteCargoDeliveryState.Delivered
+            || route.status != FactionRouteStatus.Arrived
+            || receipt.stacks == null
+            || receipt.stacks.Count != route.cargo.Count
+            || receipt.totalMassGrams <= 0
+            || !string.Equals(
+                receipt.batchCommitId,
+                "physical-source-batch:faction.route-cargo:" + route.routeId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.destinationId,
+                "physical-source-buffer:faction.route-cargo:" + route.routeId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.outcomeFingerprint,
+                CalculateCargoOutcomeFingerprint(route),
+                StringComparison.Ordinal))
+        {
+            report.AddError(
+                $"Faction route '{route.routeId}' has invalid terminal cargo provenance.");
+            return;
+        }
+
+        long totalMass = 0L;
+        HashSet<string> stackIds = new(StringComparer.Ordinal);
+        for (int index = 0; index < route.cargo.Count; index++)
+        {
+            FactionCargoLine line = route.cargo[index];
+            ProductionDomainPublishedStackSaveData stack =
+                receipt.stacks[index];
+            string expectedLine =
+                $"cargo:{index:D4}:{line?.itemId ?? string.Empty}";
+            if (stack == null
+                || !string.Equals(
+                    stack.outputLineId,
+                    expectedLine,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    stack.itemId,
+                    line?.itemId,
+                    StringComparison.Ordinal)
+                || !string.IsNullOrEmpty(stack.itemInstanceId)
+                || stack.quantity != ResolveCargoDeliveryQuantity(
+                    line?.amount ?? 0,
+                    route.strength)
+                || stack.massGrams <= 0
+                || !IsCanonical(stack.stackId)
+                || !stackIds.Add(stack.stackId))
+            {
+                report.AddError(
+                    $"Faction route '{route.routeId}' has a mismatched cargo stack receipt.");
+                return;
+            }
+            try
+            {
+                totalMass = checked(totalMass + stack.massGrams);
+            }
+            catch (OverflowException)
+            {
+                report.AddError(
+                    $"Faction route '{route.routeId}' cargo mass overflowed.");
+                return;
+            }
+        }
+        if (totalMass != receipt.totalMassGrams)
+        {
+            report.AddError(
+                $"Faction route '{route.routeId}' cargo mass receipt does not conserve its stack sum.");
+        }
+    }
+
+    private static int ResolveCargoDeliveryQuantity(int amount, int strength)
+    {
+        if (amount <= 0 || strength < 0)
+        {
+            return 0;
+        }
+        long scaled = checked((long)amount * strength);
+        long whole = scaled / 100L;
+        long remainder = scaled % 100L;
+        if (remainder > 50L
+            || (remainder == 50L && (whole & 1L) != 0L))
+        {
+            whole = checked(whole + 1L);
+        }
+        return Math.Max(1, checked((int)whole));
+    }
+
+    private static string CalculateCargoOutcomeFingerprint(
+        FactionRouteState route)
+    {
+        StringBuilder canonical = new();
+        for (int index = 0; index < route.cargo.Count; index++)
+        {
+            FactionCargoLine line = route.cargo[index];
+            AppendLengthToken(
+                canonical,
+                $"cargo:{index:D4}:{line.itemId}");
+            AppendLengthToken(canonical, line.itemId);
+            AppendLengthToken(
+                canonical,
+                ResolveCargoDeliveryQuantity(line.amount, route.strength)
+                    .ToString(CultureInfo.InvariantCulture));
+            AppendLengthToken(canonical, string.Empty);
+            AppendLengthToken(canonical, string.Empty);
+            AppendLengthToken(canonical, string.Empty);
+        }
+        return Sha256(canonical.ToString());
+    }
+
+    private static void AppendLengthToken(
+        StringBuilder builder,
+        string value)
+    {
+        string safe = value ?? string.Empty;
+        builder.Append(safe.Length)
+            .Append(':')
+            .Append(safe)
+            .Append('|');
     }
 
     private static bool TryParseRouteId(string routeId, out int sequence)

@@ -1,0 +1,15 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+CharacterSpeciesSO,content-type,,type-reference,models:species,content-loading,structural-type-consumer,Assets/Scripts/Models/Species/Core/CharacterSpeciesCatalog.cs
+CharacterSpeciesSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterSpawner.cs
+CharacterSpeciesSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterSpeciesWorkAptitudeRules.cs
+CharacterSpeciesSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterPopulationService.cs
+CharacterSpeciesSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/StartPartyPreparationService.cs
+CharacterSpeciesSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterModelData.cs
+CharacterSpeciesSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterRuntimeProfileFactory.cs
+CharacterSpeciesSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterSO.cs
+CharacterSpeciesSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SpeciesRuntime.cs
+CharacterSpeciesSO,content-type,,type-reference; save-restore-reference,services:codex,runtime,structural-type-consumer,Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs
+CharacterSpeciesSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CropHarvestReachableMaximumWitnessAuthority.cs
+CharacterSpeciesSO,content-type,,type-reference,services:effects,persistence,structural-type-consumer,Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs
+CharacterSpeciesSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/CodexReferenceCatalogServices.cs
+CharacterSpeciesSO,content-type,,type-reference; save-restore-reference,services:medical,runtime,structural-type-consumer,Assets/Scripts/Services/Medical/SurgeryRuntime.cs

@@ -11,6 +11,7 @@ public sealed class WorldResourceSaveSection :
 
     private static readonly string[] Dependencies =
     {
+        RandomStreamSaveSection.Id,
         WildlifeSaveSection.Id,
         PhysicalItemsSaveSection.Id
     };

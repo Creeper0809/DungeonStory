@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "husbandry-bedding",
+    "spoiler_tier": "none",
+    "title": "깔짚"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-bedding-animal",
+      "label": "생산·해금",
+      "to": "item/husbandry-bedding",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-bedding-straw",
+      "label": "생산·해금",
+      "to": "item/husbandry-bedding",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

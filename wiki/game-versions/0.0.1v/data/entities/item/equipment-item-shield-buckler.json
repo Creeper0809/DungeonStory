@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "838"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "주먹 앞에 붙여 공격을 쳐내고 곧바로 반격하기 좋은 작은 방패다. 라카쉬 세갈래길의 수선공은 버클러를 새 주인에게 맞추되 오래된 이름은 손잡이 아래 남겨 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-buckler",
+  "spoiler_tier": "none",
+  "summary": "버클러 전투 장비",
+  "title": "버클러"
+}

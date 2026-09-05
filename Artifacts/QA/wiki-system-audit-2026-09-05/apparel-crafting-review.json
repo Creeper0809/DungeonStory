@@ -1,0 +1,3077 @@
+{
+  "status": "partial-review-complete; whole-system audit in_progress",
+  "scope": "의복 맞춤 제작·품질·영감·반복·불합격품 처리와 재단시설 도감 수치. 감사 산출물만 변경. 밸런스 영향 없음.",
+  "freshness": {
+    "query": "ApparelCraftOrder CraftQuality ApparelRejectedDismantle",
+    "areas": [
+      "code",
+      "content",
+      "authority"
+    ],
+    "limit": 8,
+    "sessionId": 43342,
+    "exitCode": 1,
+    "status": "stale",
+    "failures": 4,
+    "returnedRows": 0,
+    "contentSourceDigest": "139a0a989275ecdd5a4a26c10ceb6a1931041c7c928ed0421628faea5cd928c6",
+    "knowledgeBaseSourceDigest": "ceef8dc8f25f4d327205b15e12346aee0ebc5d6a84aa7eeb1f08af5ce14db0dd",
+    "regenerated": false
+  },
+  "population": {
+    "apparel": 56,
+    "textiles": 12,
+    "physicalMaterialItems": 12,
+    "tailoringFacilities": 1,
+    "traitDefinitions": 1,
+    "apparelFactsPerEntry": 3,
+    "apparelSelectionFieldsCompared": 280,
+    "selectionFieldErrors": 0,
+    "independentlyEnumeratedVariants": 5454,
+    "variantScope": "허용 소재 태그×크기3개×정의가 허용한 개조 조합。독립 산술용 열거이며 실제 플레이 실행 수가 아니다."
+  },
+  "apparel": [
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_work_shirt.asset",
+      "apparelId": "apparel:work-shirt",
+      "physicalItemId": "apparel:work-shirt",
+      "displayName": "작업 셔츠",
+      "occupiedPoints": "104",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.95",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-work-shirt.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 24,
+      "independentMaxWU": 56
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_wing_harness.asset",
+      "apparelId": "apparel:wing-harness",
+      "physicalItemId": "apparel:wing-harness",
+      "displayName": "날개 멜빵",
+      "occupiedPoints": "106496",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.82",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-wing-harness.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 24,
+      "independentMaxWU": 46
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_wing_cloak.asset",
+      "apparelId": "apparel:wing-cloak",
+      "physicalItemId": "apparel:wing-cloak",
+      "displayName": "날개 망토",
+      "occupiedPoints": "106496",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.9",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-wing-cloak.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 24,
+      "independentMaxWU": 46
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_weapon_vigil_cloak.asset",
+      "apparelId": "apparel:weapon-vigil-cloak",
+      "physicalItemId": "apparel:weapon-vigil-cloak",
+      "displayName": "무기 철야 망토",
+      "occupiedPoints": "8200",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.08",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-weapon-vigil-cloak.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0.3200000000000003,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 30,
+      "independentMaxWU": 66
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_waterproof_work_suit.asset",
+      "apparelId": "apparel:waterproof-work-suit",
+      "physicalItemId": "apparel:waterproof-work-suit",
+      "displayName": "방수 작업복",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.15",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-waterproof-work-suit.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0.5999999999999996,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 288,
+      "independentMinWU": 44,
+      "independentMaxWU": 104
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_vest.asset",
+      "apparelId": "apparel:vest",
+      "physicalItemId": "apparel:vest",
+      "displayName": "조끼",
+      "occupiedPoints": "8",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.9",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-vest.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 18,
+      "independentMaxWU": 46
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_undershirt.asset",
+      "apparelId": "apparel:undershirt",
+      "physicalItemId": "apparel:undershirt",
+      "displayName": "속셔츠",
+      "occupiedPoints": "8",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.78",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-undershirt.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 18,
+      "independentMaxWU": 46
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_tunic.asset",
+      "apparelId": "apparel:tunic",
+      "physicalItemId": "apparel:tunic",
+      "displayName": "튜닉",
+      "occupiedPoints": "104",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.9",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tunic.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 24,
+      "independentMaxWU": 56
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_trousers.asset",
+      "apparelId": "apparel:trousers",
+      "physicalItemId": "apparel:trousers",
+      "displayName": "바지",
+      "occupiedPoints": "1552",
+      "supportedModifications": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.92",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-trousers.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 24,
+      "independentMaxWU": 50
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_tail_ribbon.asset",
+      "apparelId": "apparel:tail-ribbon",
+      "physicalItemId": "apparel:tail-ribbon",
+      "displayName": "꼬리 리본",
+      "occupiedPoints": "16384",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.55",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tail-ribbon.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 18,
+      "independentMaxWU": 34
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_tail_guard.asset",
+      "apparelId": "apparel:tail-guard",
+      "physicalItemId": "apparel:tail-guard",
+      "displayName": "꼬리 보호대",
+      "occupiedPoints": "16384",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.9",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tail-guard.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 18,
+      "independentMaxWU": 36
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_surgical_apron.asset",
+      "apparelId": "apparel:surgical-apron",
+      "physicalItemId": "apparel:surgical-apron",
+      "displayName": "외과 앞치마",
+      "occupiedPoints": "24",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.05",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-surgical-apron.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0.20000000000000018,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 30,
+      "independentMaxWU": 56
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_sterile_gown.asset",
+      "apparelId": "apparel:sterile-gown",
+      "physicalItemId": "apparel:sterile-gown",
+      "displayName": "무균 가운",
+      "occupiedPoints": "104",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sterile-gown.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 24,
+      "independentMaxWU": 56
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_spore_protection_hood.asset",
+      "apparelId": "apparel:spore-protection-hood",
+      "physicalItemId": "apparel:spore-protection-hood",
+      "displayName": "포자 방호 두건",
+      "occupiedPoints": "3",
+      "supportedModifications": "4",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.05",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-spore-protection-hood.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0.20000000000000018,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 30,
+      "independentMaxWU": 60
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_spore_garden_cloak.asset",
+      "apparelId": "apparel:spore-garden-cloak",
+      "physicalItemId": "apparel:spore-garden-cloak",
+      "displayName": "포자 정원 망토",
+      "occupiedPoints": "8200",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.02",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-spore-garden-cloak.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0.08000000000000007,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 30,
+      "independentMaxWU": 66
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_socks.asset",
+      "apparelId": "apparel:socks",
+      "physicalItemId": "apparel:socks",
+      "displayName": "양말",
+      "occupiedPoints": "6144",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.72",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-socks.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 20,
+      "independentMaxWU": 40
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_smoke_protection_hood.asset",
+      "apparelId": "apparel:smoke-protection-hood",
+      "physicalItemId": "apparel:smoke-protection-hood",
+      "displayName": "연기 방호 두건",
+      "occupiedPoints": "3",
+      "supportedModifications": "4",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.08",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-smoke-protection-hood.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0.3200000000000003,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 30,
+      "independentMaxWU": 60
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_smith_apron.asset",
+      "apparelId": "apparel:smith-apron",
+      "physicalItemId": "apparel:smith-apron",
+      "displayName": "대장장이 앞치마",
+      "occupiedPoints": "24",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.12",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-smith-apron.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0.4800000000000004,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 30,
+      "independentMaxWU": 56
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_slime_warming_pad.asset",
+      "apparelId": "apparel:slime-warming-pad",
+      "physicalItemId": "equipment:slime-warming-pad",
+      "displayName": "보온 점액 패드",
+      "occupiedPoints": "8",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.1",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/equipment-slime-warming-pad.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0.40000000000000036,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 26,
+      "independentMaxWU": 50
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_sleep_top.asset",
+      "apparelId": "apparel:sleep-top",
+      "physicalItemId": "apparel:sleep-top",
+      "displayName": "잠옷 상의",
+      "occupiedPoints": "104",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.82",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sleep-top.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 24,
+      "independentMaxWU": 56
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_sleep_bottom.asset",
+      "apparelId": "apparel:sleep-bottom",
+      "physicalItemId": "apparel:sleep-bottom",
+      "displayName": "잠옷 하의",
+      "occupiedPoints": "1552",
+      "supportedModifications": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.82",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sleep-bottom.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 24,
+      "independentMaxWU": 50
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_sky_chorus_shawl.asset",
+      "apparelId": "apparel:sky-chorus-shawl",
+      "physicalItemId": "apparel:sky-chorus-shawl",
+      "displayName": "하늘 합창 숄",
+      "occupiedPoints": "8200",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.72",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sky-chorus-shawl.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 20,
+      "independentMaxWU": 40
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_skirt.asset",
+      "apparelId": "apparel:skirt",
+      "physicalItemId": "apparel:skirt",
+      "displayName": "치마",
+      "occupiedPoints": "1552",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.82",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-skirt.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 24,
+      "independentMaxWU": 46
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_shorts.asset",
+      "apparelId": "apparel:shorts",
+      "physicalItemId": "apparel:shorts",
+      "displayName": "반바지",
+      "occupiedPoints": "1552",
+      "supportedModifications": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.76",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-shorts.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 24,
+      "independentMaxWU": 50
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_scarf.asset",
+      "apparelId": "apparel:scarf",
+      "physicalItemId": "apparel:scarf",
+      "displayName": "목도리",
+      "occupiedPoints": "4",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.82",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-scarf.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 18,
+      "independentMaxWU": 34
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_rune_cold_suit.asset",
+      "apparelId": "apparel:rune-cold-suit",
+      "physicalItemId": "equipment:rune-cold-suit",
+      "displayName": "룬 방한복",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.3",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/equipment-rune-cold-suit.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 1.2000000000000002,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 288,
+      "independentMinWU": 44,
+      "independentMaxWU": 104
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_ritual_robe.asset",
+      "apparelId": "apparel:ritual-robe",
+      "physicalItemId": "apparel:ritual-robe",
+      "displayName": "의식 로브",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.1",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-ritual-robe.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0.40000000000000036,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 240,
+      "independentMinWU": 44,
+      "independentMaxWU": 102
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_raincoat.asset",
+      "apparelId": "apparel:raincoat",
+      "physicalItemId": "apparel:raincoat",
+      "displayName": "우비",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.08",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-raincoat.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0.3200000000000003,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 288,
+      "independentMinWU": 44,
+      "independentMaxWU": 104
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_mourning_clothes.asset",
+      "apparelId": "apparel:mourning-clothes",
+      "physicalItemId": "apparel:mourning-clothes",
+      "displayName": "상복",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-mourning-clothes.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 240,
+      "independentMinWU": 34,
+      "independentMaxWU": 86
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_miner_workwear.asset",
+      "apparelId": "apparel:miner-workwear",
+      "physicalItemId": "apparel:miner-workwear",
+      "displayName": "광부 작업복",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.08",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-miner-workwear.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0.3200000000000003,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 288,
+      "independentMinWU": 44,
+      "independentMaxWU": 104
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_lower_underwear.asset",
+      "apparelId": "apparel:lower-underwear",
+      "physicalItemId": "apparel:lower-underwear",
+      "displayName": "하의 속옷",
+      "occupiedPoints": "16",
+      "supportedModifications": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.75",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-lower-underwear.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 18,
+      "independentMaxWU": 40
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_long_underpants.asset",
+      "apparelId": "apparel:long-underpants",
+      "physicalItemId": "apparel:long-underpants",
+      "displayName": "내의 바지",
+      "occupiedPoints": "1552",
+      "supportedModifications": "1",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.9",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-long-underpants.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 24,
+      "independentMaxWU": 50
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_loincloth_underwear.asset",
+      "apparelId": "apparel:loincloth-underwear",
+      "physicalItemId": "apparel:loincloth-underwear",
+      "displayName": "허리 두름 속옷",
+      "occupiedPoints": "16",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.65",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-loincloth-underwear.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 18,
+      "independentMaxWU": 34
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_keeper_coat.asset",
+      "apparelId": "apparel:keeper-coat",
+      "physicalItemId": "apparel:keeper-coat",
+      "displayName": "사육사 외투",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.05",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-keeper-coat.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0.20000000000000018,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 288,
+      "independentMinWU": 44,
+      "independentMaxWU": 104
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_horn_ring.asset",
+      "apparelId": "apparel:horn-ring",
+      "physicalItemId": "apparel:horn-ring",
+      "displayName": "뿔 고리",
+      "occupiedPoints": "131072",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.5",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-horn-ring.json",
+      "requiredMaterialUnits": 1,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 18,
+      "independentMaxWU": 36
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_hooded_robe.asset",
+      "apparelId": "apparel:hooded-robe",
+      "physicalItemId": "apparel:hooded-robe",
+      "displayName": "후드 로브",
+      "occupiedPoints": "9849",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.05",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-hooded-robe.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 8,
+      "complexityPenalty": 0.20000000000000018,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 240,
+      "independentMinWU": 46,
+      "independentMaxWU": 108
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_heat_work_suit.asset",
+      "apparelId": "apparel:heat-work-suit",
+      "physicalItemId": "apparel:heat-work-suit",
+      "displayName": "내열 작업복",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.15",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-heat-work-suit.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0.5999999999999996,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 288,
+      "independentMinWU": 44,
+      "independentMaxWU": 104
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_hauling_harness.asset",
+      "apparelId": "apparel:hauling-harness",
+      "physicalItemId": "tool:hauling-harness",
+      "displayName": "운반 멜빵",
+      "occupiedPoints": "8200",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.9",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/tool-hauling-harness.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 20,
+      "independentMaxWU": 40
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_hat.asset",
+      "apparelId": "apparel:hat",
+      "physicalItemId": "apparel:hat",
+      "displayName": "모자",
+      "occupiedPoints": "1",
+      "supportedModifications": "4",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.78",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-hat.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 18,
+      "independentMaxWU": 38
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_golem_functional_lining.asset",
+      "apparelId": "apparel:golem-functional-lining",
+      "physicalItemId": "apparel:golem-functional-lining",
+      "displayName": "골렘 기능성 내피",
+      "occupiedPoints": "9848",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-golem-functional-lining.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 34,
+      "independentMaxWU": 68
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_gloves.asset",
+      "apparelId": "apparel:gloves",
+      "physicalItemId": "apparel:gloves",
+      "displayName": "장갑",
+      "occupiedPoints": "384",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.82",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-gloves.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 20,
+      "independentMaxWU": 40
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_formal_coat.asset",
+      "apparelId": "apparel:formal-coat",
+      "physicalItemId": "apparel:formal-coat",
+      "displayName": "정장 외투",
+      "occupiedPoints": "8296",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.08",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-formal-coat.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 4,
+      "complexityPenalty": 0.3200000000000003,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 34,
+      "independentMaxWU": 78
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_footwraps.asset",
+      "apparelId": "apparel:footwraps",
+      "physicalItemId": "apparel:footwraps",
+      "displayName": "발싸개",
+      "occupiedPoints": "6144",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.62",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-footwraps.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 20,
+      "independentMaxWU": 40
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_festival_vest.asset",
+      "apparelId": "apparel:festival-vest",
+      "physicalItemId": "apparel:festival-vest",
+      "displayName": "축제 조끼",
+      "occupiedPoints": "8",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-festival-vest.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 18,
+      "independentMaxWU": 46
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_farmer_workwear.asset",
+      "apparelId": "apparel:farmer-workwear",
+      "physicalItemId": "apparel:farmer-workwear",
+      "displayName": "농부 작업복",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-farmer-workwear.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 240,
+      "independentMinWU": 34,
+      "independentMaxWU": 86
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_envoy_coat.asset",
+      "apparelId": "apparel:envoy-coat",
+      "physicalItemId": "apparel:envoy-coat",
+      "displayName": "사절 외투",
+      "occupiedPoints": "8296",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.08",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-envoy-coat.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 4,
+      "complexityPenalty": 0.3200000000000003,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 34,
+      "independentMaxWU": 78
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_daily_robe.asset",
+      "apparelId": "apparel:daily-robe",
+      "physicalItemId": "apparel:daily-robe",
+      "displayName": "일상 로브",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-daily-robe.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 240,
+      "independentMinWU": 34,
+      "independentMaxWU": 86
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_contract_sash.asset",
+      "apparelId": "apparel:contract-sash",
+      "physicalItemId": "apparel:contract-sash",
+      "displayName": "계약 어깨띠",
+      "occupiedPoints": "8",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.65",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-contract-sash.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 18,
+      "independentMaxWU": 34
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_cold_work_suit.asset",
+      "apparelId": "apparel:cold-work-suit",
+      "physicalItemId": "equipment:cold-work-suit",
+      "displayName": "방한 작업복",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1.18",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/equipment-cold-work-suit.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0.7199999999999998,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 288,
+      "independentMinWU": 44,
+      "independentMaxWU": 104
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_cloak.asset",
+      "apparelId": "apparel:cloak",
+      "physicalItemId": "apparel:cloak",
+      "displayName": "망토",
+      "occupiedPoints": "8200",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "1",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-cloak.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 72,
+      "independentMinWU": 20,
+      "independentMaxWU": 52
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_chest_wrap.asset",
+      "apparelId": "apparel:chest-wrap",
+      "physicalItemId": "apparel:chest-wrap",
+      "displayName": "가슴 감개",
+      "occupiedPoints": "8",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.65",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-chest-wrap.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 30,
+      "independentMinWU": 18,
+      "independentMaxWU": 34
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_ceremonial_dress.asset",
+      "apparelId": "apparel:ceremonial-dress",
+      "physicalItemId": "apparel:ceremonial-dress",
+      "displayName": "예복 드레스",
+      "occupiedPoints": "9848",
+      "supportedModifications": "7",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "1.12",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-ceremonial-dress.json",
+      "requiredMaterialUnits": 3,
+      "area": 2,
+      "occupiedPointCount": 7,
+      "complexityPenalty": 0.4800000000000004,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 240,
+      "independentMinWU": 44,
+      "independentMaxWU": 102
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_boots.asset",
+      "apparelId": "apparel:boots",
+      "physicalItemId": "apparel:boots",
+      "displayName": "장화",
+      "occupiedPoints": "6144",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.9",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-boots.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 20,
+      "independentMaxWU": 40
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_blouse.asset",
+      "apparelId": "apparel:blouse",
+      "physicalItemId": "apparel:blouse",
+      "displayName": "블라우스",
+      "occupiedPoints": "104",
+      "supportedModifications": "2",
+      "allowedMaterialTags": "1",
+      "tailoringCoefficient": "0.88",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-blouse.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 3,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:mire-canvas",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 60,
+      "independentMinWU": 24,
+      "independentMaxWU": 56
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_belt.asset",
+      "apparelId": "apparel:belt",
+      "physicalItemId": "apparel:belt",
+      "displayName": "허리띠",
+      "occupiedPoints": "16",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.62",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-belt.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 1,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 18,
+      "independentMaxWU": 36
+    },
+    {
+      "source": "Assets/Resources/SO/Apparel/Definitions/apparel_apron.asset",
+      "apparelId": "apparel:apron",
+      "physicalItemId": "apparel:apron",
+      "displayName": "앞치마",
+      "occupiedPoints": "24",
+      "supportedModifications": "0",
+      "allowedMaterialTags": "3",
+      "tailoringCoefficient": "0.9",
+      "allowMythicInspiration": "1",
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/item/apparel-apron.json",
+      "requiredMaterialUnits": 2,
+      "area": 1,
+      "occupiedPointCount": 2,
+      "complexityPenalty": 0,
+      "allowedMaterials": [
+        "material:spore-hemp",
+        "material:cloth",
+        "material:rune-leather",
+        "material:mire-canvas",
+        "material:leather",
+        "material:frost-wool",
+        "material:frost-linen",
+        "material:ember-cotton",
+        "material:dreamweave",
+        "material:deep-goat-wool",
+        "material:common-wool",
+        "material:cave-silk"
+      ],
+      "independentVariantCount": 36,
+      "independentMinWU": 20,
+      "independentMaxWU": 40
+    }
+  ],
+  "materials": [
+    {
+      "id": "material:spore-hemp",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_spore_hemp.asset",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_spore_hemp.asset",
+      "textileTags": 2053,
+      "kind": 1,
+      "ingredientTags": 128,
+      "unitWeight": 0.21,
+      "maxStack": 100,
+      "workFactor": 0.932622492313385
+    },
+    {
+      "id": "material:cloth",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_shade_cloth.asset",
+      "source": "Assets/Resources/SO/Economy/Items/material_cloth.asset",
+      "textileTags": 5,
+      "kind": 1,
+      "ingredientTags": 128,
+      "unitWeight": 0.2,
+      "maxStack": 75,
+      "workFactor": 0.9322580695152283
+    },
+    {
+      "id": "material:rune-leather",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_rune_leather.asset",
+      "source": "Assets/Resources/SO/Economy/Items/material_rune_leather.asset",
+      "textileTags": 538,
+      "kind": 1,
+      "ingredientTags": 1152,
+      "unitWeight": 0.4,
+      "maxStack": 40,
+      "workFactor": 1.0383710861206055
+    },
+    {
+      "id": "material:mire-canvas",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_mire_canvas.asset",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_mire_canvas.asset",
+      "textileTags": 645,
+      "kind": 1,
+      "ingredientTags": 128,
+      "unitWeight": 0.27,
+      "maxStack": 100,
+      "workFactor": 0.9346473217010498
+    },
+    {
+      "id": "material:leather",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_leather.asset",
+      "source": "Assets/Resources/SO/Economy/Items/material_leather.asset",
+      "textileTags": 522,
+      "kind": 1,
+      "ingredientTags": 128,
+      "unitWeight": 0.45,
+      "maxStack": 60,
+      "workFactor": 0.9396370649337769
+    },
+    {
+      "id": "material:frost-wool",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_frost_wool.asset",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_frost_wool.asset",
+      "textileTags": 553,
+      "kind": 1,
+      "ingredientTags": 128,
+      "unitWeight": 0.256,
+      "maxStack": 100,
+      "workFactor": 0.9341968297958374
+    },
+    {
+      "id": "material:frost-linen",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_frost_linen.asset",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_frost_linen.asset",
+      "textileTags": 1061,
+      "kind": 1,
+      "ingredientTags": 128,
+      "unitWeight": 0.164,
+      "maxStack": 100,
+      "workFactor": 0.9308639764785767
+    },
+    {
+      "id": "material:ember-cotton",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_ember_cotton.asset",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_ember_cotton.asset",
+      "textileTags": 69,
+      "kind": 1,
+      "ingredientTags": 128,
+      "unitWeight": 0.176,
+      "maxStack": 100,
+      "workFactor": 0.9313442707061768
+    },
+    {
+      "id": "material:dreamweave",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_dreamweave.asset",
+      "source": "Assets/Resources/SO/Economy/Items/material_dreamweave.asset",
+      "textileTags": 1041,
+      "kind": 1,
+      "ingredientTags": 1152,
+      "unitWeight": 0.12,
+      "maxStack": 40,
+      "workFactor": 1.0289314985275269
+    },
+    {
+      "id": "material:deep-goat-wool",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_deep_goat_wool.asset",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_deep_goat_wool.asset",
+      "textileTags": 521,
+      "kind": 1,
+      "ingredientTags": 128,
+      "unitWeight": 0.26,
+      "maxStack": 100,
+      "workFactor": 0.9343267679214478
+    },
+    {
+      "id": "material:common-wool",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_common_wool.asset",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_common_wool.asset",
+      "textileTags": 41,
+      "kind": 1,
+      "ingredientTags": 128,
+      "unitWeight": 0.24,
+      "maxStack": 100,
+      "workFactor": 0.9336666464805603
+    },
+    {
+      "id": "material:cave-silk",
+      "materialSource": "Assets/Resources/SO/Apparel/Materials/textile_cave_silk.asset",
+      "source": "Assets/Resources/SO/Economy/Items/V22Apparel/material_cave_silk.asset",
+      "textileTags": 1289,
+      "kind": 1,
+      "ingredientTags": 128,
+      "unitWeight": 0.11,
+      "maxStack": 100,
+      "workFactor": 0.9284448623657227
+    }
+  ],
+  "materialCalculationNote": "Resources에서 MaterialEconomicProfileSO의 MonoScript GUID를 사용하는 작성 자산은 검색되지 않았다. 등록된 물리 자원 아이템으로 유도한 작업 배율을 독립 계산했다. 전투 CraftMaterialDefinitionSO는 별도 타입이다. 단정밀 중간 반올림을 사용했으나 Unity 실행 검증은 아니다.",
+  "facility": {
+    "source": "Assets/Resources/SO/Building/V22Apparel/V22_9301_재단_재봉_작업대.asset",
+    "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9301.json",
+    "id": 9301,
+    "command": 39,
+    "workstationTag": "workstation:v22:tailoring",
+    "physicalOutputBufferCycleCapacity": 4,
+    "eligibilityBufferRange": [
+      2,
+      4
+    ],
+    "operateWorkRequired": 10,
+    "authoredConstructionWU": 306,
+    "publicConstructionWU": 249,
+    "constructionMaterials": [
+      {
+        "id": "material:lumber",
+        "amount": 6
+      },
+      {
+        "id": "material:iron-ingot",
+        "amount": 3
+      }
+    ],
+    "domainCatalogReferences": 1
+  },
+  "inspiration": {
+    "source": "Assets/Resources/SO/V26/Traits/Founder/Trait_300_possessed-inspiration.asset",
+    "publicPath": "wiki/game-versions/0.0.1v/data/entities/character/trait-300.json",
+    "traitId": 300,
+    "mythicChance": 0.03,
+    "minimumContributionShare": 0.6,
+    "comparisonTolerance": 0.0001,
+    "repetitionFreeCount": 2,
+    "repetitionMoodStep": -2,
+    "repetitionMoodMinimum": -10,
+    "repetitionMoodDays": 1,
+    "resetAfterHours": 48,
+    "mythicMoodDelta": 10,
+    "mythicMoodDurationDays": 2,
+    "authoredAllowMythicCount": 56,
+    "domainCatalogReferences": 1
+  },
+  "alreadyCovered": [
+    "공통 품질 점수 공식과 전설까지 등급 경계",
+    "런/주문/정의/시도에 따른 품질 난수 고정",
+    "반복 XP 구간(GAP-007 철회 유지)",
+    "소재 허용·선택(GAP-099)",
+    "작업 WU의 실제 노동 전달 문제(APPAREL-WORK-U01)",
+    "일반 주문 실패/복원(GAP-103)"
+  ],
+  "gaps": [
+    {
+      "id": "GAP-104",
+      "title": "의복 맞춤 제작의 원단 수량·크기·개조별 작업량 공식 누락",
+      "owner": "production (species-culture-and-life·의복 도감에서 참조)",
+      "category": "재료량·작업량 공식 누락",
+      "wiki_evidence": "생산 문서는 개별 제작식의 BOM과 WU를 도감에서 확인하도록 안내한다. 의복 56개 도감은 무게·적재·가격만 표시하며, 재단·재봉 작업대의 맞춤 제작이 원단 수와 WU를 별도로 계산한다는 설명은 없다.",
+      "required_documentation": "맞춤 의복 한 벌은 허용 태그에 맞는 한 종류의 원단을 max(1, ceil(2×재단계수))개 사용한다. 현재 56종의 필요량은 1~3개다. 제작 WU는 (10 + 12×clamp(ceil(재단계수),1,5) + 4×점유 부위 수 + 개조 작업량)에 크기 배율과 원단의 작업 배율을 곱한 뒤 2 WU 단위로 반올림하며 최소 2 WU다. 크기 배율은 소형 0.75·중형 1·대형 1.30이고 개조는 꼬리 4·날개 8·뿔 3 WU를 합산한다. 크기와 개조는 이 경로의 원단 개수를 늘리지 않는다. 원단 작업 배율은 별도 경제 프로필 또는 물리 아이템의 종류·태그·무게에서 계산하며 전투 소재 배율과 구분한다. 현행 V27 계산기는 이 의복 공식을 그대로 사용하고 2.25를 추가로 곱하지 않는다. 실제 노동 완료 전달의 APPAREL-WORK-U01 문제가 있어 계산 WU를 실제 소요 시간으로 단정하지 않는다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Services/Economy/V23BalanceWorkCalculator.cs",
+        "Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs",
+        "Assets/Scripts/Models/Economy/Content/MaterialEconomicProfileSO.cs",
+        "wiki/game-versions/0.0.1v/content/guides/production.md",
+        "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+        "Assets/Resources/SO/Building/V22Apparel/V22_9301_재단_재봉_작업대.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9301.json"
+      ],
+      "symbols": "CreateCraft / V27BalanceWorkCalculator.CalculateApparel / V23BalanceWorkCalculator.CalculateApparel / RoundTo / ResourceMaterialEconomicProfileCatalog.GetWorkFactor",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    },
+    {
+      "id": "GAP-105",
+      "title": "의복 품질의 작업 기여·시설 숙련·복잡도 보정 누락",
+      "owner": "production-quality-and-supply",
+      "category": "공통 공식에 들어가는 의복별 수치 누락",
+      "wiki_evidence": "품질 문서는 공통 점수 공식·등급 경계·고정 난수는 설명하지만, 의복에서 가중 스킬·시설 보정·도구 보정·복잡도에 어떤 값을 넣는지 설명하지 않는다.",
+      "required_documentation": "의복 제작에 기여한 작업자의 품질 능력은 해당 시설의 제작 작업 프로필로 평가한 performance:work:craft:quality 값에 58을 곱하고 0~100으로 제한한다. 각 기여 구간의 인정 WU로 이 값을 가중 평균한다. 시설 보정은 (시설 제작 숙련 점수-50)×0.08, 도구 보정은 현재 0, 복잡도 감점은 max(0,재단계수-1)×4다. 이 입력을 기존 품질 공식에 대입하고 공통 등급표·고정 난수 설명은 복제하지 않는다. 시작·작업 시점에는 자격을 갖춘 작업자의 최고 값과 난수 합 최대 30으로 목표 가능 여부를 검사하며, 불가능하면 예약을 풀고 목표 달성 불가 상태로 기다린다. 가중 값이 0일 때 50으로 바꾸는 분기는 의도 확인 사항 APPAREL-CRAFT-U03으로 분리한다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Services/Foundation/V23CraftingPrimitives.cs",
+        "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs",
+        "wiki/game-versions/0.0.1v/content/guides/production-quality-and-supply.md",
+        "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md"
+      ],
+      "symbols": "GetApparelQualitySkill / CraftContributionAccumulator.Add / WeightedRelevantSkill / ResolveCraft / CanPotentiallyReachCraftQuality",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    },
+    {
+      "id": "GAP-106",
+      "title": "신들린 영감의 신화 제작 조건·반복 권태·성공 기분 수치 누락",
+      "owner": "character/trait-300 (production-quality-and-supply에서 참조)",
+      "category": "특성 조건·확률·기분 효과 누락",
+      "wiki_evidence": "신들린 영감 도감은 이 특성으로 신화 품질을 만들 수 있다는 요약과 정체성 규칙 1개만 표시한다. 확률, 제작 기여 조건, 같은 물품 반복 시 권태와 성공 보상은 공개 본문에 없다.",
+      "required_documentation": "의복 제작에서 마지막으로 실제 WU를 기여한 작업자가 신들린 영감을 갖고, 그 작업자의 총 기여 비율이 60% 이상이며 정의가 영감을 허용하면 신화 승격을 3% 확률로 판정한다. 비교에는 0.0001 허용오차가 있다. 현재 의복 56종 모두 영감을 허용한다. 판정은 런·주문·품목·시도·제작자·특성 ID에서 고정되며 일반 품질 점수가 전설을 넘어 자동으로 신화가 되는 구조가 아니다. 같은 품목을 연속 완성하면 3회째부터 권태 -2, 이후 한 번마다 -2씩 최대 -10을 1일간 적용한다. 다른 품목을 완성하거나 마지막 완료 후 48게임시간이 지나면 연속 횟수를 1로 다시 센다. 신화 성공은 기분 +10을 2일간 적용하고 연속 횟수를 초기화한다. 횟수 초기화가 기존 권태 효과의 즉시 제거를 뜻하지는 않는다. 이 수치는 특성 도감 한 곳에서 설명하고 품질 문서는 참조한다. 무기·방어구의 완료 조건은 해당 실행기 대조 후 범위를 확장한다.",
+      "sources": [
+        "Assets/Resources/SO/V26/Traits/Founder/Trait_300_possessed-inspiration.asset",
+        "wiki/game-versions/0.0.1v/data/entities/character/trait-300.json",
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Services/Foundation/V23CraftingPrimitives.cs",
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+        "wiki/game-versions/0.0.1v/content/guides/production-quality-and-supply.md"
+      ],
+      "symbols": "ExtremeCraftInspirationRule / ResolveCraft / MythicCraftInspirationRules / RecordEligibleCompletion",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    },
+    {
+      "id": "GAP-107",
+      "title": "의복 반복 제작의 안전 한도·목표 수량·작업 예산 구분 누락",
+      "owner": "production-quality-and-supply",
+      "category": "주문 설정·중단 조건 누락",
+      "wiki_evidence": "목표 품질 반복 절에는 목표 난도와 일반 XP 비율만 있다. 의복 UI의 안전 한도/목표 품질까지, 불합격품 처리 선택, 합격 수량과 작업 예산의 관계를 설명하지 않는다.",
+      "required_documentation": "의복 UI 기본값은 목표 품질 보통·합격 1벌·자동 분해·안전 한도이며 maximumAttempts=10, workBudget=0이다. 작업 예산과 합격 수량을 바꾸는 컨트롤은 현재 의복 패널에 없다. 안전 한도는 시도 수 또는 양수 작업 예산에 걸리면 중단하고, 목표 품질까지 모드는 이 두 한도를 적용하지 않는다. 예산에는 제작과 불합격품 해체 WU를 누적하며 판정은 각 작업이 끝난 뒤라 한 작업만큼 예산을 넘을 수 있다. 합격 목표 수량을 채우면 먼저 완료한다. 기본값 10을 '실제로 10회 제작한다'고 안내해서는 안 된다. 다음 시도 번호를 먼저 증가시키는 현재 분기는 모두 불합격인 경우 9회 완료 뒤 실패할 수 있고, 저장 번호 불일치도 만든다(APPAREL-CRAFT-U01). 신화는 목표 선택 UI에 없고 이론 최고 품질 검사도 전설까지만 다루므로 신화 자동 반복을 지원한다고 설명하지 않는다(APPAREL-CRAFT-U02).",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs",
+        "wiki/game-versions/0.0.1v/content/guides/production-quality-and-supply.md",
+        "wiki/game-versions/0.0.1v/content/guides/production.md"
+      ],
+      "symbols": "ApparelCraftUiSettings / ResolveCraft / PrepareNextCraftAttempt / HasReachedApparelRepeatLimit / CaptureOrders / PrepareRestoreOrders",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    },
+    {
+      "id": "GAP-108",
+      "title": "의복 불합격품 보관·판매 대기·자동 분해의 결과와 회수량 누락",
+      "owner": "production-quality-and-supply (production에서 참조)",
+      "category": "불합격품 처리·회수 비용 누락",
+      "wiki_evidence": "생산과 품질 문서는 출력 공간 대기와 일반 회수 가치 상한만 설명한다. 의복의 세 가지 불합격품 처리 방식, 실제 원단 회수 수량과 해체 작업량은 없다.",
+      "required_documentation": "불합격품 보관은 완성품을 남기고 다음 제작을 준비하며, 판매 대기는 판매용 목적지로 넘기는 표시이지 즉시 판매·수입 확정이 아니다. 자동 분해는 이미 만든 의복 한 벌을 소비하고 원래 원단을 floor(투입 원단 수×0.5×max(0,최종 제작자의 회수 수율 배율))개 돌려준다. 배율 1에서 원단 1/2/3개를 쓴 의복의 회수는 각각 0/1/1개다. 해체 작업량은 max(0.1,해당 제작 WU×0.2)이고 해체 완료 뒤 다음 제작을 준비한다. 회수 공간이 없으면 대기하며, 회수 질량이 소비한 의복 질량을 넘으면 물리 처리에서 거부한다. 안전 한도·예산 검사를 자동 분해 전에도 수행하므로 이미 한도에 도달한 불합격품은 자동 분해되지 않고 남을 수 있다. 신화 품질은 판매 대기로 보내지 않는다. 실제 운반·판매 정산·저장 재개는 별도 실행 확인과 구분해 안내한다.",
+      "sources": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelPhysicalTransaction.cs",
+        "Assets/Scripts/Services/Economy/ApparelSpecialThroughputContributor.cs",
+        "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs",
+        "Assets/Scripts/Services/Foundation/V23CraftingPrimitives.cs",
+        "wiki/game-versions/0.0.1v/content/guides/production-quality-and-supply.md",
+        "wiki/game-versions/0.0.1v/content/guides/production.md"
+      ],
+      "symbols": "ResolveCraft / ResolveRejectedApparelDismantle / ResolveRejectedRecoveryWork / ExecuteRejectedDismantleOrResume / MarketDestinationId",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    },
+    {
+      "id": "GAP-109",
+      "title": "재단·재봉 작업대 도감의 건설 작업량이 현재 작성값과 불일치",
+      "owner": "facility/building-9301 (시설 도감 전수 수치 대조로 확장)",
+      "category": "도감 수치 불일치",
+      "wiki_evidence": "재단·재봉 작업대 도감 요약은 건설 작업량 249를 표시한다. 현재 루트 카탈로그에 연결된 시설 자산의 constructionWorkRequired는 306이다. 목재 6·철괴 3은 양쪽이 일치한다.",
+      "required_documentation": "재단·재봉 작업대의 건설 WU를 현재 작성 권위 306과 맞춰야 한다. 건설 재료 목재 6개·철괴 3개는 변경할 필요가 없다. 이 수치는 시설을 짓는 비용이며 의복 한 벌의 맞춤 제작 WU나 operateWorkRequired=10과 혼동하지 않도록 구분한다. 현행 V27 CalculateConstruction은 이 작성 건설 WU를 직접 반환한다. 지금 확인한 불일치는 시설 1개이며 다른 시설의 비용도 같은 원인인지 전체 시설 대조에서 확인한다.",
+      "sources": [
+        "Assets/Resources/SO/Building/V22Apparel/V22_9301_재단_재봉_작업대.asset",
+        "wiki/game-versions/0.0.1v/data/entities/facility/building-9301.json",
+        "Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs",
+        "Assets/Resources/SO/Content/GameDomainContentCatalog.asset"
+      ],
+      "symbols": "BuildingWorkAmountAbility.constructionWorkRequired / V27BalanceWorkCalculator.CalculateConstruction",
+      "status": "owner-gap-confirmed",
+      "global_deduplication": "pending"
+    }
+  ],
+  "implementationQuestions": [
+    {
+      "id": "APPAREL-CRAFT-U01",
+      "title": "반복 종료의 시도 번호 증가와 저장 검증 불일치",
+      "evidence": "PrepareNextCraftAttempt는 qualityAttemptIndex를 먼저 증가시키고 한도에 걸리면 qualityRoll 갱신 전에 Failed로 반환한다. ApplyWork는 Failed를 유지하고 CaptureOrders는 이 주문도 저장한다. PrepareRestoreOrders는 두 attemptIndex가 다르면 예외를 던진다. maxAttempts10·전부 불합격·예산0 모델은 실제 완료9회, orderIndex9/rollIndex8이다.",
+      "status": "static-counterexample; actual save roundtrip not run",
+      "scope": "스크립트를 고치지 않는다. 문서에 안전 한도10=실제10회라고 쓰지 않는다."
+    },
+    {
+      "id": "APPAREL-CRAFT-U02",
+      "title": "신화 목표 반복은 UI와 사전 가능 판정에서 지원되지 않음",
+      "evidence": "품질 올리기 버튼은6(전설)까지다. 사전 가능 판정도 일반 FromScore를 사용해 전설까지만 산출하고 영감 승격을 계산하지 않는다. 실제 완성품의 신화3% 경로와 목표 품질 반복은 구분해야 한다.",
+      "status": "static-path-confirmed; runtime scenario not run"
+    },
+    {
+      "id": "APPAREL-CRAFT-U03",
+      "title": "의복 품질의 0점 기여가 50점으로 대체됨",
+      "evidence": "GetApparelQualitySkill은0까지 허용하지만 ResolveCraft는 WeightedRelevantSkill>0인 경우에만 그 값을 쓴다. 그렇지 않으면50을 넣는다. 정말0인 기여와 기여 기록 부재가 같은 처리이며 목표 가능 판정은 이 대체를 하지 않는다.",
+      "status": "intent-unconfirmed; no fallback introduced by this audit"
+    },
+    {
+      "id": "APPAREL-CRAFT-U04",
+      "title": "설계 수치 원장의 생산식 단일 권위 설명과 맞춤 의복 명령의 계산 차이",
+      "evidence": "apparel-and-module-numeric-notes.md는 의복 BOM/WU가 ProductionRecipeSO에만 있다고 적지만 CreateCraft는 재단계수로 수량을 계산하고 등록된 V27→V23 의복 공식을 호출한다. 두 제작 경로의 의도·해금·공개 관계를 추가 대조해야 한다.",
+      "status": "authority-text-mismatch; other recipe/caller coverage remains open"
+    },
+    {
+      "id": "APPAREL-CRAFT-U05",
+      "title": "영감 시도 자격과 반복 기분 기록의 조건 차이",
+      "evidence": "신화 판정에는60% 기여와 정의 허용 검사가 있지만 RecordEligibleCompletion 호출은 최종 작업자에게 규칙이 있는지만 확인한다. 연속 횟수 초기화 분기에는 기존 권태 효과 제거 호출이 없다. 기분 서비스의 기존 효과 갱신·만료 및 장비 제작과의 공유 상태는 미검토다.",
+      "status": "static-condition-difference; mood effect lifecycle remains open"
+    }
+  ],
+  "independentArithmeticChecks": [
+    {
+      "id": "material-0.4",
+      "expected": 1,
+      "actual": 1,
+      "pass": true,
+      "meaning": "원단 수량 독립 산술"
+    },
+    {
+      "id": "material-0.5",
+      "expected": 1,
+      "actual": 1,
+      "pass": true,
+      "meaning": "원단 수량 독립 산술"
+    },
+    {
+      "id": "material-0.95",
+      "expected": 2,
+      "actual": 2,
+      "pass": true,
+      "meaning": "원단 수량 독립 산술"
+    },
+    {
+      "id": "material-1",
+      "expected": 2,
+      "actual": 2,
+      "pass": true,
+      "meaning": "원단 수량 독립 산술"
+    },
+    {
+      "id": "material-1.1",
+      "expected": 3,
+      "actual": 3,
+      "pass": true,
+      "meaning": "원단 수량 독립 산술"
+    },
+    {
+      "id": "material-1.5",
+      "expected": 3,
+      "actual": 3,
+      "pass": true,
+      "meaning": "원단 수량 독립 산술"
+    },
+    {
+      "id": "recovery-1",
+      "expected": 0,
+      "actual": 0,
+      "pass": true,
+      "meaning": "회수 수율 1일 때 내림"
+    },
+    {
+      "id": "recovery-2",
+      "expected": 1,
+      "actual": 1,
+      "pass": true,
+      "meaning": "회수 수율 1일 때 내림"
+    },
+    {
+      "id": "recovery-3",
+      "expected": 1,
+      "actual": 1,
+      "pass": true,
+      "meaning": "회수 수율 1일 때 내림"
+    },
+    {
+      "id": "recovery-work",
+      "expected": 6.4,
+      "actual": 6.4,
+      "pass": true,
+      "meaning": "제작 32 WU의 회수 작업"
+    },
+    {
+      "id": "weighted-skill",
+      "expected": 60,
+      "actual": 60,
+      "pass": true,
+      "meaning": "80 능력 60 WU + 30 능력 40 WU"
+    },
+    {
+      "id": "facility-bonus",
+      "expected": 2,
+      "actual": 2,
+      "pass": true,
+      "meaning": "시설 숙련 75"
+    },
+    {
+      "id": "complexity",
+      "expected": 2,
+      "actual": 2,
+      "pass": true,
+      "meaning": "재단계수 1.5"
+    },
+    {
+      "id": "apparel-score",
+      "expected": 57,
+      "actual": 57,
+      "pass": true,
+      "meaning": "가중60, 시설+2, 복잡도2, 난수합0"
+    },
+    {
+      "id": "mood-repeat-2",
+      "expected": 0,
+      "actual": 0,
+      "pass": true,
+      "meaning": "같은 품목 연속 제작의 기분 요청값"
+    },
+    {
+      "id": "mood-repeat-3",
+      "expected": -2,
+      "actual": -2,
+      "pass": true,
+      "meaning": "같은 품목 연속 제작의 기분 요청값"
+    },
+    {
+      "id": "mood-repeat-4",
+      "expected": -4,
+      "actual": -4,
+      "pass": true,
+      "meaning": "같은 품목 연속 제작의 기분 요청값"
+    },
+    {
+      "id": "mood-repeat-7",
+      "expected": -10,
+      "actual": -10,
+      "pass": true,
+      "meaning": "같은 품목 연속 제작의 기분 요청값"
+    },
+    {
+      "id": "mood-repeat-10",
+      "expected": -10,
+      "actual": -10,
+      "pass": true,
+      "meaning": "같은 품목 연속 제작의 기분 요청값"
+    },
+    {
+      "id": "mythic-threshold-29999",
+      "expected": 1,
+      "actual": 1,
+      "pass": true,
+      "meaning": "3%의 고정 hash 판정 경계"
+    },
+    {
+      "id": "mythic-threshold-30000",
+      "expected": 0,
+      "actual": 0,
+      "pass": true,
+      "meaning": "3%의 고정 hash 판정 경계"
+    },
+    {
+      "id": "repeat-stop-1",
+      "expected": 1,
+      "actual": 1,
+      "pass": true,
+      "meaning": "모든 제작이 불합격, 예산 비활성인 정적 제어 흐름 모델. Unity 실행 아님"
+    },
+    {
+      "id": "repeat-stop-2",
+      "expected": 1,
+      "actual": 1,
+      "pass": true,
+      "meaning": "모든 제작이 불합격, 예산 비활성인 정적 제어 흐름 모델. Unity 실행 아님"
+    },
+    {
+      "id": "repeat-stop-3",
+      "expected": 2,
+      "actual": 2,
+      "pass": true,
+      "meaning": "모든 제작이 불합격, 예산 비활성인 정적 제어 흐름 모델. Unity 실행 아님"
+    },
+    {
+      "id": "repeat-stop-10",
+      "expected": 9,
+      "actual": 9,
+      "pass": true,
+      "meaning": "모든 제작이 불합격, 예산 비활성인 정적 제어 흐름 모델. Unity 실행 아님"
+    },
+    {
+      "id": "repeat-save-mismatch",
+      "expected": 0,
+      "actual": 0,
+      "pass": true,
+      "meaning": "실패 주문 번호9와 난수 번호8은 복원 일치 검증을 통과하지 못함"
+    },
+    {
+      "id": "budget-overshoot",
+      "expected": 12,
+      "actual": 12,
+      "pass": true,
+      "meaning": "예산20에서32WU 제작 완료 뒤 초과12"
+    }
+  ],
+  "readScope": [
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+      "ranges": [
+        "425-512",
+        "638-798",
+        "827-842",
+        "900-926",
+        "1391-1430",
+        "1523-1831",
+        "2943-3059"
+      ],
+      "scope": "선택 구간 및 기존 유지관리 보고서의 동일 해시 검토 구간. 전체 파일 완독으로 세지 않는다."
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelPhysicalTransaction.cs",
+      "ranges": [
+        "177-311",
+        "402-459",
+        "472-621",
+        "649-688",
+        "1299-1339"
+      ],
+      "scope": "산출·판매대기·회수 질량·시도 초기화. 전체 물리 트랜잭션/저장 영수증 검증은 미완료."
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/V23BalanceWorkCalculator.cs",
+      "ranges": [
+        "172-214",
+        "마지막 CountBits/RoundTo"
+      ],
+      "scope": "의복 공식"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs",
+      "ranges": [
+        "1-66"
+      ],
+      "scope": "계산 위임과 건설 WU 조회"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/MaterialEconomicProfileSO.cs",
+      "scope": "전문"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/ApparelTailoringFacilityEligibility.cs",
+      "scope": "전문"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/ApparelSpecialThroughputContributor.cs",
+      "ranges": [
+        "126-200"
+      ],
+      "scope": "회수 계수·최소WU와 후보 열거. 이전 조사 ResolveRejectedRecoveryWork 및 CaptureVariants와 교차 참조."
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "ranges": [
+        "1057-1170"
+      ],
+      "scope": "ExtremeCraftInspirationRuntime 클래스"
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs",
+      "ranges": [
+        "290-326",
+        "601-622"
+      ],
+      "scope": "고급 품질 UI·초깃값 재확인. 이전 유지관리 전문 해시와 일치."
+    },
+    {
+      "path": "Assets/Scripts/Services/Foundation/V23CraftingPrimitives.cs",
+      "ranges": [
+        "기여 누적 84-142",
+        "174-236",
+        "318-356"
+      ],
+      "scope": "기여 평균·영감 규칙·품질 판정과 기존 중간 조사 대조"
+    }
+  ],
+  "sourceEvidence": [
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+      "sha256": "4fda39ad5c2d06f0ff649b4d5740250f8ca8b0e786acb92dd4f97b3e265f70bf"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/V23BalanceWorkCalculator.cs",
+      "sha256": "046141e9b9a177a8d56c04b310e22d4a3d347665da24aba94a18f95a9323476d"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/V27BalanceWorkCalculator.cs",
+      "sha256": "d4f2bd2f4f6e7477e99f4cb36c71f00684478b88ddd50f5773896af2904caacd"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/MaterialEconomicProfileSO.cs",
+      "sha256": "642aad61dde4ada5638c7a359ae410b87ce5cb28025e24ac1755efb66d634fe6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/production.md",
+      "sha256": "c46cec0e434165f21723c1bb39947a87f1a2528697cc4e5d00bffe08b8847817"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+      "sha256": "cd356f79ff6edde0835a1590c3f4e2688a41b97cd2e510e320671bf79dfe5c04"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/V22Apparel/V22_9301_재단_재봉_작업대.asset",
+      "sha256": "71a21bb1c20afefda766b968fa3a6e42b395e17185ca13bec0cb034cc989db91"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9301.json",
+      "sha256": "2c559ecd4f6bf1a3fd13b67752fd74ee66bab9b4aa2f437b42ba0f591d27ca4d"
+    },
+    {
+      "path": "Assets/Scripts/Services/Foundation/V23CraftingPrimitives.cs",
+      "sha256": "d8bf86e66ea6ed713289bdf45c0f2765c9b2cfcaf0d212106423d2e23fe201b9"
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs",
+      "sha256": "e441cc4fa1a6a5b9879c7ba2c639c53ff070bd315b2fd0af88800c51980c7e14"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/production-quality-and-supply.md",
+      "sha256": "dbbf378081f65cc9f88f2cc7d36a6a6e2606f78c69a6841f2a626b94d61f0ec0"
+    },
+    {
+      "path": "Assets/Resources/SO/V26/Traits/Founder/Trait_300_possessed-inspiration.asset",
+      "sha256": "025ec4bf289f1028183f46d06ca81639d92d5000f5b9adbbf8ea8690a9c35c5f"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/character/trait-300.json",
+      "sha256": "b342e26b6ee4371109d7bd806004bf0ad6e4b64226a0188c59bc42194793e8f3"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "sha256": "dd6b57a9f579cc56a0c0d7674b7f754c0aa143c14fb95baa88f20c9e69db8875"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelPhysicalTransaction.cs",
+      "sha256": "b65805a8342e06ceffa5c08936ce6fd1ecc89490126de4bd39c550bf201def8e"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/ApparelSpecialThroughputContributor.cs",
+      "sha256": "5e9d142d43f21bfcc98b14dfdb737c2c43ed3ad2d35196ec2360bc25704ef69d"
+    },
+    {
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset",
+      "sha256": "78e87c3239487cb4b4ded6309d549de06320bbe1db8362c0c25fe7abdecd808e"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_work_shirt.asset",
+      "sha256": "cfe68fb0bc9919ef878a7ef24b328f0dca98d88e502396d4ecd9030604848b47"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-work-shirt.json",
+      "sha256": "624dc514baf3d6ea643802510cb9eacd6e2fb397366075a78282d27dd75c0ca7"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_wing_harness.asset",
+      "sha256": "91c851bb69977a52f67e580d0e87808c0923fe2ed0ee2c44504792fec3bab1b0"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-wing-harness.json",
+      "sha256": "b3d169bc9d743968a5e27ba814f5b6e3a4bfd10c5dff1ac041577cf986bdbd50"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_wing_cloak.asset",
+      "sha256": "3fd11c9cc5dfe8daa66e5b6752f9736b4fe5652ac0b5d7f5eb3e1acad64a152d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-wing-cloak.json",
+      "sha256": "67538f0ddc59092a8f5bc90fcd8357aa2da98ea3b2506424b650e843f69bfc8b"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_weapon_vigil_cloak.asset",
+      "sha256": "4764e13ed275ac132d9ea2b3f7f35ca28e8a671f3c7ac69fafbb82a0784565ba"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-weapon-vigil-cloak.json",
+      "sha256": "2af0e097876a1728de44e366b49bea9abe07a4456da82264ebda3f963d500315"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_waterproof_work_suit.asset",
+      "sha256": "af3bd85160aa57a9ba54ed52121a1dc164da23ba319153dc784185487edab12e"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-waterproof-work-suit.json",
+      "sha256": "e2f640fc76b4a955d2582434291c7aee217dfa296e84a3de8c1dd4245172136b"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_vest.asset",
+      "sha256": "fbf6903fef967ece1f6878ddd40c90b0e9625a96c4e2ebf3f4e466f277f5587c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-vest.json",
+      "sha256": "1f9f2f1746b1852b285b547f66058cd2e61b2a4095c72e0fdf0d041e5300ea0c"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_undershirt.asset",
+      "sha256": "91c35225b62fc57739cd767c197c8e3c2cf628874c90d767d364c60d1a24f316"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-undershirt.json",
+      "sha256": "23306625c514ea7e7bc980d67dd1c9be7c744e3c3a7c2d980e4cf57c691bbaa7"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_tunic.asset",
+      "sha256": "cd19751c3014a8c07caca5793100852c9306f38380de81eb946f05d9934497cd"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tunic.json",
+      "sha256": "6e38ea8276c56ef5710e22c07b7c2006feb95e1d8ce390400c1e72dc5faaf262"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_trousers.asset",
+      "sha256": "300ce1ae77bd4487b34324321f67b96efbdd4792a0cf8e54e8dcc4366f0c8440"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-trousers.json",
+      "sha256": "ebcadbb5b9d27a9ceffcd32536b731fe4f17f7596392cc35fdf79b8ca640075c"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_tail_ribbon.asset",
+      "sha256": "ff8ffc7dc929981e9e5eddcba3a8674aefad1bffe3ce36097419b7ee6890d308"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tail-ribbon.json",
+      "sha256": "0a152acbb4eb9e16f5d4efde7675fa4a28e240ffed48a31165e060dce50e7e5d"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_tail_guard.asset",
+      "sha256": "bd647ee29c78f43a0834a6ddcfb9b6419727b9e74b22ff33720412eaf1941d89"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-tail-guard.json",
+      "sha256": "483dee9389c29dae29431f32e33709bb9d7d48febaaaebdaf67e7c55042de9c1"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_surgical_apron.asset",
+      "sha256": "629dfd68d9ddcc89a2cfe8e87bf00f6a8c0fd8fbf9c9c707d0374c4dade464cc"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-surgical-apron.json",
+      "sha256": "ba8dff70b22ae0229be507bdbfde509685b177663753fed3fd96f09c4f2b689c"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sterile_gown.asset",
+      "sha256": "ab6f9069acb34c54b731d20440f04ff6f025908481f2f34d683a381bf080a4cd"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sterile-gown.json",
+      "sha256": "4ae49f4d7a4c22fb5a01c4f5d791a170a51de03ae2beec8c7b52bcc4e46857dd"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_spore_protection_hood.asset",
+      "sha256": "8d459dc9e1a9254f63f8ab3cf32240726b35f01f9db3107bd54f9e83783ce802"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-spore-protection-hood.json",
+      "sha256": "8f2e1470b23726dc2f90b6fa5a2a5ef40ca3ac66b166647dbcf53e9ae1cbbbbf"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_spore_garden_cloak.asset",
+      "sha256": "509cba9100282abaa96d7978b0c85717023f2818529d2fed99b5da84252767ed"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-spore-garden-cloak.json",
+      "sha256": "fadc51625eba91f2f4230b0a0a45bfe24e0a445465e2e3e662ed173d2f4f4482"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_socks.asset",
+      "sha256": "d6c2899f0e33b88846b77cbbf270a47712c5f02a470a3c5cd20c0be0a11a766e"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-socks.json",
+      "sha256": "072cdc0f6258346a18d22cdb20e41651aafe856c95d627e3b4210ee2d77eec56"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_smoke_protection_hood.asset",
+      "sha256": "44e4ef50ffa90881443d7488f2a59ede1fbf51779053e696e1390e0859f54cb7"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-smoke-protection-hood.json",
+      "sha256": "87e9ba7ec396a1fa77ed07af18508e81dfb108693a6281bdb9c301bdaac40e7d"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_smith_apron.asset",
+      "sha256": "00e8653e866c6006e00ab0e8de9442416e06dfd3b1fe2b01b13b0c30315ab96e"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-smith-apron.json",
+      "sha256": "d89e5b8d0e3468ac4685adb29a48ea13492581949ca34f7251ecc9e87acd7cfb"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_slime_warming_pad.asset",
+      "sha256": "56359193f7886a0c12dd7086640d98e315131973d8bf0d3c0f59a0d2cc9d72c8"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/equipment-slime-warming-pad.json",
+      "sha256": "7b39dfe8d6015ff4da1020f401d895f45289c6f45db581b07045e3f913164fd6"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sleep_top.asset",
+      "sha256": "77e09c2441db1e19aa3880ff79adb247e4f99e5987ea202c1e34d13a6b4a6ccd"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sleep-top.json",
+      "sha256": "f574dc7b33991f58c342a1fa807cd7b3f6d47ab96b557160e40b68575ce4213f"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sleep_bottom.asset",
+      "sha256": "86ffe04a6871739aebe84d0751677bd616599bd366ce552751bbbd15cd40956a"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sleep-bottom.json",
+      "sha256": "4f1d4812e6e342a296417959c2378ef36bb6deefc303af683473b3311a3822ab"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_sky_chorus_shawl.asset",
+      "sha256": "2e7db1433c909a2f7ffd7880dfff8a9325db3938c9a5f0baa4d335b0d5ea484a"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-sky-chorus-shawl.json",
+      "sha256": "be39949da6513abce088bb97d72fd9aa1f18b8be2c4af64997b65c89fa9e2274"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_skirt.asset",
+      "sha256": "943487c4be50211db696807c6bc5c4a93424cd645dbb00e9a2bfbeb48f993e87"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-skirt.json",
+      "sha256": "7cd32c57100db9dd7fa1dadd9a890ddb344ac4f1c1fe1a0f1f1020f11110a7d9"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_shorts.asset",
+      "sha256": "e2eac35fa944f22450318c87144d9106a60443e28ad19cf313bc41e8e3fbb06a"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-shorts.json",
+      "sha256": "ecf8a9039a72131ff06ebcd9c6c844a39b826aecd15198e431164311b86bd902"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_scarf.asset",
+      "sha256": "4fc5e47cb02a7b9076f677b13ca724393c4a36361d8d187d5d4c65cfea22a747"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-scarf.json",
+      "sha256": "9b32bd26a1562e4d2c6a7cf10568cdd30b31271a9a3f1a92115043875e9f7551"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_rune_cold_suit.asset",
+      "sha256": "84e29040a69e1d6e2b59955e183bd333f461bd940383fa0cd54531a205622f40"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/equipment-rune-cold-suit.json",
+      "sha256": "e86656ba2e8e01b119cc1210e0bf1fdacd2920a5174c2f48d624e213e357a29d"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_ritual_robe.asset",
+      "sha256": "a592b65e84b296ae313af2de563c5d8e8ab117c0f3c650692c8678495cdbbe42"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-ritual-robe.json",
+      "sha256": "72f778ba330ae076641683e7d640f44a9a4a270b63c444d3d1d4f166c277f9e9"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_raincoat.asset",
+      "sha256": "fe06de8282144ebbddea50dec81d6ba7821c3865b564e0d38c41bf2121736bc4"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-raincoat.json",
+      "sha256": "cdd97729cb4b6eaabf81001d32d39dc8eddda440ebe54279ff6302b97678477c"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_mourning_clothes.asset",
+      "sha256": "5c2185ca30b652b6e62f37351207ee289ccd78f40a90cc1a6e5adad0156d387b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-mourning-clothes.json",
+      "sha256": "8cb2f1085825a8067f2f474db08f590b12299eeb82f757f607404f5cfc638d66"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_miner_workwear.asset",
+      "sha256": "750fda8cb5b4161ae4505420dedac39269a38e0cb7f45ae189b1f3af666a038f"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-miner-workwear.json",
+      "sha256": "07b0874e814dcdc3918cac4077252632af07792b9e2ed028e05dd5b234763940"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_lower_underwear.asset",
+      "sha256": "929672779c3859040ef7206028d47d8694f0b7b9f68bd01f8eb1d7db4b2b47d4"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-lower-underwear.json",
+      "sha256": "3f434dd810fdf1ca13cb1c03d4dfafecbf69bfafa625e610dcaf6c4b30f00dee"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_long_underpants.asset",
+      "sha256": "cfefd2af9c80c29f52176116a1ffc813e7a87ea638e15f35ef75bbcbb7809296"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-long-underpants.json",
+      "sha256": "21d87c669a0a2a05aa787fe2bc9131efcc145e0a3bcba47d100311a5740e7fa3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_loincloth_underwear.asset",
+      "sha256": "e5935952fc7113aed45fd2e87b18ef750bc75c1cb84ad71706a92d83832bc162"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-loincloth-underwear.json",
+      "sha256": "1400968c0a2d3b5fda56ccec3a86b7b8ef547ebbb3e44ca739915dda975480bd"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_keeper_coat.asset",
+      "sha256": "5c4cc2f5649b2b38aa321cbb2b1007c6ccd395a6334a8194fb66294ff4d26cac"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-keeper-coat.json",
+      "sha256": "db6b9b858e16b40c9ee734c7e83c7865c30c1786a4401eaaee54ffe53359cffa"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_horn_ring.asset",
+      "sha256": "4359a2b4ad258803c5a561f2ece6847172d3064b834c2a5fd8aedaf611406357"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-horn-ring.json",
+      "sha256": "22879077ba2118a183c76340c085f563cfd901dc8547d05eb4b3f2aded9e7c2f"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_hooded_robe.asset",
+      "sha256": "188db7788e0ba64e82d370e09b9c51e51035bb0309cbcd268706d144a9139d72"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-hooded-robe.json",
+      "sha256": "015c9a5dc7cc306ca6124370aa2c4986a276ac55e0357dd3a19649d39a2e2acd"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_heat_work_suit.asset",
+      "sha256": "518f6bcd1da3f89fa6844d7ddc0062568e7ed601a99b6cbb9b44a62c55db5d3c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-heat-work-suit.json",
+      "sha256": "df25fab5d64142883bed7c41487ca31aa106629db409c59432f63250a20629c7"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_hauling_harness.asset",
+      "sha256": "4f473bcc16eeed263356b98609cb855a7a04cfec578c82ce8b6a5a08273afe14"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/tool-hauling-harness.json",
+      "sha256": "957ccec87ef36fe616d018fc30eb63d16f77764383a054e5195e8a20638f6c60"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_hat.asset",
+      "sha256": "06f261714062961f74d45d676e8249e4ca07068459275e56e08e03fb1a7a63b0"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-hat.json",
+      "sha256": "60563c36510a047c794941f64cad70ecd2b18adb88d8b32b2720e97b3b068561"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_golem_functional_lining.asset",
+      "sha256": "8314358923b202ecc88a2de17786c3067b83902a96746834a83ed4abb9bc3eab"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-golem-functional-lining.json",
+      "sha256": "f0c17c8311f7b777e9c5cf2f6ad022a08dc679c3d2c82d10898ed211357f2de4"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_gloves.asset",
+      "sha256": "2399971c4b5b72f2fd07e4d28c80e4811616c2b5d4dcc30b6e6794b6f9a1b8e7"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-gloves.json",
+      "sha256": "460642fb842ec9d437e89555a0000c4f6e233123baed7fe1febfd5aa2bbaac6a"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_formal_coat.asset",
+      "sha256": "b57b8d12653b3bb0a8c7dc6b62b2e97cd9a87a5852daad00d6c55af46c23fd37"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-formal-coat.json",
+      "sha256": "f10a445e1c208b38cec2717f87d849b605d4ff65b582d662884522ceda2744b3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_footwraps.asset",
+      "sha256": "bc3883ab7fcbd125b85aac090e95350ceeb1e8e66e60a054eded7bf0be8ff399"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-footwraps.json",
+      "sha256": "2bee1dc6d79807a426ef3dcec8eb7282eb2373706fddf1c7810d81c54447af9f"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_festival_vest.asset",
+      "sha256": "6c225d935283a0d3c4912cc1732669f8dfa7b533b51fc9754e0641ee4ab15f6e"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-festival-vest.json",
+      "sha256": "ee65516c26a55fc281dc9230c3f4733f707a31d5e556d4c31ae85ca2c88d63dd"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_farmer_workwear.asset",
+      "sha256": "a3cd934c8e1827ef47f9f62e4c0290a43950dfd74870841b963b6f7012fd72c5"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-farmer-workwear.json",
+      "sha256": "eb2ec52535428ea7462c27fa6bfc0bf56549f16201ab2d94fca658cd992d96e9"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_envoy_coat.asset",
+      "sha256": "338b37cbad77302639c63a3477006aeaa77c05d6c8a65fc524af063971e168ac"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-envoy-coat.json",
+      "sha256": "2ee7c532f159db5948152b9c6b5d78a89a9f1f86cdb0d1c7b88226a9fbb31cc1"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_daily_robe.asset",
+      "sha256": "21e61b583e435b35e0a748f276d7b660ea5fcea04694727685c6f07f6e947753"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-daily-robe.json",
+      "sha256": "c5938878e6aa4d0d1085c6d0479533df3519a529b0731a4ebf8be1fca9f46271"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_contract_sash.asset",
+      "sha256": "8f59fed392cc62189f7fc1b4cf9b07a69c891715f1e47c27d5278e180c16cfa5"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-contract-sash.json",
+      "sha256": "1d84eb6944a09f57c38bf54c54e666c73c49a152743393d410a417afc9a2d1be"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_cold_work_suit.asset",
+      "sha256": "5acff0be3dd71ba88ef742339bb69c51ac79009008dd5f17357f6f70a702f15c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/equipment-cold-work-suit.json",
+      "sha256": "260a3d90eb8e0908264b9d0863349d372f6b1506d9ec0c2d17e9322156a3ad08"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_cloak.asset",
+      "sha256": "c2318be1adfc3fcf6dc677f88dd684bf0706ee87c56cdbd38d798d4efa750844"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-cloak.json",
+      "sha256": "d4747b160c14f45de09c74524464a39025a28942f8c79e2b549744f6e94039d2"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_chest_wrap.asset",
+      "sha256": "814e25f609334473433ff893a6fe3d3c3ec8accabeff75227719ed5da25231d8"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-chest-wrap.json",
+      "sha256": "0ca8e3c2d06606bdda225e014e00b59e1add538c16f5def8a8a6ace8329628c6"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_ceremonial_dress.asset",
+      "sha256": "2afecb12b50de0278103450b3eb6331af76a2435791d9aa534f51c474fed00c9"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-ceremonial-dress.json",
+      "sha256": "bf3db8d5a8053d5c50ac82fbfe0cc14c5f45095e21327a934f4ae841a5ee96ea"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_boots.asset",
+      "sha256": "c666e0f48559effcc80b2baad7b4ae8432eb5e870c249de2cbb7063ea028f9e0"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-boots.json",
+      "sha256": "b91fcda1b908946b6036a550bd18c08719a73dcffded4e1a5ca8c2e584d0d5f2"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_blouse.asset",
+      "sha256": "9873a4c834bbbde7e21744ad2d730434b5a9393ce6562d8303a0de3ebfe44d53"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-blouse.json",
+      "sha256": "0aa6814901a24ee0116c6ed431783e1b6bb3b5841546f827c67db48679826640"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_belt.asset",
+      "sha256": "edbf713f7f27983b27c47a2415f28cfedaca3407fadb4113ed370937526003fa"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-belt.json",
+      "sha256": "1637df039e0d28d0b40f258b959cbdac8ce75b8f0d0f97651ca917514aeb4deb"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_apron.asset",
+      "sha256": "5fbe6e912a5222dd8a4cab92be5543763b98990e7b608e29ba17834648ae17ae"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/apparel-apron.json",
+      "sha256": "9035ae867d7642d68a14ed9a601becdff16a7087b75908d92f400c26b83cb110"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/V22Apparel/material_spore_hemp.asset",
+      "sha256": "756a011c103d1fec8441995f5606ac9ec0a9856273cac8a513ccfbb5f0e6a93c"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_spore_hemp.asset",
+      "sha256": "797ca6232e9ceef3b8c511d20d4fca9f1e1afbd6a985fb45b9ca84ba45c267cf"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/material_cloth.asset",
+      "sha256": "be1d574ca79f6a65a9b798eddc51508f782aa04ac1dd1796e105f593095dcdf6"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_shade_cloth.asset",
+      "sha256": "4ace2d447580c30a81ee7f34583e8cf379813d8a83244821122d0cec3f159d3a"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/material_rune_leather.asset",
+      "sha256": "00f2080a87f1406cec2186647e54ead4a8d34f81df645e7b5a346e2774923340"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_rune_leather.asset",
+      "sha256": "d2e2b150f1a0923a05e1a0123b71d6dff5856757d39abc270dec66311f36e2d6"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/V22Apparel/material_mire_canvas.asset",
+      "sha256": "3d85a22fcac51cf71fa120d0e9beaa54964a25d3e2098f09aed5b6486c67a557"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_mire_canvas.asset",
+      "sha256": "dda74059af6024a0e9b949e30cc642866651e4c8e957800599f52427ffd1c448"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/material_leather.asset",
+      "sha256": "71199793af0c16ba2e120523f9fd34d0b4468ac5e7cf3e00e67424dad2056f11"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_leather.asset",
+      "sha256": "e60eed5a41026f94674ff0e2cb75183f12c9d97238e7cdf37f445bc55a975976"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/V22Apparel/material_frost_wool.asset",
+      "sha256": "c40a95f0f80822642d8e5e2cfca07984c720283775afbf33ba4de3df459fb48e"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_frost_wool.asset",
+      "sha256": "b1473e2ff7283dbb48d82740b068002bca4a2bae271b72626963c2c518a1d687"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/V22Apparel/material_frost_linen.asset",
+      "sha256": "0ebeedac5a811d935ab77f6ff6c8df260dde6cb232c0baf54d8e2db0e89467a3"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_frost_linen.asset",
+      "sha256": "a1c0044c8f1bd97a484b5766647947ba90aa2f46270dc9b29f66a3265b622617"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/V22Apparel/material_ember_cotton.asset",
+      "sha256": "f3146f83b4eb1f3f919eea609358a555c6f2daea59cd639475b0f9a97013eac2"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_ember_cotton.asset",
+      "sha256": "78f5ac1ea184260950175292f2afc78e187122b6e1c71562a8f9c83afde239c5"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/material_dreamweave.asset",
+      "sha256": "016cc9e8d20d7217fa85ae2e1cfb8cfbb35fa55469cd43a2025e1db19929c155"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_dreamweave.asset",
+      "sha256": "7563d1105d7bf69b2b6c9ecad0dea72f7b9d73f99676382c58cb0d7db68fffd3"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/V22Apparel/material_deep_goat_wool.asset",
+      "sha256": "adc98b37dfd634f2a635552c63680ca2a0c437aa5ad79b4b63b969fff3c1bd70"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_deep_goat_wool.asset",
+      "sha256": "5e63c14a8cba1f5f8bef9fdffa7c5fd43f3b5265eec6a16e45bc1a37ee718289"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/V22Apparel/material_common_wool.asset",
+      "sha256": "b582de68a1fb14e07cade40261229b25f3fa10c4eecf1dba22624581ec460b71"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_common_wool.asset",
+      "sha256": "6b72348845f3acba43d5a5304a1b3a65754be59a41bc9fa3d96e0e46290d8ce5"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Items/V22Apparel/material_cave_silk.asset",
+      "sha256": "13b5c605739423193c0d8c8dd5e7aef41612ba30206a7b0e3b50243b5e00daa2"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Materials/textile_cave_silk.asset",
+      "sha256": "b49d29d7587f76fb841494bf2a6ea655c1bd91a9f02234570f6440169b1c597c"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/ApparelTailoringFacilityEligibility.cs",
+      "sha256": "5bcc17739e3576a32c7f9bac6c68a73e8892e51d55aab0db52496f7a61ffa9b4"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/ResourceEconomyModels.cs",
+      "sha256": "45c3f60a8a6b60f16a01ebd2deaf26da1a6020a1e9045c1c1f004e2117befcce"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/ResourceItemDefinitionSO.cs",
+      "sha256": "8d9035581086e2a858f83e02dbe7185024ac16e14adbb46e670f5d62627cd1cf"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+      "sha256": "182830b5b282724cbbd58d293319f5ef774b921f50dcf3318c945b3145d989c3"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs",
+      "sha256": "dc16ab760fba5784780c35c70203ebdb44b6eec7b74ff6769bb2355964a7bf98"
+    },
+    {
+      "path": "docs_final/game-design/content-plans/items/apparel-and-module-numeric-notes.md",
+      "sha256": "881b713a9dfdeabd4e0011c3c3d6239d22936126843a730d4b86b5fc6a8e3ae9"
+    }
+  ],
+  "validation": {
+    "priorSourceHashesChecked": 3389,
+    "priorArtifactHashesChecked": 26,
+    "priorHashErrors": 0,
+    "sourcePaths": 159,
+    "independentArithmeticChecks": 27,
+    "arithmeticErrors": 0,
+    "authoredFieldChecks": 336,
+    "authoredFieldErrors": 0,
+    "crossLanguageVariantRangeChecks": 56,
+    "crossLanguageVariantCount": 5454,
+    "crossLanguageVariantErrors": 0,
+    "unityCompile": "not-run",
+    "actualUi": "not-run",
+    "saveRoundtrip": "not-run",
+    "scriptsModified": false,
+    "publicWikiModified": false
+  },
+  "remaining": [
+    "전체 시설 건설 WU·BOM과 도감 전수 비교",
+    "의복 오염·마모 생성자와 착용·교체 관리",
+    "실제 노동/품질 프로필·기분 효과 수명주기·영감 장비 경로",
+    "의복 연구 해금·관련 생산식과 맞춤 제작의 역할 구분",
+    "날씨의 작물·축산·원정 효과와 남은 전체 시스템/도감 의미 대조",
+    "최종 전역 의미 중복 제거 및 전체 모집단 미검토0 검증"
+  ]
+}

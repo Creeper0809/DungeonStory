@@ -1,0 +1,463 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Textiles"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9302",
+      "target_spoiler_tier": "none",
+      "target_title": "문양·장식 작업대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9306",
+      "target_spoiler_tier": "none",
+      "target_title": "의복 진열대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9301",
+      "target_spoiler_tier": "none",
+      "target_title": "재단·재봉 작업대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9307",
+      "target_spoiler_tier": "none",
+      "target_title": "탈의 칸막이",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-contract-sash",
+      "target_spoiler_tier": "none",
+      "target_title": "계약 어깨띠 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-tail-ribbon",
+      "target_spoiler_tier": "none",
+      "target_title": "꼬리 리본 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-wing-cloak",
+      "target_spoiler_tier": "none",
+      "target_title": "날개 망토 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-wing-harness",
+      "target_spoiler_tier": "none",
+      "target_title": "날개 멜빵 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-farmer-workwear",
+      "target_spoiler_tier": "none",
+      "target_title": "농부 작업복 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 직조",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-cloak",
+      "target_spoiler_tier": "none",
+      "target_title": "망토 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-hat",
+      "target_spoiler_tier": "none",
+      "target_title": "모자 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-scarf",
+      "target_spoiler_tier": "none",
+      "target_title": "목도리 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 방적",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 직조",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-sterile-gown",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 가운 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-weapon-vigil-cloak",
+      "target_spoiler_tier": "none",
+      "target_title": "무기 철야 망토 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-trousers",
+      "target_spoiler_tier": "none",
+      "target_title": "바지 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-shorts",
+      "target_spoiler_tier": "none",
+      "target_title": "반바지 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-mending-scrap",
+      "target_spoiler_tier": "none",
+      "target_title": "범용 수선 조각",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-blouse",
+      "target_spoiler_tier": "none",
+      "target_title": "블라우스 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-horn-ring",
+      "target_spoiler_tier": "none",
+      "target_title": "뿔 고리 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-keeper-coat",
+      "target_spoiler_tier": "none",
+      "target_title": "사육사 외투 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-envoy-coat",
+      "target_spoiler_tier": "none",
+      "target_title": "사절 외투 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-mourning-clothes",
+      "target_spoiler_tier": "none",
+      "target_title": "상복 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-apron",
+      "target_spoiler_tier": "none",
+      "target_title": "앞치마 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-ceremonial-dress",
+      "target_spoiler_tier": "none",
+      "target_title": "예복 드레스 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-surgical-apron",
+      "target_spoiler_tier": "none",
+      "target_title": "외과 앞치마 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-ritual-robe",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 로브 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-daily-robe",
+      "target_spoiler_tier": "none",
+      "target_title": "일상 로브 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-work-shirt",
+      "target_spoiler_tier": "none",
+      "target_title": "작업 셔츠 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-sleep-top",
+      "target_spoiler_tier": "none",
+      "target_title": "잠옷 상의 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-sleep-bottom",
+      "target_spoiler_tier": "none",
+      "target_title": "잠옷 하의 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-gloves",
+      "target_spoiler_tier": "none",
+      "target_title": "장갑 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-boots",
+      "target_spoiler_tier": "none",
+      "target_title": "장화 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-sewing-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉 도구",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-formal-coat",
+      "target_spoiler_tier": "none",
+      "target_title": "정장 외투 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-vest",
+      "target_spoiler_tier": "none",
+      "target_title": "조끼 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-festival-vest",
+      "target_spoiler_tier": "none",
+      "target_title": "축제 조끼 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-skirt",
+      "target_spoiler_tier": "none",
+      "target_title": "치마 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-tunic",
+      "target_spoiler_tier": "none",
+      "target_title": "튜닉 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-spore-garden-cloak",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 정원 망토 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-sky-chorus-shawl",
+      "target_spoiler_tier": "none",
+      "target_title": "하늘 합창 숄 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-belt",
+      "target_spoiler_tier": "none",
+      "target_title": "허리띠 재단",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-hooded-robe",
+      "target_spoiler_tier": "none",
+      "target_title": "후드 로브 재단",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-textile-tailoring",
+  "spoiler_tier": "none",
+  "summary": "직물과 가죽으로 의복과 연갑을 만든다.",
+  "title": "재봉"
+}

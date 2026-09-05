@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "200개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "포자 삼에서 뽑아 세척한 섬유다. 실로 잣기 전까지 엉킴과 오염을 피해서 보관한다. 므네실라에서는 짧아 실로 잣지 못한 포자 삼 섬유를 재배상 덮개로 써 수분을 지킨다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "fiber-spore-hemp",
+  "spoiler_tier": "none",
+  "summary": "등급·상태 밴드로만 병합되는 V22 원섬유.",
+  "title": "포자 삼 원섬유"
+}

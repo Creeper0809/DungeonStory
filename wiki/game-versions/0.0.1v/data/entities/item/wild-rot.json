@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "먹거나 가공할 수 없을 만큼 썩은 유기물이다. 방치하면 위생과 질병 관리에 부담이 된다. 므네실라의 정원지기는 부패물에서 건진 포자를 죽이지 않고 검은 흙독에 따로 재운다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-rot",
+  "spoiler_tier": "none",
+  "summary": "방치된 사체가 썩으며 남긴 오염원.",
+  "title": "부패물"
+}

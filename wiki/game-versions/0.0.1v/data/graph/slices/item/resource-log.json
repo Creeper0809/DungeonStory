@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-log",
+    "spoiler_tier": "none",
+    "title": "원목"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-sawmill-lumber",
+      "label": "필요 조건",
+      "to": "item/resource-log",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-charcoal",
+      "label": "필요 조건",
+      "to": "item/resource-log",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/source-logging",
+      "label": "생산·해금",
+      "to": "item/resource-log",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

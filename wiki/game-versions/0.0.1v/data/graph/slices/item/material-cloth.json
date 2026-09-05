@@ -1,0 +1,543 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-cloth",
+    "spoiler_tier": "none",
+    "title": "천"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-slime-warming-pad",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-prosthetic-arm",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-horn-ring",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-mending-scrap",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-cloth",
+      "label": "생산·해금",
+      "to": "item/material-cloth",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-cold-work-suit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-room-partition-kit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-rune-leather-lining",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-dreamweave",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-alliance-signal-kit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-certified-seed-kit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-funeral-preparation-kit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-performance-prop-box",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-field-repair-kit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-maintenance-kit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-apron",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-belt",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-blouse",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-chest-wrap",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-contract-sash",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-festival-vest",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-footwraps",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-gloves",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-hat",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-loincloth-underwear",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-long-underpants",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-lower-underwear",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-scarf",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-shorts",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-skirt",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-sky-chorus-shawl",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-sleep-bottom",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-sleep-top",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-socks",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-sterile-gown",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-tail-guard",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-tail-ribbon",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-trousers",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-tunic",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-undershirt",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-vest",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-wing-harness",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-apparel-work-shirt",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-weave-shade-cloth",
+      "label": "생산·해금",
+      "to": "item/material-cloth",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-wool-cloth",
+      "label": "생산·해금",
+      "to": "item/material-cloth",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-textile-quilted-liner",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-boots",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-cloak",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-golem-functional-lining",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-slime-warming-pad",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-smoke-protection-hood",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-spore-garden-cloak",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-spore-protection-hood",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-surgical-apron",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-apparel-wing-cloak",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-material-sterile-composite",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-cold-work-suit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-daily-robe",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-envoy-coat",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-formal-coat",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-mourning-clothes",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-ritual-robe",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-rune-cold-suit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-smith-apron",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-v22-apparel-weapon-vigil-cloak",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-textile-insulating-cloth",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-textile-sterile-cloth",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-v22-apparel-ceremonial-dress",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-v22-apparel-farmer-workwear",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-v22-apparel-hauling-harness",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-v22-apparel-hooded-robe",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-v22-apparel-keeper-coat",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-v22-apparel-raincoat",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-v22-apparel-heat-work-suit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-v22-apparel-miner-workwear",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-v22-apparel-waterproof-work-suit",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

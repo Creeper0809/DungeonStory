@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.55kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "476"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "골렘의 핵을 충격과 오염에서 보호하면서 정비할 때 열 수 있게 만든 케이스다. 특히 제4주조도시제 골렘 핵 케이스는 몸과 기계를 가리지 않고 맞도록 양쪽에 같은 수리 눈금이 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-golem-core-case",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 골렘 핵 케이스.",
+  "title": "골렘 핵 케이스"
+}

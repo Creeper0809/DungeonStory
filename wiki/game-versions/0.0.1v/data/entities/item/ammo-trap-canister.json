@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "6개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "44"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "함정 장치 안에 끼워 접근한 적에게 산탄을 퍼붓는 밀폐 탄통이다. 하르나크의 무기 철야에서는 함정 산탄통의 홈 수로 장전 방향과 퍼지는 범위를 확인한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-trap-canister",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 함정 산탄통.",
+  "title": "함정 산탄통"
+}

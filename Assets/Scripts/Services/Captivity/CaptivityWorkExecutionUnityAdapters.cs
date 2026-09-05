@@ -41,13 +41,16 @@ public sealed class WardenWorkExecutionUnityAdapter :
         BuildableObject target,
         out string reason)
     {
-        bool available = TryFindInteraction(
-                captivity,
-                actor,
-                target,
-                out CaptiveState state)
-            && readiness.IsInteractionReady(state.captiveId, out _);
-        reason = available ? string.Empty : "진행할 포로 관리 작업이 없습니다.";
+        bool available = (TryFindInteraction(
+                    captivity,
+                    actor,
+                    target,
+                    out CaptiveState state)
+                && readiness.IsInteractionReady(state.captiveId, out _))
+            || TryFindRehabilitation(captivity, actor, target, out _);
+        reason = available
+            ? string.Empty
+            : "진행할 포로 관리 또는 재사회화 작업이 없습니다.";
         return available;
     }
 
@@ -58,16 +61,36 @@ public sealed class WardenWorkExecutionUnityAdapter :
         TryFindInteraction(captivity, actor, target, out CaptiveState state)
         && readiness.IsInteractionReady(state.captiveId, out _)
             ? CaptivityWorkExecutionRules.GetWardenUrgency(state)
-            : 0f;
+            : TryFindRehabilitation(captivity, actor, target, out _)
+                ? 75f
+                : 0f;
 
-    public IEnumerator Execute(WorkExecutionContext context, WorkExecutionResult result) =>
-        flow.Execute(new WardenSession(
-            context,
-            result,
+    public IEnumerator Execute(
+        WorkExecutionContext context,
+        WorkExecutionResult result)
+    {
+        ICaptivityWorkExecutionSession session = TryFindRehabilitation(
             captivity,
-            commands,
-            workAmount,
-            clock));
+            context.Actor,
+            context.Target,
+            out CaptiveState rehabilitation)
+                ? new RehabilitationSession(
+                    context,
+                    result,
+                    captivity,
+                    commands,
+                    workAmount,
+                    clock,
+                    rehabilitation.captiveId)
+                : new WardenSession(
+                    context,
+                    result,
+                    captivity,
+                    commands,
+                    workAmount,
+                    clock);
+        return flow.Execute(session);
+    }
 
     private static bool TryFindInteraction(
         ICaptivityRuntime captivity,
@@ -90,6 +113,30 @@ public sealed class WardenWorkExecutionUnityAdapter :
                 out BuildableObject housing)
             && ReferenceEquals(housing, target));
         return captive != null;
+    }
+
+    private static bool TryFindRehabilitation(
+        ICaptivityRuntime captivity,
+        CharacterActor actor,
+        BuildableObject target,
+        out CaptiveState minion)
+    {
+        string actorId = actor?.Identity?.PersistentId?.Trim()
+            ?? string.Empty;
+        minion = captivity.Captives.FirstOrDefault(state =>
+            state.IsMinion
+            && state.rehabilitationInProgress
+            && actorId.Length > 0
+            && string.Equals(
+                state.reservedWardenId,
+                actorId,
+                StringComparison.Ordinal)
+            && target != null
+            && captivity.TryGetRehabilitationFacility(
+                state.captiveId,
+                out BuildableObject facility)
+            && ReferenceEquals(facility, target));
+        return minion != null;
     }
 
     private sealed class WardenSession : ICaptivityWorkExecutionSession
@@ -170,6 +217,97 @@ public sealed class WardenWorkExecutionUnityAdapter :
                 }
             }
 
+            return succeeded;
+        }
+
+        public void SetStatus(string status) =>
+            context.Actor?.Brain?.SetActionPhase(status, context.Target);
+
+        public bool TrySuspendAtCheckpoint() =>
+            context.TrySuspendAtCheckpoint();
+
+        public void Complete(bool succeeded)
+        {
+            result.CompletedSuccessfully = succeeded;
+            result.CompletionEffectsAlreadyApplied = true;
+        }
+    }
+
+    private sealed class RehabilitationSession : ICaptivityWorkExecutionSession
+    {
+        private readonly WorkExecutionContext context;
+        private readonly WorkExecutionResult result;
+        private readonly ICaptivityRuntime captivity;
+        private readonly ICaptivityCommandService commands;
+        private readonly IWorkAmountCalculator workAmount;
+        private readonly IGameClock clock;
+        private readonly string captiveId;
+
+        public RehabilitationSession(
+            WorkExecutionContext context,
+            WorkExecutionResult result,
+            ICaptivityRuntime captivity,
+            ICaptivityCommandService commands,
+            IWorkAmountCalculator workAmount,
+            IGameClock clock,
+            string captiveId)
+        {
+            this.context = context;
+            this.result = result;
+            this.captivity = captivity;
+            this.commands = commands;
+            this.workAmount = workAmount;
+            this.clock = clock;
+            this.captiveId = captiveId ?? string.Empty;
+        }
+
+        public bool CanContinue => context.CanContinue;
+        public bool HasCurrentWork =>
+            captivity.TryGetCaptive(captiveId, out CaptiveState current)
+            && current.IsMinion
+            && current.rehabilitationInProgress;
+        public bool IsCompleted =>
+            captivity.TryGetCaptive(captiveId, out CaptiveState current)
+            && current.IsMinion
+            && !current.rehabilitationInProgress;
+
+        public bool TryAdvance(out string status)
+        {
+            if (!captivity.TryGetCaptive(captiveId, out CaptiveState before)
+                || !before.rehabilitationInProgress)
+            {
+                status = "재사회화 작업 상태를 찾을 수 없습니다.";
+                return false;
+            }
+
+            float remainingBefore = Mathf.Max(
+                0f,
+                MinionIntegrationRules.RehabilitationRequiredWork
+                    - before.completedRehabilitationWork);
+            float deltaWork = workAmount.CalculateWorkPerSecond(
+                    context.Actor,
+                    context.Target,
+                    context.WorkTypeId,
+                    context.Work.GetWorkEnvironmentDurationMultiplier(
+                        context.WorkTypeId))
+                * clock.DeltaTime;
+            bool succeeded = commands.AdvanceRehabilitation(
+                captiveId,
+                context.Actor,
+                deltaWork,
+                out status);
+            if (succeeded)
+            {
+                float accepted = Mathf.Min(
+                    Mathf.Max(0f, deltaWork),
+                    remainingBefore);
+                if (accepted > 0f)
+                {
+                    context.RecordApprovedWork(
+                        accepted,
+                        Mathf.Max(0f, remainingBefore - accepted));
+                }
+            }
             return succeeded;
         }
 

@@ -1,0 +1,60 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "tool-field-repair-kit",
+    "spoiler_tier": "none",
+    "title": "야전 수리 키트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/faction-contract-kobold-crisis",
+      "label": "필요 조건",
+      "to": "item/tool-field-repair-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-field-repair-kit",
+      "label": "생산·해금",
+      "to": "item/tool-field-repair-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-kobold-2",
+      "label": "필요 조건",
+      "to": "item/tool-field-repair-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-kobold-5",
+      "label": "필요 조건",
+      "to": "item/tool-field-repair-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "event/faction-chapter-kobold-2",
+      "label": "필요 조건",
+      "to": "item/tool-field-repair-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/guest-request-bodyguard-kit",
+      "label": "필요 조건",
+      "to": "item/tool-field-repair-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-chapter-kobold-5",
+      "label": "필요 조건",
+      "to": "item/tool-field-repair-kit",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

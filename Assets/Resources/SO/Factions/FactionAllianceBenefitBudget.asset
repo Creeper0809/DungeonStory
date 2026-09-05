@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 404575897aa7a77438f6243d9272327a, type: 3}
+  m_Name: FactionAllianceBenefitBudget
+  m_EditorClassIdentifier: DungeonStory.Factions::FactionAllianceBenefitBudgetSO
+  schemaVersion: 1
+  approvedBalanceSourceDigest: bda84a4d3202620373ecbaa75060cae6c974130e6fd4004e46e2f89decbf6577
+  capacityMilliEwu: 39259488
+  refillNumeratorMilliEwu: 1089530525299
+  refillDenominatorDays: 1843380
+  routeCosts:
+  - factionId: faction:dungeon:beastkin
+    cooldownDays: 20
+    supplyQuoteSourceDigest: d27f7f62e9161b7657adcb5da23eafc9a9d594b94e5e55b99cac794a6239dad6
+    debitMilliEwu: 1032666
+  - factionId: faction:dungeon:demon
+    cooldownDays: 84
+    supplyQuoteSourceDigest: 36c7dbfb75344b60e3a37de58a0cf444648c41261922a7dc38c7f67f8ba9ff17
+    debitMilliEwu: 14018597
+  - factionId: faction:dungeon:golem
+    cooldownDays: 99
+    supplyQuoteSourceDigest: d95f00287874a937f7a04d037a47a838ab85f5c1cf644d45fd5fb1986d9675a6
+    debitMilliEwu: 16675895
+  - factionId: faction:dungeon:harpy
+    cooldownDays: 22
+    supplyQuoteSourceDigest: 73c7af6b81c9688337db932395ff411f4e024dd80a86de9f0f2c4de5042cfed9
+    debitMilliEwu: 1443442
+  - factionId: faction:dungeon:kobold
+    cooldownDays: 49
+    supplyQuoteSourceDigest: d984fe0ed9889a894050fa7cec98ca323bd19f9cc081d7f96450d943ca0a9bb6
+    debitMilliEwu: 3683242
+  - factionId: faction:dungeon:myconid
+    cooldownDays: 38
+    supplyQuoteSourceDigest: d7a75cc70ce676bc31a37eb15702afe284ad35dda64f691dc9516324e123655b
+    debitMilliEwu: 2405646

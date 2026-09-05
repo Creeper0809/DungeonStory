@@ -1,0 +1,14 @@
+---
+import BaseLayout from '../../../components/BaseLayout.astro';
+import WorkTaskContent from '../../../components/WorkTaskContent.astro';
+import { getCurrentVersion, getWorkTask } from '../../../lib/wiki-data';
+
+const version = getCurrentVersion();
+const match = getWorkTask(version, Astro.params.reference ?? '', Astro.params.task ?? '');
+if (!match) return new Response(null, { status: 404 });
+const { reference, task } = match;
+---
+
+<BaseLayout title={task.title} description={task.summary} version={version}>
+  <WorkTaskContent reference={reference} task={task} version={version} />
+</BaseLayout>

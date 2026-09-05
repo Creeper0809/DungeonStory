@@ -119,7 +119,8 @@ public static class CharacterSkillRuntimeEffects
             + GetManagementModuleTotal(actor, "work_speed", CharacterSkillTrigger.WorkCompleted);
         CharacterSkillTransientState.Ensure(actor).BeginWork(
             workTypeId,
-            1f + Mathf.Clamp(speedBonus, 0f, 1.5f));
+            CharacterSkillWorkSpeedAuthority.ResolveFromAuthoredBonus(
+                speedBonus));
 
         ApplyTriggeredPassives(new CharacterSkillExecutionContext(
             actor,

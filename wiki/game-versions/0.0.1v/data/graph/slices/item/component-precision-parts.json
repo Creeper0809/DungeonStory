@@ -1,0 +1,137 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-precision-parts",
+    "spoiler_tier": "none",
+    "title": "정밀 부품"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-handgonne",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-heavy-matchlock",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-matchlock-long-gun",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-matchlock-pistol",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-sniper-arquebus",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-growth-frame",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-precision-parts",
+      "label": "생산·해금",
+      "to": "item/component-precision-parts",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-control-panel",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-stock-sensor-panel",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-mana-core-case",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-inspection-gauge",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-mana-probe",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-precision-gauge",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-temporal-stasis-seal",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "event/guest-request-precision-barter",
+      "label": "필요 조건",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

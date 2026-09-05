@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-commerce-expansion",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 확장",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facility-blueprint-6101",
+  "spoiler_tier": "none",
+  "summary": "연회 식당과 전문 제작을 위한 2단계 상업 파츠를 즉시 해금한다.",
+  "title": "상업 확장 설계도"
+}

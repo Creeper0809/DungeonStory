@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medicine-vaccine-gut-rot",
+    "spoiler_tier": "none",
+    "title": "장부패증 백신"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "recipe/recipe-medicine-vaccine-gut-rot",
+      "label": "생산·해금",
+      "to": "item/medicine-vaccine-gut-rot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

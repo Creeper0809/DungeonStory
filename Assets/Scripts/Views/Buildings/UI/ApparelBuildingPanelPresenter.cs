@@ -70,6 +70,11 @@ public sealed class ApparelBuildingPanelPresenter : IApparelBuildingPanelPresent
         {
             return created;
         }
+        if (command == ResearchFacilityCommandKind.ApparelTailoring
+            && !ApparelTailoringFacilityEligibility.IsEligible(building))
+        {
+            return created;
+        }
 
         string facilityId = building.RequirePersistentInstanceId().Value;
         ApparelWorkOrderSaveData[] active = orders.Orders

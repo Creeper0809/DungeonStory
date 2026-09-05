@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public sealed class BuildingCraftWorkRuntimeAdapter :
@@ -9,16 +10,39 @@ public sealed class BuildingCraftWorkRuntimeAdapter :
     private readonly IProductionBillWorkExecution production;
     private readonly IFacilityEvolutionRuntime facilityEvolution;
     private readonly IEquipmentEvolutionRuntime equipmentEvolution;
+    private readonly IReadOnlyDictionary<string, ICraftPersistentOperationContributor>
+        persistentOperations;
 
     public BuildingCraftWorkRuntimeAdapter(
         IProductionBillWorkExecution production,
         IFacilityEvolutionRuntime facilityEvolution,
-        IEquipmentEvolutionRuntime equipmentEvolution)
+        IEquipmentEvolutionRuntime equipmentEvolution,
+        IReadOnlyList<ICraftPersistentOperationContributor> persistentOperations)
     {
         this.production = production
             ?? throw new ArgumentNullException(nameof(production));
         this.facilityEvolution = facilityEvolution;
         this.equipmentEvolution = equipmentEvolution;
+        ICraftPersistentOperationContributor[] operations =
+            (persistentOperations
+                ?? throw new ArgumentNullException(nameof(persistentOperations)))
+            .OrderBy(value => value?.ContributorId, StringComparer.Ordinal)
+            .ToArray();
+        if (operations.Any(value => value == null
+                || string.IsNullOrWhiteSpace(value.ContributorId)
+                || !string.Equals(
+                    value.ContributorId,
+                    value.ContributorId.Trim(),
+                    StringComparison.Ordinal))
+            || operations.Select(value => value.ContributorId)
+                .Distinct(StringComparer.Ordinal).Count() != operations.Length)
+        {
+            throw new InvalidOperationException(
+                "Craft persistent-operation contributor metadata is invalid or duplicated.");
+        }
+        this.persistentOperations = operations.ToDictionary(
+            value => value.ContributorId,
+            StringComparer.Ordinal);
     }
 
     public CraftWorkerHandle CaptureWorker(object runtimeWorker)
@@ -136,6 +160,31 @@ public sealed class BuildingCraftWorkRuntimeAdapter :
         return false;
     }
 
+    public bool TryGetRegisteredPersistentOperation(
+        CraftFacilityHandle facility,
+        out CraftWorkExecutionPlan plan)
+    {
+        foreach (ICraftPersistentOperationContributor contributor in
+                 persistentOperations.Values)
+        {
+            if (!contributor.TryCapturePlan(facility, out plan))
+                continue;
+            if (plan.Kind != CraftWorkOperationKind.RegisteredCapability
+                || !string.Equals(
+                    plan.ContributorId,
+                    contributor.ContributorId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Craft persistent-operation contributor returned a mismatched plan.");
+            }
+            return true;
+        }
+
+        plan = default;
+        return false;
+    }
+
     public CraftWorkAvailability CheckProductionAvailability(
         CraftFacilityHandle facility)
     {
@@ -147,7 +196,9 @@ public sealed class BuildingCraftWorkRuntimeAdapter :
             availability.Available,
             availability.Failure.IsFailure
                 ? availability.Failure.Code.ToString()
-                : string.Empty);
+                : string.Empty,
+            ProductionWorkstationExecutionModeRules
+                .BlocksManualProductionFallback(availability.Failure));
     }
 
     public bool TryBeginProduction(
@@ -267,6 +318,22 @@ public sealed class BuildingCraftWorkRuntimeAdapter :
                 throw new InvalidOperationException(
                     $"Unsupported persistent craft operation '{plan.Kind}'.");
         }
+    }
+
+    public CraftWorkProgressResult ApplyRegisteredPersistentOperation(
+        CraftFacilityHandle facility,
+        CraftWorkExecutionPlan plan,
+        float amount)
+    {
+        if (plan.Kind != CraftWorkOperationKind.RegisteredCapability
+            || !persistentOperations.TryGetValue(
+                plan.ContributorId,
+                out ICraftPersistentOperationContributor contributor))
+        {
+            throw new InvalidOperationException(
+                "Registered craft operation contributor is missing or mismatched.");
+        }
+        return contributor.ApplyProgress(facility, plan, amount);
     }
 
     public int CompleteLegacyEquipmentCraft(

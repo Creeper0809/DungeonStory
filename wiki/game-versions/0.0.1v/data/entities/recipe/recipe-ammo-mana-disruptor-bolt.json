@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "100"
+    },
+    {
+      "label": "필요 연구",
+      "value": "룬 식별"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "6",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-mana-disruptor-bolt",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 차단 볼트",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "6",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "ammo-bolt-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "강철촉 볼트",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-rune-identification",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 식별",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-mana-alloy",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 합금",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-ammo-mana-disruptor-bolt",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 마나 차단 볼트을(를) 생산한다.",
+  "title": "마나 차단 볼트"
+}

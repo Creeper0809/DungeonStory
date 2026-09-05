@@ -12,12 +12,85 @@ public static class SurgicalPartPreparedOutputDebugScenarios
     [MenuItem("Tools/Dungeon Story/QA/Run Surgical Part Prepared Output Scenarios")]
     public static void RunAll()
     {
+        VerifyFutureSameCapabilityDefinitionUsesTheRegisteredPath();
         VerifyCapacityBlockDoesNotPublish();
+        VerifyCapabilityMaximumBlocksPublication();
+        VerifyCapabilityMaximumReleaseFailureIsVisible();
+        VerifyProofCapacityMismatchDoesNotReserve();
         VerifyPublicationFailureReleasesReservation();
         VerifyRuntimeJoinFailureRollsBackPhysicalPublication();
         VerifyAdmissionCommitFailureReversesEveryOwner();
         VerifySuccessReplayAcknowledgementAndMassJoin();
         Debug.Log("[SurgicalPartPreparedOutput] focused scenarios passed.");
+    }
+
+    private static void VerifyFutureSameCapabilityDefinitionUsesTheRegisteredPath()
+    {
+        string futureItemId =
+            SurgeryItemDefinitions.GetProstheticItemId("arm:right");
+        SurgicalPartProductionOutputMaximumMassCapability maximum = new();
+        Fixture fixture = new();
+        Require(
+            fixture.Handler.CanHandle(futureItemId)
+            && maximum.CanHandle(futureItemId)
+            && SurgicalPartProductionOutputSemantics.TryResolveDefinition(
+                futureItemId,
+                out string nodeId,
+                out SurgicalPartKind kind)
+            && string.Equals(nodeId, "arm:right", StringComparison.Ordinal)
+            && kind == SurgicalPartKind.Prosthetic,
+            "A future surgical-part ID with existing semantics requires a handler code edit.");
+    }
+
+    private static void VerifyCapabilityMaximumReleaseFailureIsVisible()
+    {
+        Fixture fixture = new();
+        fixture.Admission.ReservedMassGrams = ExactMassGrams + 1L;
+        fixture.Admission.FailRelease = true;
+        Require(
+            !fixture.Publish(out DomainFailure failure)
+            && failure.Parameters.ToArray().Any(value => string.Equals(
+                value,
+                "surgical-part-output-maximum-release-failed",
+                StringComparison.Ordinal))
+            && fixture.Admission.ReleaseCount == 1
+            && fixture.Publication.PublishCount == 0,
+            "Maximum-mass reservation release failure was not visible.");
+    }
+
+    private static void VerifyProofCapacityMismatchDoesNotReserve()
+    {
+        Fixture fixture = new();
+        ProductionOutputBufferCapacitySourceSnapshot mismatched = new(
+            2,
+            ExactMassGrams,
+            ExactMassGrams * 2L,
+            ExactMassGrams * 2L - 1L,
+            ExactMassGrams * 2L,
+            Fixture.Digest("surgical-capacity-mismatch"));
+        Require(
+            !fixture.Publish(
+                fixture.MaximumMassProof,
+                mismatched,
+                out _)
+            && fixture.Admission.ReserveCount == 0
+            && fixture.Publication.PublishCount == 0,
+            "A mismatched maximum proof and capacity source reached admission.");
+    }
+
+    private static void VerifyCapabilityMaximumBlocksPublication()
+    {
+        Fixture fixture = new();
+        fixture.Admission.ReservedMassGrams = ExactMassGrams + 1L;
+        Require(
+            !fixture.Publish(),
+            "A surgical-part output above its capability maximum was published.");
+        Require(
+            fixture.Admission.ReserveCount == 1
+            && fixture.Admission.ReleaseCount == 1
+            && fixture.Publication.PublishCount == 0
+            && fixture.Runtime.CommitCount == 0,
+            "Maximum-mass rejection crossed the physical publication boundary.");
     }
 
     private static void VerifyCapacityBlockDoesNotPublish()
@@ -116,12 +189,13 @@ public static class SurgicalPartPreparedOutputDebugScenarios
             && fixture.Runtime.Acknowledged,
             "Exact acknowledgement was not durable and idempotent.");
         Require(
-            fixture.Handler.TryGetCommittedMassGrams(
+            fixture.Runtime.TryValidateCommittedCraftedOutput(
                 fixture.Prepared.CommitId,
-                out long mass,
+                requireAcknowledged: true,
+                out SurgicalPartPublishedOutputSnapshot committed,
                 out _)
-            && mass == ExactMassGrams,
-            "Committed mass query did not return the joined physical mass.");
+            && committed.MassGrams == ExactMassGrams,
+            "Committed surgical aggregate did not retain the joined physical mass.");
     }
 
     private static void Require(bool condition, string message)
@@ -138,12 +212,15 @@ public static class SurgicalPartPreparedOutputDebugScenarios
         internal readonly SurgicalPartProductionOutputHandler Handler;
         internal readonly SurgicalPartPreparedOutput Prepared;
         internal readonly FacilityBufferCapacityProfile Profile;
+        internal readonly ProductionOutputBatchMaximumMassProof MaximumMassProof;
+        internal readonly ProductionOutputBufferCapacitySourceSnapshot Capacity;
 
         internal Fixture()
         {
             Prepared = new SurgicalPartPreparedOutput
             {
                 ItemId = SurgicalPartProductionOutputHandler.ProstheticArmOutputId,
+                PhysicalItemInstanceId = "item-instance:surgical-part:41",
                 PartInstanceId = "surgical-part:41",
                 NodeId = "arm:left",
                 DisplayName = "Focused prosthetic arm",
@@ -168,6 +245,43 @@ public static class SurgicalPartPreparedOutputDebugScenarios
                 "facility:focused",
                 new PhysicalMassGrams(ExactMassGrams * 2L),
                 2L);
+            const string outputLineId = "output:main";
+            string descriptorFingerprint =
+                ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                    outputLineId,
+                    Prepared.ItemId,
+                    SurgicalPartProductionOutputHandler.HandlerCapabilityId,
+                    SurgicalPartProductionOutputHandler.HandlerContractVersion,
+                    SurgicalPartProductionOutputHandler.HandlerComponentCodecId,
+                    SurgicalPartProductionOutputHandler.HandlerComponentCodecVersion);
+            ProductionOutputCapabilityDescriptor descriptor = new(
+                outputLineId,
+                Prepared.ItemId,
+                SurgicalPartProductionOutputHandler.HandlerCapabilityId,
+                SurgicalPartProductionOutputHandler.HandlerContractVersion,
+                SurgicalPartProductionOutputHandler.HandlerComponentCodecId,
+                SurgicalPartProductionOutputHandler.HandlerComponentCodecVersion,
+                descriptorFingerprint);
+            MaximumMassProof = new ProductionOutputBatchMaximumMassProof(
+                new[]
+                {
+                    new ProductionOutputMaximumMassProjection(
+                        descriptor,
+                        1,
+                        ExactMassGrams,
+                        ExactMassGrams,
+                        1L,
+                        Digest("surgical-maximum"))
+                });
+            Capacity = new ProductionOutputBufferCapacitySourceSnapshot(
+                2,
+                ExactMassGrams,
+                ExactMassGrams * 2L,
+                ExactMassGrams * 2L,
+                ExactMassGrams * 2L,
+                Digest("surgical-capacity"));
+            Admission.ExpectedCapacitySourceDigest = Capacity.SourceDigest;
+            Admission.ExpectedOutputLineId = outputLineId;
         }
 
         internal bool RejectCapacity
@@ -190,11 +304,30 @@ public static class SurgicalPartPreparedOutputDebugScenarios
             set => Admission.FailCommit = value;
         }
 
-        internal bool Publish() => Handler.TryPublishPreparedOutputForEditorTest(
+        internal bool Publish() => Publish(out _);
+
+        internal bool Publish(out DomainFailure failure) =>
+            Publish(MaximumMassProof, Capacity, out failure);
+
+        internal bool Publish(
+            ProductionOutputBatchMaximumMassProof proof,
+            ProductionOutputBufferCapacitySourceSnapshot capacity,
+            out DomainFailure failure) =>
+            Handler.TryPublishPreparedOutputForEditorTest(
             Prepared,
             Profile,
             Position,
-            out _);
+            "output:main",
+            proof,
+            capacity,
+            out failure);
+
+        internal static string Digest(string value)
+        {
+            CanonicalSemanticDigestBuilder digest = new();
+            digest.Append(value);
+            return digest.ComputeSha256();
+        }
     }
 
     private sealed class AdmissionFake : ISurgicalPartOutputAdmissionPort
@@ -205,6 +338,10 @@ public static class SurgicalPartPreparedOutputDebugScenarios
         internal int CommitCount;
         internal int ReleaseCount;
         internal bool RequestWasExact;
+        internal long ReservedMassGrams = ExactMassGrams;
+        internal bool FailRelease;
+        internal string ExpectedCapacitySourceDigest = string.Empty;
+        internal string ExpectedOutputLineId = string.Empty;
 
         public bool TryReserve(
             FacilityBufferPlannedOutputRequest request,
@@ -237,8 +374,16 @@ public static class SurgicalPartPreparedOutputDebugScenarios
                 && request.CapacitySourceDigest.All(character =>
                     character is >= '0' and <= '9'
                     || character is >= 'a' and <= 'f')
+                && string.Equals(
+                    request.CapacitySourceDigest,
+                    ExpectedCapacitySourceDigest,
+                    StringComparison.Ordinal)
                 && request.ExpectedMinimumCapacityGrams
                     == ExactMassGrams * 2L
+                && string.Equals(
+                    slice.OutputLineId,
+                    ExpectedOutputLineId,
+                    StringComparison.Ordinal)
                 && SurgicalPartPreparedOutputComponentCodec.TryRead(
                     new[] { component },
                     out string partId,
@@ -253,12 +398,12 @@ public static class SurgicalPartPreparedOutputDebugScenarios
                 && commitId == request.BatchCommitId;
             FacilityBufferPlannedOutputSliceSnapshot snapshot = new(
                 slice,
-                new PhysicalMassGrams(ExactMassGrams));
+                new PhysicalMassGrams(ReservedMassGrams));
             FacilityBufferPlannedOutputSnapshot planned = new(
                 "focused-planned-output-fingerprint",
                 new[] { snapshot },
                 1,
-                new PhysicalMassGrams(ExactMassGrams));
+                new PhysicalMassGrams(ReservedMassGrams));
             token = new FacilityBufferPlannedOutputToken(
                 "facility-buffer-planned-output-admission:focused",
                 request,
@@ -297,6 +442,12 @@ public static class SurgicalPartPreparedOutputDebugScenarios
             ReleaseCount++;
             failureCode = FacilityBufferMassAdmissionFailureCode.None;
             failureReason = string.Empty;
+            if (FailRelease)
+            {
+                failureCode = FacilityBufferMassAdmissionFailureCode.TokenMismatch;
+                failureReason = "focused-release-failure";
+                return false;
+            }
             return true;
         }
     }
@@ -305,6 +456,7 @@ public static class SurgicalPartPreparedOutputDebugScenarios
     {
         private readonly RuntimeFake runtime;
         private FacilityBufferPlannedOutputPublicationReceipt receipt;
+        private bool hasReceipt;
         internal bool FailPublish;
         internal bool ReturnMismatchedCandidate;
         internal int PublishCount;
@@ -312,6 +464,29 @@ public static class SurgicalPartPreparedOutputDebugScenarios
         internal int AcknowledgeCount;
 
         internal PublicationFake(RuntimeFake runtime) => this.runtime = runtime;
+
+        public bool TryCaptureBatch(
+            string batchCommitId,
+            bool allowAcknowledged,
+            out FacilityBufferPlannedOutputRestoreBatchSnapshot candidate,
+            out bool acknowledged,
+            out FacilityBufferPlannedOutputPublicationFailureCode failureCode,
+            out string failureReason)
+        {
+            acknowledged = runtime.Acknowledged;
+            failureCode = FacilityBufferPlannedOutputPublicationFailureCode.None;
+            if (!hasReceipt)
+            {
+                candidate = null;
+                failureReason = "planned-output-batch-missing:" + batchCommitId;
+                return false;
+            }
+            return TryCapturePending(
+                batchCommitId,
+                out candidate,
+                out failureCode,
+                out failureReason);
+        }
 
         public bool TryPublish(
             FacilityBufferPlannedOutputToken token,
@@ -349,8 +524,10 @@ public static class SurgicalPartPreparedOutputDebugScenarios
                         slice.OutputLineId,
                         slice.ItemDefinitionId,
                         1,
-                        new PhysicalMassGrams(ExactMassGrams))
+                        new PhysicalMassGrams(ExactMassGrams),
+                        slice.Source.Subject.ItemInstanceId)
                 });
+            hasReceipt = true;
             result = receipt;
             return true;
         }
@@ -446,6 +623,7 @@ public static class SurgicalPartPreparedOutputDebugScenarios
             prepared = new SurgicalPartPreparedOutput
             {
                 ItemId = canonical.ItemId,
+                PhysicalItemInstanceId = canonical.PhysicalItemInstanceId,
                 PartInstanceId = canonical.PartInstanceId,
                 NodeId = canonical.NodeId,
                 DisplayName = canonical.DisplayName,

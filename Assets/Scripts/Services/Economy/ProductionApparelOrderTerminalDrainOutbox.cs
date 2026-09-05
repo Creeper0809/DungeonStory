@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 /// <summary>
 /// Apparel-owned durable producer for one terminal work-order operation. The
@@ -9,7 +10,8 @@ using System.Linq;
 /// </summary>
 public sealed class ProductionApparelOrderTerminalDrainOutbox :
     IProductionApparelOrderTerminalDrainQuery,
-    IProductionApparelOrderTerminalDrainCommand
+    IProductionApparelOrderTerminalDrainCommand,
+    IProductionApparelOrderTerminalDrainCheckpointGcPort
 {
     private sealed class State
     {
@@ -22,6 +24,9 @@ public sealed class ProductionApparelOrderTerminalDrainOutbox :
     private readonly IApparelLeaseAuthorityCommand leaseCommand;
     private readonly IProductionApparelOrderTerminalEffectPort effects;
     private readonly IProductionApparelOrderSourceTerminalPort source;
+    private readonly IProductionApparelTerminalStateCheckpointGcPort
+        terminalStateGc;
+    private CheckpointGcCandidate activeCheckpointGcCandidate;
 
     public ProductionApparelOrderTerminalDrainOutbox(
         DungeonRuntimeAggregateRootStore rootStore,
@@ -40,6 +45,8 @@ public sealed class ProductionApparelOrderTerminalDrainOutbox :
             ?? throw new ArgumentNullException(nameof(effects));
         this.source = source
             ?? throw new ArgumentNullException(nameof(source));
+        terminalStateGc = effects as
+            IProductionApparelTerminalStateCheckpointGcPort;
     }
 
     private State Current => rootStore.GetOrCreate(() => new State());
@@ -259,8 +266,238 @@ public sealed class ProductionApparelOrderTerminalDrainOutbox :
         .Select(value => value.Clone())
         .ToArray();
 
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData>
+                entries,
+            out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                candidate)
+    {
+        candidate = null;
+        if (activeCheckpointGcCandidate != null)
+        {
+            return GcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                context,
+                "production-apparel-checkpoint-gc-already-active");
+        }
+
+        ProductionFacilityDestructiveDrainEntrySaveData[] orderedEntries =
+            (entries ?? Array.Empty<
+                    ProductionFacilityDestructiveDrainEntrySaveData>())
+            .OrderBy(value => value?.operationId, StringComparer.Ordinal)
+            .ToArray();
+        if (orderedEntries.Any(value => value == null)
+            || orderedEntries.Select(value => value.operationId)
+                .Distinct(StringComparer.Ordinal).Count()
+                != orderedEntries.Length)
+        {
+            return GcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                context,
+                "production-apparel-checkpoint-gc-entry-invalid");
+        }
+
+        List<ProductionApparelOrderTerminalDrainSaveData> producers = new();
+        foreach (ProductionFacilityDestructiveDrainEntrySaveData entry in
+                 orderedEntries)
+        {
+            ProductionFacilityDestructiveDrainParticipantSaveData[] rows =
+                (entry.participants ?? new List<
+                    ProductionFacilityDestructiveDrainParticipantSaveData>())
+                .Where(value => value != null
+                    && string.Equals(
+                        value.participantId,
+                        ProductionFacilityDestructiveDrainParticipantIds
+                            .ApparelWorkOrders,
+                        StringComparison.Ordinal))
+                .ToArray();
+            if (rows.Length != 1)
+            {
+                return GcResult(
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus
+                        .Corruption,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .ParticipantTopologyMismatch,
+                    context,
+                    "production-apparel-checkpoint-gc-participant-row-invalid");
+            }
+            foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in
+                     rows[0].owners ?? new List<
+                         ProductionFacilityDestructiveDrainOwnerSaveData>())
+            {
+                if (owner == null
+                    || owner.phase != ProductionFacilityDestructiveDrainStepPhase
+                        .OwnerAcknowledged
+                    || !TryCapture(
+                        owner.stepOperationId,
+                        out ProductionApparelOrderTerminalDrainSaveData producer)
+                    || !ProducerMatchesUpper(producer, entry, owner))
+                {
+                    return GcResult(
+                        ProductionFacilityDestructiveDrainCheckpointGcStatus
+                            .Corruption,
+                        ProductionFacilityDestructiveDrainCheckpointGcReason
+                            .ParticipantPrepareFailed,
+                        context,
+                        "production-apparel-checkpoint-gc-upper-lower-gap");
+                }
+                producers.Add(producer.Clone());
+            }
+        }
+        if (producers.Select(value => value.stepOperationId)
+                .Distinct(StringComparer.Ordinal).Count() != producers.Count)
+        {
+            return GcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                context,
+                "production-apparel-checkpoint-gc-producer-duplicate");
+        }
+        if (producers.Count > 0 && terminalStateGc == null)
+        {
+            return GcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .MissingParticipant,
+                context,
+                "production-apparel-checkpoint-gc-terminal-state-port-missing");
+        }
+
+        IProductionApparelTerminalStateCheckpointGcCandidate lowerCandidate =
+            null;
+        if (terminalStateGc != null
+            && !terminalStateGc.TryPrepareCheckpointGarbageCollection(
+                producers,
+                out lowerCandidate,
+                out string lowerFailure))
+        {
+            return GcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                context,
+                "production-apparel-checkpoint-gc-terminal-state-prepare-failed:"
+                + lowerFailure);
+        }
+
+        activeCheckpointGcCandidate = new CheckpointGcCandidate(
+            context,
+            orderedEntries.Select(value => value.operationId).ToArray(),
+            producers,
+            lowerCandidate);
+        candidate = activeCheckpointGcCandidate;
+        return GcResult(
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+            context,
+            "production-apparel-checkpoint-gc-prepared");
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.ProducersPublished)
+        {
+            return GcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus
+                    .AlreadyApplied,
+                ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+                exact.Context,
+                "production-apparel-checkpoint-gc-already-published",
+                exact.OperationIds.Count);
+        }
+        if (exact.LowerCandidate != null && !exact.LowerPublished)
+        {
+            if (!terminalStateGc.TryPublishCheckpointGarbageCollection(
+                    exact.LowerCandidate,
+                    out string lowerFailure))
+            {
+                return GcResult(
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .ParticipantPublishFailed,
+                    exact.Context,
+                    "production-apparel-checkpoint-gc-terminal-state-publish-failed:"
+                    + lowerFailure);
+            }
+            exact.LowerPublished = true;
+        }
+        if (exact.Producers.Any(expected =>
+                !Current.ByStepOperationId.TryGetValue(
+                    expected.stepOperationId,
+                    out ProductionApparelOrderTerminalDrainSaveData current)
+                || !ProducerEquals(current, expected)))
+        {
+            return GcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .LiveAuthorityChanged,
+                exact.Context,
+                "production-apparel-checkpoint-gc-producer-changed");
+        }
+        foreach (ProductionApparelOrderTerminalDrainSaveData expected in
+                 exact.Producers)
+            Current.ByStepOperationId.Remove(expected.stepOperationId);
+        exact.ProducersPublished = true;
+        return GcResult(
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+            exact.Context,
+            "production-apparel-checkpoint-gc-published",
+            exact.OperationIds.Count);
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.ProducersPublished)
+        {
+            if (exact.Producers.Any(expected =>
+                    Current.ByStepOperationId.ContainsKey(
+                        expected.stepOperationId)))
+            {
+                throw new InvalidOperationException(
+                    "Apparel checkpoint-GC producer rollback would overwrite live authority.");
+            }
+            foreach (ProductionApparelOrderTerminalDrainSaveData expected in
+                     exact.Producers)
+            {
+                Current.ByStepOperationId.Add(
+                    expected.stepOperationId,
+                    expected.Clone());
+            }
+            exact.ProducersPublished = false;
+        }
+        if (exact.LowerPublished)
+        {
+            terminalStateGc.RollbackCheckpointGarbageCollection(
+                exact.LowerCandidate);
+            exact.LowerPublished = false;
+        }
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.LowerCandidate != null)
+            terminalStateGc.CompleteCheckpointGarbageCollection(
+                exact.LowerCandidate);
+        activeCheckpointGcCandidate = null;
+    }
+
     [GameplayInternalOnly(
-        "Atomically restores the unregistered apparel producer only after exact lower-authority join validation.",
+        "Atomically restores the apparel producer only after exact lower-authority join validation.",
         "Production save restore coordinator only")]
     public bool TryRestoreCurrentFormat(
         IEnumerable<ProductionApparelOrderTerminalDrainSaveData> records,
@@ -685,6 +922,108 @@ public sealed class ProductionApparelOrderTerminalDrainOutbox :
 
     private void Store(ProductionApparelOrderTerminalDrainSaveData value) =>
         Current.ByStepOperationId[value.stepOperationId] = value.Clone();
+
+    private static bool ProducerMatchesUpper(
+        ProductionApparelOrderTerminalDrainSaveData producer,
+        ProductionFacilityDestructiveDrainEntrySaveData entry,
+        ProductionFacilityDestructiveDrainOwnerSaveData owner) =>
+        ProductionApparelOrderTerminalDrainCanonical.IsValidSave(producer)
+        && producer.phase == ProductionApparelOrderTerminalDrainPhase
+            .OwnerAcknowledgedAwaitingCheckpointGc
+        && string.Equals(
+            producer.parentOperationId,
+            entry.operationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            producer.stepOperationId,
+            owner.stepOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            producer.ownerStableId,
+            owner.ownerStableId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            producer.requestFingerprint,
+            owner.requestFingerprint,
+            StringComparison.Ordinal)
+        && string.Equals(
+            producer.commitId,
+            owner.commitId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            producer.receiptFingerprint,
+            owner.receiptFingerprint,
+            StringComparison.Ordinal);
+
+    private static bool ProducerEquals(
+        ProductionApparelOrderTerminalDrainSaveData left,
+        ProductionApparelOrderTerminalDrainSaveData right) => left != null
+        && right != null
+        && string.Equals(
+            JsonUtility.ToJson(left),
+            JsonUtility.ToJson(right),
+            StringComparison.Ordinal);
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || !ReferenceEquals(activeCheckpointGcCandidate, exact))
+        {
+            throw new InvalidOperationException(
+                "Apparel checkpoint-GC candidate is stale or foreign.");
+        }
+        return exact;
+    }
+
+    private static ProductionFacilityDestructiveDrainCheckpointGcResult
+        GcResult(
+            ProductionFacilityDestructiveDrainCheckpointGcStatus status,
+            ProductionFacilityDestructiveDrainCheckpointGcReason reason,
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            string message,
+            int collectedOperationCount = 0) => new(
+            status,
+            reason,
+            context.CheckpointSequence,
+            message,
+            collectedOperationCount);
+
+    private sealed class CheckpointGcCandidate :
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate
+    {
+        internal CheckpointGcCandidate(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<string> operationIds,
+            IReadOnlyList<ProductionApparelOrderTerminalDrainSaveData> producers,
+            IProductionApparelTerminalStateCheckpointGcCandidate lowerCandidate)
+        {
+            Context = context;
+            OperationIds = (operationIds ?? Array.Empty<string>())
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            Producers = (producers
+                    ?? Array.Empty<ProductionApparelOrderTerminalDrainSaveData>())
+                .Select(value => value.Clone())
+                .OrderBy(value => value.stepOperationId, StringComparer.Ordinal)
+                .ToArray();
+            LowerCandidate = lowerCandidate;
+        }
+
+        public string ParticipantId =>
+            ProductionFacilityDestructiveDrainParticipantIds.ApparelWorkOrders;
+        public long CheckpointSequence => Context.CheckpointSequence;
+        public string SerializedByteDigest => Context.SerializedByteDigest;
+        public IReadOnlyList<string> OperationIds { get; }
+        internal ProductionFacilityDestructiveDrainCheckpointGcContext Context
+            { get; }
+        internal IReadOnlyList<ProductionApparelOrderTerminalDrainSaveData>
+            Producers { get; }
+        internal IProductionApparelTerminalStateCheckpointGcCandidate
+            LowerCandidate { get; }
+        internal bool LowerPublished { get; set; }
+        internal bool ProducersPublished { get; set; }
+    }
 
     private static ProductionApparelOrderTerminalDrainResult Result(
         ProductionApparelOrderTerminalDrainSaveData value,

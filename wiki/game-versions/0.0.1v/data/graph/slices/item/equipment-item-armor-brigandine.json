@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-armor-brigandine",
+    "spoiler_tier": "none",
+    "title": "브리간딘"
+  },
+  "edges": [],
+  "schema_version": 1
+}

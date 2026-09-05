@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "seasonal-spring-fever-camp",
+    "spoiler_tier": "warning",
+    "title": "봄열 피난민"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "event/seasonal-spring-fever-camp",
+      "label": "연결",
+      "target_kind": "medical",
+      "target_slug": "disease-red-fever",
+      "target_spoiler_tier": "none",
+      "target_title": "적열병",
+      "to": "medical/disease-red-fever",
+      "type": "adds-disease-exposure"
+    }
+  ],
+  "schema_version": 1
+}

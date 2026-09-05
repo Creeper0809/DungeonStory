@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "18"
+    },
+    {
+      "label": "필요 연구",
+      "value": "철제 가공"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-coal",
+      "target_spoiler_tier": "none",
+      "target_title": "석탄",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-iron-ore",
+      "target_spoiler_tier": "none",
+      "target_title": "철광석",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철제 가공",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-iron-ingot",
+  "spoiler_tier": "none",
+  "summary": "철 제련 생산 주문",
+  "title": "철 제련"
+}

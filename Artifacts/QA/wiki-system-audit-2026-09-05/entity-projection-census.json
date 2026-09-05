@@ -1,0 +1,146 @@
+{
+  "method": "Static projection census and exact-phrase probes; not semantic coverage proof",
+  "entityCount": 2905,
+  "groups": {
+    "character": {
+      "count": 266,
+      "withoutFacts": 88,
+      "withoutDirectRelations": 220,
+      "factLabels": {
+        "분류": 42,
+        "시작 효과": 12,
+        "효과": 108,
+        "주전문": 9,
+        "부전문": 9,
+        "숙련 보너스": 15,
+        "희귀도": 100,
+        "성향": 100,
+        "정체성 규칙": 50
+      }
+    },
+    "combat": {
+      "count": 141,
+      "withoutFacts": 20,
+      "withoutDirectRelations": 26,
+      "factLabels": {
+        "필요 연구": 115,
+        "제작 작업": 61,
+        "무게": 61,
+        "효과": 1,
+        "전면 방어 확률": 9,
+        "최대 사거리": 31
+      }
+    },
+    "event": {
+      "count": 171,
+      "withoutFacts": 59,
+      "withoutDirectRelations": 32,
+      "factLabels": {
+        "성공 효과": 52,
+        "실패 효과": 32,
+        "분류": 32,
+        "최소 지속 기간": 28,
+        "최대 지속 기간": 28,
+        "종료 효과": 28
+      }
+    },
+    "facility": {
+      "count": 425,
+      "withoutFacts": 27,
+      "withoutDirectRelations": 403,
+      "factLabels": {
+        "분류": 398,
+        "크기": 398
+      }
+    },
+    "item": {
+      "count": 1075,
+      "withoutFacts": 0,
+      "withoutDirectRelations": 1075,
+      "factLabels": {
+        "무게": 1075,
+        "한 칸 적재": 1075,
+        "기준 가격": 1075
+      }
+    },
+    "medical": {
+      "count": 75,
+      "withoutFacts": 28,
+      "withoutDirectRelations": 27,
+      "factLabels": {
+        "필요 작업": 47,
+        "필요 연구": 47,
+        "효과": 47
+      }
+    },
+    "nature": {
+      "count": 73,
+      "withoutFacts": 50,
+      "withoutDirectRelations": 43,
+      "factLabels": {
+        "평균 기온": 5,
+        "필요 연구": 12,
+        "최소 지속 기간": 6,
+        "최대 지속 기간": 6,
+        "기온 변화": 6,
+        "봄 가중치": 6,
+        "여름 가중치": 6,
+        "가을 가중치": 6,
+        "겨울 가중치": 6
+      }
+    },
+    "recipe": {
+      "count": 355,
+      "withoutFacts": 0,
+      "withoutDirectRelations": 0,
+      "factLabels": {
+        "필요 작업": 355,
+        "필요 연구": 355,
+        "사이클당 깨끗한 물": 24,
+        "준비 작업": 8,
+        "마무리 작업": 8,
+        "처리 시간": 8
+      }
+    },
+    "research": {
+      "count": 180,
+      "withoutFacts": 0,
+      "withoutDirectRelations": 1,
+      "factLabels": {
+        "필요 작업": 180,
+        "연구 분야": 180
+      }
+    },
+    "world": {
+      "count": 144,
+      "withoutFacts": 84,
+      "withoutDirectRelations": 48,
+      "factLabels": {
+        "최소 강도": 12,
+        "최대 강도": 18,
+        "최소 유지 기간": 12,
+        "최대 유지 기간": 12,
+        "효과": 18,
+        "필요 연구": 24,
+        "완화 작업": 6
+      }
+    }
+  },
+  "matches": {
+    "리롤": [],
+    "재추첨": [],
+    "다시 뽑": [
+      "wiki/game-versions/0.0.1v/content/guides/facility-growth.md"
+    ],
+    "창업 본능": [],
+    "장부 감각": [],
+    "첫인상 장악": [],
+    "마지막 격려": [],
+    "생존 압력": [],
+    "느긋함": [],
+    "가혹함": [],
+    "액티브": [],
+    "패시브": [],
+    "잠재력": []
+  }
+}

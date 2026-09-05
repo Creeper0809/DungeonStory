@@ -152,6 +152,22 @@ public static class ProductionPreparedOutputResumeAuthorityDebugScenarios
                     outputLineId = OutputLineId,
                     role = ProductionOutputRole.Main,
                     itemId = "feed:hay",
+                    outputCapabilityId =
+                        ProductionOutputCapabilityIds.StandardDefinition,
+                    outputCapabilityVersion =
+                        ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                    outputComponentCodecId =
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                    outputComponentCodecVersion =
+                        ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+                    outputCapabilityFingerprint =
+                        ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                            OutputLineId,
+                            "feed:hay",
+                            ProductionOutputCapabilityIds.StandardDefinition,
+                            ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                            ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                            ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
                     quantity = 1,
                     componentFingerprint = ComponentFingerprint,
                     rollKind = "resume-qa",

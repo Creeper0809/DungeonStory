@@ -1,0 +1,39 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "제강"
+    },
+    {
+      "label": "제작 작업",
+      "value": "104"
+    },
+    {
+      "label": "무게",
+      "value": "4.8kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-pollaxe",
+  "spoiler_tier": "none",
+  "summary": "폴액스 전투 장비",
+  "title": "폴액스"
+}

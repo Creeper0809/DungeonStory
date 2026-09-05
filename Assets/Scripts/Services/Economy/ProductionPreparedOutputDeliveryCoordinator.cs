@@ -17,13 +17,15 @@ public sealed class ProductionPreparedOutputDeliveryCoordinator :
     private readonly IPreparedOutputExactDestinationAdmissionParticipant admission;
     private readonly IDungeonItemCatalogProvider catalog;
     private readonly IWarehouseWorldQuery warehouseWorld;
+    private readonly IGridSystemProvider gridSystemProvider;
 
     public ProductionPreparedOutputDeliveryCoordinator(
         IProductionPreparedOutputDeliveryRerouteParticipant economy,
         IFacilityOutputExactRouteDeliveryOverlayParticipant items,
         IPreparedOutputExactDestinationAdmissionParticipant admission,
         IDungeonItemCatalogProvider catalog,
-        IWarehouseWorldQuery warehouseWorld)
+        IWarehouseWorldQuery warehouseWorld,
+        IGridSystemProvider gridSystemProvider)
     {
         this.economy = economy ?? throw new ArgumentNullException(nameof(economy));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -32,6 +34,8 @@ public sealed class ProductionPreparedOutputDeliveryCoordinator :
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.warehouseWorld = warehouseWorld
             ?? throw new ArgumentNullException(nameof(warehouseWorld));
+        this.gridSystemProvider = gridSystemProvider
+            ?? throw new ArgumentNullException(nameof(gridSystemProvider));
     }
 
     public ProductionPreparedOutputDeliveryCoordinationResult TryApplyExactTarget(
@@ -100,19 +104,44 @@ public sealed class ProductionPreparedOutputDeliveryCoordinator :
         }
 
         Vector2Int origin = new(originPositionX, originPositionY);
-        IWarehouseFacility[] candidates = (warehouseWorld.Warehouses
-                ?? Array.Empty<IWarehouseFacility>())
-            .Where(value => value?.Inventory != null
-                && value.HasWarehouseInventory
-                && value.Inventory.HasMassCapacityAuthority
-                && value.Inventory.Accepts(definition.StockCategory)
-                && value.Inventory.CanStoreItem(item, 1)
-                && value.PersistentInstanceId.IsValid)
-            .OrderBy(value => value is BuildableObject building
-                ? Manhattan(origin, building.centerPos)
-                : int.MaxValue)
-            .ThenBy(value => value.PersistentInstanceId.Value,
+        if (!gridSystemProvider.TryGetGrid(out Grid grid) || grid == null)
+        {
+            return Rejected(
+                route,
+                string.Empty,
+                origin,
+                ProductionPreparedOutputDeliveryCoordinationReason
+                    .NoCompatibleWarehouse,
+                "Prepared-output warehouse reachability requires the live grid.");
+        }
+
+        List<WarehouseRouteCandidate> routeCandidates = new();
+        foreach (IWarehouseFacility value in warehouseWorld.Warehouses
+                     ?? Array.Empty<IWarehouseFacility>())
+        {
+            if (value?.Inventory == null
+                || !value.HasWarehouseInventory
+                || !value.Inventory.HasMassCapacityAuthority
+                || !value.Inventory.Accepts(definition.StockCategory)
+                || !value.Inventory.CanStoreItem(item, 1)
+                || !value.PersistentInstanceId.IsValid
+                || value is not BuildableObject building
+                || !TryGetWarehouseRouteCost(
+                    grid,
+                    origin,
+                    building,
+                    out int routeCost))
+            {
+                continue;
+            }
+
+            routeCandidates.Add(new WarehouseRouteCandidate(value, routeCost));
+        }
+        IWarehouseFacility[] candidates = routeCandidates
+            .OrderBy(value => value.RouteCost)
+            .ThenBy(value => value.Warehouse.PersistentInstanceId.Value,
                 StringComparer.Ordinal)
+            .Select(value => value.Warehouse)
             .ToArray();
 
         ProductionPreparedOutputDeliveryCoordinationResult lastCapacityFailure =
@@ -505,6 +534,80 @@ public sealed class ProductionPreparedOutputDeliveryCoordinator :
         return exact;
     }
 
-    private static int Manhattan(Vector2Int left, Vector2Int right) =>
-        Mathf.Abs(left.x - right.x) + Mathf.Abs(left.y - right.y);
+    internal static bool TryGetWarehouseRouteCost(
+        Grid grid,
+        Vector2Int origin,
+        BuildableObject warehouse,
+        out int routeCost)
+    {
+        routeCost = int.MaxValue;
+        if (grid == null
+            || warehouse == null
+            || warehouse.isDestroy
+            || !TryResolveWarehouseDeliveryCell(
+                grid,
+                warehouse,
+                out Vector2Int delivery))
+        {
+            return false;
+        }
+
+        Vector2Int[] pickupStands =
+        {
+            origin,
+            origin + Vector2Int.left,
+            origin + Vector2Int.right
+        };
+        foreach (Vector2Int pickupStand in pickupStands.Distinct())
+        {
+            if (!grid.IsValidGridPos(pickupStand)
+                || !grid.IsWalkable(pickupStand))
+            {
+                continue;
+            }
+
+            int candidateCost = grid.SearchPath(pickupStand)
+                .GetMoveCostTo(delivery);
+            if (candidateCost < routeCost)
+                routeCost = candidateCost;
+        }
+
+        return routeCost != int.MaxValue;
+    }
+
+    private static bool TryResolveWarehouseDeliveryCell(
+        Grid grid,
+        BuildableObject warehouse,
+        out Vector2Int delivery)
+    {
+        delivery = default;
+        foreach (Vector2Int position in
+                 warehouse.buildPoses ?? Array.Empty<Vector2Int>())
+        {
+            if (grid.IsValidGridPos(position) && grid.IsWalkable(position))
+            {
+                delivery = position;
+                return true;
+            }
+        }
+
+        return grid.TryFindNearbyWalkablePositionOnSameFloor(
+            warehouse.centerPos,
+            out delivery,
+            maxDistance: 2);
+    }
+
+    private readonly struct WarehouseRouteCandidate
+    {
+        internal WarehouseRouteCandidate(
+            IWarehouseFacility warehouse,
+            int routeCost)
+        {
+            Warehouse = warehouse;
+            RouteCost = routeCost;
+        }
+
+        internal IWarehouseFacility Warehouse { get; }
+        internal int RouteCost { get; }
+    }
 }

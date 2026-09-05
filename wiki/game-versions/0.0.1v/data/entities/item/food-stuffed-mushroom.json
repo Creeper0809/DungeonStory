@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.575kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "14"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "큰 버섯갓 안에 곡물과 양념한 속재료를 채워 구운 채식 요리다. 므네실라에서는 작은 버섯은 일꾼 몫으로, 큰 버섯은 손님상에 올리도록 속을 달리 채운다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-stuffed-mushroom",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "속 채운 버섯"
+}

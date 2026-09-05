@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-egg",
+    "spoiler_tier": "none",
+    "title": "알"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dough",
+      "label": "필요 조건",
+      "to": "item/resource-egg",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-egg-pancake",
+      "label": "필요 조건",
+      "to": "item/resource-egg",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/source-animal-egg",
+      "label": "생산·해금",
+      "to": "item/resource-egg",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

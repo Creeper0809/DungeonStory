@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3840"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "두 번째 등급을 위해 입자 사이의 틈을 다시 메운 녹빛 촉매이다. 므네실라에서는 생존 촉매 진행 6 · 2등급으로 습기와 부패에 견디게 하는 생존 계통의 2등급 개조에 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "evolution-catalyst-survival-6",
+  "spoiler_tier": "none",
+  "summary": "시설 개조와 장비 조율에 사용하는 진화 촉매.",
+  "title": "생존 촉매 진행 6 · 2등급"
+}

@@ -111,10 +111,34 @@ public static class V19CropEcologyContentAssetBuilder
             seeds.Add(seed);
             genomes.Add(genome);
         }
-        itemCatalog.SetDefinitions(itemCatalog.Definitions.Concat(seeds));
-        domainCatalog.SetDefinitions(domainCatalog.Definitions.Concat(genomes));
-        EditorUtility.SetDirty(itemCatalog);
-        EditorUtility.SetDirty(domainCatalog);
+        List<ItemDefinitionSO> itemDefinitions =
+            itemCatalog.Definitions.ToList();
+        HashSet<ItemDefinitionSO> indexedItems = new(itemDefinitions);
+        itemDefinitions.AddRange(seeds
+            .Where(value => !indexedItems.Contains(value))
+            .OrderBy(AssetDatabase.GetAssetPath, StringComparer.Ordinal));
+        bool itemCatalogChanged =
+            !itemCatalog.Definitions.SequenceEqual(itemDefinitions);
+        if (itemCatalogChanged)
+        {
+            itemCatalog.SetDefinitions(itemDefinitions);
+            EditorUtility.SetDirty(itemCatalog);
+        }
+
+        List<ScriptableObject> domainDefinitions =
+            domainCatalog.Definitions.ToList();
+        HashSet<ScriptableObject> indexedDomainDefinitions =
+            new(domainDefinitions);
+        domainDefinitions.AddRange(genomes
+            .Where(value => !indexedDomainDefinitions.Contains(value))
+            .OrderBy(AssetDatabase.GetAssetPath, StringComparer.Ordinal));
+        bool domainCatalogChanged =
+            !domainCatalog.Definitions.SequenceEqual(domainDefinitions);
+        if (domainCatalogChanged)
+        {
+            domainCatalog.SetDefinitions(domainDefinitions);
+            EditorUtility.SetDirty(domainCatalog);
+        }
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log($"V19_CROP_ECOLOGY_CONTENT=PASS; crops={Specs.Length}; seeds={seeds.Count}; genomes={genomes.Count}");

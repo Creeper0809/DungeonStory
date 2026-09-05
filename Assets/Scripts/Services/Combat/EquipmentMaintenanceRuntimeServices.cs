@@ -47,16 +47,16 @@ public sealed class EquipmentMaintenanceWorldServices
 {
     public EquipmentMaintenanceWorldServices(
         ICharacterAiWorldRegistry worldRegistry,
-        IDefenseEngagementRuntime defenseRuntime)
+        IDefenseEngagementStore defenseEngagements)
     {
         WorldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
-        DefenseRuntime = defenseRuntime
-            ?? throw new ArgumentNullException(nameof(defenseRuntime));
+        DefenseEngagements = defenseEngagements
+            ?? throw new ArgumentNullException(nameof(defenseEngagements));
     }
 
     public ICharacterAiWorldRegistry WorldRegistry { get; }
-    public IDefenseEngagementRuntime DefenseRuntime { get; }
+    public IDefenseEngagementStore DefenseEngagements { get; }
 }
 
 public sealed class EquipmentMaintenanceClockServices

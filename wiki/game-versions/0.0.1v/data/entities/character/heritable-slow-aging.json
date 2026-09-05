@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Immunity Longevity"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-slow-aging",
+  "spoiler_tier": "none",
+  "summary": "성년 이후 생물학적 노화 속도가 소폭 느려진다.",
+  "title": "완만한 노화"
+}

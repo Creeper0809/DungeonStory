@@ -88,6 +88,14 @@ public interface IItemTransferService
         string destinationId,
         out DomainFailure failure);
 
+    bool TryCompleteTransitToFacilityBuffer(
+        ItemStackId stackId,
+        string transitOwnerId,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out FacilityBufferMassAdmissionReceipt receipt,
+        out DomainFailure failure);
+
     bool TryCompleteTransitToWarehouse(
         ItemStackId stackId,
         string transitOwnerId,
@@ -534,12 +542,16 @@ public sealed class ItemTransferService :
     private readonly IItemQuantityLeaseMutation quantityLeaseMutations;
     private readonly IBufferStackAggregationService bufferAggregation;
     private readonly IWarehouseMassAdmissionService warehouseMassAdmission;
+    private readonly IFacilityBufferMassAdmissionService
+        facilityBufferMassAdmission;
     private readonly IPhysicalItemMassQuery physicalMass;
     private readonly IRetailStockPhysicalRuntime retailStockPhysical;
     private long facilityConsumptionSequence;
     private long directConsumptionSequence;
+    private long facilityTransitAdmissionSequence = 1L;
 #if UNITY_EDITOR
     public Func<int, bool> DebugFailBeforeCapacityActorQuiescenceMutation;
+    public Func<bool> DebugFailBeforeFacilityTransitAdmissionCommit;
 #endif
 
     public ItemTransferService(
@@ -557,7 +569,9 @@ public sealed class ItemTransferService :
         IItemQuantityLeaseMutation quantityLeaseMutations,
         IBufferStackAggregationService bufferAggregation,
         IWarehouseMassAdmissionService warehouseMassAdmission = null,
-        IRetailStockPhysicalRuntime retailStockPhysical = null)
+        IRetailStockPhysicalRuntime retailStockPhysical = null,
+        IFacilityBufferMassAdmissionService
+            facilityBufferMassAdmission = null)
     {
         WorldItemReadServices reads = readServices
             ?? throw new ArgumentNullException(nameof(readServices));
@@ -593,6 +607,7 @@ public sealed class ItemTransferService :
             ?? throw new ArgumentNullException(nameof(bufferAggregation));
         this.warehouseMassAdmission = warehouseMassAdmission;
         this.retailStockPhysical = retailStockPhysical;
+        this.facilityBufferMassAdmission = facilityBufferMassAdmission;
     }
 
     [GameplayInternalOnly(
@@ -794,23 +809,23 @@ public sealed class ItemTransferService :
                     expected,
                     out WorldItemStackRecord record,
                     out HaulDeliveryIntentSaveData intent,
+                    out Vector2Int authorityTargetPosition,
                     out string rowFailure))
             {
                 return Fail(
                     ProductionCapacityRoutingDrainStatus.Deferred,
                     rowFailure);
             }
-            Vector2Int rowTarget = new(intent.dropGridX, intent.dropGridY);
             if (targetDestinationId.Length == 0)
             {
                 targetDestinationId = intent.destinationId;
-                targetPosition = rowTarget;
+                targetPosition = authorityTargetPosition;
             }
             else if (!string.Equals(
                          targetDestinationId,
                          intent.destinationId,
                          StringComparison.Ordinal)
-                     || targetPosition != rowTarget)
+                     || targetPosition != authorityTargetPosition)
             {
                 return Fail(
                     ProductionCapacityRoutingDrainStatus.Deferred,
@@ -1813,6 +1828,35 @@ public sealed class ItemTransferService :
             return false;
         }
 
+        // A component-bearing or unique output is one physical lot. Splitting
+        // it through the definition-only spawner would either duplicate its
+        // component identity or allocate a different item-instance ID. Reject
+        // such a route before mutating any earlier candidate; full-lot moves
+        // below preserve the original record in place.
+        int preflightRemaining = amount;
+        foreach (WorldItemStackRecord candidate in candidates)
+        {
+            if (preflightRemaining <= 0)
+                break;
+            int available = Mathf.Max(
+                0,
+                quantityReservations.GetAvailableQuantity(
+                    new ItemStackId(candidate.stackId)));
+            int planned = Mathf.Min(preflightRemaining, available);
+            if (planned > 0
+                && planned < candidate.quantity
+                && (!string.IsNullOrEmpty(candidate.itemInstanceId)
+                    || candidate.components?.Count > 0))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ItemTransferRequestFailed,
+                    normalizedItemId,
+                    "stateful-facility-output-partial-route-forbidden");
+                return false;
+            }
+            preflightRemaining -= planned;
+        }
+
         int remaining = amount;
         foreach (WorldItemStackRecord source in candidates)
         {
@@ -1830,6 +1874,24 @@ public sealed class ItemTransferService :
             if (moved <= 0)
                 continue;
             Vector2Int sourcePosition = source.position;
+
+            // A full-lot route is a relocation of the same physical record,
+            // not a consume-and-respawn transform. Keeping the record preserves
+            // unique item identity, stateful components and exact gram mass.
+            if (moved == source.quantity)
+            {
+                source.state = WorldItemStackState.Loose;
+                source.destinationId = targetId;
+                source.sourceStorageDestinationId = string.Empty;
+                source.hasDestinationPosition = targetId.Length > 0;
+                source.destinationPosition = destinationPosition;
+                repository.MarkChanged();
+                routed += moved;
+                remaining -= moved;
+                markerPresenter.RefreshAt(sourcePosition);
+                continue;
+            }
+
             source.quantity -= moved;
             repository.MarkChanged();
             if (source.quantity <= 0)
@@ -1846,7 +1908,8 @@ public sealed class ItemTransferService :
                 hasDestinationPosition: targetId.Length > 0,
                 destinationPosition: destinationPosition,
                 wasteOrigin: source.wasteOrigin,
-                contamination: source.contamination);
+                contamination: source.contamination,
+                components: source.components);
             if (spawned != moved)
             {
                 itemSpawner.Spawn(
@@ -2171,23 +2234,19 @@ public sealed class ItemTransferService :
             return false;
         }
 
-        if (destinationState is not (WorldItemStackState.Loose
-                or WorldItemStackState.Stored
-                or WorldItemStackState.FacilityBuffer
-                or WorldItemStackState.FacilityOutputBuffer))
+        if (destinationState != WorldItemStackState.Loose)
         {
             failure = new DomainFailure(
                 FailureCode.ConveyorDestinationUnavailable,
-                destinationState.ToString());
+                destinationState.ToString(),
+                "dedicated-transit-completion-required");
             return false;
         }
 
         Vector2Int previousPosition = record.position;
         repository.Relocate(record, destinationPosition);
         record.state = destinationState;
-        record.destinationId = destinationState == WorldItemStackState.Loose
-            ? string.Empty
-            : destinationId?.Trim() ?? string.Empty;
+        record.destinationId = string.Empty;
         record.sourceStorageDestinationId = string.Empty;
         record.hasDestinationPosition = false;
         record.destinationPosition = default;
@@ -2197,6 +2256,244 @@ public sealed class ItemTransferService :
         markerPresenter.RefreshAt(destinationPosition);
         return true;
     }
+
+    public bool TryCompleteTransitToFacilityBuffer(
+        ItemStackId stackId,
+        string transitOwnerId,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out FacilityBufferMassAdmissionReceipt receipt,
+        out DomainFailure failure)
+    {
+        receipt = default;
+        failure = DomainFailure.None;
+        string ownerId = transitOwnerId?.Trim() ?? string.Empty;
+        string targetDestinationId = destinationId?.Trim() ?? string.Empty;
+        if (facilityBufferMassAdmission == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.ConveyorDestinationUnavailable,
+                targetDestinationId,
+                "facility-buffer-mass-admission-service-missing");
+            return false;
+        }
+
+        if (!stackId.IsValid
+            || ownerId.Length == 0
+            || targetDestinationId.Length == 0
+            || !repository.RecordsById.TryGetValue(
+                stackId.Value,
+                out WorldItemStackRecord record)
+            || record == null
+            || record.quantity <= 0
+            || record.state != WorldItemStackState.InTransit
+            || !string.Equals(
+                record.destinationId,
+                ownerId,
+                StringComparison.Ordinal)
+            || !facilityBufferMassAdmission.TryGetCapacity(
+                targetDestinationId,
+                destinationPosition,
+                out FacilityBufferMassCapacitySnapshot capacity)
+            || capacity.Profile == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.ConveyorDestinationUnavailable,
+                stackId.Value,
+                targetDestinationId);
+            return false;
+        }
+
+        FacilityBufferCapacityProfile profile = capacity.Profile;
+        string transferOperationId =
+            "facility-buffer-transit:"
+            + facilityTransitAdmissionSequence.ToString(
+                "D12",
+                System.Globalization.CultureInfo.InvariantCulture);
+        FacilityBufferMassAdmissionRequest request = new(
+            transferOperationId,
+            targetDestinationId,
+            destinationPosition,
+            profile.OwnerDomain,
+            profile.OwnerOperationId,
+            profile.OwnerFacilityId,
+            profile.CapacityRevision,
+            new[]
+            {
+                new FacilityBufferMassLotSlice(
+                    record.stackId,
+                    record.quantity,
+                    record.reservationRevision)
+            });
+        if (!facilityBufferMassAdmission.TryReserveExactLot(
+                request,
+                out FacilityBufferMassAdmissionToken token,
+                out FacilityBufferMassAdmissionFailureCode admissionFailure,
+                out string admissionReason))
+        {
+            failure = MapFacilityTransitAdmissionFailure(
+                admissionFailure,
+                admissionReason,
+                stackId.Value,
+                targetDestinationId);
+            return false;
+        }
+        facilityTransitAdmissionSequence = checked(
+            facilityTransitAdmissionSequence + 1L);
+
+        Vector2Int previousPosition = record.position;
+        WorldItemStackState previousState = record.state;
+        string previousDestinationId = record.destinationId;
+        string previousSourceStorageDestinationId =
+            record.sourceStorageDestinationId;
+        bool previousHasDestinationPosition = record.hasDestinationPosition;
+        Vector2Int previousDestinationPosition = record.destinationPosition;
+        string previousReservedByPersistentId = record.reservedByPersistentId;
+        try
+        {
+            repository.Relocate(record, destinationPosition);
+            record.state = WorldItemStackState.FacilityBuffer;
+            record.destinationId = targetDestinationId;
+            record.sourceStorageDestinationId = string.Empty;
+            record.hasDestinationPosition = false;
+            record.destinationPosition = default;
+            record.reservedByPersistentId = string.Empty;
+            repository.MarkChanged();
+            markerPresenter.RefreshAt(previousPosition);
+            markerPresenter.RefreshAt(destinationPosition);
+
+#if UNITY_EDITOR
+            if (DebugFailBeforeFacilityTransitAdmissionCommit?.Invoke() == true)
+            {
+                repository.Relocate(record, previousPosition);
+                record.state = previousState;
+                record.destinationId = previousDestinationId;
+                record.sourceStorageDestinationId =
+                    previousSourceStorageDestinationId;
+                record.hasDestinationPosition = previousHasDestinationPosition;
+                record.destinationPosition = previousDestinationPosition;
+                record.reservedByPersistentId = previousReservedByPersistentId;
+                repository.MarkChanged();
+                markerPresenter.RefreshAt(destinationPosition);
+                markerPresenter.RefreshAt(previousPosition);
+                if (!facilityBufferMassAdmission.TryRelease(
+                        token,
+                        FacilityBufferMassAdmissionReleaseReason
+                            .TransactionRollback,
+                        out FacilityBufferMassAdmissionFailureCode
+                            debugReleaseFailure,
+                        out string debugReleaseReason))
+                {
+                    throw new InvalidOperationException(
+                        "Facility-buffer transit debug rollback failed: "
+                        + debugReleaseFailure + ":" + debugReleaseReason);
+                }
+                failure = new DomainFailure(
+                    FailureCode.ConveyorDestinationUnavailable,
+                    stackId.Value,
+                    targetDestinationId,
+                    "debug-fail-before-facility-transit-admission-commit");
+                return false;
+            }
+#endif
+
+            if (!facilityBufferMassAdmission.TryCommitRouted(
+                    token,
+                    token.ExactLot.Fingerprint,
+                    token.ReservedMassGrams,
+                    out receipt,
+                    out FacilityBufferMassAdmissionFailureCode commitFailure,
+                    out string commitReason))
+            {
+                repository.Relocate(record, previousPosition);
+                record.state = previousState;
+                record.destinationId = previousDestinationId;
+                record.sourceStorageDestinationId =
+                    previousSourceStorageDestinationId;
+                record.hasDestinationPosition = previousHasDestinationPosition;
+                record.destinationPosition = previousDestinationPosition;
+                record.reservedByPersistentId = previousReservedByPersistentId;
+                repository.MarkChanged();
+                markerPresenter.RefreshAt(destinationPosition);
+                markerPresenter.RefreshAt(previousPosition);
+                if (!facilityBufferMassAdmission.TryRelease(
+                        token,
+                        FacilityBufferMassAdmissionReleaseReason
+                            .TransactionRollback,
+                        out FacilityBufferMassAdmissionFailureCode releaseFailure,
+                        out string releaseReason))
+                {
+                    throw new InvalidOperationException(
+                        "Facility-buffer transit admission release failed: "
+                        + releaseFailure + ":" + releaseReason);
+                }
+                failure = MapFacilityTransitAdmissionFailure(
+                    commitFailure,
+                    commitReason,
+                    stackId.Value,
+                    targetDestinationId);
+                return false;
+            }
+            return true;
+        }
+        catch
+        {
+            repository.Relocate(record, previousPosition);
+            record.state = previousState;
+            record.destinationId = previousDestinationId;
+            record.sourceStorageDestinationId =
+                previousSourceStorageDestinationId;
+            record.hasDestinationPosition = previousHasDestinationPosition;
+            record.destinationPosition = previousDestinationPosition;
+            record.reservedByPersistentId = previousReservedByPersistentId;
+            repository.MarkChanged();
+            markerPresenter.RefreshAt(destinationPosition);
+            markerPresenter.RefreshAt(previousPosition);
+            if (facilityBufferMassAdmission.TryGetReceipt(
+                    token.TokenId,
+                    out FacilityBufferMassAdmissionReceipt routedReceipt))
+            {
+                if (!facilityBufferMassAdmission.TryRollbackRouted(
+                        token,
+                        routedReceipt,
+                        out FacilityBufferMassAdmissionFailureCode rollbackFailure,
+                        out string rollbackReason))
+                {
+                    throw new InvalidOperationException(
+                        "Facility-buffer transit routed rollback failed: "
+                        + rollbackFailure + ":" + rollbackReason);
+                }
+            }
+            else if (!facilityBufferMassAdmission.TryRelease(
+                         token,
+                         FacilityBufferMassAdmissionReleaseReason
+                             .TransactionRollback,
+                         out FacilityBufferMassAdmissionFailureCode
+                             releaseFailure,
+                         out string releaseReason))
+            {
+                throw new InvalidOperationException(
+                    "Facility-buffer transit reservation rollback failed: "
+                    + releaseFailure + ":" + releaseReason);
+            }
+            throw;
+        }
+    }
+
+    private static DomainFailure MapFacilityTransitAdmissionFailure(
+        FacilityBufferMassAdmissionFailureCode admissionFailure,
+        string admissionReason,
+        string stackId,
+        string destinationId) =>
+        new(
+            admissionFailure
+                == FacilityBufferMassAdmissionFailureCode.CapacityUnavailable
+                    ? FailureCode.ConveyorPortFull
+                    : FailureCode.ConveyorDestinationUnavailable,
+            stackId ?? string.Empty,
+            destinationId ?? string.Empty,
+            admissionFailure.ToString(),
+            admissionReason ?? string.Empty);
 
     private static ItemTransitStackSnapshot CreateTransitSnapshot(
         WorldItemStackRecord record) =>
@@ -2455,154 +2752,18 @@ public sealed class ItemTransferService :
             return false;
         }
 
-        if (warehouse.Inventory.HasMassCapacityAuthority)
+        if (!warehouse.Inventory.HasMassCapacityAuthority)
         {
-            return TryDepositMassAdmittedCarriedItem(
-                actor,
-                inventory,
-                warehouse,
-                ownerOperationIds,
-                out failureReason);
-        }
-
-        List<CharacterCarriedItemSaveData> carried = ownerOperationIds == null
-            ? inventory.RemoveAllItemsForPhysicalTransfer()
-            : inventory.RemoveItemsOwnedByOperationsForPhysicalTransfer(
-                ownerOperationIds);
-        if (carried.Count == 0)
-        {
-            failureReason = "nothing carried";
+            failureReason = "warehouse has no positive gram-capacity authority";
             return false;
         }
 
-        HashSet<string> completedOperations = carried
-            .Where(item => item != null
-                && !string.IsNullOrWhiteSpace(item.ownerOperationId))
-            .Select(item => item.ownerOperationId.Trim())
-            .ToHashSet(StringComparer.Ordinal);
-        foreach (string operationId in completedOperations)
-        {
-            quantityReservations.ReleaseByOwner(
-                operationId,
-                ItemReservationReleaseReason.Completed);
-        }
-
-        Vector2Int dropPosition = ResolveActorGridPosition(actor);
-        bool depositedAny = false;
-        foreach (CharacterCarriedItemSaveData item in carried)
-        {
-            if (item == null || item.quantity <= 0)
-            {
-                continue;
-            }
-
-            int remaining = item.quantity;
-            if (TryGetWarehouseStockCategory(
-                    item.itemId,
-                    out StockCategory category)
-                && warehouse.Inventory.Accepts(category)
-                && string.IsNullOrWhiteSpace(item.itemInstanceId))
-            {
-                int deposited = warehouse.Inventory.GetAcceptableQuantity(
-                    item.itemId,
-                    remaining);
-                if (deposited > 0)
-                {
-                    deposited = TrySpawnCarriedItem(
-                        item,
-                        deposited,
-                        ResolveWarehouseStoragePosition(warehouse),
-                        WorldItemStackState.Stored,
-                        GetWarehouseStorageDestinationId(warehouse),
-                        false,
-                        default,
-                        out _);
-                }
-
-                remaining -= deposited;
-                depositedAny |= deposited > 0;
-            }
-            else if (PhysicalItemIds.TryGetEquipmentDefinitionId(
-                         item.itemId,
-                         out string equipmentId))
-            {
-                bool isCombatEquipment =
-                    combatEquipmentCatalog.TryGet(equipmentId, out _);
-                DungeonItemDefinition equipmentItem =
-                    catalogProvider.GetDefinition(item.itemId);
-                if (isCombatEquipment
-                    && warehouse.Inventory.Accepts(
-                        equipmentItem.StockCategory)
-                    && warehouse.Inventory.GetAcceptableQuantity(
-                        item.itemId,
-                        remaining) == remaining
-                    && remaining == 1
-                    && TrySpawnCarriedItem(
-                        item,
-                        remaining,
-                        ResolveWarehouseStoragePosition(warehouse),
-                        WorldItemStackState.Stored,
-                        GetWarehouseStorageDestinationId(warehouse),
-                        false,
-                        default,
-                        out string storedStackId) == 1)
-                {
-                    if (repository.EquipmentInstances.TryGetValue(
-                            item.itemInstanceId,
-                            out CombatEquipmentInstance linked))
-                    {
-                        repository.TryLinkEquipmentToStack(
-                            linked.instanceId,
-                            storedStackId,
-                            CombatEquipmentWorldState.Stored);
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException(
-                            $"Carried equipment '{item.itemInstanceId}' has no item repository state.");
-                    }
-
-                    gameEventBus.Publish(
-                        new EquipmentStoredEvent(equipmentId, 1));
-                    depositedAny = true;
-                    remaining = 0;
-                }
-                else if (!isCombatEquipment)
-                {
-                    gameEventBus.Publish(
-                        new EquipmentStoredEvent(equipmentId, remaining));
-                    depositedAny |= remaining > 0;
-                    remaining = 0;
-                }
-            }
-
-            if (remaining > 0)
-            {
-                bool exactRouteRemainder =
-                    FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
-                        item.components);
-                TrySpawnCarriedItem(
-                    item,
-                    remaining,
-                    dropPosition,
-                    WorldItemStackState.Loose,
-                    exactRouteRemainder
-                        ? GetWarehouseStorageDestinationId(warehouse)
-                        : string.Empty,
-                    exactRouteRemainder,
-                    exactRouteRemainder
-                        ? ResolveWarehouseStoragePosition(warehouse)
-                        : default,
-                    out _);
-            }
-        }
-
-        if (!depositedAny)
-        {
-            failureReason = "warehouse rejected carried items";
-        }
-
-        return depositedAny;
+        return TryDepositMassAdmittedCarriedItem(
+            actor,
+            inventory,
+            warehouse,
+            ownerOperationIds,
+            out failureReason);
     }
 
     private bool TryDepositMassAdmittedCarriedItem(
@@ -4218,10 +4379,12 @@ public sealed class ItemTransferService :
         ProductionCapacityRoutingDrainActorCarrySaveData expected,
         out WorldItemStackRecord record,
         out HaulDeliveryIntentSaveData intent,
+        out Vector2Int authorityTargetPosition,
         out string failureReason)
     {
         record = null;
         intent = null;
+        authorityTargetPosition = default;
         failureReason = string.Empty;
         if (expected == null
             || !string.Equals(
@@ -4241,13 +4404,11 @@ public sealed class ItemTransferService :
             || record == null
             || record.state is not (WorldItemStackState.Carried
                 or WorldItemStackState.InTransit)
-            || record.position != physicalCell
             || !string.Equals(
                 record.destinationId,
                 actorPersistentId,
                 StringComparison.Ordinal)
             || !record.hasDestinationPosition
-            || record.destinationPosition != physicalCell
             || record.quantity != expected.quantity
             || record.dropDisposition != WorldItemDropDisposition.None
             || !string.IsNullOrEmpty(record.recoveryOwnerOperationId)
@@ -4288,6 +4449,12 @@ public sealed class ItemTransferService :
                 + (expected?.carriedStackId ?? string.Empty);
             return false;
         }
+
+        // A carried repository row is a durable custody record, not a
+        // per-movement position tracker. The actor/inventory pair is the live
+        // physical location authority while the exact carried identity is
+        // still joined above. TryQuiesceCarriedBatchAtomically relocates that
+        // row to physicalCell in the same candidate/commit transaction.
 
         long actualMass;
         try
@@ -4354,13 +4521,32 @@ public sealed class ItemTransferService :
                 custody.CurrentTargetDestinationId)
             ? custody.CurrentTargetDestinationId
             : custody.TargetDestinationId;
+        authorityTargetPosition = custody.CurrentTargetPosition;
+        Vector2Int savedDelivery = new(
+            intent.deliveryGridX,
+            intent.deliveryGridY);
+        Vector2Int savedDrop = new(intent.dropGridX, intent.dropGridY);
         if (!string.Equals(
                 intent.destinationId,
                 custodyTarget,
                 StringComparison.Ordinal)
-            || !string.IsNullOrEmpty(custody.CurrentTargetDestinationId)
-            && new Vector2Int(intent.dropGridX, intent.dropGridY)
-                != custody.CurrentTargetPosition)
+            || !gridSystemProvider.TryGetGrid(out Grid grid)
+            || !WorldItemHaulDestinationAuthority.TryResolve(
+                grid,
+                worldRegistry,
+                destinationClaims,
+                intent.destinationKind,
+                custodyTarget,
+                custody.CurrentTargetPosition,
+                out WorldItemHaulDestinationAuthority.Resolution resolution,
+                out _)
+            || resolution.Kind != intent.destinationKind
+            || !string.Equals(
+                resolution.DestinationId,
+                custodyTarget,
+                StringComparison.Ordinal)
+            || resolution.DeliveryPosition != savedDelivery
+            || resolution.DropPosition != savedDrop)
         {
             failureReason = "capacity-routing-carried-target-conflict:"
                 + record.stackId;

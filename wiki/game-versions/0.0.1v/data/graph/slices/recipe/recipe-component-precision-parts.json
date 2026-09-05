@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-precision-parts",
+    "spoiler_tier": "none",
+    "title": "정밀 부품"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-precision-parts",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "to": "item/component-precision-parts",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-precision-parts",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "to": "item/material-iron-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-precision-parts",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-precision-parts",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

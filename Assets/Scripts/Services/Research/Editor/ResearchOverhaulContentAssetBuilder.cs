@@ -27,6 +27,83 @@ public static class ResearchOverhaulContentAssetBuilder
     private const string RecipeRoot =
         "Assets/Resources/SO/Economy/Recipes/ResearchOverhaul";
 
+    // Authoring-only physical unit authority. Each value expresses the unit used
+    // by the existing recipe BOM and individual gameplay consumer; it is not a
+    // runtime item-ID branch. Keep the material-lot → individual-ammunition
+    // scale and stack mass together so carry, buffers and warehouse admission
+    // read the same physical content contract.
+    private static readonly Dictionary<string, float> ApprovedPhysicalUnitWeights =
+        new(StringComparer.Ordinal)
+        {
+            ["material:lead-shot"] = 0.15f,
+            ["material:cartridge-paper"] = 0.325f,
+            ["ammo:armor-piercing-cartridge"] = 0.275f,
+            ["ammo:paper-cartridge"] = 0.3f,
+            ["ammo:scatter-cartridge"] = 0.325f,
+            ["ammo:smoke-cartridge"] = 0.175f,
+            ["ammo:signal-flare"] = 0.275f,
+            ["ammo:rune-cartridge"] = 0.575f,
+            ["ammo:blasting-charge"] = 2.9f,
+            ["ammo:trap-canister"] = 1.9f,
+            ["supply:defense-mixed-ammo-box"] = 3.4f,
+            ["medical:sterile-bandage"] = 0.5f,
+            ["medical:trait-analysis-kit"] = 1.95f,
+            ["medical:cross-lineage-medium"] = 3.4f,
+            ["medical:isolation-care-kit"] = 0.7f,
+            ["medical:rejuvenation-serum"] = 2f,
+            ["medical:organ-preservation-canister"] = 3f,
+            ["medical:organ-regeneration-scaffold"] = 2.6f,
+            ["medical:regenerative-medium"] = 1.15f,
+            ["medical:fertility-treatment"] = 1.4f,
+            ["medical:trauma-care-kit"] = 2.2f,
+            ["medical:whole-body-regeneration-medium"] = 14.5f,
+            ["medicine:vaccine:cave-flu"] = 0.7f,
+            ["medicine:vaccine:red-fever"] = 0.7f,
+            ["medicine:vaccine:gut-rot"] = 0.7f,
+            ["medicine:vaccine:spore-lung"] = 0.7f,
+            ["medicine:vaccine:mana-pox"] = 0.75f,
+            ["medicine:vaccine:blood-wasting"] = 0.7f,
+            ["medicine:vaccine:slime-blight"] = 0.7f
+        };
+
+    private static readonly Dictionary<string, int> ApprovedPhysicalMaximumStacks =
+        new(StringComparer.Ordinal)
+        {
+            ["material:cartridge-paper"] = 36,
+            ["ammo:armor-piercing-cartridge"] = 40,
+            ["ammo:paper-cartridge"] = 40,
+            ["ammo:scatter-cartridge"] = 36,
+            ["ammo:smoke-cartridge"] = 64,
+            ["ammo:signal-flare"] = 40,
+            ["ammo:rune-cartridge"] = 20,
+            ["ammo:blasting-charge"] = 4,
+            ["ammo:trap-canister"] = 6,
+            ["supply:defense-mixed-ammo-box"] = 3,
+            ["medical:sterile-bandage"] = 20,
+            ["medical:trait-analysis-kit"] = 6,
+            ["medical:cross-lineage-medium"] = 3,
+            ["medical:isolation-care-kit"] = 16,
+            ["medical:rejuvenation-serum"] = 5,
+            ["medical:organ-preservation-canister"] = 3,
+            ["medical:organ-regeneration-scaffold"] = 4,
+            ["medical:regenerative-medium"] = 10,
+            ["medical:fertility-treatment"] = 8,
+            ["medical:trauma-care-kit"] = 5,
+            ["medical:whole-body-regeneration-medium"] = 1,
+            ["medicine:vaccine:cave-flu"] = 15,
+            ["medicine:vaccine:red-fever"] = 15,
+            ["medicine:vaccine:gut-rot"] = 15,
+            ["medicine:vaccine:spore-lung"] = 15,
+            ["medicine:vaccine:mana-pox"] = 14,
+            ["medicine:vaccine:blood-wasting"] = 15,
+            ["medicine:vaccine:slime-blight"] = 15,
+            ["material:granulated-powder"] = 12,
+            ["ammo:tranquilizer-dart"] = 72,
+            ["supply:funeral-preparation-kit"] = 8,
+            ["supply:performance-prop-box"] = 5,
+            ["supply:alliance-signal-kit"] = 9
+        };
+
     private readonly struct FacilitySpec
     {
         public FacilitySpec(
@@ -228,11 +305,15 @@ public static class ResearchOverhaulContentAssetBuilder
                         : Array.Empty<string>())
                     .ToArray()
             });
-            abilities.Add(new BuildingProductionWorkstationAbility
-            {
-                workstationTag = spec.WorkstationTag,
-                stockSensorInstallationItemId = "component:stock-sensor-panel"
-            });
+             abilities.Add(new BuildingProductionWorkstationAbility
+             {
+                 workstationTag = spec.WorkstationTag,
+                 stockSensorInstallationItemId = "component:stock-sensor-panel",
+                 lanePolicy = ProductionWorkstationLanePolicy
+                     .ManualWithDetachedBatchProcessors,
+                 manualWorkLaneCount = 1,
+                 automaticWorkLaneCount = 0
+             });
             abilities.Add(new BuildingProductionBufferAbility
             {
                 defaultBatchCapacity = 4,
@@ -864,11 +945,7 @@ public static class ResearchOverhaulContentAssetBuilder
                     ? existingItem.UnitPrice
                     : ResolveGeneratedUnitPrice(spec),
                 ResolveAuthoredUnitWeight(spec, existingItem),
-                spec.ItemId == PhysicalItemIds.EquipmentModule
-                    ? 1
-                    : DurableToolItemRules.TryGetMaximumDurability(spec.ItemId, out _)
-                        ? 1
-                        : spec.Kind == ResourceItemKind.Ammunition ? 120 : 50,
+                ResolveAuthoredMaximumStack(spec),
                 spec.ResearchId);
             if (spec.ItemId == PhysicalItemIds.EquipmentModule
                 || spec.ItemId == EquipmentProgressionItemIds.LineageSeal)
@@ -946,50 +1023,79 @@ public static class ResearchOverhaulContentAssetBuilder
             string recipePath = RecipePath(index, spec);
             ProductionRecipeSO existingRecipe =
                 AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>(recipePath);
+            string recipeId = $"recipe:{spec.ItemId}";
+            ProductionOutputDefinition[] desiredOutputs =
+            {
+                new(
+                    ProductionOutputLineAuthoring.BuildStableId(
+                        recipeId,
+                        0,
+                        spec.ItemId,
+                        ProductionOutputRole.Main),
+                    ProductionOutputRole.Main,
+                    spec.ItemId,
+                    Mathf.Max(1, spec.OutputAmount))
+            };
+            ProductionOutputDefinition[] canonicalOutputs =
+                ProductionOutputLineAuthoring.ResolveStableOutputs(
+                    recipeId,
+                    existingRecipe?.Outputs,
+                    desiredOutputs);
             ProductionRecipeSO recipe =
                 GetOrCreate<ProductionRecipeSO>(recipePath);
-            recipe.id = 19101 + index;
-            recipe.Configure(
-                $"recipe:{spec.ItemId}",
-                spec.Name,
-                $"구체 재료를 사용해 {spec.Name}을(를) 생산한다.",
-                spec.WorkstationTag,
-                BuiltInWorkTypeIds.Craft.Value,
-                spec.ResearchId,
-                existingRecipe != null ? existingRecipe.RequiredWork : 10f,
-                spec.Inputs.Select(input =>
-                    new ItemAmountDefinition(input.ItemId, input.Amount)),
-                new[]
-                {
-                    new ProductionOutputDefinition(
-                        "output:main",
-                        ProductionOutputRole.Main,
-                        spec.ItemId,
-                        Mathf.Max(1, spec.OutputAmount))
-                });
-            recipe.ConfigureWorkshop(
-                spec.WorkstationTag,
-                Array.Empty<string>(),
-                ProductionProcessKind.WorkOnly);
-            ProductionFlowRole flowRole =
-                spec.Inputs.Length == 0
-                    ? ProductionFlowRole.Source
-                    : ProductionFlowRole.Transform;
-            recipe.ConfigureFlowRole(flowRole);
-            ProductionProcessClass processClass =
-                V23RecipeProcessClassAuthoring.Resolve(
+            void ConfigureRecipe(ProductionRecipeSO target)
+            {
+                target.id = 19101 + index;
+                target.Configure(
+                    recipeId,
+                    spec.Name,
+                    $"구체 재료를 사용해 {spec.Name}을(를) 생산한다.",
                     spec.WorkstationTag,
                     BuiltInWorkTypeIds.Craft.Value,
-                    flowRole,
-                    spec.ItemId);
-            recipe.ConfigureProcessClass(processClass);
-            recipe.ConfigureBalanceWork(
-                existingRecipe != null
-                    ? existingRecipe.RequiredWork
-                    : V23BalanceWorkCalculator.CalculateRecipeBaseWork(
-                        recipe,
-                        processClass));
-            EditorUtility.SetDirty(recipe);
+                    spec.ResearchId,
+                    existingRecipe != null ? existingRecipe.RequiredWork : 10f,
+                    ResolveFinalPhysicalBomInputs(spec).Select(input =>
+                        new ItemAmountDefinition(input.ItemId, input.Amount)),
+                    canonicalOutputs);
+                target.ConfigureWorkshop(
+                    spec.WorkstationTag,
+                    Array.Empty<string>(),
+                    ProductionProcessKind.WorkOnly,
+                    failedBatchItemId: "waste:mixed-rot");
+                ProductionFlowRole flowRole =
+                    spec.Inputs.Length == 0
+                        ? ProductionFlowRole.Source
+                        : ProductionFlowRole.Transform;
+                target.ConfigureFlowRole(flowRole);
+                ProductionProcessClass processClass =
+                    V23RecipeProcessClassAuthoring.Resolve(
+                        spec.WorkstationTag,
+                        BuiltInWorkTypeIds.Craft.Value,
+                        flowRole,
+                        spec.ItemId);
+                target.ConfigureProcessClass(processClass);
+                V27ReviewedProductionMassExplanationCatalog.ApplyIfReviewed(
+                    target);
+                target.ConfigureBalanceWork(
+                    existingRecipe != null
+                        ? existingRecipe.RequiredWork
+                        : V23BalanceWorkCalculator.CalculateRecipeBaseWork(
+                            target,
+                            processClass));
+            }
+            if (existingRecipe != null)
+            {
+                if (WouldChange(recipe, ConfigureRecipe))
+                {
+                    ConfigureRecipe(recipe);
+                    EditorUtility.SetDirty(recipe);
+                }
+            }
+            else
+            {
+                ConfigureRecipe(recipe);
+                EditorUtility.SetDirty(recipe);
+            }
         }
 
         ValidateInoculatedLogTopology();
@@ -1303,6 +1409,52 @@ public static class ResearchOverhaulContentAssetBuilder
         S(string.Empty, PhysicalItemIds.EquipmentModule, "개량 부품", ResourceItemKind.FinishedGood, ResourceIngredientTag.None, string.Empty, 1, false, false)
     };
 
+    private static IReadOnlyList<InputSpec> ResolveFinalPhysicalBomInputs(
+        ItemSpec spec) => spec.ItemId switch
+    {
+        "component:blacksteel-defense-plate" => new[] { A("material:blacksteel-ingot", 2), A("component:engineering-drawing", 1) },
+        "component:insulated-wiring" => new[] { A("material:gold-ingot", 2), A("textile:insulating-cloth", 3) },
+        "component:machine-parts" => new[] { A("material:iron-ingot", 3) },
+        "component:mana-shield-plate" => new[] { A("material:lead-ingot", 1), A("resource:rune-dust", 1), A("resource:mana-crystal", 1) },
+        "component:material-test-coupon" => new[] { A("material:steel-ingot", 1), A("material:plate-blank", 2) },
+        "component:paper-paste" => new[] { A("material:starch", 1), A("resource:clean-water", 4) },
+        "component:precision-optics" => new[] { A("material:gold-ingot", 1), A("resource:mana-crystal", 3) },
+        "component:reclaimed-water-filter" => new[] { A("textile:sterile-cloth", 2), A("material:charcoal", 1) },
+        "component:rune-conductor" => new[] { A("material:gold-ingot", 1), A("resource:mana-crystal", 3), A("resource:rune-dust", 1) },
+        "component:rune-leather-lining" => new[] { A("material:rune-leather", 2), A("material:cloth", 2), A("resource:mana-crystal", 1) },
+        "component:textile-hardener" => new[] { A("material:starch", 2), A("resource:dark-resin", 1), A("resource:clean-water", 3) },
+        "craft:toxic-trap-coating" => new[] { A("material:rot-toxin", 5), A("resource:dark-resin", 5) },
+        "material:barrel-steel" => new[] { A("material:spring-steel", 1), A("material:steel-ingot", 3) },
+        "material:black-powder" => new[] { A("material:charcoal", 2), A("resource:sulfur", 2), A("material:niter", 4) },
+        "material:chain-mesh" => new[] { A("material:iron-ingot", 5) },
+        "material:hardened-leather" => new[] { A("material:leather", 4), A("resource:dark-resin", 1) },
+        "material:laminated-lumber" => new[] { A("material:treated-lumber", 2), A("resource:dark-resin", 5) },
+        "material:mana-alloy" => new[] { A("material:steel-ingot", 2), A("material:gold-ingot", 2), A("resource:mana-crystal", 2) },
+        "material:niter" => new[] { A("resource:manure", 8), A("resource:clean-water", 1) },
+        "material:paper" => new[] { A("material:lumber", 3), A("resource:clean-water", 1) },
+        "material:plate-blank" => new[] { A("material:steel-ingot", 5) },
+        "material:rope" => new[] { A("resource:shade-fiber", 15) },
+        "material:spring-steel" => new[] { A("material:steel-ingot", 4), A("material:charcoal", 2) },
+        "material:sterile-composite" => new[] { A("material:cloth", 4), A("resource:mana-crystal", 1), A("resource:clean-water", 3) },
+        "supply:botanical-pesticide" => new[] { A("material:rot-toxin", 1), A("material:alcohol", 1), A("resource:clean-water", 4) },
+        "supply:certified-seed-kit" => new[] { A("material:paper", 2), A("material:cloth", 2) },
+        "supply:fungicide" => new[] { A("medicine:antiseptic", 2), A("material:charcoal", 1), A("resource:clean-water", 3) },
+        "supply:greenhouse-nutrient" => new[] { A("supply:nitrate-fertilizer", 3), A("resource:clean-water", 3) },
+        "supply:mushroom-substrate" => new[] { A("material:compost", 3), A("resource:cave-mushroom", 1) },
+        "supply:nitrate-fertilizer" => new[] { A("material:niter", 1), A("material:compost", 2), A("resource:manure", 2) },
+        "supply:pest-lure" => new[] { A("resource:dark-resin", 4), A("resource:meat", 1), A("material:paper", 1) },
+        "textile:insulating-cloth" => new[] { A("material:cloth", 5), A("material:leather", 2) },
+        "textile:quilted-liner" => new[] { A("material:cloth", 3), A("resource:wool", 1) },
+        "textile:sterile-cloth" => new[] { A("material:cloth", 5), A("resource:saltstone", 1), A("resource:clean-water", 1) },
+        "tool:administrative-seal" => new[] { A("material:iron-ingot", 1), A("material:paper", 1), A("resource:dark-resin", 3) },
+        "tool:field-repair-kit" => new[] { A("component:machine-parts", 1), A("material:cloth", 2) },
+        "tool:maintenance-kit" => new[] { A("component:machine-parts", 1), A("material:cloth", 2) },
+        "tool:prisoner-work-kit" => new[] { A("material:iron-ingot", 1), A("material:lumber", 1), A("resource:dark-resin", 2) },
+        "tool:prospecting-kit" => new[] { A("material:rope", 1), A("material:treated-lumber", 1), A("resource:dark-resin", 2) },
+        "tool:watch-signal-horn" => new[] { A("material:iron-ingot", 2), A("material:leather", 1), A("resource:rune-dust", 2) },
+        _ => spec.Inputs
+    };
+
     private static FacilitySpec F(
         string researchId,
         string name,
@@ -1409,6 +1561,11 @@ public static class ResearchOverhaulContentAssetBuilder
         ItemSpec spec,
         ResourceItemDefinitionSO existingItem)
     {
+        if (ApprovedPhysicalUnitWeights.TryGetValue(spec.ItemId, out float weight))
+        {
+            return weight;
+        }
+
         if (string.Equals(
                 spec.ItemId,
                 "material:granulated-powder",
@@ -1434,6 +1591,20 @@ public static class ResearchOverhaulContentAssetBuilder
         return existingItem != null
             ? existingItem.UnitWeight
             : ResolveGeneratedUnitWeight(spec);
+    }
+
+    private static int ResolveAuthoredMaximumStack(ItemSpec spec)
+    {
+        if (ApprovedPhysicalMaximumStacks.TryGetValue(spec.ItemId, out int maximumStack))
+        {
+            return maximumStack;
+        }
+
+        return spec.ItemId == PhysicalItemIds.EquipmentModule
+            ? 1
+            : DurableToolItemRules.TryGetMaximumDurability(spec.ItemId, out _)
+                ? 1
+                : spec.Kind == ResourceItemKind.Ammunition ? 120 : 50;
     }
 
     private static string ItemPath(int index, ItemSpec spec) =>
@@ -1471,6 +1642,13 @@ public static class ResearchOverhaulContentAssetBuilder
         {
             candidate.name = asset.name;
             configure(candidate);
+            if (asset is ProductionRecipeSO leftRecipe
+                && candidate is ProductionRecipeSO rightRecipe)
+            {
+                return !ProductionRecipeAuthoringComparison.AreEquivalent(
+                    leftRecipe,
+                    rightRecipe);
+            }
             return !string.Equals(
                 before,
                 CanonicalizeSemanticJson(

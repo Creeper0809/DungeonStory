@@ -1,0 +1,202 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-survival-support",
+    "spoiler_tier": "none",
+    "title": "생활 지원"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6103",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원 설계도",
+      "to": "facility/facility-blueprint-6103",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "to": "research/research-survival-sanitation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "to": "research/research-survival-sanitation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "to": "research/research-survival-sanitation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1021",
+      "target_spoiler_tier": "none",
+      "target_title": "정식침대",
+      "to": "facility/building-1021",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1022",
+      "target_spoiler_tier": "none",
+      "target_title": "이층침대",
+      "to": "facility/building-1022",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1024",
+      "target_spoiler_tier": "none",
+      "target_title": "협탁",
+      "to": "facility/building-1024",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1025",
+      "target_spoiler_tier": "none",
+      "target_title": "옷장",
+      "to": "facility/building-1025",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1054",
+      "target_spoiler_tier": "none",
+      "target_title": "식재료저장함",
+      "to": "facility/building-1054",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1060",
+      "target_spoiler_tier": "none",
+      "target_title": "목욕통",
+      "to": "facility/building-1060",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-support",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1063",
+      "target_spoiler_tier": "none",
+      "target_title": "바닥배수구",
+      "to": "facility/building-1063",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6103",
+      "label": "관련",
+      "to": "research/research-survival-support",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-indoor",
+      "label": "선행 연구",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-preservation",
+      "label": "선행 연구",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-preservation",
+      "label": "선행 연구",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-survival-preservation",
+      "label": "선행 연구",
+      "to": "research/research-survival-support",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

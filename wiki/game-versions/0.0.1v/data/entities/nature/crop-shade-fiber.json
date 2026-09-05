@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "섬유 가공"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "genome-shade-fiber-base",
+      "target_spoiler_tier": "none",
+      "target_title": "Genome_shade-fiber",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "crop-shade-fiber",
+  "spoiler_tier": "none",
+  "summary": "그늘섬유 종자를 40시간 재배해 그늘섬유 6개를 생산하며 하루 물 0.3를 소비한다. 섬유 가공가 재배 시점을 제한한다.",
+  "title": "그늘섬유"
+}

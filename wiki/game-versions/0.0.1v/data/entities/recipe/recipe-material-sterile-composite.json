@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "52"
+    },
+    {
+      "label": "필요 연구",
+      "value": "재생 배양"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-sterile-composite",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 복합재",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-regenerative-culture",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-material-sterile-composite",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 무균 복합재을(를) 생산한다.",
+  "title": "무균 복합재"
+}

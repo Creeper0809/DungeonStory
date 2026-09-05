@@ -1,0 +1,204 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-mana-power",
+    "spoiler_tier": "none",
+    "title": "마나 동력과 룬 전력망"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-storage",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 저장과 변압",
+      "to": "research/research-industry-storage",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-storage",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 저장과 변압",
+      "to": "research/research-industry-storage",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-storage",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 저장과 변압",
+      "to": "research/research-industry-storage",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8823",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 버스 결합기",
+      "to": "facility/building-8823",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9812",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 발전기",
+      "to": "facility/building-9812",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-rune-bus-coupler",
+      "label": "필요 조건",
+      "to": "research/research-industry-mana-power",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-rune-conductor",
+      "label": "필요 조건",
+      "to": "research/research-industry-mana-power",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-mana-alloy",
+      "label": "필요 조건",
+      "to": "research/research-industry-mana-power",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-rune-module-tuning",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-rune-automation",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-rune-automation",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-rune-automation",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-rune-hibernation",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-rune-hibernation",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-rune-hibernation",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-rune-purification",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-rune-purification",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-rune-purification",
+      "label": "선행 연구",
+      "to": "research/research-industry-mana-power",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

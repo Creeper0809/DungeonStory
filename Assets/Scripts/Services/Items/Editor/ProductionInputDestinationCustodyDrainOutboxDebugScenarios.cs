@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -30,6 +31,287 @@ public static class ProductionInputDestinationCustodyDrainOutboxDebugScenarios
     {
         VerifyClaimOnlyZeroInputFlow();
         VerifyPhysicalInputFlowAndPersistence();
+        VerifyCheckpointGcTransaction();
+    }
+
+    private static void VerifyCheckpointGcTransaction()
+    {
+        WorldItemRepository repository = CreateRepository();
+        ProductionInputDestinationCustodyDrainOutbox outbox = new(repository);
+        IProductionInputDestinationCustodyDrainCheckpointGcPort gc = outbox;
+        ProductionInputDestinationCustodyDrainSaveData rowA =
+            CreateTerminalCheckpointRow(outbox, "a");
+        ProductionInputDestinationCustodyDrainSaveData rowB =
+            CreateTerminalCheckpointRow(outbox, "b");
+        ProductionInputDestinationCustodyDrainSaveData rowC =
+            CreateTerminalCheckpointRow(outbox, "c");
+        string rowAJson = JsonUtility.ToJson(rowA);
+        string rowCJson = JsonUtility.ToJson(rowC);
+        int preparedItemRevision = repository.ItemStackVersion;
+        int preparedHaulRevision = repository.HaulJobVersion;
+
+        string overlapFailure = string.Empty;
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { rowB, rowA },
+                    out IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+                        partialCandidate,
+                    out string prepareFailure)
+                && outbox.TryCapture(rowA.stepOperationId, out var preparedA)
+                && string.Equals(
+                    JsonUtility.ToJson(preparedA),
+                    rowAJson,
+                    StringComparison.Ordinal)
+                && repository.ItemStackVersion == preparedItemRevision
+                && repository.HaulJobVersion == preparedHaulRevision,
+            "V27_INPUT_CHECKPOINT_GC_PREPARE_MUTATED:" + prepareFailure);
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { rowC },
+                    out IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+                        disjointCandidate,
+                    out string disjointFailure)
+                && !gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { rowA }, out _, out overlapFailure)
+                && string.Equals(
+                    overlapFailure,
+                    "production-input-destination-checkpoint-gc-overlap",
+                    StringComparison.Ordinal),
+            "V27_INPUT_CHECKPOINT_GC_DISJOINT_OR_OVERLAP_CONTRACT_FAILED:"
+            + disjointFailure + ":" + overlapFailure);
+        Require(outbox.TryGarbageCollect(
+                    rowA.stepOperationId,
+                    rowA.receiptFingerprint).Status ==
+                ProductionInputDestinationCustodyDrainStatus.Deferred,
+            "V27_INPUT_CHECKPOINT_GC_DID_NOT_FENCE_LEGACY_GC");
+        Require(gc.TryPublishCheckpointGarbageCollection(
+                    disjointCandidate,
+                    out string disjointPublishFailure)
+                && !outbox.TryCapture(rowC.stepOperationId, out _),
+            "V27_INPUT_CHECKPOINT_GC_DISJOINT_PUBLISH_FAILED:"
+            + disjointPublishFailure);
+        gc.RollbackCheckpointGarbageCollection(disjointCandidate);
+        Require(outbox.TryCapture(rowC.stepOperationId, out var restoredDisjoint)
+                && string.Equals(
+                    JsonUtility.ToJson(restoredDisjoint),
+                    rowCJson,
+                    StringComparison.Ordinal),
+            "V27_INPUT_CHECKPOINT_GC_DISJOINT_ROLLBACK_NOT_EXACT");
+        gc.CompleteCheckpointGarbageCollection(disjointCandidate);
+
+        Require(RemovePendingForFault(
+                repository,
+                "RemovePendingProductionInputDestinationDrain",
+                rowB.stepOperationId),
+            "V27_INPUT_CHECKPOINT_GC_FAULT_INJECTION_FAILED");
+        int faultItemRevision = repository.ItemStackVersion;
+        int faultHaulRevision = repository.HaulJobVersion;
+        Require(!gc.TryPublishCheckpointGarbageCollection(
+                    partialCandidate,
+                    out _)
+                && outbox.TryCapture(
+                    rowA.stepOperationId,
+                    out ProductionInputDestinationCustodyDrainSaveData
+                        autoRestoredA)
+                && string.Equals(
+                    JsonUtility.ToJson(autoRestoredA),
+                    rowAJson,
+                    StringComparison.Ordinal),
+            "V27_INPUT_CHECKPOINT_GC_MIDDLE_FAILURE_NOT_OBSERVED");
+        gc.RollbackCheckpointGarbageCollection(partialCandidate);
+        bool hasRestoredA = outbox.TryCapture(
+            rowA.stepOperationId,
+            out ProductionInputDestinationCustodyDrainSaveData restoredA);
+        bool hasPreservedC = outbox.TryCapture(
+            rowC.stepOperationId,
+            out ProductionInputDestinationCustodyDrainSaveData preservedC);
+        Require(hasRestoredA
+                && string.Equals(
+                    JsonUtility.ToJson(restoredA),
+                    rowAJson,
+                    StringComparison.Ordinal)
+                && !outbox.TryCapture(rowB.stepOperationId, out _)
+                && hasPreservedC
+                && string.Equals(
+                    JsonUtility.ToJson(preservedC),
+                    rowCJson,
+                    StringComparison.Ordinal)
+                && repository.ItemStackVersion == faultItemRevision
+                && repository.HaulJobVersion == faultHaulRevision,
+            "V27_INPUT_CHECKPOINT_GC_PARTIAL_ROLLBACK_NOT_EXACT");
+        gc.CompleteCheckpointGarbageCollection(partialCandidate);
+        RequireThrows(() => gc.TryPublishCheckpointGarbageCollection(
+                partialCandidate,
+                out _),
+            "V27_INPUT_CHECKPOINT_GC_COMPLETED_CANDIDATE_REUSED");
+
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { restoredA, preservedC },
+                    out IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+                        conflictCandidate,
+                    out _)
+                && gc.TryPublishCheckpointGarbageCollection(
+                    conflictCandidate,
+                    out _),
+            "V27_INPUT_CHECKPOINT_GC_CONFLICT_FIXTURE_PUBLISH_FAILED");
+        ProductionInputDestinationCustodyDrainSaveData driftedA =
+            JsonUtility.FromJson<ProductionInputDestinationCustodyDrainSaveData>(
+                rowAJson);
+        driftedA.billId += ":rollback-conflict";
+        SetPendingForFault(
+            repository,
+            "SetPendingProductionInputDestinationDrain",
+            driftedA);
+        RequireThrows(
+            () => gc.RollbackCheckpointGarbageCollection(conflictCandidate),
+            "V27_INPUT_CHECKPOINT_GC_ROLLBACK_CONFLICT_NOT_REJECTED");
+        Require(outbox.TryCapture(rowA.stepOperationId, out var preservedDrift)
+                && string.Equals(
+                    JsonUtility.ToJson(preservedDrift),
+                    JsonUtility.ToJson(driftedA),
+                    StringComparison.Ordinal)
+                && !outbox.TryCapture(rowC.stepOperationId, out _),
+            "V27_INPUT_CHECKPOINT_GC_ROLLBACK_CONFLICT_PARTIALLY_RESTORED");
+        Require(RemovePendingForFault(
+                repository,
+                "RemovePendingProductionInputDestinationDrain",
+                rowA.stepOperationId),
+            "V27_INPUT_CHECKPOINT_GC_ROLLBACK_CONFLICT_CLEANUP_FAILED");
+        gc.RollbackCheckpointGarbageCollection(conflictCandidate);
+        Require(outbox.TryCapture(rowA.stepOperationId, out restoredA)
+                && outbox.TryCapture(rowC.stepOperationId, out preservedC)
+                && string.Equals(
+                    JsonUtility.ToJson(restoredA),
+                    rowAJson,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    JsonUtility.ToJson(preservedC),
+                    rowCJson,
+                    StringComparison.Ordinal),
+            "V27_INPUT_CHECKPOINT_GC_CONFLICT_RECOVERY_NOT_EXACT");
+        gc.CompleteCheckpointGarbageCollection(conflictCandidate);
+
+        int exactItemRevision = repository.ItemStackVersion;
+        int exactHaulRevision = repository.HaulJobVersion;
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { restoredA },
+                    out IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+                        exactCandidate,
+                    out _)
+                && gc.TryPublishCheckpointGarbageCollection(
+                    exactCandidate,
+                    out _)
+                && !outbox.TryCapture(rowA.stepOperationId, out _)
+                && repository.ItemStackVersion == exactItemRevision
+                && repository.HaulJobVersion == exactHaulRevision,
+            "V27_INPUT_CHECKPOINT_GC_PUBLISH_NOT_EXACT");
+        gc.RollbackCheckpointGarbageCollection(exactCandidate);
+        Require(outbox.TryCapture(rowA.stepOperationId, out var exactRestored)
+                && string.Equals(
+                    JsonUtility.ToJson(exactRestored),
+                    rowAJson,
+                    StringComparison.Ordinal)
+                && repository.ItemStackVersion == exactItemRevision
+                && repository.HaulJobVersion == exactHaulRevision,
+            "V27_INPUT_CHECKPOINT_GC_ROLLBACK_CHANGED_REVISIONS");
+        gc.CompleteCheckpointGarbageCollection(exactCandidate);
+
+        Require(gc.TryPrepareCheckpointGarbageCollection(
+                    new[] { preservedC },
+                    out IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+                        completedCandidate,
+                    out _)
+                && gc.TryPublishCheckpointGarbageCollection(
+                    completedCandidate,
+                    out _),
+            "V27_INPUT_CHECKPOINT_GC_FINAL_PUBLISH_FAILED");
+        gc.CompleteCheckpointGarbageCollection(completedCandidate);
+        Require(!outbox.TryCapture(rowC.stepOperationId, out _),
+            "V27_INPUT_CHECKPOINT_GC_COMPLETE_RETAINED_ROW");
+    }
+
+    private static ProductionInputDestinationCustodyDrainSaveData
+        CreateTerminalCheckpointRow(
+            ProductionInputDestinationCustodyDrainOutbox outbox,
+            string suffix)
+    {
+        string step = StepOperationId + ":checkpoint:" + suffix;
+        ProductionInputDestinationCustodyDrainRequest request = CreateRequest(
+            step,
+            BillId + ":checkpoint:" + suffix,
+            DestinationId + ":checkpoint:" + suffix,
+            Array.Empty<ProductionInputDestinationDrainStackSaveData>(),
+            Array.Empty<ProductionInputDestinationDrainOperationSaveData>(),
+            Array.Empty<ProductionInputDestinationDrainActorSaveData>(),
+            0,
+            0L);
+        Require(outbox.TryPrepare(request).Status ==
+                ProductionInputDestinationCustodyDrainStatus.Applied
+            && outbox.TryBeginDraining(step, request.RequestFingerprint).Status ==
+                ProductionInputDestinationCustodyDrainStatus.Applied
+            && outbox.TryBeginReleasingOperationAuthority(step).Status ==
+                ProductionInputDestinationCustodyDrainStatus.Applied
+            && outbox.TryBeginReleasingDestination(step).Status ==
+                ProductionInputDestinationCustodyDrainStatus.Applied,
+            "V27_INPUT_CHECKPOINT_GC_TERMINAL_SETUP_FAILED:" + suffix);
+        ProductionInputDestinationCustodyDrainResult committed =
+            outbox.TryCommitEffect(
+                step,
+                Array.Empty<string>(),
+                0,
+                0L,
+                new string('7', 64));
+        ProductionInputDestinationCustodyDrainResult acknowledged =
+            outbox.TryAcknowledge(step, committed.ReceiptFingerprint);
+        bool hasTerminal = outbox.TryCapture(
+            step,
+            out ProductionInputDestinationCustodyDrainSaveData terminal);
+        Require(committed.Status ==
+                ProductionInputDestinationCustodyDrainStatus.Applied
+            && acknowledged.Status ==
+                ProductionInputDestinationCustodyDrainStatus.Applied
+            && hasTerminal,
+            "V27_INPUT_CHECKPOINT_GC_ACK_SETUP_FAILED:" + suffix);
+        return terminal;
+    }
+
+    private static bool RemovePendingForFault(
+        WorldItemRepository repository,
+        string methodName,
+        string stepOperationId)
+    {
+        MethodInfo method = typeof(WorldItemRepository).GetMethod(
+            methodName,
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(
+                typeof(WorldItemRepository).FullName,
+                methodName);
+        return (bool)method.Invoke(repository, new object[] { stepOperationId });
+    }
+
+    private static void SetPendingForFault(
+        WorldItemRepository repository,
+        string methodName,
+        ProductionInputDestinationCustodyDrainSaveData row)
+    {
+        MethodInfo method = typeof(WorldItemRepository).GetMethod(
+            methodName,
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(
+                typeof(WorldItemRepository).FullName,
+                methodName);
+        method.Invoke(repository, new object[] { row });
+    }
+
+    private static void RequireThrows(Action action, string message)
+    {
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        throw new InvalidOperationException(message);
     }
 
     private static void VerifyClaimOnlyZeroInputFlow()

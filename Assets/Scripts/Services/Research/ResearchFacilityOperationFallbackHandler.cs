@@ -54,17 +54,12 @@ public static class ResearchFacilityCommandConsumerRegistry
             ResearchFacilityCommandKind.SecureTradeVault => "commerce",
             ResearchFacilityCommandKind.DefenseControl => "defense",
             ResearchFacilityCommandKind.ApparelTailoring or
-            ResearchFacilityCommandKind.ApparelDecoration or
             ResearchFacilityCommandKind.HandLaundry or
             ResearchFacilityCommandKind.IndoorDrying or
             ResearchFacilityCommandKind.PoweredLaundry or
-            ResearchFacilityCommandKind.ApparelDisplay or
             ResearchFacilityCommandKind.DressingChange or
             ResearchFacilityCommandKind.ApparelRepair or
-            ResearchFacilityCommandKind.FiberSorting or
-            ResearchFacilityCommandKind.FiberScouring or
             ResearchFacilityCommandKind.ManualSpinning or
-            ResearchFacilityCommandKind.TextileFinishing or
             ResearchFacilityCommandKind.PoweredSpinning or
             ResearchFacilityCommandKind.PoweredWeaving => "apparel-textile",
             _ => string.Empty

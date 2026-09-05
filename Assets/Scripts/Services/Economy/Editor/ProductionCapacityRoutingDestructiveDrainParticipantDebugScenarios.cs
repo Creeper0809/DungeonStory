@@ -27,8 +27,148 @@ public static class
         VerifyCommitAndAcknowledgeStatusMapping();
         VerifyIncompleteTerminalResultFailsClosed();
         VerifyRecoveryMatrix();
+        VerifyActualCheckpointGcAbsenceAndParticipantBoundary();
         Debug.Log(
             "Capacity-routing destructive-drain participant contracts passed.");
+    }
+
+    private static void VerifyActualCheckpointGcAbsenceAndParticipantBoundary()
+    {
+        const string batchId = "batch:qa-capacity-checkpoint-gc";
+        ProductionPreparedOutputRoutingBatchSnapshot batch = CreateBatch(
+            batchId,
+            "line:qa-capacity-checkpoint-gc",
+            1_000L);
+        FakeBatchQuery batches = new(new[] { batch });
+        FakeExactRouteQuery exactRoutes = new();
+        FakeProducer producer = new();
+        FakeRoutingAuthority routing = new(batch.Lines);
+        FakePhysicalSource physical = new(new[] { batch });
+        ProductionCapacityRoutingDrainExecutionCoordinator executor = new(
+            producer,
+            batches,
+            routing,
+            new UnusedExactRouteLifecycle(),
+            physical,
+            new UnusedActorAuthority(),
+            exactRoutes);
+
+        Require(!executor.TryVerifyRoutingAuthorityAbsent(
+                batchId,
+                out string liveBatchFailure)
+            && string.Equals(liveBatchFailure,
+                "production-capacity-routing-checkpoint-gc-batch-still-live",
+                StringComparison.Ordinal),
+            "Actual checkpoint absence query accepted a live routing batch.");
+
+        batches.Remove(batchId);
+        exactRoutes.Set(CreatePendingExactRoute(batchId));
+        Require(!executor.TryVerifyRoutingAuthorityAbsent(
+                batchId,
+                out string liveRouteFailure)
+            && string.Equals(liveRouteFailure,
+                "production-capacity-routing-checkpoint-gc-route-still-live",
+                StringComparison.Ordinal),
+            "Actual checkpoint absence query accepted a live exact route.");
+
+        exactRoutes.Set(CreatePendingExactRoute("batch:qa-capacity-unrelated"));
+        Require(executor.TryVerifyRoutingAuthorityAbsent(batchId, out _),
+            "An unrelated exact route blocked checkpoint collection.");
+        exactRoutes.Clear();
+        Require(executor.TryVerifyRoutingAuthorityAbsent(batchId, out _),
+            "Actual checkpoint absence query rejected fully absent authority.");
+
+        batches.Set(batch);
+        string ownerStableId = ProductionFacilityDestructiveDrainOwnerStableIds
+            .RoutingBatch(batchId);
+        string stepOperationId = ProductionFacilityDestructiveDrainCanonical
+            .BuildStepOperationId(
+                OperationId,
+                ProductionFacilityDestructiveDrainParticipantIds
+                    .CapacityRoutingOutbox,
+                ownerStableId);
+        producer.Captured = new ProductionCapacityRoutingDrainSaveData
+        {
+            stepOperationId = stepOperationId,
+            ownerStableId = ownerStableId,
+            batchCommitId = batchId,
+            requestFingerprint = Digest('4'),
+            phase = ProductionCapacityRoutingDrainPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc,
+            commitId = CommitId,
+            receiptFingerprint = ReceiptFingerprint
+        };
+        ProductionCapacityRoutingDestructiveDrainParticipant participant = new(
+            new FakeLifecycleQuery(),
+            routing,
+            batches,
+            physical,
+            producer,
+            new FakeHaulFence(),
+            executor);
+        ProductionFacilityDestructiveDrainEntrySaveData entry = new()
+        {
+            operationId = OperationId.Value,
+            facilityId = FacilityId.Value,
+            phase = ProductionFacilityDestructiveDrainPhase
+                .WorldRemovedAwaitingCheckpointGc,
+            participants = new List<
+                ProductionFacilityDestructiveDrainParticipantSaveData>
+            {
+                new()
+                {
+                    participantId = ProductionFacilityDestructiveDrainParticipantIds
+                        .CapacityRoutingOutbox,
+                    contractVersion = 1,
+                    owners = new List<
+                        ProductionFacilityDestructiveDrainOwnerSaveData>
+                    {
+                        new()
+                        {
+                            ownerStableId = ownerStableId,
+                            disposition = ProductionFacilityDestructiveDrainDisposition
+                                .Terminalize,
+                            stepOperationId = stepOperationId,
+                            phase = ProductionFacilityDestructiveDrainStepPhase
+                                .OwnerAcknowledged,
+                            requestFingerprint = Digest('4'),
+                            commitId = CommitId,
+                            receiptFingerprint = ReceiptFingerprint
+                        }
+                    }
+                }
+            }
+        };
+        ProductionFacilityDestructiveDrainCheckpointGcContext context = new(
+            1L,
+            Digest('5'),
+            "slot:qa-capacity-checkpoint-gc");
+        Require(participant.PrepareCheckpointGarbageCollection(
+                    context,
+                    new[] { entry },
+                    out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                        candidate).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            "Capacity participant checkpoint prepare failed.");
+        ProductionFacilityDestructiveDrainCheckpointGcResult blocked =
+            participant.PublishCheckpointGarbageCollection(candidate);
+        Require(blocked.Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption
+            && blocked.Reason ==
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .LiveAuthorityChanged
+            && producer.Captured != null,
+            "Capacity participant collected its producer before routing authority was absent: "
+            + blocked.Status + "/" + blocked.Reason + "/" + blocked.Message);
+        batches.Remove(batchId);
+        Require(participant.PublishCheckpointGarbageCollection(candidate).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && producer.Captured == null,
+            "Capacity participant did not publish after routing authority became absent.");
+        participant.RollbackCheckpointGarbageCollection(candidate);
+        Require(producer.Captured != null,
+            "Capacity participant rollback did not restore the exact producer row.");
+        participant.CompleteCheckpointGarbageCollection(candidate);
     }
 
     private static void VerifyPrepareDeterminismAndOwnerMapping()
@@ -640,6 +780,8 @@ public static class
 
         internal void Set(ProductionPreparedOutputRoutingBatchSnapshot batch) =>
             values[batch.BatchCommitId] = batch;
+
+        internal void Remove(string batchCommitId) => values.Remove(batchCommitId);
     }
 
     private sealed class FakePhysicalSource :
@@ -687,8 +829,21 @@ public static class
         }
     }
 
-    private sealed class FakeProducer : IProductionCapacityRoutingDrainOutbox
+    private sealed class FakeProducer :
+        IProductionCapacityRoutingDrainOutbox,
+        IProductionCapacityRoutingDrainCheckpointGcOutbox
     {
+        private sealed class CheckpointCandidate :
+            IProductionCapacityRoutingDrainCheckpointGcCandidate
+        {
+            internal CheckpointCandidate(ProductionCapacityRoutingDrainSaveData row) =>
+                Row = row.Clone();
+            internal ProductionCapacityRoutingDrainSaveData Row { get; }
+            internal bool Published { get; set; }
+            internal bool Completed { get; set; }
+        }
+
+        private CheckpointCandidate activeCheckpointCandidate;
         internal List<ProductionCapacityRoutingDrainRequest> PreparedRequests
             { get; } = new();
         internal ProductionCapacityRoutingDrainResult NextAcknowledge { get; set; }
@@ -777,6 +932,84 @@ public static class
             string stepOperationId,
             string receiptFingerprint) => Unsupported();
 
+        public bool TryPrepareCheckpointGarbageCollection(
+            IReadOnlyList<ProductionCapacityRoutingDrainSaveData> records,
+            out IProductionCapacityRoutingDrainCheckpointGcCandidate candidate,
+            out string failureReason)
+        {
+            candidate = null;
+            failureReason = string.Empty;
+            ProductionCapacityRoutingDrainSaveData[] rows = (records
+                    ?? Array.Empty<ProductionCapacityRoutingDrainSaveData>())
+                .ToArray();
+            if (activeCheckpointCandidate != null
+                || rows.Length != 1
+                || Captured == null
+                || !string.Equals(JsonUtility.ToJson(rows[0]),
+                    JsonUtility.ToJson(Captured), StringComparison.Ordinal))
+            {
+                failureReason = "qa-capacity-checkpoint-prepare-conflict";
+                return false;
+            }
+            activeCheckpointCandidate = new CheckpointCandidate(rows[0]);
+            candidate = activeCheckpointCandidate;
+            return true;
+        }
+
+        public bool TryPublishCheckpointGarbageCollection(
+            IProductionCapacityRoutingDrainCheckpointGcCandidate candidate,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            CheckpointCandidate exact = RequireCheckpointCandidate(candidate);
+            if (exact.Published)
+                return true;
+            if (Captured == null
+                || !string.Equals(JsonUtility.ToJson(Captured),
+                    JsonUtility.ToJson(exact.Row), StringComparison.Ordinal))
+            {
+                failureReason = "qa-capacity-checkpoint-publish-conflict";
+                return false;
+            }
+            Captured = null;
+            exact.Published = true;
+            return true;
+        }
+
+        public void RollbackCheckpointGarbageCollection(
+            IProductionCapacityRoutingDrainCheckpointGcCandidate candidate)
+        {
+            CheckpointCandidate exact = RequireCheckpointCandidate(candidate);
+            if (!exact.Published)
+                return;
+            if (Captured != null)
+                throw new InvalidOperationException(
+                    "qa-capacity-checkpoint-rollback-conflict");
+            Captured = exact.Row.Clone();
+            exact.Published = false;
+        }
+
+        public void CompleteCheckpointGarbageCollection(
+            IProductionCapacityRoutingDrainCheckpointGcCandidate candidate)
+        {
+            CheckpointCandidate exact = RequireCheckpointCandidate(candidate);
+            exact.Completed = true;
+            activeCheckpointCandidate = null;
+        }
+
+        private CheckpointCandidate RequireCheckpointCandidate(
+            IProductionCapacityRoutingDrainCheckpointGcCandidate candidate)
+        {
+            if (candidate is not CheckpointCandidate exact
+                || exact.Completed
+                || !ReferenceEquals(activeCheckpointCandidate, exact))
+            {
+                throw new InvalidOperationException(
+                    "qa-capacity-checkpoint-candidate-invalid");
+            }
+            return exact;
+        }
+
         private static ProductionCapacityRoutingDrainResult Unsupported() =>
             CapacityResult(ProductionCapacityRoutingDrainStatus.Conflict);
     }
@@ -808,11 +1041,76 @@ public static class
             string requestFingerprint) => Next;
     }
 
+    private sealed class FakeExactRouteQuery :
+        IFacilityOutputExactRouteOutboxQuery
+    {
+        private IReadOnlyList<FacilityOutputExactRoutePendingSnapshot> rows =
+            Array.Empty<FacilityOutputExactRoutePendingSnapshot>();
+
+        internal void Set(FacilityOutputExactRoutePendingSnapshot row) =>
+            rows = new[] { row };
+        internal void Clear() => rows =
+            Array.Empty<FacilityOutputExactRoutePendingSnapshot>();
+        public IReadOnlyList<FacilityOutputExactRoutePendingSnapshot>
+            CapturePendingRoutes() => rows;
+    }
+
+    private sealed class UnusedExactRouteLifecycle :
+        IProductionPreparedOutputExactRouteLifecycle
+    {
+        public ProductionPreparedOutputExactRouteLifecycleResult TryProgress(
+            ProductionPreparedOutputRouteRequestSnapshot operation) =>
+            throw new NotSupportedException();
+        public int ResolveExactQuantity(
+            ProductionPreparedOutputRoutingLineSnapshot line,
+            int requestedQuantity) => throw new NotSupportedException();
+    }
+
+    private sealed class UnusedActorAuthority :
+        IProductionCapacityRoutingOperationAuthorityReleaseCoordinator
+    {
+        public ProductionCapacityRoutingDrainResult TryQuiesceAndReleaseAllActors(
+            string stepOperationId,
+            string drainRequestFingerprint) => throw new NotSupportedException();
+    }
+
+    private static FacilityOutputExactRoutePendingSnapshot CreatePendingExactRoute(
+        string batchCommitId)
+    {
+        FacilityOutputExactRouteSliceReceipt slice = new(
+            "stack:qa-capacity-source:" + batchCommitId,
+            "stack:qa-capacity-routed:" + batchCommitId,
+            "output:qa-capacity:" + batchCommitId,
+            "line-commit:qa-capacity:" + batchCommitId,
+            "resource:qa-capacity",
+            0,
+            0,
+            1,
+            1_000L,
+            Digest('6'));
+        FacilityOutputExactRouteReceipt receipt = new(
+            "route:qa-capacity:" + batchCommitId,
+            Digest('7'),
+            Digest('8'),
+            batchCommitId,
+            "source:qa-capacity:" + batchCommitId,
+            "destination:qa-capacity:" + batchCommitId,
+            new Vector2Int(1, 2),
+            1,
+            1_000L,
+            new[] { slice });
+        return new FacilityOutputExactRoutePendingSnapshot(
+            FacilityOutputExactRoutePhase.PhysicalPending,
+            receipt);
+    }
+
     private static ProductionPreparedOutputRoutingBatchSnapshot CreateBatch(
         string batchId,
         string lineId,
         long massGrams)
     {
+        string outputLineId = "output:" + lineId;
+        const string itemId = "resource:qa-capacity";
         ProductionPreparedOutputRoutingLineSnapshot line = new(
             batchId,
             "bill:" + batchId,
@@ -820,11 +1118,22 @@ public static class
             FacilityId.Value,
             1,
             lineId,
-            "output:" + lineId,
+            outputLineId,
             ProductionOutputRole.Main,
-            "resource:qa-capacity",
+            itemId,
             DestinationId.Value,
             "component:qa-capacity",
+            ProductionOutputCapabilityIds.StandardDefinition,
+            ProductionOutputCapabilityIds.StandardDefinitionVersion,
+            ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+            ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+            ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                outputLineId,
+                itemId,
+                ProductionOutputCapabilityIds.StandardDefinition,
+                ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
             2,
             massGrams,
             2,

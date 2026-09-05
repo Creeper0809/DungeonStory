@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9823",
+    "spoiler_tier": "none",
+    "title": "샤워 시설"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "시설 해금",
+      "to": "facility/building-9823",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

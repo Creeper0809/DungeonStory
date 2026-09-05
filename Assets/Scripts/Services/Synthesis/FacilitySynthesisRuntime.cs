@@ -16,6 +16,8 @@ public class FacilitySynthesisRuntime : MonoBehaviour
     private IFacilitySynthesisRecipeQuery recipeQuery;
     private IGridBuildingObjectFactory gridBuildingObjectFactory;
     private IGameEventBus gameEventBus;
+    private readonly IProductionFacilityHandleQuery productionFacilityHandles =
+        new ProductionFacilityHandleQueryAdapter();
 
     public IReadOnlyList<BuildableObject> SelectedMaterials =>
         selectedMaterialsView ??= ReadOnlyView.List(selectedMaterials);
@@ -119,35 +121,28 @@ public class FacilitySynthesisRuntime : MonoBehaviour
             return false;
         }
 
-        BuildableObject primary = ResolveDeclaredAnchor(recipe, materials);
+        BuildableObject[] orderedMaterials = OrderMaterialsByPersistentId(materials);
+        BuildableObject primary = ResolveDeclaredAnchor(recipe, orderedMaterials);
         Grid grid = primary.Grid;
         Vector2Int resultPosition = primary.centerPos;
         int inheritedLevel = FacilitySynthesisService.CalculateInheritedLevel(recipe, materials);
 
-        foreach (BuildableObject material in materials)
+        if (!TryReplaceMaterialsAtomically(
+                recipe,
+                orderedMaterials,
+                primary,
+                grid,
+                resultPosition,
+                inheritedLevel,
+                out BuildableObject resultBuilding,
+                out string replacementFailure))
         {
-            RemoveMaterialFromGrid(material);
-        }
-
-        BuildableObject resultBuilding = BuildingFactory.Create(grid, recipe.resultBuilding, resultPosition);
-        if (resultBuilding == null)
-        {
-            result = new FacilitySynthesisResult(false, recipe, null, inheritedLevel, "결과 시설 생성 실패");
-            return false;
-        }
-
-        resultBuilding.SetGrid(grid);
-        resultBuilding.Initialization(recipe.resultBuilding, resultPosition);
-        resultBuilding.SetFacilityLevel(inheritedLevel);
-        bool registered = grid.RegisterOccupant(
-            resultBuilding,
-            recipe.resultBuilding.Placement.Layer,
-            recipe.resultBuilding.GetGridPosList(resultPosition),
-            recipe.resultBuilding.Placement.IsMovement);
-        if (!registered)
-        {
-            resultBuilding.DestroySelf();
-            result = new FacilitySynthesisResult(false, recipe, null, inheritedLevel, "결과 시설 배치 실패");
+            result = new FacilitySynthesisResult(
+                false,
+                recipe,
+                null,
+                inheritedLevel,
+                replacementFailure);
             return false;
         }
 
@@ -208,6 +203,25 @@ public class FacilitySynthesisRuntime : MonoBehaviour
             return false;
         }
 
+        BuildingInstanceId[] materialIds;
+        try
+        {
+            materialIds = materials
+                .Select(building => building.RequirePersistentInstanceId())
+                .ToArray();
+        }
+        catch (InvalidOperationException exception)
+        {
+            errorMessage = "영속 ID가 없는 시설은 합성할 수 없습니다. " + exception.Message;
+            return false;
+        }
+
+        if (materialIds.Distinct().Count() != materialIds.Length)
+        {
+            errorMessage = "같은 영속 ID를 가진 시설은 함께 합성할 수 없습니다";
+            return false;
+        }
+
         if (!FacilitySynthesisService.MatchesMaterials(recipe, materials))
         {
             errorMessage = "조합식과 재료 시설이 맞지 않습니다";
@@ -222,26 +236,18 @@ public class FacilitySynthesisRuntime : MonoBehaviour
             return false;
         }
 
+        IBuildingWorldRegistryPort worldRegistry = anchor.WorldRegistry;
+        if (worldRegistry == null
+            || materials.Any(building => !ReferenceEquals(building.WorldRegistry, worldRegistry)))
+        {
+            errorMessage = "같은 월드 권위에 등록된 시설만 합성할 수 있습니다";
+            return false;
+        }
+
         if (!CanPlaceResultOverMaterials(grid, recipe, materials, anchor.centerPos))
         {
             errorMessage = "결과 시설을 배치할 공간이 부족합니다";
             return false;
-        }
-
-        IProductionFacilityMutationFence productionFence =
-            ResolveProductionFacilityMutationFence();
-        foreach (BuildableObject material in materials
-                     .OrderBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal))
-        {
-            if (!productionFence.TryRequireNoAuthority(
-                    material,
-                    ProductionFacilityMutationKind.Synthesis,
-                    out string productionFailure))
-            {
-                errorMessage = "생산 주문·재공품·출력 권위가 남은 시설은 합성할 수 없습니다. "
-                    + productionFailure;
-                return false;
-            }
         }
 
         errorMessage = string.Empty;
@@ -284,20 +290,298 @@ public class FacilitySynthesisRuntime : MonoBehaviour
             ?? materials?[0];
     }
 
-    private void RemoveMaterialFromGrid(BuildableObject material)
+    private bool TryReplaceMaterialsAtomically(
+        FacilitySynthesisRecipeSO recipe,
+        IReadOnlyList<BuildableObject> orderedMaterials,
+        BuildableObject anchor,
+        Grid grid,
+        Vector2Int resultPosition,
+        int inheritedLevel,
+        out BuildableObject resultBuilding,
+        out string failureReason)
     {
-        if (material == null || material.BuildingData == null || material.Grid == null)
+        resultBuilding = null;
+        failureReason = string.Empty;
+        IProductionFacilityRetargetTransaction retarget =
+            ResolveProductionFacilityRetargetTransaction();
+        ProductionFacilityRetargetRequest[] requests = orderedMaterials
+            .Select(material => new ProductionFacilityRetargetRequest(
+                productionFacilityHandles.CaptureFacility(material),
+                ProductionFacilityMutationKind.Synthesis))
+            .ToArray();
+        string operationId = "synthesis:" + recipe.recipeId + ":"
+            + anchor.RequirePersistentInstanceId().Value;
+        if (!retarget.TryBegin(
+                requests,
+                operationId,
+                out ProductionFacilityRetargetTransactionState transaction,
+                out string beginFailure))
+        {
+            failureReason = "생산 권위 합성 사전 검증 실패: " + beginFailure;
+            return false;
+        }
+
+        BuildableObject candidate = null;
+        try
+        {
+            candidate = BuildingFactory.CreateDetached(
+                grid,
+                recipe.resultBuilding,
+                resultPosition);
+            if (candidate == null)
+            {
+                RollbackRetargetOrThrow(retarget, transaction, "candidate-creation");
+                failureReason = "결과 시설 후보 생성 실패";
+                return false;
+            }
+
+            candidate.RestorePersistentIdentity(anchor.RequirePersistentInstanceId());
+            candidate.SetGrid(grid);
+            candidate.Initialization(recipe.resultBuilding, resultPosition);
+            candidate.SetFacilityLevel(inheritedLevel);
+        }
+        catch (Exception exception)
+        {
+            DiscardCandidate(candidate, recipe.resultBuilding, resultPosition);
+            RollbackRetargetOrThrow(retarget, transaction, "candidate-initialization");
+            failureReason = "결과 시설 후보 초기화 실패: " + exception.Message;
+            return false;
+        }
+
+        List<BuildableObject> removedMaterials = new List<BuildableObject>(orderedMaterials.Count);
+        foreach (BuildableObject material in orderedMaterials)
+        {
+            if (!grid.RemoveOccupant(
+                    material,
+                    material.BuildingData.Placement.Layer,
+                    material.buildPoses,
+                    material.BuildingData.Placement.IsMovement))
+            {
+                DiscardCandidate(candidate, recipe.resultBuilding, resultPosition);
+                RestoreMaterialOccupancies(grid, removedMaterials);
+                RollbackRetargetOrThrow(retarget, transaction, "occupancy-removal");
+                failureReason = "재료 시설 점유를 해제할 수 없습니다: "
+                    + material.PersistentInstanceId.Value;
+                return false;
+            }
+            removedMaterials.Add(material);
+        }
+
+        if (!grid.RegisterOccupant(
+                candidate,
+                recipe.resultBuilding.Placement.Layer,
+                recipe.resultBuilding.GetGridPosList(resultPosition),
+                recipe.resultBuilding.Placement.IsMovement))
+        {
+            DiscardCandidate(candidate, recipe.resultBuilding, resultPosition);
+            RestoreMaterialOccupancies(grid, removedMaterials);
+            RollbackRetargetOrThrow(retarget, transaction, "candidate-registration");
+            failureReason = "결과 시설 배치 실패";
+            return false;
+        }
+
+        IBuildingWorldRegistryPort worldRegistry = anchor.WorldRegistry;
+        string registryFailure = "building-world-registry-unavailable";
+        if (worldRegistry == null
+            || !ReferenceEquals(candidate.WorldRegistry, worldRegistry)
+            || !worldRegistry.TryReplaceBuilding(
+                anchor,
+                candidate,
+                out registryFailure))
+        {
+            grid.RemoveOccupant(
+                candidate,
+                recipe.resultBuilding.Placement.Layer,
+                candidate.buildPoses,
+                recipe.resultBuilding.Placement.IsMovement);
+            DiscardCandidate(candidate, recipe.resultBuilding, resultPosition);
+            RestoreMaterialOccupancies(grid, removedMaterials);
+            RollbackRetargetOrThrow(retarget, transaction, "world-registry-handoff");
+            failureReason = "결과 시설 월드 권위 교체 실패: "
+                + (registryFailure ?? "building-world-registry-unavailable");
+            return false;
+        }
+
+        bool authorityCommitted;
+        string commitFailure;
+        try
+        {
+            ProductionFacilityHandle targetFacility =
+                productionFacilityHandles.CaptureFacility(candidate);
+            ProductionFacilityRetargetBinding[] bindings = requests
+                .Select(request => new ProductionFacilityRetargetBinding(
+                    request.SourceFacilityId,
+                    targetFacility))
+                .ToArray();
+            authorityCommitted = retarget.TryCommit(
+                transaction,
+                bindings,
+                out commitFailure);
+        }
+        catch (Exception exception)
+        {
+            authorityCommitted = false;
+            commitFailure = "target-capture-or-commit-exception:"
+                + exception.GetType().Name + ":" + exception.Message;
+        }
+        if (!authorityCommitted)
+        {
+            RollbackRetargetOrThrow(retarget, transaction, "authority-commit");
+            if (!worldRegistry.TryRollbackBuildingReplacement(
+                    candidate,
+                    anchor,
+                    out string registryRollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Synthesis authority commit failed and world authority rollback also failed: "
+                    + registryRollbackFailure);
+            }
+            grid.RemoveOccupant(
+                candidate,
+                recipe.resultBuilding.Placement.Layer,
+                candidate.buildPoses,
+                recipe.resultBuilding.Placement.IsMovement);
+            DiscardCandidate(candidate, recipe.resultBuilding, resultPosition);
+            RestoreMaterialOccupancies(grid, removedMaterials);
+            failureReason = "생산 권위 합성 반영 실패로 재료 시설을 복구했습니다: "
+                + commitFailure;
+            return false;
+        }
+
+        try
+        {
+            BuildingFactory.PublishDetached(candidate, recipe.resultBuilding, resultPosition);
+        }
+        catch (Exception exception)
+        {
+            RollbackRetargetOrThrow(retarget, transaction, "publication");
+            if (!worldRegistry.TryRollbackBuildingReplacement(
+                    candidate,
+                    anchor,
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Synthesis publication failed and world authority rollback also failed: "
+                    + rollbackFailure,
+                    exception);
+            }
+
+            grid.RemoveOccupant(
+                candidate,
+                recipe.resultBuilding.Placement.Layer,
+                candidate.buildPoses,
+                recipe.resultBuilding.Placement.IsMovement);
+            DiscardCandidate(candidate, recipe.resultBuilding, resultPosition);
+            RestoreMaterialOccupancies(grid, removedMaterials);
+            failureReason = "결과 시설 게시 실패로 재료 시설을 복구했습니다: "
+                + exception.Message;
+            return false;
+        }
+
+        if (!retarget.TryComplete(transaction, out string completionFailure))
+        {
+            RollbackRetargetOrThrow(retarget, transaction, "completion");
+            if (!worldRegistry.TryRollbackBuildingReplacement(
+                    candidate,
+                    anchor,
+                    out string registryRollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Synthesis authority completion failed and world authority rollback also failed: "
+                    + registryRollbackFailure);
+            }
+            grid.RemoveOccupant(
+                candidate,
+                recipe.resultBuilding.Placement.Layer,
+                candidate.buildPoses,
+                recipe.resultBuilding.Placement.IsMovement);
+            DiscardCandidate(candidate, recipe.resultBuilding, resultPosition);
+            RestoreMaterialOccupancies(grid, removedMaterials);
+            failureReason = "생산 권위 합성 완료 검증 실패로 재료 시설을 복구했습니다: "
+                + completionFailure;
+            return false;
+        }
+
+        foreach (BuildableObject material in orderedMaterials)
+        {
+            BuildingFactory.DeleteVisual(material.BuildingData, material.centerPos);
+            material.SetGrid(null);
+            material.RetireForWorldReplacement();
+        }
+
+        resultBuilding = candidate;
+        return true;
+    }
+
+    private static void RollbackRetargetOrThrow(
+        IProductionFacilityRetargetTransaction retarget,
+        ProductionFacilityRetargetTransactionState transaction,
+        string phase)
+    {
+        if (transaction == null
+            || transaction.Phase is ProductionFacilityRetargetTransactionPhase
+                .RolledBack or ProductionFacilityRetargetTransactionPhase.Completed)
         {
             return;
         }
 
-        material.Grid.RemoveOccupant(
-            material,
-            material.BuildingData.Placement.Layer,
-            material.buildPoses,
-            material.BuildingData.Placement.IsMovement);
-        BuildingFactory.DeleteVisual(material.BuildingData, material.centerPos);
-        material.DestroySelf();
+        if (!retarget.TryRollback(transaction, out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Facility synthesis production retarget rollback failed during "
+                + phase + ":" + failureReason);
+        }
+    }
+
+    private void DiscardCandidate(
+        BuildableObject candidate,
+        BuildingSO resultBuilding,
+        Vector2Int resultPosition)
+    {
+        if (candidate == null)
+        {
+            return;
+        }
+
+        if (candidate.IsDetachedRestoreCandidate)
+        {
+            candidate.SetGrid(null);
+            BuildingFactory.DiscardDetached(candidate);
+        }
+        else
+        {
+            BuildingFactory.DeleteVisual(resultBuilding, resultPosition);
+            candidate.SetGrid(null);
+            candidate.RetireForWorldReplacement();
+        }
+    }
+
+    private static void RestoreMaterialOccupancies(
+        Grid grid,
+        IReadOnlyList<BuildableObject> removedMaterials)
+    {
+        for (int index = removedMaterials.Count - 1; index >= 0; index--)
+        {
+            BuildableObject material = removedMaterials[index];
+            if (!grid.RegisterOccupant(
+                    material,
+                    material.BuildingData.Placement.Layer,
+                    material.buildPoses,
+                    material.BuildingData.Placement.IsMovement))
+            {
+                throw new InvalidOperationException(
+                    "Facility synthesis rollback could not restore material occupancy: "
+                    + material.PersistentInstanceId.Value);
+            }
+        }
+    }
+
+    private static BuildableObject[] OrderMaterialsByPersistentId(
+        IReadOnlyList<BuildableObject> materials)
+    {
+        return materials
+            .OrderBy(value => value.RequirePersistentInstanceId().Value, StringComparer.Ordinal)
+            .ToArray();
     }
 
     private IBlueprintResearchStateService ResolveResearchStateService()
@@ -338,6 +622,20 @@ public class FacilitySynthesisRuntime : MonoBehaviour
     {
         return recipeQuery
             ?? throw new InvalidOperationException($"{nameof(FacilitySynthesisRuntime)} requires {nameof(IFacilitySynthesisRecipeQuery)} injection.");
+    }
+
+    private IProductionFacilityRetargetTransaction ResolveProductionFacilityRetargetTransaction()
+    {
+        if (ResolveObjectResolver().TryResolve(
+                typeof(IProductionFacilityRetargetTransaction),
+                out object resolved)
+            && resolved is IProductionFacilityRetargetTransaction transaction)
+        {
+            return transaction;
+        }
+        throw new InvalidOperationException(
+            $"{nameof(FacilitySynthesisRuntime)} requires "
+            + $"{nameof(IProductionFacilityRetargetTransaction)}.");
     }
 
     private IProductionFacilityMutationFence ResolveProductionFacilityMutationFence()

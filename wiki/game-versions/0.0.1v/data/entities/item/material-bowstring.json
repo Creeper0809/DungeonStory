@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "9"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "활과 석궁 제작에 쓰는 고장력 섬유이다. 특히 아일라세라산 활시위에는 바람 절벽의 세 횡풍을 견뎠다는 푸른 깃매듭이 달려 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-bowstring",
+  "spoiler_tier": "none",
+  "summary": "활과 석궁 제작에 쓰는 고장력 섬유.",
+  "title": "활시위"
+}

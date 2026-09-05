@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-rune-cold-suit",
+    "spoiler_tier": "none",
+    "title": "룬 방한복"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-rune-cold-suit",
+      "label": "생산·해금",
+      "to": "item/equipment-rune-cold-suit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-rune-cold-suit",
+      "label": "생산·해금",
+      "to": "item/equipment-rune-cold-suit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "combat/workwear-rune-cold-suit",
+      "label": "관련",
+      "to": "item/equipment-rune-cold-suit",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

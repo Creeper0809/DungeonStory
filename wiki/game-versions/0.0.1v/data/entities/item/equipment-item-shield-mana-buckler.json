@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "908"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "작은 판 안쪽의 마나 도체로 순간적인 충격을 흘리는 버클러다. 특히 베르사디온산 마나 버클러에는 마나가 새면 먼저 끊어지는 세 번째 봉인실이 감겨 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-mana-buckler",
+  "spoiler_tier": "none",
+  "summary": "마나 버클러 전투 장비",
+  "title": "마나 버클러"
+}

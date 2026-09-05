@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "100개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "사료, 퇴비, 깔짚과 저급 연료에 쓰는 섬유질이다. 밀로세아 가도의 풀·짚은 큰 압축 단위로 묶고, 속까지 마른 것만 검문 표식을 받는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-grass-straw",
+  "spoiler_tier": "none",
+  "summary": "사료, 퇴비, 깔짚과 저급 연료에 쓰는 섬유질.",
+  "title": "풀·짚"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "13"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "부패물과 분뇨를 굳힌 냄새나는 연료이다. 밀로세아 가도에서는 저급 연료 벽돌을 젖은 짐과 떨어뜨려 싣고, 냄새가 새면 가장 가까운 검문소에서 다시 말린다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-low-fuel",
+  "spoiler_tier": "none",
+  "summary": "부패물과 분뇨를 굳힌 냄새나는 연료.",
+  "title": "저급 연료"
+}

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-twilight-grain-frost",
+  "spoiler_tier": "none",
+  "summary": "이른 서리에도 이삭을 지키는 저온 저항형.",
+  "title": "genome_twilight-grain_frost"
+}

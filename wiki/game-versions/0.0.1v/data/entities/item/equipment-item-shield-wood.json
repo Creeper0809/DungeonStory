@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "3.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "85"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "여러 장의 판자를 결 방향이 엇갈리게 묶은 가벼운 기본 방패다. 라카쉬 세갈래길에서 고친 나무 방패 안쪽에는 이전 주인의 표식과 다음 행선지가 겹쳐 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-wood",
+  "spoiler_tier": "none",
+  "summary": "나무 방패 전투 장비",
+  "title": "나무 방패"
+}

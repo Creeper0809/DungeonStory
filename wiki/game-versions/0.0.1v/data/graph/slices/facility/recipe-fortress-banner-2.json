@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "recipe-fortress-banner-2",
+    "spoiler_tier": "none",
+    "title": "전투깃발 제작"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-banner-2",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1046",
+      "target_spoiler_tier": "none",
+      "target_title": "순찰상황판",
+      "to": "facility/building-1046",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-banner-2",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1048",
+      "target_spoiler_tier": "none",
+      "target_title": "전투깃발",
+      "to": "facility/building-1048",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-banner-2",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1068",
+      "target_spoiler_tier": "none",
+      "target_title": "세력깃발",
+      "to": "facility/building-1068",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-tactical-command",
+      "label": "제작식 해금",
+      "to": "facility/recipe-fortress-banner-2",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

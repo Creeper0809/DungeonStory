@@ -1,0 +1,12 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import EntityCatalogue from '../components/EntityCatalogue.astro';
+import { getCurrentVersion, getEntities } from '../lib/wiki-data';
+
+const version = getCurrentVersion();
+const recipes = getEntities(version).filter((entity) => entity.kind === 'recipe' && entity.spoiler_tier === 'none');
+---
+
+<BaseLayout title="제작식" version={version}>
+  <EntityCatalogue title="제작식" description={`현재 게임 버전에서 확인된 공개 제작식 ${recipes.length}개이다. 결과물에서 입력 재료, 실행 시설과 연구 조건을 따라갈 수 있다.`} entries={recipes} />
+</BaseLayout>

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-heavy-matchlock",
+    "spoiler_tier": "none",
+    "title": "중화승총"
+  },
+  "edges": [],
+  "schema_version": 1
+}

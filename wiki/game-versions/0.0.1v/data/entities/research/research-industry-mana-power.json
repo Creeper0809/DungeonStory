@@ -1,0 +1,94 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "764"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-storage",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 저장과 변압",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-storage",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 저장과 변압",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-storage",
+      "target_spoiler_tier": "none",
+      "target_title": "산업 저장과 변압",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8823",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 버스 결합기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9812",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 발전기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-industry-mana-power",
+  "spoiler_tier": "none",
+  "summary": "마나 동력과 룬 전력망에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "마나 동력과 룬 전력망"
+}

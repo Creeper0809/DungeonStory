@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "33"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "뿔로 만든 촉과 마나 각인을 결합해 비전 표적을 겨누는 화살이다. 베르사디온의 룬촉 화살 자루 끝에는 사용자와 마나 제공자가 하나씩 누른 쌍인장이 남는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-arrow-rune",
+  "spoiler_tier": "none",
+  "summary": "마나와 뿔을 새긴 비전 화살.",
+  "title": "룬촉 화살"
+}

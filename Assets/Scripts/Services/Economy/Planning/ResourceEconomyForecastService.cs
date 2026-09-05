@@ -293,7 +293,9 @@ public sealed class ResourceEconomyForecastService :
                 continue;
             }
 
-            string feedItem = ResolveFeedItem(animal.SpeciesId.Value);
+            string feedItem = ResolveFeedItem(
+                rows,
+                animal.SpeciesId.Value);
             GetOrCreate(rows, feedItem).ExpectedDemand += days;
             foreach (AnimalProductProgressState product in
                      animal.Products
@@ -403,18 +405,34 @@ public sealed class ResourceEconomyForecastService :
             .Sum(stack => stack.Quantity);
     }
 
-    private string ResolveFeedItem(string speciesId)
+    private string ResolveFeedItem(
+        IDictionary<string, ResourceEconomyForecastRow> rows,
+        string speciesId)
     {
-        if (wildlifeSpecies.TryGetSpecies(
+        WildlifeDietType diet = wildlifeSpecies.TryGetSpecies(
                 speciesId,
                 out WildlifeSpeciesDefinition species)
-            && species.Diet is WildlifeDietType.Carnivore
-                or WildlifeDietType.Scavenger)
+            ? species.Diet
+            : WildlifeDietType.Omnivore;
+
+        ResourceItemDefinitionSO selected = WildlifeFeedSelectionRules
+            .SelectPreferred(
+                diet,
+                catalog.Items,
+                itemId => rows.TryGetValue(
+                        itemId,
+                        out ResourceEconomyForecastRow row)
+                    ? row.ProjectedBalance
+                    : 0);
+
+        if (selected != null)
         {
-            return "feed:dog-food";
+            return selected.ItemId;
         }
 
-        return "feed:hay";
+        return diet == WildlifeDietType.Herbivore
+            ? "feed:hay"
+            : "feed:dog-food";
     }
 
     private ResourceEconomyForecastRow GetOrCreate(

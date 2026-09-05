@@ -1,0 +1,94 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Cuisine"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-vegan",
+      "target_spoiler_tier": "none",
+      "target_title": "채식 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-vegan",
+      "target_spoiler_tier": "none",
+      "target_title": "채식 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-vegan",
+      "target_spoiler_tier": "none",
+      "target_title": "채식 조리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1615",
+      "target_spoiler_tier": "none",
+      "target_title": "치즈 숙성 선반",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1614",
+      "target_spoiler_tier": "none",
+      "target_title": "치즈 응고조",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-cuisine-livestock",
+  "spoiler_tier": "none",
+  "summary": "고기, 우유와 알을 고급 식사로 가공한다.",
+  "title": "축산 조리"
+}

@@ -23,6 +23,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
     private CharacterMoodPolicyService identityMoods;
     private IItemQuantityReservationService quantityReservations;
     private IBufferStackAggregationService bufferAggregation;
+    private IInGameNarrativeTextQuery narrativeText;
 
     private GameObject uiRoot;
     private RectTransform contentRoot;
@@ -41,7 +42,8 @@ public sealed class ItemPileInfoPanel : UIPopUp
         IUiPopupService popupService,
         ITmpKoreanFontService fontService,
         ISurgeryPlanningWindowService surgeryWindowService,
-        ISurgicalCorpseFreshnessRuntime corpseFreshness)
+        ISurgicalCorpseFreshnessRuntime corpseFreshness,
+        IInGameNarrativeTextQuery narrativeText)
     {
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.survivalFoodRuntime = survivalFoodRuntime ?? throw new ArgumentNullException(nameof(survivalFoodRuntime));
@@ -53,6 +55,8 @@ public sealed class ItemPileInfoPanel : UIPopUp
             ?? throw new ArgumentNullException(nameof(surgeryWindowService));
         this.corpseFreshness = corpseFreshness
             ?? throw new ArgumentNullException(nameof(corpseFreshness));
+        this.narrativeText = narrativeText
+            ?? throw new ArgumentNullException(nameof(narrativeText));
     }
 
     [Inject]
@@ -276,7 +280,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
         Stretch(detail.rectTransform, new Vector2(0f, 64f), new Vector2(0f, -150f));
         detail.text =
             $"{stack.DisplayName}\n"
-            + $"{(string.IsNullOrWhiteSpace(stack.Description) ? "설명 없음" : stack.Description)}\n\n"
+            + $"{narrativeText.GetRequired(InGameNarrativeTextKind.Item, stack.ItemId)}\n\n"
             + $"수량 {stack.Quantity}\n"
             + $"단위 무게 {stack.UnitWeight:0.##}kg\n"
             + $"총 무게 {stack.TotalWeight:0.#}kg\n"

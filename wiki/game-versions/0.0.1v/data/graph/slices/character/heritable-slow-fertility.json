@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-slow-fertility",
+    "spoiler_tier": "none",
+    "title": "느린 가임 주기"
+  },
+  "edges": [],
+  "schema_version": 1
+}

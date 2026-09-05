@@ -1,0 +1,185 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-agriculture-soil-cycles",
+    "spoiler_tier": "none",
+    "title": "토양 순환과 작물 보호"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "to": "research/research-forestry-fungal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "to": "research/research-forestry-fungal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-fungal",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 균목림",
+      "to": "research/research-forestry-fungal",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-pathogen-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "병원체 관찰과 면역 혈청학",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-pathogen-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "병원체 관찰과 면역 혈청학",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-pathogen-observation",
+      "target_spoiler_tier": "none",
+      "target_title": "병원체 관찰과 면역 혈청학",
+      "to": "research/research-health-pathogen-observation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8852",
+      "target_spoiler_tier": "none",
+      "target_title": "토양 검사대",
+      "to": "facility/building-8852",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8891",
+      "target_spoiler_tier": "none",
+      "target_title": "방제 조제대",
+      "to": "facility/building-8891",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-soil-cycles",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8892",
+      "target_spoiler_tier": "none",
+      "target_title": "작물 병리실",
+      "to": "facility/building-8892",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-botanical-pesticide",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-soil-cycles",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-fungicide",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-soil-cycles",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-supply-pest-lure",
+      "label": "필요 조건",
+      "to": "research/research-agriculture-soil-cycles",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-cultivar-breeding",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-soil-cycles",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-cultivar-breeding",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-soil-cycles",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-cultivar-breeding",
+      "label": "선행 연구",
+      "to": "research/research-agriculture-soil-cycles",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

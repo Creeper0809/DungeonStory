@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-steel-ingot",
+    "spoiler_tier": "none",
+    "title": "제강"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-steel-ingot",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-steel-ingot",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-steel-ingot",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "to": "item/material-iron-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-steel-ingot",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "제강",
+      "to": "research/research-metallurgy-steel",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

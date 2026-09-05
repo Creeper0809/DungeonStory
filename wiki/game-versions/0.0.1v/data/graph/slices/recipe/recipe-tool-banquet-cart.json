@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-tool-banquet-cart",
+    "spoiler_tier": "none",
+    "title": "연회 운반 수레"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-banquet-cart",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-banquet-cart",
+      "target_spoiler_tier": "none",
+      "target_title": "연회 운반 수레",
+      "to": "item/tool-banquet-cart",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-banquet-cart",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-banquet-cart",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-laminated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "적층 목재",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-banquet-cart",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-service-dining-operations",
+      "target_spoiler_tier": "none",
+      "target_title": "식당 운영학",
+      "to": "research/research-service-dining-operations",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

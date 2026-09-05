@@ -455,12 +455,38 @@ internal sealed class SurgeryLogisticsRuntime
             return true;
         }
 
-        string operationId = BuildMaterialSinkOperationId(order);
+        string operationId =
+            SurgeryMaterialSinkIdentity.FormatOperationId(order.orderId);
+        if (order.materialSinkAcknowledged)
+        {
+            if (batchDispositions.TryGetPending(operationId, out _))
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgeryMaterialUnavailable,
+                    "surgery-material-sink-acknowledged-but-pending");
+                return false;
+            }
+            return true;
+        }
         if (!batchDispositions.TryGetPending(
                 operationId,
                 out PhysicalItemBatchDispositionReceipt pending))
         {
-            return true;
+            failure = new DomainFailure(
+                FailureCode.SurgeryMaterialUnavailable,
+                "surgery-material-sink-receipt-missing");
+            return false;
+        }
+        if (!string.Equals(
+                pending.CommitId,
+                order.materialSinkCommitId,
+                StringComparison.Ordinal)
+            || pending.InputMassGrams != order.materialSinkInputMassGrams)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryMaterialUnavailable,
+                "surgery-material-sink-receipt-join-mismatch");
+            return false;
         }
         if (!batchDispositions.Acknowledge(
                 pending.CommitId,
@@ -471,6 +497,7 @@ internal sealed class SurgeryLogisticsRuntime
                 acknowledgementFailure);
             return false;
         }
+        order.materialSinkAcknowledged = true;
         return true;
     }
 
@@ -480,7 +507,8 @@ internal sealed class SurgeryLogisticsRuntime
         out string failureReason)
     {
         failureReason = string.Empty;
-        string operationId = BuildMaterialSinkOperationId(order);
+        string operationId =
+            SurgeryMaterialSinkIdentity.FormatOperationId(order.orderId);
         PhysicalItemBatchDispositionReceipt receipt;
         if (!batchDispositions.TryGetPending(operationId, out receipt))
         {
@@ -542,6 +570,26 @@ internal sealed class SurgeryLogisticsRuntime
         {
             return false;
         }
+        if ((!string.IsNullOrEmpty(order.materialSinkOperationId)
+                && !string.Equals(
+                    order.materialSinkOperationId,
+                    operationId,
+                    StringComparison.Ordinal))
+            || (!string.IsNullOrEmpty(order.materialSinkCommitId)
+                && !string.Equals(
+                    order.materialSinkCommitId,
+                    receipt.CommitId,
+                    StringComparison.Ordinal))
+            || order.materialSinkInputMassGrams != 0L
+                && order.materialSinkInputMassGrams != receipt.InputMassGrams)
+        {
+            failureReason = "surgery-material-sink-order-join-mismatch";
+            return false;
+        }
+        order.materialSinkOperationId = operationId;
+        order.materialSinkCommitId = receipt.CommitId;
+        order.materialSinkInputMassGrams = receipt.InputMassGrams;
+        order.materialSinkAcknowledged = false;
         return true;
     }
 
@@ -590,9 +638,6 @@ internal sealed class SurgeryLogisticsRuntime
         failureReason = string.Empty;
         return inputs.Length > 0;
     }
-
-    private static string BuildMaterialSinkOperationId(SurgeryOrder order) =>
-        $"surgery-material-sink:{order?.orderId ?? string.Empty}";
 
     private int CountRoutedItem(SurgeryOrder order, string itemId)
     {

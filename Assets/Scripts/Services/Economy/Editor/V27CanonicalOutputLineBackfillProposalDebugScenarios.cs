@@ -162,7 +162,7 @@ public static class V27CanonicalOutputLineBackfillProposalDebugScenarios
         Require(frozen.Where(value => !value.HasCanonicalAuthoredLine).All(value =>
                 ProductionOutputDefinition.IsCanonicalOutputLineId(
                     value.ProposedOutputLineId)
-                && value.ProposedRole != ProductionOutputRole.DeclaredLoss),
+                && ProductionOutputRoleRules.IsPhysical(value.ProposedRole)),
             "A missing physical output line received a non-canonical proposal.");
 
         foreach (IGrouping<string, V27CanonicalOutputLineBackfillProposalRow> recipeRows
@@ -268,7 +268,7 @@ public static class V27CanonicalOutputLineBackfillProposalDebugScenarios
                 + $"'{authoredRoleValue}'.");
             ProductionOutputRole authoredRole =
                 (ProductionOutputRole)authoredRoleValue;
-            Require(authoredRole != ProductionOutputRole.DeclaredLoss,
+            Require(ProductionOutputRoleRules.IsPhysical(authoredRole),
                 $"Recipe '{rawRecipeId}' output[{ordinal}] authors DeclaredLoss "
                 + "as a physical item line. Declared loss belongs to the mass "
                 + "disposition contract, not output routing.");
@@ -288,7 +288,7 @@ public static class V27CanonicalOutputLineBackfillProposalDebugScenarios
             ProductionOutputRole proposedRole = hasCanonicalLine
                 ? authoredRole
                 : InferRole(ordinal, itemId);
-            Require(proposedRole != ProductionOutputRole.DeclaredLoss,
+            Require(ProductionOutputRoleRules.IsPhysical(proposedRole),
                 "DeclaredLoss cannot be proposed as a physical output role.");
             string proposedLineId = hasCanonicalLine
                 ? authoredLineId
@@ -350,24 +350,11 @@ public static class V27CanonicalOutputLineBackfillProposalDebugScenarios
         string itemId,
         ProductionOutputRole role)
     {
-        RequireCanonicalToken(recipeId, "recipe ID", "proposal");
-        RequireCanonicalToken(itemId, "item ID", recipeId);
-        if (ordinal < 0)
-            throw new ArgumentOutOfRangeException(nameof(ordinal));
-        if (role == ProductionOutputRole.DeclaredLoss
-            || !Enum.IsDefined(typeof(ProductionOutputRole), role))
-        {
-            throw new ArgumentOutOfRangeException(nameof(role), role,
-                "A physical output role is required.");
-        }
-        string result = "output:" + recipeId
-            + "/" + ordinal.ToString("D3", CultureInfo.InvariantCulture)
-            + "/" + RoleToken(role)
-            + "/" + itemId;
-        Require(ProductionOutputDefinition.IsCanonicalOutputLineId(result),
-            "Stable output-line components generated a non-canonical ID: "
-            + result + ".");
-        return result;
+        return ProductionOutputLineAuthoring.BuildStableId(
+            recipeId,
+            ordinal,
+            itemId,
+            role);
     }
 
     private static string BuildProposalReason(
@@ -385,17 +372,6 @@ public static class V27CanonicalOutputLineBackfillProposalDebugScenarios
         return "missing-output-line-id; rule=" + rule
             + "; item=" + itemId;
     }
-
-    private static string RoleToken(ProductionOutputRole role) => role switch
-    {
-        ProductionOutputRole.Main => "main",
-        ProductionOutputRole.Byproduct => "byproduct",
-        ProductionOutputRole.ReturnedPackaging => "returned-packaging",
-        ProductionOutputRole.RecoverableWaste => "recoverable-waste",
-        ProductionOutputRole.DeclaredLoss => throw new InvalidOperationException(
-            "DeclaredLoss has no physical output-line ID."),
-        _ => throw new ArgumentOutOfRangeException(nameof(role), role, null)
-    };
 
     private static byte[] BuildCsv(
         IReadOnlyList<V27CanonicalOutputLineBackfillProposalRow> rows)

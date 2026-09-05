@@ -164,12 +164,16 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
     private readonly IDungeonSaveSectionRegistry saveSectionRegistry;
     private readonly IReadOnlyList<IDungeonSavePreflightValidator> preflightValidators;
     private readonly IReadOnlyList<IDungeonSaveCaptureGuard> captureGuards;
+    private readonly IReadOnlyList<IDungeonCapturedSavePreflightValidator>
+        capturedSaveValidators;
     private readonly IReadOnlyList<IDungeonSaveRestoreCompletedHook> restoreCompletedHooks;
 
     public DungeonGameSaveService(
         IDungeonSaveSectionRegistry saveSectionRegistry,
         IEnumerable<IDungeonSavePreflightValidator> preflightValidators,
         IEnumerable<IDungeonSaveCaptureGuard> captureGuards,
+        IEnumerable<IDungeonCapturedSavePreflightValidator>
+            capturedSaveValidators,
         IEnumerable<IDungeonSaveRestoreCompletedHook> restoreCompletedHooks)
     {
         this.saveSectionRegistry = saveSectionRegistry
@@ -181,6 +185,13 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
         this.captureGuards = (captureGuards
                 ?? throw new ArgumentNullException(nameof(captureGuards)))
             .Where(guard => guard != null)
+            .ToArray();
+        this.capturedSaveValidators = (capturedSaveValidators
+                ?? throw new ArgumentNullException(
+                    nameof(capturedSaveValidators)))
+            .Where(validator => validator != null)
+            .OrderBy(validator => validator.GetType().FullName,
+                StringComparer.Ordinal)
             .ToArray();
         this.restoreCompletedHooks = (restoreCompletedHooks
                 ?? throw new ArgumentNullException(nameof(restoreCompletedHooks)))
@@ -204,6 +215,27 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
             manifest = DungeonSaveManifest.Capture(sections),
             sections = sections
         };
+
+        DungeonGameRestoreReport captureReport = new();
+        foreach (IDungeonCapturedSavePreflightValidator validator in
+                 capturedSaveValidators)
+        {
+            try
+            {
+                validator.Validate(save, captureReport);
+            }
+            catch (Exception exception)
+            {
+                captureReport.AddError(
+                    $"Captured-save aggregate preflight '{validator.GetType().Name}' failed: {exception.Message}");
+            }
+        }
+        if (!captureReport.Success)
+        {
+            throw new InvalidOperationException(
+                "Captured save failed aggregate preflight: "
+                + string.Join(" | ", captureReport.Errors));
+        }
 
         return save;
     }

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-contaminated-tissue",
+    "spoiler_tier": "none",
+    "title": "오염 조직"
+  },
+  "edges": [],
+  "schema_version": 1
+}

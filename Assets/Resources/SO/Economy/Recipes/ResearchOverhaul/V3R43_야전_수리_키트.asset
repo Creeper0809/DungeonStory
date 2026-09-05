@@ -54,11 +54,19 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: component:machine-parts
     amount: 1
   - itemId: material:cloth
-    amount: 1
+    amount: 2
   outputs:
   - outputLineId: output:recipe:tool:field-repair-kit/000/main/tool:field-repair-kit
     role: 0

@@ -20,11 +20,13 @@ public sealed class RegionalSupplyContractSaveSection :
     private readonly IRegionalSupplyContractRuntime runtime;
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
+    private readonly IEconomyProjectInputOwnerRestoreRuntime inputOwners;
 
     public RegionalSupplyContractSaveSection(
         IRegionalSupplyContractRuntime runtime,
         IResourceEconomyContentCatalog catalog,
-        IPhysicalItemRestoreCandidateQuery physicalCandidates)
+        IPhysicalItemRestoreCandidateQuery physicalCandidates,
+        IEconomyProjectInputOwnerRestoreRuntime inputOwners)
     {
         this.runtime = runtime
             ?? throw new ArgumentNullException(nameof(runtime));
@@ -32,6 +34,8 @@ public sealed class RegionalSupplyContractSaveSection :
             ?? throw new ArgumentNullException(nameof(catalog));
         this.physicalCandidates = physicalCandidates
             ?? throw new ArgumentNullException(nameof(physicalCandidates));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
     }
 
     public override string SectionId => Id;
@@ -51,8 +55,40 @@ public sealed class RegionalSupplyContractSaveSection :
     {
         ValidateLocalPayload(payload);
         ValidatePhysicalRestoreCandidate(payload, physicalCandidates);
-        return runtime.PrepareRestoreCandidate(payload);
+        RegionalSupplyContractRestoreCandidate candidate =
+            runtime.PrepareRestoreCandidate(payload);
+        if (!inputOwners.TryReplaceForRestore(
+                EconomyProjectInputOwnerAuthority.RegionalContractDomain,
+                BuildInputOwnerDescriptors(payload),
+                out string ownerFailure))
+            throw new InvalidOperationException(
+                "Regional-contract exact input-owner restore join failed: "
+                + ownerFailure);
+        return candidate;
     }
+
+    private static IReadOnlyList<EconomyProjectInputOwnerDescriptor>
+        BuildInputOwnerDescriptors(DungeonRegionalSupplyContractSaveData payload) =>
+        (payload?.contracts ?? new List<RegionalSupplyContractState>())
+            .Where(value => value != null && value.inputOwnerActive)
+            .OrderBy(value => value.destinationId, StringComparer.Ordinal)
+            .Select(value => new EconomyProjectInputOwnerDescriptor(
+                EconomyProjectInputOwnerAuthority.RegionalContractDomain,
+                value.contractId,
+                value.destinationId,
+                new UnityEngine.Vector2Int(value.inputDestinationX,
+                    value.inputDestinationY),
+                FacilityBufferDestinationAnchorKind.ReservedTarget,
+                string.Empty,
+                (value.requirements ?? new List<RegionalSupplyContractRequirement>())
+                    .GroupBy(item => item.itemId, StringComparer.Ordinal)
+                    .ToDictionary(group => group.Key,
+                        group => group.Sum(item => item.amount),
+                        StringComparer.Ordinal),
+                value.inputCapacityGrams,
+                value.inputMassAuthorityRevision,
+                value.inputCapacityFingerprint))
+            .ToArray();
 
     protected override void ValidateParsedPayload(
         DungeonRegionalSupplyContractSaveData payload)

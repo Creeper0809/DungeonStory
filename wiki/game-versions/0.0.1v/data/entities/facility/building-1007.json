@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "상점"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1007",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 서비스 보조이다. 건설에는 작업량 368, 재료 목재×5, 천×3이 필요하다.",
+  "title": "푹신한의자"
+}

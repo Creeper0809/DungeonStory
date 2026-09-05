@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-myconid-spore-cleaning",
+    "spoiler_tier": "none",
+    "title": "포자낭 세정"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-spore-cleaning",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-myconid-spore-cleaning",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-mycelial-grafting",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 접목학",
+      "to": "research/research-medical-mycelial-grafting",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

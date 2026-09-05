@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Pharmacology"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독·붕대",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독·붕대",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독·붕대",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-alchemy",
+      "target_spoiler_tier": "none",
+      "target_title": "연금 가공",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1086",
+      "target_spoiler_tier": "none",
+      "target_title": "증류기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-pharmacology-distillation",
+  "spoiler_tier": "none",
+  "summary": "알코올과 연금 용매로 유효 성분을 농축한다.",
+  "title": "증류"
+}

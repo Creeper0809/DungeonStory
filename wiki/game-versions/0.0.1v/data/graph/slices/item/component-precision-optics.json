@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-precision-optics",
+    "spoiler_tier": "none",
+    "title": "정밀 광학계"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-sniper-arquebus",
+      "label": "필요 조건",
+      "to": "item/component-precision-optics",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-precision-optics",
+      "label": "생산·해금",
+      "to": "item/component-precision-optics",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-rune-identification-lens",
+      "label": "필요 조건",
+      "to": "item/component-precision-optics",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-weather-observation-kit",
+      "label": "필요 조건",
+      "to": "item/component-precision-optics",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

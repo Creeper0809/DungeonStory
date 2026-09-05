@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.275kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "16"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "단단한 탄자를 넣어 판금과 두꺼운 방호구를 뚫는 데 맞춘 철갑 탄약이다. 오르데나에서 지급한 철갑 탄약은 탄피 밑면에 군영 번호가 찍혀 있다. 탈영병은 그 번호부터 긁어낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-armor-piercing-cartridge",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 철갑 탄약.",
+  "title": "철갑 탄약"
+}

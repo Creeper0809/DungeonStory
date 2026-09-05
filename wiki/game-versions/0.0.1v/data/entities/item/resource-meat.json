@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.7kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "육식·혼합식, 육포와 동물 사료의 원료이다. 라카쉬 세갈래길의 생고기에는 주민 식사, 건조 보존, 동물 사료 몫을 구분하는 칼집이 각각 다르게 난다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-meat",
+  "spoiler_tier": "none",
+  "summary": "육식·혼합식, 육포와 동물 사료의 원료.",
+  "title": "생고기"
+}

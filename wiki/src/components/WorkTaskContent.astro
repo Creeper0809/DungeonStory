@@ -1,0 +1,53 @@
+---
+import { entityHref, getGuide, guideHref, workHref, workTaskHref, type Guide, type WorkReference, type WorkTask } from '../lib/wiki-data';
+
+interface Props {
+  reference: WorkReference;
+  task: WorkTask;
+  version: string;
+  historical?: boolean;
+}
+
+const { reference, task, version, historical = false } = Astro.props;
+const archiveVersion = historical ? version : undefined;
+const directoryHref = historical ? `/game-versions/${version}/` : '/directory/';
+const residentsHref = historical ? `/game-versions/${version}/guide/residents-and-work/` : '/guide/residents-and-work/';
+const relatedGuides = reference.related_guides
+  .map((id) => getGuide(version, id))
+  .filter((guide): guide is Guide => Boolean(guide));
+const siblingTasks = reference.tasks.filter((item) => item.id !== task.id);
+---
+
+<article class="work-task-page" data-pagefind-body={historical ? undefined : 'true'}>
+  <nav class="breadcrumbs" aria-label="현재 위치"><a href={directoryHref}>둘러보기</a><span>/</span><a href={residentsHref}>주민과 노동</a><span>/</span><a href={workHref(reference.id, archiveVersion)}>{reference.title}</a><span>/</span><span aria-current="page">{task.title}</span></nav>
+  <header class="page-header">
+    <p class="eyebrow">세부 업무</p>
+    <h1>{task.title}</h1>
+    <p>{task.summary}</p>
+  </header>
+
+  <div class="work-task-page__layout">
+    <div class="work-task-page__main">
+      <section aria-labelledby="prepare-title">
+        <h2 id="prepare-title">시작 전</h2>
+        <p>{task.prepare}</p>
+      </section>
+      <section aria-labelledby="check-title">
+        <h2 id="check-title">막히면</h2>
+        <p>{task.check}</p>
+      </section>
+    </div>
+    <aside class="work-task-page__rail">
+      <section class="fact-box">
+        <h2>업무 분류</h2>
+        <dl>
+          <div><dt>분야</dt><dd><a href={workHref(reference.id, archiveVersion)}>{reference.title}</a></dd></div>
+          {reference.proficiency && <div><dt>관련 스킬</dt><dd><a href={entityHref(reference.proficiency, archiveVersion)}>{reference.proficiency.title}</a></dd></div>}
+          {!reference.proficiency && <div><dt>관련 스킬</dt><dd>상태·우선순위·현장 조건</dd></div>}
+        </dl>
+      </section>
+      {siblingTasks.length > 0 && <section class="version-card"><h2>같은 분야 업무</h2><p>{siblingTasks.map((item, index) => <>{index > 0 && ' · '}<a href={workTaskHref(reference.id, item.id, archiveVersion)}>{item.title}</a></>)}</p></section>}
+      <section class="version-card"><h2>관련 문서</h2><p>{relatedGuides.map((guide, index) => <>{index > 0 && ' · '}<a href={guideHref(guide.id, archiveVersion)}>{guide.title}</a></>)}</p></section>
+    </aside>
+  </div>
+</article>

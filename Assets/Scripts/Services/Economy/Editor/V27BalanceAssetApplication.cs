@@ -13,7 +13,7 @@ using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 [BalanceCaptureFactory]
-public static class V27BalanceAssetApplication
+public static partial class V27BalanceAssetApplication
 {
     private static readonly HashSet<string> ItemMarketApprovalMetrics = new(
         StringComparer.Ordinal)
@@ -152,6 +152,129 @@ public static class V27BalanceAssetApplication
         }
     }
 
+    [MenuItem("DungeonStory/V27/Revalidate Semantically Unchanged Applied Approvals")]
+    public static void RevalidateSemanticallyUnchangedAppliedApprovalsFromMenu()
+    {
+        V27BalanceAuditOutput audit = V27BalanceAudit.GenerateForApprovalRefresh();
+        if (audit.IntegrityFailures.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Cannot revalidate approvals from an invalid V27 ledger:\n"
+                + string.Join("\n", audit.IntegrityFailures));
+        }
+
+        string approvalPath = ProjectAbsolutePath(V27BalanceAudit.ApprovalPath);
+        byte[] rollback = File.ReadAllBytes(approvalPath);
+        try
+        {
+            Dictionary<string, BalanceApprovalEntryData> existing =
+                ValidateApprovals(LoadApprovals());
+            Dictionary<string, CanonicalBalanceMetricRecord[]> currentByIdentity =
+                audit.Ledger.Records
+                    .GroupBy(
+                        value => BuildApprovalIdentity(value.StableId, value.Metric),
+                        StringComparer.Ordinal)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.ToArray(),
+                        StringComparer.Ordinal);
+            List<BalanceApprovalEntryData> output = new();
+            int unchanged = 0;
+            int revalidated = 0;
+            int expired = 0;
+
+            foreach (BalanceApprovalEntryData previous in existing.Values
+                         .OrderBy(value => value.rootStableId, StringComparer.Ordinal)
+                         .ThenBy(value => value.metric, StringComparer.Ordinal))
+            {
+                string identity = BuildApprovalIdentity(
+                    previous.rootStableId,
+                    previous.metric);
+                if (!currentByIdentity.TryGetValue(
+                        identity,
+                        out CanonicalBalanceMetricRecord[] currentRows))
+                {
+                    expired++;
+                    continue;
+                }
+
+                CanonicalBalanceMetricRecord[] semanticMatches = currentRows
+                    .Where(value => value.ApprovalKey.Length > 0
+                        && string.Equals(
+                            previous.exactBeforeValue,
+                            value.Before,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            previous.exactAfterValue,
+                            value.After,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            previous.dependencyFingerprint,
+                            value.DependencyFingerprint,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            previous.reasonCode,
+                            value.ReasonCode,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            previous.balanceBaselineRecordId,
+                            value.BalanceBaselineRecordId,
+                            StringComparison.Ordinal))
+                    .ToArray();
+                if (semanticMatches.Length != 1)
+                {
+                    expired++;
+                    continue;
+                }
+
+                CanonicalBalanceMetricRecord current = semanticMatches[0];
+                if (string.Equals(
+                        previous.approvalKey,
+                        current.ApprovalKey,
+                        StringComparison.Ordinal))
+                {
+                    RequireApprovalMatches(current, previous);
+                    output.Add(previous);
+                    unchanged++;
+                    continue;
+                }
+                if (!string.Equals(
+                        current.AssetApplied,
+                        "true",
+                        StringComparison.Ordinal))
+                {
+                    expired++;
+                    continue;
+                }
+
+                output.Add(CaptureApprovalEntry(current));
+                revalidated++;
+            }
+
+            WriteApprovalEntries(output);
+            string[] validatedKeys = CaptureValidApprovalKeys(audit.Ledger);
+            if (validatedKeys.Length != output.Count)
+            {
+                throw new InvalidOperationException(
+                    "Revalidated approvals did not exactly consume the immutable ledger: "
+                    + $"validated={validatedKeys.Length}; output={output.Count}.");
+            }
+            Debug.Log(
+                "V27 applied approvals revalidated without approving new values: "
+                + $"unchanged={unchanged}; revalidated={revalidated}; "
+                + $"expired={expired}; approvals={output.Count}; "
+                + "strict full regeneration remains a separate verification step.");
+        }
+        catch
+        {
+            File.WriteAllBytes(approvalPath, rollback);
+            AssetDatabase.ImportAsset(
+                V27BalanceAudit.ApprovalPath,
+                ImportAssetOptions.ForceUpdate);
+            throw;
+        }
+    }
+
     [MenuItem("DungeonStory/V27/Rebase And Apply Previously Approved Labor Facility Drift")]
     public static void RebaseAndApplyPreviouslyApprovedLaborFacilityDriftFromMenu()
     {
@@ -274,7 +397,11 @@ public static class V27BalanceAssetApplication
                 BalanceLedgerExecutionMode.AuditOnly);
             V27BalanceLaborFacilityDebugScenarios.RequireIntegrity(
                 verified,
-                requireApplied: true);
+                requireApplied: true,
+                allowUnapprovedCritical: true);
+            int stagedCriticalCount =
+                V27BalanceLaborFacilityDebugScenarios.RequireOnlyTypedPostRebaseCriticals(
+                    verified);
             rebasePhase = "no-op-verify";
             List<BalanceAssetPatch> verifiedPatches = CreatePatches(
                 verified.Ledger,
@@ -297,6 +424,7 @@ public static class V27BalanceAssetApplication
                 + $"changedAssets={totalChangedAssetCount}; "
                 + $"rollbackAssets={assetRollback.Count}; "
                 + $"approvals={approvalCount}; "
+                + $"typedNextStageCriticals={stagedCriticalCount}; "
                 + $"noOpDiff={noOp.DifferingPropertyCount}.");
         }
         catch (Exception exception)
@@ -565,8 +693,11 @@ public static class V27BalanceAssetApplication
             {
                 continue;
             }
-            RequireApprovalMatches(record, approval);
-            matching.Add(record.ApprovalKey);
+            // Approval-refresh mode deliberately tolerates stale custody while
+            // recalculated upstream values converge. Only exact current matches
+            // are inherited; mismatches are expired/reissued by the caller.
+            if (ApprovalMatches(record, approval))
+                matching.Add(record.ApprovalKey);
         }
         return matching.Distinct(StringComparer.Ordinal)
             .OrderBy(value => value, StringComparer.Ordinal)
@@ -661,52 +792,30 @@ public static class V27BalanceAssetApplication
         return result;
     }
 
-    internal static bool IsPreviouslyApprovedCurrentAuthority(
-        string stableId,
-        string metric,
-        string exactBeforeValue,
-        string currentValue,
-        string sourceDigest)
+    internal static IReadOnlyDictionary<string, string>
+        CapturePreviouslyApprovedAfterValues()
     {
-        // Approval refresh is the one boundary where a changed source digest is
-        // expected: a new BOM/dependency revision is precisely what invalidated
-        // the old approval. Never treat that old digest as approval for the new
-        // target. It only proves that the current authored scalar is the exact
-        // After value of a canonical previous approval; the refreshed ledger
-        // captures and approves the new source digest before normal audit runs.
-        RequireCanonicalSha256(sourceDigest, "current source digest");
-        BalanceApprovalEntryData[] matches = ValidateApprovals(LoadApprovals())
-            .Values
-            .Where(value => string.Equals(
-                    value.rootStableId,
-                    stableId,
-                    StringComparison.Ordinal)
-                && string.Equals(value.metric, metric, StringComparison.Ordinal))
-            .ToArray();
-        if (matches.Length > 1)
+        Dictionary<string, string> result = new(StringComparer.Ordinal);
+        foreach (BalanceApprovalEntryData approval in
+                 ValidateApprovals(LoadApprovals()).Values)
         {
-            throw new InvalidOperationException(
-                $"Duplicate V27 approval identity: {stableId}:{metric}.");
+            RequireStoredApprovalKeyValid(approval);
+            string identity = BuildHistoricalBeforeKey(
+                approval.rootStableId,
+                approval.metric);
+            if (!result.TryAdd(identity, approval.exactAfterValue))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate V27 approval identity: {identity}.");
+            }
         }
-        if (matches.Length == 0)
-            return false;
-
-        BalanceApprovalEntryData approval = matches[0];
-        RequireStoredApprovalKeyValid(approval);
-        return string.Equals(
-                approval.exactBeforeValue,
-                exactBeforeValue,
-                StringComparison.Ordinal)
-            && string.Equals(
-                approval.exactAfterValue,
-                currentValue,
-                StringComparison.Ordinal);
+        return result;
     }
 
     internal static string BuildHistoricalBeforeKey(string stableId, string metric) =>
         stableId + "\u001f" + metric;
 
-    private static int WriteApprovals(
+    internal static int WriteApprovals(
         FrozenBalanceLedger ledger,
         Func<CanonicalBalanceMetricRecord, bool> include,
         bool replaceIncludedApprovals = false)
@@ -743,7 +852,8 @@ public static class V27BalanceAssetApplication
             ? existing.Values
                 .Where(value => ItemMarketApprovalMetrics.Contains(value.metric)
                     || IsLaborFacilityApprovalMetric(value.metric)
-                    || CombatEncounterApprovalMetrics.Contains(value.metric))
+                    || CombatEncounterApprovalMetrics.Contains(value.metric)
+                    || IsApprovalOnlyApprovalEntry(value))
                 .Select(value => value.approvalKey)
                 .ToHashSet(StringComparer.Ordinal)
             : new HashSet<string>(StringComparer.Ordinal);
@@ -756,14 +866,45 @@ public static class V27BalanceAssetApplication
         if (missing.Length > 0)
             throw new InvalidOperationException("Existing approvals became stale: " + string.Join(",", missing));
 
+        return WriteApprovalEntries(entries);
+    }
+
+    private static BalanceApprovalEntryData CaptureApprovalEntry(
+        CanonicalBalanceMetricRecord record) => new()
+    {
+        approvalKey = record.ApprovalKey,
+        rootStableId = record.StableId,
+        metric = record.Metric,
+        exactBeforeValue = record.Before,
+        exactAfterValue = record.After,
+        dependencyFingerprint = record.DependencyFingerprint,
+        sourceDigest = record.SourceDigest,
+        reasonCode = record.ReasonCode,
+        balanceBaselineRecordId = record.BalanceBaselineRecordId
+    };
+
+    private static string BuildApprovalIdentity(string stableId, string metric) =>
+        stableId + "\u001f" + metric;
+
+    private static int WriteApprovalEntries(
+        IEnumerable<BalanceApprovalEntryData> candidates)
+    {
+        BalanceApprovalEntryData[] entries = (candidates
+                ?? throw new ArgumentNullException(nameof(candidates)))
+            .OrderBy(value => value.rootStableId, StringComparer.Ordinal)
+            .ThenBy(value => value.metric, StringComparer.Ordinal)
+            .ThenBy(value => value.approvalKey, StringComparer.Ordinal)
+            .ToArray();
+        if (entries.Select(value => value.approvalKey)
+            .Distinct(StringComparer.Ordinal).Count() != entries.Length)
+        {
+            throw new InvalidOperationException(
+                "V27 approval output contains duplicate approval keys.");
+        }
         BalanceApprovalFileData output = new BalanceApprovalFileData
         {
             schemaVersion = "v27.2",
             approvals = entries
-                .OrderBy(value => value.rootStableId, StringComparer.Ordinal)
-                .ThenBy(value => value.metric, StringComparer.Ordinal)
-                .ThenBy(value => value.approvalKey, StringComparer.Ordinal)
-                .ToArray()
         };
         V27BalanceArtifactWriter.WriteIfDifferent(V27BalanceAudit.ApprovalPath, stream =>
         {
@@ -780,7 +921,7 @@ public static class V27BalanceAssetApplication
             writer.Flush();
         });
         AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
-        return output.approvals.Length;
+        return entries.Length;
     }
 
     private static bool IsLaborFacilityApprovalMetric(string metric) =>
@@ -789,6 +930,18 @@ public static class V27BalanceAssetApplication
             && metric.StartsWith(
                 "construction-material-amount:",
                 StringComparison.Ordinal));
+
+    private static bool IsApprovalOnlyApprovalEntry(
+        BalanceApprovalEntryData entry) => entry != null
+        && string.Equals(entry.metric, "acquisition-cost", StringComparison.Ordinal)
+        && string.Equals(
+            entry.reasonCode,
+            "v27-duration-preserving-first-candidate",
+            StringComparison.Ordinal)
+        && string.Equals(
+            entry.balanceBaselineRecordId,
+            "architecture:v27-whitebox-ledger-pipeline",
+            StringComparison.Ordinal);
 
     private static List<BalanceAssetPatch> CreatePreviouslyApprovedRebasePatches(
         FrozenBalanceLedger ledger,
@@ -1021,6 +1174,20 @@ public static class V27BalanceAssetApplication
                 continue;
             RequireApprovalMatches(record, approval);
             consumedApprovals.Add(record.ApprovalKey);
+            bool approvalOnly = IsApprovalOnlyLedgerRecord(record);
+            if (string.Equals(
+                    record.Metric,
+                    "acquisition-cost",
+                    StringComparison.Ordinal)
+                && !approvalOnly)
+            {
+                throw new InvalidOperationException(
+                    "Approved derived acquisition authority does not satisfy the "
+                    + "exact approval-only contract: "
+                    + record.StableId + ":" + record.Metric + ".");
+            }
+            if (approvalOnly)
+                continue;
             if (string.Equals(record.AssetApplied, "true", StringComparison.Ordinal))
                 continue;
             if (!record.SourceAuthority.EndsWith(".asset", StringComparison.OrdinalIgnoreCase)
@@ -1043,7 +1210,60 @@ public static class V27BalanceAssetApplication
             .ToList();
     }
 
+    internal static bool IsApprovalOnlyLedgerRecord(
+        CanonicalBalanceMetricRecord record) =>
+        record != null
+        && string.Equals(record.Domain, "items", StringComparison.Ordinal)
+        && string.Equals(record.DefinitionKind, "item", StringComparison.Ordinal)
+        && string.Equals(record.Metric, "acquisition-cost", StringComparison.Ordinal)
+        && string.Equals(record.Unit, "mEWU", StringComparison.Ordinal)
+        && string.Equals(
+            record.ExactFormula,
+            "ceil(inputs+directWU+logistics+utility+loss / expectedOutput)",
+            StringComparison.Ordinal)
+        && record.SourceAuthority.EndsWith(
+            ".asset",
+            StringComparison.OrdinalIgnoreCase)
+        && string.Equals(record.SourcePropertyPath, "recipe graph", StringComparison.Ordinal)
+        && string.Equals(
+            record.SaveAuthority,
+            "ScriptableObject catalog",
+            StringComparison.Ordinal)
+        && string.Equals(
+            record.VerificationEvidence,
+            "V23-before|V27-fixed-point",
+            StringComparison.Ordinal)
+        && record.RootCauseIds.Count == 0
+        && string.Equals(
+            record.ReasonCode,
+            "v27-duration-preserving-first-candidate",
+            StringComparison.Ordinal)
+        && record.ApprovalKey.Length > 0
+        && string.Equals(
+            record.BalanceBaselineRecordId,
+            "architecture:v27-whitebox-ledger-pipeline",
+            StringComparison.Ordinal)
+        && string.Equals(record.AssetApplied, "false", StringComparison.Ordinal);
+
     private static void RequireApprovalMatches(
+        CanonicalBalanceMetricRecord record,
+        BalanceApprovalEntryData approval)
+    {
+        if (ApprovalMatches(record, approval))
+            return;
+
+        throw new InvalidOperationException(
+            $"Stale or mismatched V27 approval: {approval.approvalKey}; "
+            + $"record={record.StableId}|{record.Metric}|{record.Before}|"
+            + $"{record.After}|{record.DependencyFingerprint}|{record.SourceDigest}|"
+            + $"{record.ReasonCode}|{record.BalanceBaselineRecordId}; "
+            + $"approval={approval.rootStableId}|{approval.metric}|"
+            + $"{approval.exactBeforeValue}|{approval.exactAfterValue}|"
+            + $"{approval.dependencyFingerprint}|{approval.sourceDigest}|"
+            + $"{approval.reasonCode}|{approval.balanceBaselineRecordId}");
+    }
+
+    private static bool ApprovalMatches(
         CanonicalBalanceMetricRecord record,
         BalanceApprovalEntryData approval)
     {
@@ -1055,34 +1275,23 @@ public static class V27BalanceAssetApplication
             approval.sourceDigest,
             approval.reasonCode,
             approval.balanceBaselineRecordId);
-        if (!canonical.Matches(
+        return canonical.Matches(
                 record.StableId,
                 record.Metric,
                 record.After,
                 record.DependencyFingerprint,
                 record.SourceDigest)
-            || !string.Equals(approval.reasonCode, record.ReasonCode, StringComparison.Ordinal)
-            || (!string.IsNullOrEmpty(approval.exactBeforeValue)
-                && !string.Equals(
+            && string.Equals(approval.reasonCode, record.ReasonCode, StringComparison.Ordinal)
+            && (string.IsNullOrEmpty(approval.exactBeforeValue)
+                || string.Equals(
                     approval.exactBeforeValue,
                     record.Before,
                     StringComparison.Ordinal))
-            || !string.Equals(
+            && string.Equals(
                 approval.balanceBaselineRecordId,
                 record.BalanceBaselineRecordId,
                 StringComparison.Ordinal)
-            || !string.Equals(approval.approvalKey, record.ApprovalKey, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                $"Stale or mismatched V27 approval: {approval.approvalKey}; "
-                + $"record={record.StableId}|{record.Metric}|{record.Before}|"
-                + $"{record.After}|{record.DependencyFingerprint}|{record.SourceDigest}|"
-                + $"{record.ReasonCode}|{record.BalanceBaselineRecordId}; "
-                + $"approval={approval.rootStableId}|{approval.metric}|"
-                + $"{approval.exactBeforeValue}|{approval.exactAfterValue}|"
-                + $"{approval.dependencyFingerprint}|{approval.sourceDigest}|"
-                + $"{approval.reasonCode}|{approval.balanceBaselineRecordId}");
-        }
+            && string.Equals(approval.approvalKey, record.ApprovalKey, StringComparison.Ordinal);
     }
 
     private static Dictionary<string, BalanceApprovalEntryData> ValidateApprovals(
@@ -1101,6 +1310,27 @@ public static class V27BalanceAssetApplication
             if (entry == null || string.IsNullOrEmpty(entry.approvalKey)
                 || !result.TryAdd(entry.approvalKey, entry))
                 throw new InvalidOperationException("V27 approvals require unique non-empty approvalKey values.");
+            if (string.Equals(
+                    entry.metric,
+                    V27BalanceAudit.ConstructionRecalibrationCandidateWuMetric,
+                    StringComparison.Ordinal)
+                || (!string.IsNullOrEmpty(entry.metric)
+                    && entry.metric.StartsWith(
+                        V27BalanceAudit.ConstructionRecalibrationCandidateMaterialMetricPrefix,
+                        StringComparison.Ordinal))
+                || (!string.IsNullOrEmpty(entry.metric)
+                    && entry.metric.StartsWith(
+                        V27BalanceAudit.MarketRecalibrationCandidateMetricPrefix,
+                        StringComparison.Ordinal))
+                || (!string.IsNullOrEmpty(entry.metric)
+                    && entry.metric.StartsWith(
+                        V27BalanceAudit.MarketDerivedRecalibrationCandidateMetricPrefix,
+                        StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    "Review-only recalibration candidates cannot be inserted "
+                    + $"into the approval file: {entry.rootStableId}:{entry.metric}.");
+            }
         }
         return result;
     }
@@ -1110,7 +1340,9 @@ public static class V27BalanceAssetApplication
         string path = ProjectAbsolutePath(V27BalanceAudit.ApprovalPath);
         if (!File.Exists(path))
             throw new InvalidOperationException("V27 approval authority is missing.");
-        return JsonUtility.FromJson<BalanceApprovalFileData>(File.ReadAllText(path, Encoding.UTF8))
+        return JsonUtility.FromJson<BalanceApprovalFileData>(
+                   V27StrictJsonGuard.ReadProjectRelative(
+                       V27BalanceAudit.ApprovalPath))
             ?? throw new InvalidOperationException("V27 approval authority is invalid JSON.");
     }
 
@@ -1343,6 +1575,18 @@ public sealed class BalanceAssetPatch
         "diagnostic:forced-rollback");
 
     [BalanceCaptureFactory]
+    internal static BalanceAssetPatch CaptureForMarketSecondApplyNoOp(
+        string assetPath,
+        string propertyPath,
+        string before,
+        string after) => new(
+        BalanceCanonicalText.ProjectRelativePath(assetPath),
+        BalanceCanonicalText.Detail(propertyPath),
+        BalanceCanonicalText.Display(before),
+        BalanceCanonicalText.Display(after),
+        "v27:market-second-apply-no-op");
+
+    [BalanceCaptureFactory]
     internal static BalanceAssetPatch CaptureForApprovedRebase(
         CanonicalBalanceMetricRecord record,
         string previouslyApprovedValue,
@@ -1361,6 +1605,24 @@ public sealed class BalanceAssetPatch
         BalanceCanonicalText.Display(record.Before),
         BalanceCanonicalText.Display(record.After),
         "v27:bounded-labor-facility-refresh");
+
+    [BalanceCaptureFactory]
+    internal static BalanceAssetPatch CaptureForMarketReviewPromotion(
+        CanonicalBalanceMetricRecord candidate) => new(
+        BalanceCanonicalText.ProjectRelativePath(candidate.SourceAuthority),
+        BalanceCanonicalText.Detail(candidate.SourcePropertyPath),
+        BalanceCanonicalText.Display(candidate.Before),
+        BalanceCanonicalText.Display(candidate.After),
+        "v27:market-review-promotion");
+
+    [BalanceCaptureFactory]
+    internal static BalanceAssetPatch CaptureForConstructionReviewPromotion(
+        CanonicalBalanceMetricRecord candidate) => new(
+        BalanceCanonicalText.ProjectRelativePath(candidate.SourceAuthority),
+        BalanceCanonicalText.Detail(candidate.SourcePropertyPath),
+        BalanceCanonicalText.Display(candidate.Before),
+        BalanceCanonicalText.Display(candidate.After),
+        "v27:construction-review-promotion");
 }
 
 internal enum BalanceAssetApplicationFailurePoint

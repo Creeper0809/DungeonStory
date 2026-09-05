@@ -51,6 +51,11 @@ public static class SurgeryDebugScenarios
             VerifySurgicalPartInstallationPendingOutbox,
             lines,
             errors);
+        Run(
+            "surgery_material_sink_join",
+            VerifyMaterialSinkJoin,
+            lines,
+            errors);
         Run("strict_v6_payload", VerifyStrictV6Payload, lines, errors);
         Run(
             "identifier_sequence_exhaustion",
@@ -240,11 +245,27 @@ public static class SurgeryDebugScenarios
                     == SurgeryContentAssetBuilder.OrganStorageMassCapacityGrams
                 && !organWarehouse.allCategories,
             "M08 organ warehouse is not exact Biological/count 8/12,500g restricted storage");
+        BuildingSO prostheticAssembly = buildings.SingleOrDefault(building =>
+            building.Abilities.OfType<BuildingProstheticAssemblyAbility>().Any());
+        BuildingProductionWorkstationAbility prostheticWorkstation =
+            prostheticAssembly?.GetProductionWorkstationAbility();
+        BuildingProductionBufferAbility prostheticBuffer =
+            prostheticAssembly?.GetProductionBufferAbility();
         Require(
-            buildings.Any(building =>
-                building.Abilities.OfType<BuildingProstheticAssemblyAbility>().Any()),
-            "prosthetic assembly facility was missing");
-        return "13 medical facilities cover every foundational surgery/support tag; V21 age-treatment facilities are validated separately";
+            prostheticAssembly != null
+            && string.Equals(
+                prostheticWorkstation?.WorkstationTag,
+                "m06",
+                StringComparison.Ordinal)
+            && string.Equals(
+                prostheticWorkstation.StockSensorInstallationItemId,
+                ProductionBillRuntime.StockSensorItemId,
+                StringComparison.Ordinal)
+            && prostheticBuffer?.defaultBatchCapacity == 4
+            && prostheticBuffer.physicalOutputBufferCycleCapacity == 4
+            && !prostheticBuffer.allowOverflowDump,
+            "prosthetic assembly facility is missing exact m06/4-cycle common production authority");
+        return "13 medical facilities cover every foundational surgery/support tag; M06 owns exact m06/4-cycle production authority; V21 age-treatment facilities are validated separately";
     }
 
     private static string VerifyProcedureCatalog()
@@ -387,11 +408,15 @@ public static class SurgeryDebugScenarios
         Require(
             recipes.All(recipe =>
                 recipe.WorkTypeId == BuiltInWorkTypeIds.Craft
+                && string.Equals(
+                    recipe.WorkstationTag,
+                    "m06",
+                    StringComparison.Ordinal)
                 && recipe.RequiredWork > 0f
                 && recipe.Inputs.Count > 0
                 && recipe.Outputs.Count == 1),
-            "prosthetic recipes did not use work, materials, and a unique output");
-        return "three prosthetic recipes use physical inputs and cumulative craft work";
+            "prosthetic recipes did not use exact m06 work, materials, and a unique output");
+        return "three prosthetic recipes use the exact m06 workstation, physical inputs, and cumulative craft work";
     }
 
     private static string VerifyRiskFormula()
@@ -645,6 +670,9 @@ public static class SurgeryDebugScenarios
                     materialDestinationId =
                         ReservedTargetDestinationIdentity.SurgeryMaterialsPrefix
                         + orderId,
+                    materialBufferCapacityGrams = 1L,
+                    materialMassAuthorityRevision = 1L,
+                    materialCapacityFingerprint = string.Empty,
                     state = SurgeryOrderState.Procedure
                 }
             },
@@ -653,6 +681,9 @@ public static class SurgeryDebugScenarios
                 SurgeryStateCloner.ClonePart(pending)
             }
         };
+        SurgeryOrder pendingOrder = pendingSave.orders.Single();
+        pendingOrder.materialCapacityFingerprint =
+            SurgeryMaterialCapacityFingerprint.Create(pendingOrder);
         DungeonGameRestoreReport pendingReport = new();
         SurgerySaveValidation.Validate(
             pendingSave,
@@ -660,7 +691,7 @@ public static class SurgeryDebugScenarios
             anatomyProfiles,
             pendingReport);
         Require(pendingReport.Success,
-            "V9 rejected canonical pending surgical outbox: "
+            "V11 rejected canonical pending surgical outbox: "
                 + string.Join(" | ", pendingReport.Errors));
 
         SurgicalPartInstance mismatched = SurgeryStateCloner.ClonePart(pending);
@@ -866,6 +897,99 @@ public static class SurgeryDebugScenarios
             "duplicate subject policy");
 
         return "strict V6 accepts canonical state and rejects legacy, unknown status, missing, sequence, duplicate, and noncanonical numeric ID corruption";
+    }
+
+    private static string VerifyMaterialSinkJoin()
+    {
+        ResourceSurgicalProcedureCatalog procedures = new(
+            LoadAssets<SurgicalProcedureSO>(
+                "Assets/Resources/SO/Medical/Procedures"));
+        ResourceAnatomyProfileCatalog anatomyProfiles = new(
+            LoadAssets<AnatomyProfileSO>(
+                "Assets/Resources/SO/Medical/Anatomy"));
+        SurgeryOrder order = new()
+        {
+            orderId = "surgery:1",
+            procedureId = "procedure:emergency-suture",
+            subject = new SurgicalSubjectRef
+            {
+                kind = SurgicalSubjectKind.Character,
+                subjectId = "character:material-sink-contract"
+            },
+            facilityId = "building:material-sink-contract",
+            materialDestinationId = "surgery-materials:surgery:1",
+            materialBufferCapacityGrams = 250L,
+            materialMassAuthorityRevision = 1L,
+            materialSinkOperationId =
+                SurgeryMaterialSinkIdentity.FormatOperationId("surgery:1"),
+            materialSinkCommitId =
+                "physical-item-disposition:surgery-material-sink-contract",
+            materialSinkInputMassGrams = 250L,
+            materialSinkAcknowledged = false,
+            materialsConsumed = true,
+            state = SurgeryOrderState.Procedure,
+            materials = new List<SurgicalMaterialRequirement>
+            {
+                new()
+                {
+                    itemId = SurgeryItemDefinitions.AnestheticId,
+                    quantity = 1
+                }
+            }
+        };
+        order.materialCapacityFingerprint =
+            SurgeryMaterialCapacityFingerprint.Create(order);
+        DungeonSurgerySaveData save = new()
+        {
+            orderSequence = 1,
+            orders = new List<SurgeryOrder> { order }
+        };
+        DungeonSurgerySaveData roundTrip =
+            JsonUtility.FromJson<DungeonSurgerySaveData>(
+                JsonUtility.ToJson(save));
+        DungeonGameRestoreReport valid = new();
+        SurgerySaveValidation.Validate(
+            roundTrip,
+            procedures,
+            anatomyProfiles,
+            valid);
+        Require(valid.Success,
+            "V11 rejected canonical pending material sink join: "
+                + string.Join(" | ", valid.Errors));
+
+        DungeonSurgerySaveData badOperation = CloneSaveData(save);
+        badOperation.orders[0].materialSinkOperationId += ":tampered";
+        RequireRejected(
+            badOperation,
+            procedures,
+            anatomyProfiles,
+            "tampered material sink operation");
+
+        DungeonSurgerySaveData badMass = CloneSaveData(save);
+        badMass.orders[0].materialSinkInputMassGrams = 0L;
+        RequireRejected(
+            badMass,
+            procedures,
+            anatomyProfiles,
+            "zero material sink input grams");
+
+        DungeonSurgerySaveData terminalPending = CloneSaveData(save);
+        terminalPending.orders[0].state = SurgeryOrderState.Cancelled;
+        RequireRejected(
+            terminalPending,
+            procedures,
+            anatomyProfiles,
+            "terminal order with unacknowledged material sink");
+
+        DungeonSurgerySaveData unconsumedWithJoin = CloneSaveData(save);
+        unconsumedWithJoin.orders[0].materialsConsumed = false;
+        RequireRejected(
+            unconsumedWithJoin,
+            procedures,
+            anatomyProfiles,
+            "unconsumed order retaining material sink join");
+
+        return "V11 persists and rejects tampering of exact material sink operation, commit, grams, and acknowledgement";
     }
 
     private static string VerifyIdentifierSequenceExhaustion()

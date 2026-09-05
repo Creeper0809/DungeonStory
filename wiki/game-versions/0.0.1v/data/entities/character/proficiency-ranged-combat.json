@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "proficiency-ranged-combat",
+  "spoiler_tier": "none",
+  "summary": "활, 석궁, 화기 공격과 원거리 엄호의 숙련이다.",
+  "title": "원거리 전투"
+}

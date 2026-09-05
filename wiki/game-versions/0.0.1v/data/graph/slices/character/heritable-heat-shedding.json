@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-heat-shedding",
+    "spoiler_tier": "none",
+    "title": "열 배출 피부"
+  },
+  "edges": [],
+  "schema_version": 1
+}

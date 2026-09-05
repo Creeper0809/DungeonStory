@@ -1,0 +1,83 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-armor-tailoring",
+    "spoiler_tier": "none",
+    "title": "방어구 재단"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-armor-tailoring",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-armor-tailoring",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-armor-tailoring",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-armor-tailoring",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8835",
+      "target_spoiler_tier": "none",
+      "target_title": "방어구 맞춤대",
+      "to": "facility/building-8835",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-brigandine",
+      "label": "필요 조건",
+      "to": "research/research-equipment-armor-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-jack-of-plates",
+      "label": "필요 조건",
+      "to": "research/research-equipment-armor-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-brigandine-padding",
+      "label": "필요 조건",
+      "to": "research/research-equipment-armor-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-hardened-leather",
+      "label": "필요 조건",
+      "to": "research/research-equipment-armor-tailoring",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

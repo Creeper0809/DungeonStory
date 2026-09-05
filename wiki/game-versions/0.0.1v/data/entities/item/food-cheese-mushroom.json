@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.45kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "17"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "동굴버섯에 녹인 치즈를 곁들여 향과 포만감을 살린 채식 요리다. 므네실라에서는 치즈가 균사 향을 덮지 않도록 버섯갓 안쪽에만 얇게 붓는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-cheese-mushroom",
+  "spoiler_tier": "none",
+  "summary": "치즈와 버섯을 곁들인 채식 고급식.",
+  "title": "치즈버섯찜"
+}

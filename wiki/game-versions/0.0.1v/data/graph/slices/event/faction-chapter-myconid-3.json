@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-myconid-3",
+    "spoiler_tier": "warning",
+    "title": "무리의 불길"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "event/faction-chapter-myconid-3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-weather-observation-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측 도구함",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "event/faction-chapter-myconid-3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-weather-observation-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측 도구함",
+      "to": "item/tool-weather-observation-kit",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "to": "event/faction-chapter-myconid-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

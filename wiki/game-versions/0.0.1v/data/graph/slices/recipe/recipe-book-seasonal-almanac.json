@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-book-seasonal-almanac",
+    "spoiler_tier": "none",
+    "title": "계절력 책자"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-book-seasonal-almanac",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-book-seasonal-almanac",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "book-seasonal-almanac",
+      "target_spoiler_tier": "none",
+      "target_title": "계절력 책자",
+      "to": "item/book-seasonal-almanac",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-book-seasonal-almanac",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-book-seasonal-almanac",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "to": "research/research-life-seasonal-calendar",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

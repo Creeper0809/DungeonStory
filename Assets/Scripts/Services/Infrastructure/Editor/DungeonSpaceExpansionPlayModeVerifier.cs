@@ -193,36 +193,46 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
             Require(facility.SupportsWork(BuiltInWorkTypeIds.Research),
                 "P1_ResearchLab does not expose authored Research work.");
 
+            Require(expansion.TryReconcileNewRunTierZero(
+                    out DungeonSpaceExpansionResult tierZero,
+                    out string tierZeroFailure),
+                "New-run Tier-0 reconciliation failed: " + tierZeroFailure);
+            Require(tierZero.Changed
+                    && tierZero.PreviousInteriorColumns == 27
+                    && tierZero.CurrentInteriorColumns == 29,
+                "New-run Tier-0 reconciliation was not the exact 27-to-29 transition.");
+            rows.Add("PASS\tEXPANSION_LIVE_NEW_RUN_TIER_ZERO_27_TO_29");
+
             CompleteExpansion(
                 research,
                 facility,
                 projects[DungeonSpaceExpansionCatalog.QuarryResearchId],
                 gridAuthority,
-                expectedInteriorColumns: 49,
-                expectedGridWidth: 66);
-            rows.Add("PASS\tEXPANSION_LIVE_RESEARCH_QUARRY_27_TO_49");
+                expectedInteriorColumns: 51,
+                expectedGridWidth: 68);
+            rows.Add("PASS\tEXPANSION_LIVE_RESEARCH_QUARRY_29_TO_51");
 
             CompleteExpansion(
                 research,
                 facility,
                 projects[DungeonSpaceExpansionCatalog.StonecuttingResearchId],
                 gridAuthority,
-                expectedInteriorColumns: 65,
-                expectedGridWidth: 82);
-            rows.Add("PASS\tEXPANSION_LIVE_RESEARCH_STONECUTTING_49_TO_65");
+                expectedInteriorColumns: 71,
+                expectedGridWidth: 88);
+            rows.Add("PASS\tEXPANSION_LIVE_RESEARCH_STONECUTTING_51_TO_71");
 
             CompleteExpansion(
                 research,
                 facility,
                 projects[DungeonSpaceExpansionCatalog.DeepMiningResearchId],
                 gridAuthority,
-                expectedInteriorColumns: 81,
-                expectedGridWidth: 98);
-            rows.Add("PASS\tEXPANSION_LIVE_RESEARCH_DEEP_MINING_65_TO_81");
+                expectedInteriorColumns: 87,
+                expectedGridWidth: 104);
+            rows.Add("PASS\tEXPANSION_LIVE_RESEARCH_DEEP_MINING_71_TO_87");
 
-            Require(gridAuthority.PublicationCount == 3
-                    && gridAuthority.CompletionCount == 3,
-                $"Expected three exact publications; found {gridAuthority.PublicationCount}/{gridAuthority.CompletionCount}.");
+            Require(gridAuthority.PublicationCount == 4
+                    && gridAuthority.CompletionCount == 4,
+                $"Expected Tier-0 plus three exact publications; found {gridAuthority.PublicationCount}/{gridAuthority.CompletionCount}.");
             Require(research.State.Projects.IsCompleted(
                     new ResearchProjectId(
                         DungeonSpaceExpansionCatalog.DeepMiningResearchId)),
@@ -257,7 +267,7 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
             List<string> report = new List<string>
             {
                 failures.Count == 0
-                    ? "RESULT=PASS; failures=0; liveResearchCompletions=3; publications=3;"
+                    ? "RESULT=PASS; failures=0; liveResearchCompletions=3; publications=4;"
                     : $"RESULT=FAIL; failures={failures.Count};"
             };
             report.AddRange(rows);
@@ -336,7 +346,9 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
         {
             grid.SetAreaType(cell.Position, GridCellAreaType.BlockedExterior);
         }
-        for (int x = 17; x < 44; x++)
+        for (int x = 17;
+             x < 17 + DungeonSpaceExpansionCatalog.SceneSeedInteriorColumns;
+             x++)
         {
             for (int y = 0; y < grid.height; y++)
             {

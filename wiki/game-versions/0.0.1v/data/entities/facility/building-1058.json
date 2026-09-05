@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "특수"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1058",
+  "spoiler_tier": "none",
+  "summary": "시설 동작은 BuildingCleaningAbility, BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityPartAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 54, 재료 목재×6, 천×2이 필요하다.",
+  "title": "화장실칸막이"
+}

@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "상점"
+    },
+    {
+      "label": "크기",
+      "value": "2×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1001",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 공정 자동화, 물류 입출력, 조리, 연료 소비, 욕구 회복이다. 건설에는 작업량 364, 재료 석재 블록×4, 철괴×5이 필요하다.",
+  "title": "고기그릴"
+}

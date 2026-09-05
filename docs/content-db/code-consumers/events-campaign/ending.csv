@@ -1,0 +1,20 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+EndingDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+EndingDefinitionSO,stable-id,ending:arcane-ascension,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
+EndingDefinitionSO,stable-id,ending:arcane-ascension,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+EndingDefinitionSO,stable-id,ending:dungeon-sovereignty,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
+EndingDefinitionSO,stable-id,ending:dungeon-sovereignty,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+EndingDefinitionSO,stable-id,ending:eternal-lineage,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
+EndingDefinitionSO,stable-id,ending:eternal-lineage,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+EndingDefinitionSO,stable-id,ending:monster-accord,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
+EndingDefinitionSO,stable-id,ending:monster-accord,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+EndingDefinitionSO,stable-id,ending:sealed-paradise,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
+EndingDefinitionSO,stable-id,ending:sealed-paradise,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+EndingDefinitionSO,stable-id,ending:steel-apotheosis,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
+EndingDefinitionSO,stable-id,ending:steel-apotheosis,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+EndingDefinitionSO,stable-id,ending:surface-hegemony,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
+EndingDefinitionSO,stable-id,ending:surface-hegemony,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+EndingDefinitionSO,stable-id,ending:timeless-sanctuary,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
+EndingDefinitionSO,stable-id,ending:timeless-sanctuary,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+EndingDefinitionSO,stable-id,ending:truth-revealed,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/MilestonePressureApplicationAdapter.cs
+EndingDefinitionSO,stable-id,ending:truth-revealed,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs

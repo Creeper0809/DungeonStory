@@ -1,0 +1,148 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-health-vaccination",
+    "spoiler_tier": "none",
+    "title": "예방접종과 유행병 통제"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-isolation-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "격리 의학",
+      "to": "research/research-health-isolation-medicine",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-isolation-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "격리 의학",
+      "to": "research/research-health-isolation-medicine",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-health-isolation-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "격리 의학",
+      "to": "research/research-health-isolation-medicine",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 위생과 산업 안전",
+      "to": "research/research-industry-automatic-sanitation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 위생과 산업 안전",
+      "to": "research/research-industry-automatic-sanitation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 위생과 산업 안전",
+      "to": "research/research-industry-automatic-sanitation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8876",
+      "target_spoiler_tier": "none",
+      "target_title": "백신 연구실",
+      "to": "facility/building-8876",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-vaccination",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8877",
+      "target_spoiler_tier": "none",
+      "target_title": "역학 상황판",
+      "to": "facility/building-8877",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medicine-vaccine-blood-wasting",
+      "label": "필요 조건",
+      "to": "research/research-health-vaccination",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medicine-vaccine-cave-flu",
+      "label": "필요 조건",
+      "to": "research/research-health-vaccination",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medicine-vaccine-gut-rot",
+      "label": "필요 조건",
+      "to": "research/research-health-vaccination",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medicine-vaccine-mana-pox",
+      "label": "필요 조건",
+      "to": "research/research-health-vaccination",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medicine-vaccine-red-fever",
+      "label": "필요 조건",
+      "to": "research/research-health-vaccination",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medicine-vaccine-slime-blight",
+      "label": "필요 조건",
+      "to": "research/research-health-vaccination",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medicine-vaccine-spore-lung",
+      "label": "필요 조건",
+      "to": "research/research-health-vaccination",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,207 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-cuisine-fermentation",
+    "spoiler_tier": "none",
+    "title": "발효"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-fermentation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-fermentation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-fermentation",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-fermentation",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1074",
+      "target_spoiler_tier": "none",
+      "target_title": "양조장",
+      "to": "facility/building-1074",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-fermentation",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1601",
+      "target_spoiler_tier": "none",
+      "target_title": "담금·당화조",
+      "to": "facility/building-1601",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-fermentation",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1602",
+      "target_spoiler_tier": "none",
+      "target_title": "수동 발효조",
+      "to": "facility/building-1602",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-fermentation",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1604",
+      "target_spoiler_tier": "none",
+      "target_title": "숙성 오크통",
+      "to": "facility/building-1604",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-fermented-liquor",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-fermented-vinegar",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-grape-juice",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-grape-syrup",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-night-wine",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-syrup",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-twilight-beer",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-young-wine",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-controlled-fermentation",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-controlled-fermentation",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-controlled-fermentation",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-lavish",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-lavish",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-lavish",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

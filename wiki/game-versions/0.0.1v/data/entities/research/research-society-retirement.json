@@ -1,0 +1,121 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "628"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Authority And Housing"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-career-records",
+      "target_spoiler_tier": "none",
+      "target_title": "경력 기록",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-career-records",
+      "target_spoiler_tier": "none",
+      "target_title": "경력 기록",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-career-records",
+      "target_spoiler_tier": "none",
+      "target_title": "경력 기록",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-generation-management",
+      "target_spoiler_tier": "none",
+      "target_title": "세대 관리와 보호자 승계",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-generation-management",
+      "target_spoiler_tier": "none",
+      "target_title": "세대 관리와 보호자 승계",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-generation-management",
+      "target_spoiler_tier": "none",
+      "target_title": "세대 관리와 보호자 승계",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8896",
+      "target_spoiler_tier": "none",
+      "target_title": "멘토 학원",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8895",
+      "target_spoiler_tier": "none",
+      "target_title": "은퇴자 휴게실",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-society-retirement",
+  "spoiler_tier": "none",
+  "summary": "은퇴와 멘토 제도에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "은퇴와 멘토 제도"
+}

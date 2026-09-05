@@ -1,0 +1,1 @@
+RESULT=PASS; stableId=building:9502; disposition=CriticalDensityUnresolved; afterWu=797; afterBom=material:lumberx9; densityRatio=1.8242974074467774392870618264; investmentErrorMilliEwu=853; autoApproved=false

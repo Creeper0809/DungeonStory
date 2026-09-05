@@ -54,11 +54,21 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:starch
-    amount: 1
+    amount: 2
   - itemId: resource:dark-resin
     amount: 1
+  - itemId: resource:clean-water
+    amount: 3
   outputs:
   - outputLineId: output:recipe:component:textile-hardener/000/main/component:textile-hardener
     role: 0

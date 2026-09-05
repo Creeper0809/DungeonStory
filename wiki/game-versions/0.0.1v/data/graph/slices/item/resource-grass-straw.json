@@ -1,0 +1,81 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-grass-straw",
+    "spoiler_tier": "none",
+    "title": "풀·짚"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-compost-manure",
+      "label": "필요 조건",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-compost-mixed",
+      "label": "필요 조건",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-low-fuel-animal",
+      "label": "필요 조건",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-low-fuel-manure",
+      "label": "필요 조건",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-low-fuel-plant",
+      "label": "필요 조건",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-low-fuel-rot",
+      "label": "필요 조건",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "10",
+      "from": "recipe/recipe-bedding-straw",
+      "label": "필요 조건",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-hay-feed",
+      "label": "필요 조건",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-silage",
+      "label": "필요 조건",
+      "to": "item/resource-grass-straw",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/source-grass",
+      "label": "생산·해금",
+      "to": "item/resource-grass-straw",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "service-lodging-rest",
+    "spoiler_tier": "none",
+    "title": "숙박 서비스"
+  },
+  "edges": [],
+  "schema_version": 1
+}

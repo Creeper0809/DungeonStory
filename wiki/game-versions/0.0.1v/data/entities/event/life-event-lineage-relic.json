@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Death Legacy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "7",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-lineage-relic",
+      "target_spoiler_tier": "warning",
+      "target_title": "유산의 행방",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "1",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-lineage-relic",
+      "target_spoiler_tier": "warning",
+      "target_title": "유산의 행방",
+      "type": "sets-world-flag"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-lineage-relic",
+  "spoiler_tier": "warning",
+  "summary": "가문의 유물을 계승할지 공동 랜드마크에 봉헌할지 결정해야 한다.",
+  "title": "유산의 행방"
+}

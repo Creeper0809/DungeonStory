@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-syrup",
+    "spoiler_tier": "none",
+    "title": "밤포도 시럽"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-lavish-vegan",
+      "label": "필요 조건",
+      "to": "item/material-syrup",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-night-spirit",
+      "label": "필요 조건",
+      "to": "item/material-syrup",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-vitality-tonic",
+      "label": "필요 조건",
+      "to": "item/material-syrup",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-syrup",
+      "label": "생산·해금",
+      "to": "item/material-syrup",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

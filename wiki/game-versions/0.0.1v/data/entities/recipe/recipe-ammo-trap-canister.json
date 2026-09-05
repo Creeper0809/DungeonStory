@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "54"
+    },
+    {
+      "label": "필요 연구",
+      "value": "탄약 규격화"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-trap-canister",
+      "target_spoiler_tier": "none",
+      "target_title": "함정 산탄통",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "6",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lead-shot",
+      "target_spoiler_tier": "none",
+      "target_title": "납탄",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-standard-ammunition",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약 규격화",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-black-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "흑색화약",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-ammo-trap-canister",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 함정 산탄통을(를) 생산한다.",
+  "title": "함정 산탄통"
+}

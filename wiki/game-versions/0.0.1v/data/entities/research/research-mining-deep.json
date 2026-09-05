@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Mining"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-sorting",
+      "target_spoiler_tier": "none",
+      "target_title": "광석 선별",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-sorting",
+      "target_spoiler_tier": "none",
+      "target_title": "광석 선별",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-sorting",
+      "target_spoiler_tier": "none",
+      "target_title": "광석 선별",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-mining-deep",
+  "spoiler_tier": "none",
+  "summary": "연료와 유지보수를 대가로 깊은 광맥을 판다.",
+  "title": "심부 채굴"
+}

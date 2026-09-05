@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.03kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "300개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "마취제와 약액을 담고 사용 뒤 회수하는 소형 철제 바이알이다. 므네실라산 재사용 의료 바이알에는 재료를 기른 정원의 흙이 작은 유리칸에 함께 봉해져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "container-medical-vial",
+  "spoiler_tier": "none",
+  "summary": "마취제와 약액을 담고 사용 뒤 회수하는 소형 철제 바이알.",
+  "title": "재사용 의료 바이알"
+}

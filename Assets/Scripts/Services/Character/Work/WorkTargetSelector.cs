@@ -61,7 +61,8 @@ public sealed class WorkTargetSelector
         AbilityWork work,
         IWorkPolicyRegistry workPolicyRegistry,
         ICaptiveLaborQuery captiveLaborQuery,
-        IEnvironmentWorkPolicy environmentWorkPolicy)
+        IEnvironmentWorkPolicy environmentWorkPolicy,
+        ICharacterSettlementStandingQuery settlementStandings = null)
     {
         this.work = work;
         this.workPolicyRegistry = workPolicyRegistry;
@@ -72,6 +73,7 @@ public sealed class WorkTargetSelector
             work,
             workPolicyRegistry,
             captiveLaborQuery,
+            settlementStandings,
             targetEnvironment,
             FindReachableWarehouses,
             BuildCandidate,

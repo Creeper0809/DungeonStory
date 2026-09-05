@@ -1,0 +1,259 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-environment-cold-work",
+    "spoiler_tier": "none",
+    "title": "저온 작업 보호"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "to": "research/research-survival-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "to": "research/research-survival-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "to": "research/research-survival-preservation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-fiber",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 가공",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1500",
+      "target_spoiler_tier": "none",
+      "target_title": "보호장비보관함",
+      "to": "facility/building-1500",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1501",
+      "target_spoiler_tier": "none",
+      "target_title": "냉각기",
+      "to": "facility/building-1501",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1503",
+      "target_spoiler_tier": "none",
+      "target_title": "환기덕트",
+      "to": "facility/building-1503",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1504",
+      "target_spoiler_tier": "none",
+      "target_title": "송풍구",
+      "to": "facility/building-1504",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1505",
+      "target_spoiler_tier": "none",
+      "target_title": "배기팬",
+      "to": "facility/building-1505",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-cold-work-suit",
+      "target_spoiler_tier": "none",
+      "target_title": "방한 작업복 재단",
+      "to": "recipe/recipe-v22-apparel-cold-work-suit",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-slime-warming-pad",
+      "target_spoiler_tier": "none",
+      "target_title": "보온 점액 패드 재단",
+      "to": "recipe/recipe-v22-apparel-slime-warming-pad",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23024",
+      "label": "필요 조건",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23025",
+      "label": "필요 조건",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/workwear-cold-work-suit",
+      "label": "필요 조건",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/workwear-slime-warming-pad",
+      "label": "필요 조건",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-cold-work-suit",
+      "label": "필요 조건",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-slime-warming-pad",
+      "label": "필요 조건",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-textile-insulating-cloth",
+      "label": "필요 조건",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-cold-work-suit",
+      "label": "필요 조건",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-slime-warming-pad",
+      "label": "필요 조건",
+      "to": "research/research-environment-cold-work",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-rune-insulation",
+      "label": "선행 연구",
+      "to": "research/research-environment-cold-work",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-rune-insulation",
+      "label": "선행 연구",
+      "to": "research/research-environment-cold-work",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-rune-insulation",
+      "label": "선행 연구",
+      "to": "research/research-environment-cold-work",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "to": "research/research-environment-cold-work",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "to": "research/research-environment-cold-work",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-pressure-barrels",
+      "label": "선행 연구",
+      "to": "research/research-environment-cold-work",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

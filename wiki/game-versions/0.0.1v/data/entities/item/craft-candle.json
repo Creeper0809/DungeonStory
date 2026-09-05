@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "16"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "조명과 의식에 쓰는 연료성 완제품이다. 밀로세아 가도의 양초 상자는 심지가 부러지지 않도록 얕은 칸으로 나뉘고, 마지막 검문 봉인은 뚜껑에 찍힌다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "craft-candle",
+  "spoiler_tier": "none",
+  "summary": "조명과 의식에 쓰는 연료성 완제품.",
+  "title": "양초"
+}

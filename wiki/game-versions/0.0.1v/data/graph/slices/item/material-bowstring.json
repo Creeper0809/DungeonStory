@@ -1,0 +1,81 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-bowstring",
+    "spoiler_tier": "none",
+    "title": "활시위"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-composite-bow",
+      "label": "필요 조건",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "필요 조건",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-longbow",
+      "label": "필요 조건",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-repeating-crossbow",
+      "label": "필요 조건",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-rune-bow",
+      "label": "필요 조건",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-shortbow",
+      "label": "필요 조건",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-windlass-crossbow",
+      "label": "필요 조건",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bowstring-fiber",
+      "label": "생산·해금",
+      "to": "item/material-bowstring",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bowstring-sinew",
+      "label": "생산·해금",
+      "to": "item/material-bowstring",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-weapon-siege-arbalest",
+      "label": "필요 조건",
+      "to": "item/material-bowstring",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

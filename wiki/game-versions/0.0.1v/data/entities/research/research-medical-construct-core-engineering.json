@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "115"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Surgery And Transplant"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-construct-core-maintenance",
+      "target_spoiler_tier": "none",
+      "target_title": "구성체 핵 정비",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-construct-core-maintenance",
+      "target_spoiler_tier": "none",
+      "target_title": "구성체 핵 정비",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-construct-core-maintenance",
+      "target_spoiler_tier": "none",
+      "target_title": "구성체 핵 정비",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8847",
+      "target_spoiler_tier": "none",
+      "target_title": "구성체 핵 공학대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-medical-construct-core-engineering",
+  "spoiler_tier": "none",
+  "summary": "구성체 핵의 냉각과 동력 접속을 수술 가능한 공학 규격으로 정리한다.",
+  "title": "구성체 핵 공학"
+}

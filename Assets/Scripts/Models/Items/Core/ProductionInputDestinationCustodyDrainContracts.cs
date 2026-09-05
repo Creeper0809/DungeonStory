@@ -384,6 +384,38 @@ public readonly struct ProductionInputDestinationCustodyDrainResult
     public string FailureReason { get; }
 }
 
+public interface IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+{
+}
+
+public interface IProductionInputDestinationCustodyDrainLiveQuery
+{
+    IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData> CaptureAll();
+}
+
+/// <summary>
+/// Row-scoped checkpoint collector for acknowledged input-destination child
+/// tombstones. Preparation is read-only and rollback restores only rows that
+/// the same candidate published.
+/// </summary>
+public interface IProductionInputDestinationCustodyDrainCheckpointGcPort
+{
+    bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData> records,
+        out IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    bool TryPublishCheckpointGarbageCollection(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason);
+
+    void RollbackCheckpointGarbageCollection(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate);
+
+    void CompleteCheckpointGarbageCollection(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate);
+}
+
 public interface IProductionInputDestinationCustodyDrainOutbox
 {
     ProductionInputDestinationCustodyDrainResult TryPrepare(

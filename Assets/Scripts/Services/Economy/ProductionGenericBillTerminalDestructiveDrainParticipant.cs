@@ -11,7 +11,8 @@ using System.Linq;
 /// </summary>
 public sealed class ProductionGenericBillTerminalDestructiveDrainParticipant :
     IProductionFacilityDestructiveDrainParticipant,
-    IProductionFacilityDestructiveDrainDurablePrepareParticipant
+    IProductionFacilityDestructiveDrainDurablePrepareParticipant,
+    IProductionFacilityDestructiveDrainCheckpointGcParticipant
 {
     public const int CurrentContractVersion = 1;
 
@@ -27,6 +28,8 @@ public sealed class ProductionGenericBillTerminalDestructiveDrainParticipant :
     private readonly IProductionGenericBillTerminalDrainCommand producer;
     private readonly IProductionInputDestinationCustodyDrainService inputDrain;
     private readonly IProductionAssemblyBridge facilities;
+    private readonly IProductionGenericBillTerminalDrainCheckpointGcPort
+        checkpointGc;
 
     internal ProductionGenericBillTerminalDestructiveDrainParticipant(
         IProductionOutputDestinationLifecycleQuery lifecycle,
@@ -64,10 +67,14 @@ public sealed class ProductionGenericBillTerminalDestructiveDrainParticipant :
             ?? throw new ArgumentNullException(nameof(inputDrain));
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
+        checkpointGc = producer as
+            IProductionGenericBillTerminalDrainCheckpointGcPort;
     }
 
     public string ParticipantId =>
         ProductionFacilityDestructiveDrainParticipantIds.GenericProductionBills;
+
+    public string CheckpointGcParticipantId => ParticipantId;
 
     public int ContractVersion => CurrentContractVersion;
 
@@ -79,7 +86,6 @@ public sealed class ProductionGenericBillTerminalDestructiveDrainParticipant :
         RequireDestination(context.FacilityId, context.DestinationId);
         ProductionOutputDestinationLifecycleContribution contribution =
             CaptureContribution(context.FacilityId);
-        ProductionFacilityHandle facility = ResolveFacility(context.FacilityId);
         ProductionFacilityDestructiveDrainPreparedOutputOwner[] sources =
             CaptureOwnedBills(context.FacilityId);
         if (contribution.HasAuthority != (sources.Length > 0))
@@ -87,6 +93,22 @@ public sealed class ProductionGenericBillTerminalDestructiveDrainParticipant :
             throw new InvalidOperationException(
                 "production-generic-terminal-lifecycle-owner-count-conflict");
         }
+
+        if (sources.Length == 0)
+        {
+            ProductionFacilityDestructiveDrainOwnerPlan[] emptyOwners =
+                Array.Empty<ProductionFacilityDestructiveDrainOwnerPlan>();
+            return new ProductionFacilityDestructiveDrainParticipantPlan(
+                ParticipantId,
+                ContractVersion,
+                contribution.DurableSemanticFingerprint,
+                CreatePlanFingerprint(
+                    contribution.DurableSemanticFingerprint,
+                    emptyOwners),
+                emptyOwners);
+        }
+
+        ProductionFacilityHandle facility = ResolveFacility(context.FacilityId);
 
         ProductionFacilityDestructiveDrainOwnerPlan[] owners = sources
             .Select(source => CaptureRequest(
@@ -457,6 +479,56 @@ public sealed class ProductionGenericBillTerminalDestructiveDrainParticipant :
         }
     }
 
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData>
+                entries,
+            out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                candidate)
+    {
+        candidate = null;
+        return checkpointGc != null
+            ? checkpointGc.PrepareCheckpointGarbageCollection(
+                context,
+                entries,
+                out candidate)
+            : new ProductionFacilityDestructiveDrainCheckpointGcResult(
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .MissingParticipant,
+                context.CheckpointSequence,
+                "production-generic-checkpoint-gc-port-missing");
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (checkpointGc == null)
+            throw new InvalidOperationException(
+                "Generic checkpoint-GC port is missing.");
+        return checkpointGc.PublishCheckpointGarbageCollection(candidate);
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (checkpointGc == null)
+            throw new InvalidOperationException(
+                "Generic checkpoint-GC port is missing.");
+        checkpointGc.RollbackCheckpointGarbageCollection(candidate);
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (checkpointGc == null)
+            throw new InvalidOperationException(
+                "Generic checkpoint-GC port is missing.");
+        checkpointGc.CompleteCheckpointGarbageCollection(candidate);
+    }
+
     private ProductionFacilityDestructiveDrainStepResult DriveChildToTerminal(
         ProductionFacilityDestructiveDrainStepContext context,
         ProductionGenericBillTerminalDrainSaveData producerState)
@@ -468,6 +540,31 @@ public sealed class ProductionGenericBillTerminalDestructiveDrainParticipant :
             || !IsExactChildState(child, producerState))
         {
             return UpperConflict(current);
+        }
+
+        if (IsChildTerminal(child.phase))
+        {
+            bool recordedReceiptMatches = string.IsNullOrEmpty(
+                    producerState.inputDestinationDrainCommitId)
+                && string.IsNullOrEmpty(
+                    producerState.inputDestinationDrainReceiptFingerprint)
+                || string.Equals(
+                    producerState.inputDestinationDrainCommitId,
+                    child.commitId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    producerState.inputDestinationDrainReceiptFingerprint,
+                    child.receiptFingerprint,
+                    StringComparison.Ordinal);
+            return HasCanonicalTerminalFields(
+                    child.commitId,
+                    child.receiptFingerprint)
+                && recordedReceiptMatches
+                ? UpperReplay(
+                    child.commitId,
+                    child.receiptFingerprint,
+                    current)
+                : UpperConflict(current);
         }
 
         int remainingSteps = checked(

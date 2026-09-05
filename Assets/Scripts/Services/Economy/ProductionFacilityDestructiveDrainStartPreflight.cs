@@ -61,16 +61,23 @@ public sealed class ProductionFacilityDestructiveDrainStartPreflight :
     private readonly IProductionFacilityDestructiveDrainPreparedOutputQuery owners;
     private readonly IProductionPreparedOutputRoutingBatchQuery routing;
     private readonly IFacilityBufferPlannedOutputPublicationService publication;
+    private readonly IReadOnlyList<
+        IProductionDomainOutputFacilityLifecycleQuery> domainOwners;
 
     public ProductionFacilityDestructiveDrainStartPreflight(
         IProductionFacilityDestructiveDrainPreparedOutputQuery owners,
         IProductionPreparedOutputRoutingBatchQuery routing,
-        IFacilityBufferPlannedOutputPublicationService publication)
+        IFacilityBufferPlannedOutputPublicationService publication,
+        IEnumerable<IProductionDomainOutputFacilityLifecycleQuery>
+            domainOwners)
     {
         this.owners = owners ?? throw new ArgumentNullException(nameof(owners));
         this.routing = routing ?? throw new ArgumentNullException(nameof(routing));
         this.publication = publication
             ?? throw new ArgumentNullException(nameof(publication));
+        this.domainOwners = Array.AsReadOnly((domainOwners
+                ?? throw new ArgumentNullException(nameof(domainOwners)))
+            .ToArray());
     }
 
     public ProductionFacilityDestructiveDrainStartPreflightResult Assess(
@@ -85,7 +92,47 @@ public sealed class ProductionFacilityDestructiveDrainStartPreflight :
                     ProductionFacilityDestructiveDrainPreparedOutputOwner>())
             .OrderBy(value => value.BillId.Value, StringComparer.Ordinal)
             .ToArray();
-        string sourceFingerprint = Fingerprint(captured);
+        ProductionDomainOutputFacilityOwnerSnapshot[] domainCaptured =
+            domainOwners
+                .SelectMany(value => value.CaptureActiveOutputOwners(facilityId)
+                    ?? Array.Empty<
+                        ProductionDomainOutputFacilityOwnerSnapshot>())
+                .OrderBy(value => value?.OwnerDomainId, StringComparer.Ordinal)
+                .ThenBy(value => value?.OwnerStableId, StringComparer.Ordinal)
+                .ToArray();
+        string sourceFingerprint = Fingerprint(captured, domainCaptured);
+
+        HashSet<string> domainOwnerKeys = new(StringComparer.Ordinal);
+        foreach (ProductionDomainOutputFacilityOwnerSnapshot owner in
+                 domainCaptured)
+        {
+            string key = (owner?.OwnerDomainId ?? string.Empty)
+                + "|" + (owner?.OwnerStableId ?? string.Empty);
+            if (owner == null
+                || !owner.FacilityId.Equals(facilityId)
+                || !Canonical(owner.OwnerDomainId)
+                || !Canonical(owner.OwnerStableId)
+                || !ProductionFacilityDestructiveDrainCanonical
+                    .IsFingerprint(owner.StateFingerprint)
+                || !domainOwnerKeys.Add(key))
+            {
+                return Result(
+                    ProductionFacilityDestructiveDrainStartPreflightStatus
+                        .Conflict,
+                    "domain-output-owner-invalid:" + key,
+                    sourceFingerprint);
+            }
+        }
+        if (domainCaptured.Length > 0)
+        {
+            ProductionDomainOutputFacilityOwnerSnapshot first =
+                domainCaptured[0];
+            return Result(
+                ProductionFacilityDestructiveDrainStartPreflightStatus.Deferred,
+                "domain-output-owner-active:" + first.OwnerDomainId
+                + "|" + first.OwnerStableId,
+                sourceFingerprint);
+        }
 
         foreach (ProductionFacilityDestructiveDrainPreparedOutputOwner owner in
                  captured)
@@ -200,7 +247,8 @@ public sealed class ProductionFacilityDestructiveDrainStartPreflight :
         string sourceFingerprint) => new(status, reasonCode, sourceFingerprint);
 
     private static string Fingerprint(
-        IReadOnlyList<ProductionFacilityDestructiveDrainPreparedOutputOwner> values)
+        IReadOnlyList<ProductionFacilityDestructiveDrainPreparedOutputOwner> values,
+        IReadOnlyList<ProductionDomainOutputFacilityOwnerSnapshot> domainValues)
     {
         StringBuilder canonical = new(64 + values.Count * 256);
         foreach (ProductionFacilityDestructiveDrainPreparedOutputOwner value in values)
@@ -214,7 +262,22 @@ public sealed class ProductionFacilityDestructiveDrainStartPreflight :
                 .Append(value.BatchCommitId).Append('\n')
                 .Append(value.OutcomeFingerprint).Append('\n');
         }
+        foreach (ProductionDomainOutputFacilityOwnerSnapshot value in
+                 domainValues ?? Array.Empty<
+                     ProductionDomainOutputFacilityOwnerSnapshot>())
+        {
+            canonical.Append(value?.OwnerDomainId ?? string.Empty).Append('\n')
+                .Append(value?.OwnerStableId ?? string.Empty).Append('\n')
+                .Append(value == null
+                    ? string.Empty
+                    : value.FacilityId.Value).Append('\n')
+                .Append(value?.StateFingerprint ?? string.Empty).Append('\n');
+        }
         return ProductionFacilityDestructiveDrainCanonical.ComputeFingerprint(
             canonical.ToString());
     }
+
+    private static bool Canonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 }

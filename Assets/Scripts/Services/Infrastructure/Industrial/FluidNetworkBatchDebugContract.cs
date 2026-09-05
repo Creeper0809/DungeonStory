@@ -37,7 +37,8 @@ public static class FluidNetworkBatchDebugContract
                 CreateNullProxy<IGameClock>(),
                 CreateNullProxy<IFacilityCapabilityQuery>(),
                 CreateNullProxy<IBuildingFacilityStateChangePort>(),
-                new DungeonRuntimeAggregateRootStore());
+                new DungeonRuntimeAggregateRootStore(),
+                new EditorFluidFacilityInputOwnerAuthority());
 
             Require(runtime.TryAdd(
                     storage, WorldWaterQuality.Clean, 5f, out float seeded)

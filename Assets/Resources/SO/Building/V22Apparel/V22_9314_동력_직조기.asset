@@ -92,6 +92,9 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v22:powered-weaving
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 1
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 0
     - rid: 1003
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:

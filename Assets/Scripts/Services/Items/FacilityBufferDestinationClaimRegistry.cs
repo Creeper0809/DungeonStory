@@ -10,21 +10,42 @@ public enum FacilityBufferDestinationAnchorKind
     LiveBuilding = 2
 }
 
+public enum FacilityBufferDestinationAdmissionPolicy
+{
+    CountCompatible = 0,
+    ExactGramRequired = 1
+}
+
 public static class ReservedTargetDestinationIdentity
 {
+    public const string PhysicalSourceBufferPrefix = "physical-source-buffer:";
+    public const string ExactFacilityInputPrefix =
+        ExactFacilityInputDestinationIdentity.Prefix;
     public const string ProductionInputPrefix = "production:";
+    public const string ProductionStockSensorPrefix = "production-sensor:";
     public const string ExpeditionPrefix = "expedition:";
     public const string EquipmentRepairPrefix = "equipment-repair:";
     public const string SurgeryMaterialsPrefix = "surgery-materials:";
     public const string ResearchArchivePrefix = "research-archive:";
     public const string PowerFuelPrefix = "power:";
+    public const string QualityRejectedMarketDestination =
+        "sale:quality-rejected";
 
     public static bool RequiresExactClaim(string destinationId) =>
         !string.IsNullOrWhiteSpace(destinationId)
         && (destinationId.StartsWith(
+                PhysicalSourceBufferPrefix,
+                StringComparison.Ordinal)
+            || destinationId.StartsWith(
+                ExactFacilityInputPrefix,
+                StringComparison.Ordinal)
+            || destinationId.StartsWith(
                 ProductionInputPrefix,
                 StringComparison.Ordinal)
             || destinationId.StartsWith(ExpeditionPrefix, StringComparison.Ordinal)
+            || destinationId.StartsWith(
+                ProductionStockSensorPrefix,
+                StringComparison.Ordinal)
             || destinationId.StartsWith(
                 EquipmentRepairPrefix,
                 StringComparison.Ordinal)
@@ -36,6 +57,10 @@ public static class ReservedTargetDestinationIdentity
                 StringComparison.Ordinal)
             || destinationId.StartsWith(
                 PowerFuelPrefix,
+                StringComparison.Ordinal)
+            || string.Equals(
+                destinationId,
+                QualityRejectedMarketDestination,
                 StringComparison.Ordinal));
 }
 
@@ -67,7 +92,9 @@ public sealed class FacilityBufferDestinationClaim
         string ownerDomain,
         string ownerOperationId,
         string ownerFacilityId,
-        FacilityBufferDestinationAnchorKind anchorKind)
+        FacilityBufferDestinationAnchorKind anchorKind,
+        FacilityBufferDestinationAdmissionPolicy admissionPolicy =
+            FacilityBufferDestinationAdmissionPolicy.CountCompatible)
     {
         DestinationId = destinationId;
         DropPosition = dropPosition;
@@ -75,6 +102,7 @@ public sealed class FacilityBufferDestinationClaim
         OwnerOperationId = ownerOperationId;
         OwnerFacilityId = ownerFacilityId;
         AnchorKind = anchorKind;
+        AdmissionPolicy = admissionPolicy;
     }
 
     public string DestinationId { get; }
@@ -83,6 +111,7 @@ public sealed class FacilityBufferDestinationClaim
     public string OwnerOperationId { get; }
     public string OwnerFacilityId { get; }
     public FacilityBufferDestinationAnchorKind AnchorKind { get; }
+    public FacilityBufferDestinationAdmissionPolicy AdmissionPolicy { get; }
 }
 
 public interface IFacilityBufferDestinationClaimQuery
@@ -139,7 +168,7 @@ public sealed class FacilityBufferDestinationClaimRegistry :
     IFacilityBufferDestinationClaimQuery,
     IFacilityBufferDestinationClaimAuthorityQuery,
     IFacilityBufferDestinationClaimCommand,
-    IDungeonRestoreTransactionParticipant
+    IDungeonPreStageRestoreTransactionParticipant
 {
     private const string RestoreParticipantId =
         "220.world.facility-buffer-destinations";
@@ -536,6 +565,17 @@ public sealed class FacilityBufferDestinationClaimRegistry :
                 $"Unsupported facility-buffer anchor kind '{claim.AnchorKind}'.";
             return false;
         }
+        if (!Enum.IsDefined(
+                typeof(FacilityBufferDestinationAdmissionPolicy),
+                claim.AdmissionPolicy))
+        {
+            failureCode =
+                FacilityBufferDestinationClaimFailureCode.InvalidClaim;
+            failureReason =
+                $"Unsupported facility-buffer admission policy "
+                + $"'{claim.AdmissionPolicy}'.";
+            return false;
+        }
 
         failureCode = FacilityBufferDestinationClaimFailureCode.None;
         failureReason = string.Empty;
@@ -549,6 +589,7 @@ public sealed class FacilityBufferDestinationClaimRegistry :
         && right != null
         && left.DropPosition == right.DropPosition
         && left.AnchorKind == right.AnchorKind
+        && left.AdmissionPolicy == right.AdmissionPolicy
         && string.Equals(
             left.DestinationId,
             right.DestinationId,

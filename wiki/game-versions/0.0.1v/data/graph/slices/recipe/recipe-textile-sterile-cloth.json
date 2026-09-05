@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-textile-sterile-cloth",
+    "spoiler_tier": "none",
+    "title": "무균 천"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-textile-sterile-cloth",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-textile-sterile-cloth",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-saltstone",
+      "target_spoiler_tier": "none",
+      "target_title": "소금석",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-textile-sterile-cloth",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "textile-sterile-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 천",
+      "to": "item/textile-sterile-cloth",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-textile-sterile-cloth",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-textile-sterile-cloth",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-surgery",
+      "target_spoiler_tier": "none",
+      "target_title": "외과술",
+      "to": "research/research-medical-surgery",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

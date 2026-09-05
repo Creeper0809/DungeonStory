@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "361"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "룬 식별 렌즈는 닳거나 겹쳐진 각인을 확대해 계통과 제작 흔적을 읽는다. 베르사디온산 룬 식별 렌즈는 계약자의 맨손이 닿아야 룬이 끝까지 밝아진다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-rune-identification-lens",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 룬 식별 렌즈.",
+  "title": "룬 식별 렌즈"
+}

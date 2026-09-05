@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "231"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "동력 공구날은 구동축에 갈아 끼워 절단과 굴착 작업을 맡기는 교체 부품이다. 제4주조도시의 골렘은 동력 공구날을 잡으면 열과 진동만으로 이전 몸에서 쓰던 공구인지 알아본다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-powered-tool-head",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 동력 공구날.",
+  "title": "동력 공구날"
+}

@@ -1,0 +1,17 @@
+{
+  "canonical_relation_target_count": 74,
+  "excluded_by_reason": {
+    "internal-type": 485,
+    "manual-review": 47,
+    "non-active-lifecycle": 25,
+    "runtime-not-verified": 14
+  },
+  "excluded_record_count": 571,
+  "game_version": "0.0.1v",
+  "item_narrative_count": 1075,
+  "omitted_relation_count": 2349,
+  "published_record_count": 2905,
+  "published_relation_count": 3846,
+  "schema_version": 1,
+  "source_record_count": 3476
+}

@@ -26,27 +26,27 @@ public static class ProductionRecipeSemanticDigestDebugScenarios
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["recipe:charcoal"] =
-                "ca75e40b76660cc9447e66578fcd2b4599a39001500f6c5615603046a04e1a6b",
+                "9cad2eeb2481442402425eed01ebc91e025cbc72c1782bb3b93d127cb209f567",
             ["recipe:dog-food"] =
-                "04813f61418c9f9da8a03ea5754223f86e6683c8d475be54af1d4b40bc23e84c",
+                "e5afa05a7c5e383fd903736a928d5497850edaaab29a477a64aacdb92249ae78",
             ["recipe:dog-food-fresh"] =
-                "b693d8871fab2ad6ff66629ff0d6b2f90503ac3aebc98bafbce778e68fdbc0de",
+                "d141695b1c0dcdcb55fb18e2a9c52732a156cd6410e401c7c2b63d69dbb6a1ee",
             ["recipe:hay-feed"] =
-                "aa447e81c18ef96e1c72a2da6c641c066d536567ed524932ae6c478f4c79bdf6",
+                "85817fbf0fef73511dbc3b612584a6d7cababdf51aca48c28a6e9d37b3954c45",
             ["recipe:malt"] =
-                "51655f5a53fd2dd77846097c338e3c6c8585b4c1d2345bb5d0501bc59583d508",
+                "fab121be4cbbd79ddd12a55fe96ebcc91296e4e499fc7f06a630bfebfb13d428",
             ["recipe:milling-flour"] =
-                "650b0e5d57ea8683aef882054c80190586c7e286665b56e82c5ca6f662a0a794",
+                "013f957faec18e35a0035cf84adcb37a527ac1d3e67690c8439e8d4b20f61eac",
             ["recipe:sawmill-lumber"] =
-                "054f0f983ebcd318652313e27f450bb9f1f4b7fff4ed85c8e49dc8c6938facb7",
+                "8e11dae80351753183191a57605b0981dd646f05b7b2db9e10f698081f1a444c",
             ["recipe:silage"] =
-                "617a4b9b9114f4b1315af3ab29ccea641845b9bd6de106f757640490175bab90",
+                "2ff2c10234ec7db1cdc9164cb2e0656117abacf62402bee32c8faf05214c36b6",
             ["recipe:starch"] =
-                "a2f2743afc611336c0002e63360ac4561c8db41627d7b01098a62b5229982d19",
+                "a9fcd25c3c263a5c2f8e041985a47580e03fd1736ab2ed2024eb15d95ce329be",
             ["recipe:steel-ingot"] =
-                "270d23468b688941ec3d2c88b5a546507fdb88d84e4cc6f1217798a801b84f75",
+                "6fb3e8fde2ed801127a26723801264aec26621e1c57a9577c7c32cdb112a5ece",
             ["recipe:treated-lumber"] =
-                "36691d0b72537b8f7825d9057f95c410b2db2e13ecbc03a1395a8dbb74c11867"
+                "26fedf2922cd76cd28329799ead10893816af3407960d91856caa595242c42b3"
         };
 
     [MenuItem("DungeonStory/V27/Production/Run Recipe Semantic Digest Scenarios")]
@@ -67,15 +67,19 @@ public static class ProductionRecipeSemanticDigestDebugScenarios
             "Recipe semantic digest is not canonical lowercase SHA-256.");
         Require(first.Distinct(StringComparer.Ordinal).Count() == first.Length,
             "Reviewed recipes have duplicate semantic digests.");
+        List<string> digestDrifts = new();
         for (int index = 0; index < recipes.Length; index++)
         {
-            Require(ExpectedDigestById.TryGetValue(
-                    recipes[index].RecipeId,
-                    out string expected)
-                && string.Equals(first[index], expected, StringComparison.Ordinal),
-                $"Recipe '{recipes[index].RecipeId}' semantic digest drifted: "
-                + first[index] + ".");
+            string recipeId = recipes[index].RecipeId;
+            if (!ExpectedDigestById.TryGetValue(recipeId, out string expected)
+                || !string.Equals(first[index], expected, StringComparison.Ordinal))
+            {
+                digestDrifts.Add(recipeId + "=" + first[index]);
+            }
         }
+        Require(digestDrifts.Count == 0,
+            "Reviewed recipe semantic digests drifted: "
+            + string.Join(";", digestDrifts) + ".");
 
         ProductionRecipeSO dogFood = recipes.Single(value => string.Equals(
             value.RecipeId,
@@ -86,6 +90,14 @@ public static class ProductionRecipeSemanticDigestDebugScenarios
         ProductionRecipeSO workClone = Clone(dogFood);
         ProductionRecipeSO invalidClone = Clone(dogFood);
         ProductionRecipeSO staleClone = Clone(dogFood);
+        ProductionRecipeSO workOnlyWithoutSpoilage = Clone(dogFood);
+        ProductionRecipeSO silage = recipes.Single(value => string.Equals(
+            value.RecipeId,
+            "recipe:silage",
+            StringComparison.Ordinal));
+        ProductionRecipeSO passiveWithoutSpoilage = Clone(silage);
+        ProductionRecipeSO passiveNoncanonicalSpoilage = Clone(silage);
+        ProductionRecipeSO passiveOrphanSpoilage = Clone(silage);
         try
         {
             string original = ProductionRecipeSemanticDigest.Capture(dogFood);
@@ -154,6 +166,63 @@ public static class ProductionRecipeSemanticDigestDebugScenarios
                         "digest-fixture"),
                 ProductionPreparedOutputSourceRevisionGuard
                     .StaleFailureToken);
+
+            SetString(workOnlyWithoutSpoilage, "spoilageItemId", string.Empty);
+            Require(IsLowercaseSha256(
+                    ProductionRecipeSemanticDigest.Capture(
+                        workOnlyWithoutSpoilage)),
+                "Work-only recipe did not accept an explicitly empty spoilage contract.");
+
+            SetString(passiveWithoutSpoilage, "spoilageItemId", string.Empty);
+            Require(passiveWithoutSpoilage.SpoilageItemId.Length == 0,
+                "Passive recipe silently substituted a spoilage fallback.");
+            ExpectMessage<InvalidOperationException>(
+                () => ProductionRecipeSemanticDigest.Capture(
+                    passiveWithoutSpoilage),
+                "noncanonical SpoilageItemId");
+
+            SetString(
+                passiveNoncanonicalSpoilage,
+                "spoilageItemId",
+                " waste:mixed-rot ");
+            Require(string.Equals(
+                    passiveNoncanonicalSpoilage.SpoilageItemId,
+                    " waste:mixed-rot ",
+                    StringComparison.Ordinal),
+                "Passive recipe getter normalized a noncanonical authority ID.");
+            ExpectMessage<InvalidOperationException>(
+                () => ProductionRecipeSemanticDigest.Capture(
+                    passiveNoncanonicalSpoilage),
+                "noncanonical SpoilageItemId");
+
+            ResourceItemDefinitionSO[] catalogItems = Resources
+                .LoadAll<ResourceItemDefinitionSO>(
+                    ItemDefinitionSO.UnifiedResourcePath);
+            ExpectMessage<InvalidOperationException>(
+                () => new ResourceEconomyContentCatalog(
+                    catalogItems,
+                    new[] { passiveWithoutSpoilage },
+                    Array.Empty<CropDefinitionSO>(),
+                    Array.Empty<CraftMaterialDefinitionSO>()),
+                "explicitly authored canonical spoilage item ID");
+            ExpectMessage<InvalidOperationException>(
+                () => new ResourceEconomyContentCatalog(
+                    catalogItems,
+                    new[] { passiveNoncanonicalSpoilage },
+                    Array.Empty<CropDefinitionSO>(),
+                    Array.Empty<CraftMaterialDefinitionSO>()),
+                "explicitly authored canonical spoilage item ID");
+            SetString(
+                passiveOrphanSpoilage,
+                "spoilageItemId",
+                "waste:missing-catalog-fixture");
+            ExpectMessage<InvalidOperationException>(
+                () => new ResourceEconomyContentCatalog(
+                    catalogItems,
+                    new[] { passiveOrphanSpoilage },
+                    Array.Empty<CropDefinitionSO>(),
+                    Array.Empty<CraftMaterialDefinitionSO>()),
+                "unknown spoilage item");
         }
         finally
         {
@@ -162,6 +231,10 @@ public static class ProductionRecipeSemanticDigestDebugScenarios
             UnityEngine.Object.DestroyImmediate(workClone);
             UnityEngine.Object.DestroyImmediate(invalidClone);
             UnityEngine.Object.DestroyImmediate(staleClone);
+            UnityEngine.Object.DestroyImmediate(workOnlyWithoutSpoilage);
+            UnityEngine.Object.DestroyImmediate(passiveWithoutSpoilage);
+            UnityEngine.Object.DestroyImmediate(passiveNoncanonicalSpoilage);
+            UnityEngine.Object.DestroyImmediate(passiveOrphanSpoilage);
         }
 
         Debug.Log("[ProductionRecipeSemanticDigest] focused scenarios passed. "

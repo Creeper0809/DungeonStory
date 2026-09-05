@@ -54,9 +54,13 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=FiberProcessingWaste|reason=v22-weaving-twist-and-fiber-waste|physicalByproduct=false
   inputs:
   - itemId: yarn:shade-cloth
-    amount: 3
+    amount: 6
   outputs:
   - outputLineId: output:recipe:v22:weave:shade-cloth/000/main/material:cloth
     role: 0

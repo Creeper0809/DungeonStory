@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "일반"
+    },
+    {
+      "label": "성향",
+      "value": "상충"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-216",
+  "spoiler_tier": "none",
+  "summary": "실패를 오래 기억해 재발을 줄이지만 기분 회복이 느리다.",
+  "title": "곱씹는 성격"
+}

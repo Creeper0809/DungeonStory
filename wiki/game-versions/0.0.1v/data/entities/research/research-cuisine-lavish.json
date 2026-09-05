@@ -1,0 +1,130 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Cuisine"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "식량 보존",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-baking",
+      "target_spoiler_tier": "none",
+      "target_title": "제빵",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-baking",
+      "target_spoiler_tier": "none",
+      "target_title": "제빵",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-baking",
+      "target_spoiler_tier": "none",
+      "target_title": "제빵",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-kitchen-hygiene",
+      "target_spoiler_tier": "none",
+      "target_title": "주방 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-kitchen-hygiene",
+      "target_spoiler_tier": "none",
+      "target_title": "주방 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-kitchen-hygiene",
+      "target_spoiler_tier": "none",
+      "target_title": "주방 위생",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-cuisine-lavish",
+  "spoiler_tier": "none",
+  "summary": "세척·제빵·발효·보존 설비를 모두 활용해 호화식과 보존식을 만든다.",
+  "title": "호화·보존식"
+}

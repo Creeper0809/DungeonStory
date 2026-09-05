@@ -1,0 +1,9 @@
+schemaVersion=v27.construction-review-application.1
+result=PASS
+decisionRows=16
+appliedDecisionRows=16
+pendingDecisionRows=0
+derivedApprovalOnlyRoots=3
+approvedDerivedRoots=3
+remainingCritical=0
+secondBuildDifferingProperties=0

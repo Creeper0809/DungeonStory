@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "battlefield-mana-storm",
+    "spoiler_tier": "none",
+    "title": "마나 폭풍"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-09",
+      "label": "관련",
+      "to": "world/battlefield-mana-storm",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-21",
+      "label": "관련",
+      "to": "world/battlefield-mana-storm",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-33",
+      "label": "관련",
+      "to": "world/battlefield-mana-storm",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

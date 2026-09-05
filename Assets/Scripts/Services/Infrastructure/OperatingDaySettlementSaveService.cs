@@ -79,7 +79,8 @@ public sealed class DungeonWarehouseStockSaveData
 {
     public string warehouseName = string.Empty;
     public int totalStock;
-    public int maxCapacity;
+    public long storedMassGrams;
+    public long maxMassGrams;
     public List<DungeonStockAmountSaveData> stocks = new List<DungeonStockAmountSaveData>();
 }
 
@@ -389,8 +390,8 @@ internal static class OperatingDaySettlementSaveValidation
             if (warehouse == null
                 || string.IsNullOrWhiteSpace(warehouse.warehouseName)
                 || warehouse.totalStock < 0
-                || warehouse.maxCapacity < 0
-                || warehouse.totalStock > warehouse.maxCapacity)
+                || warehouse.storedMassGrams < 0L
+                || warehouse.maxMassGrams <= 0L)
             {
                 report.AddError($"{prefix} warehouse {index} is invalid.");
                 continue;
@@ -634,7 +635,8 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
             {
                 warehouseName = warehouse.warehouseName,
                 totalStock = warehouse.totalStock,
-                maxCapacity = warehouse.maxCapacity,
+                storedMassGrams = warehouse.storedMassGrams,
+                maxMassGrams = warehouse.maxMassGrams,
                 stocks = warehouse.stocks.Select(stock =>
                     new DungeonStockAmountSaveData { category = stock.category, amount = stock.amount }).ToList()
             }).ToList(),
@@ -693,7 +695,8 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
                 .Select(warehouse => new WarehouseStockSummary(
                     warehouse.warehouseName,
                     warehouse.totalStock,
-                    warehouse.maxCapacity,
+                    warehouse.storedMassGrams,
+                    warehouse.maxMassGrams,
                     warehouse.stocks
                         .Select(stock => new StockConsumptionSummary(stock.category, stock.amount)).ToList()))
                 .ToList(),

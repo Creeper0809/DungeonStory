@@ -1,0 +1,67 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-fang",
+    "spoiler_tier": "none",
+    "title": "송곳니"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-bone",
+      "label": "필요 조건",
+      "to": "item/resource-fang",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-iron",
+      "label": "필요 조건",
+      "to": "item/resource-fang",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-steel",
+      "label": "필요 조건",
+      "to": "item/resource-fang",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bone-charm",
+      "label": "필요 조건",
+      "to": "item/resource-fang",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-trail-charm",
+      "label": "필요 조건",
+      "to": "item/resource-fang",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/source-animal-fang",
+      "label": "생산·해금",
+      "to": "item/resource-fang",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "nature/shadow-wolf",
+      "label": "관련",
+      "to": "item/resource-fang",
+      "type": "references"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-fang-poison",
+      "label": "필요 조건",
+      "to": "item/resource-fang",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -168,25 +168,317 @@ public sealed class ProductionBillSaveData
 }
 
 [Serializable]
+public enum ProductionExactOutputPublicationPhase
+{
+    None = 0,
+    Published = 1
+}
+
+[Serializable]
+public sealed class ProductionExactOutputPublicationStackSaveData
+{
+    public string outputLineId = string.Empty;
+    public int stackOrdinal;
+    public string stackId = string.Empty;
+    public string itemId = string.Empty;
+    public int quantity;
+    public long massGrams;
+    public string componentSignature = string.Empty;
+    public string itemInstanceId = string.Empty;
+
+    public ProductionExactOutputPublicationStackSaveData Clone() => new()
+    {
+        outputLineId = outputLineId,
+        stackOrdinal = stackOrdinal,
+        stackId = stackId,
+        itemId = itemId,
+        quantity = quantity,
+        massGrams = massGrams,
+        componentSignature = componentSignature,
+        itemInstanceId = itemInstanceId
+    };
+}
+
+[Serializable]
+public sealed class ProductionExactOutputPublicationSaveData
+{
+    public ProductionExactOutputPublicationPhase phase;
+    public string ownerStableId = string.Empty;
+    public string commitId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public string outputCapabilityId = string.Empty;
+    public int outputCapabilityVersion;
+    public string outputComponentCodecId = string.Empty;
+    public int outputComponentCodecVersion;
+    public string maximumProofDigest = string.Empty;
+    public long maximumMassGrams;
+    public string capacitySourceDigest = string.Empty;
+    public long requiredMinimumCapacityGrams;
+    public long exactMassGrams;
+    public string outcomeFingerprint = string.Empty;
+    public string plannedOutputFingerprint = string.Empty;
+    public string destinationId = string.Empty;
+    public int dropPositionX;
+    public int dropPositionY;
+    public string ownerDomain = string.Empty;
+    public string ownerOperationId = string.Empty;
+    public string ownerFacilityId = string.Empty;
+    public long capacityRevision;
+    public bool acknowledgedAtCapture;
+    public List<ProductionExactOutputPublicationStackSaveData> stacks = new();
+
+    public static ProductionExactOutputPublicationSaveData Empty() => new();
+
+    public ProductionExactOutputPublicationSaveData Clone() => new()
+    {
+        phase = phase,
+        ownerStableId = ownerStableId,
+        commitId = commitId,
+        facilityInstanceId = facilityInstanceId,
+        outputCapabilityId = outputCapabilityId,
+        outputCapabilityVersion = outputCapabilityVersion,
+        outputComponentCodecId = outputComponentCodecId,
+        outputComponentCodecVersion = outputComponentCodecVersion,
+        maximumProofDigest = maximumProofDigest,
+        maximumMassGrams = maximumMassGrams,
+        capacitySourceDigest = capacitySourceDigest,
+        requiredMinimumCapacityGrams = requiredMinimumCapacityGrams,
+        exactMassGrams = exactMassGrams,
+        outcomeFingerprint = outcomeFingerprint,
+        plannedOutputFingerprint = plannedOutputFingerprint,
+        destinationId = destinationId,
+        dropPositionX = dropPositionX,
+        dropPositionY = dropPositionY,
+        ownerDomain = ownerDomain,
+        ownerOperationId = ownerOperationId,
+        ownerFacilityId = ownerFacilityId,
+        capacityRevision = capacityRevision,
+        acknowledgedAtCapture = acknowledgedAtCapture,
+        stacks = (stacks ?? new List<ProductionExactOutputPublicationStackSaveData>())
+            .Where(value => value != null)
+            .Select(value => value.Clone())
+            .ToList()
+    };
+
+    public static ProductionExactOutputPublicationSaveData FromRuntime(
+        string ownerStableId,
+        ProductionCommittedOutputSnapshot snapshot) => new()
+    {
+        phase = ProductionExactOutputPublicationPhase.Published,
+        ownerStableId = ownerStableId,
+        commitId = snapshot.CommitId,
+        facilityInstanceId = snapshot.FacilityInstanceId,
+        outputCapabilityId = snapshot.OutputCapabilityId,
+        outputCapabilityVersion = snapshot.OutputCapabilityVersion,
+        outputComponentCodecId = snapshot.OutputComponentCodecId,
+        outputComponentCodecVersion = snapshot.OutputComponentCodecVersion,
+        maximumProofDigest = snapshot.MaximumProofDigest,
+        maximumMassGrams = snapshot.MaximumMassGrams,
+        capacitySourceDigest = snapshot.CapacitySourceDigest,
+        requiredMinimumCapacityGrams = snapshot.RequiredMinimumCapacityGrams,
+        exactMassGrams = snapshot.ExactMassGrams,
+        outcomeFingerprint = snapshot.OutcomeFingerprint,
+        plannedOutputFingerprint = snapshot.PlannedOutputFingerprint,
+        destinationId = snapshot.DestinationId,
+        dropPositionX = snapshot.DropPositionX,
+        dropPositionY = snapshot.DropPositionY,
+        ownerDomain = snapshot.OwnerDomain,
+        ownerOperationId = snapshot.OwnerOperationId,
+        ownerFacilityId = snapshot.OwnerFacilityId,
+        capacityRevision = snapshot.CapacityRevision,
+        acknowledgedAtCapture = snapshot.AcknowledgedAtCapture,
+        stacks = snapshot.Stacks.Select((value, ordinal) => new
+            ProductionExactOutputPublicationStackSaveData
+            {
+                outputLineId = value.OutputLineId,
+                stackOrdinal = ordinal,
+                stackId = value.StackId,
+                itemId = value.ItemId,
+                quantity = value.Quantity,
+                massGrams = value.MassGrams,
+                componentSignature = value.ComponentSignature,
+                itemInstanceId = value.ItemInstanceId
+            }).ToList()
+    };
+
+    public ProductionCommittedOutputSnapshot ToRuntimeSnapshot() => new(
+        commitId,
+        facilityInstanceId,
+        outputCapabilityId,
+        outputCapabilityVersion,
+        outputComponentCodecId,
+        outputComponentCodecVersion,
+        maximumProofDigest,
+        maximumMassGrams,
+        capacitySourceDigest,
+        requiredMinimumCapacityGrams,
+        exactMassGrams,
+        outcomeFingerprint,
+        plannedOutputFingerprint,
+        destinationId,
+        dropPositionX,
+        dropPositionY,
+        ownerDomain,
+        ownerOperationId,
+        ownerFacilityId,
+        capacityRevision,
+        acknowledgedAtCapture,
+        (stacks ?? new List<ProductionExactOutputPublicationStackSaveData>())
+            .Where(value => value != null)
+            .OrderBy(value => value.stackOrdinal)
+            .Select(value => new ProductionCommittedOutputStackSnapshot(
+                value.outputLineId,
+                value.stackId,
+                value.itemId,
+                value.quantity,
+                value.massGrams,
+                value.componentSignature,
+                value.itemInstanceId))
+            .ToArray());
+}
+
+public readonly struct ProductionCommittedOutputStackSnapshot
+{
+    public ProductionCommittedOutputStackSnapshot(
+        string outputLineId,
+        string stackId,
+        string itemId,
+        int quantity,
+        long massGrams,
+        string componentSignature,
+        string itemInstanceId)
+    {
+        OutputLineId = outputLineId ?? string.Empty;
+        StackId = stackId ?? string.Empty;
+        ItemId = itemId ?? string.Empty;
+        Quantity = quantity;
+        MassGrams = massGrams;
+        ComponentSignature = componentSignature ?? string.Empty;
+        ItemInstanceId = itemInstanceId ?? string.Empty;
+    }
+
+    public string OutputLineId { get; }
+    public string StackId { get; }
+    public string ItemId { get; }
+    public int Quantity { get; }
+    public long MassGrams { get; }
+    public string ComponentSignature { get; }
+    public string ItemInstanceId { get; }
+}
+
+public sealed class ProductionCommittedOutputSnapshot
+{
+    private readonly IReadOnlyList<ProductionCommittedOutputStackSnapshot> stacks;
+
+    public ProductionCommittedOutputSnapshot(
+        string commitId,
+        string facilityInstanceId,
+        string outputCapabilityId,
+        int outputCapabilityVersion,
+        string outputComponentCodecId,
+        int outputComponentCodecVersion,
+        string maximumProofDigest,
+        long maximumMassGrams,
+        string capacitySourceDigest,
+        long requiredMinimumCapacityGrams,
+        long exactMassGrams,
+        string outcomeFingerprint,
+        string plannedOutputFingerprint,
+        string destinationId,
+        int dropPositionX,
+        int dropPositionY,
+        string ownerDomain,
+        string ownerOperationId,
+        string ownerFacilityId,
+        long capacityRevision,
+        bool acknowledgedAtCapture,
+        IReadOnlyList<ProductionCommittedOutputStackSnapshot> stacks)
+    {
+        CommitId = commitId ?? string.Empty;
+        FacilityInstanceId = facilityInstanceId ?? string.Empty;
+        OutputCapabilityId = outputCapabilityId ?? string.Empty;
+        OutputCapabilityVersion = outputCapabilityVersion;
+        OutputComponentCodecId = outputComponentCodecId ?? string.Empty;
+        OutputComponentCodecVersion = outputComponentCodecVersion;
+        MaximumProofDigest = maximumProofDigest ?? string.Empty;
+        MaximumMassGrams = maximumMassGrams;
+        CapacitySourceDigest = capacitySourceDigest ?? string.Empty;
+        RequiredMinimumCapacityGrams = requiredMinimumCapacityGrams;
+        ExactMassGrams = exactMassGrams;
+        OutcomeFingerprint = outcomeFingerprint ?? string.Empty;
+        PlannedOutputFingerprint = plannedOutputFingerprint ?? string.Empty;
+        DestinationId = destinationId ?? string.Empty;
+        DropPositionX = dropPositionX;
+        DropPositionY = dropPositionY;
+        OwnerDomain = ownerDomain ?? string.Empty;
+        OwnerOperationId = ownerOperationId ?? string.Empty;
+        OwnerFacilityId = ownerFacilityId ?? string.Empty;
+        CapacityRevision = capacityRevision;
+        AcknowledgedAtCapture = acknowledgedAtCapture;
+        this.stacks = Array.AsReadOnly((stacks
+            ?? Array.Empty<ProductionCommittedOutputStackSnapshot>()).ToArray());
+    }
+
+    public string CommitId { get; }
+    public string FacilityInstanceId { get; }
+    public string OutputCapabilityId { get; }
+    public int OutputCapabilityVersion { get; }
+    public string OutputComponentCodecId { get; }
+    public int OutputComponentCodecVersion { get; }
+    public string MaximumProofDigest { get; }
+    public long MaximumMassGrams { get; }
+    public string CapacitySourceDigest { get; }
+    public long RequiredMinimumCapacityGrams { get; }
+    public long ExactMassGrams { get; }
+    public string OutcomeFingerprint { get; }
+    public string PlannedOutputFingerprint { get; }
+    public string DestinationId { get; }
+    public int DropPositionX { get; }
+    public int DropPositionY { get; }
+    public string OwnerDomain { get; }
+    public string OwnerOperationId { get; }
+    public string OwnerFacilityId { get; }
+    public long CapacityRevision { get; }
+    public bool AcknowledgedAtCapture { get; }
+    public IReadOnlyList<ProductionCommittedOutputStackSnapshot> Stacks => stacks;
+}
+
+[Serializable]
 public sealed class ProductionResolvedOutputSaveData
 {
+    public string outputLineId = string.Empty;
     public string itemId = string.Empty;
+    public string outputCapabilityId = string.Empty;
+    public int outputCapabilityVersion;
+    public string outputComponentCodecId = string.Empty;
+    public int outputComponentCodecVersion;
+    public string outputCapabilityFingerprint = string.Empty;
     public int amount;
     public int committedAmount;
     public long committedMassGrams;
     public string pendingCommitId = string.Empty;
     public bool pendingCommitApplied;
+    public ProductionExactOutputPublicationSaveData pendingOutputPublication =
+        ProductionExactOutputPublicationSaveData.Empty();
     public float qualityModifier;
     public float workerQuality;
 
     public ProductionResolvedOutputSaveData Clone() => new()
     {
+        outputLineId = outputLineId,
         itemId = itemId,
+        outputCapabilityId = outputCapabilityId,
+        outputCapabilityVersion = outputCapabilityVersion,
+        outputComponentCodecId = outputComponentCodecId,
+        outputComponentCodecVersion = outputComponentCodecVersion,
+        outputCapabilityFingerprint = outputCapabilityFingerprint,
         amount = amount,
         committedAmount = committedAmount,
         committedMassGrams = committedMassGrams,
         pendingCommitId = pendingCommitId,
         pendingCommitApplied = pendingCommitApplied,
+        pendingOutputPublication = pendingOutputPublication?.Clone()
+            ?? ProductionExactOutputPublicationSaveData.Empty(),
         qualityModifier = qualityModifier,
         workerQuality = workerQuality
     };
@@ -198,6 +490,11 @@ public sealed class ProductionPreparedOutputLineSaveData
     public string outputLineId = string.Empty;
     public ProductionOutputRole role;
     public string itemId = string.Empty;
+    public string outputCapabilityId = string.Empty;
+    public int outputCapabilityVersion;
+    public string outputComponentCodecId = string.Empty;
+    public int outputComponentCodecVersion;
+    public string outputCapabilityFingerprint = string.Empty;
     public int quantity;
     public string componentPayload = string.Empty;
     public string componentFingerprint = string.Empty;
@@ -214,6 +511,11 @@ public sealed class ProductionPreparedOutputLineSaveData
         outputLineId = outputLineId,
         role = role,
         itemId = itemId,
+        outputCapabilityId = outputCapabilityId,
+        outputCapabilityVersion = outputCapabilityVersion,
+        outputComponentCodecId = outputComponentCodecId,
+        outputComponentCodecVersion = outputComponentCodecVersion,
+        outputCapabilityFingerprint = outputCapabilityFingerprint,
         quantity = quantity,
         componentPayload = componentPayload,
         componentFingerprint = componentFingerprint,
@@ -258,7 +560,7 @@ public sealed class ProductionPreparedOutputPhysicalCandidateSaveData
 [Serializable]
 public sealed class ProductionPreparedOutputBatchSaveData
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 7;
 
     public int schemaVersion = CurrentSchemaVersion;
     public ProductionPreparedOutputPhase phase =
@@ -270,6 +572,9 @@ public sealed class ProductionPreparedOutputBatchSaveData
     public string recipeDefinitionDigest = string.Empty;
     public string migrationProfileDigest = string.Empty;
     public string capacitySourceDigest = string.Empty;
+    public string maximumMassProofDigest = string.Empty;
+    public long maximumBatchMassGrams;
+    public string capacityClaimDigest = string.Empty;
     public int outputBufferCycleCapacity;
     public long projectedPortfolioCapacityGrams;
     public long requiredMinimumCapacityGrams;
@@ -278,6 +583,7 @@ public sealed class ProductionPreparedOutputBatchSaveData
     public string batchCommitId = string.Empty;
     public long totalPhysicalMassGrams;
     public long totalDeclaredLossMassGrams;
+    public long totalDeclaredExternalInputMassGrams;
     public List<ProductionPreparedOutputLineSaveData> lines = new();
     public List<ProductionPreparedOutputPhysicalCandidateSaveData>
         physicalCandidates = new();
@@ -293,6 +599,9 @@ public sealed class ProductionPreparedOutputBatchSaveData
         recipeDefinitionDigest = recipeDefinitionDigest,
         migrationProfileDigest = migrationProfileDigest,
         capacitySourceDigest = capacitySourceDigest,
+        maximumMassProofDigest = maximumMassProofDigest,
+        maximumBatchMassGrams = maximumBatchMassGrams,
+        capacityClaimDigest = capacityClaimDigest,
         outputBufferCycleCapacity = outputBufferCycleCapacity,
         projectedPortfolioCapacityGrams = projectedPortfolioCapacityGrams,
         requiredMinimumCapacityGrams = requiredMinimumCapacityGrams,
@@ -301,6 +610,8 @@ public sealed class ProductionPreparedOutputBatchSaveData
         batchCommitId = batchCommitId,
         totalPhysicalMassGrams = totalPhysicalMassGrams,
         totalDeclaredLossMassGrams = totalDeclaredLossMassGrams,
+        totalDeclaredExternalInputMassGrams =
+            totalDeclaredExternalInputMassGrams,
         lines = (lines ?? new List<ProductionPreparedOutputLineSaveData>())
             .Select(value => value?.Clone())
             .ToList(),
@@ -357,6 +668,11 @@ public static class ProductionPreparedOutputContract
             return;
         }
 
+        bool hasMaximumMassProof = IsDigest(batch.maximumMassProofDigest)
+            && batch.maximumBatchMassGrams > 0L
+            && IsDigest(batch.capacityClaimDigest);
+        long capacityBatchMassGrams = batch.maximumBatchMassGrams;
+
         if (!expectedBillId.IsValid
             || !IsCanonical(expectedRecipeId)
             || expectedCycleSequence < 1
@@ -371,13 +687,15 @@ public static class ProductionPreparedOutputContract
             || !IsDigest(batch.recipeDefinitionDigest)
             || !IsDigest(batch.migrationProfileDigest)
             || !IsDigest(batch.capacitySourceDigest)
+            || !hasMaximumMassProof
+            || batch.totalPhysicalMassGrams > batch.maximumBatchMassGrams
             || batch.outputBufferCycleCapacity is < 2 or > 4
             || batch.projectedPortfolioCapacityGrams <= 0L
             || batch.requiredMinimumCapacityGrams
                 != Math.Max(
                     batch.projectedPortfolioCapacityGrams,
                     checked(
-                        batch.totalPhysicalMassGrams
+                        capacityBatchMassGrams
                         * batch.outputBufferCycleCapacity))
             || !IsDigest(batch.outcomeFingerprint)
             || !string.Equals(
@@ -389,6 +707,7 @@ public static class ProductionPreparedOutputContract
                 StringComparison.Ordinal)
             || batch.totalPhysicalMassGrams <= 0L
             || batch.totalDeclaredLossMassGrams < 0L
+            || batch.totalDeclaredExternalInputMassGrams < 0L
             || batch.lines.Count == 0)
         {
             throw new InvalidOperationException(
@@ -429,6 +748,11 @@ public static class ProductionPreparedOutputContract
             || batch.migrationProfileDigest.Length != 0
             || batch.capacitySourceDigest == null
             || batch.capacitySourceDigest.Length != 0
+            || batch.maximumMassProofDigest == null
+            || batch.maximumMassProofDigest.Length != 0
+            || batch.maximumBatchMassGrams != 0L
+            || batch.capacityClaimDigest == null
+            || batch.capacityClaimDigest.Length != 0
             || batch.outputBufferCycleCapacity != 0
             || batch.projectedPortfolioCapacityGrams != 0L
             || batch.requiredMinimumCapacityGrams != 0L
@@ -440,6 +764,7 @@ public static class ProductionPreparedOutputContract
             || batch.batchCommitId.Length != 0
             || batch.totalPhysicalMassGrams != 0L
             || batch.totalDeclaredLossMassGrams != 0L
+            || batch.totalDeclaredExternalInputMassGrams != 0L
             || batch.lines.Count != 0
             || batch.physicalCandidates.Count != 0)
         {
@@ -455,23 +780,53 @@ public static class ProductionPreparedOutputContract
         int mainCount = 0;
         long physicalMass = 0L;
         long declaredLossMass = 0L;
+        long declaredExternalInputMass = 0L;
         foreach (ProductionPreparedOutputLineSaveData line in batch.lines)
         {
             bool roleDefined = line != null
                 && Enum.IsDefined(typeof(ProductionOutputRole), line.role);
             bool declaredLoss = roleDefined
                 && line.role == ProductionOutputRole.DeclaredLoss;
+            bool declaredExternalInput = roleDefined
+                && line.role == ProductionOutputRole.DeclaredExternalInput;
+            bool nonPhysical = roleDefined
+                && ProductionOutputRoleRules.IsNonPhysical(line.role);
             bool canonicalPhysical = line != null
                 && IsCanonical(line.itemId)
                 && (line.rollSucceeded
                     ? line.quantity > 0 && line.exactMassGrams > 0L
                     : line.quantity == 0 && line.exactMassGrams == 0L);
-            bool canonicalLoss = line != null
+            bool canonicalNonPhysical = line != null
                 && line.itemId != null
                 && line.itemId.Length == 0
                 && line.quantity == 0
                 && line.rollSucceeded
                 && line.exactMassGrams > 0L;
+            bool canonicalCapability = line != null
+                && (nonPhysical
+                    ? line.outputCapabilityId != null
+                        && line.outputCapabilityId.Length == 0
+                        && line.outputCapabilityVersion == 0
+                        && line.outputComponentCodecId != null
+                        && line.outputComponentCodecId.Length == 0
+                        && line.outputComponentCodecVersion == 0
+                        && line.outputCapabilityFingerprint != null
+                        && line.outputCapabilityFingerprint.Length == 0
+                    : IsCanonicalToken(line.outputCapabilityId)
+                        && line.outputCapabilityVersion > 0
+                        && IsCanonicalToken(line.outputComponentCodecId)
+                        && line.outputComponentCodecVersion > 0
+                        && IsDigest(line.outputCapabilityFingerprint)
+                        && string.Equals(
+                            line.outputCapabilityFingerprint,
+                            ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                                line.outputLineId,
+                                line.itemId,
+                                line.outputCapabilityId,
+                                line.outputCapabilityVersion,
+                                line.outputComponentCodecId,
+                                line.outputComponentCodecVersion),
+                            StringComparison.Ordinal));
             if (line == null
                 || !roleDefined
                 || !IsCanonicalOutputLineId(line.outputLineId)
@@ -490,7 +845,10 @@ public static class ProductionPreparedOutputContract
                 || line.rollUpperExclusive <= 0L
                 || line.rollValue < 0L
                 || line.rollValue >= line.rollUpperExclusive
-                || (declaredLoss ? !canonicalLoss : !canonicalPhysical)
+                || (nonPhysical
+                    ? !canonicalNonPhysical
+                    : !canonicalPhysical)
+                || !canonicalCapability
                 || !string.Equals(
                     line.lineCommitId,
                     ProductionPreparedOutputIdentity.BuildLineCommitId(
@@ -512,6 +870,11 @@ public static class ProductionPreparedOutputContract
                 declaredLossMass = checked(
                     declaredLossMass + line.exactMassGrams);
             }
+            else if (declaredExternalInput)
+            {
+                declaredExternalInputMass = checked(
+                    declaredExternalInputMass + line.exactMassGrams);
+            }
             else
             {
                 physicalMass = checked(physicalMass + line.exactMassGrams);
@@ -519,7 +882,9 @@ public static class ProductionPreparedOutputContract
         }
         if (mainCount != 1
             || physicalMass != batch.totalPhysicalMassGrams
-            || declaredLossMass != batch.totalDeclaredLossMassGrams)
+            || declaredLossMass != batch.totalDeclaredLossMassGrams
+            || declaredExternalInputMass !=
+                batch.totalDeclaredExternalInputMassGrams)
         {
             throw new InvalidOperationException(
                 "Prepared production output line totals or Main authority are inconsistent.");
@@ -544,7 +909,7 @@ public static class ProductionPreparedOutputContract
 
         Dictionary<string, ProductionPreparedOutputLineSaveData> physicalLines =
             batch.lines
-                .Where(line => line.role != ProductionOutputRole.DeclaredLoss
+                .Where(line => ProductionOutputRoleRules.IsPhysical(line.role)
                     && line.quantity > 0)
                 .ToDictionary(line => line.outputLineId, StringComparer.Ordinal);
         Dictionary<string, (int Quantity, long Mass)> published =
@@ -983,7 +1348,8 @@ public sealed class ProductionInstalledStockSensorSaveData
 public enum ProductionStockSensorRemovalPhase
 {
     Prepared = 0,
-    OutputPublished = 1
+    OutputPublished = 1,
+    OwnerAcknowledgedAwaitingCheckpointGc = 2
 }
 
 [Serializable]
@@ -1118,7 +1484,7 @@ public sealed class ProductionSelectedSupplySaveData
 [Serializable]
 public sealed class DungeonProductionBillSaveData
 {
-    public const int CurrentVersion = 17;
+    public const int CurrentVersion = 22;
 
     public int version = CurrentVersion;
     public int nextBillSequence = 1;

@@ -1,0 +1,51 @@
+# OffenseEncounterSO
+
+전투·건강·세계 영역의 작성 콘텐츠 유형이다.
+
+총 36개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
+
+## 데이터
+
+- [유형별 콘텐츠 CSV](../../../csv/combat-health-world/offense-encounter.csv)
+- [중첩 작성 필드 CSV](../../../fields/combat-health-world/offense-encounter.csv)
+- [정방향 관계 CSV](../../../relations/combat-health-world/offense-encounter.csv)
+- [역방향 관계 CSV](../../../incoming/combat-health-world/offense-encounter.csv)
+
+| 안정 ID | 이름 | 전략적 역할 | 비용·위험 | 런타임 상태 | 수명주기 | 역참조 | 구현 권위 |
+|---|---|---|---|---|---|---:|---|
+| `encounter:01` | 왕령 농지 징발 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_01.asset](../../../../../Assets/Resources/SO/Offense/Encounters/encounter_01.asset) |
+| `encounter:02` | 왕령 호송대 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_02.asset](../../../../../Assets/Resources/SO/Offense/Encounters/encounter_02.asset) |
+| `encounter:03` | 도시연맹 무기고 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_03.asset](../../../../../Assets/Resources/SO/Offense/Encounters/encounter_03.asset) |
+| `encounter:04` | 성화 비전 봉쇄 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_04.asset](../../../../../Assets/Resources/SO/Offense/Encounters/encounter_04.asset) |
+| `encounter:05` | 경쟁 던전 척후 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_05.asset](../../../../../Assets/Resources/SO/Offense/Encounters/encounter_05.asset) |
+| `encounter:06` | 진실 봉인실 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_06.asset](../../../../../Assets/Resources/SO/Offense/Encounters/encounter_06.asset) |
+| `encounter:07` | 도시연맹 파비스 전열 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_07.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_07.asset) |
+| `encounter:08` | 도시연맹 화약 일제 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_08.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_08.asset) |
+| `encounter:09` | 도시연맹 야전병원 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_09.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_09.asset) |
+| `encounter:10` | 도시연맹 지휘소 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_10.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_10.asset) |
+| `encounter:11` | 성화 심문 정화대 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_11.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_11.asset) |
+| `encounter:12` | 성화 결계기사 생포 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_12.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_12.asset) |
+| `encounter:13` | 성화 룬저격수 교량 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_13.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_13.asset) |
+| `encounter:14` | 성화 검열관 방어선 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_14.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_14.asset) |
+| `encounter:15` | 성화 대심문관의 선고 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_15.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_15.asset) |
+| `encounter:16` | 금화동맹 대상 호위 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_16.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_16.asset) |
+| `encounter:17` | 금화동맹 화물 방벽 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_17.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_17.asset) |
+| `encounter:18` | 금화동맹 석궁 지휘관 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_18.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_18.asset) |
+| `encounter:19` | 금화동맹 연금 연무 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_19.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_19.asset) |
+| `encounter:20` | 금화동맹 전투지배인 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_20.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_20.asset) |
+| `encounter:21` | 자유개척 덫사냥꾼 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_21.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_21.asset) |
+| `encounter:22` | 자유개척 임시 방벽 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_22.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_22.asset) |
+| `encounter:23` | 자유개척 추적 사냥 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_23.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_23.asset) |
+| `encounter:24` | 자유개척 약초사 생포 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_24.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_24.asset) |
+| `encounter:25` | 자유개척 순찰대 결전 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_25.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_25.asset) |
+| `encounter:26` | 경쟁 던전 무리파쇄자 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_26.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_26.asset) |
+| `encounter:27` | 경쟁 던전 계약결속사 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_27.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_27.asset) |
+| `encounter:28` | 경쟁 던전 공성골렘 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_28.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_28.asset) |
+| `encounter:29` | 경쟁 던전 폭풍부름꾼 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_29.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_29.asset) |
+| `encounter:30` | 경쟁 던전 포자목자 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_30.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_30.asset) |
+| `encounter:31` | 진실 봉인수호자 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_31.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_31.asset) |
+| `encounter:32` | 진실 무효감시자 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_32.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_32.asset) |
+| `encounter:33` | 진실 기록집행자 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_33.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_33.asset) |
+| `encounter:34` | 중립 용병 계약 붕괴 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_34.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_34.asset) |
+| `encounter:35` | 유랑 태엽구성체 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_35.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_35.asset) |
+| `encounter:36` | 연막 공병 생포 | 전투·건강·세계 영역의 OffenseEncounterSO 규칙을 분리해 재사용한다. | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [encounter_36.asset](../../../../../Assets/Resources/SO/V20/Combat/Encounters/encounter_36.asset) |

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "battlefield-spore-bloom",
+  "spoiler_tier": "none",
+  "summary": "장기전일수록 포자 노출과 시야 방해가 누적된다.",
+  "title": "포자 개화"
+}

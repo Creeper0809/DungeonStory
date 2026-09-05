@@ -1,0 +1,25 @@
+{
+  "facts": [
+    {
+      "label": "주전문",
+      "value": "현장 작업"
+    },
+    {
+      "label": "부전문",
+      "value": "건설·공학"
+    },
+    {
+      "label": "숙련 보너스",
+      "value": "0개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "history-frontier-farmer",
+  "spoiler_tier": "none",
+  "summary": "개척 농부으로 일하며 주전문과 부전문을 익혔다.",
+  "title": "개척 농부"
+}

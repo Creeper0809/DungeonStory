@@ -1,0 +1,163 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-plumbing-basics",
+    "spoiler_tier": "none",
+    "title": "기초 배관과 펌프 급수"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "to": "research/research-survival-sanitation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "to": "research/research-survival-sanitation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "to": "research/research-survival-sanitation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9802",
+      "target_spoiler_tier": "none",
+      "target_title": "상수관",
+      "to": "facility/building-9802",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9816",
+      "target_spoiler_tier": "none",
+      "target_title": "전동 양수 펌프",
+      "to": "facility/building-9816",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9817",
+      "target_spoiler_tier": "none",
+      "target_title": "상수 탱크",
+      "to": "facility/building-9817",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-basics",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9819",
+      "target_spoiler_tier": "none",
+      "target_title": "물통 충전소",
+      "to": "facility/building-9819",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-agriculture-greenhouse-horticulture",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-plumbing-sewer",
+      "label": "선행 연구",
+      "to": "research/research-plumbing-basics",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

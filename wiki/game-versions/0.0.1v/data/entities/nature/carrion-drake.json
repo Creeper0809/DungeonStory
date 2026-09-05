@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-hare",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자토끼",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-gut-rot",
+      "target_spoiler_tier": "none",
+      "target_title": "장부패증",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "carrion-drake",
+  "spoiler_tier": "none",
+  "summary": "전장과 도살장의 사체를 찾아오며 병원체를 먼 거리로 옮긴다.",
+  "title": "시체청소 비룡"
+}

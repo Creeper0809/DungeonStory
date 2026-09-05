@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Status"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-become-steward",
+  "spoiler_tier": "none",
+  "summary": "던전의 혼란을 정리하는 공식 관리인이 되려 한다.",
+  "title": "관리인의 자리"
+}

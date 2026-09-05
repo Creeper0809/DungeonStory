@@ -30,20 +30,48 @@ public readonly struct WorldResourceRenewablePatchSnapshot
 {
     public WorldResourceRenewablePatchSnapshot(
         WildlifeHabitatPatchId patchId,
+        WildlifeHabitatType habitatType,
         Vector2Int position,
         float currentResource,
         float resourceRatio)
     {
         PatchId = patchId;
+        HabitatType = habitatType;
         Position = position;
         CurrentResource = Mathf.Max(0f, currentResource);
         ResourceRatio = Mathf.Clamp01(resourceRatio);
     }
 
     public WildlifeHabitatPatchId PatchId { get; }
+    public WildlifeHabitatType HabitatType { get; }
     public Vector2Int Position { get; }
     public float CurrentResource { get; }
     public float ResourceRatio { get; }
+}
+
+public readonly struct WorldResourceRenewableDebitReceipt
+{
+    public WorldResourceRenewableDebitReceipt(
+        WildlifeHabitatPatchId patchId,
+        float amount,
+        float beforeResource,
+        float afterResource)
+    {
+        PatchId = patchId;
+        Amount = amount;
+        BeforeResource = beforeResource;
+        AfterResource = afterResource;
+    }
+
+    public WildlifeHabitatPatchId PatchId { get; }
+    public float Amount { get; }
+    public float BeforeResource { get; }
+    public float AfterResource { get; }
+    public bool IsValid => PatchId.IsValid
+        && Amount > 0f
+        && BeforeResource >= Amount
+        && AfterResource >= 0f
+        && BeforeResource > AfterResource;
 }
 
 public sealed class WorldResourceTopologySnapshot
@@ -76,9 +104,12 @@ public interface IWorldResourceEnvironmentPort
     bool TryGetRenewablePatch(
         WildlifeHabitatPatchId patchId,
         out WorldResourceRenewablePatchSnapshot patch);
-    float ConsumeRenewablePatch(
+    bool TryConsumeRenewablePatchExact(
         WildlifeHabitatPatchId patchId,
-        float amount);
+        float amount,
+        out WorldResourceRenewableDebitReceipt receipt);
+    bool TryRollbackRenewablePatchDebit(
+        WorldResourceRenewableDebitReceipt receipt);
     void RefreshRenewablePatch(WildlifeHabitatPatchId patchId);
     void SetResourceVisualActive(string visualId, bool active);
 }
@@ -98,16 +129,6 @@ public interface IWorldResourceNodeHostPort
     void DestroyNode(WorldResourceNode node);
     void MarkDynamicStateDirty();
     void ResetCandidatesAndReplan();
-}
-
-public interface IWorldResourceOutputPort
-{
-    bool CanSpawnOutput(
-        string itemId,
-        int amount,
-        Vector2Int position,
-        out DomainFailure failure);
-    bool SpawnOutput(string itemId, int amount, Vector2Int position);
 }
 
 public interface IWorldResourceResearchPort

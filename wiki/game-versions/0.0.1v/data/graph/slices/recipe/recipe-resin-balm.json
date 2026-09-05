@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-resin-balm",
+    "spoiler_tier": "none",
+    "title": "수액 연고"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-resin-balm",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-resin-balm",
+      "target_spoiler_tier": "none",
+      "target_title": "수액 연고",
+      "to": "item/craft-resin-balm",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-resin-balm",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-tallow",
+      "target_spoiler_tier": "none",
+      "target_title": "정제 지방",
+      "to": "item/material-tallow",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-resin-balm",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-dark-resin",
+      "target_spoiler_tier": "none",
+      "target_title": "암흑수액",
+      "to": "item/resource-dark-resin",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-resin-balm",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-moonflower",
+      "target_spoiler_tier": "none",
+      "target_title": "월화",
+      "to": "item/resource-moonflower",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-resin-balm",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독·붕대",
+      "to": "research/research-pharmacology-antiseptic",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.3kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "60개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "6"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "벽, 바닥, 엄폐와 석조 장식의 재료이다. 특히 노르칸드라산 석재 블록의 붉은 줄은 붕괴 위험 경고다. 좋은 광맥 표시로 읽으면 돌아오지 못한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-stone-block",
+  "spoiler_tier": "none",
+  "summary": "벽, 바닥, 엄폐와 석조 장식의 재료.",
+  "title": "석재 블록"
+}

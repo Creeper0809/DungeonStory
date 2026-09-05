@@ -1,0 +1,62 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "방어구 재단"
+    },
+    {
+      "label": "제작 작업",
+      "value": "168"
+    },
+    {
+      "label": "무게",
+      "value": "5.4kg"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-hardened-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "경화 가죽",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-armor-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "방어구 재단",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-quilted-liner",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 충전재",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-plate-blank",
+      "target_spoiler_tier": "none",
+      "target_title": "판금 소재판",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-jack-of-plates",
+  "spoiler_tier": "none",
+  "summary": "잭 오브 플레이트 전투 장비",
+  "title": "잭 오브 플레이트"
+}

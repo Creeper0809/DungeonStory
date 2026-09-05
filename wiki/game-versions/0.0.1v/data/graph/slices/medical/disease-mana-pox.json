@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "disease-mana-pox",
+    "spoiler_tier": "none",
+    "title": "마나두창"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/glow-moth",
+      "label": "관련",
+      "to": "medical/disease-mana-pox",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/mana-wisp",
+      "label": "관련",
+      "to": "medical/disease-mana-pox",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

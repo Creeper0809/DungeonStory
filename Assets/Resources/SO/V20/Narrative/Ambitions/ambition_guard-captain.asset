@@ -14,8 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::CharacterAmbitionDefinitionSO
   stableId: ambition:guard-captain
   displayName: "\uACBD\uBE44\uB300\uC758 \uC2E0\uB8B0"
-  description: "\uC2B9\uB9AC\uAC00 \uC544\uB2C8\uB77C \uBAA8\uB450\uB97C \uADC0\uD658\uC2DC\uD0A4\uB294
-    \uC9C0\uD718\uAD00\uC73C\uB85C \uC778\uC815\uBC1B\uC73C\uB824 \uD55C\uB2E4."
+  description: "\uBAA8\uB450\uB97C \uADC0\uD658\uC2DC\uD0A4\uB294 \uC9C0\uD718\uAD00\uC73C\uB85C \uC778\uC815\uBC1B\uC73C\uB824 \uD55C\uB2E4."
   authoringRevision: 1
   sourceNote: V20 content-density expansion; hand-authored Korean source revision
     1.

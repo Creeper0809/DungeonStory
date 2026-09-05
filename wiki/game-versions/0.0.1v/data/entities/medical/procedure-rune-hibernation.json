@@ -1,0 +1,44 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "64"
+    },
+    {
+      "label": "필요 연구",
+      "value": "룬 동면"
+    },
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medical-rune-hibernation-catalyst",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 동면 촉매",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-rune-hibernation",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 동면",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "procedure-rune-hibernation",
+  "spoiler_tier": "none",
+  "summary": "룬 동면 촉매를 사용해 활동을 멈추고 노화를 늦춘다.",
+  "title": "룬 동면"
+}

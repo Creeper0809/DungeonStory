@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "130"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "전문 연구와 의식·마력 물류를 위한 2단계 비전 파츠를 즉시 해금한다. 베르사디온의 비전 연구 설계도에는 발견의 소유권과 마나 사고의 배상 책임을 적는 빈칸이 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "research-blueprint-6104",
+  "spoiler_tier": "none",
+  "summary": "전문 연구와 의식·마력 물류를 위한 2단계 비전 파츠를 즉시 해금한다.",
+  "title": "비전 연구 설계도"
+}

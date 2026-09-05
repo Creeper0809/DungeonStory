@@ -1,0 +1,53 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-compost",
+    "spoiler_tier": "none",
+    "title": "퇴비"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-compost-animal",
+      "label": "생산·해금",
+      "to": "item/material-compost",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-compost-manure",
+      "label": "생산·해금",
+      "to": "item/material-compost",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-compost-mixed",
+      "label": "생산·해금",
+      "to": "item/material-compost",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-compost-plant",
+      "label": "생산·해금",
+      "to": "item/material-compost",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-nitrate-fertilizer",
+      "label": "필요 조건",
+      "to": "item/material-compost",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-supply-mushroom-substrate",
+      "label": "필요 조건",
+      "to": "item/material-compost",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

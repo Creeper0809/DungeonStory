@@ -13,6 +13,7 @@ internal sealed class CaptivityInteractionRuntime
     private readonly CaptivityActorRuntimeLookup actorRuntime;
     private readonly CaptivityInteractionRegistry interactions;
     private readonly IWorldItemStackRuntime itemRuntime;
+    private readonly ICaptivityInteractionMaterialRuntime materials;
     private readonly TryGetCaptiveHousing tryGetHousing;
 
     public CaptivityInteractionRuntime(
@@ -20,6 +21,7 @@ internal sealed class CaptivityInteractionRuntime
         CaptivityActorRuntimeLookup actorRuntime,
         CaptivityInteractionRegistry interactions,
         IWorldItemStackRuntime itemRuntime,
+        ICaptivityInteractionMaterialRuntime materials,
         TryGetCaptiveHousing tryGetHousing)
     {
         this.actors = actors ?? throw new ArgumentNullException(nameof(actors));
@@ -27,6 +29,7 @@ internal sealed class CaptivityInteractionRuntime
             ?? throw new ArgumentNullException(nameof(actorRuntime));
         this.interactions = interactions ?? throw new ArgumentNullException(nameof(interactions));
         this.itemRuntime = itemRuntime ?? throw new ArgumentNullException(nameof(itemRuntime));
+        this.materials = materials ?? throw new ArgumentNullException(nameof(materials));
         this.tryGetHousing = tryGetHousing ?? throw new ArgumentNullException(nameof(tryGetHousing));
     }
 
@@ -64,29 +67,13 @@ internal sealed class CaptivityInteractionRuntime
             return false;
         }
 
-        string materialDestinationId =
-            $"captivity-interaction:{state.captiveId}:{handler.InteractionId}";
-        foreach (KeyValuePair<StockCategory, int> cost in
-                 handler.MaterialRequirements.Where(item => item.Value > 0))
+        if (!materials.TryOpenAndRequest(
+                state,
+                handler,
+                facility,
+                out string materialDestinationId,
+                out failureReason))
         {
-            if (itemRuntime.TryRequestFacilityDelivery(
-                    cost.Key,
-                    cost.Value,
-                    interactionPosition,
-                    materialDestinationId,
-                    out int requested,
-                    out string deliveryReason)
-                && requested >= cost.Value)
-            {
-                continue;
-            }
-
-            itemRuntime.ReleaseStacksByDestination(
-                materialDestinationId,
-                interactionPosition);
-            failureReason = string.IsNullOrWhiteSpace(deliveryReason)
-                ? $"{cost.Key} 재료를 충분히 예약할 수 없습니다."
-                : deliveryReason;
             return false;
         }
 
@@ -144,9 +131,9 @@ internal sealed class CaptivityInteractionRuntime
 
         if (!state.interactionMaterialsConsumed)
         {
-            if (!itemRuntime.TryConsumeFacilityBuffer(
-                    state.interactionMaterialDestinationId,
-                    handler.MaterialRequirements,
+            if (!materials.TryCommitSink(
+                    state,
+                    handler,
                     out string materialReason))
             {
                 status = string.IsNullOrWhiteSpace(materialReason)
@@ -211,43 +198,25 @@ internal sealed class CaptivityInteractionRuntime
             return true;
         }
 
-        IReadOnlyList<WorldItemStackSnapshot> stacks = itemRuntime.GetAllStacks();
-        foreach (KeyValuePair<StockCategory, int> requirement in
-                 handler.MaterialRequirements.Where(entry => entry.Value > 0))
-        {
-            int delivered = stacks
-                .Where(stack => stack != null
-                    && stack.State == WorldItemStackState.FacilityBuffer
-                    && string.Equals(
-                        stack.DestinationId,
-                        state.interactionMaterialDestinationId,
-                        StringComparison.Ordinal)
-                    && stack.StockCategory == requirement.Key)
-                .Sum(stack => stack.AvailableQuantity);
-            if (delivered < requirement.Value)
-            {
-                reason =
-                    $"Interaction input pending: {requirement.Key} "
-                    + $"{delivered}/{requirement.Value}.";
-                return false;
-            }
-        }
-
-        return true;
+        return materials.IsReady(state, handler, out reason);
     }
 
     public void ReleaseMaterials(CaptiveState state)
     {
         if (state == null
-            || state.interactionMaterialsConsumed
             || string.IsNullOrWhiteSpace(state.interactionMaterialDestinationId))
         {
             return;
         }
-
-        itemRuntime.ReleaseStacksByDestination(
-            state.interactionMaterialDestinationId,
-            state.housingPosition);
+        if (!materials.TryClose(
+                state,
+                "captivity-interaction-terminal",
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Captivity interaction material authority could not close: "
+                + failureReason);
+        }
     }
 
     private void ApplyResult(

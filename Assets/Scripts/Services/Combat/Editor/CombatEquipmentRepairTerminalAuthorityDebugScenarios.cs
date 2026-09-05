@@ -332,7 +332,12 @@ public static class CombatEquipmentRepairTerminalAuthorityDebugScenarios
             };
             buildingData.Facility.SetSupportedWorkTypeIds(
                 new[] { BuiltInWorkTypeIds.Repair });
+            FacilityData facilitySettings = buildingData.Facility;
             buildingData.ReplaceAbilities(new BuildingAbilityCollection());
+            buildingData.AbilityModules.Add(new BuildingFacilityAbility
+            {
+                settings = facilitySettings
+            });
             buildingData.AbilityModules.Add(
                 new BuildingEquipmentMaintenanceAbility());
 
@@ -406,7 +411,10 @@ public static class CombatEquipmentRepairTerminalAuthorityDebugScenarios
                 Capacities);
             EquipmentMaintenanceWorldServices worldServices = new(
                 world,
-                CreateProxy<IDefenseEngagementRuntime>());
+                CreateProxy<IDefenseEngagementStore>((method, _) =>
+                    method.Name == "get_Engagements"
+                        ? Array.Empty<DefenseEngagement>()
+                        : DefaultValue(method.ReturnType)));
             EquipmentMaintenanceClockServices clocks = new(
                 CreateProxy<IGameClock>(),
                 CreateProxy<IUiClock>());
@@ -803,7 +811,7 @@ public static class CombatEquipmentRepairTerminalAuthorityDebugScenarios
             int quantity) => new(Math.Max(1, quantity) * 2_000L);
     }
 
-    public sealed class ConfigurableDispatchProxy : DispatchProxy
+    public class ConfigurableDispatchProxy : DispatchProxy
     {
         public Func<MethodInfo, object[], object> Handler { get; set; }
 

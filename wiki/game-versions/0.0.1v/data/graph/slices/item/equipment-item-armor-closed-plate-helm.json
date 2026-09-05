@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-armor-closed-plate-helm",
+    "spoiler_tier": "none",
+    "title": "폐쇄형 판금 투구"
+  },
+  "edges": [],
+  "schema_version": 1
+}

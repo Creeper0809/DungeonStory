@@ -1,0 +1,123 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-steel-ingot",
+    "spoiler_tier": "none",
+    "title": "강철"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-steel",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-steel",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-material-test-coupon",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-steel-ingot",
+      "label": "생산·해금",
+      "to": "item/material-steel-ingot",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-artificial-eye",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-alloy-crucible",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-powered-tool-head",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-blacksteel",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-growth-frame",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-precision-parts",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-mana-alloy",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-surgery-prosthetic-arm",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-material-barrel-steel",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-material-spring-steel",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "from": "recipe/recipe-material-plate-blank",
+      "label": "필요 조건",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

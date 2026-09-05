@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.65kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "재료가 섞여 식성을 구분하기 어려운 부패물이다. 므네실라의 정원지기는 혼합 부패물을 바로 퇴비로 쓰지 않고 독성과 포자 반응을 작은 흙밭에서 먼저 시험한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "waste-mixed-rot",
+  "spoiler_tier": "none",
+  "summary": "재료가 섞여 식성을 구분하기 어려운 부패물.",
+  "title": "혼합 부패물"
+}

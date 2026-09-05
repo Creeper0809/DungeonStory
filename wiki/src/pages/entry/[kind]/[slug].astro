@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../../../components/BaseLayout.astro';
+import EntryContent from '../../../components/EntryContent.astro';
+import { getCurrentVersion, getEntity } from '../../../lib/wiki-data';
+
+const version = getCurrentVersion();
+const entity = getEntity(version, Astro.params.kind ?? '', Astro.params.slug ?? '');
+if (!entity) return new Response(null, { status: 404 });
+---
+
+<BaseLayout title={entity.spoiler_tier === 'warning' ? '스포일러 콘텐츠' : entity.title} description={entity.spoiler_tier === 'warning' ? '스포일러 경고가 있는 DungeonStory 문서' : entity.summary} version={version}>
+  <EntryContent entity={entity} version={version} />
+</BaseLayout>

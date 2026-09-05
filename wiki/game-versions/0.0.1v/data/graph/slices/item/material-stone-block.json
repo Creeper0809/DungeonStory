@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-stone-block",
+    "spoiler_tier": "none",
+    "title": "석재 블록"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-iron-slag-block",
+      "label": "생산·해금",
+      "to": "item/material-stone-block",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-stone-block",
+      "label": "생산·해금",
+      "to": "item/material-stone-block",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-stone-ornament",
+      "label": "필요 조건",
+      "to": "item/material-stone-block",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-alloy-crucible",
+      "label": "필요 조건",
+      "to": "item/material-stone-block",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

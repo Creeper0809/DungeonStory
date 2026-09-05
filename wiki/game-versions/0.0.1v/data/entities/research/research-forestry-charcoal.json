@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Forestry"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-sawmill",
+      "target_spoiler_tier": "none",
+      "target_title": "제재",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-sawmill",
+      "target_spoiler_tier": "none",
+      "target_title": "제재",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-sawmill",
+      "target_spoiler_tier": "none",
+      "target_title": "제재",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1076",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-forestry-charcoal",
+  "spoiler_tier": "none",
+  "summary": "원목을 고열 연료인 숯으로 바꾼다.",
+  "title": "숯가마"
+}

@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-v22-spin-powered-cave-silk",
+    "spoiler_tier": "none",
+    "title": "동굴 비단 동력 방적"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-spin-powered-cave-silk",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "yarn-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 원사",
+      "to": "item/yarn-cave-silk",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-v22-spin-powered-cave-silk",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "fiber-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 원섬유",
+      "to": "item/fiber-cave-silk",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-powered-cave-silk",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-assisted-processing",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 보조 가공",
+      "to": "research/research-industry-assisted-processing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "제작식 해금",
+      "to": "recipe/recipe-v22-spin-powered-cave-silk",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1
+}

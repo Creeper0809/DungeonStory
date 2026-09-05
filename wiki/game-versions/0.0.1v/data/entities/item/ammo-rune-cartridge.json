@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.575kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "53"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "탄자와 화약 사이에 룬 매개재를 넣어 비전 반응을 일으키는 탄약통이다. 오르데나 군영에서 풀린 룬 탄약통에는 붉은 봉랍과 지워진 지급 번호가 나란히 남아 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-rune-cartridge",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 룬 탄약통.",
+  "title": "룬 탄약통"
+}

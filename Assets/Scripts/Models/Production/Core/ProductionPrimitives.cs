@@ -191,7 +191,19 @@ public enum ProductionOutputRole
     Byproduct = 1,
     ReturnedPackaging = 2,
     RecoverableWaste = 3,
-    DeclaredLoss = 4
+    DeclaredLoss = 4,
+    DeclaredExternalInput = 5
+}
+
+public static class ProductionOutputRoleRules
+{
+    public static bool IsNonPhysical(ProductionOutputRole role) =>
+        role is ProductionOutputRole.DeclaredLoss
+            or ProductionOutputRole.DeclaredExternalInput;
+
+    public static bool IsPhysical(ProductionOutputRole role) =>
+        Enum.IsDefined(typeof(ProductionOutputRole), role)
+        && !IsNonPhysical(role);
 }
 
 [Serializable]

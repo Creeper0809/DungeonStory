@@ -66,7 +66,7 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
         BuildingCircusStageAbility stageAbility =
             building.BuildingData.GetCircusStageAbility();
         string[] availablePerformers = captivity.Captives
-            .Where(item => item.IsActive)
+            .Where(item => item.IsInCustody)
             .OrderByDescending(item => item.performerSkill)
             .Take(Mathf.Max(1, stageAbility.performerCapacity))
             .Select(item => item.captiveId)
@@ -79,7 +79,7 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
         AddText(parent, "공연", font, 21f, DungeonUiTheme.TextPrimary, 34f, created);
         AddText(
             parent,
-            $"포로 공연자 {captivity.Captives.Count(item => item.IsActive)}명"
+            $"포로 공연자 {captivity.Captives.Count(item => item.IsInCustody)}명"
             + $" · 포획 동물 {wildlife.CapturedAnimals.Count}마리",
             font,
             15f,

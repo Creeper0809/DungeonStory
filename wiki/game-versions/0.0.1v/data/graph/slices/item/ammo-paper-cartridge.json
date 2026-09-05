@@ -1,0 +1,67 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-paper-cartridge",
+    "spoiler_tier": "none",
+    "title": "종이 탄약통"
+  },
+  "edges": [
+    {
+      "amount": "12",
+      "from": "recipe/recipe-ammo-paper-cartridge",
+      "label": "생산·해금",
+      "to": "item/ammo-paper-cartridge",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "30",
+      "from": "event/guest-request-militia-arms",
+      "label": "필요 조건",
+      "to": "item/ammo-paper-cartridge",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "관련",
+      "to": "item/ammo-paper-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-handgonne",
+      "label": "관련",
+      "to": "item/ammo-paper-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-heavy-matchlock",
+      "label": "관련",
+      "to": "item/ammo-paper-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-matchlock-long-gun",
+      "label": "관련",
+      "to": "item/ammo-paper-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-matchlock-pistol",
+      "label": "관련",
+      "to": "item/ammo-paper-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-sniper-arquebus",
+      "label": "관련",
+      "to": "item/ammo-paper-cartridge",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

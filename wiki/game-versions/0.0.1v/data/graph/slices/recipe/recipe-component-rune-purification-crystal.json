@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-rune-purification-crystal",
+    "spoiler_tier": "none",
+    "title": "룬 정화 결정"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-purification-crystal",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-rune-purification-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 정화 결정",
+      "to": "item/component-rune-purification-crystal",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-purification-crystal",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-mana-alloy",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 합금",
+      "to": "item/material-mana-alloy",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-purification-crystal",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-rune-purification-crystal",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-rune-purification",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 정화 순환",
+      "to": "research/research-plumbing-rune-purification",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

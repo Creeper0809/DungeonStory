@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "guest-request-sealed-archive",
+    "spoiler_tier": "none",
+    "title": "봉인 기록 판독"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "event/guest-request-sealed-archive",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-engineering-drawing",
+      "target_spoiler_tier": "none",
+      "target_title": "공학 도면",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

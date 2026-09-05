@@ -1,0 +1,104 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-husbandry-breeding",
+    "spoiler_tier": "none",
+    "title": "번식 관리"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-husbandry-breeding",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-taming",
+      "target_spoiler_tier": "none",
+      "target_title": "길들이기",
+      "to": "research/research-husbandry-taming",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-breeding",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-taming",
+      "target_spoiler_tier": "none",
+      "target_title": "길들이기",
+      "to": "research/research-husbandry-taming",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-breeding",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-taming",
+      "target_spoiler_tier": "none",
+      "target_title": "길들이기",
+      "to": "research/research-husbandry-taming",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-breeding",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8817",
+      "target_spoiler_tier": "none",
+      "target_title": "번식 장부대",
+      "to": "facility/building-8817",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-record-breeding-ledger",
+      "label": "필요 조건",
+      "to": "research/research-husbandry-breeding",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-breeding",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-breeding",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-breeding",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-selective",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-breeding",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-selective",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-breeding",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-selective",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-breeding",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

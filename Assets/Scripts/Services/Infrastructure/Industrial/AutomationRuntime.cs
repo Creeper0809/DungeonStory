@@ -54,6 +54,51 @@ public static class AutomationLaborAccountingRules
     }
 }
 
+public static class AutomationWorkRateAuthority
+{
+    public const string Schema = "automation-work-rate-authority@1";
+    public const float MinimumAssistedWorkMultiplier = 0.01f;
+    public const float MaintenanceFullCondition = 60f;
+    public const float MinimumMaintenanceMultiplier = 0.45f;
+    public const float MaximumMaintenanceMultiplier = 1f;
+    public const float MinimumFaultMultiplier = 0.35f;
+    public const float MaximumFaultMultiplier = 1f;
+    public const float MinimumConditionMultiplier = 0.1f;
+    public const float MaximumConditionMultiplier = 1f;
+
+    public static float ResolveAssistedWorkMultiplier(
+        float authoredMultiplier)
+    {
+        if (float.IsNaN(authoredMultiplier)
+            || float.IsInfinity(authoredMultiplier))
+        {
+            throw new InvalidOperationException(
+                "Automation assisted-work multiplier is not finite.");
+        }
+        return Mathf.Max(MinimumAssistedWorkMultiplier, authoredMultiplier);
+    }
+
+    public static float ResolveConditionMultiplier(
+        float maintenance,
+        float fault)
+    {
+        float maintenanceMultiplier = maintenance >= MaintenanceFullCondition
+            ? MaximumMaintenanceMultiplier
+            : Mathf.Lerp(
+                MinimumMaintenanceMultiplier,
+                MaximumMaintenanceMultiplier,
+                maintenance / MaintenanceFullCondition);
+        float faultMultiplier = Mathf.Lerp(
+            MaximumFaultMultiplier,
+            MinimumFaultMultiplier,
+            fault / 100f);
+        return Mathf.Clamp(
+            maintenanceMultiplier * faultMultiplier,
+            MinimumConditionMultiplier,
+            MaximumConditionMultiplier);
+    }
+}
+
 internal sealed class AutomationRuntime :
     IAutomationInfrastructureQuery,
     IAutomationInfrastructureCommand,
@@ -61,7 +106,6 @@ internal sealed class AutomationRuntime :
     ITickable
 {
     private const float TickInterval = 0.25f;
-    private const float SecondsPerGameHour = 7.5f;
 
     private readonly IBuildingWorldQuery buildings;
     private readonly IPowerInfrastructureQuery power;
@@ -189,6 +233,23 @@ internal sealed class AutomationRuntime :
                 mode.ToString());
         }
 
+        bool hasActiveManualWorker =
+            AutomationModeTransitionRules.HasActiveManualExecution(
+                facility.WorkerReservation != null,
+                facility is IAllocatedWorkerOccupancyQuery occupancy
+                    && occupancy.HasAllocatedWorker,
+                productionQuery.GetBills(facility).Any(candidate =>
+                    !string.IsNullOrWhiteSpace(candidate.ReservedWorkerId)));
+        if (!AutomationModeTransitionRules.TryAuthorize(
+                mode,
+                hasActiveManualWorker,
+                out string transitionFailure))
+        {
+            return InfrastructureCommandResult.Failed(
+                FailureCode.AutomationModeUnsupported,
+                transitionFailure);
+        }
+
         EnsureState(facilityId).SetMode(mode);
         Touch();
         return InfrastructureCommandResult.Success();
@@ -234,8 +295,11 @@ internal sealed class AutomationRuntime :
         return state.Mode == AutomationMode.PoweredAssist
             && power.IsPowered(facility)
             && state.Fault < 100f
-                ? Mathf.Max(0.01f, ability.assistedWorkMultiplier)
-                    * ResolveConditionMultiplier(state)
+                ? AutomationWorkRateAuthority.ResolveAssistedWorkMultiplier(
+                        ability.assistedWorkMultiplier)
+                    * AutomationWorkRateAuthority.ResolveConditionMultiplier(
+                        state.Maintenance,
+                        state.Fault)
                 : 1f;
     }
 
@@ -297,7 +361,7 @@ internal sealed class AutomationRuntime :
                 0.1f,
                 1f)
             * deltaTime
-            / SecondsPerGameHour;
+            / GameSimulationTimeRules.SecondsPerGameHour;
         float maintenance = Mathf.Max(
             0f,
             state.Maintenance - maintenanceDrain);
@@ -358,7 +422,9 @@ internal sealed class AutomationRuntime :
         float work = Mathf.Max(
                 0.01f,
                 ability.automaticWorkPerSecond)
-            * ResolveConditionMultiplier(state)
+            * AutomationWorkRateAuthority.ResolveConditionMultiplier(
+                state.Maintenance,
+                state.Fault)
             * deltaTime;
         ProductionWorkExecutionResult execution = productionWork.ExecuteWork(
                 null,
@@ -504,7 +570,10 @@ internal sealed class AutomationRuntime :
             Powered = powered,
             Operational = state.Mode == AutomationMode.Manual
                 || powered && state.Fault < 100f,
-            WorkRate = workRate * ResolveConditionMultiplier(state),
+            WorkRate = workRate
+                * AutomationWorkRateAuthority.ResolveConditionMultiplier(
+                    state.Maintenance,
+                    state.Fault),
             Maintenance = state.Maintenance,
             Fault = state.Fault,
             Status = state.Status
@@ -533,16 +602,6 @@ internal sealed class AutomationRuntime :
 
     private AutomationFacilityStateSession EnsureState(string facilityId) =>
         stateSession.GetOrCreate(facilityId);
-
-    private static float ResolveConditionMultiplier(
-        AutomationFacilityStateSession state)
-    {
-        float maintenance = state.Maintenance >= 60f
-            ? 1f
-            : Mathf.Lerp(0.45f, 1f, state.Maintenance / 60f);
-        float fault = Mathf.Lerp(1f, 0.35f, state.Fault / 100f);
-        return Mathf.Clamp(maintenance * fault, 0.1f, 1f);
-    }
 
     private void Touch()
     {

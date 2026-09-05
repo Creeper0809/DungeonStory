@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Anatomy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-expanded-lung",
+  "spoiler_tier": "none",
+  "summary": "저산소 환경에서 더 오래 활동한다.",
+  "title": "확장 폐낭"
+}

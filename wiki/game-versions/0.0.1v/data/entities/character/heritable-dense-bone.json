@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Anatomy"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-dense-bone",
+  "spoiler_tier": "none",
+  "summary": "골절에 강하지만 이동과 수영에 더 많은 에너지가 든다.",
+  "title": "고밀도 골격"
+}

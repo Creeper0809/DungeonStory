@@ -78,6 +78,13 @@ public static class StartPartyPreparationPlayModeVerifier
                 + $"ownerCandidateCount={manager?.OwnerCandidates?.Count ?? 0}.";
         }
 
+        if (!TryReconcileTierZeroForDirectGameplayFixture(
+                scope,
+                out string tierZeroDetail))
+        {
+            return "Tier-zero reconciliation failed: " + tierZeroDetail;
+        }
+
         if (!preparation.Begin(ownerData, out string message))
         {
             return "Begin failed: " + message;
@@ -156,10 +163,98 @@ public static class StartPartyPreparationPlayModeVerifier
             $"{actor.name}:{actor.GetInstanceID()}:{actor.Identity.PersistentId}:active={actor.gameObject.activeInHierarchy}"));
         CharacterSpawner spawner = UnityEngine.Object.FindFirstObjectByType<CharacterSpawner>(
             FindObjectsInactive.Include);
-        return $"committed={committed}; message={message}; liveStaff={staff.Length}; "
+        return $"committed={committed}; message={message}; tierZero={tierZeroDetail}; liveStaff={staff.Length}; "
             + $"inactiveStaffObjects={inactiveStaff.Length}; "
             + $"customerPoolInactive={spawner?.characterPool?.CountInactive ?? 0}; "
             + $"actors={actors}; diagnostics={diagnosticsQuery?.LastReport ?? string.Empty}";
+    }
+
+    public static bool TryReconcileTierZeroForDirectGameplayFixture(
+        DungeonRuntimeLifetimeScope scope,
+        out string detail)
+    {
+        detail = string.Empty;
+        if (scope?.Container == null)
+        {
+            detail = "runtime-container-missing";
+            return false;
+        }
+
+        try
+        {
+            IDungeonSpaceExpansionQuery query =
+                scope.Container.Resolve<IDungeonSpaceExpansionQuery>();
+            IDungeonSpaceExpansionCommand command =
+                scope.Container.Resolve<IDungeonSpaceExpansionCommand>();
+            if (query == null || command == null)
+            {
+                detail = $"expansion-authority-missing:query={query != null};command={command != null}";
+                return false;
+            }
+            if (!query.TryCaptureLayout(
+                    out DungeonInteriorLayoutSnapshot before,
+                    out string beforeFailure))
+            {
+                detail = "pre-layout-capture-failed:" + beforeFailure;
+                return false;
+            }
+            if (before.ColumnCount
+                is not (DungeonSpaceExpansionCatalog.SceneSeedInteriorColumns
+                    or DungeonSpaceExpansionCatalog.InitialInteriorColumns))
+            {
+                detail = "noncanonical-pre-layout:" + before.ColumnCount;
+                return false;
+            }
+            if (!command.TryReconcileNewRunTierZero(
+                    out DungeonSpaceExpansionResult result,
+                    out string reconcileFailure))
+            {
+                detail = "production-reconcile-failed:" + reconcileFailure;
+                return false;
+            }
+
+            bool expectedChanged = before.ColumnCount
+                == DungeonSpaceExpansionCatalog.SceneSeedInteriorColumns;
+            bool resultExact = string.Equals(
+                    result.ResearchProjectId,
+                    DungeonSpaceExpansionCatalog.TierZeroInitializationId,
+                    StringComparison.Ordinal)
+                && result.Tier == 0
+                && result.PreviousInteriorColumns == before.ColumnCount
+                && result.CurrentInteriorColumns
+                    == DungeonSpaceExpansionCatalog.InitialInteriorColumns
+                && result.Changed == expectedChanged;
+            if (!resultExact)
+            {
+                detail = $"noncanonical-result:id={result.ResearchProjectId};tier={result.Tier};"
+                    + $"changed={result.Changed}/{expectedChanged};"
+                    + $"columns={result.PreviousInteriorColumns}->{result.CurrentInteriorColumns}";
+                return false;
+            }
+            if (!query.TryCaptureLayout(
+                    out DungeonInteriorLayoutSnapshot after,
+                    out string afterFailure)
+                || after.ColumnCount
+                    != DungeonSpaceExpansionCatalog.InitialInteriorColumns
+                || after.StartX != before.StartX
+                || after.EntrancePosition != before.EntrancePosition)
+            {
+                detail = "post-layout-capture-failed:"
+                    + (string.IsNullOrWhiteSpace(afterFailure)
+                        ? $"columns={after.ColumnCount};startX={after.StartX};entrance={after.EntrancePosition}"
+                        : afterFailure);
+                return false;
+            }
+
+            detail = $"changed={result.Changed};columns={before.ColumnCount}->{after.ColumnCount};"
+                + $"startX={after.StartX};entrance={after.EntrancePosition}";
+            return true;
+        }
+        catch (Exception exception)
+        {
+            detail = exception.GetType().Name + ":" + exception.Message;
+            return false;
+        }
     }
 }
 

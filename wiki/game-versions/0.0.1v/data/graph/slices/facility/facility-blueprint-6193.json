@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facility-blueprint-6193",
+    "spoiler_tier": "none",
+    "title": "비전 공명 설계도"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6193",
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "to": "research/research-arcane-resonance",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "관련",
+      "to": "facility/facility-blueprint-6193",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

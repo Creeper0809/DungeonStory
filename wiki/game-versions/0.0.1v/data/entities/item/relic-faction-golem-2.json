@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "흐트러진 핵 공명을 한 번 안정시키는 조율쇠이다. 제4주조도시의 돌맥 조율쇠는 한 골렘의 기억이 여러 번 수리된 몸을 이어 같은 사람으로 남겼음을 보여 준다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-golem-2",
+  "spoiler_tier": "none",
+  "summary": "흐트러진 핵 공명을 한 번 안정시키는 조율쇠.",
+  "title": "돌맥 조율쇠"
+}

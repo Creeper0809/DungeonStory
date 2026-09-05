@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "10kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "492"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "몸 대부분을 가리고 좁은 통로에 전열을 세우는 대형 방패다. 하르나크 무기 철야에서 이름을 얻은 대형 방패는 새 주인이 들어도 옛 흠집을 갈아내지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-tower",
+  "spoiler_tier": "none",
+  "summary": "대형 방패 전투 장비",
+  "title": "대형 방패"
+}

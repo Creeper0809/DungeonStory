@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medical-rune-hibernation-catalyst",
+    "spoiler_tier": "none",
+    "title": "룬 동면 촉매"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-rune-hibernation-catalyst",
+      "label": "생산·해금",
+      "to": "item/medical-rune-hibernation-catalyst",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-rune-hibernation",
+      "label": "관련",
+      "to": "item/medical-rune-hibernation-catalyst",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

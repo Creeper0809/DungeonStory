@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "module-weapon-suppression-coil",
+    "spoiler_tier": "none",
+    "title": "제압 코일"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -109,6 +109,100 @@ public interface IRoomEnvironmentEvaluator
     RoomEnvironmentSnapshot Evaluate(Grid grid, RoomInstance room);
 }
 
+public readonly struct WorkEnvironmentDefinitionMaximumSnapshot
+{
+    public WorkEnvironmentDefinitionMaximumSnapshot(
+        WorkTypeId workTypeId,
+        double maximumSpeedMultiplier,
+        string sourceDigest)
+    {
+        if (!workTypeId.IsValid
+            || double.IsNaN(maximumSpeedMultiplier)
+            || double.IsInfinity(maximumSpeedMultiplier)
+            || maximumSpeedMultiplier <= 0d
+            || sourceDigest == null
+            || sourceDigest.Length != 64)
+        {
+            throw new ArgumentException(
+                "Work-environment definition maximum is invalid.");
+        }
+        WorkTypeId = workTypeId;
+        MaximumSpeedMultiplier = maximumSpeedMultiplier;
+        SourceDigest = sourceDigest;
+    }
+
+    public WorkTypeId WorkTypeId { get; }
+    public double MaximumSpeedMultiplier { get; }
+    public string SourceDigest { get; }
+}
+
+public interface IWorkEnvironmentDefinitionMaximumQuery
+{
+    WorkEnvironmentDefinitionMaximumSnapshot CaptureDefinitionMaximum(
+        WorkTypeId workTypeId);
+}
+
+public static class RoomWorkEnvironmentRateAuthority
+{
+    public const string Schema = "room-work-environment-rate-authority@1";
+    public const float MinimumSpeedMultiplier = 0.85f;
+    public const float MaximumSpeedMultiplier = 1.15f;
+    public const float ScoreSlope = 0.003f;
+    public const float ImpressivenessScoreWeight = 0.6f;
+    public const float CleanlinessScoreWeight = 0.4f;
+    public const float MinimumScore = 0f;
+    public const float MaximumScore = 100f;
+
+    public static bool UsesWorkEnvironment(WorkTypeId workTypeId) =>
+        workTypeId == BuiltInWorkTypeIds.Operate
+        || workTypeId == BuiltInWorkTypeIds.Research
+        || workTypeId == BuiltInWorkTypeIds.Restock
+        || workTypeId == BuiltInWorkTypeIds.Guard
+        || workTypeId == BuiltInWorkTypeIds.Craft;
+
+    public static float ResolveScore(
+        float impressiveness,
+        float cleanliness) => Mathf.Clamp(
+        impressiveness * ImpressivenessScoreWeight
+        + cleanliness * CleanlinessScoreWeight,
+        MinimumScore,
+        MaximumScore);
+
+    public static float ResolveSpeedMultiplier(float score) => Mathf.Clamp(
+        MinimumSpeedMultiplier
+        + Mathf.Clamp(score, MinimumScore, MaximumScore) * ScoreSlope,
+        MinimumSpeedMultiplier,
+        MaximumSpeedMultiplier);
+
+    public static WorkEnvironmentDefinitionMaximumSnapshot
+        CaptureDefinitionMaximum(WorkTypeId workTypeId)
+    {
+        if (!WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition))
+            throw new InvalidOperationException(
+                "Unknown work type has no room-environment maximum: "
+                + workTypeId.Value);
+        WorkTypeId canonicalId = definition.WorkTypeId;
+        bool usesEnvironment = UsesWorkEnvironment(canonicalId);
+        double maximum = usesEnvironment ? MaximumSpeedMultiplier : 1d;
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append(Schema);
+        digest.Append(canonicalId.Value);
+        digest.Append(usesEnvironment);
+        digest.AppendFloat(MinimumSpeedMultiplier);
+        digest.AppendFloat(MaximumSpeedMultiplier);
+        digest.AppendFloat(ScoreSlope);
+        digest.AppendFloat(ImpressivenessScoreWeight);
+        digest.AppendFloat(CleanlinessScoreWeight);
+        digest.AppendFloat(MinimumScore);
+        digest.AppendFloat(MaximumScore);
+        digest.AppendDouble(maximum);
+        return new WorkEnvironmentDefinitionMaximumSnapshot(
+            canonicalId,
+            maximum,
+            digest.ComputeSha256());
+    }
+}
+
 public interface IRoomEnvironmentQuery
 {
     bool TryGetSnapshot(BuildableObject facility, out RoomEnvironmentSnapshot snapshot);
@@ -117,7 +211,9 @@ public interface IRoomEnvironmentQuery
     float GetFacilityPreferenceScore(BuildableObject facility);
 }
 
-public sealed class RoomEnvironmentQuery : IRoomEnvironmentQuery
+public sealed class RoomEnvironmentQuery :
+    IRoomEnvironmentQuery,
+    IWorkEnvironmentDefinitionMaximumQuery
 {
     private static readonly ProfilerMarker ValidationMarker =
         new ProfilerMarker("RoomEnvironment.Query.Validation");
@@ -230,17 +326,24 @@ public sealed class RoomEnvironmentQuery : IRoomEnvironmentQuery
 
     public float GetWorkDurationMultiplier(BuildableObject facility, WorkTypeId workTypeId)
     {
-        if (!UsesWorkEnvironment(workTypeId)
+        if (!RoomWorkEnvironmentRateAuthority.UsesWorkEnvironment(workTypeId)
             || !TryGetSnapshot(facility, out RoomEnvironmentSnapshot snapshot)
             || !snapshot.IsEnvironmentActive)
         {
             return 1f;
         }
 
-        float score = Mathf.Clamp(snapshot.Impressiveness * 0.6f + snapshot.Cleanliness * 0.4f, 0f, 100f);
-        float speedMultiplier = Mathf.Clamp(0.85f + score * 0.003f, 0.85f, 1.15f);
+        float score = RoomWorkEnvironmentRateAuthority.ResolveScore(
+            snapshot.Impressiveness,
+            snapshot.Cleanliness);
+        float speedMultiplier = RoomWorkEnvironmentRateAuthority
+            .ResolveSpeedMultiplier(score);
         return 1f / speedMultiplier;
     }
+
+    public WorkEnvironmentDefinitionMaximumSnapshot CaptureDefinitionMaximum(
+        WorkTypeId workTypeId) => RoomWorkEnvironmentRateAuthority
+        .CaptureDefinitionMaximum(workTypeId);
 
     internal float GetLegacyWorkDurationMultiplier(BuildableObject facility, FacilityWorkType workType)
     {
@@ -267,14 +370,6 @@ public sealed class RoomEnvironmentQuery : IRoomEnvironmentQuery
         return Mathf.Lerp(8f, 28f, score / 100f);
     }
 
-    private static bool UsesWorkEnvironment(WorkTypeId workTypeId)
-    {
-        return workTypeId == BuiltInWorkTypeIds.Operate
-            || workTypeId == BuiltInWorkTypeIds.Research
-            || workTypeId == BuiltInWorkTypeIds.Restock
-            || workTypeId == BuiltInWorkTypeIds.Guard
-            || workTypeId == BuiltInWorkTypeIds.Craft;
-    }
 }
 
 public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator

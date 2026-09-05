@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "proficiency-scholarship",
+  "spoiler_tier": "none",
+  "summary": "연구, 비전 분석, 기록과 검증의 숙련이다.",
+  "title": "학술"
+}

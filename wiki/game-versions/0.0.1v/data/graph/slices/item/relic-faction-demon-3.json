@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "relic-faction-demon-3",
+    "spoiler_tier": "none",
+    "title": "무효조항 두루마리"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-demon",
+      "label": "관련",
+      "to": "item/relic-faction-demon-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

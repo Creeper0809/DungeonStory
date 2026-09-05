@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "일반"
+    },
+    {
+      "label": "성향",
+      "value": "상충"
+    },
+    {
+      "label": "효과",
+      "value": "4개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-212",
+  "spoiler_tier": "none",
+  "summary": "쾌적한 온도에서 능률이 높지만 기후 변동에 쉽게 지친다.",
+  "title": "온도 민감"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "깨끗한 물은 음용과 조리, 세척 및 여러 생산 공정에 공급한다. 하르나크의 맑은물 합류가 열리는 날에는 깨끗한 물 수조 가장자리에 서로 다른 슬라임의 색이 둥글게 남는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-clean-water",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 깨끗한 물.",
+  "title": "깨끗한 물"
+}

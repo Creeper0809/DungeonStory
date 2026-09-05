@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "character-archetype-9008",
+    "spoiler_tier": "none",
+    "title": "세라"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-9008",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-8",
+      "target_spoiler_tier": "none",
+      "target_title": "하피",
+      "to": "character/characterspecies-8",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

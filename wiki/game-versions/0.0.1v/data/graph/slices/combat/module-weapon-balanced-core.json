@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "module-weapon-balanced-core",
+    "spoiler_tier": "none",
+    "title": "균형 심재"
+  },
+  "edges": [],
+  "schema_version": 1
+}

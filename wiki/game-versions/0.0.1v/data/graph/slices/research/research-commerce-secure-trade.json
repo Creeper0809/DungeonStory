@@ -1,0 +1,138 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-commerce-secure-trade",
+    "spoiler_tier": "none",
+    "title": "상권 통합"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6191",
+      "target_spoiler_tier": "none",
+      "target_title": "상권 통합 설계도",
+      "to": "facility/facility-blueprint-6191",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-expansion",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 확장",
+      "to": "research/research-commerce-expansion",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-expansion",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 확장",
+      "to": "research/research-commerce-expansion",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-expansion",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 확장",
+      "to": "research/research-commerce-expansion",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "요새화",
+      "to": "research/research-defense-fortification",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8898",
+      "target_spoiler_tier": "none",
+      "target_title": "보안 거래 금고",
+      "to": "facility/building-8898",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "제작식 해금",
+      "target_kind": "facility",
+      "target_slug": "recipe-commerce-secure-display-2",
+      "target_spoiler_tier": "none",
+      "target_title": "잠금진열장 개조",
+      "to": "facility/recipe-commerce-secure-display-2",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6191",
+      "label": "관련",
+      "to": "research/research-commerce-secure-trade",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "to": "research/research-commerce-secure-trade",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "to": "research/research-commerce-secure-trade",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-alliance-signals",
+      "label": "선행 연구",
+      "to": "research/research-commerce-secure-trade",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

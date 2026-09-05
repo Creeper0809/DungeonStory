@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.05kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "밤포도 종자의 품종과 품질, 병원체 검사 기록을 함께 보존한 파종용 종자 묶음이다. 베르사디온의 밤포도 종자 봉투에는 동의의 잔을 뜻하는 두 입술 모양 봉인이 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "seed-lot-night-grape",
+  "spoiler_tier": "none",
+  "summary": "밤포도 재배에 사용하는 물리 종자 로트.",
+  "title": "밤포도 종자"
+}

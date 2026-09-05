@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "reproduction-adventurer",
+    "spoiler_tier": "none",
+    "title": "Reproduction_Adventurer"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-10",
+      "label": "관련",
+      "to": "character/reproduction-adventurer",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

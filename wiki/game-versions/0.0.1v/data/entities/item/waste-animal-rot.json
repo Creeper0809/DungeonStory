@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.7kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "상한 동물성 음식. 육식동물 사료와 연료로 쓸 수 있다. 므네실라는 동물성 부패물에서 뼈와 지방을 먼저 걷어 사료, 연료와 퇴비의 흐름을 분리한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "waste-animal-rot",
+  "spoiler_tier": "none",
+  "summary": "상한 동물성 음식. 육식동물 사료와 연료로 쓸 수 있다.",
+  "title": "동물성 부패물"
+}

@@ -1,0 +1,1222 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-textile-tailoring",
+    "spoiler_tier": "none",
+    "title": "재봉"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "to": "research/research-textile-tanning",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "to": "research/research-textile-tanning",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tanning",
+      "target_spoiler_tier": "none",
+      "target_title": "무두질",
+      "to": "research/research-textile-tanning",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9301",
+      "target_spoiler_tier": "none",
+      "target_title": "재단·재봉 작업대",
+      "to": "facility/building-9301",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9302",
+      "target_spoiler_tier": "none",
+      "target_title": "문양·장식 작업대",
+      "to": "facility/building-9302",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9306",
+      "target_spoiler_tier": "none",
+      "target_title": "의복 진열대",
+      "to": "facility/building-9306",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9307",
+      "target_spoiler_tier": "none",
+      "target_title": "탈의 칸막이",
+      "to": "facility/building-9307",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-apron",
+      "target_spoiler_tier": "none",
+      "target_title": "앞치마 재단",
+      "to": "recipe/recipe-v22-apparel-apron",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-belt",
+      "target_spoiler_tier": "none",
+      "target_title": "허리띠 재단",
+      "to": "recipe/recipe-v22-apparel-belt",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-blouse",
+      "target_spoiler_tier": "none",
+      "target_title": "블라우스 재단",
+      "to": "recipe/recipe-v22-apparel-blouse",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-boots",
+      "target_spoiler_tier": "none",
+      "target_title": "장화 재단",
+      "to": "recipe/recipe-v22-apparel-boots",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-ceremonial-dress",
+      "target_spoiler_tier": "none",
+      "target_title": "예복 드레스 재단",
+      "to": "recipe/recipe-v22-apparel-ceremonial-dress",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-cloak",
+      "target_spoiler_tier": "none",
+      "target_title": "망토 재단",
+      "to": "recipe/recipe-v22-apparel-cloak",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-contract-sash",
+      "target_spoiler_tier": "none",
+      "target_title": "계약 어깨띠 재단",
+      "to": "recipe/recipe-v22-apparel-contract-sash",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-daily-robe",
+      "target_spoiler_tier": "none",
+      "target_title": "일상 로브 재단",
+      "to": "recipe/recipe-v22-apparel-daily-robe",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-envoy-coat",
+      "target_spoiler_tier": "none",
+      "target_title": "사절 외투 재단",
+      "to": "recipe/recipe-v22-apparel-envoy-coat",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-farmer-workwear",
+      "target_spoiler_tier": "none",
+      "target_title": "농부 작업복 재단",
+      "to": "recipe/recipe-v22-apparel-farmer-workwear",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-festival-vest",
+      "target_spoiler_tier": "none",
+      "target_title": "축제 조끼 재단",
+      "to": "recipe/recipe-v22-apparel-festival-vest",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-formal-coat",
+      "target_spoiler_tier": "none",
+      "target_title": "정장 외투 재단",
+      "to": "recipe/recipe-v22-apparel-formal-coat",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-gloves",
+      "target_spoiler_tier": "none",
+      "target_title": "장갑 재단",
+      "to": "recipe/recipe-v22-apparel-gloves",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-hat",
+      "target_spoiler_tier": "none",
+      "target_title": "모자 재단",
+      "to": "recipe/recipe-v22-apparel-hat",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-hooded-robe",
+      "target_spoiler_tier": "none",
+      "target_title": "후드 로브 재단",
+      "to": "recipe/recipe-v22-apparel-hooded-robe",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-horn-ring",
+      "target_spoiler_tier": "none",
+      "target_title": "뿔 고리 재단",
+      "to": "recipe/recipe-v22-apparel-horn-ring",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-keeper-coat",
+      "target_spoiler_tier": "none",
+      "target_title": "사육사 외투 재단",
+      "to": "recipe/recipe-v22-apparel-keeper-coat",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-mourning-clothes",
+      "target_spoiler_tier": "none",
+      "target_title": "상복 재단",
+      "to": "recipe/recipe-v22-apparel-mourning-clothes",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-ritual-robe",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 로브 재단",
+      "to": "recipe/recipe-v22-apparel-ritual-robe",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-scarf",
+      "target_spoiler_tier": "none",
+      "target_title": "목도리 재단",
+      "to": "recipe/recipe-v22-apparel-scarf",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-shorts",
+      "target_spoiler_tier": "none",
+      "target_title": "반바지 재단",
+      "to": "recipe/recipe-v22-apparel-shorts",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-skirt",
+      "target_spoiler_tier": "none",
+      "target_title": "치마 재단",
+      "to": "recipe/recipe-v22-apparel-skirt",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-sky-chorus-shawl",
+      "target_spoiler_tier": "none",
+      "target_title": "하늘 합창 숄 재단",
+      "to": "recipe/recipe-v22-apparel-sky-chorus-shawl",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-sleep-bottom",
+      "target_spoiler_tier": "none",
+      "target_title": "잠옷 하의 재단",
+      "to": "recipe/recipe-v22-apparel-sleep-bottom",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-sleep-top",
+      "target_spoiler_tier": "none",
+      "target_title": "잠옷 상의 재단",
+      "to": "recipe/recipe-v22-apparel-sleep-top",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-spore-garden-cloak",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 정원 망토 재단",
+      "to": "recipe/recipe-v22-apparel-spore-garden-cloak",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-sterile-gown",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 가운 재단",
+      "to": "recipe/recipe-v22-apparel-sterile-gown",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-surgical-apron",
+      "target_spoiler_tier": "none",
+      "target_title": "외과 앞치마 재단",
+      "to": "recipe/recipe-v22-apparel-surgical-apron",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-tail-ribbon",
+      "target_spoiler_tier": "none",
+      "target_title": "꼬리 리본 재단",
+      "to": "recipe/recipe-v22-apparel-tail-ribbon",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-trousers",
+      "target_spoiler_tier": "none",
+      "target_title": "바지 재단",
+      "to": "recipe/recipe-v22-apparel-trousers",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-tunic",
+      "target_spoiler_tier": "none",
+      "target_title": "튜닉 재단",
+      "to": "recipe/recipe-v22-apparel-tunic",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-vest",
+      "target_spoiler_tier": "none",
+      "target_title": "조끼 재단",
+      "to": "recipe/recipe-v22-apparel-vest",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-weapon-vigil-cloak",
+      "target_spoiler_tier": "none",
+      "target_title": "무기 철야 망토 재단",
+      "to": "recipe/recipe-v22-apparel-weapon-vigil-cloak",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-wing-cloak",
+      "target_spoiler_tier": "none",
+      "target_title": "날개 망토 재단",
+      "to": "recipe/recipe-v22-apparel-wing-cloak",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-wing-harness",
+      "target_spoiler_tier": "none",
+      "target_title": "날개 멜빵 재단",
+      "to": "recipe/recipe-v22-apparel-wing-harness",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-work-shirt",
+      "target_spoiler_tier": "none",
+      "target_title": "작업 셔츠 재단",
+      "to": "recipe/recipe-v22-apparel-work-shirt",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-mending-scrap",
+      "target_spoiler_tier": "none",
+      "target_title": "범용 수선 조각",
+      "to": "recipe/recipe-v22-mending-scrap",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-sewing-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉 도구",
+      "to": "recipe/recipe-v22-sewing-kit",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 방적",
+      "to": "recipe/recipe-v22-spin-cave-silk",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 방적",
+      "to": "recipe/recipe-v22-spin-dreamweave",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-cave-silk",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 비단 직조",
+      "to": "recipe/recipe-v22-weave-cave-silk",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tailoring",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-dreamweave",
+      "target_spoiler_tier": "none",
+      "target_title": "몽직물 직조",
+      "to": "recipe/recipe-v22-weave-dreamweave",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23008",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23009",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23011",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23012",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23013",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23014",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23015",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23016",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23017",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23018",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23019",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23020",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23021",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23031",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23032",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23035",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23036",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23037",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23038",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23039",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23040",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23041",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23042",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23043",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23044",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23045",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23046",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23047",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23048",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23049",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23050",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23051",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23052",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23054",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23055",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23056",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-gambeson",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-padded-hood",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-apron",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-belt",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-blouse",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-boots",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-ceremonial-dress",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-cloak",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-contract-sash",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-daily-robe",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-envoy-coat",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-farmer-workwear",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-festival-vest",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-formal-coat",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-gloves",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-hat",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-hooded-robe",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-horn-ring",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-keeper-coat",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-mourning-clothes",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-ritual-robe",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-scarf",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-shorts",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-skirt",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-sky-chorus-shawl",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-sleep-bottom",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-sleep-top",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-spore-garden-cloak",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-sterile-gown",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-surgical-apron",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-tail-ribbon",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-trousers",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-tunic",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-vest",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-weapon-vigil-cloak",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-wing-cloak",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-wing-harness",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-work-shirt",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-mending-scrap",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-sewing-kit",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-cave-silk",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-dreamweave",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-cave-silk",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-dreamweave",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-armor-tailoring",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-armor-tailoring",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-armor-tailoring",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-field-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-field-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-field-maintenance",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-relic-appraisal",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-layered",
+      "label": "선행 연구",
+      "to": "research/research-textile-tailoring",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23109",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23110",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23111",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23112",
+      "label": "필요 조건",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

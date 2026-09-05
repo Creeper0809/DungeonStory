@@ -49,15 +49,19 @@ public sealed class OffenseExpeditionMemberQuery : IOffenseExpeditionMemberQuery
 {
     private readonly ICharacterWorldQuery characterWorld;
     private readonly ICharacterPerformanceQuery performance;
+    private readonly ICharacterSettlementStandingQuery settlementStandings;
 
     public OffenseExpeditionMemberQuery(
         ICharacterWorldQuery characterWorld,
-        ICharacterPerformanceQuery performance)
+        ICharacterPerformanceQuery performance,
+        ICharacterSettlementStandingQuery settlementStandings)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
+        this.settlementStandings = settlementStandings
+            ?? throw new ArgumentNullException(nameof(settlementStandings));
     }
 
     public IReadOnlyList<CharacterActor> GetAvailableMemberActors()
@@ -65,6 +69,7 @@ public sealed class OffenseExpeditionMemberQuery : IOffenseExpeditionMemberQuery
         return OffenseExpeditionService
             .GetDistinctMembers(characterWorld.Characters)
             .Where((actor) => OffenseExpeditionService.CanJoinExpedition(actor, out _))
+            .Where((actor) => settlementStandings.CanJoinExpedition(actor, out _))
             .OrderByDescending(actor =>
                 OffenseExpeditionService.CalculateMemberPower(actor, performance))
             .ToList();

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "27"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "상품 이름과 가격을 여러 번 고쳐 적을 수 있게 만든 게시판이다. 라카쉬 세갈래길의 가격표 게시판은 앞뒤에서 값을 고쳐 쓸 수 있어 이동 장터에서도 그대로 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-price-board",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 가격표 게시판.",
+  "title": "가격표 게시판"
+}

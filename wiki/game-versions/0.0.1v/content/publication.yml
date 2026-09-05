@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "visibility": "public",
+  "allow_lifecycle_status": ["active-authored"],
+  "allow_review_status": ["근거 확인"],
+  "allow_runtime_status": ["catalog-registered-static-consumer"],
+  "default_spoiler_behavior": "warning-and-explicit-reveal"
+}

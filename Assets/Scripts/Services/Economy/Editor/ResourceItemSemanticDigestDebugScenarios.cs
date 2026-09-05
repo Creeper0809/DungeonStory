@@ -10,6 +10,7 @@ public static class ResourceItemSemanticDigestDebugScenarios
     private static readonly string[] ReviewedItemIds =
     {
         "feed:dog-food",
+        "feed:dog-food-fresh",
         "feed:hay",
         "feed:silage",
         "material:charcoal",
@@ -27,25 +28,27 @@ public static class ResourceItemSemanticDigestDebugScenarios
             StringComparer.Ordinal)
         {
             ["feed:dog-food"] =
-                "e5ee865c1f24be6c2a9ac46e3ad0258c52335ec1a89cb9e5c5193ed3052aed04",
+                "91b516894a4688758ee1ae4feaccf88cdca5c55c1fec4e1e15934e4ff8662692",
+            ["feed:dog-food-fresh"] =
+                "505088cd697b53cf4fed1381466b5b85726e72ab51bcaac257f3c7af0cb42d65",
             ["feed:hay"] =
                 "13f2e77f7ccd6bb5e6bff0397e56655eb6441d79866394600a79f0d8e66e8046",
             ["feed:silage"] =
                 "1514a4883f0daf8095e28088956373600f821a95fe1bb71fb09320b61f747df7",
             ["material:charcoal"] =
-                "f27c43c51d9554cdaf5f3e50eeebeb8747d183676203d31e4723cf034c77a6aa",
+                "12de36b4cd46b366a5b803276134bc52298580d86dcb15f9f000bc3a70c93dd0",
             ["material:flour"] =
                 "f784915e8c60f273394927acb06d334c1f1402e82dbb94602a97b4bdf07e7f23",
             ["material:lumber"] =
-                "3fd4c81dbb8e3022d358c37932703492c60ced336a34480d3e5dafa2b1e8bd69",
+                "25fdd21d157defa59c8bbc033a5a2db20120aa579d222a10379a640cb6527bfc",
             ["material:malt"] =
                 "b9a2d2505fe274c75303e193e6db5388cd0d96d5f5d50c44302f6403829eb2cd",
             ["material:starch"] =
                 "edb03de6fd7579558ec60965c63cd390b229da39d45c9d0df23dd7712ada1815",
             ["material:steel-ingot"] =
-                "bed3e9fe32a944834fb62d481a5daf3a7d08e70b0e15f9ef98ed62c097d29ea0",
+                "91f1ef1734951c0e6eaed31d63b79d04a549839dea885e8f92c2da14e22a4f56",
             ["material:treated-lumber"] =
-                "7f75d57223d01694c898bfc0807762bc16a4d26234ec0f92740f50f450cbc610",
+                "2899c6a775878f01c6e88b342217014ae33c84878b86031bf463f13ee31f8570",
             ["waste:plant-rot"] =
                 "044648d7807a8f969cc4292425d03d3d43c51afb906b75d348156bf648429665"
         };
@@ -66,15 +69,19 @@ public static class ResourceItemSemanticDigestDebugScenarios
         Require(first.Distinct(StringComparer.Ordinal).Count() == first.Length,
             "Reviewed resource items have duplicate semantic digests.");
 
+        List<string> digestDrifts = new();
         for (int index = 0; index < items.Length; index++)
         {
-            Require(ExpectedDigestById.TryGetValue(
-                    items[index].ItemId,
-                    out string expected)
-                && string.Equals(first[index], expected, StringComparison.Ordinal),
-                $"Resource item '{items[index].ItemId}' semantic digest drifted: "
-                + first[index] + ".");
+            string itemId = items[index].ItemId;
+            if (!ExpectedDigestById.TryGetValue(itemId, out string expected)
+                || !string.Equals(first[index], expected, StringComparison.Ordinal))
+            {
+                digestDrifts.Add(itemId + "=" + first[index]);
+            }
         }
+        Require(digestDrifts.Count == 0,
+            "Reviewed resource item semantic digests drifted: "
+            + string.Join(";", digestDrifts) + ".");
 
         ResourceItemDefinitionSO source = items.Single(value =>
             string.Equals(value.ItemId, "feed:hay", StringComparison.Ordinal));
@@ -107,11 +114,7 @@ public static class ResourceItemSemanticDigestDebugScenarios
             market.saleRate = Math.Max(0f, market.saleRate - 0.01f);
             RequireChanged(marketClone, original, "market sale rate");
 
-            unsupportedClone.SetFeature(new FoodItemFeature
-            {
-                nutrition = 1f,
-                freshnessSeconds = 1f
-            });
+            unsupportedClone.SetFeature(new BlueprintItemFeature());
             Expect<InvalidOperationException>(() =>
                 ResourceItemSemanticDigest.Capture(unsupportedClone));
         }

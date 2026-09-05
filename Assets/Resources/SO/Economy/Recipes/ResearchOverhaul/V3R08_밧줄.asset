@@ -54,9 +54,17 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: resource:shade-fiber
-    amount: 3
+    amount: 15
   outputs:
   - outputLineId: output:recipe:material:rope/000/main/material:rope
     role: 0

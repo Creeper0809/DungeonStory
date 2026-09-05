@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-demon-crisis",
+    "spoiler_tier": "none",
+    "title": "잿빛 계약정 위기 대응 계약"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/faction-contract-demon-crisis",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "to": "item/component-rune-conductor",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-demon",
+      "label": "관련",
+      "to": "event/faction-contract-demon-crisis",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

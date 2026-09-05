@@ -1,0 +1,54 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "practice-vampire-consent-cup",
+    "spoiler_tier": "none",
+    "title": "동의의 잔"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/practice-vampire-consent-cup",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-vampire-consent-cup",
+      "target_spoiler_tier": "none",
+      "target_title": "동의의 잔",
+      "to": "event/practice-vampire-consent-cup",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-vampire-consent-cup",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-vampire-consent-cup",
+      "target_spoiler_tier": "none",
+      "target_title": "동의의 잔",
+      "to": "event/practice-vampire-consent-cup",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "-2",
+      "from": "event/practice-vampire-consent-cup",
+      "label": "연결",
+      "to": "event/practice-vampire-consent-cup",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-vampire-consent-cup",
+      "label": "연결",
+      "to": "event/practice-vampire-consent-cup",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-vampire-nightcourt",
+      "label": "관련",
+      "to": "event/practice-vampire-consent-cup",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

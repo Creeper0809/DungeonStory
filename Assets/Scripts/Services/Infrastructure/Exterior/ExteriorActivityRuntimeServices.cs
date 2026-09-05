@@ -12,7 +12,10 @@ public sealed class ExteriorActivityWorldServices
         IRuntimeBuildingArchetypeCatalog buildingArchetypes,
         IRestoreWorldCandidateQuery restoreCandidates,
         IRestoreWorldCandidatePublisher candidatePublisher,
-        IWorldItemStackRuntime items)
+        IWorldItemStackRuntime items,
+        IFacilityBufferAcknowledgedOutputRestoreCandidateQuery
+            acknowledgedOutputs,
+        IPhysicalItemExactSourceRestoreAuthorityCommand exactSourceRestore)
     {
         Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         DropZones = dropZones
@@ -28,6 +31,10 @@ public sealed class ExteriorActivityWorldServices
         CandidatePublisher = candidatePublisher
             ?? throw new ArgumentNullException(nameof(candidatePublisher));
         Items = items ?? throw new ArgumentNullException(nameof(items));
+        AcknowledgedOutputs = acknowledgedOutputs
+            ?? throw new ArgumentNullException(nameof(acknowledgedOutputs));
+        ExactSourceRestore = exactSourceRestore
+            ?? throw new ArgumentNullException(nameof(exactSourceRestore));
     }
 
     public IGridSystemProvider Grid { get; }
@@ -38,6 +45,9 @@ public sealed class ExteriorActivityWorldServices
     public IRestoreWorldCandidateQuery RestoreCandidates { get; }
     public IRestoreWorldCandidatePublisher CandidatePublisher { get; }
     public IWorldItemStackRuntime Items { get; }
+    public IFacilityBufferAcknowledgedOutputRestoreCandidateQuery
+        AcknowledgedOutputs { get; }
+    public IPhysicalItemExactSourceRestoreAuthorityCommand ExactSourceRestore { get; }
 }
 
 public sealed class ExteriorActivityDomainServices

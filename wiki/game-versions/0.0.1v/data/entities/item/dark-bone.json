@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "의식이나 비상 제작에 쓰이는 꺼림칙한 재료다. 오르데나 토벌문은 하르나크 묘역에서 나온 인간형 뼈를 식인의 증거로 싣지만 매장 시각과 이름은 적지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "dark-bone",
+  "spoiler_tier": "none",
+  "summary": "의식이나 비상 제작에 쓰이는 꺼림칙한 재료다.",
+  "title": "인간형 뼈"
+}

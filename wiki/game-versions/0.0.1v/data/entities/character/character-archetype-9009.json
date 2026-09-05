@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-9",
+      "target_spoiler_tier": "none",
+      "target_title": "골렘",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "character-archetype-9009",
+  "spoiler_tier": "none",
+  "summary": "종족·기초 능력·특성·작업 우선순위·AI 성향을 묶은 작성 캐릭터 원형을 제공한다. 게임 규칙은 role 0로 구성된다.",
+  "title": "바살트-7"
+}

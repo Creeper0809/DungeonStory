@@ -1,0 +1,118 @@
+---
+import {
+  escapeHtml,
+  extractFencedCode,
+  fencedCodeForBlock,
+  renderFencedCode,
+  renderInlineMarkdown,
+} from '../lib/guide-markdown.mjs';
+
+interface Props { body: string; version?: string; historical?: boolean }
+
+const { body, version, historical = false } = Astro.props;
+interface RevealBlock { title: string; body: string }
+const revealBlocks: RevealBlock[] = [];
+const preparedBody = body.replace(
+  /:::reveal[ \t]+([^\r\n]+)\r?\n([\s\S]*?)\r?\n:::/g,
+  (_, title, revealBody) => {
+    const index = revealBlocks.push({ title: title.trim(), body: revealBody.trim() }) - 1;
+    return `@@GUIDE_REVEAL_${index}@@`;
+  }
+);
+const extractedBody = extractFencedCode(preparedBody);
+const blocks = extractedBody.source.split(/\n\s*\n/).filter(Boolean);
+const headingIds = new Map<string, number>();
+
+function headingId(value: string): string {
+  const base = `section-${value.toLocaleLowerCase('ko-KR').normalize('NFKC').replace(/[^0-9a-z가-힣]+/gi, '-').replace(/^-+|-+$/g, '') || 'content'}`;
+  const count = (headingIds.get(base) ?? 0) + 1;
+  headingIds.set(base, count);
+  return count === 1 ? base : `${base}-${count}`;
+}
+
+function bodyLines(block: string): string[] {
+  return block.trim().split('\n').map((line) => line.trim()).filter(Boolean);
+}
+
+function directiveLines(block: string, directive: string): string[] {
+  return block.slice(directive.length).replace(/\n:::\s*$/, '').trim().split('\n').map((line) => line.trim()).filter(Boolean);
+}
+
+function tableCells(line: string): string[] {
+  return line.trim().replace(/^\||\|$/g, '').split('|').map((cell) => cell.trim());
+}
+
+function isTable(block: string): boolean {
+  const lines = bodyLines(block);
+  return lines.length >= 2 && lines[0].startsWith('|') && /^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?$/.test(lines[1]);
+}
+
+function tableRows(block: string): string[][] {
+  return bodyLines(block).filter((_, index) => index !== 1).map(tableCells);
+}
+
+function scopedHref(path: string): string {
+  const [pathname, anchor] = path.split('#', 2);
+  const root = pathname.split('/').filter(Boolean)[0];
+  const isWikiPath = pathname.startsWith('/') && pathname.endsWith('/') && ['category', 'entry', 'guide', 'health', 'health-community', 'recipes', 'work', 'needs'].includes(root);
+  if (!historical || !version || !isWikiPath) return path;
+  return `/game-versions/${version}${pathname}${anchor ? `#${anchor}` : ''}`;
+}
+
+function renderInline(value: string): string {
+  return renderInlineMarkdown(value, scopedHref);
+}
+
+function renderRevealBody(value: string, prefix: string): string {
+  const extractedReveal = extractFencedCode(value);
+  return extractedReveal.source.split(/\n\s*\n/).filter(Boolean).map((block) => {
+    const lines = bodyLines(block);
+    const codeBlock = fencedCodeForBlock(block, extractedReveal.blocks);
+    if (codeBlock) return renderFencedCode(codeBlock);
+    if (block.startsWith('## ')) {
+      const title = block.slice(3).trim();
+      const id = headingId(`${prefix}-${title}`);
+      return `<h2 id="${id}">${escapeHtml(title)}<a class="heading-anchor" href="#${id}" aria-label="${escapeHtml(title)} 항목 주소">#</a></h2>`;
+    }
+    if (block.startsWith('### ')) {
+      const title = block.slice(4).trim();
+      const id = headingId(`${prefix}-${title}`);
+      return `<h3 id="${id}">${escapeHtml(title)}<a class="heading-anchor" href="#${id}" aria-label="${escapeHtml(title)} 항목 주소">#</a></h3>`;
+    }
+    if (block.startsWith(':::flow')) return `<ol class="guide-flow">${directiveLines(block, ':::flow').map((line) => `<li>${renderInline(line)}</li>`).join('')}</ol>`;
+    if (block.startsWith(':::note')) return `<aside class="guide-note">${directiveLines(block, ':::note').map((line) => `<p>${renderInline(line)}</p>`).join('')}</aside>`;
+    if (isTable(block)) {
+      const [headers, ...rows] = tableRows(block);
+      return `<div class="table-wrap guide-table-wrap"><table><thead><tr>${headers.map((header) => `<th scope="col">${renderInline(header)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${renderInline(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    }
+    if (lines.every((line) => /^[-*] /.test(line))) return `<ul>${lines.map((line) => `<li>${renderInline(line.replace(/^[-*] /, ''))}</li>`).join('')}</ul>`;
+    if (lines.every((line) => /^\d+\. /.test(line))) return `<ol>${lines.map((line) => `<li>${renderInline(line.replace(/^\d+\. /, ''))}</li>`).join('')}</ol>`;
+    return `<p>${renderInline(lines.join(' '))}</p>`;
+  }).join('');
+}
+---
+
+<div class="guide-body">
+  {blocks.map((block) => {
+    const lines = bodyLines(block);
+    const codeBlock = fencedCodeForBlock(block, extractedBody.blocks);
+    if (codeBlock) return <pre class="guide-code"><code class={codeBlock.language ? `language-${codeBlock.language}` : undefined}>{codeBlock.body}</code></pre>;
+    const revealMatch = block.match(/^@@GUIDE_REVEAL_(\d+)@@$/);
+    if (revealMatch) {
+      const reveal = revealBlocks[Number(revealMatch[1])];
+      const id = headingId(reveal.title);
+      return <details class="guide-reveal" id={id} data-guide-reveal><summary>{reveal.title}</summary><div class="guide-reveal__body" set:html={renderRevealBody(reveal.body, id)} /></details>;
+    }
+    if (block.startsWith('## ')) { const title = block.slice(3).trim(); return <h2 id={headingId(title)}>{title}</h2>; }
+    if (block.startsWith('### ')) { const title = block.slice(4).trim(); return <h3 id={headingId(title)}>{title}</h3>; }
+    if (block.startsWith(':::flow')) return <ol class="guide-flow">{directiveLines(block, ':::flow').map((line) => <li set:html={renderInline(line)} />)}</ol>;
+    if (block.startsWith(':::note')) return <aside class="guide-note">{directiveLines(block, ':::note').map((line) => <p set:html={renderInline(line)} />)}</aside>;
+    if (isTable(block)) {
+      const [headers, ...rows] = tableRows(block);
+      return <div class="table-wrap guide-table-wrap"><table><thead><tr>{headers.map((header) => <th scope="col" set:html={renderInline(header)} />)}</tr></thead><tbody>{rows.map((row) => <tr>{row.map((cell) => <td set:html={renderInline(cell)} />)}</tr>)}</tbody></table></div>;
+    }
+    if (lines.every((line) => /^[-*] /.test(line))) return <ul>{lines.map((line) => <li set:html={renderInline(line.replace(/^[-*] /, ''))} />)}</ul>;
+    if (lines.every((line) => /^\d+\. /.test(line))) return <ol>{lines.map((line) => <li set:html={renderInline(line.replace(/^\d+\. /, ''))} />)}</ol>;
+    return <p set:html={renderInline(lines.join(' '))} />;
+  })}
+</div>

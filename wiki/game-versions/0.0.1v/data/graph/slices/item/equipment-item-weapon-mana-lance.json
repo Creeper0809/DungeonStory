@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-mana-lance",
+    "spoiler_tier": "none",
+    "title": "마나 랜스"
+  },
+  "edges": [],
+  "schema_version": 1
+}

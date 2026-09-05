@@ -1,0 +1,17 @@
+# World Resource Runtime Verification
+utc=2026-09-01T07:18:07.7908323Z
+playMode=True
+nodes=7
+gather=3
+logging=3
+quarry=2
+nodeView=building:11745aaa03cf429ba689f30e8d0b034b@-10.5,0.5,building:336596bd431541b8b22771867acd5148@-54.5,0.5,building:63cb9a14e2404195acff9f4a7054ea3f@-6.5,0.5,building:8c1efa4ed15f4d18a7634ec45e441219@-49.5,0.5,building:e4b596b495b14832b05ca3e8fb4972e6@-2.5,0.5,building:e7acdc8a42844a9bb42d3e2208689d0b@-52.5,0.5,building:ed37f90254d64553a9a8cff473814ddc@-45.5,0.5
+nodeSources=building:11745aaa03cf429ba689f30e8d0b034b@11,0=[work:logging->source:logging];building:336596bd431541b8b22771867acd5148@55,0=[work:quarry->source:saltstone];building:63cb9a14e2404195acff9f4a7054ea3f@7,0=[work:gather->source:grass];building:8c1efa4ed15f4d18a7634ec45e441219@50,0=[work:quarry->source:saltstone];building:e4b596b495b14832b05ca3e8fb4972e6@3,0=[work:gather->source:grass,work:logging->source:logging];building:e7acdc8a42844a9bb42d3e2208689d0b@53,0=[work:logging->source:logging];building:ed37f90254d64553a9a8cff473814ddc@46,0=[work:gather->source:grass]
+catalogSources=source:grass:True(work:gather),source:logging:True(work:logging),source:saltstone:True(work:quarry),source:quarry:True(work:quarry)
+catalogRecipeCount=355
+catalogSourceIds=source:animal-blood,source:animal-bone,source:animal-egg,source:animal-fang,source:animal-fat,source:animal-feather,source:animal-hide,source:animal-horn,source:animal-manure,source:animal-meat,source:animal-milk,source:animal-wool,source:grass,source:logging,source:quarry,source:saltstone,source:spoilage-animal,source:spoilage-forbidden,source:spoilage-mixed,source:spoilage-plant
+patches=Brush:wildlife-habitat:a215a7d9e1974073ab6823b591764cde@3,0,Grass:wildlife-habitat:d791ee1ccc114fc89ced0248e6999b01@7,0,Water:wildlife-habitat:water:water:00000001@59,0,Water:wildlife-habitat:water:water:00000002@58,0,Water:wildlife-habitat:water:water:00000003@57,0,Water:wildlife-habitat:water:water:00000004@56,0,Grass:wildlife-habitat:73eddaa750ed44b99def1a4f4d377d4b@46,0,Burrow:wildlife-habitat:30d4a4eb0db94d458979546c7a474f2e@50,0,Lair:wildlife-habitat:7d813d3d14c547de9fbf57bb674d9008@55,0
+PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION node=building:11745aaa03cf429ba689f30e8d0b034b;recipe=source:logging;item=resource:log;quantityDelta=5;sequence=1;conserved=true
+logsBefore=5
+logsAfter=10
+valid=true

@@ -1,0 +1,152 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-cuisine-kitchen-hygiene",
+    "spoiler_tier": "none",
+    "title": "주방 위생"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "to": "research/research-plumbing-sewer",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1610",
+      "target_spoiler_tier": "none",
+      "target_title": "세척·전처리 싱크",
+      "to": "facility/building-1610",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1611",
+      "target_spoiler_tier": "none",
+      "target_title": "냉장 준비대",
+      "to": "facility/building-1611",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-kitchen-hygiene",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1612",
+      "target_spoiler_tier": "none",
+      "target_title": "향신료 선반",
+      "to": "facility/building-1612",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-seasoned-filling",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-kitchen-hygiene",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-stuffed-mushroom",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-kitchen-hygiene",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-washed-vegetable",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-kitchen-hygiene",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-lavish",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-kitchen-hygiene",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-lavish",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-kitchen-hygiene",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-lavish",
+      "label": "선행 연구",
+      "to": "research/research-cuisine-kitchen-hygiene",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

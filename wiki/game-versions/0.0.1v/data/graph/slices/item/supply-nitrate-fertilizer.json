@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "supply-nitrate-fertilizer",
+    "spoiler_tier": "none",
+    "title": "질산 비료"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "recipe/recipe-supply-greenhouse-nutrient",
+      "label": "필요 조건",
+      "to": "item/supply-nitrate-fertilizer",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-supply-nitrate-fertilizer",
+      "label": "생산·해금",
+      "to": "item/supply-nitrate-fertilizer",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

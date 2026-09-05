@@ -1,0 +1,28 @@
+RESULT=PASS
+schema=v27-current-source-fg-orchestration@2
+currentSourceDigest=444e10da91803afd572fb9bc947e1bca5ebdb8575793fdc40b8ab26cc827ee35
+gameplaySceneSha256=6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40
+evidenceSteps=9/9
+pairedSeeds=64
+pairedWindows=1024
+pairedFloorRows=1280
+pairedFaultArms=128
+evidence=ability-haul-lifecycle-recovery; path=Artifacts/QA/ability-haul-lifecycle-recovery-playmode.txt; sha256=f909b8ee435688350dadc9fc61b4d879e01099375f2fa363b5ea2582375ea1f7; bytes=1316
+evidence=character-ai-cross-action-fault; path=Artifacts/QA/character-ai-cross-action-fault-playmode.txt; sha256=c0f503a8ca2d57a94ce7934197486359e790b460d6985d0a3d3ff7671b483886; bytes=6866
+evidence=paired-clutter-final; path=Artifacts/QA/v27-balance-paired-run-rng.txt; sha256=17d5dfc7f4ba6346427a4d5aa73225fe76dbd199a43ed87de21dc91779ec86d6; bytes=1423
+evidence=prepared-output-destructive-drain; path=Artifacts/QA/prepared-output-destructive-drain-live-playmode-report.txt; sha256=03a0f73b3e5ef704f9792c346ad3a7c663d7882a4e3bb9ad3bfaa2d25f21a59b; bytes=17630
+evidence=prepared-output-p17; path=Artifacts/QA/prepared-output-p17-live-playmode-report.txt; sha256=7b412ca80028f4ab71dabcb46c2abada0afe86554aa2d0b20862ebd19653b3a9; bytes=15287
+evidence=prepared-output-sawmill-transport; path=Artifacts/QA/prepared-output-sawmill-live-playmode-report.txt; sha256=acc8db259ea3e474f66f87e5969ae9b2c880cdf077a92af1426dedf5e5a0ce76; bytes=21546
+evidence=prepared-output-synthetic-canary; path=Artifacts/QA/prepared-output-warehouse-live-playmode-report.txt; sha256=9db095ff68e584e9ed17dc73461a8edf772a631f20fe8d29d4af1ca6f3c3274c; bytes=25080
+evidence=production-input-mass; path=Artifacts/QA/production-input-buffer-mass-playmode-report.txt; sha256=d280b1a6a75462ca3308bf81c9362866065dd09859c22d0efde4f690b7773a4e; bytes=5137
+evidence=remaining-focused-faults; path=Artifacts/QA/v27-batch-g-remaining-fault-evidence.txt; sha256=7b7f07296750de12f7f3d343bb4e33945d4816a77ac39376b7a744e1980aa3b9; bytes=640
+batch=F; csvSha256=7a3caf7c30daf762c459276254a3fe45da0b953aecf0e3903ca8e3f0a8cffb59; reportSha256=ae28a561a6a1abde6a4372c09be99afe24f53e104975f84270f77e40e64e7d3b; noOp=PASS
+batch=G; csvSha256=a80fc24730f322d56fe44b0d5c473d81242b081da828c8501e82334e89d5288d; reportSha256=bc54edb5130c7a401e01a113633e6dcc032b043b34e2638b2ffe44ae05b96e7a; noOp=PASS
+consoleWarnings=0
+consoleErrors=0
+aggregateSecondRunByteDiff=0
+aggregateSecondRunLengthDiff=0
+aggregateSecondRunMtimeDiff=0
+orchestrationSecondRunByteDiff=0
+orchestrationSecondRunLengthDiff=0
+orchestrationSecondRunMtimeDiff=0

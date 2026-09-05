@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "recipe-fortress-patrol-1",
+    "spoiler_tier": "none",
+    "title": "순찰상황판 제작"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-patrol-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1045",
+      "target_spoiler_tier": "none",
+      "target_title": "경보종",
+      "to": "facility/building-1045",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-patrol-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1046",
+      "target_spoiler_tier": "none",
+      "target_title": "순찰상황판",
+      "to": "facility/building-1046",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-patrol-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1068",
+      "target_spoiler_tier": "none",
+      "target_title": "세력깃발",
+      "to": "facility/building-1068",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

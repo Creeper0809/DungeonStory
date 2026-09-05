@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "8"
+    },
+    {
+      "label": "필요 연구",
+      "value": "퇴비·윤작"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "waste-plant-rot",
+      "target_spoiler_tier": "none",
+      "target_title": "식물성 부패물",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비·윤작",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-compost-plant",
+  "spoiler_tier": "none",
+  "summary": "식물성 퇴비 생산 주문",
+  "title": "식물성 퇴비"
+}

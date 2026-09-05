@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "6.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "1018"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "여러 발의 산탄을 한 번에 퍼뜨려 가까운 적 무리를 겨누는 화기다. 특히 오르데나식 산탄총의 군번은 개머리판 깊숙이 찍혀 있어 칼로 긁어도 흔적이 남는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-shotgun",
+  "spoiler_tier": "none",
+  "summary": "산탄총 전투 장비",
+  "title": "산탄총"
+}

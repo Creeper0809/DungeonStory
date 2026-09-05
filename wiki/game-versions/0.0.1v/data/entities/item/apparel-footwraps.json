@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "발바닥과 발목을 천으로 감싸 신발 안의 쓸림을 줄이는 기본 의복이다. 하르나크에서 만든 발싸개는 발끝과 발목 둘레를 덧대기 쉽도록 여유 천을 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-footwraps",
+  "spoiler_tier": "none",
+  "summary": "발싸개 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "발싸개"
+}

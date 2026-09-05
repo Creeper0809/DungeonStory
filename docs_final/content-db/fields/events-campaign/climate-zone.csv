@@ -1,0 +1,31 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+ClimateZoneDefinitionSO|climate:ember-wastes,climate:ember-wastes,m_Name,ClimateZone_ember-wastes,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:ember-wastes,climate:ember-wastes,stableId,climate:ember-wastes,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:ember-wastes,climate:ember-wastes,displayName,잿불 황무지,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:ember-wastes,climate:ember-wastes,meanTemperatureC,27,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:ember-wastes,climate:ember-wastes,annualAmplitudeC,8,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:ember-wastes,climate:ember-wastes,localHourOffset,0,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:frost-rift,climate:frost-rift,m_Name,ClimateZone_frost-rift,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:frost-rift,climate:frost-rift,stableId,climate:frost-rift,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:frost-rift,climate:frost-rift,displayName,서리 균열,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:frost-rift,climate:frost-rift,meanTemperatureC,0,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:frost-rift,climate:frost-rift,annualAmplitudeC,12,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:frost-rift,climate:frost-rift,localHourOffset,0,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mana-stormlands,climate:mana-stormlands,m_Name,ClimateZone_mana-stormlands,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mana-stormlands,climate:mana-stormlands,stableId,climate:mana-stormlands,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mana-stormlands,climate:mana-stormlands,displayName,마나 폭풍지,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mana-stormlands,climate:mana-stormlands,meanTemperatureC,12,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mana-stormlands,climate:mana-stormlands,annualAmplitudeC,16,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mana-stormlands,climate:mana-stormlands,localHourOffset,0,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mycelial-depths,climate:mycelial-depths,m_Name,ClimateZone_mycelial-depths,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mycelial-depths,climate:mycelial-depths,stableId,climate:mycelial-depths,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mycelial-depths,climate:mycelial-depths,displayName,균사 심층,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mycelial-depths,climate:mycelial-depths,meanTemperatureC,16,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mycelial-depths,climate:mycelial-depths,annualAmplitudeC,5,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:mycelial-depths,climate:mycelial-depths,localHourOffset,0,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:temperate-cave,climate:temperate-cave,m_Name,ClimateZone_temperate-cave,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:temperate-cave,climate:temperate-cave,stableId,climate:temperate-cave,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:temperate-cave,climate:temperate-cave,displayName,온대 동굴,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:temperate-cave,climate:temperate-cave,meanTemperatureC,14,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:temperate-cave,climate:temperate-cave,annualAmplitudeC,14,,,explicit-serialized
+ClimateZoneDefinitionSO|climate:temperate-cave,climate:temperate-cave,localHourOffset,0,,,explicit-serialized

@@ -175,6 +175,16 @@ public sealed class WasteProcessingRuntime :
                 WasteFeedOutcomeCode.None,
                 new DomainFailure(FailureCode.ItemTransferDestinationMissing));
         }
+        if (!HasExactWildlifeCareAuthority(
+                destination,
+                destinationPosition))
+        {
+            return new WasteFeedRequestResult(
+                false,
+                string.Empty,
+                WasteFeedOutcomeCode.None,
+                new DomainFailure(FailureCode.ItemTransferDestinationMissing));
+        }
         WasteProcessingStackSnapshot selected = GetWasteStacks()
             .Where(stack => CanFeed(stack, diet)
                 && stack.State is WorldItemStackState.Loose
@@ -237,6 +247,17 @@ public sealed class WasteProcessingRuntime :
                 FailureCode.ItemTransferDestinationMissing);
             return false;
         }
+        if (!inventory.TryGetExactWildlifeCareDestinationPosition(
+                destination,
+                out Vector2Int authorityPosition)
+            || !HasExactWildlifeCareAuthority(
+                destination,
+                authorityPosition))
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemTransferDestinationMissing);
+            return false;
+        }
         WasteProcessingStackSnapshot selected = GetWasteStacks()
             .Where(stack => stack.State == WorldItemStackState.FacilityBuffer
                 && string.Equals(
@@ -266,6 +287,15 @@ public sealed class WasteProcessingRuntime :
             nutrition,
             diseaseChance);
         return candidate.IsValid;
+    }
+
+    private bool HasExactWildlifeCareAuthority(
+        string destinationId,
+        Vector2Int destinationPosition)
+    {
+        return inventory.HasExactWildlifeCareDestinationAuthority(
+            destinationId,
+            destinationPosition);
     }
 
     public DungeonWasteProcessingSaveData Capture()

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "어린 포도주는 음료, 조리와 약품 제조에 나눠 쓰는 액체 재료다. 베르사디온의 어린 포도주 통은 숙성 전에는 흰 천으로 덮고, 동의의 잔에 올릴 때만 검은 봉인을 단다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-young-wine",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "어린 포도주"
+}

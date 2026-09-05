@@ -1,0 +1,76 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-husbandry-taming",
+    "spoiler_tier": "none",
+    "title": "길들이기"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-husbandry-taming",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-taming",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-taming",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-feed",
+      "target_spoiler_tier": "none",
+      "target_title": "사료·깔짚",
+      "to": "research/research-husbandry-feed",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-taming",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8820",
+      "target_spoiler_tier": "none",
+      "target_title": "조련용 고삐 걸이",
+      "to": "facility/building-8820",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-breeding",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-taming",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-breeding",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-taming",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-breeding",
+      "label": "선행 연구",
+      "to": "research/research-husbandry-taming",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "98"
+    },
+    {
+      "label": "필요 연구",
+      "value": "내압 화기와 방폭"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "6",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "ammo-smoke-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "연막 탄약",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-granulated-powder",
+      "target_spoiler_tier": "none",
+      "target_title": "과립 화약",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-pressure-barrels",
+      "target_spoiler_tier": "none",
+      "target_title": "내압 화기와 방폭",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cartridge-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약지",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-ammo-smoke-cartridge",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 연막 탄약을(를) 생산한다.",
+  "title": "연막 탄약"
+}

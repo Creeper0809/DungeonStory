@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "실종 전령의 귀환 노래를 기억하는 작은 방울이다. 아일라세라의 귀환노래 방울은 돌아온 사람보다 돌아오지 못한 사람의 이름을 먼저 울린다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-harpy-3",
+  "spoiler_tier": "none",
+  "summary": "실종 전령의 귀환 노래를 기억하는 작은 방울.",
+  "title": "귀환노래 방울"
+}

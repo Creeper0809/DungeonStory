@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.525kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "6"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "생고기와 곡물을 바로 섞어 보존성보다 신선한 냄새와 식감을 살린 사료다. 라카쉬 세갈래길의 신선 개밥은 다친 사냥개와 새끼에게 먼저 돌아가며, 해가 지기 전에 모두 먹인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "feed-dog-food-fresh",
+  "spoiler_tier": "none",
+  "summary": "생고기와 곡물을 바로 섞어 만든 육식·잡식 사료.",
+  "title": "신선 개밥"
+}

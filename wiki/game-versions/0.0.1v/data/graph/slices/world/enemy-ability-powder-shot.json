@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-ability-powder-shot",
+    "spoiler_tier": "none",
+    "title": "화약 일제"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-legion-arquebus",
+      "label": "관련",
+      "to": "world/enemy-ability-powder-shot",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-neutral-smoke-sapper",
+      "label": "관련",
+      "to": "world/enemy-ability-powder-shot",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

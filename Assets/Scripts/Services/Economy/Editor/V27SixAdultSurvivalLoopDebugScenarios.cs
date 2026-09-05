@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using DungeonStory.Balance;
 using UnityEditor;
@@ -27,6 +28,12 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
         "Assets/Resources/SO/Economy/Crops/crop_twilight_grain.asset";
     private const string SurvivalSettingsPath =
         "Assets/Resources/SO/Survival/SurvivalBalanceSettings.asset";
+    private const string MealItemPath =
+        "Assets/Resources/SO/Economy/Items/food_grain_porridge.asset";
+    private const string GrainItemPath =
+        "Assets/Resources/SO/Economy/Items/resource_twilight_grain.asset";
+    private const string WaterItemPath =
+        "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I01_깨끗한_물.asset";
 
     [MenuItem("DungeonStory/V27/Verify Six Adult Food Water Closed Loop")]
     public static void RunFromMenu()
@@ -122,7 +129,7 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
             meal,
             grain,
             water);
-        string report = BuildReport(result, paths);
+        string report = BuildReport(result, paths, CaptureSourceDigest());
         WriteText(ReportPath, report);
         return report;
     }
@@ -214,7 +221,10 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
         Milli(mealRecipe.CleanWaterPerCycle),
         meal.MaxStack,
         grain.MaxStack,
-        water.MaxStack);
+        water.MaxStack,
+        PhysicalMassGrams.FromCanonicalKilograms(meal.UnitWeight).Value,
+        PhysicalMassGrams.FromCanonicalKilograms(grain.UnitWeight).Value,
+        PhysicalMassGrams.FromCanonicalKilograms(water.UnitWeight).Value);
 
     private static void VerifySixAdultResult(SurvivalClosedLoopAssessment value)
     {
@@ -233,19 +243,22 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
             "Six-adult crop and meal throughput is not exact.");
         Require(value.CropMilliWuPerDay == 18000
             && value.CookingMilliWuPerDay == 50008
-            && value.WaterMilliWuPerDay == 10530
-            && value.RecurringMilliWuPerDay == 78538
-            && value.RecurringSharePermille == 291,
+            && value.WaterMilliWuPerDay == 17560
+            && value.RecurringMilliWuPerDay == 85568
+            && value.RecurringSharePermille == 317,
             "Six-adult recurring WU closure drifted.");
         Require(value.DrinkingWaterDemandMilliUnitsPerDay == 5539
             && value.GrossDrinkingWaterMilliUnitsPerDay == 6924
             && value.GrossDrinkingWaterCoveragePermille == 1251
-            && value.TotalWaterMilliUnitsPerDay == 8421,
+            && value.TotalWaterMilliUnitsPerDay == 14047,
             "Six-adult clean-water demand or gross target drifted.");
         Require(value.ImmediateMealUnits == 12
             && value.SevenDayGrainUnits == 60
-            && value.SevenDayWaterUnits == 59
-            && value.StorageCells == 4,
+            && value.SevenDayWaterUnits == 99
+            && value.RequiredStorageMassGrams == 77700L
+            && value.MaximumRelevantStackMassGrams == 30000L
+            && value.GrossGrainMassGramsPerDay == 4200L
+            && value.GrossMealMassGramsPerDay == 6600L,
             "Seven-day physical reserve or immediate meal buffer drifted.");
     }
 
@@ -277,19 +290,74 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
 
     private static string BuildReport(
         SurvivalClosedLoopAssessment value,
-        IReadOnlyList<SurvivalContinuityPathSnapshot> paths)
+        IReadOnlyList<SurvivalContinuityPathSnapshot> paths,
+        string sourceDigest)
     {
         StringBuilder builder = new();
-        builder.AppendLine("RESULT=PASS; population=6; effectiveMilliWu=270000; recurringMilliWu="
+        builder.AppendLine("RESULT=PASS; sourceDigest=" + sourceDigest
+            + "; population=6; effectiveMilliWu=270000; recurringMilliWu="
             + Invariant(value.RecurringMilliWuPerDay)
             + "; recurringSharePermille=" + Invariant(value.RecurringSharePermille));
         builder.AppendLine("PASS V27_SIX_ADULT_FOOD_GROSS_125 demand=300000 gross=375000");
         builder.AppendLine("PASS V27_SIX_ADULT_FOOD_NET_110 target=330000 grossProduced=420000");
-        builder.AppendLine("PASS V27_SIX_ADULT_WATER_GROSS_125 demand=5539 gross=6924 totalWithProduction=8421");
-        builder.AppendLine("PASS V27_SIX_ADULT_RECURRING_WU_35 crop=18000 cooking=50008 water=10530 total=78538");
-        builder.AppendLine("PASS V27_SEVEN_DAY_PHYSICAL_RESERVE grain=60 immediateMeals=12 cleanWater=59 storageCells=4");
+        builder.AppendLine("PASS V27_SIX_ADULT_WATER_GROSS_125 demand=5539 gross=6924 totalWithProduction=14047");
+        builder.AppendLine("PASS V27_SIX_ADULT_RECURRING_WU_35 crop=18000 cooking=50008 water=17560 total=85568");
+        builder.AppendLine("PASS V27_SEVEN_DAY_PHYSICAL_RESERVE grain=60 immediateMeals=12 cleanWater=99"
+            + ";requiredStorageMassGrams=" + Invariant(value.RequiredStorageMassGrams)
+            + ";maximumRelevantStackMassGrams=" + Invariant(value.MaximumRelevantStackMassGrams));
         builder.AppendLine("PASS V27_SURVIVAL_NPLUSONE paths=" + Invariant(paths.Count));
         return builder.ToString();
+    }
+
+    public static string CaptureSourceDigest()
+    {
+        string[] authorityPaths =
+        {
+            "Assets/Scripts/Services/Economy/V27SurvivalClosedLoopModels.cs",
+            "Assets/Scripts/Services/Economy/Editor/V27SixAdultSurvivalLoopDebugScenarios.cs",
+            "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs",
+            "Assets/Scripts/Models/Items/Core/PhysicalMassContracts.cs",
+            MealRecipePath,
+            WaterRecipePath,
+            CropPath,
+            SurvivalSettingsPath,
+            MealItemPath,
+            GrainItemPath,
+            WaterItemPath
+        };
+        StringBuilder canonical = new();
+        foreach (string path in authorityPaths.OrderBy(value => value, StringComparer.Ordinal))
+        {
+            string absolutePath = Path.GetFullPath(path);
+            if (!File.Exists(absolutePath))
+                throw new FileNotFoundException("Six-adult authority is missing.", absolutePath);
+            canonical.Append(path.Replace('\\', '/'))
+                .Append('=')
+                .Append(HashFile(absolutePath))
+                .Append('\n');
+        }
+        using SHA256 sha = SHA256.Create();
+        return Hex(sha.ComputeHash(
+            new UTF8Encoding(false, true).GetBytes(canonical.ToString())));
+    }
+
+    private static string HashFile(string path)
+    {
+        using FileStream stream = File.OpenRead(path);
+        using SHA256 sha = SHA256.Create();
+        return Hex(sha.ComputeHash(stream));
+    }
+
+    private static string Hex(byte[] bytes)
+    {
+        const string digits = "0123456789abcdef";
+        char[] output = new char[bytes.Length * 2];
+        for (int index = 0; index < bytes.Length; index++)
+        {
+            output[index * 2] = digits[bytes[index] >> 4];
+            output[index * 2 + 1] = digits[bytes[index] & 0xf];
+        }
+        return new string(output);
     }
 
     private static void WriteContinuity(
@@ -350,7 +418,9 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
                 "recurringMilliWu", "recurringSharePermille",
                 "logisticsReservePermille", "emergencyReservePermille",
                 "growthAvailablePermille", "immediateMealUnits",
-                "sevenDayGrainUnits", "sevenDayWaterUnits", "storageCells",
+                "sevenDayGrainUnits", "sevenDayWaterUnits",
+                "requiredStorageMassGrams", "maximumRelevantStackMassGrams",
+                "grossGrainMassGramsPerDay", "grossMealMassGramsPerDay",
                 "stageGate", "failureCode");
             foreach (int population in populations.OrderBy(value => value))
             {
@@ -401,7 +471,10 @@ public static class V27SixAdultSurvivalLoopDebugScenarios
                     Invariant(value.ImmediateMealUnits),
                     Invariant(value.SevenDayGrainUnits),
                     Invariant(value.SevenDayWaterUnits),
-                    Invariant(value.StorageCells),
+                    Invariant(value.RequiredStorageMassGrams),
+                    Invariant(value.MaximumRelevantStackMassGrams),
+                    Invariant(value.GrossGrainMassGramsPerDay),
+                    Invariant(value.GrossMealMassGramsPerDay),
                     passed ? "PASS" : "FAIL",
                     recurringTargetWarning
                         ? "WARNING:V27_STAGE_RECURRING_WU_ABOVE_35_PERCENT"

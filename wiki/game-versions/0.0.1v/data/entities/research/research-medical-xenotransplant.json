@@ -1,0 +1,130 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "115"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Surgery And Transplant"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-selective",
+      "target_spoiler_tier": "none",
+      "target_title": "선별 사육",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-preservation",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 보존",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9511",
+      "target_spoiler_tier": "none",
+      "target_title": "격리 회복 침상",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9510",
+      "target_spoiler_tier": "none",
+      "target_title": "면역 조절기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9509",
+      "target_spoiler_tier": "none",
+      "target_title": "순환 이식대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-medical-xenotransplant",
+  "spoiler_tier": "none",
+  "summary": "다른 종의 기관을 순환계에 연결하고 거부 반응을 통제한다.",
+  "title": "이종 이식"
+}

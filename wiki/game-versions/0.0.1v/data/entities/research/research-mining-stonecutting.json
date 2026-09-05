@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Mining"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-quarry",
+      "target_spoiler_tier": "none",
+      "target_title": "채석장",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-quarry",
+      "target_spoiler_tier": "none",
+      "target_title": "채석장",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-quarry",
+      "target_spoiler_tier": "none",
+      "target_title": "채석장",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1077",
+      "target_spoiler_tier": "none",
+      "target_title": "석재 절단대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1619",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 연마기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-mining-stonecutting",
+  "spoiler_tier": "none",
+  "summary": "거친 석재를 건축용 블록으로 절단한다.",
+  "title": "석재 가공"
+}

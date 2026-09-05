@@ -1,0 +1,165 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-lumber",
+    "spoiler_tier": "none",
+    "title": "목재"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-bone",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-iron",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-steel",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-bone",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-iron",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-steel",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-price-board",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-prosthetic-arm",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-prisoner-work-kit",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-performance-prop-box",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-treated-lumber",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-material-paper",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-sawmill-lumber",
+      "label": "생산·해금",
+      "to": "item/material-lumber",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-golem-body-recast",
+      "label": "관련",
+      "to": "item/material-lumber",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-golem-coolant-refill",
+      "label": "관련",
+      "to": "item/material-lumber",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-golem-power-core",
+      "label": "관련",
+      "to": "item/material-lumber",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-golem-sensor-core",
+      "label": "관련",
+      "to": "item/material-lumber",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-golem-servo-alignment",
+      "label": "관련",
+      "to": "item/material-lumber",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-harpy-wing-fixation",
+      "label": "관련",
+      "to": "item/material-lumber",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-implant-installation",
+      "label": "관련",
+      "to": "item/material-lumber",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-prosthetic-installation",
+      "label": "관련",
+      "to": "item/material-lumber",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "history-workshop-artisan",
+    "spoiler_tier": "none",
+    "title": "공방 장인"
+  },
+  "edges": [],
+  "schema_version": 1
+}

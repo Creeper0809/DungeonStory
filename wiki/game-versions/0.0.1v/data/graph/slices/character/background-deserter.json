@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "background-deserter",
+    "spoiler_tier": "none",
+    "title": "탈영병"
+  },
+  "edges": [],
+  "schema_version": 1
+}

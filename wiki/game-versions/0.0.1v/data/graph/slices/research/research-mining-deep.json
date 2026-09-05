@@ -1,0 +1,86 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-mining-deep",
+    "spoiler_tier": "none",
+    "title": "심부 채굴"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-mining-deep",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-sorting",
+      "target_spoiler_tier": "none",
+      "target_title": "광석 선별",
+      "to": "research/research-mining-sorting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-deep",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-sorting",
+      "target_spoiler_tier": "none",
+      "target_title": "광석 선별",
+      "to": "research/research-mining-sorting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-deep",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-sorting",
+      "target_spoiler_tier": "none",
+      "target_title": "광석 선별",
+      "to": "research/research-mining-sorting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-ammo-blasting-charge",
+      "label": "필요 조건",
+      "to": "research/research-mining-deep",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-lead-counterweight",
+      "label": "필요 조건",
+      "to": "research/research-mining-deep",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-deep-shaft-hoist",
+      "label": "필요 조건",
+      "to": "research/research-mining-deep",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "to": "research/research-mining-deep",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "to": "research/research-mining-deep",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "to": "research/research-mining-deep",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

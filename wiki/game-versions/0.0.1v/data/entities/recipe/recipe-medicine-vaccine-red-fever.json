@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "88"
+    },
+    {
+      "label": "필요 연구",
+      "value": "예방접종과 유행병 통제"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "4",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medicine-vaccine-red-fever",
+      "target_spoiler_tier": "none",
+      "target_title": "적열병 백신",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-health-vaccination",
+      "target_spoiler_tier": "none",
+      "target_title": "예방접종과 유행병 통제",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "sample-antigen-red-fever",
+      "target_spoiler_tier": "none",
+      "target_title": "적열병 항원 표본",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-medicine-vaccine-red-fever",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 적열병 백신을(를) 생산한다.",
+  "title": "적열병 백신"
+}

@@ -369,7 +369,10 @@ public static class ResearchTreeDebugScenarios
             new EmptyKnowledgeRuntime(),
             catalog,
             CreateEmptyRestoreWorldCandidates(),
-            new FacilityBufferDestinationClaimRegistry());
+            EmptyArchiveLifecycle.Instance,
+            FixedPhysicalMassQuery.Instance,
+            EmptyPhysicalCandidateQuery.Instance,
+            EmptyKnowledgeDestinationRuntime.Instance);
         string captured = sourceSection.Capture();
 
         using RuntimeScope restored = new RuntimeScope(catalog, archive);
@@ -379,9 +382,12 @@ public static class ResearchTreeDebugScenarios
             new EmptyKnowledgeRuntime(),
             catalog,
             CreateEmptyRestoreWorldCandidates(),
-            new FacilityBufferDestinationClaimRegistry());
+            EmptyArchiveLifecycle.Instance,
+            FixedPhysicalMassQuery.Instance,
+            EmptyPhysicalCandidateQuery.Instance,
+            EmptyKnowledgeDestinationRuntime.Instance);
         DungeonGameRestoreReport restoreReport = new DungeonGameRestoreReport();
-        restoredSection.Restore(captured, 5, restoreReport);
+        restoredSection.Restore(captured, 6, restoreReport);
         bool roundTrip = restoreReport.Success
             && Mathf.Approximately(
                 restored.Runtime.State.Projects.GetProgress(sanitation.ProjectId).Progress,
@@ -411,7 +417,7 @@ public static class ResearchTreeDebugScenarios
         {
             restoredSection.StageRestore(
                 JsonUtility.ToJson(invalid),
-                5,
+                6,
                 new DungeonGameRestoreReport());
         }
         catch (InvalidOperationException)
@@ -455,7 +461,10 @@ public static class ResearchTreeDebugScenarios
             new EmptyKnowledgeRuntime(),
             catalog,
             CreateEmptyRestoreWorldCandidates(),
-            new FacilityBufferDestinationClaimRegistry()).Capture();
+            EmptyArchiveLifecycle.Instance,
+            FixedPhysicalMassQuery.Instance,
+            EmptyPhysicalCandidateQuery.Instance,
+            EmptyKnowledgeDestinationRuntime.Instance).Capture();
 
         using RuntimeScope target = new RuntimeScope(catalog, archive);
         target.Runtime.State.Projects.GetProgress(project.ProjectId)
@@ -472,12 +481,19 @@ public static class ResearchTreeDebugScenarios
                 new EmptyKnowledgeRuntime(),
                 catalog,
                 CreateEmptyRestoreWorldCandidates(),
-                targetClaims);
+                new ClaimOnlyArchiveLifecycle(targetClaims),
+                FixedPhysicalMassQuery.Instance,
+                EmptyPhysicalCandidateQuery.Instance,
+                EmptyKnowledgeDestinationRuntime.Instance);
 
         ResearchScenarioSaveSection workDependency =
             new ResearchScenarioSaveSection(
                 WorkOrdersSaveSection.Id,
                 DungeonSaveRestorePhase.RuntimeState);
+        ResearchScenarioSaveSection physicalDependency =
+            new ResearchScenarioSaveSection(
+                PhysicalItemsSaveSection.Id,
+                DungeonSaveRestorePhase.Items);
         ResearchScenarioSaveSection lateFailure =
             new ResearchScenarioSaveSection(
                 "research.debug.late-failure",
@@ -491,6 +507,7 @@ public static class ResearchTreeDebugScenarios
         DungeonSaveSectionRegistry registry = new DungeonSaveSectionRegistry(
             new IDungeonSaveSection[]
             {
+                physicalDependency,
                 workDependency,
                 targetSection,
                 lateFailure
@@ -534,7 +551,10 @@ public static class ResearchTreeDebugScenarios
             new EmptyKnowledgeRuntime(),
             catalog,
             CreateEmptyRestoreWorldCandidates(),
-            new FacilityBufferDestinationClaimRegistry()).Capture();
+            EmptyArchiveLifecycle.Instance,
+            FixedPhysicalMassQuery.Instance,
+            EmptyPhysicalCandidateQuery.Instance,
+            EmptyKnowledgeDestinationRuntime.Instance).Capture();
 
         using ResearchArchiveRestoreWorld world =
             ResearchArchiveRestoreWorld.Create();
@@ -545,43 +565,59 @@ public static class ResearchTreeDebugScenarios
         bool publishedExactlyOnce;
         using (RuntimeScope target = new RuntimeScope(catalog, archive))
         {
-            FacilityBufferDestinationClaimRegistry claims =
-                new FacilityBufferDestinationClaimRegistry();
+            ResearchArchiveAuthorityFixture authority = new();
             BlueprintResearchSaveSection section =
                 CreateResearchSection(
                     target.Runtime,
                     catalog,
                     world.Candidates,
-                    claims);
+                    authority.Lifecycle);
             DungeonSaveSectionRegistry registry =
                 CreateResearchRegistry(
                     section,
                     target.RootStore,
-                    claims);
+                    authority);
             List<DungeonSaveSectionEnvelope> envelopes =
                 CaptureWithResearchPayload(registry, payload);
             DungeonGameRestoreReport report = new DungeonGameRestoreReport();
             bool restored = registry.RestoreAll(envelopes, report);
-            FacilityBufferDestinationClaim[] published = claims.CaptureClaims()
+            FacilityBufferDestinationClaim[] published = authority.Claims
+                .CaptureClaims()
                 .Where(claim => claim != null
                     && string.Equals(
                         claim.OwnerDomain,
                         ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
                         StringComparison.Ordinal))
                 .ToArray();
+            FacilityBufferCapacityProfile[] profiles = authority.Capacities
+                .CaptureProfiles()
+                .Where(profile => profile != null
+                    && string.Equals(
+                        profile.OwnerDomain,
+                        ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
+                        StringComparison.Ordinal))
+                .ToArray();
             publishedExactlyOnce = restored
                 && report.Success
                 && published.Length == 1
+                && profiles.Length == 1
                 && ResearchBlueprintArchiveDestinationAuthority.ClaimsMatch(
                     published[0],
-                    expected);
+                    expected)
+                && profiles[0].MaxMassGrams == 1_200L
+                && profiles[0].CapacityRevision
+                    == ResearchBlueprintArchiveDestinationAuthority
+                        .CapacitySchemaRevision
+                && string.Equals(
+                    profiles[0].DestinationId,
+                    expected.DestinationId,
+                    StringComparison.Ordinal);
         }
 
         bool rollbackRestoredPreviousImage;
         using (RuntimeScope target = new RuntimeScope(catalog, archive))
         {
-            FacilityBufferDestinationClaimRegistry claims =
-                new FacilityBufferDestinationClaimRegistry();
+            ResearchArchiveAuthorityFixture authority = new();
             FacilityBufferDestinationClaim sentinel =
                 new FacilityBufferDestinationClaim(
                     "research-archive:building:research-rollback-sentinel",
@@ -589,11 +625,22 @@ public static class ResearchTreeDebugScenarios
                     ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
                     "research-archive:building:research-rollback-sentinel",
                     ownerFacilityId: null,
-                    FacilityBufferDestinationAnchorKind.ReservedTarget);
-            if (!claims.TryReplaceOwnedClaims(
+                    FacilityBufferDestinationAnchorKind.ReservedTarget,
+                    FacilityBufferDestinationAdmissionPolicy.ExactGramRequired);
+            FacilityBufferCapacityProfile sentinelProfile =
+                new FacilityBufferCapacityProfile(
+                    sentinel.DestinationId,
+                    sentinel.DropPosition,
+                    sentinel.OwnerDomain,
+                    sentinel.OwnerOperationId,
+                    sentinel.OwnerFacilityId,
+                    new PhysicalMassGrams(1_200L),
+                    ResearchBlueprintArchiveDestinationAuthority
+                        .CapacitySchemaRevision);
+            if (!authority.Lifecycle.TryReplaceOwnedAuthorities(
                     ResearchBlueprintArchiveDestinationAuthority.OwnerDomain,
                     new[] { sentinel },
-                    out _,
+                    new[] { sentinelProfile },
                     out _))
             {
                 return false;
@@ -604,26 +651,32 @@ public static class ResearchTreeDebugScenarios
                     target.Runtime,
                     catalog,
                     world.Candidates,
-                    claims);
+                    authority.Lifecycle);
             DungeonSaveSectionRegistry registry =
                 CreateResearchRegistry(
                     section,
                     target.RootStore,
-                    claims,
+                    authority,
                     new FailingResearchPublishParticipant());
             List<DungeonSaveSectionEnvelope> envelopes =
                 CaptureWithResearchPayload(registry, payload);
             DungeonGameRestoreReport report = new DungeonGameRestoreReport();
             bool restored = registry.RestoreAll(envelopes, report);
             FacilityBufferDestinationClaim[] afterRollback =
-                claims.CaptureClaims().ToArray();
+                authority.Claims.CaptureClaims().ToArray();
+            FacilityBufferCapacityProfile[] profilesAfterRollback =
+                authority.Capacities.CaptureProfiles().ToArray();
             rollbackRestoredPreviousImage = !restored
                 && !report.Success
                 && afterRollback.Length == 1
+                && profilesAfterRollback.Length == 1
                 && ResearchBlueprintArchiveDestinationAuthority.ClaimsMatch(
                     afterRollback[0],
                     sentinel)
-                && !claims.TryGetClaim(
+                && ResearchBlueprintArchiveDestinationAuthority.ProfilesMatch(
+                    profilesAfterRollback[0],
+                    sentinelProfile)
+                && !authority.Claims.TryGetClaim(
                     expected.DestinationId,
                     expected.DropPosition,
                     out _);
@@ -636,29 +689,39 @@ public static class ResearchTreeDebugScenarios
         BlueprintResearchRuntime runtime,
         IResearchProjectCatalog catalog,
         IRestoreWorldCandidateQuery candidates,
-        IFacilityBufferDestinationClaimCommand claims) =>
+        IFacilityBufferDestinationLifecycleCommand lifecycle) =>
         new BlueprintResearchSaveSection(
             new ProgressionSceneRuntimeReferences(null, runtime, null),
             new EditorCatalog(),
             new EmptyKnowledgeRuntime(),
             catalog,
             candidates,
-            claims);
+            lifecycle,
+            FixedPhysicalMassQuery.Instance,
+            EmptyPhysicalCandidateQuery.Instance,
+            EmptyKnowledgeDestinationRuntime.Instance);
 
     private static DungeonSaveSectionRegistry CreateResearchRegistry(
         BlueprintResearchSaveSection section,
         DungeonRuntimeAggregateRootStore rootStore,
-        FacilityBufferDestinationClaimRegistry claims,
+        ResearchArchiveAuthorityFixture authority,
         params IDungeonRestoreTransactionParticipant[] trailingParticipants)
     {
         IDungeonRestoreTransactionParticipant[] participants =
-            new IDungeonRestoreTransactionParticipant[] { claims }
+            new IDungeonRestoreTransactionParticipant[]
+            {
+                authority.Claims,
+                authority.Capacities
+            }
             .Concat(trailingParticipants
                 ?? Array.Empty<IDungeonRestoreTransactionParticipant>())
             .ToArray();
         return new DungeonSaveSectionRegistry(
             new IDungeonSaveSection[]
             {
+                new ResearchScenarioSaveSection(
+                    PhysicalItemsSaveSection.Id,
+                    DungeonSaveRestorePhase.Items),
                 new ResearchScenarioSaveSection(
                     WorkOrdersSaveSection.Id,
                     DungeonSaveRestorePhase.RuntimeState),
@@ -1134,6 +1197,196 @@ public static class ResearchTreeDebugScenarios
                 new KnowledgeResidueAggregateState());
 
         public void Restore(KnowledgeResidueRestoreCandidate candidate) { }
+    }
+
+    private sealed class EmptyPhysicalCandidateQuery :
+        IPhysicalItemRestoreCandidateQuery
+    {
+        public static readonly EmptyPhysicalCandidateQuery Instance = new();
+
+        public bool IsCandidateAvailable => true;
+        public IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
+            PendingBatchDispositions => Array.Empty<
+                PhysicalItemRestoreCandidateDispositionSnapshot>();
+
+        public bool TryGetPendingBatchDisposition(
+            string operationId,
+            out PhysicalItemRestoreCandidateDispositionSnapshot disposition)
+        {
+            disposition = null;
+            return false;
+        }
+    }
+
+    private sealed class EmptyKnowledgeDestinationRuntime :
+        IKnowledgeResidueDestinationRuntime
+    {
+        public static readonly EmptyKnowledgeDestinationRuntime Instance = new();
+
+        public bool TryEnsure(
+            KnowledgeResidueTaskSaveData task,
+            BuildableObject facility,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryReplace(
+            IReadOnlyList<KnowledgeResidueTaskSaveData> tasks,
+            IReadOnlyList<BuildableObject> facilities,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return tasks == null || tasks.Count == 0;
+        }
+
+        public bool TryRevoke(
+            KnowledgeResidueTaskSaveData task,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryValidate(
+            KnowledgeResidueTaskSaveData task,
+            out string failureReason)
+        {
+            failureReason = "empty-knowledge-destination-runtime";
+            return false;
+        }
+    }
+
+    private sealed class EmptyArchiveLifecycle :
+        IFacilityBufferDestinationLifecycleCommand
+    {
+        public static readonly EmptyArchiveLifecycle Instance = new();
+
+        public bool TryReplaceOwnedAuthorities(
+            string ownerDomain,
+            IReadOnlyList<FacilityBufferDestinationClaim> desiredClaims,
+            IReadOnlyList<FacilityBufferCapacityProfile> desiredProfiles,
+            out string failureReason)
+        {
+            bool empty = (desiredClaims?.Count ?? 0) == 0
+                && (desiredProfiles?.Count ?? 0) == 0;
+            failureReason = empty
+                ? string.Empty
+                : "empty-archive-lifecycle-received-authority";
+            return empty;
+        }
+    }
+
+    private sealed class ResearchArchiveAuthorityFixture
+    {
+        public ResearchArchiveAuthorityFixture()
+        {
+            Claims = new FacilityBufferDestinationClaimRegistry();
+            Capacities = new FacilityBufferMassAdmissionService(
+                Claims,
+                EmptyFacilityBufferOccupancy.Instance,
+                FixedPhysicalMassQuery.Instance);
+            Lifecycle = new FacilityBufferDestinationLifecycleService(
+                Claims,
+                Claims,
+                Capacities,
+                Capacities);
+        }
+
+        public FacilityBufferDestinationClaimRegistry Claims { get; }
+        public FacilityBufferMassAdmissionService Capacities { get; }
+        public FacilityBufferDestinationLifecycleService Lifecycle { get; }
+    }
+
+    private sealed class EmptyFacilityBufferOccupancy :
+        IFacilityBufferPhysicalOccupancyQuery
+    {
+        public static readonly EmptyFacilityBufferOccupancy Instance = new();
+
+        public FacilityBufferPhysicalOccupancySnapshot Capture(
+            string destinationId) => new(0L, 0L);
+
+        public bool TryCaptureExactLot(
+            IReadOnlyList<FacilityBufferMassLotSlice> slices,
+            out FacilityBufferExactLotSnapshot lot,
+            out string failureReason)
+        {
+            lot = default;
+            failureReason = "empty-occupancy";
+            return false;
+        }
+    }
+
+    private sealed class ClaimOnlyArchiveLifecycle :
+        IFacilityBufferDestinationLifecycleCommand
+    {
+        private readonly IFacilityBufferDestinationClaimCommand claims;
+
+        public FacilityBufferCapacityProfile[] LastProfiles { get; private set; } =
+            Array.Empty<FacilityBufferCapacityProfile>();
+
+        public ClaimOnlyArchiveLifecycle(
+            IFacilityBufferDestinationClaimCommand claims) =>
+            this.claims = claims ?? throw new ArgumentNullException(nameof(claims));
+
+        public bool TryReplaceOwnedAuthorities(
+            string ownerDomain,
+            IReadOnlyList<FacilityBufferDestinationClaim> desiredClaims,
+            IReadOnlyList<FacilityBufferCapacityProfile> desiredProfiles,
+            out string failureReason)
+        {
+            if ((desiredClaims?.Count ?? 0) != (desiredProfiles?.Count ?? 0))
+            {
+                failureReason = "claim-profile-count-mismatch";
+                return false;
+            }
+
+            bool replaced = claims.TryReplaceOwnedClaims(
+                ownerDomain,
+                desiredClaims,
+                out FacilityBufferDestinationClaimFailureCode failureCode,
+                out string claimFailure);
+            failureReason = replaced
+                ? string.Empty
+                : $"{failureCode}:{claimFailure}";
+            if (replaced)
+            {
+                LastProfiles = (desiredProfiles
+                        ?? Array.Empty<FacilityBufferCapacityProfile>())
+                    .ToArray();
+            }
+            return replaced;
+        }
+    }
+
+    private sealed class FixedPhysicalMassQuery : IPhysicalItemMassQuery
+    {
+        public static readonly FixedPhysicalMassQuery Instance = new();
+        public long AuthorityRevision => 1L;
+
+        public PhysicalMassGrams GetDefinitionUnitMass(ItemDefinitionId itemId) =>
+            new PhysicalMassGrams(150L);
+
+        public PhysicalMassGrams GetPreparedStackUnitMass(
+            PhysicalItemMassSubject subject) =>
+            subject?.PreparedUnitMass
+            ?? throw new InvalidOperationException("Prepared mass is required.");
+
+        public PhysicalMassGrams GetStackUnitMass(
+            ItemDefinitionId itemId,
+            PhysicalItemMassSubject subject) =>
+            subject != null && subject.HasPreparedUnitMass
+                ? subject.PreparedUnitMass
+                : GetDefinitionUnitMass(itemId);
+
+        public PhysicalMassGrams GetStackTotalMass(PhysicalItemLotSnapshot lot) =>
+            GetQuantityMass(lot.Subject.ItemId, lot.Subject, lot.Quantity);
+
+        public PhysicalMassGrams GetQuantityMass(
+            ItemDefinitionId itemId,
+            PhysicalItemMassSubject subject,
+            int quantity) => GetStackUnitMass(itemId, subject).Multiply(quantity);
     }
 
     private sealed class MutableArchiveQuery : IResearchBlueprintArchiveQuery

@@ -1,657 +1,105 @@
-RESULT=PASS; rows=85105; critical=0; collapsed=328; approved=328; scc=297; minimumMarginMilliEwu=-14364087; integrityFailures=0
+RESULT=PASS; rows=87443; critical=0; collapsed=215; approved=52; scc=298; minimumMarginMilliEwu=-24361604; integrityFailures=0
 
-APPROVED recipe:advanced-medicine metric=direct-wu reason=labor-density-drift
+APPROVED crop:bloodleaf metric=authored-harvest-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:alcohol metric=direct-wu reason=labor-density-drift
+APPROVED crop:cave-mushroom metric=authored-harvest-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:ammo:armor-piercing-cartridge metric=direct-wu reason=labor-density-drift
+APPROVED crop:dreamleaf metric=authored-harvest-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:ammo:blacksteel-bolt metric=direct-wu reason=labor-density-drift
+APPROVED crop:moonflower metric=authored-harvest-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:ammo:blasting-charge metric=direct-wu reason=labor-density-drift
+APPROVED crop:twilight-grain metric=authored-harvest-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:ammo:incendiary-arrow metric=direct-wu reason=labor-density-drift
+APPROVED equipment-item:shield:mana-buckler metric=acquisition-cost reason=v27-duration-preserving-first-candidate
 
-APPROVED recipe:ammo:incendiary-bolt metric=direct-wu reason=labor-density-drift
+APPROVED equipment-item:shield:rune metric=acquisition-cost reason=v27-duration-preserving-first-candidate
 
-APPROVED recipe:ammo:mana-disruptor-bolt metric=direct-wu reason=labor-density-drift
+APPROVED equipment-item:weapon:mana-lance metric=acquisition-cost reason=v27-duration-preserving-first-candidate
 
-APPROVED recipe:ammo:paper-cartridge metric=direct-wu reason=labor-density-drift
+APPROVED fiber:cave-silk metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:ammo:rune-cartridge metric=direct-wu reason=labor-density-drift
+APPROVED fiber:deep-goat-wool metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:ammo:scatter-cartridge metric=direct-wu reason=labor-density-drift
+APPROVED fiber:frost-wool metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:ammo:signal-flare metric=direct-wu reason=labor-density-drift
+APPROVED medicine:mycelial-culture-pack metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:ammo:smoke-cartridge metric=direct-wu reason=labor-density-drift
+APPROVED offense:unappraised-loot metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:ammo:tranquilizer-dart metric=direct-wu reason=labor-density-drift
+APPROVED recipe:advanced-medicine metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:ammo:trap-canister metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:dreamweave-rune-lining metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:anesthetic metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:golem-core-case metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:antidote metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:mana-shield-plate metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:antiseptic metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:precision-optics metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:arrow-bone metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:rune-bus-coupler metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:arrow-iron metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:rune-conductor metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:arrow-rune metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:rune-leather-lining metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:arrow-steel metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:rune-leather-strap metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:bedding-animal metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:rune-purification-crystal metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:bedding-straw metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:rune-tuning-shield metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:blacksteel metric=direct-wu reason=labor-density-drift
+APPROVED recipe:component:temporal-stasis-seal metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:blood-stimulant metric=direct-wu reason=labor-density-drift
+APPROVED recipe:gold-ingot metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:boar-stew metric=direct-wu reason=labor-density-drift
+APPROVED recipe:gold-leaf metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:bolt-bone metric=direct-wu reason=labor-density-drift
+APPROVED recipe:mana-awakener metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:bolt-iron metric=direct-wu reason=labor-density-drift
+APPROVED recipe:material:sterile-composite metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:bolt-rune metric=direct-wu reason=labor-density-drift
+APPROVED recipe:medical:cross-lineage-medium metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:bolt-steel metric=direct-wu reason=labor-density-drift
+APPROVED recipe:medical:rune-hibernation-catalyst metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:bone-charm metric=direct-wu reason=labor-density-drift
+APPROVED recipe:resource:clean-water metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:book:seasonal-almanac metric=direct-wu reason=labor-density-drift
+APPROVED recipe:resource:lead-ore metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:bowstring-fiber metric=direct-wu reason=labor-density-drift
+APPROVED recipe:resource:sulfur metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:bowstring-sinew metric=direct-wu reason=labor-density-drift
+APPROVED recipe:rune-leather metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:brined-vegetable metric=direct-wu reason=labor-density-drift
+APPROVED recipe:tallow metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:candle metric=direct-wu reason=labor-density-drift
+APPROVED recipe:tool:rune-identification-lens metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:charcoal metric=direct-wu reason=labor-density-drift
+APPROVED recipe:tool:weather-observation-kit metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:cheese metric=direct-wu reason=labor-density-drift
+APPROVED recipe:wool-cloth metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:cheese-mushroom metric=direct-wu reason=labor-density-drift
+APPROVED resource:rune-dust metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:cloth metric=direct-wu reason=labor-density-drift
+APPROVED sample:antigen:blood-wasting metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:cold-work-suit metric=direct-wu reason=labor-density-drift
+APPROVED sample:antigen:cave-flu metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:component:blacksteel-defense-plate metric=direct-wu reason=labor-density-drift
+APPROVED sample:antigen:gut-rot metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:component:blast-coat-shell metric=direct-wu reason=labor-density-drift
+APPROVED sample:antigen:mana-pox metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:component:brigandine-padding metric=direct-wu reason=labor-density-drift
+APPROVED sample:antigen:red-fever metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:component:climate-control-manifold metric=direct-wu reason=labor-density-drift
+APPROVED sample:antigen:slime-blight metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:component:corridor-detonator metric=direct-wu reason=labor-density-drift
+APPROVED sample:antigen:spore-lung metric=authored-unit-price-gold reason=v27-market-acquisition-input-ceil
 
-APPROVED recipe:component:dreamweave-rune-lining metric=direct-wu reason=labor-density-drift
+APPROVED source:animal-fang metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:component:engineering-drawing metric=direct-wu reason=labor-density-drift
+APPROVED source:animal-horn metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:component:factory-installation-plan metric=direct-wu reason=labor-density-drift
+APPROVED source:logging metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:component:golem-core-case metric=direct-wu reason=labor-density-drift
+APPROVED source:quarry metric=direct-wu reason=v27-recurring-throughput-no-project-scale
 
-APPROVED recipe:component:growth-frame metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:insulated-wiring metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:lead-counterweight metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:machine-parts metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:mana-shield-plate metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:material-test-coupon metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:paper-paste metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:powered-armor-joint metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:precision-optics metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:precision-parts metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:price-board metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:prototype-package metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:reclaimed-water-filter metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:room-partition-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:rune-bus-coupler metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:rune-conductor metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:rune-control-panel metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:rune-leather-lining metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:rune-leather-strap metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:rune-purification-crystal metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:rune-tuning-shield metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:sealed-seasonal-container metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:siege-counterweight metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:siege-reinforcement-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:stock-sensor-panel metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:temporal-stasis-seal metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:textile-hardener metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:component:waterwheel-drive-shaft metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:compost-animal metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:compost-manure metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:compost-mixed metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:compost-plant metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:craft:dreamweave-ritual-banner metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:craft:toxic-trap-coating metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:curd metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:dog-food metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:dog-food-fresh metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:dough metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:dreamleaf-analgesic metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:dreamweave metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:egg-pancake metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:expedition-ration-pack metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:fang-poison metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:fermented-liquor metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:fermented-pickle metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:fermented-vinegar metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:fresh-curd metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:garden-meal metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:gold-ingot metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:gold-leaf metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:gold-ornament metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:grain-porridge metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:grape-juice metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:grape-syrup metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:hallucinogenic-distillate metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:hay-feed metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:herbal-poultice metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:iron-ingot metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:iron-slag-block metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:jerky metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:lavish-meat metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:lavish-vegan metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:leather metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:loot-appraisal metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:low-fuel-animal metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:low-fuel-manure metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:low-fuel-plant metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:low-fuel-rot metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:malt metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:malt-porridge metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:mana-awakener metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:barrel-steel metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:black-powder metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:cartridge-paper metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:chain-mesh metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:granulated-powder metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:hardened-leather metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:laminated-lumber metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:lead-ingot metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:lead-shot metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:mana-alloy metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:niter metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:paper metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:plate-blank metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:rope metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:spring-steel metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:material:sterile-composite metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:meat-pie metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical-vial metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:cross-lineage-medium metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:fertility-treatment metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:isolation-care-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:mana-core-case metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:organ-preservation-canister metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:organ-regeneration-scaffold metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:regenerative-medium metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:rejuvenation-serum metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:rune-hibernation-catalyst metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:slime-coagulation-frame metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:sterile-bandage metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:sterile-mycelium-graft metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:trait-analysis-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:trauma-care-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medical:whole-body-regeneration-medium metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medicine:vaccine:blood-wasting metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medicine:vaccine:cave-flu metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medicine:vaccine:gut-rot metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medicine:vaccine:mana-pox metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medicine:vaccine:red-fever metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medicine:vaccine:slime-blight metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:medicine:vaccine:spore-lung metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:milling-flour metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:moonflower-tea metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:mushroom-soup metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:night-spirit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:night-wine metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:preserved-ration metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:preserved-vegetable metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:ration-mixture metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:record:arcane-index metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:record:breeding-ledger metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:record:career-ledger metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:resin-balm metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:ritual-reagent metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:roasted-meat metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:root-stew metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:rot-toxin metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:rune-cold-suit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:rune-leather metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:salted-meat metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:salted-meat-stew metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:sawmill-lumber metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:seasoned-filling metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:silage metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:slime-warming-pad metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:soap metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:solvent metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:standard-medicine metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:starch metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:steel-ingot metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:stone-block metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:stone-ornament metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:stuffed-mushroom metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:alliance-signal-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:botanical-pesticide metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:certified-seed-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:defense-mixed-ammo-box metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:funeral-preparation-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:fungicide metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:greenhouse-nutrient metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:inoculated-log metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:mushroom-substrate metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:nitrate-fertilizer metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:performance-prop-box metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:supply:pest-lure metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:surgery:artificial-eye metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:surgery:prosthetic-arm metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:surgery:prosthetic-leg metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:syrup metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tallow metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:textile:insulating-cloth metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:textile:quilted-liner metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:textile:sterile-cloth metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:administrative-seal metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:alloy-crucible metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:banquet-cart metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:deep-shaft-hoist metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:field-repair-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:hauling-harness metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:inspection-gauge metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:maintenance-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:mana-probe metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:powered-tool-head metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:precision-gauge metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:prisoner-work-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:prospecting-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:reinforced-restraint metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:rune-identification-lens metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:watch-signal-horn metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:tool:weather-observation-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:trail-charm metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:treated-lumber metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:twilight-beer metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:apron metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:belt metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:blouse metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:boots metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:ceremonial-dress metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:chest-wrap metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:cloak metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:cold-work-suit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:contract-sash metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:daily-robe metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:envoy-coat metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:farmer-workwear metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:festival-vest metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:footwraps metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:formal-coat metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:gloves metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:golem-functional-lining metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:hat metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:hauling-harness metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:heat-work-suit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:hooded-robe metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:horn-ring metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:keeper-coat metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:loincloth-underwear metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:long-underpants metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:lower-underwear metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:miner-workwear metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:mourning-clothes metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:raincoat metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:ritual-robe metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:rune-cold-suit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:scarf metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:shorts metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:skirt metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:sky-chorus-shawl metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:sleep-bottom metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:sleep-top metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:slime-warming-pad metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:smith-apron metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:smoke-protection-hood metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:socks metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:spore-garden-cloak metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:spore-protection-hood metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:sterile-gown metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:surgical-apron metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:tail-guard metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:tail-ribbon metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:trousers metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:tunic metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:undershirt metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:vest metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:waterproof-work-suit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:weapon-vigil-cloak metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:wing-cloak metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:wing-harness metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:apparel:work-shirt metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:mending-scrap metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:sewing-kit metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:sewing-thread metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin-powered:cave-silk metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin-powered:common-wool metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin-powered:deep-goat-wool metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin-powered:dreamweave metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin-powered:ember-cotton metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin-powered:frost-linen metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin-powered:frost-wool metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin-powered:mire-canvas metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin-powered:shade-cloth metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin-powered:spore-hemp metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin:cave-silk metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin:common-wool metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin:deep-goat-wool metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin:dreamweave metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin:ember-cotton metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin:frost-linen metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin:frost-wool metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin:mire-canvas metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin:shade-cloth metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:spin:spore-hemp metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:weave:cave-silk metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:weave:common-wool metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:weave:deep-goat-wool metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:weave:dreamweave metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:weave:ember-cotton metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:weave:frost-linen metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:weave:frost-wool metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:weave:mire-canvas metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:weave:shade-cloth metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:v22:weave:spore-hemp metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:vegetable-pie metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:vitality-tonic metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:washed-vegetable metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:wool-cloth metric=direct-wu reason=labor-density-drift
-
-APPROVED recipe:young-wine metric=direct-wu reason=labor-density-drift
+APPROVED source:saltstone metric=direct-wu reason=v27-recurring-throughput-no-project-scale

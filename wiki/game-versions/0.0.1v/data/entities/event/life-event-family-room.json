@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Partnership Family"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "3",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-family-room",
+      "target_spoiler_tier": "warning",
+      "target_title": "가족이 함께 살 방",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "7",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-family-room",
+      "target_spoiler_tier": "warning",
+      "target_title": "가족이 함께 살 방",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-family-room",
+  "spoiler_tier": "warning",
+  "summary": "늘어난 가족이 다른 가구와 뒤섞인 침실을 벗어나길 원한다.",
+  "title": "가족이 함께 살 방"
+}

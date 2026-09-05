@@ -18,16 +18,27 @@ internal sealed class CropPlotState
     public float HarvestWork;
     public string MaterialDestinationId = string.Empty;
     public bool MaterialsConsumed;
+    public int FrozenSowInputOperationSequence = -1;
+    public string FrozenSowInputSourceDigest = string.Empty;
+    public string FrozenSowInputVectorDigest = string.Empty;
+    public SurvivalWeatherType FrozenSowInputWeather;
+    public float FrozenSowInputConsumptionMultiplier;
+    public string FrozenSowInputSelectedFuelItemId = string.Empty;
+    public Dictionary<string, int> FrozenSowInputs = new(StringComparer.Ordinal);
     public string BlockedReason = string.Empty;
     public string GoldenHarvestHarvesterId = string.Empty;
     public int GoldenHarvestAttemptSequence;
     public int NextSowOperationSequence;
     public CropPhysicalCommitSaveData PendingSow = new();
+    public string PendingCycleCorrelationId = string.Empty;
+    public CropCycleExecutionReceiptSaveData CycleExecutionReceipt = new();
     public int NextTreatmentOperationSequence;
     public int PestLureNextAllowedDay;
     public int BotanicalPesticideNextAllowedDay;
     public int FungicideNextAllowedDay;
     public CropTreatmentOrderSaveData Treatment = new();
+    public int NextHarvestOperationSequence;
+    public CropHarvestOutputSaveData PendingHarvest = new();
 }
 
 internal sealed class CropPlotAggregateState
@@ -48,11 +59,18 @@ public sealed class CropPlotWorldDependencies
     public CropPlotWorldDependencies(
         IBuildingWorldQuery buildingWorld,
         IResourceEconomyContentCatalog catalog,
+        ICropCycleInputRequirementQuery inputRequirements,
         IProductionItemGateway items,
         IPhysicalSeedLotGateway seedLots,
         IPhysicalFacilityItemSinkGateway treatmentItems,
         IPackagedLotTareDispositionService packagedTare,
         ICropEcologyService ecology,
+        ICropEcologyHarvestTransactionService ecologyHarvests,
+        IProductionOutputCapabilityRegistry outputCapabilities,
+        IProductionDomainOutputPublicationService outputPublication,
+        ICropPlotInputOwnerRuntime inputOwners,
+        ICharacterPerformanceDefinitionMaximumQuery performanceMaximum,
+        IGameplayEffectResultBoundsQuery effectBounds,
         IFacilityCapabilityQuery facilities,
         IFacilityCandidateCache facilityCandidates,
         IWorkforceReplanService workforce)
@@ -60,6 +78,8 @@ public sealed class CropPlotWorldDependencies
         BuildingWorld = buildingWorld
             ?? throw new ArgumentNullException(nameof(buildingWorld));
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        InputRequirements = inputRequirements
+            ?? throw new ArgumentNullException(nameof(inputRequirements));
         Items = items ?? throw new ArgumentNullException(nameof(items));
         SeedLots = seedLots ?? throw new ArgumentNullException(nameof(seedLots));
         TreatmentItems = treatmentItems
@@ -67,6 +87,18 @@ public sealed class CropPlotWorldDependencies
         PackagedTare = packagedTare
             ?? throw new ArgumentNullException(nameof(packagedTare));
         Ecology = ecology ?? throw new ArgumentNullException(nameof(ecology));
+        EcologyHarvests = ecologyHarvests
+            ?? throw new ArgumentNullException(nameof(ecologyHarvests));
+        OutputCapabilities = outputCapabilities
+            ?? throw new ArgumentNullException(nameof(outputCapabilities));
+        OutputPublication = outputPublication
+            ?? throw new ArgumentNullException(nameof(outputPublication));
+        InputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
+        PerformanceMaximum = performanceMaximum
+            ?? throw new ArgumentNullException(nameof(performanceMaximum));
+        EffectBounds = effectBounds
+            ?? throw new ArgumentNullException(nameof(effectBounds));
         Facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
         FacilityCandidates = facilityCandidates
             ?? throw new ArgumentNullException(nameof(facilityCandidates));
@@ -75,11 +107,18 @@ public sealed class CropPlotWorldDependencies
 
     public IBuildingWorldQuery BuildingWorld { get; }
     public IResourceEconomyContentCatalog Catalog { get; }
+    public ICropCycleInputRequirementQuery InputRequirements { get; }
     public IProductionItemGateway Items { get; }
     public IPhysicalSeedLotGateway SeedLots { get; }
     public IPhysicalFacilityItemSinkGateway TreatmentItems { get; }
     public IPackagedLotTareDispositionService PackagedTare { get; }
     public ICropEcologyService Ecology { get; }
+    public ICropEcologyHarvestTransactionService EcologyHarvests { get; }
+    public IProductionOutputCapabilityRegistry OutputCapabilities { get; }
+    public IProductionDomainOutputPublicationService OutputPublication { get; }
+    public ICropPlotInputOwnerRuntime InputOwners { get; }
+    public ICharacterPerformanceDefinitionMaximumQuery PerformanceMaximum { get; }
+    public IGameplayEffectResultBoundsQuery EffectBounds { get; }
     public IFacilityCapabilityQuery Facilities { get; }
     public IFacilityCandidateCache FacilityCandidates { get; }
     public IWorkforceReplanService Workforce { get; }
@@ -96,7 +135,8 @@ public sealed class CropPlotSimulationDependencies
         IGameEventBus events,
         ExtremeTraitRuntime extremeTraits = null,
         IRunSeedProvider runSeedProvider = null,
-        CharacterIdentityEventPublisher identityEvents = null)
+        CharacterIdentityEventPublisher identityEvents = null,
+        IWorkCompletionIdentityDeliveryCommand completionDeliveries = null)
     {
         GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         ProgressionRuntimes = progressionRuntimes
@@ -111,6 +151,7 @@ public sealed class CropPlotSimulationDependencies
         ExtremeTraits = extremeTraits;
         RunSeedProvider = runSeedProvider;
         IdentityEvents = identityEvents;
+        CompletionDeliveries = completionDeliveries;
     }
 
     public IGameClock GameClock { get; }
@@ -122,27 +163,45 @@ public sealed class CropPlotSimulationDependencies
     public ExtremeTraitRuntime ExtremeTraits { get; }
     public IRunSeedProvider RunSeedProvider { get; }
     public CharacterIdentityEventPublisher IdentityEvents { get; }
+    public IWorkCompletionIdentityDeliveryCommand CompletionDeliveries { get; }
 }
 
 public sealed class CropPlotRuntime :
     ICropPlotRuntime,
     ICropPlotPersistence,
+    ICropPlanExecutionReceiptQuery,
+    ICropCycleExecutionCorrelationCommand,
+    IProductionDomainOutputRestoreOwnerSource,
+    IProductionDomainOutputFacilityLifecycleQuery,
+    ICropPlotInputOwnerDescriptorSource,
     IInitializable,
     ITickable,
     IDisposable
 {
-    private const float SecondsPerGameHour = 7.5f;
     private const float MaterialRequestInterval = 0.5f;
-    private const string CompostItemId = "material:compost";
-    private const string CleanWaterItemId = "resource:clean-water";
+    public const string HarvestOutputBatchCommitPrefix =
+        ProductionDomainOutputPublicationIdentity.BatchCommitPrefix
+        + "crop-harvest:";
+    public const string HarvestOutputPublicationOperationPrefix =
+        ProductionDomainOutputPublicationIdentity.PublicationOperationPrefix
+        + "crop-harvest:";
+    public const string HarvestCompletionDeliveryPrefix = "identity-event:";
+    public const string HarvestCompletionStreamPrefix = "crop-harvest:";
 
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IResourceEconomyContentCatalog catalog;
+    private readonly ICropCycleInputRequirementQuery inputRequirements;
     private readonly IProductionItemGateway items;
     private readonly IPhysicalSeedLotGateway seedLots;
     private readonly IPhysicalFacilityItemSinkGateway treatmentItems;
     private readonly IPackagedLotTareDispositionService packagedTare;
     private readonly ICropEcologyService ecology;
+    private readonly ICropEcologyHarvestTransactionService ecologyHarvests;
+    private readonly IProductionOutputCapabilityRegistry outputCapabilities;
+    private readonly IProductionDomainOutputPublicationService outputPublication;
+    private readonly ICropPlotInputOwnerRuntime inputOwners;
+    private readonly ICharacterPerformanceDefinitionMaximumQuery performanceMaximum;
+    private readonly IGameplayEffectResultBoundsQuery effectBounds;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IGameClock gameClock;
     private readonly BlueprintResearchRuntime research;
@@ -156,7 +215,9 @@ public sealed class CropPlotRuntime :
     private readonly ExtremeTraitRuntime extremeTraits;
     private readonly IRunSeedProvider runSeedProvider;
     private readonly CharacterIdentityEventPublisher identityEvents;
+    private readonly IWorkCompletionIdentityDeliveryCommand completionDeliveries;
     private readonly ICharacterPerformanceQuery performance;
+    private readonly IProductionFacilityMutationEpochQuery facilityMutations;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private IDisposable dayEndedSubscription;
 
@@ -186,10 +247,304 @@ public sealed class CropPlotRuntime :
     internal IReadOnlyCollection<CropPlotState> PhysicalTransactionStates =>
         states.Values;
 
+    public string OutputOwnerDomainId => "economy.crop-harvest";
+    public string OutputBatchCommitPrefix => HarvestOutputBatchCommitPrefix;
+
+    public IReadOnlyList<ProductionDomainOutputRestoreOwnerSnapshot>
+        CapturePendingOutputOwners() => states.Values
+        .Where(state => state?.PendingHarvest != null
+            && (state.PendingHarvest.phase ==
+                    CropHarvestOutputPhase.OutputCommitted
+                && state.PendingHarvest.outputPublication is
+                    { outputAcknowledged: false }
+                || state.PendingHarvest.phase ==
+                    CropHarvestOutputPhase.OutputRestoredAwaitingFinalization
+                && state.PendingHarvest.outputPublication is
+                    {
+                        outputAcknowledged: true,
+                        restoredInCurrentTransaction: true
+                    }))
+        .OrderBy(state => state.PendingHarvest.operationId, StringComparer.Ordinal)
+        .Select(state => new ProductionDomainOutputRestoreOwnerSnapshot(
+            state.PendingHarvest.operationId,
+            state.PendingHarvest.outputPublication,
+            CaptureHarvestMaximumMassClaims(state.PendingHarvest)))
+        .ToArray();
+
+    public IReadOnlyList<ProductionDomainOutputFacilityOwnerSnapshot>
+        CaptureActiveOutputOwners(BuildingInstanceId facilityId)
+    {
+        if (!facilityId.IsValid)
+            throw new ArgumentException(
+                "A valid crop-plot facility ID is required.",
+                nameof(facilityId));
+        return states.Values
+            .Where(state => state != null
+                && state.PlotId.Equals(facilityId)
+                && state.PendingHarvest != null
+                && state.PendingHarvest.phase != CropHarvestOutputPhase.None)
+            .OrderBy(
+                state => state.PendingHarvest.operationId,
+                StringComparer.Ordinal)
+            .Select(state =>
+            {
+                ValidateActiveHarvestOwner(state);
+                return new ProductionDomainOutputFacilityOwnerSnapshot(
+                    OutputOwnerDomainId,
+                    state.PendingHarvest.operationId,
+                    facilityId,
+                    CaptureHarvestLifecycleFingerprint(state));
+            })
+            .ToArray();
+    }
+
+    public IReadOnlyList<CropPlotInputOwnerDescriptor>
+        BuildLiveInputOwnerDescriptors()
+    {
+        SynchronizePlots(force: false);
+        return states.Values
+            .Where(RequiresAnyInputAuthority)
+            .OrderBy(value => value.PlotId.Value, StringComparer.Ordinal)
+            .SelectMany(value => BuildInputOwnerDescriptors(
+                value,
+                value.Building,
+                value.Ability))
+            .OrderBy(value => value.DestinationId, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    public IReadOnlyList<CropPlotInputOwnerDescriptor>
+        BuildInputOwnerDescriptors(
+            CropPlotRestoreCandidate candidate,
+            IReadOnlyList<BuildableObject> detachedBuildings)
+    {
+        if (candidate == null)
+            throw new ArgumentNullException(nameof(candidate));
+        BuildableObject[] buildings = (detachedBuildings
+                ?? Array.Empty<BuildableObject>())
+            .Where(value => value != null && !value.IsBuildingDestroyed)
+            .OrderBy(
+                value => value.PersistentInstanceId.Value,
+                StringComparer.Ordinal)
+            .ToArray();
+        List<CropPlotInputOwnerDescriptor> descriptors = new();
+        foreach (CropPlotState state in candidate.State.States.Values
+                     .Where(RequiresAnyInputAuthority)
+                     .OrderBy(value => value.PlotId.Value,
+                         StringComparer.Ordinal))
+        {
+            BuildableObject[] matches = buildings.Where(value =>
+                    value.PersistentInstanceId.Equals(state.PlotId))
+                .ToArray();
+            BuildingCropPlotAbility ability = matches.Length == 1
+                ? matches[0].BuildingData?
+                    .GetAbility<BuildingCropPlotAbility>()
+                : null;
+            if (matches.Length != 1 || ability == null)
+            {
+                throw new InvalidOperationException(
+                    "Crop-plot input restore requires one exact live facility: "
+                    + state.PlotId.Value);
+            }
+            descriptors.AddRange(BuildInputOwnerDescriptors(
+                state,
+                matches[0],
+                ability));
+        }
+        return descriptors
+            .OrderBy(value => value.DestinationId, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    public bool TryBindNextCycle(
+        string correlationId,
+        string plotId,
+        string cropId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (string.IsNullOrWhiteSpace(correlationId)
+            || !string.Equals(
+                correlationId,
+                correlationId.Trim(),
+                StringComparison.Ordinal)
+            || correlationId.Any(char.IsWhiteSpace)
+            || string.IsNullOrWhiteSpace(plotId)
+            || !string.Equals(plotId, plotId.Trim(), StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(cropId)
+            || !string.Equals(cropId, cropId.Trim(), StringComparison.Ordinal))
+        {
+            failureReason = "crop-cycle-correlation-invalid";
+            return false;
+        }
+        if (!states.TryGetValue(
+                (BuildingInstanceId)plotId,
+                out CropPlotState state)
+            || state == null
+            || state.MaterialsConsumed
+            || state.PendingSow.phase != CropPhysicalCommitPhase.None
+            || state.Phase is CropPlotPhase.Sowing
+                or CropPlotPhase.Growing
+                or CropPlotPhase.ReadyToHarvest
+                or CropPlotPhase.Harvesting
+            || !string.Equals(state.CropId, cropId, StringComparison.Ordinal))
+        {
+            failureReason = "crop-cycle-correlation-state-conflict";
+            return false;
+        }
+        if (!TryRequireMutable(state.PlotId, out failureReason))
+            return false;
+        CropPlotState[] existingOwners = states.Values
+            .Where(candidate => candidate != null
+                && (string.Equals(
+                        candidate.PendingCycleCorrelationId,
+                        correlationId,
+                        StringComparison.Ordinal)
+                    || candidate.CycleExecutionReceipt != null
+                    && !candidate.CycleExecutionReceipt.IsEmpty
+                    && string.Equals(
+                        candidate.CycleExecutionReceipt.correlationId,
+                        correlationId,
+                        StringComparison.Ordinal)))
+            .ToArray();
+        if (existingOwners.Length > 1
+            || existingOwners.Length == 1
+            && !ReferenceEquals(existingOwners[0], state))
+        {
+            failureReason = "crop-cycle-correlation-global-conflict";
+            return false;
+        }
+        if (!string.IsNullOrEmpty(state.PendingCycleCorrelationId)
+            && !string.Equals(
+                state.PendingCycleCorrelationId,
+                correlationId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "crop-cycle-correlation-already-bound";
+            return false;
+        }
+        if (state.CycleExecutionReceipt != null
+            && !state.CycleExecutionReceipt.IsEmpty)
+        {
+            CropPlanExecutionReceiptAuthority.Validate(
+                state.CycleExecutionReceipt,
+                requireCompleted: false);
+            if (state.CycleExecutionReceipt.status
+                    == CropCycleExecutionReceiptStatus.Active)
+            {
+                failureReason = "crop-cycle-execution-receipt-active";
+                return false;
+            }
+            if (state.CycleExecutionReceipt.explicitCorrelation)
+            {
+                failureReason = "crop-cycle-execution-receipt-unacknowledged";
+                return false;
+            }
+            state.CycleExecutionReceipt =
+                new CropCycleExecutionReceiptSaveData();
+        }
+        state.PendingCycleCorrelationId = correlationId;
+        MarkChanged(replan: false);
+        return true;
+    }
+
+    public bool TryCaptureExecutionReceipt(
+        string actionId,
+        out CropPlanExecutionReceipt receipt)
+    {
+        receipt = null;
+        if (string.IsNullOrWhiteSpace(actionId)
+            || !string.Equals(actionId, actionId.Trim(), StringComparison.Ordinal)
+            || actionId.Any(char.IsWhiteSpace))
+        {
+            return false;
+        }
+
+        CropPlotState[] owners = states.Values
+            .Where(candidate => candidate?.CycleExecutionReceipt != null
+                && !candidate.CycleExecutionReceipt.IsEmpty
+                && candidate.CycleExecutionReceipt.status
+                    != CropCycleExecutionReceiptStatus.Active
+                && string.Equals(
+                    candidate.CycleExecutionReceipt.correlationId,
+                    actionId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (owners.Length > 1)
+            throw new InvalidOperationException(
+                "Crop execution correlation has multiple durable owners.");
+        if (owners.Length == 0)
+            return false;
+
+        receipt = new CropPlanExecutionReceipt(
+            actionId,
+            owners[0].CycleExecutionReceipt);
+        return true;
+    }
+
+    public bool TryAcknowledgeExecutionReceipt(
+        string correlationId,
+        string expectedRuntimeReceiptDigest,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (string.IsNullOrWhiteSpace(correlationId)
+            || !string.Equals(
+                correlationId,
+                correlationId.Trim(),
+                StringComparison.Ordinal)
+            || correlationId.Any(char.IsWhiteSpace))
+        {
+            failureReason = "crop-cycle-correlation-invalid";
+            return false;
+        }
+
+        CropPlotState[] owners = states.Values
+            .Where(candidate => candidate?.CycleExecutionReceipt != null
+                && !candidate.CycleExecutionReceipt.IsEmpty
+                && string.Equals(
+                    candidate.CycleExecutionReceipt.correlationId,
+                    correlationId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (owners.Length != 1)
+        {
+            failureReason = owners.Length == 0
+                ? "crop-cycle-execution-receipt-not-found"
+                : "crop-cycle-correlation-global-conflict";
+            return false;
+        }
+        CropPlanExecutionReceiptAuthority.Validate(
+            owners[0].CycleExecutionReceipt,
+            requireCompleted: false);
+        if (!ProductionOutputClearanceProfileObservation.IsLowercaseSha256(
+                expectedRuntimeReceiptDigest)
+            || !string.Equals(
+                owners[0].CycleExecutionReceipt.sourceDigest,
+                expectedRuntimeReceiptDigest,
+                StringComparison.Ordinal))
+        {
+            failureReason = "crop-cycle-execution-receipt-digest-mismatch";
+            return false;
+        }
+        if (owners[0].CycleExecutionReceipt.status
+            == CropCycleExecutionReceiptStatus.Active)
+        {
+            failureReason = "crop-cycle-execution-receipt-not-terminal";
+            return false;
+        }
+
+        owners[0].CycleExecutionReceipt =
+            new CropCycleExecutionReceiptSaveData();
+        MarkChanged(replan: false);
+        return true;
+    }
+
     public CropPlotRuntime(
         CropPlotWorldDependencies world,
         CropPlotSimulationDependencies simulation,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IProductionFacilityMutationEpochQuery facilityMutations,
         IMilestoneGameplayModifierQuery milestoneModifiers = null,
         ICharacterPerformanceQuery performance = null)
     {
@@ -197,11 +552,18 @@ public sealed class CropPlotRuntime :
         simulation = simulation ?? throw new ArgumentNullException(nameof(simulation));
         buildingWorld = world.BuildingWorld;
         catalog = world.Catalog;
+        inputRequirements = world.InputRequirements;
         items = world.Items;
         seedLots = world.SeedLots;
         treatmentItems = world.TreatmentItems;
         packagedTare = world.PackagedTare;
         ecology = world.Ecology;
+        ecologyHarvests = world.EcologyHarvests;
+        outputCapabilities = world.OutputCapabilities;
+        outputPublication = world.OutputPublication;
+        inputOwners = world.InputOwners;
+        performanceMaximum = world.PerformanceMaximum;
+        effectBounds = world.EffectBounds;
         facilities = world.Facilities;
         facilityCandidates = world.FacilityCandidates;
         workforce = world.Workforce;
@@ -217,10 +579,13 @@ public sealed class CropPlotRuntime :
         extremeTraits = simulation.ExtremeTraits;
         runSeedProvider = simulation.RunSeedProvider;
         identityEvents = simulation.IdentityEvents;
+        completionDeliveries = simulation.CompletionDeliveries;
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.facilityMutations = facilityMutations
+            ?? throw new ArgumentNullException(nameof(facilityMutations));
         this.milestoneModifiers = milestoneModifiers
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
     }
@@ -303,11 +668,11 @@ public sealed class CropPlotRuntime :
     {
         dayEndedSubscription?.Dispose();
         dayEndedSubscription = null;
-        foreach (CropPlotState state in states.Values)
-        {
-            ReleaseMaterialDestination(state);
-            ReleaseTreatmentDestination(state);
-        }
+        if (!inputOwners.TryReconcileLive(
+                Array.Empty<CropPlotInputOwnerDescriptor>(),
+                out string ownerFailure))
+            throw new InvalidOperationException(
+                "Crop-plot input owner disposal failed: " + ownerFailure);
 
         states.Clear();
         statesByBuilding.Clear();
@@ -325,10 +690,15 @@ public sealed class CropPlotRuntime :
             message = "경작지가 아닙니다.";
             return false;
         }
+        if (!TryRequireMutable(state.PlotId, out message))
+            return false;
 
         if (state.MaterialsConsumed
             || state.PendingSow.phase != CropPhysicalCommitPhase.None
             || state.Treatment.phase != CropTreatmentOrderPhase.None
+            || state.CycleExecutionReceipt != null
+                && !state.CycleExecutionReceipt.IsEmpty
+                && state.CycleExecutionReceipt.explicitCorrelation
             || state.Phase is CropPlotPhase.Sowing
                 or CropPlotPhase.Growing
                 or CropPlotPhase.ReadyToHarvest
@@ -355,14 +725,36 @@ public sealed class CropPlotRuntime :
             return false;
         }
 
-        ReleaseMaterialDestination(state);
+        if (string.Equals(state.CropId, crop.CropId, StringComparison.Ordinal))
+        {
+            message = $"{crop.DisplayName} 재배가 이미 지정되어 있습니다.";
+            return true;
+        }
+
+        if (!TryRetireDestination(
+                state,
+                state.MaterialDestinationId,
+                CropPlotInputOwnerAuthority.CropChangedReleaseReasonCode,
+                out string retireFailure))
+        {
+            message = "기존 경작지 입력 소유권을 종료할 수 없습니다: "
+                + retireFailure;
+            return false;
+        }
         state.CropId = crop.CropId;
-        state.MaterialDestinationId = BuildDestinationId(state.PlotId);
+        state.NextSowOperationSequence = checked(
+            state.NextSowOperationSequence + 1);
+        state.MaterialDestinationId = BuildSowDestinationId(
+            state.PlotId,
+            state.NextSowOperationSequence);
         state.Phase = CropPlotPhase.Empty;
         state.SowWork = 0f;
         state.GrowthHours = 0f;
         state.HarvestWork = 0f;
         state.MaterialsConsumed = false;
+        ClearFrozenSowInputs(state);
+        state.PendingCycleCorrelationId = string.Empty;
+        state.CycleExecutionReceipt = new CropCycleExecutionReceiptSaveData();
         state.BlockedReason = string.Empty;
         MarkChanged();
         message = $"{crop.DisplayName} 재배를 지정했습니다.";
@@ -382,6 +774,8 @@ public sealed class CropPlotRuntime :
             reason = "경작지가 아닙니다.";
             return false;
         }
+        if (!TryRequireMutable(state.PlotId, out reason))
+            return false;
         if (state.Treatment.phase != CropTreatmentOrderPhase.None)
         {
             reason = "이미 처리 작업이 예약되어 있습니다.";
@@ -445,7 +839,7 @@ public sealed class CropPlotRuntime :
             return false;
 
         int sequence = state.NextTreatmentOperationSequence;
-        state.Treatment = new CropTreatmentOrderSaveData
+        CropTreatmentOrderSaveData treatment = new()
         {
             phase = CropTreatmentOrderPhase.WaitingForDelivery,
             operationSequence = sequence,
@@ -453,7 +847,9 @@ public sealed class CropPlotRuntime :
                 state.PlotId.Value,
                 sequence),
             reasonCode = CropTreatmentPhysicalOutbox.ReasonCode,
-            destinationId = BuildTreatmentDestinationId(state.PlotId),
+            destinationId = BuildTreatmentDestinationId(
+                state.PlotId,
+                sequence),
             itemId = item.ItemId,
             treatmentKind = policy.Kind,
             quantity = policy.QuantityPerApplication,
@@ -463,6 +859,15 @@ public sealed class CropPlotRuntime :
             cooldownDays = policy.CooldownDays,
             scheduledAbsoluteDay = CurrentAbsoluteDay
         };
+        CropPlotInputOwnerDescriptor descriptor =
+            CreateTreatmentInputOwnerDescriptor(state, treatment);
+        if (!inputOwners.TryEnsure(descriptor, out string ownerFailure))
+        {
+            message = "처리제 목적지 소유권을 만들 수 없습니다: "
+                + ownerFailure;
+            return false;
+        }
+        state.Treatment = treatment;
         state.BlockedReason = string.Empty;
         MarkChanged();
         message = $"{item.DisplayName} 처리를 예약했습니다.";
@@ -489,8 +894,20 @@ public sealed class CropPlotRuntime :
             message = "이미 물리 소비가 확정된 처리는 취소할 수 없습니다.";
             return false;
         }
+        if (!TryRequireMutable(state.PlotId, out message))
+            return false;
 
-        ReleaseTreatmentDestination(state);
+        if (!TryRetireDestination(
+                state,
+                state.Treatment.destinationId,
+                CropPlotInputOwnerAuthority
+                    .TreatmentCancelledReleaseReasonCode,
+                out string retireFailure))
+        {
+            message = "처리제 목적지를 종료할 수 없습니다: "
+                + retireFailure;
+            return false;
+        }
         CropTreatmentPhysicalOutbox.Clear(state.Treatment);
         state.BlockedReason = string.Empty;
         MarkChanged();
@@ -510,10 +927,15 @@ public sealed class CropPlotRuntime :
             return false;
         }
 
+        bool mutable = TryRequireMutable(
+            state.PlotId,
+            out string mutationReason);
+
         if (workTypeId == BuiltInWorkTypeIds.Sow)
         {
-            bool available = state.Phase is CropPlotPhase.ReadyToSow
-                or CropPlotPhase.Sowing;
+            bool available = mutable
+                && state.Phase is (CropPlotPhase.ReadyToSow
+                    or CropPlotPhase.Sowing);
             snapshot = new CropPlotWorkSnapshot(
                 state.PlotId.Value,
                 workTypeId,
@@ -521,7 +943,11 @@ public sealed class CropPlotRuntime :
                 crop.SowWork,
                 state.SowWork,
                 available,
-                available ? string.Empty : ResolveUnavailableReason(state));
+                available
+                    ? string.Empty
+                    : !mutable
+                        ? mutationReason
+                        : ResolveUnavailableReason(state));
             return true;
         }
 
@@ -531,20 +957,12 @@ public sealed class CropPlotRuntime :
                 or CropPlotPhase.Harvesting;
             bool treatmentClear = state.Treatment.phase
                 == CropTreatmentOrderPhase.None;
-            DomainFailure outputFailure = DomainFailure.None;
-            bool outputAvailable = phaseAvailable
+            bool outputAvailable = state.PendingHarvest.phase
+                == CropHarvestOutputPhase.None;
+            bool available = mutable
+                && phaseAvailable
                 && treatmentClear
-                && items.CanSpawnOutput(
-                    crop.HarvestItemId,
-                    Mathf.Max(1, Mathf.CeilToInt(crop.Yield)),
-                    state.Building.centerPos,
-                    out outputFailure)
-                && seedLots.CanSpawnSeedLot(
-                    crop.SeedItemId,
-                    1,
-                    state.Building.centerPos,
-                    out outputFailure);
-            bool available = phaseAvailable && treatmentClear && outputAvailable;
+                && outputAvailable;
             snapshot = new CropPlotWorkSnapshot(
                 state.PlotId.Value,
                 workTypeId,
@@ -554,10 +972,12 @@ public sealed class CropPlotRuntime :
                 available,
                 available
                     ? string.Empty
+                    : !mutable
+                        ? mutationReason
                     : phaseAvailable && !treatmentClear
                         ? "예약된 작물 처리 작업을 먼저 완료하거나 취소해야 합니다."
-                    : phaseAvailable
-                        ? outputFailure.Code.ToString()
+                    : phaseAvailable && !outputAvailable
+                        ? "동결된 수확 출력이 시설 버퍼 공간을 기다리고 있습니다."
                         : ResolveUnavailableReason(state));
             return true;
         }
@@ -565,9 +985,10 @@ public sealed class CropPlotRuntime :
         if (workTypeId == BuiltInWorkTypeIds.Treat
             && state.Treatment.phase != CropTreatmentOrderPhase.None)
         {
-            bool available = state.Treatment.phase is
-                    CropTreatmentOrderPhase.ReadyForWork
-                    or CropTreatmentOrderPhase.Working
+            bool available = mutable
+                && state.Treatment.phase is
+                    (CropTreatmentOrderPhase.ReadyForWork
+                    or CropTreatmentOrderPhase.Working)
                 && IsTreatmentStillRequired(state);
             snapshot = new CropPlotWorkSnapshot(
                 state.PlotId.Value,
@@ -578,7 +999,9 @@ public sealed class CropPlotRuntime :
                 available,
                 available
                     ? string.Empty
-                    : ResolveTreatmentUnavailableReason(state));
+                    : !mutable
+                        ? mutationReason
+                        : ResolveTreatmentUnavailableReason(state));
             return true;
         }
 
@@ -611,6 +1034,8 @@ public sealed class CropPlotRuntime :
             && state.Phase is CropPlotPhase.ReadyToSow
                 or CropPlotPhase.Sowing)
         {
+            if (!TryRequireMutable(state.PlotId, out _))
+                return false;
             state.Phase = CropPlotPhase.Sowing;
             state.SowWork = Mathf.Min(
                 crop.SowWork,
@@ -630,118 +1055,23 @@ public sealed class CropPlotRuntime :
             && state.Phase is CropPlotPhase.ReadyToHarvest
                 or CropPlotPhase.Harvesting)
         {
-            if (!items.CanSpawnOutput(
-                    crop.HarvestItemId,
-                    Mathf.Max(1, Mathf.CeilToInt(crop.Yield)),
-                    state.Building.centerPos,
-                    out _)
-                || !seedLots.CanSpawnSeedLot(
-                    crop.SeedItemId,
-                    1,
-                    state.Building.centerPos,
-                    out _))
+            if (state.PendingHarvest.phase != CropHarvestOutputPhase.None)
             {
-                return false;
+                TryAdvancePendingHarvest(state, crop, out cycleCompleted);
+                MarkChanged();
+                return true;
             }
+            if (!TryRequireMutable(state.PlotId, out _))
+                return false;
             state.Phase = CropPlotPhase.Harvesting;
             state.HarvestWork = Mathf.Min(
                 crop.HarvestWork,
                 state.HarvestWork + amount);
             if (state.HarvestWork + 0.001f >= crop.HarvestWork)
             {
-                float extremeYieldMultiplier = 1f;
-                float extremeSeedMultiplier = 1f;
-                string[] yieldConditions = Array.Empty<string>();
-                ExtremeRiskResolution extremeResolution = default;
-                bool extremeResolved = extremeTraits != null
-                    && runSeedProvider != null
-                    && worker != null
-                    && string.Equals(
-                        state.GoldenHarvestHarvesterId,
-                        worker.Identity?.PersistentId,
-                        StringComparison.Ordinal)
-                    && extremeTraits.TryResolveGoldenHarvest(
-                        worker,
-                        state.PlotId.Value,
-                        unchecked((ulong)(uint)runSeedProvider.RunSeed),
-                        gameClock.Time,
-                        out extremeResolution);
-                if (extremeResolved)
-                {
-                    if (extremeResolution.Outcome == ExtremeRiskOutcome.Jackpot)
-                    {
-                        yieldConditions = new[] { "state:golden-harvest-jackpot" };
-                        extremeSeedMultiplier = worker.GetDetailedStatMultiplier(
-                            "harvest:seed-yield",
-                            yieldConditions);
-                    }
-                    else
-                    {
-                        extremeYieldMultiplier = extremeResolution.PrimaryMultiplier;
-                        extremeSeedMultiplier = extremeResolution.SecondaryMultiplier;
-                    }
-                }
-                CropHarvestEcologyResult ecologyResult = ecology.Harvest(state.PlotId.Value);
-                float workerYieldMultiplier = 1f;
-                if (worker != null)
-                {
-                    if (performance == null)
-                        throw new InvalidOperationException(
-                            "Harvest yield requires the character performance query.");
-                    CharacterPerformanceSnapshot yield = performance.Evaluate(
-                        worker,
-                        "performance:work:harvest:yield",
-                        new CharacterPerformanceEvaluationContext
-                        {
-                            GameplayEffectContext = new GameplayEffectContext(
-                                yieldConditions)
-                        });
-                    if (!yield.IsApplicable)
-                        throw new InvalidOperationException(
-                            yield.Failure?.Message ?? "Harvest yield is unavailable.");
-                    workerYieldMultiplier = yield.Value;
-                }
-                float outputMultiplier = state.Ability != null
-                    && state.Ability.Indoor
-                        ? grandProjectBenefits.GetProductionOutputMultiplier(
-                            "crop-indoor")
-                        : 1f;
-                int harvestAmount = Mathf.Max(
-                    1,
-                    Mathf.RoundToInt(crop.Yield * outputMultiplier
-                        * workerYieldMultiplier
-                        * extremeYieldMultiplier
-                        * ecologyResult.YieldMultiplier
-                        * (IsOperational(
-                            ResearchFacilityCommandKind.SoilDiagnostics)
-                                ? 1.05f
-                                : 1f)));
-                if (!items.SpawnOutput(
-                        crop.HarvestItemId,
-                        harvestAmount,
-                        state.Building.centerPos))
-                {
-                    throw new InvalidOperationException(
-                        $"Crop '{crop.CropId}' failed to materialize "
-                        + $"{harvestAmount}x '{crop.HarvestItemId}' after output-capacity admission.");
-                }
-                if (!seedLots.SpawnSeedLot(
-                        crop.SeedItemId,
-                        Mathf.Max(0, Mathf.RoundToInt(
-                            ecologyResult.ReturnedSeedCount * extremeSeedMultiplier))
-                            + (IsOperational(
-                                ResearchFacilityCommandKind.SeedSelection)
-                                    ? 1
-                                    : 0),
-                        ecologyResult.ReturnedSeedLot,
-                        state.Building.centerPos))
-                    throw new InvalidOperationException(
-                        $"Crop '{crop.CropId}' failed to materialize its harvested seed lot.");
-                ResetForNextCycle(state);
-                cycleCompleted = true;
-                PublishHarvestCompleted(worker, state.PlotId.Value, extremeResolved
-                    ? extremeResolution.Outcome.ToString().ToLowerInvariant()
-                    : "normal");
+                state.HarvestWork = crop.HarvestWork;
+                if (FreezeHarvestOutcome(state, crop, worker))
+                    TryAdvancePendingHarvest(state, crop, out cycleCompleted);
             }
 
             MarkChanged();
@@ -752,6 +1082,17 @@ public sealed class CropPlotRuntime :
             && state.Treatment.phase is CropTreatmentOrderPhase.ReadyForWork
                 or CropTreatmentOrderPhase.Working)
         {
+            if (state.Treatment.phase == CropTreatmentOrderPhase.Working
+                && state.Treatment.completedWork + 0.001f
+                    >= state.Treatment.requiredWork)
+            {
+                bool finalized = TryFinalizeTreatment(state);
+                cycleCompleted = finalized;
+                MarkChanged();
+                return finalized;
+            }
+            if (!TryRequireMutable(state.PlotId, out _))
+                return false;
             state.Treatment.phase = CropTreatmentOrderPhase.Working;
             state.Treatment.completedWork = Mathf.Min(
                 state.Treatment.requiredWork,
@@ -773,6 +1114,468 @@ public sealed class CropPlotRuntime :
         return false;
     }
 
+    private bool FreezeHarvestOutcome(
+        CropPlotState state,
+        CropDefinitionSO crop,
+        CharacterActor worker)
+    {
+        if (state.PendingHarvest.phase != CropHarvestOutputPhase.None)
+            return true;
+        string operationId = FormatHarvestOperationId(
+            state.PlotId,
+            state.NextHarvestOperationSequence);
+        float extremeYieldMultiplier = 1f;
+        float extremeSeedMultiplier = 1f;
+        string[] yieldConditions = Array.Empty<string>();
+        GoldenHarvestPreparedResolution golden = default;
+        bool expectsGolden = !string.IsNullOrWhiteSpace(
+            state.GoldenHarvestHarvesterId);
+        bool goldenPrepared = expectsGolden
+            && extremeTraits != null
+            && runSeedProvider != null
+            && worker != null
+            && string.Equals(
+                state.GoldenHarvestHarvesterId,
+                worker.Identity?.PersistentId,
+                StringComparison.Ordinal)
+            && extremeTraits.TryPrepareGoldenHarvest(
+                worker,
+                state.PlotId.Value,
+                operationId,
+                unchecked((ulong)(uint)runSeedProvider.RunSeed),
+                gameClock.Time,
+                out golden);
+        if (expectsGolden && !goldenPrepared)
+            return false;
+        if (goldenPrepared)
+        {
+            if (golden.Resolution.Outcome == ExtremeRiskOutcome.Jackpot)
+            {
+                yieldConditions = new[] { "state:golden-harvest-jackpot" };
+                extremeSeedMultiplier = worker.GetDetailedStatMultiplier(
+                    CropHarvestOutputRules.SeedYieldEffectTargetId,
+                    yieldConditions);
+            }
+            else
+            {
+                extremeYieldMultiplier = golden.Resolution.PrimaryMultiplier;
+                extremeSeedMultiplier = golden.Resolution.SecondaryMultiplier;
+            }
+        }
+
+        bool ecologyPreparedOwned = false;
+        try
+        {
+        CropEcologyPreparedHarvestSnapshot ecologyPrepared = ecologyHarvests
+            .PrepareHarvest(operationId, state.PlotId.Value);
+        ecologyPreparedOwned = true;
+        float workerYieldMultiplier = 1f;
+        if (worker != null)
+        {
+            CharacterPerformanceSnapshot yield = performance.Evaluate(
+                worker,
+                CropHarvestOutputRules.PerformanceFormulaId,
+                new CharacterPerformanceEvaluationContext
+                {
+                    GameplayEffectContext = new GameplayEffectContext(
+                        yieldConditions)
+                });
+            if (!yield.IsApplicable)
+                throw new InvalidOperationException(
+                    yield.Failure?.Message ?? "Harvest yield is unavailable.");
+            workerYieldMultiplier = yield.Value;
+        }
+        bool indoor = state.Ability != null && state.Ability.Indoor;
+        float outputMultiplier = indoor
+            ? grandProjectBenefits.GetProductionOutputMultiplier("crop-indoor")
+            : 1f;
+        int harvestQuantity = CropHarvestOutputRules.ResolveHarvestQuantity(
+            crop.Yield,
+            outputMultiplier,
+            workerYieldMultiplier,
+            extremeYieldMultiplier,
+            ecologyPrepared.Result.YieldMultiplier,
+            IsOperational(ResearchFacilityCommandKind.SoilDiagnostics));
+        int seedQuantity = CropHarvestOutputRules.ResolveReturnedSeedQuantity(
+            ecologyPrepared.Result.ReturnedSeedCount,
+            extremeSeedMultiplier,
+            IsOperational(ResearchFacilityCommandKind.SeedSelection));
+        string harvesterId = worker?.Identity?.PersistentId ?? string.Empty;
+        int completionAbsoluteDay = Mathf.Max(
+            0,
+            Mathf.FloorToInt(
+                gameClock.Time / GameCalendarRules.SecondsPerDay));
+        string harvestLineId = CropHarvestOutputMaximumAuthority
+            .HarvestOutputLineId(crop.CropId);
+        string seedLineId = CropHarvestOutputMaximumAuthority
+            .SeedOutputLineId(crop.CropId);
+        ProductionOutputCapabilityDescriptor harvestCapability =
+            outputCapabilities.CaptureDeclaredDescriptor(
+                harvestLineId,
+                crop.HarvestItemId,
+                ProductionOutputCapabilityIds.StandardDefinition);
+        ProductionOutputCapabilityDescriptor seedCapability =
+            outputCapabilities.CaptureDeclaredDescriptor(
+                seedLineId,
+                crop.SeedItemId,
+                ProductionOutputCapabilityIds.CropHarvestSeedLot);
+        CropHarvestOutputSaveData pending = new()
+        {
+            phase = CropHarvestOutputPhase.Frozen,
+            operationSequence = state.NextHarvestOperationSequence,
+            operationId = operationId,
+            cropId = crop.CropId,
+            indoor = indoor,
+            harvesterId = harvesterId,
+            outcomeId = goldenPrepared
+                ? golden.Resolution.Outcome.ToString().ToLowerInvariant()
+                : "normal",
+            ecologyOutcomeFingerprint = ecologyPrepared.OutcomeFingerprint,
+            goldenPrepared = goldenPrepared,
+            goldenTraitDefinitionId = goldenPrepared
+                ? golden.TraitDefinitionId
+                : string.Empty,
+            goldenOutcomeFingerprint = goldenPrepared
+                ? golden.Fingerprint
+                : string.Empty,
+            goldenOutcome = goldenPrepared
+                ? golden.Resolution.Outcome
+                : ExtremeRiskOutcome.Normal,
+            goldenPrimaryMultiplier = goldenPrepared
+                ? golden.Resolution.PrimaryMultiplier
+                : 1f,
+            goldenSecondaryMultiplier = goldenPrepared
+                ? golden.Resolution.SecondaryMultiplier
+                : 1f,
+            goldenRollHash = goldenPrepared
+                ? golden.Resolution.FixedRollHash
+                : 0UL,
+            completionAbsoluteDay = completionAbsoluteDay,
+            harvestItemId = crop.HarvestItemId,
+            harvestQuantity = harvestQuantity,
+            seedItemId = crop.SeedItemId,
+            seedQuantity = seedQuantity,
+            returnedSeedLot = ecologyPrepared.Result.ReturnedSeedLot.Clone(),
+            maximumHarvestQuantity = CropHarvestOutputMaximumAuthority
+                .ResolveMaximumHarvestQuantity(
+                    crop,
+                    indoor,
+                    performanceMaximum),
+            maximumSeedQuantity = CropHarvestOutputMaximumAuthority
+                .ResolveMaximumReturnedSeedQuantity(effectBounds),
+            harvestCapability = ProductionOutputCapabilitySaveData.Freeze(
+                harvestCapability),
+            seedCapability = ProductionOutputCapabilitySaveData.Freeze(
+                seedCapability),
+            outputPublication = new ProductionDomainOutputPublicationSaveData()
+        };
+        if (!string.IsNullOrEmpty(harvesterId))
+        {
+            pending.completionDeliveryId = HarvestCompletionDeliveryPrefix
+                + operationId;
+            WorkCompletionIdentityDeliveryRequest completion =
+                CreateHarvestCompletionDelivery(state.PlotId, pending);
+            pending.completionDeliveryFingerprint =
+                completion.PayloadFingerprint;
+        }
+        if (pending.harvestQuantity > pending.maximumHarvestQuantity
+            || pending.seedQuantity > pending.maximumSeedQuantity)
+            throw new InvalidOperationException(
+                "Crop harvest actual output exceeds its authored maximum proof.");
+        state.PendingHarvest = pending;
+        return true;
+        }
+        catch (Exception error)
+        {
+            List<Exception> compensationFailures = new();
+            if (ecologyPreparedOwned
+                && !ecologyHarvests.AbortPreparedHarvest(operationId))
+                compensationFailures.Add(new InvalidOperationException(
+                    "Crop ecology prepared harvest compensation failed."));
+            if (goldenPrepared
+                && (extremeTraits == null
+                    || !extremeTraits.TryAbortPreparedGoldenHarvest(
+                        golden.CharacterId,
+                        golden.TraitDefinitionId,
+                        operationId)))
+                compensationFailures.Add(new InvalidOperationException(
+                    "Golden Harvest prepared resolution compensation failed."));
+            if (compensationFailures.Count == 0)
+                throw;
+            compensationFailures.Insert(0, error);
+            throw new AggregateException(
+                "Crop harvest freeze failed and compensation was incomplete.",
+                compensationFailures);
+        }
+    }
+
+    private void TryAdvancePendingHarvest(
+        CropPlotState state,
+        CropDefinitionSO crop,
+        out bool cycleCompleted)
+    {
+        cycleCompleted = false;
+        CropHarvestOutputSaveData pending = state.PendingHarvest;
+        if (pending == null || pending.phase == CropHarvestOutputPhase.None)
+            return;
+        if (!ProductionDomainOutputPublicationService.TryValidateCommittedOwner(
+                pending.outputPublication,
+                out _))
+        {
+            ProductionDomainOutputPublicationResult publicationResult =
+                outputPublication.EnsureCommitted(
+                    pending.outputPublication,
+                    CreateHarvestOutputPlan(state, pending));
+            if (publicationResult.Status ==
+                ProductionDomainOutputPublicationStatus.Conflict)
+                throw new InvalidOperationException(
+                    "Crop harvest output publication conflicted: "
+                    + publicationResult.FailureReason);
+            if (!publicationResult.IsCommitted)
+            {
+                state.BlockedReason = publicationResult.FailureReason;
+                return;
+            }
+            pending.phase = CropHarvestOutputPhase.OutputCommitted;
+        }
+
+        if (!pending.ecologyCommitted)
+        {
+            CropEcologyPreparedHarvestSnapshot committed = ecologyHarvests
+                .CommitPreparedHarvest(pending.operationId);
+            if (!string.Equals(
+                    committed.OutcomeFingerprint,
+                    pending.ecologyOutcomeFingerprint,
+                    StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Crop harvest ecology receipt drifted before commit.");
+            pending.ecologyCommitted = true;
+        }
+        if (pending.goldenPrepared && !pending.goldenCommitted)
+        {
+            if (extremeTraits == null
+                || !extremeTraits.TryCommitPreparedGoldenHarvest(
+                    pending.harvesterId,
+                    pending.goldenTraitDefinitionId,
+                    pending.operationId,
+                    out GoldenHarvestPreparedResolution committed)
+                || !string.Equals(
+                    committed.Fingerprint,
+                    pending.goldenOutcomeFingerprint,
+                    StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Crop harvest Golden Harvest receipt drifted before commit.");
+            pending.goldenCommitted = true;
+        }
+        if (!pending.outputPublication.outputAcknowledged
+            && !outputPublication.TryAcknowledge(
+                pending.outputPublication,
+                out string acknowledgeFailure))
+        {
+            state.BlockedReason = acknowledgeFailure;
+            return;
+        }
+        pending.phase = CropHarvestOutputPhase
+            .OutputRestoredAwaitingFinalization;
+        if (!pending.completionEventPublished)
+        {
+            if (!string.IsNullOrEmpty(pending.harvesterId))
+            {
+                if (completionDeliveries == null)
+                    throw new InvalidOperationException(
+                        "Crop harvest has no durable completion delivery command.");
+                WorkCompletionIdentityDeliveryResult delivery =
+                    completionDeliveries.EnsureApplied(
+                        CreateHarvestCompletionDelivery(state.PlotId, pending));
+                if (delivery.Status ==
+                    WorkCompletionIdentityDeliveryStatus.Deferred)
+                {
+                    state.BlockedReason = delivery.FailureReason;
+                    return;
+                }
+                if (!delivery.IsApplied)
+                    throw new InvalidOperationException(
+                        "Crop harvest completion delivery conflicted: "
+                        + delivery.FailureReason);
+            }
+            pending.completionEventPublished = true;
+        }
+        if (!pending.ecologyAcknowledged)
+        {
+            if (!ecologyHarvests.AcknowledgePreparedHarvest(pending.operationId))
+                throw new InvalidOperationException(
+                    "Crop harvest ecology receipt acknowledgement failed.");
+            pending.ecologyAcknowledged = true;
+        }
+        if (pending.goldenPrepared && !pending.goldenAcknowledged)
+        {
+            if (extremeTraits == null
+                || !extremeTraits.TryAcknowledgePreparedGoldenHarvest(
+                    pending.harvesterId,
+                    pending.goldenTraitDefinitionId,
+                    pending.operationId))
+                throw new InvalidOperationException(
+                    "Crop harvest Golden Harvest receipt acknowledgement failed.");
+            pending.goldenAcknowledged = true;
+        }
+        state.CycleExecutionReceipt = CropPlanExecutionReceiptAuthority.Complete(
+            state.CycleExecutionReceipt,
+            pending);
+        ResetForNextCycle(state);
+        state.NextHarvestOperationSequence = checked(
+            state.NextHarvestOperationSequence + 1);
+        state.PendingHarvest = new CropHarvestOutputSaveData();
+        cycleCompleted = true;
+    }
+
+    private static ProductionDomainOutputPublicationPlan CreateHarvestOutputPlan(
+        CropPlotState state,
+        CropHarvestOutputSaveData pending)
+    {
+        List<ProductionDomainOutputLine> lines = new()
+        {
+            new ProductionDomainOutputLine(
+                pending.harvestCapability.outputLineId,
+                pending.harvestItemId,
+                pending.harvestQuantity,
+                string.Empty,
+                Array.Empty<ItemInstanceComponentSaveData>(),
+                pending.harvestCapability.ToDescriptor())
+        };
+        if (pending.seedQuantity > 0)
+        {
+            lines.Add(new ProductionDomainOutputLine(
+                pending.seedCapability.outputLineId,
+                pending.seedItemId,
+                pending.seedQuantity,
+                string.Empty,
+                new[]
+                {
+                    SeedLotItemStateCodec.Encode(pending.returnedSeedLot)
+                },
+                pending.seedCapability.ToDescriptor()));
+        }
+        return new ProductionDomainOutputPublicationPlan(
+            HarvestOutputPublicationOperationPrefix,
+            pending.operationId,
+            HarvestOutputBatchCommitPrefix + pending.operationId,
+            CaptureHarvestOutcomeFingerprint(state.PlotId, pending),
+            state.Building,
+            lines,
+            FacilityBufferAcknowledgedOutputReleaseTarget.Unassigned,
+            ProductionDomainOutputAcknowledgementDisposition
+                .ReleaseLooseOrDestination,
+            new[]
+            {
+                new ProductionDomainOutputMaximumMassClaim(
+                    pending.harvestCapability.ToDescriptor(),
+                    pending.maximumHarvestQuantity),
+                new ProductionDomainOutputMaximumMassClaim(
+                    pending.seedCapability.ToDescriptor(),
+                    pending.maximumSeedQuantity)
+            });
+    }
+
+    private static string CaptureHarvestOutcomeFingerprint(
+        BuildingInstanceId plotId,
+        CropHarvestOutputSaveData pending)
+    {
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("crop-harvest-frozen-output@1");
+        digest.Append(pending.operationId);
+        digest.Append(plotId.Value);
+        digest.Append(pending.cropId);
+        digest.Append(pending.indoor);
+        digest.Append(pending.harvesterId);
+        digest.Append(pending.outcomeId);
+        digest.Append(pending.ecologyOutcomeFingerprint);
+        digest.Append(pending.goldenOutcomeFingerprint);
+        digest.Append(pending.harvestItemId);
+        digest.Append(pending.harvestQuantity);
+        digest.Append(pending.seedItemId);
+        digest.Append(pending.seedQuantity);
+        digest.Append(SeedLotItemStateCodec.Encode(pending.returnedSeedLot)
+            .ToCanonicalString());
+        digest.Append(pending.maximumHarvestQuantity);
+        digest.Append(pending.maximumSeedQuantity);
+        digest.Append(pending.harvestCapability.fingerprint);
+        digest.Append(pending.seedCapability.fingerprint);
+        return digest.ComputeSha256();
+    }
+
+    private static IReadOnlyList<ProductionDomainOutputMaximumMassClaim>
+        CaptureHarvestMaximumMassClaims(CropHarvestOutputSaveData pending) =>
+        new[]
+        {
+            new ProductionDomainOutputMaximumMassClaim(
+                pending.harvestCapability.ToDescriptor(),
+                pending.maximumHarvestQuantity),
+            new ProductionDomainOutputMaximumMassClaim(
+                pending.seedCapability.ToDescriptor(),
+                pending.maximumSeedQuantity)
+        };
+
+    public static string FormatHarvestOperationId(
+        BuildingInstanceId plotId,
+        int sequence)
+    {
+        if (!plotId.IsValid || sequence < 0)
+            throw new ArgumentException(
+                "A valid crop plot and non-negative harvest sequence are required.");
+        return "crop-harvest:"
+            + plotId.Value + ":"
+            + sequence.ToString(
+                "D6",
+                System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static string CaptureHarvestLifecycleFingerprint(
+        CropPlotState state)
+    {
+        CropHarvestOutputSaveData pending = state.PendingHarvest;
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("crop-harvest-facility-lifecycle@1");
+        digest.Append(state.PlotId.Value);
+        digest.Append((int)pending.phase);
+        digest.Append(CaptureHarvestOutcomeFingerprint(state.PlotId, pending));
+        digest.Append(pending.outputPublication?.batchCommitId ?? string.Empty);
+        digest.Append(pending.outputPublication?.plannedOutputFingerprint
+            ?? string.Empty);
+        return digest.ComputeSha256();
+    }
+
+    private static void ValidateActiveHarvestOwner(CropPlotState state)
+    {
+        CropHarvestOutputSaveData pending = state?.PendingHarvest;
+        if (pending == null || pending.phase == CropHarvestOutputPhase.None)
+            throw new InvalidOperationException(
+                "Crop harvest lifecycle owner is empty.");
+        if (pending.phase == CropHarvestOutputPhase.Frozen)
+        {
+            if (pending.outputPublication == null
+                || !pending.outputPublication.IsEmpty)
+                throw new InvalidOperationException(
+                    "Frozen crop harvest already contains publication provenance.");
+            return;
+        }
+        if (!ProductionDomainOutputPublicationService.TryValidateCommittedOwner(
+                pending.outputPublication,
+                out string failureReason)
+            || pending.outputPublication.acknowledgementDisposition !=
+                ProductionDomainOutputAcknowledgementDisposition
+                    .ReleaseLooseOrDestination
+            || pending.phase == CropHarvestOutputPhase.OutputCommitted
+                && pending.outputPublication.outputAcknowledged
+            || pending.phase == CropHarvestOutputPhase
+                    .OutputRestoredAwaitingFinalization
+                && !pending.outputPublication.outputAcknowledged)
+        {
+            throw new InvalidOperationException(
+                "Crop harvest active output owner is invalid: "
+                + (pending.operationId ?? string.Empty) + ":" + failureReason);
+        }
+    }
+
     [GameplayEntryPoint(
         "CropPlotBuildingPanelPresenter golden-harvest button; V26 extreme-trait focused audit")]
     public bool TryScheduleGoldenHarvest(
@@ -788,6 +1591,8 @@ public sealed class CropPlotRuntime :
             failureReason = "수확 가능한 경작지와 작업자가 필요합니다.";
             return false;
         }
+        if (!TryRequireMutable(state.PlotId, out failureReason))
+            return false;
         if (!string.IsNullOrWhiteSpace(state.GoldenHarvestHarvesterId))
         {
             failureReason = "이미 황금 수확 작업자가 지정되어 있습니다.";
@@ -854,25 +1659,51 @@ public sealed class CropPlotRuntime :
                 out remainingSeconds);
     }
 
-    private void PublishHarvestCompleted(
-        CharacterActor worker,
-        string plotId,
-        string outcomeId)
+    public static WorkCompletionIdentityDeliveryRequest
+        CreateHarvestCompletionDelivery(
+            BuildingInstanceId plotId,
+            CropHarvestOutputSaveData pending)
     {
-        if (identityEvents == null
-            || worker == null
-            || !CharacterPersistentIdentity.TryGet(worker, out CharacterId id))
-            return;
-        identityEvents.Publish(new WorkCompletedIdentityEvent(
-            id,
-            "work:harvest",
-            $"{plotId}:{outcomeId}",
+        if (!plotId.IsValid
+            || pending == null
+            || string.IsNullOrWhiteSpace(pending.harvesterId)
+            || string.IsNullOrWhiteSpace(pending.operationId)
+            || string.IsNullOrWhiteSpace(pending.outcomeId))
+            throw new InvalidOperationException(
+                "Crop harvest completion provenance is incomplete.");
+        CharacterId character = new(pending.harvesterId);
+        WorkCompletionIdentityDeliveryRequest request = new(
+            HarvestCompletionDeliveryPrefix + pending.operationId,
+            HarvestCompletionStreamPrefix + plotId.Value,
+            pending.operationSequence,
+            character,
+            BuiltInWorkTypeIds.Harvest.Value,
+            plotId.Value + ":" + pending.outcomeId,
             CharacterCommandOrigin.Autonomous,
-            Mathf.Max(0, Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay))));
+            pending.completionAbsoluteDay);
+        if (!string.IsNullOrEmpty(pending.completionDeliveryId)
+            && !string.Equals(
+                pending.completionDeliveryId,
+                request.DeliveryId,
+                StringComparison.Ordinal)
+            || !string.IsNullOrEmpty(pending.completionDeliveryFingerprint)
+            && !string.Equals(
+                pending.completionDeliveryFingerprint,
+                request.PayloadFingerprint,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Crop harvest completion delivery provenance drifted.");
+        return request;
     }
 
     public DungeonCropPlotSaveData Capture()
     {
+        if (!inputOwners.TryReconcileLive(
+                BuildLiveInputOwnerDescriptors(),
+                out string ownerFailure))
+            throw new InvalidOperationException(
+                "Crop-plot input ownership is not capture-safe: "
+                + ownerFailure);
         DungeonCropPlotSaveData data = new DungeonCropPlotSaveData();
         foreach (CropPlotState state in states.Values
                      .OrderBy(entry => entry.PlotId.Value, StringComparer.Ordinal))
@@ -888,17 +1719,40 @@ public sealed class CropPlotRuntime :
                 growthHours = state.GrowthHours,
                 harvestWork = state.HarvestWork,
                 materialsConsumed = state.MaterialsConsumed,
+                frozenSowInputOperationSequence =
+                    state.FrozenSowInputOperationSequence,
+                frozenSowInputSourceDigest = state.FrozenSowInputSourceDigest,
+                frozenSowInputVectorDigest = state.FrozenSowInputVectorDigest,
+                frozenSowInputWeather = state.FrozenSowInputWeather,
+                frozenSowInputConsumptionMultiplier =
+                    state.FrozenSowInputConsumptionMultiplier,
+                frozenSowInputSelectedFuelItemId =
+                    state.FrozenSowInputSelectedFuelItemId,
+                frozenSowInputs = state.FrozenSowInputs
+                    .OrderBy(value => value.Key, StringComparer.Ordinal)
+                    .Select(value => new CropCycleInputRequirementSaveData
+                    {
+                        itemId = value.Key,
+                        quantity = value.Value
+                    })
+                    .ToList(),
                 goldenHarvestHarvesterId = state.GoldenHarvestHarvesterId,
                 goldenHarvestAttemptSequence = state.GoldenHarvestAttemptSequence,
                 nextSowOperationSequence = state.NextSowOperationSequence,
                 pendingSow = state.PendingSow.DeepClone(),
+                pendingCycleCorrelationId =
+                    state.PendingCycleCorrelationId,
+                cycleExecutionReceipt = state.CycleExecutionReceipt.DeepClone(),
                 nextTreatmentOperationSequence =
                     state.NextTreatmentOperationSequence,
                 pestLureNextAllowedDay = state.PestLureNextAllowedDay,
                 botanicalPesticideNextAllowedDay =
                     state.BotanicalPesticideNextAllowedDay,
                 fungicideNextAllowedDay = state.FungicideNextAllowedDay,
-                treatment = state.Treatment.DeepClone()
+                treatment = state.Treatment.DeepClone(),
+                nextHarvestOperationSequence =
+                    state.NextHarvestOperationSequence,
+                pendingHarvest = state.PendingHarvest.DeepClone()
             });
         }
 
@@ -917,11 +1771,22 @@ public sealed class CropPlotRuntime :
             Version = aggregateState.Version + 1
         };
         HashSet<BuildingInstanceId> seen = new();
+        HashSet<string> correlations = new(StringComparer.Ordinal);
         foreach (CropPlotSaveData saved in snapshot.plots)
         {
             BuildingInstanceId plotId = RequireRestorePlotId(saved, seen);
             CropDefinitionSO crop = RequireCrop(saved);
             ValidateRestoreProgress(saved, crop, plotId);
+            string correlationId = !string.IsNullOrEmpty(
+                    saved.pendingCycleCorrelationId)
+                ? saved.pendingCycleCorrelationId
+                : saved.cycleExecutionReceipt.IsEmpty
+                    ? string.Empty
+                    : saved.cycleExecutionReceipt.correlationId;
+            if (correlationId.Length > 0 && !correlations.Add(correlationId))
+                throw new InvalidOperationException(
+                    "Crop execution correlation is duplicated across plots: "
+                    + correlationId);
             restored.States.Add(plotId, new CropPlotState
             {
                 PlotId = plotId,
@@ -933,8 +1798,25 @@ public sealed class CropPlotRuntime :
                 SowWork = saved.sowWork,
                 GrowthHours = saved.growthHours,
                 HarvestWork = saved.harvestWork,
-                MaterialDestinationId = BuildDestinationId(plotId),
+                MaterialDestinationId = BuildSowDestinationId(
+                    plotId,
+                    saved.nextSowOperationSequence),
                 MaterialsConsumed = saved.materialsConsumed,
+                FrozenSowInputOperationSequence =
+                    saved.frozenSowInputOperationSequence,
+                FrozenSowInputSourceDigest =
+                    saved.frozenSowInputSourceDigest,
+                FrozenSowInputVectorDigest =
+                    saved.frozenSowInputVectorDigest,
+                FrozenSowInputWeather = saved.frozenSowInputWeather,
+                FrozenSowInputConsumptionMultiplier =
+                    saved.frozenSowInputConsumptionMultiplier,
+                FrozenSowInputSelectedFuelItemId =
+                    saved.frozenSowInputSelectedFuelItemId,
+                FrozenSowInputs = saved.frozenSowInputs.ToDictionary(
+                    value => value.itemId,
+                    value => value.quantity,
+                    StringComparer.Ordinal),
                 GoldenHarvestHarvesterId = saved.goldenHarvestHarvesterId?.Trim()
                     ?? string.Empty,
                 GoldenHarvestAttemptSequence = Math.Max(
@@ -942,6 +1824,10 @@ public sealed class CropPlotRuntime :
                     saved.goldenHarvestAttemptSequence),
                 NextSowOperationSequence = saved.nextSowOperationSequence,
                 PendingSow = saved.pendingSow.DeepClone(),
+                PendingCycleCorrelationId =
+                    saved.pendingCycleCorrelationId ?? string.Empty,
+                CycleExecutionReceipt =
+                    saved.cycleExecutionReceipt.DeepClone(),
                 NextTreatmentOperationSequence =
                     saved.nextTreatmentOperationSequence,
                 PestLureNextAllowedDay = saved.pestLureNextAllowedDay,
@@ -949,6 +1835,12 @@ public sealed class CropPlotRuntime :
                     saved.botanicalPesticideNextAllowedDay,
                 FungicideNextAllowedDay = saved.fungicideNextAllowedDay,
                 Treatment = saved.treatment.DeepClone(),
+                NextHarvestOperationSequence =
+                    saved.nextHarvestOperationSequence,
+                PendingHarvest = saved.pendingHarvest.phase ==
+                        CropHarvestOutputPhase.None
+                    ? new CropHarvestOutputSaveData()
+                    : saved.pendingHarvest.DeepClone(),
                 BlockedReason = string.Empty
             });
         }
@@ -994,6 +1886,33 @@ public sealed class CropPlotRuntime :
             return;
         }
 
+        if (state.PendingHarvest.phase != CropHarvestOutputPhase.None)
+        {
+            TryAdvancePendingHarvest(state, crop, out _);
+            if (state.PendingHarvest.phase != CropHarvestOutputPhase.None)
+                return;
+        }
+
+        if (!TryRequireMutable(state.PlotId, out string mutationReason))
+        {
+            if (!string.Equals(
+                    state.BlockedReason,
+                    mutationReason,
+                    StringComparison.Ordinal))
+            {
+                state.BlockedReason = mutationReason;
+                snapshotsDirty = true;
+            }
+            return;
+        }
+        if (state.BlockedReason.StartsWith(
+                "production-facility-mutation-open:",
+                StringComparison.Ordinal))
+        {
+            state.BlockedReason = string.Empty;
+            snapshotsDirty = true;
+        }
+
         if (!IsResearchUnlocked(crop, out string researchReason))
         {
             SetBlocked(state, researchReason);
@@ -1013,6 +1932,29 @@ public sealed class CropPlotRuntime :
         if (state.Phase is CropPlotPhase.Empty
             or CropPlotPhase.WaitingForMaterials)
         {
+            if (state.CycleExecutionReceipt != null
+                && !state.CycleExecutionReceipt.IsEmpty)
+            {
+                CropPlanExecutionReceiptAuthority.Validate(
+                    state.CycleExecutionReceipt,
+                    requireCompleted: false);
+                if (state.CycleExecutionReceipt.status
+                    == CropCycleExecutionReceiptStatus.Active)
+                {
+                    throw new InvalidOperationException(
+                        "An empty crop plot retained an active execution receipt.");
+                }
+                if (state.CycleExecutionReceipt.explicitCorrelation)
+                {
+                    state.BlockedReason =
+                        "crop-cycle-execution-receipt-awaiting-acknowledgement";
+                    snapshotsDirty = true;
+                    return;
+                }
+                state.CycleExecutionReceipt =
+                    new CropCycleExecutionReceiptSaveData();
+                MarkChanged(replan: false);
+            }
             EnsureSowingMaterials(state, crop, requestMaterials);
             return;
         }
@@ -1034,7 +1976,8 @@ public sealed class CropPlotRuntime :
         }
 
         state.BlockedReason = string.Empty;
-        float gameHours = gameClock.DeltaTime / SecondsPerGameHour;
+        float gameHours = gameClock.DeltaTime
+            / GameSimulationTimeRules.SecondsPerGameHour;
         state.GrowthHours = Mathf.Min(
             crop.GrowthHours,
             state.GrowthHours + gameHours * multiplier);
@@ -1052,12 +1995,21 @@ public sealed class CropPlotRuntime :
         CropDefinitionSO crop,
         bool requestMaterials)
     {
+        if (!HasFrozenSowInputs(state))
+            FreezeSowInputs(state, crop);
         Dictionary<string, int> requirements = BuildMaterialRequirements(state, crop);
         if (requirements.Count == 0)
         {
             state.MaterialsConsumed = true;
             state.Phase = CropPlotPhase.ReadyToSow;
             MarkChanged();
+            return;
+        }
+        CropPlotInputOwnerDescriptor inputOwner =
+            CreateSowInputOwnerDescriptor(state, requirements);
+        if (!inputOwners.TryEnsure(inputOwner, out string ownerFailure))
+        {
+            SetBlocked(state, "crop-sow-input-owner-unavailable:" + ownerFailure);
             return;
         }
 
@@ -1121,6 +2073,41 @@ public sealed class CropPlotRuntime :
         }
 
         bool requestedAny = false;
+        int requiredSeed = requirements.TryGetValue(
+            crop.SeedItemId,
+            out int authoredSeedRequirement)
+                ? authoredSeedRequirement
+                : 0;
+        int deliveredSeed = requiredSeed > 0
+            ? items.CountDelivered(crop.SeedItemId, state.MaterialDestinationId)
+            : 0;
+        int pendingSeed = requiredSeed > 0
+            ? items.CountPending(crop.SeedItemId, state.MaterialDestinationId)
+            : 0;
+        if (requiredSeed > deliveredSeed && pendingSeed > deliveredSeed)
+        {
+            if (!seedLots.TryReleaseUnreachableSeedDelivery(
+                    crop.SeedItemId,
+                    crop.CropId,
+                    state.Building.centerPos,
+                    state.MaterialDestinationId,
+                    out bool releasedUnreachableDelivery,
+                    out DomainFailure recoveryFailure))
+            {
+                SetBlocked(
+                    state,
+                    "crop-seed-delivery-recovery-failed:"
+                        + recoveryFailure.Code);
+                return;
+            }
+            if (releasedUnreachableDelivery)
+            {
+                // Destination release is intentionally whole-owner atomic. Any
+                // companion water/compost input is now counted again by the same
+                // loop instead of being silently stranded under an old route.
+                requestedAny = true;
+            }
+        }
         foreach (KeyValuePair<string, int> requirement in requirements)
         {
             int pending = items.CountPending(
@@ -1183,6 +2170,16 @@ public sealed class CropPlotRuntime :
             SetBlocked(state, "crop-sow-ecology-after-conflict");
             return;
         }
+        if (!TryRetireDestination(
+                state,
+                state.MaterialDestinationId,
+                CropPlotInputOwnerAuthority.SowCompletedReleaseReasonCode,
+                out string retireFailure))
+        {
+            state.BlockedReason = retireFailure;
+            snapshotsDirty = true;
+            return;
+        }
         if (!CropPhysicalTransactionOutbox.TryAcknowledgeOutcome(
                 state.PendingSow,
                 seedLots,
@@ -1192,9 +2189,67 @@ public sealed class CropPlotRuntime :
             snapshotsDirty = true;
             return;
         }
+        if (state.Ability == null)
+            throw new InvalidOperationException(
+                "Crop sow execution receipt requires its authored plot ability.");
+        bool explicitCorrelation = !string.IsNullOrEmpty(
+            state.PendingCycleCorrelationId);
+        string correlationId = !explicitCorrelation
+            ? "crop-cycle:" + state.PendingSow.operationId
+            : state.PendingCycleCorrelationId;
+        if (state.CycleExecutionReceipt != null
+            && !state.CycleExecutionReceipt.IsEmpty)
+        {
+            CropPlanExecutionReceiptAuthority.Validate(
+                state.CycleExecutionReceipt,
+                requireCompleted: false);
+            if (state.CycleExecutionReceipt.status
+                != CropCycleExecutionReceiptStatus.Active)
+            {
+                if (state.CycleExecutionReceipt.explicitCorrelation)
+                    throw new InvalidOperationException(
+                        "An unacknowledged explicit crop receipt blocks the next cycle.");
+                state.CycleExecutionReceipt =
+                    new CropCycleExecutionReceiptSaveData();
+            }
+        }
+        if (state.CycleExecutionReceipt == null
+            || state.CycleExecutionReceipt.IsEmpty)
+        {
+            state.CycleExecutionReceipt =
+                CropPlanExecutionReceiptAuthority.Begin(
+                    correlationId,
+                    explicitCorrelation,
+                    state.PlotId.Value,
+                    state.Ability.Indoor,
+                    state.PendingSow);
+        }
+        else
+        {
+            CropPlanExecutionReceiptAuthority.Validate(
+                state.CycleExecutionReceipt,
+                requireCompleted: false);
+            if (!string.Equals(
+                    state.CycleExecutionReceipt.sowOperationId,
+                    state.PendingSow.operationId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    state.CycleExecutionReceipt.correlationId,
+                    correlationId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Crop sow execution receipt conflicts with the active cycle.");
+            }
+        }
+        state.PendingCycleCorrelationId = string.Empty;
         CropPhysicalTransactionOutbox.Clear(state.PendingSow);
+        ClearFrozenSowInputs(state);
         state.NextSowOperationSequence = checked(
             state.NextSowOperationSequence + 1);
+        state.MaterialDestinationId = BuildSowDestinationId(
+            state.PlotId,
+            state.NextSowOperationSequence);
         state.BlockedReason = string.Empty;
         MarkChanged();
     }
@@ -1210,6 +2265,16 @@ public sealed class CropPlotRuntime :
                 or CropTreatmentOrderPhase.OutcomePublished
                 or CropTreatmentOrderPhase.PlotDestroyedLossPending)
             return;
+
+        CropPlotInputOwnerDescriptor inputOwner =
+            CreateTreatmentInputOwnerDescriptor(state, treatment);
+        if (!inputOwners.TryEnsure(inputOwner, out string ownerFailure))
+        {
+            treatment.failureReason =
+                "crop-treatment-input-owner-unavailable:" + ownerFailure;
+            snapshotsDirty = true;
+            return;
+        }
 
         int delivered = items.CountDelivered(
             treatment.itemId,
@@ -1347,6 +2412,17 @@ public sealed class CropPlotRuntime :
 
         if (treatment.phase != CropTreatmentOrderPhase.OutcomePublished)
             return false;
+        if (!TryRetireDestination(
+                state,
+                treatment.destinationId,
+                CropPlotInputOwnerAuthority
+                    .TreatmentCompletedReleaseReasonCode,
+                out string retireFailure))
+        {
+            treatment.failureReason = retireFailure;
+            snapshotsDirty = true;
+            return outcomePublishedNow;
+        }
         if (!CropTreatmentPhysicalOutbox.TryAcknowledgeOutcome(
                 treatment,
                 treatmentItems,
@@ -1357,7 +2433,6 @@ public sealed class CropPlotRuntime :
             return outcomePublishedNow;
         }
 
-        ReleaseTreatmentDestination(state);
         state.NextTreatmentOperationSequence = checked(
             state.NextTreatmentOperationSequence + 1);
         CropTreatmentPhysicalOutbox.Clear(treatment);
@@ -1482,118 +2557,228 @@ public sealed class CropPlotRuntime :
         }
     }
 
-    private static string BuildTreatmentDestinationId(BuildingInstanceId plotId) =>
-        BuildDestinationId(plotId) + ":treatment";
+    private static string BuildTreatmentDestinationId(
+        BuildingInstanceId plotId,
+        int operationSequence) =>
+        CropPlotInputOwnerAuthority.BuildTreatmentDestinationId(
+            plotId.Value,
+            operationSequence);
 
-    private void ReleaseTreatmentDestination(CropPlotState state)
+    private static string BuildSowDestinationId(
+        BuildingInstanceId plotId,
+        int operationSequence) =>
+        CropPlotInputOwnerAuthority.BuildSowDestinationId(
+            plotId.Value,
+            operationSequence);
+
+    private IReadOnlyList<CropPlotInputOwnerDescriptor>
+        BuildInputOwnerDescriptors(
+            CropPlotState state,
+            BuildableObject building,
+            BuildingCropPlotAbility ability)
     {
-        string destination = state?.Treatment?.destinationId ?? string.Empty;
-        if (destination.Length == 0)
-            return;
-        Vector2Int position = state.Building != null
+        if (state == null
+            || building == null
+            || building.IsBuildingDestroyed
+            || ability == null
+            || !building.PersistentInstanceId.Equals(state.PlotId)
+            || building.centerPos != state.LastKnownPosition
+                && state.Building == null)
+        {
+            throw new InvalidOperationException(
+                "Crop-plot input owner source is not attached to its exact live facility.");
+        }
+
+        List<CropPlotInputOwnerDescriptor> descriptors = new();
+        if (RequiresSowInputAuthority(state))
+        {
+            if (!catalog.TryGetCrop(state.CropId, out CropDefinitionSO crop)
+                || crop == null)
+                throw new InvalidOperationException(
+                    "Crop-plot input owner references an unknown crop: "
+                    + state.CropId);
+            IReadOnlyDictionary<string, int> requirements =
+                BuildMaterialRequirements(state, crop, ability);
+            descriptors.Add(CreateSowInputOwnerDescriptor(
+                state,
+                requirements,
+                building.centerPos));
+        }
+        if (state.Treatment?.phase != CropTreatmentOrderPhase.None)
+            descriptors.Add(CreateTreatmentInputOwnerDescriptor(
+                state,
+                state.Treatment,
+                building.centerPos));
+        return descriptors;
+    }
+
+    private CropPlotInputOwnerDescriptor CreateSowInputOwnerDescriptor(
+        CropPlotState state,
+        IReadOnlyDictionary<string, int> requirements,
+        Vector2Int? position = null) => new(
+        state.PlotId.Value,
+        position ?? state.Building?.centerPos ?? state.LastKnownPosition,
+        state.MaterialDestinationId,
+        CropPhysicalTransactionOutbox.FormatSowOperationId(
+            state.PlotId.Value,
+            state.NextSowOperationSequence),
+        requirements);
+
+    private static CropPlotInputOwnerDescriptor
+        CreateTreatmentInputOwnerDescriptor(
+            CropPlotState state,
+            CropTreatmentOrderSaveData treatment,
+            Vector2Int? position = null)
+    {
+        if (state == null || treatment == null
+            || treatment.phase == CropTreatmentOrderPhase.None)
+            throw new ArgumentException(
+                "A live crop-treatment input owner is required.");
+        return new CropPlotInputOwnerDescriptor(
+            state.PlotId.Value,
+            position ?? state.Building?.centerPos ?? state.LastKnownPosition,
+            treatment.destinationId,
+            treatment.operationId,
+            new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                [treatment.itemId] = treatment.quantity
+            });
+    }
+
+    private static bool RequiresAnyInputAuthority(CropPlotState state) =>
+        RequiresSowInputAuthority(state)
+        || state?.Treatment?.phase != CropTreatmentOrderPhase.None;
+
+    private static bool RequiresSowInputAuthority(CropPlotState state) =>
+        state != null
+        && (state.PendingSow?.phase != CropPhysicalCommitPhase.None
+            || HasFrozenSowInputs(state)
+            && !state.MaterialsConsumed
+            && state.Phase is CropPlotPhase.Empty
+                or CropPlotPhase.WaitingForMaterials);
+
+    private bool TryRetireDestination(
+        CropPlotState state,
+        string destinationId,
+        string reasonCode,
+        out string failureReason)
+    {
+        Vector2Int position = state?.Building != null
             ? state.Building.centerPos
-            : state.LastKnownPosition;
-        items.ReleaseDestination(destination, position);
+            : state?.LastKnownPosition ?? default;
+        return inputOwners.TryRetireDestination(
+            destinationId,
+            position,
+            reasonCode,
+            out failureReason);
     }
 
     private Dictionary<string, int> BuildMaterialRequirements(
         CropPlotState state,
-        CropDefinitionSO crop)
+        CropDefinitionSO crop,
+        BuildingCropPlotAbility ability = null)
     {
-        Dictionary<string, int> requirements =
-            new Dictionary<string, int>(StringComparer.Ordinal);
-        if (string.IsNullOrWhiteSpace(crop.SeedItemId)
-            || !catalog.TryGetItem(crop.SeedItemId, out _))
+        if (state == null || crop == null
+            || state.FrozenSowInputOperationSequence
+                != state.NextSowOperationSequence
+            || state.FrozenSowInputs == null
+            || state.FrozenSowInputs.Count == 0
+            || !ProductionOutputClearanceProfileObservation.IsLowercaseSha256(
+                state.FrozenSowInputSourceDigest)
+            || !string.Equals(
+                state.FrozenSowInputVectorDigest,
+                CaptureFrozenSowInputVectorDigest(
+                    state.PlotId,
+                    crop.CropId,
+                    state.FrozenSowInputOperationSequence,
+                    state.FrozenSowInputs),
+                StringComparison.Ordinal))
+        {
             throw new InvalidOperationException(
-                $"Crop '{crop.CropId}' requires a missing authored physical seed-lot item.");
-        requirements[crop.SeedItemId] = 1;
-        float waterRate = state.Ability.WaterMultiplier;
-        if (!state.Ability.Indoor
-            && environmentQuery.GetEnvironmentSnapshot().Weather
-                is SurvivalWeatherType.Rain or SurvivalWeatherType.Storm)
-        {
-            waterRate *= 0.5f;
+                "Crop sow input requirements are not frozen for the active operation.");
         }
-
-        int water = crop.DailyWater <= 0f
-            ? 0
-            : Mathf.Max(
-                1,
-                Mathf.CeilToInt(
-                    crop.DailyWater
-                    * (crop.GrowthHours / 24f)
-                    * waterRate
-                    * Mathf.Clamp(
-                        milestoneModifiers
-                            .WaterAndFertilizerConsumptionMultiplier,
-                        0.1f,
-                        1f)));
-        if (water > 0)
-        {
-            if (!catalog.TryGetItem(CleanWaterItemId, out _))
-            {
-                throw new InvalidOperationException(
-                    $"Crop plot '{state.PlotId}' requires missing authored item '{CleanWaterItemId}'.");
-            }
-
-            requirements[CleanWaterItemId] = water;
-        }
-
-        if (state.Ability.CompostPerCycle > 0)
-        {
-            requirements[CompostItemId] = Mathf.Max(
-                1,
-                Mathf.CeilToInt(
-                    state.Ability.CompostPerCycle
-                    * Mathf.Clamp(
-                        milestoneModifiers
-                            .WaterAndFertilizerConsumptionMultiplier,
-                        0.1f,
-                        1f)));
-        }
-
-        if (state.Ability.FuelPerCycle > 0)
-        {
-            string fuelItemId = ResolveFacilityFuelItemId(
-                state.MaterialDestinationId);
-            requirements[fuelItemId] = state.Ability.FuelPerCycle;
-        }
-
-        foreach (ItemAmountDefinition supply in
-                 state.Ability.CycleSupplyInputs)
-        {
-            requirements.TryGetValue(supply.ItemId, out int current);
-            requirements[supply.ItemId] = current + supply.Amount;
-        }
-
-        return requirements;
+        ability ??= state.Ability;
+        if (ability == null)
+            throw new InvalidOperationException(
+                "Crop sow input requirements have no facility ability authority.");
+        _ = inputRequirements.RehydrateAndValidate(
+            crop,
+            ability,
+            state.MaterialDestinationId,
+            state.FrozenSowInputWeather,
+            state.FrozenSowInputConsumptionMultiplier,
+            state.FrozenSowInputSelectedFuelItemId,
+            state.FrozenSowInputs,
+            state.FrozenSowInputSourceDigest);
+        return new Dictionary<string, int>(
+            state.FrozenSowInputs,
+            StringComparer.Ordinal);
     }
 
-    private string ResolveFacilityFuelItemId(string excludedDestinationId)
+    private void FreezeSowInputs(CropPlotState state, CropDefinitionSO crop)
     {
-        FacilitySupplyProfile fuelProfile = new()
+        CropCycleInputRequirementSnapshot snapshot = inputRequirements.Capture(
+            crop,
+            state.Ability,
+            state.MaterialDestinationId,
+            environmentQuery.GetEnvironmentSnapshot().Weather,
+            milestoneModifiers.WaterAndFertilizerConsumptionMultiplier,
+            (itemId, excludedDestinationId) => items.CountAvailableStock(
+                itemId,
+                excludedDestinationId));
+        state.FrozenSowInputOperationSequence = state.NextSowOperationSequence;
+        state.FrozenSowInputSourceDigest = snapshot.SourceDigest;
+        state.FrozenSowInputWeather = snapshot.Weather;
+        state.FrozenSowInputConsumptionMultiplier =
+            snapshot.MilestoneConsumptionMultiplier;
+        state.FrozenSowInputSelectedFuelItemId = snapshot.SelectedFuelItemId;
+        state.FrozenSowInputs = new Dictionary<string, int>(
+            snapshot.Requirements,
+            StringComparer.Ordinal);
+        state.FrozenSowInputVectorDigest = CaptureFrozenSowInputVectorDigest(
+            state.PlotId,
+            crop.CropId,
+            state.FrozenSowInputOperationSequence,
+            state.FrozenSowInputs);
+    }
+
+    private static void ClearFrozenSowInputs(CropPlotState state)
+    {
+        state.FrozenSowInputOperationSequence = -1;
+        state.FrozenSowInputSourceDigest = string.Empty;
+        state.FrozenSowInputVectorDigest = string.Empty;
+        state.FrozenSowInputWeather = default;
+        state.FrozenSowInputConsumptionMultiplier = 0f;
+        state.FrozenSowInputSelectedFuelItemId = string.Empty;
+        state.FrozenSowInputs.Clear();
+    }
+
+    private static bool HasFrozenSowInputs(CropPlotState state) =>
+        state != null
+        && state.FrozenSowInputOperationSequence >= 0
+        && state.FrozenSowInputs != null
+        && state.FrozenSowInputs.Count > 0;
+
+    private static string CaptureFrozenSowInputVectorDigest(
+        BuildingInstanceId plotId,
+        string cropId,
+        int operationSequence,
+        IReadOnlyDictionary<string, int> requirements)
+    {
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("crop-sow-frozen-input-vector@1");
+        digest.Append(plotId.Value);
+        digest.Append(cropId);
+        digest.Append(operationSequence);
+        digest.Append(requirements.Count);
+        foreach (KeyValuePair<string, int> value in requirements.OrderBy(
+                     entry => entry.Key,
+                     StringComparer.Ordinal))
         {
-            kind = FacilitySupplyKind.Fuel,
-            requiredTags = ResourceIngredientTag.Fuel,
-            minimumValue = 0.01f,
-        };
-        ResourceItemDefinitionSO[] candidates = catalog.Items
-            .Where(fuelProfile.Allows)
-            .ToArray();
-        ResourceItemDefinitionSO[] available = candidates
-            .Where(item => items.CountAvailableStock(
-                item.ItemId,
-                excludedDestinationId) > 0)
-            .ToArray();
-        ResourceItemDefinitionSO selected = (available.Length > 0
-                ? available
-                : candidates)
-            .OrderBy(item => item.UnitPrice / Mathf.Max(0.01f, item.FuelValue))
-            .ThenBy(item => item.ItemId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        return selected?.ItemId
-            ?? throw new InvalidOperationException(
-                "Crop plot requires an authored fuel-tagged item, but the item catalog has none.");
+            digest.Append(value.Key);
+            digest.Append(value.Value);
+        }
+        return digest.ComputeSha256();
     }
 
     private float ResolveGrowthMultiplier(
@@ -1602,60 +2787,32 @@ public sealed class CropPlotRuntime :
         out string blockedReason)
     {
         blockedReason = string.Empty;
+        CropGenomePhenotype phenotype =
+            ecology.GetPhenotype(state.PlotId.Value);
         if (state.Ability.Indoor)
         {
-            return state.Ability.GrowthMultiplier
-                * (IsOperational(ResearchFacilityCommandKind.ClimateControl)
-                    ? 1.08f
-                    : 1f)
-                * (IsOperational(ResearchFacilityCommandKind.CropCalendar)
-                    ? 1.05f
-                    : 1f)
-                * ecology.GetPhenotype(state.PlotId.Value).GrowthMultiplier;
+            return CropGrowthCycleAuthority.ResolveIndoorRuntimeMultiplier(
+                state.Ability,
+                IsOperational(ResearchFacilityCommandKind.ClimateControl),
+                IsOperational(ResearchFacilityCommandKind.CropCalendar),
+                phenotype);
         }
 
         SurvivalEnvironmentSnapshot environment =
             environmentQuery.GetEnvironmentSnapshot();
-        CropGenomePhenotype phenotype = ecology.GetPhenotype(state.PlotId.Value);
-        Vector2 authoredRange = crop.TemperatureRange;
-        Vector2 range = new(
-            authoredRange.x - phenotype.ColdToleranceDegrees,
-            authoredRange.y + phenotype.HeatToleranceDegrees);
-        if (environment.OutdoorTemperature < range.x)
-        {
-            blockedReason = $"기온이 너무 낮음 ({environment.OutdoorTemperature:0.#}도)";
-            return 0f;
-        }
-
-        if (environment.OutdoorTemperature > range.y)
-        {
-            blockedReason = $"기온이 너무 높음 ({environment.OutdoorTemperature:0.#}도)";
-            return 0f;
-        }
-
-        float weatherMultiplier = environment.Weather switch
-        {
-            SurvivalWeatherType.Rain => 1.1f,
-            SurvivalWeatherType.Fog => 0.85f,
-            SurvivalWeatherType.Storm => 0.55f,
-            SurvivalWeatherType.HeatWave => 0.9f,
-            SurvivalWeatherType.ColdSnap => 0.9f,
-            _ => 1f
-        };
-        float dayMultiplier = 1f;
-        if (gameDataProvider.TryGetSessionState(out GameSessionState data)
-            && data?.timeOfDay?.Value == TimeOfDay.Night)
-        {
-            dayMultiplier = 0.55f;
-        }
-
-        return state.Ability.GrowthMultiplier
-            * weatherMultiplier
-            * dayMultiplier
-            * (IsOperational(ResearchFacilityCommandKind.CropCalendar)
-                ? 1.05f
-                : 1f)
-            * phenotype.GrowthMultiplier;
+        TimeOfDay? timeOfDay = gameDataProvider.TryGetSessionState(
+                out GameSessionState data)
+            && data?.timeOfDay != null
+                ? data.timeOfDay.Value
+                : null;
+        return CropGrowthCycleAuthority.ResolveOutdoorRuntimeMultiplier(
+            state.Ability,
+            crop,
+            phenotype,
+            environment,
+            timeOfDay,
+            IsOperational(ResearchFacilityCommandKind.CropCalendar),
+            out blockedReason);
     }
 
     private void SynchronizePlots(bool force)
@@ -1701,12 +2858,43 @@ public sealed class CropPlotRuntime :
                      .ToArray())
         {
             CropPlotState removed = states[removedId];
-            ReleaseMaterialDestination(removed);
+            if (!string.IsNullOrEmpty(removed.PendingCycleCorrelationId)
+                && (removed.CycleExecutionReceipt == null
+                    || removed.CycleExecutionReceipt.IsEmpty))
+            {
+                removed.CycleExecutionReceipt =
+                    CropPlanExecutionReceiptAuthority.FailBeforeSow(
+                        removed.PendingCycleCorrelationId,
+                        removed.PlotId.Value,
+                        removed.CropId,
+                        removed.Ability?.Indoor ?? false,
+                        "crop-cycle-failed-plot-destroyed-before-sow");
+                removed.PendingCycleCorrelationId = string.Empty;
+            }
+            if (!TryRetireDestination(
+                    removed,
+                    removed.MaterialDestinationId,
+                    CropPlotInputOwnerAuthority.PlotLostReleaseReasonCode,
+                    out string materialRetireFailure))
+            {
+                removed.BlockedReason = materialRetireFailure;
+                snapshotsDirty = true;
+                continue;
+            }
             if (removed.Treatment.phase is CropTreatmentOrderPhase.WaitingForDelivery
                     or CropTreatmentOrderPhase.ReadyForWork
                     or CropTreatmentOrderPhase.Working)
             {
-                ReleaseTreatmentDestination(removed);
+                if (!TryRetireDestination(
+                        removed,
+                        removed.Treatment.destinationId,
+                        CropPlotInputOwnerAuthority.PlotLostReleaseReasonCode,
+                        out string treatmentRetireFailure))
+                {
+                    removed.BlockedReason = treatmentRetireFailure;
+                    snapshotsDirty = true;
+                    continue;
+                }
                 CropTreatmentPhysicalOutbox.Clear(removed.Treatment);
             }
             removed.Building = null;
@@ -1737,6 +2925,17 @@ public sealed class CropPlotRuntime :
                 && (environment.OutdoorTemperature < range.x - 5f
                     || environment.OutdoorTemperature > range.y + 5f);
             if (ecology.AdvanceDay(state.PlotId.Value, lethal)) continue;
+            if (state.CycleExecutionReceipt != null
+                && !state.CycleExecutionReceipt.IsEmpty
+                && state.CycleExecutionReceipt.status
+                    == CropCycleExecutionReceiptStatus.Active)
+            {
+                state.CycleExecutionReceipt =
+                    CropPlanExecutionReceiptAuthority.Fail(
+                        state.CycleExecutionReceipt,
+                        CropCycleExecutionReceiptStatus.FailedCropDeath,
+                        "crop-cycle-failed-crop-death");
+            }
             state.MaterialsConsumed = false;
             state.Phase = CropPlotPhase.Blocked;
             state.BlockedReason = "작물이 극한 환경 또는 해충으로 고사했습니다.";
@@ -1753,7 +2952,7 @@ public sealed class CropPlotRuntime :
         BuildingInstanceId plotId)
     {
         CropDefinitionSO crop = ResolveDefaultCrop(ability);
-        return new CropPlotState
+        CropPlotState state = new()
         {
             PlotId = plotId,
             Building = building,
@@ -1763,11 +2962,12 @@ public sealed class CropPlotRuntime :
             Phase = crop != null
                 ? CropPlotPhase.Empty
                 : CropPlotPhase.Blocked,
-            MaterialDestinationId = BuildDestinationId(plotId),
+            MaterialDestinationId = BuildSowDestinationId(plotId, 0),
             BlockedReason = crop != null
                 ? string.Empty
                 : "연구가 완료된 재배 작물이 없습니다."
         };
+        return state;
     }
 
     private CropDefinitionSO ResolveDefaultCrop(BuildingCropPlotAbility ability)
@@ -1899,6 +3099,20 @@ public sealed class CropPlotRuntime :
         if (saved.nextSowOperationSequence < 0 || saved.pendingSow == null)
             throw new InvalidOperationException(
                 "Crop-plot sow transaction owner is missing or invalid.");
+        if (saved.cycleExecutionReceipt == null)
+            throw new InvalidOperationException(
+                "Crop-plot cycle execution receipt owner is missing.");
+        if (!string.IsNullOrEmpty(saved.pendingCycleCorrelationId)
+            && (!string.Equals(
+                    saved.pendingCycleCorrelationId,
+                    saved.pendingCycleCorrelationId.Trim(),
+                    StringComparison.Ordinal)
+                || saved.pendingCycleCorrelationId.Any(char.IsWhiteSpace)
+                || !saved.cycleExecutionReceipt.IsEmpty))
+        {
+            throw new InvalidOperationException(
+                "Crop-plot pending cycle correlation is invalid or already consumed.");
+        }
         if (saved.nextTreatmentOperationSequence < 0
             || saved.pestLureNextAllowedDay < 0
             || saved.botanicalPesticideNextAllowedDay < 0
@@ -1932,7 +3146,10 @@ public sealed class CropPlotRuntime :
         }
 
         ValidatePendingSow(saved, crop);
+        ValidateFrozenSowInputs(saved, crop, plotId);
+        ValidateCycleExecutionReceipt(saved, crop, plotId);
         ValidatePendingTreatment(saved, plotId);
+        ValidatePendingHarvest(saved, crop, plotId);
 
         const float Epsilon = 0.001f;
         if (saved.phase is CropPlotPhase.Growing
@@ -1951,6 +3168,368 @@ public sealed class CropPlotRuntime :
                 "Crop-plot harvest phase has incomplete growth.");
         }
     }
+
+    private void ValidatePendingHarvest(
+        CropPlotSaveData saved,
+        CropDefinitionSO crop,
+        BuildingInstanceId plotId)
+    {
+        CropHarvestOutputSaveData owner = saved.pendingHarvest;
+        if (saved.nextHarvestOperationSequence < 0 || owner == null)
+            throw new InvalidOperationException(
+                "Crop harvest output owner or sequence is invalid.");
+        if (owner.phase == CropHarvestOutputPhase.None)
+        {
+            bool empty = owner.operationSequence == 0
+                && string.IsNullOrEmpty(owner.operationId)
+                && string.IsNullOrEmpty(owner.cropId)
+                && !owner.indoor
+                && string.IsNullOrEmpty(owner.harvesterId)
+                && string.IsNullOrEmpty(owner.outcomeId)
+                && string.IsNullOrEmpty(owner.ecologyOutcomeFingerprint)
+                && !owner.ecologyCommitted
+                && !owner.ecologyAcknowledged
+                && !owner.goldenPrepared
+                && string.IsNullOrEmpty(owner.goldenTraitDefinitionId)
+                && string.IsNullOrEmpty(owner.goldenOutcomeFingerprint)
+                && owner.goldenOutcome == default
+                && owner.goldenPrimaryMultiplier == 0f
+                && owner.goldenSecondaryMultiplier == 0f
+                && owner.goldenRollHash == 0UL
+                && !owner.goldenCommitted
+                && !owner.goldenAcknowledged
+                && !owner.completionEventPublished
+                && string.IsNullOrEmpty(owner.completionDeliveryId)
+                && string.IsNullOrEmpty(owner.completionDeliveryFingerprint)
+                && owner.completionAbsoluteDay == 0
+                && string.IsNullOrEmpty(owner.harvestItemId)
+                && owner.harvestQuantity == 0
+                && string.IsNullOrEmpty(owner.seedItemId)
+                && owner.seedQuantity == 0
+                && IsSerializedEmptySeedLot(owner.returnedSeedLot)
+                && owner.maximumHarvestQuantity == 0
+                && owner.maximumSeedQuantity == 0
+                && owner.harvestCapability is { IsEmpty: true }
+                && owner.seedCapability is { IsEmpty: true }
+                && owner.outputPublication is { IsEmpty: true };
+            if (!empty)
+                throw new InvalidOperationException(
+                    "Empty crop harvest owner contains frozen provenance.");
+            return;
+        }
+
+        if (!Enum.IsDefined(typeof(CropHarvestOutputPhase), owner.phase)
+            || saved.phase != CropPlotPhase.Harvesting
+            || saved.harvestWork + 0.001f < crop.HarvestWork
+            || owner.operationSequence != saved.nextHarvestOperationSequence
+            || !string.Equals(
+                owner.operationId,
+                FormatHarvestOperationId(plotId, owner.operationSequence),
+                StringComparison.Ordinal)
+            || !string.Equals(owner.cropId, crop.CropId, StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(owner.ecologyOutcomeFingerprint)
+            || owner.harvestQuantity <= 0
+            || owner.seedQuantity <= 0
+            || owner.returnedSeedLot == null
+            || !string.Equals(
+                owner.returnedSeedLot.cropId,
+                crop.CropId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.harvestItemId,
+                crop.HarvestItemId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.seedItemId,
+                crop.SeedItemId,
+                StringComparison.Ordinal)
+            || owner.maximumHarvestQuantity !=
+                CropHarvestOutputMaximumAuthority.ResolveMaximumHarvestQuantity(
+                    crop,
+                    owner.indoor,
+                    performanceMaximum)
+            || owner.maximumSeedQuantity !=
+                CropHarvestOutputMaximumAuthority
+                    .ResolveMaximumReturnedSeedQuantity(effectBounds)
+            || owner.harvestQuantity > owner.maximumHarvestQuantity
+            || owner.seedQuantity > owner.maximumSeedQuantity
+            || owner.ecologyAcknowledged && !owner.ecologyCommitted
+            || owner.goldenCommitted && !owner.goldenPrepared
+            || owner.goldenAcknowledged && !owner.goldenCommitted
+            || owner.goldenCommitted && !owner.ecologyCommitted
+            || owner.ecologyAcknowledged && !owner.completionEventPublished
+            || owner.goldenAcknowledged
+                && (!owner.ecologyAcknowledged
+                    || !owner.completionEventPublished)
+            || owner.completionEventPublished
+                && (owner.phase != CropHarvestOutputPhase
+                        .OutputRestoredAwaitingFinalization
+                    || !owner.ecologyCommitted
+                    || owner.goldenPrepared && !owner.goldenCommitted)
+            || owner.completionAbsoluteDay < 0
+            || !string.IsNullOrEmpty(owner.harvesterId)
+                && !IsCanonicalToken(owner.harvesterId)
+            || !IsCanonicalToken(owner.outcomeId)
+            || !Enum.IsDefined(typeof(ExtremeRiskOutcome), owner.goldenOutcome)
+            || !IsFinitePositive(owner.goldenPrimaryMultiplier)
+            || !IsFinitePositive(owner.goldenSecondaryMultiplier))
+        {
+            throw new InvalidOperationException(
+                "Crop harvest frozen owner contradicts plot state or authored maximums.");
+        }
+
+        if (string.IsNullOrEmpty(owner.harvesterId))
+        {
+            if (!string.IsNullOrEmpty(owner.completionDeliveryId)
+                || !string.IsNullOrEmpty(owner.completionDeliveryFingerprint))
+                throw new InvalidOperationException(
+                    "Workerless crop harvest contains completion delivery provenance.");
+        }
+        else
+        {
+            WorkCompletionIdentityDeliveryRequest completion =
+                CreateHarvestCompletionDelivery(plotId, owner);
+            if (!string.Equals(
+                    owner.completionDeliveryId,
+                    completion.DeliveryId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    owner.completionDeliveryFingerprint,
+                    completion.PayloadFingerprint,
+                    StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Crop harvest completion delivery fingerprint is invalid.");
+        }
+
+        if (owner.goldenPrepared)
+        {
+            if (string.IsNullOrWhiteSpace(owner.goldenTraitDefinitionId)
+                || string.IsNullOrWhiteSpace(owner.goldenOutcomeFingerprint)
+                || !string.Equals(
+                    owner.harvesterId,
+                    saved.goldenHarvestHarvesterId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    owner.outcomeId,
+                    owner.goldenOutcome.ToString().ToLowerInvariant(),
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Prepared Golden Harvest provenance is incomplete.");
+            }
+        }
+        else if (!string.IsNullOrEmpty(owner.goldenTraitDefinitionId)
+            || !string.IsNullOrEmpty(owner.goldenOutcomeFingerprint)
+            || owner.goldenOutcome != ExtremeRiskOutcome.Normal
+            || owner.goldenPrimaryMultiplier != 1f
+            || owner.goldenSecondaryMultiplier != 1f
+            || owner.goldenRollHash != 0UL
+            || owner.goldenCommitted
+            || owner.goldenAcknowledged)
+        {
+            throw new InvalidOperationException(
+                "Normal crop harvest contains Golden Harvest provenance.");
+        }
+
+        ProductionOutputCapabilityDescriptor harvest = outputCapabilities
+            .CaptureDeclaredDescriptor(
+                CropHarvestOutputMaximumAuthority.HarvestOutputLineId(
+                    crop.CropId),
+                crop.HarvestItemId,
+                ProductionOutputCapabilityIds.StandardDefinition);
+        ProductionOutputCapabilityDescriptor seed = outputCapabilities
+            .CaptureDeclaredDescriptor(
+                CropHarvestOutputMaximumAuthority.SeedOutputLineId(crop.CropId),
+                crop.SeedItemId,
+                ProductionOutputCapabilityIds.CropHarvestSeedLot);
+        string expectedOutcomeFingerprint =
+            CaptureHarvestOutcomeFingerprint(plotId, owner);
+        if (!CapabilityMatches(owner.harvestCapability, harvest)
+            || !CapabilityMatches(owner.seedCapability, seed)
+            || owner.phase != CropHarvestOutputPhase.Frozen
+                && !string.Equals(
+                    expectedOutcomeFingerprint,
+                    owner.outputPublication.outcomeFingerprint,
+                    StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Crop harvest output capability or outcome fingerprint drifted.");
+        }
+
+        if (owner.phase == CropHarvestOutputPhase.Frozen)
+        {
+            if (owner.ecologyCommitted
+                || owner.ecologyAcknowledged
+                || owner.goldenCommitted
+                || owner.goldenAcknowledged
+                || owner.completionEventPublished)
+                throw new InvalidOperationException(
+                    "Frozen crop harvest contains committed provenance.");
+            if (owner.outputPublication.IsEmpty)
+                return;
+            if (!ProductionDomainOutputPublicationService
+                    .TryValidateRestorableOwner(
+                        owner.outputPublication,
+                        out bool committed,
+                        out string restorableFailure)
+                || committed
+                || !string.Equals(
+                    expectedOutcomeFingerprint,
+                    owner.outputPublication.outcomeFingerprint,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    owner.outputPublication.batchCommitId,
+                    HarvestOutputBatchCommitPrefix + owner.operationId,
+                    StringComparison.Ordinal)
+                || !string.IsNullOrEmpty(
+                        owner.outputPublication.publicationOperationId)
+                    && !string.Equals(
+                        owner.outputPublication.publicationOperationId,
+                        HarvestOutputPublicationOperationPrefix
+                            + owner.operationId + ":"
+                            + owner.outputPublication.publicationAttempt.ToString(
+                                "D4",
+                                System.Globalization.CultureInfo.InvariantCulture),
+                        StringComparison.Ordinal)
+                || !string.Equals(
+                    owner.outputPublication.ownerFacilityId,
+                    plotId.Value,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    owner.outputPublication.ownerDomain,
+                    ProductionOutputDestinationAuthorityRuntime.OwnerDomain,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    owner.outputPublication.destinationId,
+                    ProductionBillRuntime.OutputDestinationPrefix + plotId.Value,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    owner.outputPublication.ownerOperationId,
+                    owner.outputPublication.destinationId,
+                    StringComparison.Ordinal)
+                || owner.outputPublication.acknowledgementDisposition !=
+                    ProductionDomainOutputAcknowledgementDisposition
+                        .ReleaseLooseOrDestination)
+                throw new InvalidOperationException(
+                    "Frozen crop harvest publication owner is invalid: "
+                    + restorableFailure);
+            return;
+        }
+
+        if (!ProductionDomainOutputPublicationService.TryValidateCommittedOwner(
+                owner.outputPublication,
+                out string publicationFailure)
+            || !string.Equals(
+                owner.outputPublication.batchCommitId,
+                HarvestOutputBatchCommitPrefix + owner.operationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.outputPublication.publicationOperationId,
+                HarvestOutputPublicationOperationPrefix
+                    + owner.operationId + ":"
+                    + owner.outputPublication.publicationAttempt.ToString(
+                        "D4",
+                        System.Globalization.CultureInfo.InvariantCulture),
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.outputPublication.ownerFacilityId,
+                plotId.Value,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.outputPublication.ownerDomain,
+                ProductionOutputDestinationAuthorityRuntime.OwnerDomain,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.outputPublication.destinationId,
+                ProductionBillRuntime.OutputDestinationPrefix + plotId.Value,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                owner.outputPublication.ownerOperationId,
+                owner.outputPublication.destinationId,
+                StringComparison.Ordinal)
+            || owner.outputPublication.acknowledgementDisposition !=
+                ProductionDomainOutputAcknowledgementDisposition
+                    .ReleaseLooseOrDestination
+            || owner.phase == CropHarvestOutputPhase.OutputCommitted
+                && owner.outputPublication.outputAcknowledged
+            || owner.phase == CropHarvestOutputPhase
+                    .OutputRestoredAwaitingFinalization
+                && !owner.outputPublication.outputAcknowledged)
+        {
+            throw new InvalidOperationException(
+                "Crop harvest committed publication is invalid: "
+                + publicationFailure);
+        }
+        ValidatePublishedHarvestVector(owner);
+    }
+
+    private static void ValidatePublishedHarvestVector(
+        CropHarvestOutputSaveData owner)
+    {
+        ProductionDomainPublishedStackSaveData[] stacks =
+            owner.outputPublication.stacks?.ToArray()
+            ?? Array.Empty<ProductionDomainPublishedStackSaveData>();
+        if (stacks.Length != 2
+            || stacks.Select(value => value.outputLineId)
+                    .Distinct(StringComparer.Ordinal).Count() != 2)
+            throw new InvalidOperationException(
+                "Crop harvest publication is not an exact two-line vector.");
+        ProductionDomainPublishedStackSaveData harvest = stacks.SingleOrDefault(
+            value => string.Equals(
+                value.outputLineId,
+                owner.harvestCapability.outputLineId,
+                StringComparison.Ordinal));
+        ProductionDomainPublishedStackSaveData seed = stacks.SingleOrDefault(
+            value => string.Equals(
+                value.outputLineId,
+                owner.seedCapability.outputLineId,
+                StringComparison.Ordinal));
+        if (harvest == null
+            || seed == null
+            || !string.Equals(
+                harvest.itemId,
+                owner.harvestItemId,
+                StringComparison.Ordinal)
+            || harvest.quantity != owner.harvestQuantity
+            || !string.Equals(
+                seed.itemId,
+                owner.seedItemId,
+                StringComparison.Ordinal)
+            || seed.quantity != owner.seedQuantity)
+            throw new InvalidOperationException(
+                "Crop harvest publication vector drifted from its frozen outcome.");
+    }
+
+    private static bool IsSerializedEmptySeedLot(SeedLotState value) =>
+        value == null
+        || string.IsNullOrEmpty(value.cropId)
+        && string.IsNullOrEmpty(value.cultivarGenomeId)
+        && value.generation == 0
+        && value.pathogenLoad == 0f;
+
+    private static bool IsCanonicalToken(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsFinitePositive(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value > 0f;
+
+    private static bool CapabilityMatches(
+        ProductionOutputCapabilitySaveData saved,
+        ProductionOutputCapabilityDescriptor expected) =>
+        saved != null
+        && string.Equals(saved.outputLineId, expected.OutputLineId,
+            StringComparison.Ordinal)
+        && string.Equals(saved.itemId, expected.ItemId,
+            StringComparison.Ordinal)
+        && string.Equals(saved.capabilityId, expected.CapabilityId,
+            StringComparison.Ordinal)
+        && saved.capabilityVersion == expected.CapabilityVersion
+        && string.Equals(saved.componentCodecId, expected.ComponentCodecId,
+            StringComparison.Ordinal)
+        && saved.componentCodecVersion == expected.ComponentCodecVersion
+        && string.Equals(saved.fingerprint, expected.Fingerprint,
+            StringComparison.Ordinal);
 
     private void ValidatePendingTreatment(
         CropPlotSaveData saved,
@@ -2001,7 +3580,9 @@ public sealed class CropPlotRuntime :
                 StringComparison.Ordinal)
             || !string.Equals(
                 owner.destinationId,
-                BuildTreatmentDestinationId(plotId),
+                BuildTreatmentDestinationId(
+                    plotId,
+                    owner.operationSequence),
                 StringComparison.Ordinal)
             || !TryResolveTreatment(
                 owner.itemId,
@@ -2068,6 +3649,55 @@ public sealed class CropPlotRuntime :
                 "Crop treatment physical provenance contradicts its phase.");
     }
 
+    private static void ValidateCycleExecutionReceipt(
+        CropPlotSaveData saved,
+        CropDefinitionSO crop,
+        BuildingInstanceId plotId)
+    {
+        CropCycleExecutionReceiptSaveData receipt =
+            saved.cycleExecutionReceipt;
+        CropPlanExecutionReceiptAuthority.Validate(
+            receipt,
+            requireCompleted: false);
+        if (receipt.IsEmpty)
+        {
+            if (saved.materialsConsumed
+                || saved.pendingHarvest.phase != CropHarvestOutputPhase.None)
+            {
+                throw new InvalidOperationException(
+                    "Active crop cycle is missing its durable execution receipt.");
+            }
+            return;
+        }
+
+        if (!string.Equals(receipt.plotId, plotId.Value, StringComparison.Ordinal)
+            || !string.Equals(receipt.cropId, crop.CropId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Crop execution receipt drifted from its plot or crop.");
+        }
+
+        bool activeCycle = saved.materialsConsumed
+            || saved.pendingHarvest.phase != CropHarvestOutputPhase.None;
+        if (activeCycle
+            && receipt.status != CropCycleExecutionReceiptStatus.Active)
+            throw new InvalidOperationException(
+                "Active crop cycle must retain its active execution receipt.");
+        if (!activeCycle
+            && receipt.status == CropCycleExecutionReceiptStatus.Active)
+            throw new InvalidOperationException(
+                "Inactive crop plot cannot retain an incomplete execution receipt.");
+        if (saved.pendingHarvest.phase != CropHarvestOutputPhase.None
+            && !string.Equals(
+                receipt.cropId,
+                saved.pendingHarvest.cropId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Crop harvest owner drifted from its cycle execution receipt.");
+        }
+    }
+
     private static void ValidatePendingSow(
         CropPlotSaveData saved,
         CropDefinitionSO crop)
@@ -2118,6 +3748,124 @@ public sealed class CropPlotRuntime :
                         out _)))
             throw new InvalidOperationException(
                 "Crop sow transaction owner contradicts plot state.");
+    }
+
+    private void ValidateFrozenSowInputs(
+        CropPlotSaveData saved,
+        CropDefinitionSO crop,
+        BuildingInstanceId plotId)
+    {
+        if (saved.frozenSowInputs == null)
+            throw new InvalidOperationException(
+                "Crop sow frozen input vector is missing.");
+
+        bool postSow = saved.materialsConsumed
+            || saved.phase is CropPlotPhase.ReadyToSow
+                or CropPlotPhase.Sowing
+                or CropPlotPhase.Growing
+                or CropPlotPhase.ReadyToHarvest
+                or CropPlotPhase.Harvesting;
+        bool hasFrozen = saved.frozenSowInputs.Count > 0
+            || saved.frozenSowInputOperationSequence >= 0
+            || !string.IsNullOrEmpty(saved.frozenSowInputSourceDigest)
+            || !string.IsNullOrEmpty(saved.frozenSowInputVectorDigest)
+            || saved.frozenSowInputConsumptionMultiplier != 0f
+            || !string.IsNullOrEmpty(saved.frozenSowInputSelectedFuelItemId);
+        bool hasPendingSow = saved.pendingSow.phase
+            != CropPhysicalCommitPhase.None;
+        if (postSow && !hasPendingSow)
+        {
+            if (hasFrozen)
+                throw new InvalidOperationException(
+                    "A post-sow crop plot retained a stale frozen input vector.");
+            return;
+        }
+
+        bool requiresFrozen = saved.phase == CropPlotPhase.WaitingForMaterials
+            || hasPendingSow;
+        if (!requiresFrozen && !hasFrozen)
+            return;
+        if (saved.frozenSowInputOperationSequence
+                != saved.nextSowOperationSequence
+            || saved.frozenSowInputs.Count == 0
+            || !ProductionOutputClearanceProfileObservation.IsLowercaseSha256(
+                saved.frozenSowInputSourceDigest)
+            || !ProductionOutputClearanceProfileObservation.IsLowercaseSha256(
+                saved.frozenSowInputVectorDigest))
+        {
+            throw new InvalidOperationException(
+                "Crop sow frozen input owner is incomplete or stale.");
+        }
+        if (!Enum.IsDefined(
+                typeof(SurvivalWeatherType),
+                saved.frozenSowInputWeather)
+            || !float.IsFinite(saved.frozenSowInputConsumptionMultiplier)
+            || saved.frozenSowInputConsumptionMultiplier is < 0.1f or > 1f
+            || !string.IsNullOrEmpty(saved.frozenSowInputSelectedFuelItemId)
+                && (!string.Equals(
+                        saved.frozenSowInputSelectedFuelItemId,
+                        saved.frozenSowInputSelectedFuelItemId.Trim(),
+                        StringComparison.Ordinal)
+                    || !catalog.TryGetItem(
+                        saved.frozenSowInputSelectedFuelItemId,
+                        out _)))
+        {
+            throw new InvalidOperationException(
+                "Crop sow frozen input selection context is invalid.");
+        }
+
+        Dictionary<string, int> requirements = new(StringComparer.Ordinal);
+        foreach (CropCycleInputRequirementSaveData input in
+                 saved.frozenSowInputs)
+        {
+            if (input == null
+                || string.IsNullOrWhiteSpace(input.itemId)
+                || !string.Equals(input.itemId, input.itemId.Trim(),
+                    StringComparison.Ordinal)
+                || input.quantity <= 0
+                || !catalog.TryGetItem(input.itemId, out _)
+                || !requirements.TryAdd(input.itemId, input.quantity))
+            {
+                throw new InvalidOperationException(
+                    "Crop sow frozen input vector contains an invalid item.");
+            }
+        }
+        if (!string.IsNullOrEmpty(saved.frozenSowInputSelectedFuelItemId)
+            && !requirements.ContainsKey(
+                saved.frozenSowInputSelectedFuelItemId))
+        {
+            throw new InvalidOperationException(
+                "Crop sow frozen fuel is absent from its input vector.");
+        }
+        if (hasPendingSow)
+        {
+            Dictionary<string, int> committed = saved.pendingSow.inputs
+                .GroupBy(value => value.itemId, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Sum(value => value.quantity),
+                    StringComparer.Ordinal);
+            bool committedExact = committed.Count == requirements.Count
+                && requirements.All(value =>
+                    committed.TryGetValue(value.Key, out int quantity)
+                    && quantity == value.Value);
+            if (!committedExact)
+                throw new InvalidOperationException(
+                    "Crop sow frozen inputs drifted from the committed transaction.");
+        }
+        string expectedDigest = CaptureFrozenSowInputVectorDigest(
+            plotId,
+            crop.CropId,
+            saved.frozenSowInputOperationSequence,
+            requirements);
+        if (!string.Equals(
+                saved.frozenSowInputVectorDigest,
+                expectedDigest,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Crop sow frozen input vector digest drifted.");
+        }
     }
 
     private static string DescribeEmptySowOwnerConflict(
@@ -2172,33 +3920,40 @@ public sealed class CropPlotRuntime :
 
     private void ResetForNextCycle(CropPlotState state)
     {
-        items.RemoveDestination(state.MaterialDestinationId);
+        if (!TryRetireDestination(
+                state,
+                state.MaterialDestinationId,
+                CropPlotInputOwnerAuthority.SowCompletedReleaseReasonCode,
+                out string retireFailure))
+            throw new InvalidOperationException(
+                "Crop-plot next-cycle input retirement failed: "
+                + retireFailure);
         state.Phase = CropPlotPhase.Empty;
         state.SowWork = 0f;
         state.GrowthHours = 0f;
         state.HarvestWork = 0f;
         state.MaterialsConsumed = false;
+        ClearFrozenSowInputs(state);
         state.BlockedReason = string.Empty;
         state.GoldenHarvestHarvesterId = string.Empty;
-    }
-
-    private void ReleaseMaterialDestination(CropPlotState state)
-    {
-        if (state == null || string.IsNullOrWhiteSpace(state.MaterialDestinationId))
-        {
-            return;
-        }
-
-        Vector2Int position = state.Building != null
-            ? state.Building.centerPos
-            : state.LastKnownPosition;
-        items.ReleaseDestination(state.MaterialDestinationId, position);
     }
 
     private bool TryFinalizeDestroyedPlot(CropPlotState state)
     {
         if (state == null)
             return true;
+
+        // Destructive mutation must be fenced by the shared facility lifecycle
+        // query before the plot disappears. If a caller bypasses that fence,
+        // retain the exact frozen/committed owner instead of deleting output or
+        // inventing a loose fallback location.
+        if (state.PendingHarvest?.phase != CropHarvestOutputPhase.None)
+        {
+            state.BlockedReason =
+                "crop-harvest-output-owner-blocks-plot-destruction";
+            snapshotsDirty = true;
+            return false;
+        }
 
         if (state.Treatment.phase == CropTreatmentOrderPhase.OutcomePublished)
         {
@@ -2209,6 +3964,16 @@ public sealed class CropPlotRuntime :
         else if (state.Treatment.phase is CropTreatmentOrderPhase.InputCommitted
                 or CropTreatmentOrderPhase.PlotDestroyedLossPending)
         {
+            if (!TryRetireDestination(
+                    state,
+                    state.Treatment.destinationId,
+                    CropPlotInputOwnerAuthority.PlotLostReleaseReasonCode,
+                    out string treatmentRetireFailure))
+            {
+                state.Treatment.failureReason = treatmentRetireFailure;
+                snapshotsDirty = true;
+                return false;
+            }
             if (!CropTreatmentPhysicalOutbox.TryAcknowledgeDestroyedPlotLoss(
                     state.Treatment,
                     treatmentItems,
@@ -2224,19 +3989,39 @@ public sealed class CropPlotRuntime :
         }
         else if (state.Treatment.phase != CropTreatmentOrderPhase.None)
         {
-            ReleaseTreatmentDestination(state);
+            if (!TryRetireDestination(
+                    state,
+                    state.Treatment.destinationId,
+                    CropPlotInputOwnerAuthority.PlotLostReleaseReasonCode,
+                    out string treatmentRetireFailure))
+            {
+                state.Treatment.failureReason = treatmentRetireFailure;
+                snapshotsDirty = true;
+                return false;
+            }
             CropTreatmentPhysicalOutbox.Clear(state.Treatment);
         }
 
         if (state.PendingSow.phase == CropPhysicalCommitPhase.OutcomePublished)
         {
             FinalizePublishedSow(state);
-            return state.PendingSow.phase == CropPhysicalCommitPhase.None;
+            if (state.PendingSow.phase != CropPhysicalCommitPhase.None)
+                return false;
         }
 
         if (state.PendingSow.phase is CropPhysicalCommitPhase.InputCommitted
                 or CropPhysicalCommitPhase.PlotDestroyedLossPending)
         {
+            if (!TryRetireDestination(
+                    state,
+                    state.MaterialDestinationId,
+                    CropPlotInputOwnerAuthority.PlotLostReleaseReasonCode,
+                    out string sowRetireFailure))
+            {
+                state.BlockedReason = sowRetireFailure;
+                snapshotsDirty = true;
+                return false;
+            }
             if (!CropPhysicalTransactionOutbox.TryAcknowledgeDestroyedPlotLoss(
                     state.PendingSow,
                     seedLots,
@@ -2249,6 +4034,32 @@ public sealed class CropPlotRuntime :
             CropPhysicalTransactionOutbox.Clear(state.PendingSow);
         }
 
+        if (state.CycleExecutionReceipt != null
+            && !state.CycleExecutionReceipt.IsEmpty)
+        {
+            CropPlanExecutionReceiptAuthority.Validate(
+                state.CycleExecutionReceipt,
+                requireCompleted: false);
+            if (state.CycleExecutionReceipt.status
+                == CropCycleExecutionReceiptStatus.Active)
+            {
+                state.CycleExecutionReceipt =
+                    CropPlanExecutionReceiptAuthority.Fail(
+                        state.CycleExecutionReceipt,
+                        CropCycleExecutionReceiptStatus.FailedPlotDestroyed,
+                        "crop-cycle-failed-plot-destroyed");
+            }
+            if (state.CycleExecutionReceipt.explicitCorrelation)
+            {
+                state.BlockedReason =
+                    "crop-cycle-execution-receipt-awaiting-acknowledgement";
+                snapshotsDirty = true;
+                return false;
+            }
+            state.CycleExecutionReceipt =
+                new CropCycleExecutionReceiptSaveData();
+        }
+
         return state.PendingSow.phase == CropPhysicalCommitPhase.None
             && state.Treatment.phase == CropTreatmentOrderPhase.None;
     }
@@ -2257,9 +4068,31 @@ public sealed class CropPlotRuntime :
     {
         if (!states.TryGetValue(plotId, out CropPlotState state))
             return;
-        ReleaseMaterialDestination(state);
-        ReleaseTreatmentDestination(state);
+        if (!TryRetireDestination(
+                state,
+                state.MaterialDestinationId,
+                CropPlotInputOwnerAuthority.PlotLostReleaseReasonCode,
+                out string materialRetireFailure))
+            throw new InvalidOperationException(
+                "Crop-plot destroyed material owner retirement failed: "
+                + materialRetireFailure);
+        string treatmentDestination = state.Treatment?.destinationId
+            ?? string.Empty;
+        if (treatmentDestination.Length > 0
+            && !TryRetireDestination(
+                state,
+                treatmentDestination,
+                CropPlotInputOwnerAuthority.PlotLostReleaseReasonCode,
+                out string treatmentRetireFailure))
+            throw new InvalidOperationException(
+                "Crop-plot destroyed treatment owner retirement failed: "
+                + treatmentRetireFailure);
         ecology.AbandonPlot(plotId.Value);
+        if (completionDeliveries != null
+            && !completionDeliveries.RetireProducerStream(
+                HarvestCompletionStreamPrefix + plotId.Value))
+            throw new InvalidOperationException(
+                "Crop completion delivery stream retirement failed.");
         states.Remove(plotId);
         MarkChanged();
     }
@@ -2307,8 +4140,9 @@ public sealed class CropPlotRuntime :
                 continue;
             }
 
-            Dictionary<string, int> required =
-                BuildMaterialRequirements(state, crop);
+            Dictionary<string, int> required = RequiresSowInputAuthority(state)
+                ? BuildMaterialRequirements(state, crop)
+                : new Dictionary<string, int>(StringComparer.Ordinal);
             Dictionary<string, int> delivered = required.Keys.ToDictionary(
                 itemId => itemId,
                 itemId => items.CountDelivered(
@@ -2428,6 +4262,26 @@ public sealed class CropPlotRuntime :
         };
     }
 
+    private bool TryRequireMutable(
+        BuildingInstanceId plotId,
+        out string failureReason)
+    {
+        if (ProductionFacilityMutationWorkPolicy.TryRequireMutable(
+                facilityMutations,
+                plotId,
+                out DomainFailure failure))
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        ReadOnlySpan<string> parameters = failure.Parameters;
+        failureReason = parameters.Length == 0
+            ? "production-facility-mutation-open"
+            : parameters[parameters.Length - 1];
+        return false;
+    }
+
     private static BuildingInstanceId BuildPlotId(BuildableObject plot)
     {
         return plot == null
@@ -2435,13 +4289,4 @@ public sealed class CropPlotRuntime :
             : plot.RequirePersistentInstanceId();
     }
 
-    private static string BuildDestinationId(BuildingInstanceId plotId)
-    {
-        if (!plotId.IsValid)
-        {
-            throw new InvalidOperationException(
-                "Crop material destination requires a BuildingInstanceId.");
-        }
-        return $"crop-materials:{plotId.Value}";
-    }
 }

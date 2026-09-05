@@ -345,10 +345,12 @@ public static class UiPlayModeRegressionBatchRunner
 
         if (target.Name.Equals("PhysicalItemLogistics", StringComparison.OrdinalIgnoreCase))
         {
-            if (UnityEngine.Object.FindFirstObjectByType<PhysicalItemLogisticsPlayModeVerificationRunner>() == null)
+            if (UnityEngine.Object.FindFirstObjectByType<PlayModeVerificationCoroutineHost>() == null)
             {
+                PlayModeVerificationCoroutineHost.RunFactory = () =>
+                    new PhysicalItemLogisticsPlayModeVerificationRunner().Run();
                 new GameObject("Physical Item Logistics PlayMode Verification Runner")
-                    .AddComponent<PhysicalItemLogisticsPlayModeVerificationRunner>();
+                    .AddComponent<PlayModeVerificationCoroutineHost>();
             }
 
             return;

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "12"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "발효액을 더 시게 익혀 음식의 간과 저장, 세정에 나눠 쓰는 식초다. 므네실라에서는 식초를 거르고 남은 발효 찌꺼기를 퇴비 더미에 섞어 산도를 낮춘다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "craft-fermented-vinegar",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "발효 식초"
+}

@@ -1,0 +1,27 @@
+---
+import type { Backlink } from '../lib/wiki-data';
+
+interface Props { backlinks: Backlink[]; version?: string }
+const { backlinks, version } = Astro.props;
+const visible = backlinks.filter((backlink) => backlink.from_spoiler_tier === 'none');
+const hidden = backlinks.length - visible.length;
+const href = (backlink: Backlink) => version
+  ? `/game-versions/${version}/entry/${backlink.from_kind}/${backlink.from_slug}/`
+  : `/entry/${backlink.from_kind}/${backlink.from_slug}/`;
+---
+
+<section class="relations" aria-labelledby="backlinks-title">
+  <div class="section-heading section-heading--inline"><h2 id="backlinks-title">이 항목을 쓰는 곳</h2><span>{visible.length}개</span></div>
+  {visible.length > 0 ? (
+    <div class="table-wrap">
+      <table>
+        <caption class="sr-only">현재 문서를 참조하는 공개 항목</caption>
+        <thead><tr><th scope="col">관계</th><th scope="col">항목</th><th scope="col">수량·조건</th></tr></thead>
+        <tbody>
+          {visible.map((backlink) => <tr><td>{backlink.label}</td><td><a href={href(backlink)}>{backlink.from_title}</a></td><td>{backlink.amount ?? '없음'}</td></tr>)}
+        </tbody>
+      </table>
+    </div>
+  ) : <p class="empty-state">현재 게임 버전에서 확인된 공개 참조 항목이 없다.</p>}
+  {hidden > 0 && <p class="spoiler-hint">스포일러가 될 수 있는 참조 {hidden}개는 기본 표시에서 숨긴다.</p>}
+</section>

@@ -1,0 +1,138 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-commerce-expansion",
+    "spoiler_tier": "none",
+    "title": "상업 확장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-commerce-expansion",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6101",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 확장 설계도",
+      "to": "facility/facility-blueprint-6101",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-expansion",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "to": "research/research-commerce-retail",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-expansion",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "to": "research/research-commerce-retail",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-expansion",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "to": "research/research-commerce-retail",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-expansion",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1005",
+      "target_spoiler_tier": "none",
+      "target_title": "대형연회식탁",
+      "to": "facility/building-1005",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-expansion",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1007",
+      "target_spoiler_tier": "none",
+      "target_title": "푹신한의자",
+      "to": "facility/building-1007",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-expansion",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1010",
+      "target_spoiler_tier": "none",
+      "target_title": "고기걸이",
+      "to": "facility/building-1010",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-expansion",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1011",
+      "target_spoiler_tier": "none",
+      "target_title": "술음료장",
+      "to": "facility/building-1011",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-expansion",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1019",
+      "target_spoiler_tier": "none",
+      "target_title": "대장작업대",
+      "to": "facility/building-1019",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6101",
+      "label": "관련",
+      "to": "research/research-commerce-expansion",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "to": "research/research-commerce-expansion",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "to": "research/research-commerce-expansion",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-secure-trade",
+      "label": "선행 연구",
+      "to": "research/research-commerce-expansion",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "70"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "점액 응고틀은 일반 붕대가 맞지 않는 특수 신체 구조를 안정시키는 처치 도구다. 하르나크의 맑은물 합류 치료사는 점액 응고틀을 맑은 물에 한 방울 풀어 색이 핵 쪽으로 번지는지 먼저 본다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medical-slime-coagulation-frame",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 점액 응고틀.",
+  "title": "점액 응고틀"
+}

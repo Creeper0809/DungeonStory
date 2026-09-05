@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "14"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "수액으로 방습·강화한 목재이다. 밀로세아 가도를 건넌 처리 목재 묶음은 우르단 관문의 폭에 맞춰 한 번 더 짧게 잘려 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-treated-lumber",
+  "spoiler_tier": "none",
+  "summary": "수액으로 방습·강화한 목재.",
+  "title": "처리 목재"
+}

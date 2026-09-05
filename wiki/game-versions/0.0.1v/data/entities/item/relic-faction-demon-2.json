@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "거짓 서명을 태울 때만 붉게 타는 작은 불씨이다. 베르사디온의 재판관의 불씨는 강요된 계약을 태워 없앤 판결 뒤에도 꺼지지 않았다고 전해진다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-demon-2",
+  "spoiler_tier": "none",
+  "summary": "거짓 서명을 태울 때만 붉게 타는 작은 불씨.",
+  "title": "재판관의 불씨"
+}

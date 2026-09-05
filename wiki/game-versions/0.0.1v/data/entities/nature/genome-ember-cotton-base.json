@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-ember-cotton-base",
+  "spoiler_tier": "none",
+  "summary": "여섯 기존 좌위만 사용하는 V22 기본 섬유 품종.",
+  "title": "genome_ember-cotton_base"
+}

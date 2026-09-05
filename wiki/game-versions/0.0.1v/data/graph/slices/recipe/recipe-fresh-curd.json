@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-fresh-curd",
+    "spoiler_tier": "none",
+    "title": "신선 응유식"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-fresh-curd",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-curd",
+      "target_spoiler_tier": "none",
+      "target_title": "응유",
+      "to": "item/material-curd",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-fresh-curd",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "food-fresh-curd",
+      "target_spoiler_tier": "none",
+      "target_title": "신선 응유식",
+      "to": "item/food-fresh-curd",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-fresh-curd",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-livestock",
+      "target_spoiler_tier": "none",
+      "target_title": "축산 조리",
+      "to": "research/research-cuisine-livestock",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

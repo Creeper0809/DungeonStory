@@ -27,7 +27,8 @@ public static class EquipmentProgressionFacilityContract
     public static string GetLocalBufferDestinationId(BuildableObject facility)
     {
         return facility != null && facility.PersistentInstanceId.IsValid
-            ? facility.PersistentInstanceId.Value
+            ? EquipmentModuleInputOwnerAuthority.DestinationFor(
+                facility.PersistentInstanceId.Value)
             : string.Empty;
     }
 }
@@ -158,9 +159,21 @@ public interface ICombatEquipmentRuntime :
         string sourceStackId,
         out bool wasSalvageable,
         out string failureReason);
-    bool TryConsumeForMarketSale(
+    bool TryBeginMarketSale(
         string sourceStackId,
+        string operationId,
+        out CombatEquipmentInstance pendingInstance,
+        out string failureReason);
+    bool TryFinalizeMarketSale(
+        string itemInstanceId,
+        string operationId,
         out CombatEquipmentInstance soldInstance,
+        out string failureReason);
+    bool TryRestoreMarketSalePendingToPhysical(
+        string itemInstanceId,
+        string operationId,
+        string sourceStackId,
+        CombatEquipmentWorldState restoredWorldState,
         out string failureReason);
     bool TryGetInstance(string instanceId, out CombatEquipmentInstance instance);
     bool TryUpdateEvolutionState(

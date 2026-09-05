@@ -1,0 +1,49 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "crystal-beetle",
+      "target_spoiler_tier": "none",
+      "target_title": "수정딱정벌레",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "ash-crawler",
+      "target_spoiler_tier": "none",
+      "target_title": "재먼지 기는벌레",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-ember-fever",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불열",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "ember-lizard",
+  "spoiler_tier": "none",
+  "summary": "뜨거운 배관 주변 해충을 먹지만 잿불열을 매개한다.",
+  "title": "잿불도마뱀"
+}

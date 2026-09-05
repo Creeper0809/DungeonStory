@@ -9,6 +9,7 @@ using UnityEngine;
 public static class PreparedOutputCustodyMutationGuardDebugScenarios
 {
     private const string ItemId = "material:lumber";
+    private const string FoodItemId = "food:grain-porridge";
     private const string TextileItemId = "resource:wool";
 
     [MenuItem("DungeonStory/Debug/Items/Run Prepared Output Custody Mutation Guards")]
@@ -22,6 +23,191 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
         VerifyTheftGuard(catalog, mass);
         Debug.Log("Prepared-output custody mutation guards PASS.");
     }
+
+    public static void RunFreshnessMutationGuard(
+        WorldItemStackRuntime runtime,
+        WorldItemRepository repository)
+    {
+        if (runtime == null)
+            throw new ArgumentNullException(nameof(runtime));
+        if (repository == null)
+            throw new ArgumentNullException(nameof(repository));
+
+        WorldItemStackRecord aged = AddFreshnessCustodyStack(
+            repository,
+            "aged",
+            new[] { FoodFreshnessComponentCodec.Create(300d, false) });
+        string custodyBefore = CaptureCustodyComponent(aged);
+        string routeSignatureBefore = CaptureRouteBusinessSignature(aged);
+        string physicalIdentityBefore = CapturePhysicalIdentity(aged);
+        int recordCountBefore = repository.Records.Count;
+        Require(runtime.TrySetFoodFreshness(
+                aged.stackId,
+                119.375d,
+                false,
+                out string agingFailure)
+            && agingFailure.Length == 0
+            && FoodFreshnessComponentCodec.TryRead(
+                aged.components,
+                out double remainingSeconds,
+                out bool preserved)
+            && remainingSeconds == 119.375d
+            && !preserved
+            && repository.Records.Count == recordCountBefore
+            && CapturePhysicalIdentity(aged) == physicalIdentityBefore
+            && CaptureCustodyComponent(aged) == custodyBefore
+            && CaptureRouteBusinessSignature(aged) == routeSignatureBefore,
+            "Strict freshness aging changed custody or identity: "
+                + agingFailure);
+
+        RequireRejectedFreshnessMutation(runtime, aged, 120d, false,
+            "food-freshness-custody-mutation-widened");
+        RequireRejectedFreshnessMutation(runtime, aged, 119.375d, true,
+            "food-freshness-custody-mutation-widened");
+
+        string genericMutationBefore = CaptureFreshnessRecord(aged);
+        Require(!runtime.TrySetInstanceComponent(
+                aged.stackId,
+                new ItemInstanceComponentSaveData
+                {
+                    componentTypeId = "item-state:qa-custody-drift",
+                    schemaVersion = 1,
+                    affectsStacking = true,
+                    values = new List<ItemStateValueSaveData>()
+                })
+            && CaptureFreshnessRecord(aged) == genericMutationBefore,
+            "Generic component mutation changed protected freshness custody.");
+
+        RequireRejectedFreshnessMutation(runtime,
+            AddFreshnessCustodyStack(
+                repository,
+                "missing",
+                Array.Empty<ItemInstanceComponentSaveData>()),
+            100d,
+            false,
+            "food-freshness-custody-requires-initial-component");
+
+        ItemInstanceComponentSaveData malformed =
+            FoodFreshnessComponentCodec.Create(300d, false);
+        malformed.values.Add(new ItemStateValueSaveData
+        {
+            key = "unexpected",
+            kind = ItemStateValueKind.Integer,
+            integerValue = 1L
+        });
+        RequireRejectedFreshnessMutation(runtime,
+            AddFreshnessCustodyStack(repository, "malformed", new[] { malformed }),
+            100d,
+            false,
+            "food-freshness-component-invalid");
+        RequireRejectedFreshnessMutation(runtime,
+            AddFreshnessCustodyStack(
+                repository,
+                "duplicate",
+                new[]
+                {
+                    FoodFreshnessComponentCodec.Create(300d, false),
+                    FoodFreshnessComponentCodec.Create(300d, false)
+                }),
+            100d,
+            false,
+            "food-freshness-component-invalid");
+    }
+
+    private static WorldItemStackRecord AddFreshnessCustodyStack(
+        WorldItemRepository repository,
+        string suffix,
+        IReadOnlyList<ItemInstanceComponentSaveData> freshness)
+    {
+        string stackId = WorldItemRepositoryEditorAccess.AddStack(
+            repository,
+            FoodItemId,
+            2,
+            WorldItemStackState.Loose,
+            destinationId: "warehouse:qa:food",
+            position: new Vector2Int(4, 5),
+            components: freshness);
+        WorldItemStackRecord record = repository.RecordsById[stackId];
+        string routeSignature = FacilityBufferPlannedOutputPublicationService
+            .CreateRuntimeComponentSignature(record.components);
+        record.components.Add(
+            FacilityOutputExactRouteEditorTestFactory.CreateRoutableCustody(
+                "batch:qa:freshness:" + suffix,
+                new string('1', 64),
+                new string('2', 64),
+                "output:qa:freshness",
+                "line:qa:freshness:" + suffix,
+                0,
+                1,
+                2,
+                1_200L,
+                FoodItemId,
+                routeSignature,
+                new string('a', 64),
+                "production:qa:freshness-output",
+                "warehouse:qa:food",
+                stackId,
+                stackId,
+                new Vector2Int(4, 5),
+                0,
+                2,
+                1_200L,
+                "route:qa:freshness:" + suffix,
+                new string('c', 64),
+                new string('d', 64),
+                0L,
+                new string('e', 64),
+                "warehouse:qa:food",
+                new Vector2Int(9, 9)));
+        repository.MarkChanged();
+        Require(FacilityOutputExactRouteCustodyCodec.TryRead(
+                record.components,
+                out _),
+            "Freshness mutation fixture did not create canonical route custody.");
+        return record;
+    }
+
+    private static void RequireRejectedFreshnessMutation(
+        WorldItemStackRuntime runtime,
+        WorldItemStackRecord record,
+        double remainingSeconds,
+        bool preserved,
+        string expectedFailure)
+    {
+        string before = CaptureFreshnessRecord(record);
+        Require(!runtime.TrySetFoodFreshness(
+                record.stackId,
+                remainingSeconds,
+                preserved,
+                out string failureReason)
+            && failureReason == expectedFailure
+            && CaptureFreshnessRecord(record) == before,
+            "Freshness rejection drifted. expected=" + expectedFailure
+                + ";actual=" + failureReason);
+    }
+
+    private static string CaptureRouteBusinessSignature(
+        WorldItemStackRecord record) =>
+        FacilityBufferPlannedOutputPublicationService
+            .CreateRuntimeComponentSignature(record.components.Where(component =>
+                !FacilityOutputExactRouteCustodyCodec.IsCustody(component)));
+
+    private static string CaptureCustodyComponent(
+        WorldItemStackRecord record) => record.components
+        .Single(FacilityOutputExactRouteCustodyCodec.IsCustody)
+        .ToCanonicalString();
+
+    private static string CapturePhysicalIdentity(WorldItemStackRecord record) =>
+        string.Join("|", record.stackId, record.itemInstanceId, record.itemId,
+            record.quantity, record.state, record.position.x, record.position.y,
+            record.destinationId, record.hasDestinationPosition,
+            record.destinationPosition.x, record.destinationPosition.y);
+
+    private static string CaptureFreshnessRecord(WorldItemStackRecord record) =>
+        CapturePhysicalIdentity(record) + "|" + string.Join(";",
+            record.components.Where(component => component != null)
+                .Select(component => component.ToCanonicalString())
+                .OrderBy(value => value, StringComparer.Ordinal));
 
     private static void VerifyBatchDispositionGuards(
         IPhysicalItemMassQuery mass)
@@ -290,7 +476,6 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
     private static CharacterActor InitializeActor(GameObject target)
     {
         CharacterActor actor = target.AddComponent<CharacterActor>();
-        target.AddComponent<CharacterAiMemoryRuntime>();
         actor.EnsureRuntimeState();
         return actor;
     }

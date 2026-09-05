@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "25개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "65"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "이종 장기 거부 반응을 낮추지만 감염 저항도 낮춘다. 므네실라 치료사는 면역억제제를 쓴 뒤 환자가 다시 먹고 걷고 일할 때까지 약병을 치우지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-immunosuppressant",
+  "spoiler_tier": "none",
+  "summary": "이종 장기 거부 반응을 낮추지만 감염 저항도 낮춘다.",
+  "title": "면역억제제"
+}

@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "disease-glass-blood",
+    "spoiler_tier": "none",
+    "title": "유리혈증"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crystal-beetle",
+      "label": "관련",
+      "to": "medical/disease-glass-blood",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

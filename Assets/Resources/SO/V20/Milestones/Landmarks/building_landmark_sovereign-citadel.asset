@@ -97,7 +97,7 @@ MonoBehaviour:
         - itemId: material:steel-ingot
           amount: 27
         - itemId: component:machine-parts
-          amount: 8
+          amount: 12
         - itemId: component:prototype-package
           amount: 4
     - rid: 7737211808466862455

@@ -1,0 +1,47 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "service-incident-forbiddenmeal",
+    "spoiler_tier": "warning",
+    "title": "금기 음식 제공"
+  },
+  "edges": [
+    {
+      "amount": "-60",
+      "from": "event/service-incident-forbiddenmeal",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-forbiddenmeal",
+      "target_spoiler_tier": "warning",
+      "target_title": "금기 음식 제공",
+      "to": "event/service-incident-forbiddenmeal",
+      "type": "changes-money"
+    },
+    {
+      "amount": "2",
+      "from": "event/service-incident-forbiddenmeal",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "service-incident-forbiddenmeal",
+      "target_spoiler_tier": "warning",
+      "target_title": "금기 음식 제공",
+      "to": "event/service-incident-forbiddenmeal",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "-60",
+      "from": "event/service-incident-forbiddenmeal",
+      "label": "연결",
+      "to": "event/service-incident-forbiddenmeal",
+      "type": "changes-money"
+    },
+    {
+      "amount": "2",
+      "from": "event/service-incident-forbiddenmeal",
+      "label": "연결",
+      "to": "event/service-incident-forbiddenmeal",
+      "type": "changes-mood"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "encounter-26",
+    "spoiler_tier": "warning",
+    "title": "경쟁 던전 무리파쇄자"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/encounter-26",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "battlefield-broken-pillars",
+      "target_spoiler_tier": "none",
+      "target_title": "무너진 기둥숲",
+      "to": "world/battlefield-broken-pillars",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/encounter-26",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

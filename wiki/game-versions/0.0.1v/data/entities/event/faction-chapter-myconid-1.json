@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-cave-mushroom",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴버섯",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-myconid-1",
+  "spoiler_tier": "warning",
+  "summary": "균사 사절이 말 대신 낯선 향과 배양 버섯을 보낸다.",
+  "title": "낯선 향의 사절"
+}

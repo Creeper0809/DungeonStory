@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1038",
+      "target_spoiler_tier": "none",
+      "target_title": "룬안정기",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1039",
+      "target_spoiler_tier": "none",
+      "target_title": "의식초점석",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1070",
+      "target_spoiler_tier": "none",
+      "target_title": "촛대",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-arcane-ritual-2",
+  "spoiler_tier": "none",
+  "summary": "룬안정기와 촛대의 의식 환경을 결합해 마력 흐름을 모으는 초점석을 조율한다.",
+  "title": "의식초점석 조율"
+}

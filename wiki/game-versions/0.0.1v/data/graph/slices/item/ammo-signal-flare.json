@@ -1,0 +1,60 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-signal-flare",
+    "spoiler_tier": "none",
+    "title": "신호탄"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "recipe/recipe-ammo-signal-flare",
+      "label": "생산·해금",
+      "to": "item/ammo-signal-flare",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "관련",
+      "to": "item/ammo-signal-flare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-handgonne",
+      "label": "관련",
+      "to": "item/ammo-signal-flare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-heavy-matchlock",
+      "label": "관련",
+      "to": "item/ammo-signal-flare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-matchlock-long-gun",
+      "label": "관련",
+      "to": "item/ammo-signal-flare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-matchlock-pistol",
+      "label": "관련",
+      "to": "item/ammo-signal-flare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-sniper-arquebus",
+      "label": "관련",
+      "to": "item/ammo-signal-flare",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

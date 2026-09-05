@@ -1,0 +1,49 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1036",
+      "target_spoiler_tier": "none",
+      "target_title": "마력수정선반",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1039",
+      "target_spoiler_tier": "none",
+      "target_title": "의식초점석",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1033",
+      "target_spoiler_tier": "none",
+      "target_title": "시약선반",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1070",
+      "target_spoiler_tier": "none",
+      "target_title": "촛대",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "facilityevolutionrecipe-9106",
+  "spoiler_tier": "none",
+  "summary": "시약과 의식 조명을 갖춘 마력실에서 수정선반을 의식초점석으로 진화시킨다.",
+  "title": "마력 의식 진화"
+}

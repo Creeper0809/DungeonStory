@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Defense And Tactics"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "방어 보급학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "방어 보급학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "방어 보급학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9308",
+      "target_spoiler_tier": "none",
+      "target_title": "수선 접수대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-equipment-field-maintenance",
+  "spoiler_tier": "none",
+  "summary": "방어 보급 절차와 재봉 수선법을 휴대 가능한 수리 규격으로 묶는다.",
+  "title": "야전 정비학"
+}

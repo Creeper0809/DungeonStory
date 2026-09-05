@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medicine-immunosuppressant",
+    "spoiler_tier": "none",
+    "title": "면역억제제"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-natural-organ-transplant",
+      "label": "관련",
+      "to": "item/medicine-immunosuppressant",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-xenograft",
+      "label": "관련",
+      "to": "item/medicine-immunosuppressant",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

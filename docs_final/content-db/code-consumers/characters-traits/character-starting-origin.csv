@@ -1,0 +1,4 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+CharacterStartingOriginSO,content-type,,type-reference,models:characters,runtime,structural-type-consumer,Assets/Scripts/Models/Characters/CharacterStartingHistorySO.cs
+CharacterStartingOriginSO,content-type,,type-reference,models:characters,runtime,structural-type-consumer,Assets/Scripts/Models/Characters/CharacterStartingProfileDomain.cs
+CharacterStartingOriginSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/StartPartyPreparationService.cs

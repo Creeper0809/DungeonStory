@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "13"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "뿔 둘레에 끼워 장식하는 고리로, 머리와 귀를 덮지 않는다. 라카쉬 세갈래길의 수선 천막은 뿔 고리를 착용자의 뿔 굵기와 굽은 방향에 맞춰 그 자리에서 고쳐 준다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-horn-ring",
+  "spoiler_tier": "none",
+  "summary": "뿔 고리 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "뿔 고리"
+}

@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "115"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Water And Sanitation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9821",
+      "target_spoiler_tier": "none",
+      "target_title": "소독 정수기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-plumbing-reuse",
+  "spoiler_tier": "none",
+  "summary": "침전수와 소독제를 사용해 깨끗한 물로 되돌린다.",
+  "title": "정수와 재이용"
+}

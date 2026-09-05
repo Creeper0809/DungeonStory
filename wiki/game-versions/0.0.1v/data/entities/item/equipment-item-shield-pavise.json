@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "12kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "746"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "땅에 세워 사수와 장전수를 가릴 수 있는 넓고 긴 방패다. 하르나크의 오크는 무기 철야에 파비스를 버리기 전 흠집을 손끝으로 짚으며 마지막 주인의 싸움을 들려준다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-shield-pavise",
+  "spoiler_tier": "none",
+  "summary": "파비스 전투 장비",
+  "title": "파비스"
+}

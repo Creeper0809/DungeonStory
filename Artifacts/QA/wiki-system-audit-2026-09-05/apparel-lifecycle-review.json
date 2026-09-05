@@ -1,0 +1,473 @@
+{
+  "status": "partial-domain-review-complete; full-audit-in-progress",
+  "scope": "의복 상태 생산자·일반 후보 조회 후속, 운반 멜빵 자동 착용·내구·반납의 정적 대조",
+  "population": {
+    "existingApparelDefinitions": 56,
+    "existingWorkwearDefinitions": 4,
+    "focusedPhysicalItemIds": [
+      "tool:hauling-harness"
+    ],
+    "focusedAuthoredDefinitions": 2,
+    "focusedPublicEntries": 2,
+    "publicGuidesFullyRead": 2,
+    "directSourceEvidence": 24,
+    "newGapIds": [
+      "GAP-112"
+    ],
+    "implementationQuestions": 6,
+    "duplicateFindingFollowups": [
+      "APPAREL-U04"
+    ],
+    "notReaudited": "기존56종 전체 값은 apparel-environment-review에 있으며 이번에 전사하지 않음"
+  },
+  "freshness": {
+    "query": "ApparelRuntime HaulingHarness durability",
+    "areas": [
+      "code",
+      "authority",
+      "content"
+    ],
+    "limit": 6,
+    "session": 11261,
+    "status": "stale",
+    "failures": 4,
+    "returnedRows": 0,
+    "contentSourceDigest": "139a0a989275ecdd5a4a26c10ceb6a1931041c7c928ed0421628faea5cd928c6",
+    "knowledgeBaseSourceDigest": "ceef8dc8f25f4d327205b15e12346aee0ebc5d6a84aa7eeb1f08af5ce14db0dd",
+    "generatedIndexesUsed": false,
+    "regenerated": false
+  },
+  "harness": {
+    "ids": {
+      "item": "tool:hauling-harness",
+      "workwear": "workwear:hauling-harness",
+      "apparel": "apparel:hauling-harness",
+      "research": "research:commerce:logistics"
+    },
+    "researchTitle": "창고 구획",
+    "capacityMultiplier": 1.25,
+    "maximumToolDurability": 120,
+    "wearPerNewlyEquippedCompletedTrip": 1,
+    "interruptedTripWear": 0,
+    "returnDestination": "apparel-recovery-locker",
+    "returnPosition": "actor.GetNowXY()",
+    "alreadyEquippedFlag": false,
+    "otherWorkwearReplaced": false,
+    "stockOrder": [
+      "Stored first",
+      "StackId ordinal"
+    ],
+    "requiredStock": [
+      "Quantity=1",
+      "valid ItemInstanceId",
+      "AvailableQuantity>0",
+      "not Forbidden",
+      "Loose/Stored/FacilityOutputBuffer",
+      "not equipped destination"
+    ],
+    "durabilityZeroExcluded": false,
+    "normalTerminalCalls": 1,
+    "nonWearTerminalCalls": 5
+  },
+  "lifecycleRules": [
+    {
+      "field": "Apparel.durability",
+      "initial": 100,
+      "repair": "current>=60 ? min(100,current+25) : 70",
+      "wearProducer": "not found in reviewed nonEditor sources; not established as absent throughout all possible paths"
+    },
+    {
+      "field": "Apparel.moisture",
+      "initial": 0,
+      "handLaundry": 100,
+      "poweredLaundry": 0,
+      "drying": 0,
+      "environmentProducer": "not found"
+    },
+    {
+      "field": "Apparel.contamination",
+      "initial": 0,
+      "laundry": 0,
+      "wearingProducer": "not found"
+    },
+    {
+      "field": "designatedWearerCharacterId",
+      "initial": "starter owner ID",
+      "enforcement": "not found in CanEquip or reverse references"
+    }
+  ],
+  "gap": {
+    "id": "GAP-112",
+    "title": "운반 멜빵의 자동 착용·반납 조건과 내구도 소모 수치",
+    "owner": "inventory-and-carrying (entry/item/tool-hauling-harness와 entry/combat/workwear-hauling-harness에서 참조)",
+    "category": "조건·수치·예외 누락",
+    "wiki_evidence": "재고 가이드는 멜빵의 운반 한도 1.25배를, 작업복 도감은 적재 +25%·완료 시 내구도 소모와 필요 연구를 이미 설명한다. 하지만 자동 착용을 시도하는 시점, 다른 작업복 착용 시의 예외, 정상 완료와 중단의 소모 차이, 도구 내구도 120과 회당 소모 1은 없다. 아이템 도감의 질량·적재·가격과 세계관 설명도 이를 보완하지 않는다.",
+    "required_documentation": "운반 시작 시 다른 환경 작업복을 입지 않았고 창고 구획 연구·사용 가능한 실물·체형 조건을 충족하면 멜빵 착용을 시도한다. 실패해도 운반은 기본 한도로 진행하며, 기존 작업복을 멜빵으로 자동 교체하지 않는다. 해당 운반에서 새로 입은 멜빵만 정상 완료 시 도구 내구도 1을 줄이고 벗으며, 중단·재계획·복원 회수는 소모 없이 벗는 경로다. 이미 입고 있던 멜빵에는 이 운반의 소모·반납 처리가 적용되지 않는다. 도구 최대 내구도는 120이지만 현재 0에서 추가 완료 시 음수 기본값 처리로 120이 되는 정적 반례가 있으므로 '120회 사용 후 파손'을 확정 규칙으로 쓰지 않는다. 의복 내구도 0~100 및 수선과 도구 내구도는 별개다. 벗기는 실제 경로는 원래 걸이로 걸어가는 과정이 아니라 현재 위치의 회수 목적지로 라우팅하므로 원위치 반납을 보장한다고 설명하지 않는다. 일반 방한 자동착용·체형 조건은 GAP-085/098을 참조하고 구현 경계는 apparel-lifecycle-review의 확인 사항으로 분리한다.",
+    "sources": [
+      "Assets/Scripts/Services/Items/CharacterCarryInventory.cs",
+      "Assets/Scripts/Models/Items/Core/ItemPrimitives.cs",
+      "Assets/Scripts/Services/Items/AbilityHaul.cs",
+      "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+      "Assets/Scripts/Services/Items/WorldItemSpawner.cs",
+      "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+      "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs",
+      "Assets/Scripts/Services/Infrastructure/Environment/ApparelItemStateCodec.cs",
+      "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+      "Assets/Resources/SO/Environment/Workwear/HaulingHarness.asset",
+      "Assets/Resources/SO/Apparel/Definitions/apparel_hauling_harness.asset",
+      "wiki/game-versions/0.0.1v/content/guides/inventory-and-carrying.md",
+      "wiki/game-versions/0.0.1v/data/entities/item/tool-hauling-harness.json",
+      "wiki/game-versions/0.0.1v/data/entities/combat/workwear-hauling-harness.json"
+    ],
+    "symbols": "TryPrepareHaulingHarness / CompleteHaulingHarness / IsHaulingHarnessEquipped / DurableToolItemRules.CreateDurability / AbilityHaul terminal paths / TryEquip / TryUnequip",
+    "status": "owner-gap-confirmed",
+    "global_deduplication": "pending"
+  },
+  "implementationQuestions": [
+    {
+      "id": "APPAREL-LIFE-U01",
+      "title": "일상 착용에 따른 의복 오염·젖음·마모 발생 경로 미확인",
+      "evidence": "비Editor·비Debug C#의 필드 대입, codec 작성 호출과 컴포넌트 참조를 역검색했다. 의복 상태는 생성 시 100/0/0, 세탁·건조 시 moisture 0 또는100·contamination 0, 수선 시 durability 회복으로 기록된다. 비·침수·작업·착용시간에 따라 이 상태가 증가하거나 마모되는 직접 생산자는 찾지 못했다. 물리 아이템의 일반 contamination과 의복 컴포넌트의 contamination을 같은 값으로 취급하지 않는다.",
+      "consequence": "일일 오염량·자연 건조·착용 마모율을 임의로 만들어 문서 누락으로 세지 않는다. 실제 상태 생산자의 존재와 의도된 연결부터 확인해야 한다.",
+      "related": [
+        "GAP-100",
+        "GAP-101",
+        "APPAREL-U01"
+      ]
+    },
+    {
+      "id": "APPAREL-LIFE-U02",
+      "title": "일반 의복 후보 조회가 자율 환복으로 이어지지 않음",
+      "evidence": "ApparelAvailabilityIndex 전문은 최대8개, 품질 내림차순·내구도 내림차순·StackId순의 후보 조회와 오염·젖음 필터를 제공한다. 그러나 ApparelSelectionQuery는 선언·매개변수로만 나타나고 실제 생성 호출을 찾지 못했다. IApparelAvailabilityIndex는 정의·DI·Aggregate의 Invalidate 의존으로만 나타난다. 실제 환경 작업복은 별도의 물리 후보 선택으로 TryEquip를 호출한다.",
+      "consequence": "기존 APPAREL-U04의 후속 근거이며 새 독립 공백으로 계수하지 않는다. 주민이 모든 옷을 비교해 자동 교체한다고 설명하지 않는다.",
+      "related": [
+        "APPAREL-U04",
+        "GAP-098"
+      ]
+    },
+    {
+      "id": "APPAREL-LIFE-U03",
+      "title": "멜빵의 내구도0 추가 사용이 최대값120으로 복귀",
+      "evidence": "CompleteHaulingHarness는 current-1을 CreateDurability로 넘긴다. CreateDurability는 current<0이면 최대값120을 선택한다. TryEquip와 운반 한도 조회에는 도구 내구도>0 검사가 없고 TrySetInstanceComponent는 유효한 기존 스택의 컴포넌트를 교체한다. 정상 완료·이번 운반에서 새 착용·컴포넌트 쓰기 성공을 전제로 120→119→…→0→120이 된다.",
+      "consequence": "정적 반례이며 게임 실행으로 재현한 결함이라고 보고하지 않는다. 파손/소모 수명을 확정하기 전에 경계 검증이 필요하다.",
+      "related": [
+        "GAP-112"
+      ]
+    },
+    {
+      "id": "APPAREL-LIFE-U04",
+      "title": "도구 내구도와 의복 수선 내구도가 별도로 존재",
+      "evidence": "멜빵 운반은 Durability 컴포넌트의 current/maximum을 읽고 쓴다. ApparelItemStateCodec는 Apparel 컴포넌트의 durability를0~100으로 저장한다. ResolveRepair는 후자를 회복하며 운반 도구 current를 갱신하지 않는다. WorldItemSpawner는 도구 컴포넌트가 없으면120을 생성한다.",
+      "consequence": "옷 수선으로 멜빵의 운반 내구도가 회복된다고 단정하지 않는다. 동일 실물의 두 상태를 UI가 어떻게 구분하는지는 미검증이다.",
+      "related": [
+        "GAP-101",
+        "GAP-112"
+      ]
+    },
+    {
+      "id": "APPAREL-LIFE-U05",
+      "title": "멜빵 사용 플래그·중단·반납 실패와 저장 재개의 일치성 미검증",
+      "evidence": "이미 착용한 멜빵은 TryPrepareHaulingHarness가true를 반환해도 equippedForThisRun은false다. AbilityHaul의 플래그는 private bool이며 검색된 사용은 착용 결과와 종료 시 false 설정뿐이다. CaptureDeliveryIntentForSave에는 해당 플래그를 담는 코드가 보이지 않는다. CompleteHaulingHarness는 컴포넌트 쓰기와 TryUnequip의 성공 여부도 소비하지 않는다. WorkTaskExecutor에 별도 작업복 반납 경로가 있으므로 '영구 미반납'으로 일반화하지 않는다.",
+      "consequence": "저장 직전/직후 완료의 내구도 차이와 회수 실패 처리를 실제 경로에서 검증해야 한다. 확인 전에는 항상 같은 비용·원래 위치 반납을 보장한다고 쓰지 않는다.",
+      "related": [
+        "GAP-112"
+      ]
+    },
+    {
+      "id": "APPAREL-LIFE-U06",
+      "title": "시작 의복의 지정 착용자 표시는 착용 제한으로 소비되지 않음",
+      "evidence": "PreparedStartPartyGameplayApplier는 designatedWearerCharacterId에 시작 주민ID를 쓴다. 검색된 다른 사용은 정의·codec 저장/복원·복사뿐이다. CanEquip는 몸 형태·부착점·크기·열린 구멍을 검사하고 지정 주민을 비교하지 않는다.",
+      "consequence": "지정된 주민만 그 옷을 입을 수 있는 소유권 규칙으로 설명하지 않는다. 지정값의 UI/배정 의도는 확인 필요다.",
+      "related": [
+        "GAP-098"
+      ]
+    }
+  ],
+  "independentArithmeticChecks": [
+    {
+      "id": "create-durability:-1",
+      "actual": 120,
+      "expected": 120,
+      "status": "passed"
+    },
+    {
+      "id": "create-durability:0",
+      "actual": 0,
+      "expected": 0,
+      "status": "passed"
+    },
+    {
+      "id": "create-durability:1",
+      "actual": 1,
+      "expected": 1,
+      "status": "passed"
+    },
+    {
+      "id": "create-durability:120",
+      "actual": 120,
+      "expected": 120,
+      "status": "passed"
+    },
+    {
+      "id": "create-durability:121",
+      "actual": 120,
+      "expected": 120,
+      "status": "passed"
+    },
+    {
+      "id": "newly-equipped-completed-trip:1",
+      "actual": 119,
+      "expected": 119,
+      "status": "passed"
+    },
+    {
+      "id": "newly-equipped-completed-trip:119",
+      "actual": 1,
+      "expected": 1,
+      "status": "passed"
+    },
+    {
+      "id": "newly-equipped-completed-trip:120",
+      "actual": 0,
+      "expected": 0,
+      "status": "passed"
+    },
+    {
+      "id": "newly-equipped-completed-trip:121",
+      "actual": 120,
+      "expected": 120,
+      "status": "passed"
+    },
+    {
+      "id": "condition:0/0",
+      "actual": "Ready",
+      "expected": "Ready",
+      "status": "passed"
+    },
+    {
+      "id": "condition:19.999/0",
+      "actual": "Ready",
+      "expected": "Ready",
+      "status": "passed"
+    },
+    {
+      "id": "condition:20/0",
+      "actual": "Wet",
+      "expected": "Wet",
+      "status": "passed"
+    },
+    {
+      "id": "condition:100/0",
+      "actual": "Wet",
+      "expected": "Wet",
+      "status": "passed"
+    },
+    {
+      "id": "condition:0/0.001",
+      "actual": "Contaminated",
+      "expected": "Contaminated",
+      "status": "passed"
+    },
+    {
+      "id": "condition:100/1",
+      "actual": "Contaminated",
+      "expected": "Contaminated",
+      "status": "passed"
+    },
+    {
+      "id": "capacity:1/false/1.5",
+      "actual": 37.5,
+      "expected": 37.5,
+      "status": "passed"
+    },
+    {
+      "id": "capacity:1/true/1.5",
+      "actual": 46.875,
+      "expected": 46.875,
+      "status": "passed"
+    },
+    {
+      "id": "capacity:1/true/1",
+      "actual": 31.25,
+      "expected": 31.25,
+      "status": "passed"
+    },
+    {
+      "id": "capacity:1/true/2.5",
+      "actual": 78.125,
+      "expected": 78.125,
+      "status": "passed"
+    },
+    {
+      "id": "capacity:0.5/true/1.5",
+      "actual": 23.4375,
+      "expected": 23.4375,
+      "status": "passed"
+    }
+  ],
+  "readScope": [
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelAvailabilityIndex.cs",
+      "scope": "full file"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/CharacterCarryInventory.cs",
+      "scope": "500–617 and reverse callers"
+    },
+    {
+      "path": "Assets/Scripts/Models/Items/Core/ItemPrimitives.cs",
+      "scope": "CharacterCarryTuning and DurableToolItemRules full classes"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/AbilityHaul.cs",
+      "scope": "private field, preparation1036, six terminal sites452/615/1218/1283/1578/2174, save capture1296–1313"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs",
+      "scope": "CanEquip and plan/commit/unequip selected methods; no all-file read claim"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+      "scope": "TryGetEquipped/TryEquip/TryAutoEquipForCold/TryUnequip, candidate and protection resolver"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+      "scope": "laundry/repair mutations and all codec write-reference inventory; full-file hash is not full read"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelItemStateCodec.cs",
+      "scope": "Create and read/mutation reverse references"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+      "scope": "TrySetInstanceComponent1494–1517"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/WorldItemSpawner.cs",
+      "scope": "BuildInstanceComponents durable-tool initialization"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs",
+      "scope": "SpawnStarterApparelItem426–466"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelPhysicalTransaction.cs",
+      "scope": "published apparel fingerprint verification1747–1788; not a soil producer"
+    }
+  ],
+  "sourceEvidence": [
+    {
+      "path": "Assets/Scripts/Services/Items/CharacterCarryInventory.cs",
+      "sha256": "e5af3d1b803cd0cc58741c8c5eb71b7e0245283d02aa76b051e280e2430e0ee7"
+    },
+    {
+      "path": "Assets/Scripts/Models/Items/Core/ItemPrimitives.cs",
+      "sha256": "5d96e3115193b4ac532a8182011d914cc24c207725b333968a7875db8b806380"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/AbilityHaul.cs",
+      "sha256": "4504d69be7dfbefbcb16f6d8042eb953268ec4bab1611a56dcfedb5b69bd53e1"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+      "sha256": "a566c96fd3fccef7c542665a5305cc53c5cdc0b2d046ba12c812c9911b5ab938"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/WorldItemSpawner.cs",
+      "sha256": "3fa2fa0fb865ee98636f4b6d4b2204f04915a83118599b2053bb95c9f0cdab98"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelAvailabilityIndex.cs",
+      "sha256": "110b078f2eb85894109ff127e789d04e466e66386daf68a296e01bbf4544b35e"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelItemStateCodec.cs",
+      "sha256": "fe33d505686cb1d639b97bf998289e610d22308ea9fdb07538e651478c2358d9"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs",
+      "sha256": "be7cfc7c095686ef4c02078cb1b192335f0c473ea7a066d7350705fed6945f83"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+      "sha256": "7830b4481b5646dc9b6bf1476ef1d99afa4121eab59b8d9d3692508f254a0c6b"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+      "sha256": "4fda39ad5c2d06f0ff649b4d5740250f8ca8b0e786acb92dd4f97b3e265f70bf"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelPhysicalTransaction.cs",
+      "sha256": "b65805a8342e06ceffa5c08936ce6fd1ecc89490126de4bd39c550bf201def8e"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputHandler.cs",
+      "sha256": "a811b86ccbe921803ffb4774a4bf26e0a85593f136e50aa8d6a8e0ad59484e54"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidator.cs",
+      "sha256": "85c9b4f3bf667e87469717b28db8e221b6a9100483bff7a190fa3e31540dd020"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs",
+      "sha256": "7ebd47073cc32721956d3cfe4a85f2528077ba488c64af053010540dc73cb999"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs",
+      "sha256": "b0100231af73024a27fc686ffa7a20ab8fafd61dfb5ae55ee0a4b3e3188eb887"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+      "sha256": "182830b5b282724cbbd58d293319f5ef774b921f50dcf3318c945b3145d989c3"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs",
+      "sha256": "948bb9ea2a885f7eb8f4403f13f666bd7fa5368f1818348f653fa8a8356866a1"
+    },
+    {
+      "path": "Assets/Resources/SO/Environment/Workwear/HaulingHarness.asset",
+      "sha256": "afe54a37827ac4d897c2e28e0c0fc5fe00a49283a87f4ef4a6167555a8062033"
+    },
+    {
+      "path": "Assets/Resources/SO/Apparel/Definitions/apparel_hauling_harness.asset",
+      "sha256": "4f473bcc16eeed263356b98609cb855a7a04cfec578c82ce8b6a5a08273afe14"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/inventory-and-carrying.md",
+      "sha256": "8cef7e1f76c53cd8177c77f05c6428bf956ff92b07fe512edadde3e13eb27f7a"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/species-culture-and-life.md",
+      "sha256": "cd356f79ff6edde0835a1590c3f4e2688a41b97cd2e510e320671bf79dfe5c04"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/item/tool-hauling-harness.json",
+      "sha256": "957ccec87ef36fe616d018fc30eb63d16f77764383a054e5195e8a20638f6c60"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/combat/workwear-hauling-harness.json",
+      "sha256": "2f9b7adc8e1de03bbf4c576384b96e98d6d49c377332a5fb64991eb6ddaf98a6"
+    },
+    {
+      "path": "docs_final/game-design/content-plans/items/apparel-and-module-numeric-notes.md",
+      "sha256": "881b713a9dfdeabd4e0011c3c3d6239d22936126843a730d4b86b5fc6a8e3ae9"
+    }
+  ],
+  "validation": {
+    "kind": "read-only static source tracing and independent arithmetic; not Unity execution",
+    "arithmeticCount": 20,
+    "arithmeticErrors": 0,
+    "ui": false,
+    "saveRoundtrip": false,
+    "scriptsChanged": false,
+    "assetsChanged": false,
+    "publicWikiChanged": false,
+    "balance": "밸런스 영향 없음: 감사 기록만 추가; 수치·실행·저장 미변경"
+  },
+  "remaining": [
+    "의복 상태 생산자와 환복 UI의 실제 실행/저장 검증",
+    "시설의 건설 외 전체 기능과 내부 정의 공개 정책",
+    "날씨의 작물·축산·원정 효과, 방 환경, 식품 부패",
+    "나머지 전체 시스템/도감 필드·관계 대조와 의미 중복 제거"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "funeral-culture-vampire",
+  "spoiler_tier": "none",
+  "summary": "다른 콘텐츠 1개가 이 정의를 참조한다.",
+  "title": "Funeral_Vampire"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "35"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "심문에서 뽑아낸 불완전한 기억의 응결물이다. 오르데나 등기원은 기억 잔재를 소유권 없는 압수물로 분류해 당사자의 진술과 열람을 막는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "captivity-memory-residue",
+  "spoiler_tier": "none",
+  "summary": "심문에서 뽑아낸 불완전한 기억의 응결물이다.",
+  "title": "기억 잔재"
+}

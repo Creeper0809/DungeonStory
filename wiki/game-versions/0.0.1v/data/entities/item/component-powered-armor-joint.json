@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "723"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "동력 갑주 관절은 움직이는 부품의 하중을 받아 동력과 힘을 다음 관절로 전달한다. 특히 제4주조도시산 동력 갑주 관절에는 마지막 정비자의 손가락 폭만 한 네모 홈이 파여 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-powered-armor-joint",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 동력 갑주 관절.",
+  "title": "동력 갑주 관절"
+}

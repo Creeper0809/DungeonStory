@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "비일반"
+    },
+    {
+      "label": "성향",
+      "value": "상충"
+    },
+    {
+      "label": "효과",
+      "value": "2개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-211",
+  "spoiler_tier": "none",
+  "summary": "낯선 배급식을 잘 먹지만 오염을 대수롭지 않게 여긴다.",
+  "title": "튼튼한 위장"
+}

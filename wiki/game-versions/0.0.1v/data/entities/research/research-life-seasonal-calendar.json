@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "84"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Records And Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-records",
+      "target_spoiler_tier": "none",
+      "target_title": "기록 체계",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-records",
+      "target_spoiler_tier": "none",
+      "target_title": "기록 체계",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-records",
+      "target_spoiler_tier": "none",
+      "target_title": "기록 체계",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-field",
+      "target_spoiler_tier": "none",
+      "target_title": "외부 경작",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8849",
+      "target_spoiler_tier": "none",
+      "target_title": "계절력 기록대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-life-seasonal-calendar",
+  "spoiler_tier": "none",
+  "summary": "절대 달력의 계절 경계와 생업 주기를 기록한다.",
+  "title": "계절 역법"
+}

@@ -1,0 +1,62 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "내압 화기와 방폭"
+    },
+    {
+      "label": "제작 작업",
+      "value": "224"
+    },
+    {
+      "label": "무게",
+      "value": "7kg"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-pressure-barrels",
+      "target_spoiler_tier": "none",
+      "target_title": "내압 화기와 방폭",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-blast-coat-shell",
+      "target_spoiler_tier": "none",
+      "target_title": "방폭 외투 내피",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-insulating-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "절연 직물",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-quilted-liner",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 충전재",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-blast-coat",
+  "spoiler_tier": "none",
+  "summary": "방폭 외투 전투 장비",
+  "title": "방폭 외투"
+}

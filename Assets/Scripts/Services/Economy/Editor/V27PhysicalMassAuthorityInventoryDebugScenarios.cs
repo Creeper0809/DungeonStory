@@ -21,61 +21,10 @@ public static class V27PhysicalMassAuthorityInventoryDebugScenarios
     public const string SemanticCandidatesPath =
         "Artifacts/QA/v27-physical-mass-unit-semantic-candidates.csv";
 
-    private const int ExpectedLedgerItems = 414;
-    private const int ExpectedWeightSites = 1074;
-    private const int ExpectedRecipes = 355;
-    private const int ExpectedEquipment = 61;
     private const string SelfPath =
         "Assets/Scripts/Services/Economy/Editor/V27PhysicalMassAuthorityInventoryDebugScenarios.cs";
     private const string SchemaPath =
         "Assets/Scripts/Models/Economy/Content/PhysicalMassAuthoringContracts.cs";
-
-    private static readonly IReadOnlyDictionary<string, string> WriterRoles =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs"] =
-                "definition-authority",
-            ["Assets/Scripts/Models/Economy/Content/ResourceItemDefinitionSO.cs"] =
-                "definition-forwarder",
-            ["Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs"] =
-                "equipment-definition-authority",
-            ["Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs"] =
-                "apparel-definition-authority",
-            ["Assets/Scripts/Models/Economy/Content/TextileMaterialDefinitionSO.cs"] =
-                "textile-definition-authority",
-            ["Assets/Scripts/Models/Economy/Content/CraftMaterialDefinitionSO.cs"] =
-                "craft-material-definition-authority",
-            ["Assets/Scripts/Services/Economy/Editor/ResourceEconomyAssetBuilder.cs"] =
-                "authoring-builder",
-            ["Assets/Scripts/Services/Economy/Editor/ProductionWorkshopContentAssetBuilder.cs"] =
-                "authoring-builder",
-            ["Assets/Scripts/Services/Economy/Editor/V19CropEcologyContentAssetBuilder.cs"] =
-                "authoring-builder",
-            ["Assets/Scripts/Services/Economy/Editor/V22ApparelContentAssetBuilder.cs"] =
-                "authoring-builder",
-            ["Assets/Scripts/Services/Research/Editor/ResearchOverhaulContentAssetBuilder.cs"] =
-                "authoring-builder",
-            ["Assets/Scripts/Services/Combat/Editor/CombatEquipmentAssetBuilder.cs"] =
-                "equipment-authoring-builder",
-            ["Assets/Scripts/Services/Items/Editor/UnifiedItemDefinitionAssetBuilder.cs"] =
-                "projection-builder",
-            ["Assets/Scripts/Services/Items/Editor/GameContentCatalogAssetBuilder.cs"] =
-                "catalog-projection-builder",
-            ["Assets/Scripts/Services/Factions/Editor/V20FactionServiceContentAssetBuilder.cs"] =
-                "authoring-builder",
-            ["Assets/Scripts/Services/Items/Editor/EvolutionCatalystProgressionAssetMigration.cs"] =
-                "explicit-migration-writer",
-            ["Assets/Scripts/Services/Infrastructure/Editor/BatchAContentAuthorityDebugScenarios.cs"] =
-                "editor-test-writer",
-            ["Assets/Scripts/Services/Economy/Editor/ProductionEconomyDebugScenarios.cs"] =
-                "editor-test-writer",
-            ["Assets/Scripts/Services/Character/Editor/PhysicalVaccinationOutboxDebugScenarios.cs"] =
-                "editor-test-writer",
-            ["Assets/Scripts/Services/Combat/CharacterMedicalSupplyOutboxDebugScenarios.cs"] =
-                "editor-test-writer",
-            ["Assets/Scripts/Services/Captivity/Editor/CaptivityWildlifeLifecyclePlayModeVerifier.cs"] =
-                "editor-test-writer"
-        };
 
     [MenuItem("DungeonStory/V27/Physical Mass/Capture Authority Inventory")]
     public static void RunFromMenu()
@@ -108,6 +57,11 @@ public static class V27PhysicalMassAuthorityInventoryDebugScenarios
     }
 
     public static IReadOnlyList<string> CaptureCanonicalLedgerItemIds()
+    {
+        return CaptureCurrentEconomyDenominator().LedgerItemIds;
+    }
+
+    internal static EconomyDenominatorSnapshot CaptureCurrentEconomyDenominator()
     {
         GameContentCatalogSO root = Resources.Load<GameContentCatalogSO>(
                 GameContentCatalogSO.ResourcePath)
@@ -158,7 +112,52 @@ public static class V27PhysicalMassAuthorityInventoryDebugScenarios
             materialProfiles,
             2.25m,
             V27BalanceAssetApplication.CaptureHistoricalBeforeValues()).Calculate();
-        return catalogItems
+        if (before.UnresolvedItemIds.Count != 0
+            || before.NonConvergentRecipeIds.Count != 0
+            || !after.IsComplete)
+        {
+            throw new InvalidOperationException(
+                "The current economy denominator has unresolved or non-convergent EWU authority.");
+        }
+
+        ResourceEconomyContentCatalog economy = new(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        string[] catalogItemIds = catalogItems
+            .Select(value => value.ItemId)
+            .ToArray();
+        string[] catalogRecipeIds = recipes
+            .Select(value => value.RecipeId)
+            .ToArray();
+        string[] expectedEconomyItemIds = catalogItems
+            .OfType<ResourceItemDefinitionSO>()
+            .Select(value => value.ItemId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] expectedEwuRecipeIds = recipes
+            .Where(value => value.FlowRole != ProductionFlowRole.Sink
+                && value.Outputs.Count > 0)
+            .Select(value => value.RecipeId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        HashSet<string> producedItemIds = recipes
+            .SelectMany(value => value.Outputs)
+            .Where(value => value != null
+                && !string.IsNullOrWhiteSpace(value.ItemId))
+            .Select(value => value.ItemId)
+            .ToHashSet(StringComparer.Ordinal);
+        string[] expectedExternalSeedItemIds = recipes
+            .SelectMany(value => value.Inputs)
+            .Where(value => value != null
+                && !string.IsNullOrWhiteSpace(value.ItemId)
+                && !producedItemIds.Contains(value.ItemId))
+            .Select(value => value.ItemId)
+            .Where(value => catalogItemIds.Contains(
+                value,
+                StringComparer.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] ledgerItemIds = catalogItems
             .Where(value =>
                 after.Items.ContainsKey(value.ItemId)
                 && before.TryGetItemWork(value.ItemId, out _))
@@ -166,6 +165,247 @@ public static class V27PhysicalMassAuthorityInventoryDebugScenarios
             .Distinct(StringComparer.Ordinal)
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
+        return new EconomyDenominatorSnapshot(
+            catalogItemIds,
+            catalogRecipeIds,
+            economy.Items.Select(value => value.ItemId),
+            economy.Recipes.Select(value => value.RecipeId),
+            before.ItemWork.Keys,
+            before.Recipes.Keys,
+            after.Items.Keys,
+            after.Recipes.Keys,
+            expectedEconomyItemIds,
+            expectedEwuRecipeIds,
+            expectedExternalSeedItemIds,
+            before.ExternalSeedItemIds,
+            after.ExternalSeedItemIds,
+            ledgerItemIds);
+    }
+
+    internal sealed class EconomyDenominatorSnapshot
+    {
+        internal EconomyDenominatorSnapshot(
+            IEnumerable<string> catalogItemIds,
+            IEnumerable<string> catalogRecipeIds,
+            IEnumerable<string> economyItemIds,
+            IEnumerable<string> economyRecipeIds,
+            IEnumerable<string> v23ItemIds,
+            IEnumerable<string> v23RecipeIds,
+            IEnumerable<string> v27ItemIds,
+            IEnumerable<string> v27RecipeIds,
+            IEnumerable<string> expectedEconomyItemIds,
+            IEnumerable<string> expectedEwuRecipeIds,
+            IEnumerable<string> expectedExternalSeedItemIds,
+            IEnumerable<string> v23ExternalSeedItemIds,
+            IEnumerable<string> v27ExternalSeedItemIds,
+            IEnumerable<string> ledgerItemIds)
+        {
+            CatalogItemIds = CanonicalSet(catalogItemIds, "catalog item");
+            CatalogRecipeIds = CanonicalSet(catalogRecipeIds, "catalog recipe");
+            EconomyItemIds = CanonicalSet(economyItemIds, "economy item");
+            EconomyRecipeIds = CanonicalSet(economyRecipeIds, "economy recipe");
+            V23ItemIds = CanonicalSet(v23ItemIds, "V23 EWU item");
+            V23RecipeIds = CanonicalSet(v23RecipeIds, "V23 EWU recipe");
+            V27ItemIds = CanonicalSet(v27ItemIds, "V27 EWU item");
+            V27RecipeIds = CanonicalSet(v27RecipeIds, "V27 EWU recipe");
+            string[] expectedEconomyItems = CanonicalSet(
+                expectedEconomyItemIds,
+                "expected economy item");
+            string[] expectedRecipes = CanonicalSet(
+                expectedEwuRecipeIds,
+                "expected EWU recipe");
+            string[] expectedExternalSeeds = CanonicalSet(
+                expectedExternalSeedItemIds,
+                "expected external EWU seed");
+            V23ExternalSeedItemIds = CanonicalSet(
+                v23ExternalSeedItemIds,
+                "V23 external EWU seed");
+            V27ExternalSeedItemIds = CanonicalSet(
+                v27ExternalSeedItemIds,
+                "V27 external EWU seed");
+            LedgerItemIds = CanonicalSet(ledgerItemIds, "ledger item");
+
+            // ResourceEconomyContentCatalog intentionally exposes only resource
+            // definitions. Other ItemDefinitionSO families remain valid physical
+            // catalog members and are not silently required to join that projection.
+            RequireExact(expectedEconomyItems, EconomyItemIds,
+                "resource-item/economy projection");
+            RequireExact(CatalogRecipeIds, EconomyRecipeIds,
+                "production recipe catalog/economy projection");
+            RequireSubset(V23ItemIds, CatalogItemIds,
+                "V23 EWU item/catalog projection");
+            RequireSubset(V27ItemIds, CatalogItemIds,
+                "V27 EWU item/catalog projection");
+            RequireExact(
+                CatalogItemIds.Where(value => V23ItemIds.Contains(
+                        value,
+                        StringComparer.Ordinal)
+                    && V27ItemIds.Contains(value, StringComparer.Ordinal)),
+                LedgerItemIds,
+                "V23/V27 EWU intersection/ledger projection");
+            RequireExact(expectedRecipes, V23RecipeIds,
+                "production recipe/V23 EWU projection");
+            RequireExact(expectedRecipes, V27RecipeIds,
+                "production recipe/V27 EWU projection");
+            RequireExact(expectedExternalSeeds, V23ExternalSeedItemIds,
+                "recipe-boundary/V23 external seed projection");
+            RequireExact(expectedExternalSeeds, V27ExternalSeedItemIds,
+                "recipe-boundary/V27 external seed projection");
+        }
+
+        internal IReadOnlyList<string> CatalogItemIds { get; }
+        internal IReadOnlyList<string> CatalogRecipeIds { get; }
+        internal IReadOnlyList<string> EconomyItemIds { get; }
+        internal IReadOnlyList<string> EconomyRecipeIds { get; }
+        internal IReadOnlyList<string> V23ItemIds { get; }
+        internal IReadOnlyList<string> V23RecipeIds { get; }
+        internal IReadOnlyList<string> V27ItemIds { get; }
+        internal IReadOnlyList<string> V27RecipeIds { get; }
+        internal IReadOnlyList<string> V23ExternalSeedItemIds { get; }
+        internal IReadOnlyList<string> V27ExternalSeedItemIds { get; }
+        internal IReadOnlyList<string> LedgerItemIds { get; }
+
+        internal void RequireExactAugmentationOf(
+            EconomyDenominatorSnapshot baseline,
+            string addedItemId,
+            string addedRecipeId)
+        {
+            if (baseline == null)
+                throw new ArgumentNullException(nameof(baseline));
+            RequireSingleAddition(
+                baseline.CatalogItemIds, CatalogItemIds, addedItemId,
+                "catalog item");
+            RequireSingleAddition(
+                baseline.EconomyItemIds, EconomyItemIds, addedItemId,
+                "economy item");
+            RequireSingleAddition(
+                baseline.V23ItemIds, V23ItemIds, addedItemId,
+                "V23 EWU item");
+            RequireSingleAddition(
+                baseline.V27ItemIds, V27ItemIds, addedItemId,
+                "V27 EWU item");
+            RequireSingleAddition(
+                baseline.LedgerItemIds, LedgerItemIds, addedItemId,
+                "ledger item");
+            RequireSingleAddition(
+                baseline.CatalogRecipeIds, CatalogRecipeIds, addedRecipeId,
+                "catalog recipe");
+            RequireSingleAddition(
+                baseline.EconomyRecipeIds, EconomyRecipeIds, addedRecipeId,
+                "economy recipe");
+            RequireSingleAddition(
+                baseline.V23RecipeIds, V23RecipeIds, addedRecipeId,
+                "V23 EWU recipe");
+            RequireSingleAddition(
+                baseline.V27RecipeIds, V27RecipeIds, addedRecipeId,
+                "V27 EWU recipe");
+            RequireExact(
+                baseline.V23ExternalSeedItemIds,
+                V23ExternalSeedItemIds,
+                "V23 external EWU seed augmentation");
+            RequireExact(
+                baseline.V27ExternalSeedItemIds,
+                V27ExternalSeedItemIds,
+                "V27 external EWU seed augmentation");
+        }
+
+        internal void RequireExactIdentity(EconomyDenominatorSnapshot expected)
+        {
+            if (expected == null)
+                throw new ArgumentNullException(nameof(expected));
+            RequireExact(expected.CatalogItemIds, CatalogItemIds, "catalog item cleanup");
+            RequireExact(expected.CatalogRecipeIds, CatalogRecipeIds, "catalog recipe cleanup");
+            RequireExact(expected.EconomyItemIds, EconomyItemIds, "economy item cleanup");
+            RequireExact(expected.EconomyRecipeIds, EconomyRecipeIds, "economy recipe cleanup");
+            RequireExact(expected.V23ItemIds, V23ItemIds, "V23 EWU item cleanup");
+            RequireExact(expected.V23RecipeIds, V23RecipeIds, "V23 EWU recipe cleanup");
+            RequireExact(expected.V27ItemIds, V27ItemIds, "V27 EWU item cleanup");
+            RequireExact(expected.V27RecipeIds, V27RecipeIds, "V27 EWU recipe cleanup");
+            RequireExact(expected.V23ExternalSeedItemIds, V23ExternalSeedItemIds,
+                "V23 external EWU seed cleanup");
+            RequireExact(expected.V27ExternalSeedItemIds, V27ExternalSeedItemIds,
+                "V27 external EWU seed cleanup");
+            RequireExact(expected.LedgerItemIds, LedgerItemIds, "ledger item cleanup");
+        }
+
+        internal void RequireAbsent(string itemId, string recipeId)
+        {
+            if (CatalogItemIds.Contains(itemId, StringComparer.Ordinal)
+                || EconomyItemIds.Contains(itemId, StringComparer.Ordinal)
+                || V23ItemIds.Contains(itemId, StringComparer.Ordinal)
+                || V27ItemIds.Contains(itemId, StringComparer.Ordinal)
+                || V23ExternalSeedItemIds.Contains(itemId, StringComparer.Ordinal)
+                || V27ExternalSeedItemIds.Contains(itemId, StringComparer.Ordinal)
+                || LedgerItemIds.Contains(itemId, StringComparer.Ordinal)
+                || CatalogRecipeIds.Contains(recipeId, StringComparer.Ordinal)
+                || EconomyRecipeIds.Contains(recipeId, StringComparer.Ordinal)
+                || V23RecipeIds.Contains(recipeId, StringComparer.Ordinal)
+                || V27RecipeIds.Contains(recipeId, StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "A removed synthetic definition remains in an economy denominator.");
+            }
+        }
+
+        private static string[] CanonicalSet(
+            IEnumerable<string> values,
+            string label)
+        {
+            string[] ordered = (values ?? throw new ArgumentNullException(nameof(values)))
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            if (ordered.Any(value => string.IsNullOrWhiteSpace(value)
+                    || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+                || ordered.Distinct(StringComparer.Ordinal).Count() != ordered.Length)
+            {
+                throw new InvalidOperationException(
+                    $"The {label} denominator is empty, non-canonical, or duplicated.");
+            }
+            return ordered;
+        }
+
+        private static void RequireSingleAddition(
+            IReadOnlyList<string> baseline,
+            IReadOnlyList<string> augmented,
+            string expectedId,
+            string label)
+        {
+            string[] expected = baseline
+                .Concat(new[] { expectedId })
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            RequireExact(expected, augmented, label + " augmentation");
+        }
+
+        private static void RequireSubset(
+            IEnumerable<string> subset,
+            IEnumerable<string> superset,
+            string label)
+        {
+            HashSet<string> allowed = new(superset, StringComparer.Ordinal);
+            string[] outside = subset
+                .Where(value => !allowed.Contains(value))
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            if (outside.Length != 0)
+            {
+                throw new InvalidOperationException(
+                    $"The {label} contains IDs outside its authoritative catalog: "
+                    + string.Join(",", outside));
+            }
+        }
+
+        private static void RequireExact(
+            IEnumerable<string> expected,
+            IEnumerable<string> actual,
+            string label)
+        {
+            if (!expected.SequenceEqual(actual, StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"The {label} denominator is not an exact stable-ID bijection.");
+            }
+        }
     }
 
     private static CaptureResult Capture()
@@ -341,16 +581,23 @@ public static class V27PhysicalMassAuthorityInventoryDebugScenarios
         if (!string.Equals(beforeAssetDigest, afterAssetDigest, StringComparison.Ordinal))
             failures.Add("Asset bytes changed during AuditOnly mass inventory capture.");
 
-        Require(ledgerItemIds.Length == ExpectedLedgerItems,
-            $"Expected {ExpectedLedgerItems} ledger item identities, found {ledgerItemIds.Length}.");
-        Require(sites.Length == ExpectedWeightSites,
-            $"Expected {ExpectedWeightSites} serialized unitWeight sites, found {sites.Length}.");
-        Require(recipes.Length == ExpectedRecipes,
-            $"Expected {ExpectedRecipes} recipes, found {recipes.Length}.");
-        Require(equipment.Length == ExpectedEquipment,
-            $"Expected {ExpectedEquipment} equipment definitions, found {equipment.Length}.");
+        Require(ledgerItemIds.Length > 0,
+            "The live V27 ledger item scope is empty.");
+        Require(sites.Length >= ledgerItemIds.Length,
+            "Serialized mass authority sites cannot cover the live ledger scope.");
+        Require(recipes.Length > 0,
+            "The live production recipe scope is empty.");
+        Require(equipment.Length > 0,
+            "The live combat-equipment scope is empty.");
         Require(ledgerItemIds.All(catalogById.ContainsKey),
             "At least one ledger item identity is absent from the live item catalog.");
+        Require(catalogById.Keys.OrderBy(value => value, StringComparer.Ordinal)
+                .SequenceEqual(
+                    catalogItems.Select(value => value.ItemId)
+                        .Distinct(StringComparer.Ordinal)
+                        .OrderBy(value => value, StringComparer.Ordinal),
+                    StringComparer.Ordinal),
+            "The live item catalog ID set is not an exact bijection.");
         Require(failures.Count == 0,
             "V27 physical-mass authority inventory failed:\n" + string.Join("\n", failures));
 
@@ -468,39 +715,37 @@ public static class V27PhysicalMassAuthorityInventoryDebugScenarios
         string projectRoot,
         ICollection<string> failures)
     {
-        string sourceRoot = Path.Combine(projectRoot, "Assets", "Scripts");
-        string[] discovered = Directory.GetFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
-            .Select(path => CanonicalPath(Path.GetRelativePath(projectRoot, path)))
-            .Where(path => !string.Equals(path, SelfPath, StringComparison.Ordinal))
-            .Where(path =>
-            {
-                string text = File.ReadAllText(ProjectAbsolute(projectRoot, path));
-                bool coreWriter = text.Contains("ConfigureCore(", StringComparison.Ordinal);
-                bool resourceWriter = text.Contains("ResourceItemDefinitionSO", StringComparison.Ordinal)
-                    && text.Contains(".Configure(", StringComparison.Ordinal);
-                bool equipmentWriter = text.Contains("FindProperty(\"weight\")", StringComparison.Ordinal)
-                    && text.Contains("floatValue", StringComparison.Ordinal);
-                bool apparelWriter = text.Contains("FindProperty(\"baseWeight\")", StringComparison.Ordinal)
-                    || text.Contains("FindProperty(\"weightMultiplier\")", StringComparison.Ordinal);
-                return coreWriter || resourceWriter || equipmentWriter || apparelWriter;
-            })
-            .OrderBy(path => path, StringComparer.Ordinal)
+        V27PhysicalMassWriterProvenanceSnapshot snapshot =
+            V27PhysicalMassWriterProvenanceRegistry.Capture(
+                projectRoot,
+                SelfPath);
+        foreach (string value in snapshot.Unknown)
+            failures.Add("Unknown physical-mass writer provenance: " + value + ".");
+        foreach (string value in snapshot.DuplicatePaths)
+            failures.Add("Duplicate physical-mass writer path: " + value + ".");
+        if (snapshot.DeclaredCount != snapshot.DiscoveredCount)
+        {
+            failures.Add(
+                "Physical-mass writer declaration/discovery mismatch: declared="
+                + snapshot.DeclaredCount + "; discovered="
+                + snapshot.DiscoveredCount + ".");
+        }
+        if (snapshot.DeclaredNotDiscoveredCount != 0)
+        {
+            failures.Add(
+                "Physical-mass writer registry retained stale declarations: "
+                + snapshot.DeclaredNotDiscoveredCount + ".");
+        }
+        string[] paths = snapshot.Rows
+            .Select(value => value.Path)
             .ToArray();
-        foreach (string path in discovered)
-            if (!WriterRoles.ContainsKey(path))
-                failures.Add($"Unknown physical-mass writer: {path}.");
-        foreach (string path in WriterRoles.Keys)
-            if (!File.Exists(ProjectAbsolute(projectRoot, path)))
-                failures.Add($"Declared physical-mass writer is missing: {path}.");
-        string[] paths = WriterRoles.Keys
-            .Concat(discovered)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .ToArray();
-        WriterRow[] rows = paths.Select(path => new WriterRow(
-                path,
-                WriterRoles.TryGetValue(path, out string role) ? role : "unknown",
-                ComputeFileDigest(ProjectAbsolute(projectRoot, path))))
+        WriterRow[] rows = snapshot.Rows
+            .Select(value => new WriterRow(
+                value.Path,
+                value.Role,
+                value.EvidenceShape,
+                value.WriteSiteCount,
+                value.Digest))
             .ToArray();
         return new WriterInventory(paths, rows);
     }
@@ -756,12 +1001,17 @@ public static class V27PhysicalMassAuthorityInventoryDebugScenarios
         StringBuilder report = new StringBuilder(2048);
         report.Append("RESULT=PASS; writers=")
             .Append(inventory.Rows.Length)
-            .Append("; unknown=0\n")
+            .Append("; declared=").Append(inventory.Rows.Length)
+            .Append("; discovered=").Append(inventory.Rows.Length)
+            .Append("; unknown=0; declaredNotDiscovered=0; duplicatePaths=0")
+            .Append("; registryMode=source-derived-no-static-declarations\n")
             .Append("sourceDigest=").Append(sourceDigest).Append('\n');
         foreach (WriterRow row in inventory.Rows)
         {
             report.Append(row.Role).Append('\t')
                 .Append(row.Path).Append('\t')
+                .Append(row.EvidenceShape).Append('\t')
+                .Append(row.WriteSiteCount).Append('\t')
                 .Append(row.Digest).Append('\n');
         }
         return report.ToString();
@@ -827,13 +1077,6 @@ public static class V27PhysicalMassAuthorityInventoryDebugScenarios
         }
         sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
         return Hex(sha.Hash);
-    }
-
-    private static string ComputeFileDigest(string path)
-    {
-        using SHA256 sha = SHA256.Create();
-        using FileStream stream = File.OpenRead(path);
-        return Hex(sha.ComputeHash(stream));
     }
 
     private static string Hex(byte[] bytes)
@@ -902,15 +1145,24 @@ public static class V27PhysicalMassAuthorityInventoryDebugScenarios
 
     private readonly struct WriterRow
     {
-        public WriterRow(string path, string role, string digest)
+        public WriterRow(
+            string path,
+            string role,
+            string evidenceShape,
+            int writeSiteCount,
+            string digest)
         {
             Path = path;
             Role = role;
+            EvidenceShape = evidenceShape;
+            WriteSiteCount = writeSiteCount;
             Digest = digest;
         }
 
         public string Path { get; }
         public string Role { get; }
+        public string EvidenceShape { get; }
+        public int WriteSiteCount { get; }
         public string Digest { get; }
     }
 

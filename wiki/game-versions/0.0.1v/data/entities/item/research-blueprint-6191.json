@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "260"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "진열과 보관 부품을 결합해 잠금진열장으로 개조하는 희귀 조합식이다. 라카쉬 세갈래길의 상권 통합 설계도는 상인 조합과 난민 배급소가 같은 창고를 쓰는 시간을 나눈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "research-blueprint-6191",
+  "spoiler_tier": "none",
+  "summary": "진열과 보관 부품을 결합해 잠금진열장으로 개조하는 희귀 조합식이다.",
+  "title": "상권 통합 설계도"
+}

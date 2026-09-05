@@ -77,9 +77,55 @@ public sealed class WorldResourceEnvironmentPortAdapter :
         return source != null;
     }
 
-    public float ConsumeRenewablePatch(
+    public bool TryConsumeRenewablePatchExact(
         WildlifeHabitatPatchId patchId,
-        float amount) => FindPatch(patchId)?.Consume(amount) ?? 0f;
+        float amount,
+        out WorldResourceRenewableDebitReceipt receipt)
+    {
+        receipt = default;
+        WildlifeHabitatPatch patch = FindPatch(patchId);
+        if (patch == null
+            || float.IsNaN(amount)
+            || float.IsInfinity(amount)
+            || amount <= 0f
+            || patch.CurrentResource < amount)
+        {
+            return false;
+        }
+
+        float before = patch.CurrentResource;
+        float consumed = patch.Consume(amount);
+        if (consumed != amount)
+        {
+            patch.SynchronizeResource(patch.ResourceCapacity, before);
+            return false;
+        }
+
+        receipt = new WorldResourceRenewableDebitReceipt(
+            patchId,
+            amount,
+            before,
+            patch.CurrentResource);
+        return receipt.IsValid;
+    }
+
+    public bool TryRollbackRenewablePatchDebit(
+        WorldResourceRenewableDebitReceipt receipt)
+    {
+        WildlifeHabitatPatch patch = FindPatch(receipt.PatchId);
+        if (patch == null
+            || !receipt.IsValid
+            || patch.CurrentResource != receipt.AfterResource
+            || receipt.BeforeResource > patch.ResourceCapacity)
+        {
+            return false;
+        }
+
+        patch.SynchronizeResource(
+            patch.ResourceCapacity,
+            receipt.BeforeResource);
+        return patch.CurrentResource == receipt.BeforeResource;
+    }
 
     public void RefreshRenewablePatch(WildlifeHabitatPatchId patchId)
     {
@@ -107,10 +153,11 @@ public sealed class WorldResourceEnvironmentPortAdapter :
 
     private static WorldResourceRenewablePatchSnapshot ToSnapshot(
         WildlifeHabitatPatch patch) => new(
-            (WildlifeHabitatPatchId)patch.PatchId,
-            patch.Center,
-            patch.CurrentResource,
-            patch.Resource01);
+        (WildlifeHabitatPatchId)patch.PatchId,
+        patch.HabitatType,
+        patch.Center,
+        patch.CurrentResource,
+        patch.Resource01);
 }
 
 internal sealed class WorldResourceFacilityHost :
@@ -180,9 +227,13 @@ public sealed class WorldResourceNodeHostPortAdapter :
         objectResolver.InjectGameObject(target);
         host.RestorePersistentIdentity(nodeId);
         host.SetGrid(grid);
-        host.Initialization(buildingArchetypes.WorldResourceNode, position);
         node.Configure(runtime, nodeId, displayName);
         host.Bind(node);
+        // Initialization publishes the host to the grid/world registries.
+        // Bind the complete resource authority first so observers can never
+        // misclassify a transient unbound Quarry host as a production bill
+        // facility.
+        host.Initialization(buildingArchetypes.WorldResourceNode, position);
         Vector3 world = grid.GetWorldPos(position);
         target.transform.position = new Vector3(
             world.x,
@@ -210,33 +261,192 @@ public sealed class WorldResourceNodeHostPortAdapter :
     }
 }
 
-public sealed class WorldResourceOutputPortAdapter : IWorldResourceOutputPort
+public sealed class WorldResourceOutputPublicationPortAdapter :
+    IWorldResourceOutputPublicationPort
 {
-    private readonly IProductionItemGateway itemGateway;
-
-    public WorldResourceOutputPortAdapter(IProductionItemGateway itemGateway)
+    private const string AdmissionCommittedRollbackFailure =
+        "physical-exact-source-committed-cannot-rollback";
+    private sealed class PublicationToken :
+        IWorldResourceOutputPublicationToken
     {
-        this.itemGateway = itemGateway
-            ?? throw new ArgumentNullException(nameof(itemGateway));
+        internal PublicationToken(
+            PhysicalItemExactSourcePublicationTransaction transaction)
+        {
+            Transaction = transaction;
+        }
+
+        internal PhysicalItemExactSourcePublicationTransaction Transaction
+        {
+            get;
+        }
     }
 
-    public bool CanSpawnOutput(
-        string itemId,
-        int amount,
-        Vector2Int position,
-        out DomainFailure failure) => itemGateway.CanSpawnOutput(
-            itemId,
-            amount,
-            position,
-            out failure);
+    public const string OwnerDomain = "economy.world-resource-output";
+    private const string ReleaseReason = "world-resource-output-completed";
 
-    public bool SpawnOutput(
-        string itemId,
-        int amount,
-        Vector2Int position) => itemGateway.SpawnOutput(
-            itemId,
-            amount,
-            position);
+    private readonly IPhysicalItemExactSourcePublicationService exactSources;
+    private readonly IPhysicalItemMassQuery massQuery;
+
+    public WorldResourceOutputPublicationPortAdapter(
+        IPhysicalItemExactSourcePublicationService exactSources,
+        IPhysicalItemMassQuery massQuery)
+    {
+        this.exactSources = exactSources
+            ?? throw new ArgumentNullException(nameof(exactSources));
+        this.massQuery = massQuery
+            ?? throw new ArgumentNullException(nameof(massQuery));
+    }
+
+    public long GetDefinitionUnitMassGrams(string itemId) =>
+        massQuery.GetDefinitionUnitMass((ItemDefinitionId)itemId).Value;
+
+    public bool TryPrepare(
+        WorldResourcePendingOutputSaveData pending,
+        Vector2Int position,
+        out WorldResourceOutputPublicationTransaction transaction,
+        out string failureReason)
+    {
+        transaction = null;
+        failureReason = string.Empty;
+        if (pending == null
+            || pending.IsEmpty
+            || string.IsNullOrWhiteSpace(pending.operationId)
+            || pending.lines == null)
+        {
+            failureReason = "world-resource-output-pending-invalid";
+            return false;
+        }
+
+        try
+        {
+            FacilityBufferPlannedOutputSlice[] slices = pending.lines
+                .Where(value => value != null
+                    && ProductionOutputRoleRules.IsPhysical(value.role)
+                    && value.resolvedQuantity > 0)
+                .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+                .Select(value =>
+                {
+                    ItemDefinitionId itemId = (ItemDefinitionId)value.itemId;
+                    long unitMass = massQuery.GetDefinitionUnitMass(itemId).Value;
+                    long lineMass = checked(unitMass * value.resolvedQuantity);
+                    if (unitMass != value.unitMassGrams
+                        || lineMass != value.resolvedMassGrams)
+                    {
+                        throw new InvalidOperationException(
+                            "World-resource frozen output mass drifted: "
+                            + value.outputLineId);
+                    }
+                    return new FacilityBufferPlannedOutputSlice(
+                        value.outputLineId,
+                        PhysicalItemMassSubject.ForDefinition(itemId),
+                        value.resolvedQuantity);
+                })
+                .ToArray();
+            if (slices.Length == 0)
+            {
+                failureReason = "world-resource-output-physical-vector-empty";
+                return false;
+            }
+
+            PhysicalItemExactSourcePublicationPlan plan = new(
+                OwnerDomain,
+                pending.operationId,
+                position,
+                slices);
+            if (!exactSources.TryPrepare(
+                    plan,
+                    out PhysicalItemExactSourcePublicationTransaction prepared,
+                    out failureReason))
+            {
+                return false;
+            }
+
+            transaction = new WorldResourceOutputPublicationTransaction(
+                new PublicationToken(prepared));
+            return true;
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            failureReason = "world-resource-output-prepare:" + exception.Message;
+            return false;
+        }
+    }
+
+    public WorldResourceOutputCommitStatus CommitReleased(
+        WorldResourceOutputPublicationTransaction transaction,
+        Vector2Int position,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!TryUnwrap(transaction, out var prepared))
+        {
+            failureReason = "world-resource-output-transaction-invalid";
+            return WorldResourceOutputCommitStatus.Poisoned;
+        }
+        if (exactSources.TryCommitReleased(
+                prepared,
+                position,
+                ReleaseReason,
+                out _,
+                out failureReason))
+        {
+            return WorldResourceOutputCommitStatus.Committed;
+        }
+
+        string commitFailure = failureReason;
+        if (exactSources.TryRollback(
+                prepared,
+                "world-resource-publication-rejected",
+                out string rollbackFailure))
+        {
+            failureReason = commitFailure;
+            return WorldResourceOutputCommitStatus.RejectedAndRolledBack;
+        }
+        if (string.Equals(
+                rollbackFailure,
+                AdmissionCommittedRollbackFailure,
+                StringComparison.Ordinal))
+        {
+            failureReason = commitFailure;
+            return WorldResourceOutputCommitStatus.RetryableRetained;
+        }
+
+        failureReason = commitFailure + ":rollback=" + rollbackFailure;
+        return WorldResourceOutputCommitStatus.Poisoned;
+    }
+
+    public bool TryRollback(
+        WorldResourceOutputPublicationTransaction transaction,
+        string reasonCode,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!TryUnwrap(transaction, out var prepared))
+        {
+            failureReason = "world-resource-output-transaction-invalid";
+            return false;
+        }
+        return exactSources.TryRollback(
+            prepared,
+            reasonCode,
+            out failureReason);
+    }
+
+    private static bool TryUnwrap(
+        WorldResourceOutputPublicationTransaction transaction,
+        out PhysicalItemExactSourcePublicationTransaction prepared)
+    {
+        if (transaction?.Token is PublicationToken token
+            && token.Transaction.IsPrepared)
+        {
+            prepared = token.Transaction;
+            return true;
+        }
+        prepared = default;
+        return false;
+    }
 }
 
 public sealed class WorldResourceResearchPortAdapter : IWorldResourceResearchPort

@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "patrol",
+    "spoiler_tier": "none",
+    "title": "순찰대 야영지"
+  },
+  "edges": [],
+  "schema_version": 1
+}

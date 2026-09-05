@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "362"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "기상 관측 도구함으로 바람과 비, 기온의 변화를 기록해 농사와 원정을 준비한다. 아일라세라의 새벽 합창은 기상 관측 도구함으로 확인한 날씨와 경보를 문자보다 먼저 하늘길에 전한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-weather-observation-kit",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 기상 관측 도구함.",
+  "title": "기상 관측 도구함"
+}

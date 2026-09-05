@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "30개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "29"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "숨겨진 원정지의 위험과 약점을 해독하는 부적이다. 밀로세아 가도의 길잡이 부적에는 지나온 검문소 방향으로 매듭을 하나씩 더해 길을 잃어도 역순으로 풀 수 있게 한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-trail-charm",
+  "spoiler_tier": "none",
+  "summary": "숨겨진 원정지의 위험과 약점을 해독하는 부적.",
+  "title": "길잡이 부적"
+}

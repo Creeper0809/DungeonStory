@@ -1,0 +1,95 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-waterwheel",
+    "spoiler_tier": "none",
+    "title": "수차 발전"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-irrigation",
+      "target_spoiler_tier": "none",
+      "target_title": "관개",
+      "to": "research/research-agriculture-irrigation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9811",
+      "target_spoiler_tier": "none",
+      "target_title": "수차 발전기",
+      "to": "facility/building-9811",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-waterwheel-drive-shaft",
+      "label": "필요 조건",
+      "to": "research/research-industry-waterwheel",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

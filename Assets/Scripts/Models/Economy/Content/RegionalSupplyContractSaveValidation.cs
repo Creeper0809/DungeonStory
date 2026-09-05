@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.Scripting.APIUpdating;
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -121,7 +122,8 @@ public static class RegionalSupplyContractSaveValidation
         }
 
         string expectedDestination =
-            $"regional-contract:{contract.contractId}";
+            EconomyProjectInputOwnerAuthority
+                .BuildRegionalContractDestinationId(contract.contractId);
         bool needsDestination = contract.status is
             RegionalSupplyContractStatus.Accepted
             or RegionalSupplyContractStatus.Delivering
@@ -138,6 +140,25 @@ public static class RegionalSupplyContractSaveValidation
             report.AddError(
                 $"Regional contract '{contract.contractId}' has a non-canonical destination.");
         }
+
+        bool requiresInputOwner = contract.status is
+                RegionalSupplyContractStatus.Accepted
+                or RegionalSupplyContractStatus.Delivering
+            || RegionalSupplyContractDeliveryOutbox.HasPending(contract);
+        if (requiresInputOwner != contract.inputOwnerActive
+            || (contract.inputOwnerActive
+                && (contract.inputCapacityGrams <= 0L
+                    || contract.inputMassAuthorityRevision <= 0L
+                    || !IsLowerSha256(contract.inputCapacityFingerprint)))
+            || (!contract.inputOwnerActive
+                && (contract.inputDestinationX != 0
+                    || contract.inputDestinationY != 0
+                    || contract.inputCapacityGrams != 0L
+                    || contract.inputMassAuthorityRevision != 0L
+                    || !string.IsNullOrEmpty(
+                        contract.inputCapacityFingerprint))))
+            report.AddError(
+                $"Regional contract '{contract.contractId}' has invalid exact input-owner provenance.");
 
         if (contract.requirements == null
             || contract.requirements.Count is < 1 or > 2)
@@ -194,4 +215,12 @@ public static class RegionalSupplyContractSaveValidation
     private static bool IsCanonicalOptional(string value) =>
         value != null
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsLowerSha256(string value)
+    {
+        if (value?.Length != 64)
+            return false;
+        return value.All(character => character is >= '0' and <= '9'
+            or >= 'a' and <= 'f');
+    }
 }

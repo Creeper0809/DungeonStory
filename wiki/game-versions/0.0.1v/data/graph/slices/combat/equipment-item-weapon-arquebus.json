@@ -1,0 +1,121 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-weapon-arquebus",
+    "spoiler_tier": "none",
+    "title": "아쿼버스"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-engineering-drawing",
+      "target_spoiler_tier": "none",
+      "target_title": "공학 도면",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-armor-piercing-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "철갑 탄약",
+      "to": "item/ammo-armor-piercing-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-paper-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "종이 탄약통",
+      "to": "item/ammo-paper-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-rune-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 탄약통",
+      "to": "item/ammo-rune-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-scatter-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "산탄 탄약",
+      "to": "item/ammo-scatter-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-signal-flare",
+      "target_spoiler_tier": "none",
+      "target_title": "신호탄",
+      "to": "item/ammo-signal-flare",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-smoke-cartridge",
+      "target_spoiler_tier": "none",
+      "target_title": "연막 탄약",
+      "to": "item/ammo-smoke-cartridge",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-arquebus",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-ballistics",
+      "target_spoiler_tier": "none",
+      "target_title": "탄도학",
+      "to": "research/research-equipment-ballistics",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -33,6 +33,7 @@ public static class CombatEquipmentTerminalDrainOutboxDebugScenarios
         VerifyCraftRepairFrozenPrepareReplayAndDrift();
         VerifyProducerChildAndEffectAheadCrashWindows();
         VerifyExactTerminalReceiptsAcknowledgementAndChildFirstGc();
+        VerifyCheckpointGcParticipantTransaction();
         VerifyRestoreDuplicateOrphanTamperAndAtomicity();
     }
 
@@ -268,6 +269,94 @@ public static class CombatEquipmentTerminalDrainOutboxDebugScenarios
             && !fixture.Outbox.TryCapture(subject.StepOperationId, out _)
             && fixture.Child.GarbageCollectionCount == 1,
             "Checkpoint GC did not retire child authority before producer authority.");
+    }
+
+    private static void VerifyCheckpointGcParticipantTransaction()
+    {
+        CheckpointGcFixture fixture = new("transaction");
+        string producerBefore = Serialize(fixture.Outbox.CaptureCurrentFormat());
+        string childBefore = JsonUtility.ToJson(fixture.CaptureChild());
+        string sourceBefore = JsonUtility.ToJson(fixture.CaptureSourceEffect());
+
+        ProductionFacilityDestructiveDrainCheckpointGcResult prepared =
+            fixture.Participant.PrepareCheckpointGarbageCollection(
+                fixture.Context,
+                new[] { fixture.Entry },
+                out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                    candidate);
+        Require(prepared.Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && candidate != null
+            && string.Equals(producerBefore,
+                Serialize(fixture.Outbox.CaptureCurrentFormat()),
+                StringComparison.Ordinal)
+            && string.Equals(childBefore,
+                JsonUtility.ToJson(fixture.CaptureChild()),
+                StringComparison.Ordinal)
+            && string.Equals(sourceBefore,
+                JsonUtility.ToJson(fixture.CaptureSourceEffect()),
+                StringComparison.Ordinal),
+            "Checkpoint GC prepare mutated a live authority.");
+
+        bool childPublishedFirst = false;
+        fixture.Child.OnCheckpointPublished = () =>
+            childPublishedFirst = fixture.HasProducer && fixture.HasSourceEffect;
+        Require(fixture.Participant.PublishCheckpointGarbageCollection(candidate)
+                    .Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+            && childPublishedFirst
+            && !fixture.HasChild
+            && !fixture.HasSourceEffect
+            && !fixture.HasProducer,
+            "Checkpoint GC did not publish child, source, then producer.");
+
+        bool childRolledBackLast = false;
+        fixture.Child.OnCheckpointRolledBack = () =>
+            childRolledBackLast = fixture.HasProducer && fixture.HasSourceEffect;
+        fixture.Participant.RollbackCheckpointGarbageCollection(candidate);
+        Require(childRolledBackLast
+            && fixture.HasChild
+            && fixture.HasSourceEffect
+            && fixture.HasProducer,
+            "Checkpoint GC did not roll back producer, source, then child.");
+        fixture.Participant.CompleteCheckpointGarbageCollection(candidate);
+        RequireThrows(
+            () => fixture.Participant.PublishCheckpointGarbageCollection(candidate),
+            "A completed checkpoint GC candidate was reusable.");
+
+        ProductionFacilityDestructiveDrainCheckpointGcResult retryPrepared =
+            fixture.Participant.PrepareCheckpointGarbageCollection(
+                fixture.Context,
+                new[] { fixture.Entry },
+                out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                    retryCandidate);
+        Require(retryPrepared.Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            "Completing a candidate did not release the participant gate.");
+        fixture.Participant.CompleteCheckpointGarbageCollection(retryCandidate);
+
+        CheckpointGcFixture failure = new("intermediate-failure");
+        Require(failure.Participant.PrepareCheckpointGarbageCollection(
+                    failure.Context,
+                    new[] { failure.Entry },
+                    out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                        failureCandidate).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            "Intermediate-failure checkpoint prepare failed.");
+        failure.Child.FailAfterCheckpointPublishOnce = true;
+        Require(failure.Participant.PublishCheckpointGarbageCollection(
+                    failureCandidate).Status ==
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred
+            && !failure.HasChild
+            && failure.HasSourceEffect
+            && failure.HasProducer,
+            "A child-stage publish failure did not stop before source/producer.");
+        failure.Participant.RollbackCheckpointGarbageCollection(failureCandidate);
+        Require(failure.HasChild
+            && failure.HasSourceEffect
+            && failure.HasProducer,
+            "Intermediate checkpoint failure did not restore the exact child row.");
+        failure.Participant.CompleteCheckpointGarbageCollection(failureCandidate);
     }
 
     private static void VerifyRestoreDuplicateOrphanTamperAndAtomicity()
@@ -513,6 +602,203 @@ public static class CombatEquipmentTerminalDrainOutboxDebugScenarios
     {
         if (!condition)
             throw new InvalidOperationException(message);
+    }
+
+    private static void RequireThrows(Action action, string message)
+    {
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        throw new InvalidOperationException(message);
+    }
+
+    private sealed class CheckpointGcFixture
+    {
+        internal CheckpointGcFixture(string suffix)
+        {
+            Root = new DungeonRuntimeAggregateRootStore();
+            Child = new RecordingChild();
+            CombatEquipmentRuntimeStateStore state = new(Root);
+            Source = new CombatEquipmentCraftTerminalAuthority(
+                state,
+                Child,
+                UnavailableEquipmentPhysicalItemGateway.Instance,
+                new DefinitionOnlyMass());
+            Outbox = new CombatEquipmentTerminalDrainOutbox(Root, Source, Child);
+
+            BuildingInstanceId facilityId =
+                (BuildingInstanceId)("building:qa:combat-checkpoint-gc:" + suffix);
+            ProductionFacilityDestructiveDrainOperationId operation =
+                ProductionFacilityDestructiveDrainOperationId.FromFacility(facilityId);
+            CombatEquipmentCraftOrderSaveData order = new()
+            {
+                orderId = "craft:qa:checkpoint-gc:" + suffix,
+                definitionId = "weapon:qa:checkpoint-gc",
+                materialId = "material:iron",
+                materialDestinationId = "facility-input:combat-checkpoint-gc:" + suffix,
+                facilityPersistentId = facilityId.Value,
+                destinationX = 2,
+                destinationY = 3
+            };
+            CombatEquipmentCraftTerminalAuthorityEditorAccess.AddOrder(state, order);
+            Require(CombatEquipmentTerminalFrozenSubject.TryCreateCraftOrder(
+                    order,
+                    new CombatEquipmentTerminalMassAccounting(
+                        PendingQuantity,
+                        PendingMassGrams,
+                        0,
+                        0L,
+                        0L,
+                        0L),
+                    out CombatEquipmentTerminalFrozenSubject source,
+                    out string sourceFailure),
+                "Checkpoint source construction failed: " + sourceFailure);
+
+            string step = ProductionFacilityDestructiveDrainCanonical
+                .BuildStepOperationId(
+                    operation,
+                    CombatEquipmentTerminalDrainCanonical.ParticipantId,
+                    source.OwnerStableId);
+            ProductionInputDestinationCustodyDrainSaveData child =
+                CreateChildReceipt(
+                    operation.Value,
+                    step + ":input-destination-custody",
+                    source,
+                    PendingQuantity,
+                    PendingMassGrams);
+            Child.PublishCommitted(child);
+            Require(Source.TryCaptureLiveSource(
+                    source.OwnerStableId,
+                    out CombatEquipmentTerminalFrozenSubject liveSource,
+                    out string liveFailure),
+                "Checkpoint live source capture failed: " + liveFailure);
+            source = liveSource;
+            child = CreateChildReceipt(
+                operation.Value,
+                step + ":input-destination-custody",
+                source,
+                PendingQuantity,
+                PendingMassGrams);
+            Child.PublishCommitted(child);
+            CombatEquipmentTerminalDrainRequest request = CreateRequest(
+                operation.Value,
+                step,
+                source,
+                child);
+            CombatEquipmentTerminalDrainResult checkpointPrepared =
+                Outbox.TryPrepare(request);
+            Require(checkpointPrepared.Status ==
+                    CombatEquipmentTerminalDrainStatus.Applied,
+                "Checkpoint producer prepare failed: "
+                + checkpointPrepared.Status + ":"
+                + checkpointPrepared.FailureReason);
+            Require(Outbox.TryProgress(step).Status ==
+                    CombatEquipmentTerminalDrainStatus.Applied
+                && Outbox.TryProgress(step).Status ==
+                    CombatEquipmentTerminalDrainStatus.Applied
+                && Outbox.TryProgress(step).Status ==
+                    CombatEquipmentTerminalDrainStatus.Applied,
+                "Checkpoint producer terminalization failed.");
+            Require(Outbox.TryCapture(step,
+                    out CombatEquipmentTerminalDrainSaveData terminal)
+                && Outbox.TryAcknowledge(step, terminal.receiptFingerprint).Status ==
+                    CombatEquipmentTerminalDrainStatus.Applied
+                && Outbox.TryCapture(step, out terminal),
+                "Checkpoint producer acknowledgement failed.");
+
+            Entry = new ProductionFacilityDestructiveDrainEntrySaveData
+            {
+                operationId = operation.Value,
+                initiatingMutationOperationId = "mutation:qa:" + suffix,
+                cause = ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+                facilityId = facilityId.Value,
+                destinationId = ProductionOutputDestinationId
+                    .FromFacility(facilityId).Value,
+                phase = ProductionFacilityDestructiveDrainPhase
+                    .WorldRemovedAwaitingCheckpointGc,
+                participants = new List<
+                    ProductionFacilityDestructiveDrainParticipantSaveData>
+                {
+                    new()
+                    {
+                        participantId = CombatEquipmentTerminalDrainCanonical
+                            .ParticipantId,
+                        contractVersion =
+                            CombatEquipmentTerminalDestructiveDrainParticipant
+                                .CurrentContractVersion,
+                        owners = new List<
+                            ProductionFacilityDestructiveDrainOwnerSaveData>
+                        {
+                            new()
+                            {
+                                ownerStableId = source.OwnerStableId,
+                                disposition =
+                                    ProductionFacilityDestructiveDrainDisposition
+                                        .Terminalize,
+                                stepOperationId = step,
+                                phase = ProductionFacilityDestructiveDrainStepPhase
+                                    .OwnerAcknowledged,
+                                requestFingerprint = terminal.requestFingerprint,
+                                commitId = terminal.commitId,
+                                receiptFingerprint = terminal.receiptFingerprint
+                            }
+                        }
+                    }
+                }
+            };
+            Context = new ProductionFacilityDestructiveDrainCheckpointGcContext(
+                1L,
+                new string('a', 64),
+                "slot:qa:combat-checkpoint-gc:" + suffix);
+            Participant = new CombatEquipmentTerminalDestructiveDrainParticipant(
+                new UnusedLifecycle(),
+                new UnusedSources(),
+                Outbox,
+                Outbox,
+                Child,
+                new UnusedFacility());
+            StepOperationId = step;
+            ChildStepOperationId = child.stepOperationId;
+            SourceId = source.SourceId;
+        }
+
+        internal DungeonRuntimeAggregateRootStore Root { get; }
+        internal RecordingChild Child { get; }
+        internal CombatEquipmentCraftTerminalAuthority Source { get; }
+        internal CombatEquipmentTerminalDrainOutbox Outbox { get; }
+        internal CombatEquipmentTerminalDestructiveDrainParticipant Participant
+        { get; }
+        internal ProductionFacilityDestructiveDrainCheckpointGcContext Context
+        { get; }
+        internal ProductionFacilityDestructiveDrainEntrySaveData Entry { get; }
+        internal string StepOperationId { get; }
+        internal string ChildStepOperationId { get; }
+        internal string SourceId { get; }
+        internal bool HasProducer => Outbox.TryCapture(StepOperationId, out _);
+        internal bool HasChild => Child.TryCapture(ChildStepOperationId, out _);
+        internal bool HasSourceEffect => CombatEquipmentCraftTerminalAuthorityEditorAccess
+            .CaptureEffects(new CombatEquipmentRuntimeStateStore(Root))
+            .Any(value => string.Equals(value.sourceId, SourceId,
+                StringComparison.Ordinal));
+        internal ProductionInputDestinationCustodyDrainSaveData CaptureChild()
+        {
+            Require(Child.TryCapture(ChildStepOperationId, out var row),
+                "Checkpoint child row missing.");
+            return row;
+        }
+        internal CombatEquipmentCraftTerminalEffectSaveData CaptureSourceEffect()
+        {
+            CombatEquipmentCraftTerminalEffectSaveData[] rows =
+                CombatEquipmentCraftTerminalAuthorityEditorAccess.CaptureEffects(
+                    new CombatEquipmentRuntimeStateStore(Root));
+            Require(rows.Length == 1, "Checkpoint source receipt row missing.");
+            return rows[0];
+        }
     }
 
     private sealed class DrainCase
@@ -931,14 +1217,33 @@ public static class CombatEquipmentTerminalDrainOutboxDebugScenarios
     }
 
     private sealed class RecordingChild :
-        IProductionInputDestinationCustodyDrainOutbox
+        IProductionInputDestinationCustodyDrainOutbox,
+        IProductionInputDestinationCustodyDrainService,
+        IProductionInputDestinationCustodyDrainCheckpointGcPort
     {
+        private sealed class CheckpointCandidate :
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+        {
+            internal CheckpointCandidate(
+                IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData> rows) =>
+                Rows = rows.Select(value => value.Clone()).ToArray();
+            internal IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
+                Rows { get; }
+            internal bool Published { get; set; }
+            internal bool Completed { get; set; }
+        }
+
         private readonly Dictionary<string,
             ProductionInputDestinationCustodyDrainSaveData> records =
             new(StringComparer.Ordinal);
+        private CheckpointCandidate activeCheckpointCandidate;
 
         internal Action<string> OnGarbageCollected { get; set; }
+        internal Action OnCheckpointPublished { get; set; }
+        internal Action OnCheckpointRolledBack { get; set; }
+        internal bool FailAfterCheckpointPublishOnce { get; set; }
         internal int GarbageCollectionCount { get; private set; }
+        public bool RequiresImmediateRecoveryBeforeGameplayTick => true;
 
         internal void PublishCommitted(
             ProductionInputDestinationCustodyDrainSaveData value) =>
@@ -989,6 +1294,89 @@ public static class CombatEquipmentTerminalDrainOutboxDebugScenarios
                 ProductionInputDestinationCustodyDrainStatus.Applied);
         }
 
+        public bool TryPrepareCheckpointGarbageCollection(
+            IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData> rows,
+            out IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+                candidate,
+            out string failureReason)
+        {
+            candidate = null;
+            failureReason = string.Empty;
+            if (activeCheckpointCandidate != null)
+            {
+                failureReason = "fixture-checkpoint-candidate-active";
+                return false;
+            }
+            ProductionInputDestinationCustodyDrainSaveData[] ordered = (rows
+                    ?? Array.Empty<ProductionInputDestinationCustodyDrainSaveData>())
+                .OrderBy(value => value?.stepOperationId, StringComparer.Ordinal)
+                .ToArray();
+            if (ordered.Any(value => value == null
+                    || value.phase != ProductionInputDestinationCustodyDrainPhase
+                        .BillAcknowledgedAwaitingCheckpointGc
+                    || !records.TryGetValue(value.stepOperationId, out var live)
+                    || !string.Equals(JsonUtility.ToJson(live),
+                        JsonUtility.ToJson(value), StringComparison.Ordinal)))
+            {
+                failureReason = "fixture-checkpoint-row-conflict";
+                return false;
+            }
+            activeCheckpointCandidate = new CheckpointCandidate(ordered);
+            candidate = activeCheckpointCandidate;
+            return true;
+        }
+
+        public bool TryPublishCheckpointGarbageCollection(
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            CheckpointCandidate exact = RequireCheckpointCandidate(candidate);
+            if (exact.Published)
+                return true;
+            foreach (var row in exact.Rows)
+            {
+                if (!records.TryGetValue(row.stepOperationId, out var live)
+                    || !string.Equals(JsonUtility.ToJson(live),
+                        JsonUtility.ToJson(row), StringComparison.Ordinal))
+                {
+                    failureReason = "fixture-checkpoint-live-row-changed";
+                    return false;
+                }
+            }
+            foreach (var row in exact.Rows)
+                records.Remove(row.stepOperationId);
+            exact.Published = true;
+            OnCheckpointPublished?.Invoke();
+            if (FailAfterCheckpointPublishOnce)
+            {
+                FailAfterCheckpointPublishOnce = false;
+                failureReason = "fixture-checkpoint-injected-publish-failure";
+                return false;
+            }
+            return true;
+        }
+
+        public void RollbackCheckpointGarbageCollection(
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+        {
+            CheckpointCandidate exact = RequireCheckpointCandidate(candidate);
+            if (!exact.Published)
+                return;
+            foreach (var row in exact.Rows)
+                records.Add(row.stepOperationId, row.Clone());
+            exact.Published = false;
+            OnCheckpointRolledBack?.Invoke();
+        }
+
+        public void CompleteCheckpointGarbageCollection(
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+        {
+            CheckpointCandidate exact = RequireCheckpointCandidate(candidate);
+            exact.Completed = true;
+            activeCheckpointCandidate = null;
+        }
+
         public ProductionInputDestinationCustodyDrainResult TryGarbageCollect(
             string stepOperationId,
             string receiptFingerprint)
@@ -1013,8 +1401,75 @@ public static class CombatEquipmentTerminalDrainOutboxDebugScenarios
         }
 
         public ProductionInputDestinationCustodyDrainResult TryPrepare(
-            ProductionInputDestinationCustodyDrainRequest request) =>
-            Unexpected(nameof(TryPrepare));
+            ProductionInputDestinationCustodyDrainRequest request)
+        {
+            if (request == null
+                || !records.TryGetValue(request.StepOperationId, out var value)
+                || !string.Equals(
+                    value.parentOperationId,
+                    request.ParentOperationId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    value.ownerStableId,
+                    request.OwnerStableId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    value.requestFingerprint,
+                    request.RequestFingerprint,
+                    StringComparison.Ordinal))
+            {
+                return ChildConflict("fixture-child-prepare-conflict");
+            }
+            return ChildResult(
+                value,
+                ProductionInputDestinationCustodyDrainStatus.Replay);
+        }
+        public bool TryCaptureSource(string sourceDestinationId,
+            out ProductionInputDestinationCustodySourceSnapshot snapshot,
+            out string failureReason)
+        {
+            ProductionInputDestinationCustodyDrainSaveData[] matches = records
+                .Values.Where(value => value != null && string.Equals(
+                    value.sourceDestinationId,
+                    sourceDestinationId,
+                    StringComparison.Ordinal)).ToArray();
+            if (matches.Length != 1)
+            {
+                snapshot = null;
+                failureReason = "fixture-child-source-cardinality";
+                return false;
+            }
+            ProductionInputDestinationCustodyDrainSaveData row = matches[0];
+            snapshot = new ProductionInputDestinationCustodySourceSnapshot(
+                row.sourceDestinationId,
+                1L,
+                row.sourceOwnershipFingerprint,
+                row.sourceStacks,
+                row.sourceOperations,
+                row.sourceActors,
+                row.inputQuantity,
+                row.inputMassGrams);
+            failureReason = string.Empty;
+            return true;
+        }
+        public bool TryBuildRequest(string parentOperationId,
+            string stepOperationId, string ownerStableId, string billId,
+            string facilityId, Vector2Int ownerPosition,
+            string sourceClaimFingerprint,
+            ProductionInputDestinationCustodySourceSnapshot snapshot,
+            out ProductionInputDestinationCustodyDrainRequest request,
+            out string failureReason)
+        { request = null; failureReason = "fixture-unused"; return false; }
+        public bool TryCaptureRequest(string parentOperationId,
+            string stepOperationId, string ownerStableId, string billId,
+            string facilityId, string sourceDestinationId,
+            Vector2Int ownerPosition, string sourceClaimFingerprint,
+            out ProductionInputDestinationCustodyDrainRequest request,
+            out string failureReason)
+        { request = null; failureReason = "fixture-unused"; return false; }
+        public ProductionInputDestinationCustodyDrainResult TryCommit(
+            string stepOperationId, string requestFingerprint) =>
+            Unexpected(nameof(TryCommit));
         public ProductionInputDestinationCustodyDrainResult TryBeginDraining(
             string stepOperationId,
             string requestFingerprint) => Unexpected(nameof(TryBeginDraining));
@@ -1054,6 +1509,56 @@ public static class CombatEquipmentTerminalDrainOutboxDebugScenarios
             string operation) => throw new InvalidOperationException(
             "Combat terminal fixture unexpectedly invoked child "
             + operation + ".");
+
+        private CheckpointCandidate RequireCheckpointCandidate(
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+        {
+            if (candidate is not CheckpointCandidate exact
+                || exact.Completed
+                || !ReferenceEquals(activeCheckpointCandidate, exact))
+            {
+                throw new InvalidOperationException(
+                    "Combat terminal fixture checkpoint candidate is invalid.");
+            }
+            return exact;
+        }
+    }
+
+    private sealed class UnusedLifecycle :
+        IProductionOutputDestinationLifecycleQuery
+    {
+        public ProductionOutputDestinationLifecycleSnapshot Capture(
+            BuildingInstanceId facilityId) => throw new NotSupportedException();
+    }
+
+    private sealed class UnusedSources :
+        ICombatEquipmentTerminalFacilitySourceQuery
+    {
+        public IReadOnlyList<CombatEquipmentTerminalPreparedSource>
+            CaptureFacilitySources(BuildingInstanceId facilityId) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class UnusedFacility : ICombatEquipmentTerminalFacilityQuery
+    {
+        public ProductionFacilityHandle Capture(BuildingInstanceId facilityId) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class DefinitionOnlyMass : IPhysicalItemMassQuery
+    {
+        public long AuthorityRevision => 1L;
+        public PhysicalMassGrams GetDefinitionUnitMass(ItemDefinitionId itemId) =>
+            new(1L);
+        public PhysicalMassGrams GetPreparedStackUnitMass(
+            PhysicalItemMassSubject subject) => new(1L);
+        public PhysicalMassGrams GetStackUnitMass(ItemDefinitionId itemId,
+            PhysicalItemMassSubject subject) => new(1L);
+        public PhysicalMassGrams GetStackTotalMass(PhysicalItemLotSnapshot lot) =>
+            new(Math.Max(1, lot.Quantity));
+        public PhysicalMassGrams GetQuantityMass(ItemDefinitionId itemId,
+            PhysicalItemMassSubject subject, int quantity) =>
+            new(Math.Max(1, quantity));
     }
 }
 #endif

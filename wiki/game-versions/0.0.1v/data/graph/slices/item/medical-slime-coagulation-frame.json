@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medical-slime-coagulation-frame",
+    "spoiler_tier": "none",
+    "title": "점액 응고틀"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-slime-coagulation-frame",
+      "label": "생산·해금",
+      "to": "item/medical-slime-coagulation-frame",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-slime-core-stabilization",
+      "label": "관련",
+      "to": "item/medical-slime-coagulation-frame",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

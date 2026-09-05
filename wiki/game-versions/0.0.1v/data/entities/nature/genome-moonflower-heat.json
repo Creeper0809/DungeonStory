@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-moonflower-heat",
+  "spoiler_tier": "none",
+  "summary": "마나 조명과 고온에서 꽃가루 손실이 적다.",
+  "title": "genome_moonflower_heat"
+}

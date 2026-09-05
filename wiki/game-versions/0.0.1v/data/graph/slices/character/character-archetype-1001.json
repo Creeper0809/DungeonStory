@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "character-archetype-1001",
+    "spoiler_tier": "none",
+    "title": "슬라임 사장"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-1001",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-1",
+      "target_spoiler_tier": "none",
+      "target_title": "슬라임",
+      "to": "character/characterspecies-1",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-1001",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "trait-107",
+      "target_spoiler_tier": "none",
+      "target_title": "깔끔함",
+      "to": "character/trait-107",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

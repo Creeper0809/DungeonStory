@@ -49,11 +49,19 @@ MonoBehaviour:
   processingGameHours: 0
   optimalTemperatureC: {x: 12, y: 24}
   warningTemperatureC: {x: 4, y: 32}
-  cleanWaterPerCycle: 0.25
-  wastewaterPerCycle: 0.1
+  cleanWaterPerCycle: 1.9
+  wastewaterPerCycle: 0.2
   wastewaterComposition: 2
   allowsManualWaterFallback: 1
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=MoistureEvaporation|reason=cooking-smoking-water-and-trimming-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: resource:cave-mushroom
     amount: 2

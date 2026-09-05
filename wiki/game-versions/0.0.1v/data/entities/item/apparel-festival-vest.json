@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.48kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "잔칫날 평상복 위에 걸쳐 색과 문양을 보태는 짧은 조끼다. 하르나크에서 만든 축제 조끼는 날개와 넓은 어깨에 맞춰 등솔기를 고치기 쉽도록 여유 천을 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-festival-vest",
+  "spoiler_tier": "none",
+  "summary": "축제 조끼 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "축제 조끼"
+}

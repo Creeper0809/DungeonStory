@@ -1,0 +1,25 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "일반"
+    },
+    {
+      "label": "성향",
+      "value": "상충"
+    },
+    {
+      "label": "효과",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-259",
+  "spoiler_tier": "none",
+  "summary": "사교에는 익숙하지만 혼자 하는 현장 일은 덜 익숙하다.",
+  "title": "수다쟁이"
+}

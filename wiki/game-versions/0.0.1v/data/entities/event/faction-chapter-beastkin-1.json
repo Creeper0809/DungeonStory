@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-salted-meat-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "염장육 스튜",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-salted-meat-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "염장육 스튜",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "faction-chapter-beastkin-1",
+  "spoiler_tier": "warning",
+  "summary": "붉은발톱 사절이 부상한 사냥꾼과 함께 식량을 요구한다.",
+  "title": "피 묻은 사냥깃"
+}

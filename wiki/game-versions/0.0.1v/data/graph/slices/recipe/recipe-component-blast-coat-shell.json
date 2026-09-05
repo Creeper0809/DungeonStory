@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-blast-coat-shell",
+    "spoiler_tier": "none",
+    "title": "방폭 외투 내피"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-blast-coat-shell",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-blast-coat-shell",
+      "target_spoiler_tier": "none",
+      "target_title": "방폭 외투 내피",
+      "to": "item/component-blast-coat-shell",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-blast-coat-shell",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-quilted-liner",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 충전재",
+      "to": "item/textile-quilted-liner",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-blast-coat-shell",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "textile-sterile-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 천",
+      "to": "item/textile-sterile-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-blast-coat-shell",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-pressure-barrels",
+      "target_spoiler_tier": "none",
+      "target_title": "내압 화기와 방폭",
+      "to": "research/research-equipment-pressure-barrels",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

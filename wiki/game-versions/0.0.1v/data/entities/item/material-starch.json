@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "5"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "보존식과 접착 가공에 쓰는 농산 중간재이다. 특히 사르베니아 내해산 전분은 밀로세아 가도를 오래 지나도 상하지 않도록 작은 포대로 나뉜다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-starch",
+  "spoiler_tier": "none",
+  "summary": "보존식과 접착 가공에 쓰는 농산 중간재.",
+  "title": "전분"
+}

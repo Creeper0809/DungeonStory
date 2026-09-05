@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1038",
+    "spoiler_tier": "none",
+    "title": "룬안정기"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facilityevolutionrecipe-9105",
+      "label": "필요 조건",
+      "to": "facility/building-1038",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-arcane-ritual-2",
+      "label": "관련",
+      "to": "facility/building-1038",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

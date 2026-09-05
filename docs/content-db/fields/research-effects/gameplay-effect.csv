@@ -1,0 +1,631 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+GameplayEffectDefinitionSO|effect:arcane:mana-recovery:multiply,effect:arcane:mana-recovery:multiply,m_Name,effect_arcane_mana-recovery_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:mana-recovery:multiply,effect:arcane:mana-recovery:multiply,numericId,195910769,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:mana-recovery:multiply,effect:arcane:mana-recovery:multiply,effectId,effect:arcane:mana-recovery:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:mana-recovery:multiply,effect:arcane:mana-recovery:multiply,targetId,arcane:mana-recovery,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:mana-recovery:multiply,effect:arcane:mana-recovery:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:mana-recovery:multiply,effect:arcane:mana-recovery:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:mana-recovery:multiply,effect:arcane:mana-recovery:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:mana-recovery:multiply,effect:arcane:mana-recovery:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:mana-recovery:multiply,effect:arcane:mana-recovery:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:mana-recovery:multiply,effect:arcane:mana-recovery:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:power:multiply,effect:arcane:power:multiply,m_Name,effect_arcane_power_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:power:multiply,effect:arcane:power:multiply,numericId,469160843,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:power:multiply,effect:arcane:power:multiply,effectId,effect:arcane:power:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:power:multiply,effect:arcane:power:multiply,targetId,arcane:power,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:power:multiply,effect:arcane:power:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:power:multiply,effect:arcane:power:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:power:multiply,effect:arcane:power:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:power:multiply,effect:arcane:power:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:power:multiply,effect:arcane:power:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:arcane:power:multiply,effect:arcane:power:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:arcane-conduction:multiply,effect:capacity:arcane-conduction:multiply,m_Name,effect_capacity_arcane-conduction_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:arcane-conduction:multiply,effect:capacity:arcane-conduction:multiply,numericId,1236567173,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:arcane-conduction:multiply,effect:capacity:arcane-conduction:multiply,effectId,effect:capacity:arcane-conduction:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:arcane-conduction:multiply,effect:capacity:arcane-conduction:multiply,targetId,capacity:arcane-conduction,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:arcane-conduction:multiply,effect:capacity:arcane-conduction:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:arcane-conduction:multiply,effect:capacity:arcane-conduction:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:arcane-conduction:multiply,effect:capacity:arcane-conduction:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:arcane-conduction:multiply,effect:capacity:arcane-conduction:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:arcane-conduction:multiply,effect:capacity:arcane-conduction:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:arcane-conduction:multiply,effect:capacity:arcane-conduction:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:auditory-sensing:multiply,effect:capacity:auditory-sensing:multiply,m_Name,effect_capacity_auditory-sensing_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:auditory-sensing:multiply,effect:capacity:auditory-sensing:multiply,numericId,487843195,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:auditory-sensing:multiply,effect:capacity:auditory-sensing:multiply,effectId,effect:capacity:auditory-sensing:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:auditory-sensing:multiply,effect:capacity:auditory-sensing:multiply,targetId,capacity:auditory-sensing,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:auditory-sensing:multiply,effect:capacity:auditory-sensing:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:auditory-sensing:multiply,effect:capacity:auditory-sensing:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:auditory-sensing:multiply,effect:capacity:auditory-sensing:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:auditory-sensing:multiply,effect:capacity:auditory-sensing:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:auditory-sensing:multiply,effect:capacity:auditory-sensing:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:auditory-sensing:multiply,effect:capacity:auditory-sensing:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:communication:multiply,effect:capacity:communication:multiply,m_Name,effect_capacity_communication_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:communication:multiply,effect:capacity:communication:multiply,numericId,1111728338,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:communication:multiply,effect:capacity:communication:multiply,effectId,effect:capacity:communication:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:communication:multiply,effect:capacity:communication:multiply,targetId,capacity:communication,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:communication:multiply,effect:capacity:communication:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:communication:multiply,effect:capacity:communication:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:communication:multiply,effect:capacity:communication:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:communication:multiply,effect:capacity:communication:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:communication:multiply,effect:capacity:communication:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:communication:multiply,effect:capacity:communication:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:immune-defense:multiply,effect:capacity:immune-defense:multiply,m_Name,effect_capacity_immune-defense_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:immune-defense:multiply,effect:capacity:immune-defense:multiply,numericId,725713214,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:immune-defense:multiply,effect:capacity:immune-defense:multiply,effectId,effect:capacity:immune-defense:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:immune-defense:multiply,effect:capacity:immune-defense:multiply,targetId,capacity:immune-defense,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:immune-defense:multiply,effect:capacity:immune-defense:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:immune-defense:multiply,effect:capacity:immune-defense:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:immune-defense:multiply,effect:capacity:immune-defense:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:immune-defense:multiply,effect:capacity:immune-defense:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:immune-defense:multiply,effect:capacity:immune-defense:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:immune-defense:multiply,effect:capacity:immune-defense:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:intake-processing:multiply,effect:capacity:intake-processing:multiply,m_Name,effect_capacity_intake-processing_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:intake-processing:multiply,effect:capacity:intake-processing:multiply,numericId,1633113582,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:intake-processing:multiply,effect:capacity:intake-processing:multiply,effectId,effect:capacity:intake-processing:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:intake-processing:multiply,effect:capacity:intake-processing:multiply,targetId,capacity:intake-processing,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:intake-processing:multiply,effect:capacity:intake-processing:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:intake-processing:multiply,effect:capacity:intake-processing:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:intake-processing:multiply,effect:capacity:intake-processing:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:intake-processing:multiply,effect:capacity:intake-processing:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:intake-processing:multiply,effect:capacity:intake-processing:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:intake-processing:multiply,effect:capacity:intake-processing:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:mental-maintenance:multiply,effect:capacity:mental-maintenance:multiply,m_Name,effect_capacity_mental-maintenance_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:mental-maintenance:multiply,effect:capacity:mental-maintenance:multiply,numericId,1455574801,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:mental-maintenance:multiply,effect:capacity:mental-maintenance:multiply,effectId,effect:capacity:mental-maintenance:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:mental-maintenance:multiply,effect:capacity:mental-maintenance:multiply,targetId,capacity:mental-maintenance,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:mental-maintenance:multiply,effect:capacity:mental-maintenance:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:mental-maintenance:multiply,effect:capacity:mental-maintenance:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:mental-maintenance:multiply,effect:capacity:mental-maintenance:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:mental-maintenance:multiply,effect:capacity:mental-maintenance:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:mental-maintenance:multiply,effect:capacity:mental-maintenance:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:mental-maintenance:multiply,effect:capacity:mental-maintenance:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-mobility:multiply,effect:capacity:physical-mobility:multiply,m_Name,effect_capacity_physical-mobility_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-mobility:multiply,effect:capacity:physical-mobility:multiply,numericId,954385273,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-mobility:multiply,effect:capacity:physical-mobility:multiply,effectId,effect:capacity:physical-mobility:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-mobility:multiply,effect:capacity:physical-mobility:multiply,targetId,capacity:physical-mobility,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-mobility:multiply,effect:capacity:physical-mobility:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-mobility:multiply,effect:capacity:physical-mobility:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-mobility:multiply,effect:capacity:physical-mobility:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-mobility:multiply,effect:capacity:physical-mobility:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-mobility:multiply,effect:capacity:physical-mobility:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-mobility:multiply,effect:capacity:physical-mobility:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-power:multiply,effect:capacity:physical-power:multiply,m_Name,effect_capacity_physical-power_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-power:multiply,effect:capacity:physical-power:multiply,numericId,1784987829,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-power:multiply,effect:capacity:physical-power:multiply,effectId,effect:capacity:physical-power:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-power:multiply,effect:capacity:physical-power:multiply,targetId,capacity:physical-power,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-power:multiply,effect:capacity:physical-power:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-power:multiply,effect:capacity:physical-power:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-power:multiply,effect:capacity:physical-power:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-power:multiply,effect:capacity:physical-power:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-power:multiply,effect:capacity:physical-power:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:physical-power:multiply,effect:capacity:physical-power:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:power-circulation:multiply,effect:capacity:power-circulation:multiply,m_Name,effect_capacity_power-circulation_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:power-circulation:multiply,effect:capacity:power-circulation:multiply,numericId,1860915367,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:power-circulation:multiply,effect:capacity:power-circulation:multiply,effectId,effect:capacity:power-circulation:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:power-circulation:multiply,effect:capacity:power-circulation:multiply,targetId,capacity:power-circulation,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:power-circulation:multiply,effect:capacity:power-circulation:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:power-circulation:multiply,effect:capacity:power-circulation:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:power-circulation:multiply,effect:capacity:power-circulation:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:power-circulation:multiply,effect:capacity:power-circulation:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:power-circulation:multiply,effect:capacity:power-circulation:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:power-circulation:multiply,effect:capacity:power-circulation:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:precision-manipulation:multiply,effect:capacity:precision-manipulation:multiply,m_Name,effect_capacity_precision-manipulation_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:precision-manipulation:multiply,effect:capacity:precision-manipulation:multiply,numericId,1262135720,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:precision-manipulation:multiply,effect:capacity:precision-manipulation:multiply,effectId,effect:capacity:precision-manipulation:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:precision-manipulation:multiply,effect:capacity:precision-manipulation:multiply,targetId,capacity:precision-manipulation,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:precision-manipulation:multiply,effect:capacity:precision-manipulation:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:precision-manipulation:multiply,effect:capacity:precision-manipulation:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:precision-manipulation:multiply,effect:capacity:precision-manipulation:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:precision-manipulation:multiply,effect:capacity:precision-manipulation:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:precision-manipulation:multiply,effect:capacity:precision-manipulation:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:precision-manipulation:multiply,effect:capacity:precision-manipulation:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:purification-processing:multiply,effect:capacity:purification-processing:multiply,m_Name,effect_capacity_purification-processing_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:purification-processing:multiply,effect:capacity:purification-processing:multiply,numericId,1710540267,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:purification-processing:multiply,effect:capacity:purification-processing:multiply,effectId,effect:capacity:purification-processing:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:purification-processing:multiply,effect:capacity:purification-processing:multiply,targetId,capacity:purification-processing,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:purification-processing:multiply,effect:capacity:purification-processing:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:purification-processing:multiply,effect:capacity:purification-processing:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:purification-processing:multiply,effect:capacity:purification-processing:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:purification-processing:multiply,effect:capacity:purification-processing:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:purification-processing:multiply,effect:capacity:purification-processing:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:purification-processing:multiply,effect:capacity:purification-processing:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:respiratory-exchange:multiply,effect:capacity:respiratory-exchange:multiply,m_Name,effect_capacity_respiratory-exchange_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:respiratory-exchange:multiply,effect:capacity:respiratory-exchange:multiply,numericId,1737094640,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:respiratory-exchange:multiply,effect:capacity:respiratory-exchange:multiply,effectId,effect:capacity:respiratory-exchange:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:respiratory-exchange:multiply,effect:capacity:respiratory-exchange:multiply,targetId,capacity:respiratory-exchange,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:respiratory-exchange:multiply,effect:capacity:respiratory-exchange:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:respiratory-exchange:multiply,effect:capacity:respiratory-exchange:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:respiratory-exchange:multiply,effect:capacity:respiratory-exchange:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:respiratory-exchange:multiply,effect:capacity:respiratory-exchange:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:respiratory-exchange:multiply,effect:capacity:respiratory-exchange:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:respiratory-exchange:multiply,effect:capacity:respiratory-exchange:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:visual-discernment:multiply,effect:capacity:visual-discernment:multiply,m_Name,effect_capacity_visual-discernment_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:visual-discernment:multiply,effect:capacity:visual-discernment:multiply,numericId,485519475,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:visual-discernment:multiply,effect:capacity:visual-discernment:multiply,effectId,effect:capacity:visual-discernment:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:visual-discernment:multiply,effect:capacity:visual-discernment:multiply,targetId,capacity:visual-discernment,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:visual-discernment:multiply,effect:capacity:visual-discernment:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:visual-discernment:multiply,effect:capacity:visual-discernment:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:visual-discernment:multiply,effect:capacity:visual-discernment:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:visual-discernment:multiply,effect:capacity:visual-discernment:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:visual-discernment:multiply,effect:capacity:visual-discernment:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:visual-discernment:multiply,effect:capacity:visual-discernment:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:vitality-response:multiply,effect:capacity:vitality-response:multiply,m_Name,effect_capacity_vitality-response_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:vitality-response:multiply,effect:capacity:vitality-response:multiply,numericId,24882768,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:vitality-response:multiply,effect:capacity:vitality-response:multiply,effectId,effect:capacity:vitality-response:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:vitality-response:multiply,effect:capacity:vitality-response:multiply,targetId,capacity:vitality-response,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:vitality-response:multiply,effect:capacity:vitality-response:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:vitality-response:multiply,effect:capacity:vitality-response:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:vitality-response:multiply,effect:capacity:vitality-response:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:vitality-response:multiply,effect:capacity:vitality-response:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:vitality-response:multiply,effect:capacity:vitality-response:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:capacity:vitality-response:multiply,effect:capacity:vitality-response:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:accident-chance:multiply,effect:character:accident-chance:multiply,m_Name,effect_character_accident-chance_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:accident-chance:multiply,effect:character:accident-chance:multiply,numericId,898799307,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:accident-chance:multiply,effect:character:accident-chance:multiply,effectId,effect:character:accident-chance:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:accident-chance:multiply,effect:character:accident-chance:multiply,targetId,character:accident-chance,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:accident-chance:multiply,effect:character:accident-chance:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:accident-chance:multiply,effect:character:accident-chance:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:accident-chance:multiply,effect:character:accident-chance:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:accident-chance:multiply,effect:character:accident-chance:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:accident-chance:multiply,effect:character:accident-chance:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:accident-chance:multiply,effect:character:accident-chance:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:alarm-response-delay:multiply,effect:character:alarm-response-delay:multiply,m_Name,effect_character_alarm-response-delay_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:alarm-response-delay:multiply,effect:character:alarm-response-delay:multiply,numericId,697082914,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:alarm-response-delay:multiply,effect:character:alarm-response-delay:multiply,effectId,effect:character:alarm-response-delay:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:alarm-response-delay:multiply,effect:character:alarm-response-delay:multiply,targetId,character:alarm-response-delay,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:alarm-response-delay:multiply,effect:character:alarm-response-delay:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:alarm-response-delay:multiply,effect:character:alarm-response-delay:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:alarm-response-delay:multiply,effect:character:alarm-response-delay:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:alarm-response-delay:multiply,effect:character:alarm-response-delay:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:alarm-response-delay:multiply,effect:character:alarm-response-delay:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:alarm-response-delay:multiply,effect:character:alarm-response-delay:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:cold-exposure:multiply,effect:character:cold-exposure:multiply,m_Name,effect_character_cold-exposure_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:cold-exposure:multiply,effect:character:cold-exposure:multiply,numericId,985877905,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:cold-exposure:multiply,effect:character:cold-exposure:multiply,effectId,effect:character:cold-exposure:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:cold-exposure:multiply,effect:character:cold-exposure:multiply,targetId,character:cold-exposure,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:cold-exposure:multiply,effect:character:cold-exposure:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:cold-exposure:multiply,effect:character:cold-exposure:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:cold-exposure:multiply,effect:character:cold-exposure:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:cold-exposure:multiply,effect:character:cold-exposure:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:cold-exposure:multiply,effect:character:cold-exposure:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:cold-exposure:multiply,effect:character:cold-exposure:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-power:multiply,effect:character:combat-power:multiply,m_Name,effect_character_combat-power_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-power:multiply,effect:character:combat-power:multiply,numericId,1298647019,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-power:multiply,effect:character:combat-power:multiply,effectId,effect:character:combat-power:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-power:multiply,effect:character:combat-power:multiply,targetId,character:combat-power,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-power:multiply,effect:character:combat-power:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-power:multiply,effect:character:combat-power:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-power:multiply,effect:character:combat-power:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-power:multiply,effect:character:combat-power:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-power:multiply,effect:character:combat-power:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-power:multiply,effect:character:combat-power:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-stress:multiply,effect:character:combat-stress:multiply,m_Name,effect_character_combat-stress_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-stress:multiply,effect:character:combat-stress:multiply,numericId,1753027430,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-stress:multiply,effect:character:combat-stress:multiply,effectId,effect:character:combat-stress:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-stress:multiply,effect:character:combat-stress:multiply,targetId,character:combat-stress,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-stress:multiply,effect:character:combat-stress:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-stress:multiply,effect:character:combat-stress:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-stress:multiply,effect:character:combat-stress:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-stress:multiply,effect:character:combat-stress:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-stress:multiply,effect:character:combat-stress:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:combat-stress:multiply,effect:character:combat-stress:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:consumption:multiply,effect:character:consumption:multiply,m_Name,effect_character_consumption_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:consumption:multiply,effect:character:consumption:multiply,numericId,285684106,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:consumption:multiply,effect:character:consumption:multiply,effectId,effect:character:consumption:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:consumption:multiply,effect:character:consumption:multiply,targetId,character:consumption,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:consumption:multiply,effect:character:consumption:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:consumption:multiply,effect:character:consumption:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:consumption:multiply,effect:character:consumption:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:consumption:multiply,effect:character:consumption:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:consumption:multiply,effect:character:consumption:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:consumption:multiply,effect:character:consumption:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:crowd-sensitivity:multiply,effect:character:crowd-sensitivity:multiply,m_Name,effect_character_crowd-sensitivity_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:crowd-sensitivity:multiply,effect:character:crowd-sensitivity:multiply,numericId,1668475158,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:crowd-sensitivity:multiply,effect:character:crowd-sensitivity:multiply,effectId,effect:character:crowd-sensitivity:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:crowd-sensitivity:multiply,effect:character:crowd-sensitivity:multiply,targetId,character:crowd-sensitivity,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:crowd-sensitivity:multiply,effect:character:crowd-sensitivity:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:crowd-sensitivity:multiply,effect:character:crowd-sensitivity:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:crowd-sensitivity:multiply,effect:character:crowd-sensitivity:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:crowd-sensitivity:multiply,effect:character:crowd-sensitivity:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:crowd-sensitivity:multiply,effect:character:crowd-sensitivity:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:crowd-sensitivity:multiply,effect:character:crowd-sensitivity:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:danger-detection:multiply,effect:character:danger-detection:multiply,m_Name,effect_character_danger-detection_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:danger-detection:multiply,effect:character:danger-detection:multiply,numericId,1795473098,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:danger-detection:multiply,effect:character:danger-detection:multiply,effectId,effect:character:danger-detection:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:danger-detection:multiply,effect:character:danger-detection:multiply,targetId,character:danger-detection,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:danger-detection:multiply,effect:character:danger-detection:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:danger-detection:multiply,effect:character:danger-detection:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:danger-detection:multiply,effect:character:danger-detection:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:danger-detection:multiply,effect:character:danger-detection:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:danger-detection:multiply,effect:character:danger-detection:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:danger-detection:multiply,effect:character:danger-detection:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-recovery-speed:multiply,effect:character:disease-recovery-speed:multiply,m_Name,effect_character_disease-recovery-speed_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-recovery-speed:multiply,effect:character:disease-recovery-speed:multiply,numericId,807106017,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-recovery-speed:multiply,effect:character:disease-recovery-speed:multiply,effectId,effect:character:disease-recovery-speed:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-recovery-speed:multiply,effect:character:disease-recovery-speed:multiply,targetId,character:disease-recovery-speed,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-recovery-speed:multiply,effect:character:disease-recovery-speed:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-recovery-speed:multiply,effect:character:disease-recovery-speed:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-recovery-speed:multiply,effect:character:disease-recovery-speed:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-recovery-speed:multiply,effect:character:disease-recovery-speed:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-recovery-speed:multiply,effect:character:disease-recovery-speed:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-recovery-speed:multiply,effect:character:disease-recovery-speed:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-resistance:multiply,effect:character:disease-resistance:multiply,m_Name,effect_character_disease-resistance_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-resistance:multiply,effect:character:disease-resistance:multiply,numericId,28274821,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-resistance:multiply,effect:character:disease-resistance:multiply,effectId,effect:character:disease-resistance:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-resistance:multiply,effect:character:disease-resistance:multiply,targetId,character:disease-resistance,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-resistance:multiply,effect:character:disease-resistance:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-resistance:multiply,effect:character:disease-resistance:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-resistance:multiply,effect:character:disease-resistance:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-resistance:multiply,effect:character:disease-resistance:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-resistance:multiply,effect:character:disease-resistance:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:disease-resistance:multiply,effect:character:disease-resistance:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:earned-work-xp:multiply,effect:character:earned-work-xp:multiply,m_Name,effect_character_earned-work-xp_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:earned-work-xp:multiply,effect:character:earned-work-xp:multiply,numericId,341059715,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:earned-work-xp:multiply,effect:character:earned-work-xp:multiply,effectId,effect:character:earned-work-xp:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:earned-work-xp:multiply,effect:character:earned-work-xp:multiply,targetId,character:earned-work-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:earned-work-xp:multiply,effect:character:earned-work-xp:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:earned-work-xp:multiply,effect:character:earned-work-xp:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:earned-work-xp:multiply,effect:character:earned-work-xp:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:earned-work-xp:multiply,effect:character:earned-work-xp:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:earned-work-xp:multiply,effect:character:earned-work-xp:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:earned-work-xp:multiply,effect:character:earned-work-xp:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:fatigue-rate:multiply,effect:character:fatigue-rate:multiply,m_Name,effect_character_fatigue-rate_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:fatigue-rate:multiply,effect:character:fatigue-rate:multiply,numericId,1990869125,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:fatigue-rate:multiply,effect:character:fatigue-rate:multiply,effectId,effect:character:fatigue-rate:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:fatigue-rate:multiply,effect:character:fatigue-rate:multiply,targetId,character:fatigue-rate,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:fatigue-rate:multiply,effect:character:fatigue-rate:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:fatigue-rate:multiply,effect:character:fatigue-rate:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:fatigue-rate:multiply,effect:character:fatigue-rate:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:fatigue-rate:multiply,effect:character:fatigue-rate:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:fatigue-rate:multiply,effect:character:fatigue-rate:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:fatigue-rate:multiply,effect:character:fatigue-rate:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:food-poisoning-chance:multiply,effect:character:food-poisoning-chance:multiply,m_Name,effect_character_food-poisoning-chance_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:food-poisoning-chance:multiply,effect:character:food-poisoning-chance:multiply,numericId,1190700291,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:food-poisoning-chance:multiply,effect:character:food-poisoning-chance:multiply,effectId,effect:character:food-poisoning-chance:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:food-poisoning-chance:multiply,effect:character:food-poisoning-chance:multiply,targetId,character:food-poisoning-chance,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:food-poisoning-chance:multiply,effect:character:food-poisoning-chance:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:food-poisoning-chance:multiply,effect:character:food-poisoning-chance:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:food-poisoning-chance:multiply,effect:character:food-poisoning-chance:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:food-poisoning-chance:multiply,effect:character:food-poisoning-chance:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:food-poisoning-chance:multiply,effect:character:food-poisoning-chance:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:food-poisoning-chance:multiply,effect:character:food-poisoning-chance:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:heat-exposure:multiply,effect:character:heat-exposure:multiply,m_Name,effect_character_heat-exposure_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:heat-exposure:multiply,effect:character:heat-exposure:multiply,numericId,1114204525,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:heat-exposure:multiply,effect:character:heat-exposure:multiply,effectId,effect:character:heat-exposure:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:heat-exposure:multiply,effect:character:heat-exposure:multiply,targetId,character:heat-exposure,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:heat-exposure:multiply,effect:character:heat-exposure:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:heat-exposure:multiply,effect:character:heat-exposure:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:heat-exposure:multiply,effect:character:heat-exposure:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:heat-exposure:multiply,effect:character:heat-exposure:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:heat-exposure:multiply,effect:character:heat-exposure:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:heat-exposure:multiply,effect:character:heat-exposure:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-gain:multiply,effect:character:immunity-gain:multiply,m_Name,effect_character_immunity-gain_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-gain:multiply,effect:character:immunity-gain:multiply,numericId,1855193801,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-gain:multiply,effect:character:immunity-gain:multiply,effectId,effect:character:immunity-gain:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-gain:multiply,effect:character:immunity-gain:multiply,targetId,character:immunity-gain,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-gain:multiply,effect:character:immunity-gain:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-gain:multiply,effect:character:immunity-gain:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-gain:multiply,effect:character:immunity-gain:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-gain:multiply,effect:character:immunity-gain:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-gain:multiply,effect:character:immunity-gain:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-gain:multiply,effect:character:immunity-gain:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-retention:multiply,effect:character:immunity-retention:multiply,m_Name,effect_character_immunity-retention_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-retention:multiply,effect:character:immunity-retention:multiply,numericId,1812542342,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-retention:multiply,effect:character:immunity-retention:multiply,effectId,effect:character:immunity-retention:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-retention:multiply,effect:character:immunity-retention:multiply,targetId,character:immunity-retention,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-retention:multiply,effect:character:immunity-retention:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-retention:multiply,effect:character:immunity-retention:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-retention:multiply,effect:character:immunity-retention:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-retention:multiply,effect:character:immunity-retention:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-retention:multiply,effect:character:immunity-retention:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:immunity-retention:multiply,effect:character:immunity-retention:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:mentee-xp:multiply,effect:character:mentee-xp:multiply,m_Name,effect_character_mentee-xp_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:mentee-xp:multiply,effect:character:mentee-xp:multiply,numericId,521070636,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:mentee-xp:multiply,effect:character:mentee-xp:multiply,effectId,effect:character:mentee-xp:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:mentee-xp:multiply,effect:character:mentee-xp:multiply,targetId,character:mentee-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:mentee-xp:multiply,effect:character:mentee-xp:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:mentee-xp:multiply,effect:character:mentee-xp:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:mentee-xp:multiply,effect:character:mentee-xp:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:mentee-xp:multiply,effect:character:mentee-xp:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:mentee-xp:multiply,effect:character:mentee-xp:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:mentee-xp:multiply,effect:character:mentee-xp:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:move-speed:multiply,effect:character:move-speed:multiply,m_Name,effect_character_move-speed_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:move-speed:multiply,effect:character:move-speed:multiply,numericId,1170427628,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:move-speed:multiply,effect:character:move-speed:multiply,effectId,effect:character:move-speed:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:move-speed:multiply,effect:character:move-speed:multiply,targetId,character:move-speed,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:move-speed:multiply,effect:character:move-speed:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:move-speed:multiply,effect:character:move-speed:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:move-speed:multiply,effect:character:move-speed:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:move-speed:multiply,effect:character:move-speed:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:move-speed:multiply,effect:character:move-speed:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:move-speed:multiply,effect:character:move-speed:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:negative-mood-duration:multiply,effect:character:negative-mood-duration:multiply,m_Name,effect_character_negative-mood-duration_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:negative-mood-duration:multiply,effect:character:negative-mood-duration:multiply,numericId,629969807,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:negative-mood-duration:multiply,effect:character:negative-mood-duration:multiply,effectId,effect:character:negative-mood-duration:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:negative-mood-duration:multiply,effect:character:negative-mood-duration:multiply,targetId,character:negative-mood-duration,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:negative-mood-duration:multiply,effect:character:negative-mood-duration:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:negative-mood-duration:multiply,effect:character:negative-mood-duration:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:negative-mood-duration:multiply,effect:character:negative-mood-duration:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:negative-mood-duration:multiply,effect:character:negative-mood-duration:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:negative-mood-duration:multiply,effect:character:negative-mood-duration:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:negative-mood-duration:multiply,effect:character:negative-mood-duration:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:pain-work-penalty:multiply,effect:character:pain-work-penalty:multiply,m_Name,effect_character_pain-work-penalty_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:pain-work-penalty:multiply,effect:character:pain-work-penalty:multiply,numericId,1652391963,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:pain-work-penalty:multiply,effect:character:pain-work-penalty:multiply,effectId,effect:character:pain-work-penalty:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:pain-work-penalty:multiply,effect:character:pain-work-penalty:multiply,targetId,character:pain-work-penalty,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:pain-work-penalty:multiply,effect:character:pain-work-penalty:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:pain-work-penalty:multiply,effect:character:pain-work-penalty:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:pain-work-penalty:multiply,effect:character:pain-work-penalty:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:pain-work-penalty:multiply,effect:character:pain-work-penalty:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:pain-work-penalty:multiply,effect:character:pain-work-penalty:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:pain-work-penalty:multiply,effect:character:pain-work-penalty:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:recovery-speed:multiply,effect:character:recovery-speed:multiply,m_Name,effect_character_recovery-speed_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:recovery-speed:multiply,effect:character:recovery-speed:multiply,numericId,2090418386,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:recovery-speed:multiply,effect:character:recovery-speed:multiply,effectId,effect:character:recovery-speed:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:recovery-speed:multiply,effect:character:recovery-speed:multiply,targetId,character:recovery-speed,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:recovery-speed:multiply,effect:character:recovery-speed:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:recovery-speed:multiply,effect:character:recovery-speed:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:recovery-speed:multiply,effect:character:recovery-speed:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:recovery-speed:multiply,effect:character:recovery-speed:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:recovery-speed:multiply,effect:character:recovery-speed:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:recovery-speed:multiply,effect:character:recovery-speed:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:relationship-recovery:multiply,effect:character:relationship-recovery:multiply,m_Name,effect_character_relationship-recovery_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:relationship-recovery:multiply,effect:character:relationship-recovery:multiply,numericId,1783699611,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:relationship-recovery:multiply,effect:character:relationship-recovery:multiply,effectId,effect:character:relationship-recovery:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:relationship-recovery:multiply,effect:character:relationship-recovery:multiply,targetId,character:relationship-recovery,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:relationship-recovery:multiply,effect:character:relationship-recovery:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:relationship-recovery:multiply,effect:character:relationship-recovery:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:relationship-recovery:multiply,effect:character:relationship-recovery:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:relationship-recovery:multiply,effect:character:relationship-recovery:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:relationship-recovery:multiply,effect:character:relationship-recovery:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:relationship-recovery:multiply,effect:character:relationship-recovery:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:research-speed:multiply,effect:character:research-speed:multiply,m_Name,effect_character_research-speed_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:research-speed:multiply,effect:character:research-speed:multiply,numericId,780856668,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:research-speed:multiply,effect:character:research-speed:multiply,effectId,effect:character:research-speed:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:research-speed:multiply,effect:character:research-speed:multiply,targetId,character:research-speed,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:research-speed:multiply,effect:character:research-speed:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:research-speed:multiply,effect:character:research-speed:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:research-speed:multiply,effect:character:research-speed:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:research-speed:multiply,effect:character:research-speed:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:research-speed:multiply,effect:character:research-speed:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:research-speed:multiply,effect:character:research-speed:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:sleep-recovery:multiply,effect:character:sleep-recovery:multiply,m_Name,effect_character_sleep-recovery_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:sleep-recovery:multiply,effect:character:sleep-recovery:multiply,numericId,539795130,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:sleep-recovery:multiply,effect:character:sleep-recovery:multiply,effectId,effect:character:sleep-recovery:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:sleep-recovery:multiply,effect:character:sleep-recovery:multiply,targetId,character:sleep-recovery,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:sleep-recovery:multiply,effect:character:sleep-recovery:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:sleep-recovery:multiply,effect:character:sleep-recovery:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:sleep-recovery:multiply,effect:character:sleep-recovery:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:sleep-recovery:multiply,effect:character:sleep-recovery:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:sleep-recovery:multiply,effect:character:sleep-recovery:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:sleep-recovery:multiply,effect:character:sleep-recovery:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:spending:multiply,effect:character:spending:multiply,m_Name,effect_character_spending_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:spending:multiply,effect:character:spending:multiply,numericId,268453245,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:spending:multiply,effect:character:spending:multiply,effectId,effect:character:spending:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:spending:multiply,effect:character:spending:multiply,targetId,character:spending,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:spending:multiply,effect:character:spending:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:spending:multiply,effect:character:spending:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:spending:multiply,effect:character:spending:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:spending:multiply,effect:character:spending:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:spending:multiply,effect:character:spending:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:spending:multiply,effect:character:spending:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:wait-patience:multiply,effect:character:wait-patience:multiply,m_Name,effect_character_wait-patience_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:wait-patience:multiply,effect:character:wait-patience:multiply,numericId,1186953782,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:wait-patience:multiply,effect:character:wait-patience:multiply,effectId,effect:character:wait-patience:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:wait-patience:multiply,effect:character:wait-patience:multiply,targetId,character:wait-patience,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:wait-patience:multiply,effect:character:wait-patience:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:wait-patience:multiply,effect:character:wait-patience:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:wait-patience:multiply,effect:character:wait-patience:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:wait-patience:multiply,effect:character:wait-patience:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:wait-patience:multiply,effect:character:wait-patience:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:wait-patience:multiply,effect:character:wait-patience:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:work-speed:multiply,effect:character:work-speed:multiply,m_Name,effect_character_work-speed_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:work-speed:multiply,effect:character:work-speed:multiply,numericId,1979055192,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:work-speed:multiply,effect:character:work-speed:multiply,effectId,effect:character:work-speed:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:work-speed:multiply,effect:character:work-speed:multiply,targetId,character:work-speed,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:work-speed:multiply,effect:character:work-speed:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:work-speed:multiply,effect:character:work-speed:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:work-speed:multiply,effect:character:work-speed:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:work-speed:multiply,effect:character:work-speed:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:work-speed:multiply,effect:character:work-speed:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:character:work-speed:multiply,effect:character:work-speed:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:craft:quality-score:addflat,effect:craft:quality-score:addflat,m_Name,effect_craft_quality-score_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:craft:quality-score:addflat,effect:craft:quality-score:addflat,numericId,271771398,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:craft:quality-score:addflat,effect:craft:quality-score:addflat,effectId,effect:craft:quality-score:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:craft:quality-score:addflat,effect:craft:quality-score:addflat,targetId,craft:quality-score,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:craft:quality-score:addflat,effect:craft:quality-score:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:craft:quality-score:addflat,effect:craft:quality-score:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:craft:quality-score:addflat,effect:craft:quality-score:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:craft:quality-score:addflat,effect:craft:quality-score:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:craft:quality-score:addflat,effect:craft:quality-score:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:craft:quality-score:addflat,effect:craft:quality-score:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:damage:blunt-taken:multiply,effect:damage:blunt-taken:multiply,m_Name,effect_damage_blunt-taken_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:damage:blunt-taken:multiply,effect:damage:blunt-taken:multiply,numericId,1030091250,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:damage:blunt-taken:multiply,effect:damage:blunt-taken:multiply,effectId,effect:damage:blunt-taken:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:damage:blunt-taken:multiply,effect:damage:blunt-taken:multiply,targetId,damage:blunt-taken,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:damage:blunt-taken:multiply,effect:damage:blunt-taken:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:damage:blunt-taken:multiply,effect:damage:blunt-taken:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:damage:blunt-taken:multiply,effect:damage:blunt-taken:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:damage:blunt-taken:multiply,effect:damage:blunt-taken:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:damage:blunt-taken:multiply,effect:damage:blunt-taken:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:damage:blunt-taken:multiply,effect:damage:blunt-taken:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:comfort-minimum-offset:addflat,effect:environment:comfort-minimum-offset:addflat,m_Name,effect_environment_comfort-minimum-offset_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:comfort-minimum-offset:addflat,effect:environment:comfort-minimum-offset:addflat,numericId,1395441850,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:comfort-minimum-offset:addflat,effect:environment:comfort-minimum-offset:addflat,effectId,effect:environment:comfort-minimum-offset:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:comfort-minimum-offset:addflat,effect:environment:comfort-minimum-offset:addflat,targetId,environment:comfort-minimum-offset,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:comfort-minimum-offset:addflat,effect:environment:comfort-minimum-offset:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:comfort-minimum-offset:addflat,effect:environment:comfort-minimum-offset:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:comfort-minimum-offset:addflat,effect:environment:comfort-minimum-offset:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:comfort-minimum-offset:addflat,effect:environment:comfort-minimum-offset:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:comfort-minimum-offset:addflat,effect:environment:comfort-minimum-offset:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:comfort-minimum-offset:addflat,effect:environment:comfort-minimum-offset:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:safe-minimum-offset:addflat,effect:environment:safe-minimum-offset:addflat,m_Name,effect_environment_safe-minimum-offset_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:safe-minimum-offset:addflat,effect:environment:safe-minimum-offset:addflat,numericId,117846697,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:safe-minimum-offset:addflat,effect:environment:safe-minimum-offset:addflat,effectId,effect:environment:safe-minimum-offset:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:safe-minimum-offset:addflat,effect:environment:safe-minimum-offset:addflat,targetId,environment:safe-minimum-offset,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:safe-minimum-offset:addflat,effect:environment:safe-minimum-offset:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:safe-minimum-offset:addflat,effect:environment:safe-minimum-offset:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:safe-minimum-offset:addflat,effect:environment:safe-minimum-offset:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:safe-minimum-offset:addflat,effect:environment:safe-minimum-offset:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:safe-minimum-offset:addflat,effect:environment:safe-minimum-offset:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:environment:safe-minimum-offset:addflat,effect:environment:safe-minimum-offset:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,m_Name,effect_food_spoilage-detection_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,numericId,59863732,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,effectId,effect:food:spoilage-detection:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,targetId,food:spoilage-detection,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,m_Name,effect_harvest_seed-yield_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,numericId,1678933936,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,effectId,effect:harvest:seed-yield:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,targetId,harvest:seed-yield,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:yield:multiply,effect:harvest:yield:multiply,m_Name,effect_harvest_yield_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:yield:multiply,effect:harvest:yield:multiply,numericId,366298274,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:yield:multiply,effect:harvest:yield:multiply,effectId,effect:harvest:yield:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:yield:multiply,effect:harvest:yield:multiply,targetId,harvest:yield,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:yield:multiply,effect:harvest:yield:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:yield:multiply,effect:harvest:yield:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:yield:multiply,effect:harvest:yield:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:yield:multiply,effect:harvest:yield:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:yield:multiply,effect:harvest:yield:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:harvest:yield:multiply,effect:harvest:yield:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:medical:aftermath-duration:multiply,effect:medical:aftermath-duration:multiply,m_Name,effect_medical_aftermath-duration_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:medical:aftermath-duration:multiply,effect:medical:aftermath-duration:multiply,numericId,1950117832,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:medical:aftermath-duration:multiply,effect:medical:aftermath-duration:multiply,effectId,effect:medical:aftermath-duration:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:medical:aftermath-duration:multiply,effect:medical:aftermath-duration:multiply,targetId,medical:aftermath-duration,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:medical:aftermath-duration:multiply,effect:medical:aftermath-duration:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:medical:aftermath-duration:multiply,effect:medical:aftermath-duration:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:medical:aftermath-duration:multiply,effect:medical:aftermath-duration:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:medical:aftermath-duration:multiply,effect:medical:aftermath-duration:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:medical:aftermath-duration:multiply,effect:medical:aftermath-duration:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:medical:aftermath-duration:multiply,effect:medical:aftermath-duration:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:construction-engineering:starting-xp:addflat,effect:proficiency:construction-engineering:starting-xp:addflat,m_Name,effect_proficiency_construction-engineering_starting-xp_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:construction-engineering:starting-xp:addflat,effect:proficiency:construction-engineering:starting-xp:addflat,numericId,1739951495,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:construction-engineering:starting-xp:addflat,effect:proficiency:construction-engineering:starting-xp:addflat,effectId,effect:proficiency:construction-engineering:starting-xp:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:construction-engineering:starting-xp:addflat,effect:proficiency:construction-engineering:starting-xp:addflat,targetId,proficiency:construction-engineering:starting-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:construction-engineering:starting-xp:addflat,effect:proficiency:construction-engineering:starting-xp:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:construction-engineering:starting-xp:addflat,effect:proficiency:construction-engineering:starting-xp:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:construction-engineering:starting-xp:addflat,effect:proficiency:construction-engineering:starting-xp:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:construction-engineering:starting-xp:addflat,effect:proficiency:construction-engineering:starting-xp:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:construction-engineering:starting-xp:addflat,effect:proficiency:construction-engineering:starting-xp:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:construction-engineering:starting-xp:addflat,effect:proficiency:construction-engineering:starting-xp:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:crafting:starting-xp:addflat,effect:proficiency:crafting:starting-xp:addflat,m_Name,effect_proficiency_crafting_starting-xp_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:crafting:starting-xp:addflat,effect:proficiency:crafting:starting-xp:addflat,numericId,513236082,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:crafting:starting-xp:addflat,effect:proficiency:crafting:starting-xp:addflat,effectId,effect:proficiency:crafting:starting-xp:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:crafting:starting-xp:addflat,effect:proficiency:crafting:starting-xp:addflat,targetId,proficiency:crafting:starting-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:crafting:starting-xp:addflat,effect:proficiency:crafting:starting-xp:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:crafting:starting-xp:addflat,effect:proficiency:crafting:starting-xp:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:crafting:starting-xp:addflat,effect:proficiency:crafting:starting-xp:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:crafting:starting-xp:addflat,effect:proficiency:crafting:starting-xp:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:crafting:starting-xp:addflat,effect:proficiency:crafting:starting-xp:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:crafting:starting-xp:addflat,effect:proficiency:crafting:starting-xp:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:fieldwork:starting-xp:addflat,effect:proficiency:fieldwork:starting-xp:addflat,m_Name,effect_proficiency_fieldwork_starting-xp_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:fieldwork:starting-xp:addflat,effect:proficiency:fieldwork:starting-xp:addflat,numericId,378488681,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:fieldwork:starting-xp:addflat,effect:proficiency:fieldwork:starting-xp:addflat,effectId,effect:proficiency:fieldwork:starting-xp:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:fieldwork:starting-xp:addflat,effect:proficiency:fieldwork:starting-xp:addflat,targetId,proficiency:fieldwork:starting-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:fieldwork:starting-xp:addflat,effect:proficiency:fieldwork:starting-xp:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:fieldwork:starting-xp:addflat,effect:proficiency:fieldwork:starting-xp:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:fieldwork:starting-xp:addflat,effect:proficiency:fieldwork:starting-xp:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:fieldwork:starting-xp:addflat,effect:proficiency:fieldwork:starting-xp:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:fieldwork:starting-xp:addflat,effect:proficiency:fieldwork:starting-xp:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:fieldwork:starting-xp:addflat,effect:proficiency:fieldwork:starting-xp:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:food-production:starting-xp:addflat,effect:proficiency:food-production:starting-xp:addflat,m_Name,effect_proficiency_food-production_starting-xp_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:food-production:starting-xp:addflat,effect:proficiency:food-production:starting-xp:addflat,numericId,674307278,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:food-production:starting-xp:addflat,effect:proficiency:food-production:starting-xp:addflat,effectId,effect:proficiency:food-production:starting-xp:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:food-production:starting-xp:addflat,effect:proficiency:food-production:starting-xp:addflat,targetId,proficiency:food-production:starting-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:food-production:starting-xp:addflat,effect:proficiency:food-production:starting-xp:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:food-production:starting-xp:addflat,effect:proficiency:food-production:starting-xp:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:food-production:starting-xp:addflat,effect:proficiency:food-production:starting-xp:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:food-production:starting-xp:addflat,effect:proficiency:food-production:starting-xp:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:food-production:starting-xp:addflat,effect:proficiency:food-production:starting-xp:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:food-production:starting-xp:addflat,effect:proficiency:food-production:starting-xp:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:medicine:starting-xp:addflat,effect:proficiency:medicine:starting-xp:addflat,m_Name,effect_proficiency_medicine_starting-xp_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:medicine:starting-xp:addflat,effect:proficiency:medicine:starting-xp:addflat,numericId,286220372,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:medicine:starting-xp:addflat,effect:proficiency:medicine:starting-xp:addflat,effectId,effect:proficiency:medicine:starting-xp:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:medicine:starting-xp:addflat,effect:proficiency:medicine:starting-xp:addflat,targetId,proficiency:medicine:starting-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:medicine:starting-xp:addflat,effect:proficiency:medicine:starting-xp:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:medicine:starting-xp:addflat,effect:proficiency:medicine:starting-xp:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:medicine:starting-xp:addflat,effect:proficiency:medicine:starting-xp:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:medicine:starting-xp:addflat,effect:proficiency:medicine:starting-xp:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:medicine:starting-xp:addflat,effect:proficiency:medicine:starting-xp:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:medicine:starting-xp:addflat,effect:proficiency:medicine:starting-xp:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:melee-combat:starting-xp:addflat,effect:proficiency:melee-combat:starting-xp:addflat,m_Name,effect_proficiency_melee-combat_starting-xp_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:melee-combat:starting-xp:addflat,effect:proficiency:melee-combat:starting-xp:addflat,numericId,404977737,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:melee-combat:starting-xp:addflat,effect:proficiency:melee-combat:starting-xp:addflat,effectId,effect:proficiency:melee-combat:starting-xp:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:melee-combat:starting-xp:addflat,effect:proficiency:melee-combat:starting-xp:addflat,targetId,proficiency:melee-combat:starting-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:melee-combat:starting-xp:addflat,effect:proficiency:melee-combat:starting-xp:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:melee-combat:starting-xp:addflat,effect:proficiency:melee-combat:starting-xp:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:melee-combat:starting-xp:addflat,effect:proficiency:melee-combat:starting-xp:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:melee-combat:starting-xp:addflat,effect:proficiency:melee-combat:starting-xp:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:melee-combat:starting-xp:addflat,effect:proficiency:melee-combat:starting-xp:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:melee-combat:starting-xp:addflat,effect:proficiency:melee-combat:starting-xp:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:ranged-combat:starting-xp:addflat,effect:proficiency:ranged-combat:starting-xp:addflat,m_Name,effect_proficiency_ranged-combat_starting-xp_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:ranged-combat:starting-xp:addflat,effect:proficiency:ranged-combat:starting-xp:addflat,numericId,415855316,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:ranged-combat:starting-xp:addflat,effect:proficiency:ranged-combat:starting-xp:addflat,effectId,effect:proficiency:ranged-combat:starting-xp:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:ranged-combat:starting-xp:addflat,effect:proficiency:ranged-combat:starting-xp:addflat,targetId,proficiency:ranged-combat:starting-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:ranged-combat:starting-xp:addflat,effect:proficiency:ranged-combat:starting-xp:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:ranged-combat:starting-xp:addflat,effect:proficiency:ranged-combat:starting-xp:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:ranged-combat:starting-xp:addflat,effect:proficiency:ranged-combat:starting-xp:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:ranged-combat:starting-xp:addflat,effect:proficiency:ranged-combat:starting-xp:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:ranged-combat:starting-xp:addflat,effect:proficiency:ranged-combat:starting-xp:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:ranged-combat:starting-xp:addflat,effect:proficiency:ranged-combat:starting-xp:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:scholarship:starting-xp:addflat,effect:proficiency:scholarship:starting-xp:addflat,m_Name,effect_proficiency_scholarship_starting-xp_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:scholarship:starting-xp:addflat,effect:proficiency:scholarship:starting-xp:addflat,numericId,71717098,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:scholarship:starting-xp:addflat,effect:proficiency:scholarship:starting-xp:addflat,effectId,effect:proficiency:scholarship:starting-xp:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:scholarship:starting-xp:addflat,effect:proficiency:scholarship:starting-xp:addflat,targetId,proficiency:scholarship:starting-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:scholarship:starting-xp:addflat,effect:proficiency:scholarship:starting-xp:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:scholarship:starting-xp:addflat,effect:proficiency:scholarship:starting-xp:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:scholarship:starting-xp:addflat,effect:proficiency:scholarship:starting-xp:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:scholarship:starting-xp:addflat,effect:proficiency:scholarship:starting-xp:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:scholarship:starting-xp:addflat,effect:proficiency:scholarship:starting-xp:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:scholarship:starting-xp:addflat,effect:proficiency:scholarship:starting-xp:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:social:starting-xp:addflat,effect:proficiency:social:starting-xp:addflat,m_Name,effect_proficiency_social_starting-xp_addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:social:starting-xp:addflat,effect:proficiency:social:starting-xp:addflat,numericId,1877317773,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:social:starting-xp:addflat,effect:proficiency:social:starting-xp:addflat,effectId,effect:proficiency:social:starting-xp:addflat,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:social:starting-xp:addflat,effect:proficiency:social:starting-xp:addflat,targetId,proficiency:social:starting-xp,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:social:starting-xp:addflat,effect:proficiency:social:starting-xp:addflat,operation,0,GameplayEffectOperation,Add Flat,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:social:starting-xp:addflat,effect:proficiency:social:starting-xp:addflat,projectionPhase,0,GameplayEffectProjectionPhase,Base Add,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:social:starting-xp:addflat,effect:proficiency:social:starting-xp:addflat,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:social:starting-xp:addflat,effect:proficiency:social:starting-xp:addflat,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:social:starting-xp:addflat,effect:proficiency:social:starting-xp:addflat,minimumResult,-3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:proficiency:social:starting-xp:addflat,effect:proficiency:social:starting-xp:addflat,maximumResult,3.40282e+38,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:social:negotiation:multiply,effect:social:negotiation:multiply,m_Name,effect_social_negotiation_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:social:negotiation:multiply,effect:social:negotiation:multiply,numericId,1086585172,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:social:negotiation:multiply,effect:social:negotiation:multiply,effectId,effect:social:negotiation:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:social:negotiation:multiply,effect:social:negotiation:multiply,targetId,social:negotiation,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:social:negotiation:multiply,effect:social:negotiation:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:social:negotiation:multiply,effect:social:negotiation:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:social:negotiation:multiply,effect:social:negotiation:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:social:negotiation:multiply,effect:social:negotiation:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:social:negotiation:multiply,effect:social:negotiation:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:social:negotiation:multiply,effect:social:negotiation:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:haul-capacity:multiply,effect:work:haul-capacity:multiply,m_Name,effect_work_haul-capacity_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:haul-capacity:multiply,effect:work:haul-capacity:multiply,numericId,1847886670,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:haul-capacity:multiply,effect:work:haul-capacity:multiply,effectId,effect:work:haul-capacity:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:haul-capacity:multiply,effect:work:haul-capacity:multiply,targetId,work:haul-capacity,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:haul-capacity:multiply,effect:work:haul-capacity:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:haul-capacity:multiply,effect:work:haul-capacity:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:haul-capacity:multiply,effect:work:haul-capacity:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:haul-capacity:multiply,effect:work:haul-capacity:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:haul-capacity:multiply,effect:work:haul-capacity:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:haul-capacity:multiply,effect:work:haul-capacity:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:salvage-yield:multiply,effect:work:salvage-yield:multiply,m_Name,effect_work_salvage-yield_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:salvage-yield:multiply,effect:work:salvage-yield:multiply,numericId,857645966,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:salvage-yield:multiply,effect:work:salvage-yield:multiply,effectId,effect:work:salvage-yield:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:salvage-yield:multiply,effect:work:salvage-yield:multiply,targetId,work:salvage-yield,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:salvage-yield:multiply,effect:work:salvage-yield:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:salvage-yield:multiply,effect:work:salvage-yield:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:salvage-yield:multiply,effect:work:salvage-yield:multiply,allowedSources,63,GameplayEffectSourceKind,All,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:salvage-yield:multiply,effect:work:salvage-yield:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:salvage-yield:multiply,effect:work:salvage-yield:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:work:salvage-yield:multiply,effect:work:salvage-yield:multiply,maximumResult,10,,,explicit-serialized

@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "crystal-beetle",
+    "spoiler_tier": "none",
+    "title": "수정딱정벌레"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/crystal-beetle",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-glass-blood",
+      "target_spoiler_tier": "none",
+      "target_title": "유리혈증",
+      "to": "medical/disease-glass-blood",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/crystal-beetle",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "ember-lizard",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불도마뱀",
+      "to": "nature/ember-lizard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/crystal-beetle",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "moss-boar",
+      "target_spoiler_tier": "none",
+      "target_title": "이끼멧돼지",
+      "to": "nature/moss-boar",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/ember-lizard",
+      "label": "관련",
+      "to": "nature/crystal-beetle",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

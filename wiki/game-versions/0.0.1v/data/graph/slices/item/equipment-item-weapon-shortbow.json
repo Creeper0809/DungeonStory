@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-shortbow",
+    "spoiler_tier": "none",
+    "title": "단궁"
+  },
+  "edges": [],
+  "schema_version": 1
+}

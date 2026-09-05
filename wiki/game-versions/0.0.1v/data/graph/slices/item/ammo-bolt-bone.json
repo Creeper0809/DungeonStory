@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "ammo-bolt-bone",
+    "spoiler_tier": "none",
+    "title": "뼈촉 볼트"
+  },
+  "edges": [
+    {
+      "amount": "10",
+      "from": "recipe/recipe-bolt-bone",
+      "label": "생산·해금",
+      "to": "item/ammo-bolt-bone",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-crossbow",
+      "label": "관련",
+      "to": "item/ammo-bolt-bone",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-repeating-crossbow",
+      "label": "관련",
+      "to": "item/ammo-bolt-bone",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-siege-arbalest",
+      "label": "관련",
+      "to": "item/ammo-bolt-bone",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-windlass-crossbow",
+      "label": "관련",
+      "to": "item/ammo-bolt-bone",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,165 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-mana-crystal",
+    "spoiler_tier": "none",
+    "title": "마나 결정"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-rune",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bolt-rune",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-mana-shield-plate",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-leather-lining",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-purification-crystal",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-dreamweave",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-gold-ornament",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-mana-awakener",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-sterile-composite",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-rejuvenation-serum",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-rune-cold-suit",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-rune-leather",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-artificial-eye",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/source-quarry",
+      "label": "생산·해금",
+      "to": "item/resource-mana-crystal",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-blacksteel",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-temporal-stasis-seal",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-mana-alloy",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-component-precision-optics",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-component-rune-conductor",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-arcane-modification",
+      "label": "관련",
+      "to": "item/resource-mana-crystal",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

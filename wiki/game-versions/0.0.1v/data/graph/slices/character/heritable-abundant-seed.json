@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-abundant-seed",
+    "spoiler_tier": "none",
+    "title": "풍부한 종자"
+  },
+  "edges": [],
+  "schema_version": 1
+}

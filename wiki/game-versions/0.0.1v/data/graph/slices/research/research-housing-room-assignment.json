@@ -1,0 +1,127 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-housing-room-assignment",
+    "spoiler_tier": "none",
+    "title": "방 배정과 가족 생활구획"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "to": "research/research-commerce-logistics",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-society-household-records",
+      "target_spoiler_tier": "none",
+      "target_title": "가구 기록과 영아 돌봄",
+      "to": "research/research-society-household-records",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8882",
+      "target_spoiler_tier": "none",
+      "target_title": "방 배정대",
+      "to": "facility/building-8882",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-housing-room-assignment",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8883",
+      "target_spoiler_tier": "none",
+      "target_title": "가족실 칸막이",
+      "to": "facility/building-8883",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-room-partition-kit",
+      "label": "필요 조건",
+      "to": "research/research-housing-room-assignment",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-generation-management",
+      "label": "선행 연구",
+      "to": "research/research-housing-room-assignment",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-generation-management",
+      "label": "선행 연구",
+      "to": "research/research-housing-room-assignment",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-society-generation-management",
+      "label": "선행 연구",
+      "to": "research/research-housing-room-assignment",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

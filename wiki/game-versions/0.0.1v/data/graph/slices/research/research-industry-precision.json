@@ -1,0 +1,130 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-precision",
+    "spoiler_tier": "none",
+    "title": "정밀 자동화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-precision",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-breakers",
+      "target_spoiler_tier": "none",
+      "target_title": "차단기와 산업 정비",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-precision",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-breakers",
+      "target_spoiler_tier": "none",
+      "target_title": "차단기와 산업 정비",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-precision",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-breakers",
+      "target_spoiler_tier": "none",
+      "target_title": "차단기와 산업 정비",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-precision",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-precision",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-precision",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-precision",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8832",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 게이지",
+      "to": "facility/building-8832",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "to": "research/research-industry-precision",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "to": "research/research-industry-precision",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "to": "research/research-industry-precision",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-rune-automation",
+      "label": "선행 연구",
+      "to": "research/research-industry-precision",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-rune-automation",
+      "label": "선행 연구",
+      "to": "research/research-industry-precision",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-rune-automation",
+      "label": "선행 연구",
+      "to": "research/research-industry-precision",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

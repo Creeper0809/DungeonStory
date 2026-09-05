@@ -1,0 +1,112 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "2182"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Records And Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-gerontology",
+      "target_spoiler_tier": "none",
+      "target_title": "노인학과 생물학적 연령 계측",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-mana-power",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 동력과 룬 전력망",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-electric-smelting",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 제련과 산업 냉각",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-electric-smelting",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 제련과 산업 냉각",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-electric-smelting",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 제련과 산업 냉각",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8870",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 동면실",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-medical-rune-hibernation",
+  "spoiler_tier": "none",
+  "summary": "생물학적 연령 계측과 공명, 룬 전력·냉각을 동면 유지에 통합한다.",
+  "title": "룬 동면"
+}

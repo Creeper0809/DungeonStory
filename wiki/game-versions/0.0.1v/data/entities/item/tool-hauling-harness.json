@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "운반 멜빵은 짐의 무게를 어깨와 허리에 나눠 싣도록 끈과 고리를 연결한다. 밀로세아 가도의 공동 운반 멜빵에는 검문소를 지날 때마다 다른 색실이 손잡이에 묶인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-hauling-harness",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 운반 멜빵.",
+  "title": "운반 멜빵"
+}

@@ -1,0 +1,100 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-slime-bioengineering",
+    "spoiler_tier": "none",
+    "title": "점액 생체공학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-slime-bioengineering",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-slime-bioengineering",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-slime-bioengineering",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-anatomy",
+      "target_spoiler_tier": "none",
+      "target_title": "해부학",
+      "to": "research/research-medical-anatomy",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-slime-core-stabilization",
+      "label": "필요 조건",
+      "to": "research/research-medical-slime-bioengineering",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-slime-membrane-suture",
+      "label": "필요 조건",
+      "to": "research/research-medical-slime-bioengineering",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-slime-pseudopod-reshape",
+      "label": "필요 조건",
+      "to": "research/research-medical-slime-bioengineering",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-slime-replenishment",
+      "label": "필요 조건",
+      "to": "research/research-medical-slime-bioengineering",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-medical-slime-coagulation-frame",
+      "label": "필요 조건",
+      "to": "research/research-medical-slime-bioengineering",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-whole-body-regeneration",
+      "label": "선행 연구",
+      "to": "research/research-medical-slime-bioengineering",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-whole-body-regeneration",
+      "label": "선행 연구",
+      "to": "research/research-medical-slime-bioengineering",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-whole-body-regeneration",
+      "label": "선행 연구",
+      "to": "research/research-medical-slime-bioengineering",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

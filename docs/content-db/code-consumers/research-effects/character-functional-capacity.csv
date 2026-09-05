@@ -1,0 +1,15 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:arcane-conduction,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:auditory-sensing,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:communication,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:immune-defense,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:intake-processing,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:mental-maintenance,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:physical-mobility,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:physical-power,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:power-circulation,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:precision-manipulation,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:purification-processing,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:respiratory-exchange,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:visual-discernment,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs
+CharacterFunctionalCapacityDefinitionSO,stable-id,capacity:vitality-response,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs

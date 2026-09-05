@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "ambition-faction-champion",
+    "spoiler_tier": "none",
+    "title": "동맹의 방패"
+  },
+  "edges": [],
+  "schema_version": 1
+}

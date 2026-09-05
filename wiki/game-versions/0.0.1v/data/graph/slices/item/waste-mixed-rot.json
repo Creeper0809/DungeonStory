@@ -1,0 +1,39 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "waste-mixed-rot",
+    "spoiler_tier": "none",
+    "title": "혼합 부패물"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-incinerate-mixed",
+      "label": "필요 조건",
+      "to": "item/waste-mixed-rot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/source-spoilage-mixed",
+      "label": "생산·해금",
+      "to": "item/waste-mixed-rot",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-compost-mixed",
+      "label": "필요 조건",
+      "to": "item/waste-mixed-rot",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-low-fuel-rot",
+      "label": "필요 조건",
+      "to": "item/waste-mixed-rot",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

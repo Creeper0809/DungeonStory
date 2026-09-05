@@ -1,0 +1,32 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-malt",
+    "spoiler_tier": "none",
+    "title": "맥아"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-malt-porridge",
+      "label": "필요 조건",
+      "to": "item/material-malt",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-fermented-liquor",
+      "label": "필요 조건",
+      "to": "item/material-malt",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-malt",
+      "label": "생산·해금",
+      "to": "item/material-malt",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

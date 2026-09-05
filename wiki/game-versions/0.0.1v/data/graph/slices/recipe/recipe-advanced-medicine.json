@@ -1,0 +1,77 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-advanced-medicine",
+    "spoiler_tier": "none",
+    "title": "고급 약품"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "to": "item/medicine-advanced",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-milk",
+      "target_spoiler_tier": "none",
+      "target_title": "우유",
+      "to": "item/resource-milk",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-moonflower",
+      "target_spoiler_tier": "none",
+      "target_title": "월화",
+      "to": "item/resource-moonflower",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약리",
+      "to": "research/research-pharmacology-advanced",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

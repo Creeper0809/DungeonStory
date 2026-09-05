@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.275kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "18"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "밝은 불빛과 연기를 높이 올려 먼 경비대와 원정대에 위치를 알린다. 하르나크의 무기 철야에서는 신호탄 포장색으로 불길, 침입과 구조 요청을 구분한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-signal-flare",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 신호탄.",
+  "title": "신호탄"
+}

@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "life-event-household-meal",
+    "spoiler_tier": "warning",
+    "title": "늦은 가족 식사"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "event/life-event-household-meal",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-household-meal",
+      "target_spoiler_tier": "warning",
+      "target_title": "늦은 가족 식사",
+      "to": "event/life-event-household-meal",
+      "type": "changes-relationship"
+    },
+    {
+      "amount": "2",
+      "from": "event/life-event-household-meal",
+      "label": "연결",
+      "to": "event/life-event-household-meal",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1
+}

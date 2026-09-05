@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-runtime-world-resource-node",
+    "spoiler_tier": "none",
+    "title": "외부 자원"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -54,11 +54,19 @@ MonoBehaviour:
   wastewaterComposition: 0
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=MoistureEvaporation|reason=paste-cooking-water-and-starch-setting-residue|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:starch
     amount: 1
   - itemId: resource:clean-water
-    amount: 1
+    amount: 4
   outputs:
   - outputLineId: output:recipe:component:paper-paste/000/main/component:paper-paste
     role: 0

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "disease-green-swarm",
+  "spoiler_tier": "none",
+  "summary": "미세 곤충 군체가 상처와 털에 붙어 접촉자와 축사를 오간다.",
+  "title": "녹무리 감염"
+}

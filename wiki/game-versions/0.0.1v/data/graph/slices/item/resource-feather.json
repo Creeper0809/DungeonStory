@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-feather",
+    "spoiler_tier": "none",
+    "title": "깃털"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-bone",
+      "label": "필요 조건",
+      "to": "item/resource-feather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-iron",
+      "label": "필요 조건",
+      "to": "item/resource-feather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-arrow-steel",
+      "label": "필요 조건",
+      "to": "item/resource-feather",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-bedding-animal",
+      "label": "필요 조건",
+      "to": "item/resource-feather",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/source-animal-feather",
+      "label": "생산·해금",
+      "to": "item/resource-feather",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

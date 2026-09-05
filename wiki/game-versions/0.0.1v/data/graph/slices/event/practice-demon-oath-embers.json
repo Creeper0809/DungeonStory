@@ -1,0 +1,65 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "practice-demon-oath-embers",
+    "spoiler_tier": "none",
+    "title": "맹세의 잿불"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/practice-demon-oath-embers",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-demon-oath-embers",
+      "target_spoiler_tier": "none",
+      "target_title": "맹세의 잿불",
+      "to": "event/practice-demon-oath-embers",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "1",
+      "from": "event/practice-demon-oath-embers",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-demon-oath-embers",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-demon-oath-embers",
+      "target_spoiler_tier": "none",
+      "target_title": "맹세의 잿불",
+      "to": "event/practice-demon-oath-embers",
+      "type": "sets-world-flag"
+    },
+    {
+      "amount": "-2",
+      "from": "event/practice-demon-oath-embers",
+      "label": "연결",
+      "to": "event/practice-demon-oath-embers",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-demon-oath-embers",
+      "label": "연결",
+      "to": "event/practice-demon-oath-embers",
+      "type": "sets-world-flag"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-demon-contract",
+      "label": "관련",
+      "to": "event/practice-demon-oath-embers",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

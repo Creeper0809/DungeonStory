@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "50"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "가축의 짝짓기, 출산과 형질을 세대별로 기록해 다음 번식을 계획하는 장부다. 오르데나의 번식 장부는 가족을 혈통 칸에 맞추며 다른 종족이 함께 기른 아이의 양육 기록을 여백으로 밀어냈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "record-breeding-ledger",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 번식 장부.",
+  "title": "번식 장부"
+}

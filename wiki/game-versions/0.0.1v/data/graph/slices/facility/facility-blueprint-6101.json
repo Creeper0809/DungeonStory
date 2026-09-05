@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "facility-blueprint-6101",
+    "spoiler_tier": "none",
+    "title": "상업 확장 설계도"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6101",
+      "label": "관련",
+      "target_kind": "research",
+      "target_slug": "research-commerce-expansion",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 확장",
+      "to": "research/research-commerce-expansion",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-commerce-expansion",
+      "label": "관련",
+      "to": "facility/facility-blueprint-6101",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

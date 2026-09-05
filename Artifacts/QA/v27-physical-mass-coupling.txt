@@ -1,0 +1,13 @@
+RESULT=PASS; phase=physical-mass-parent-coupling; assetMutations=0
+currentSourceDigest=dbbb579489fc250289acff5a048f35fee150450a5f933dd5535a3ccb24e7fe62; currentSourceInputCount=3236; currentSourcePathListDigest=3fc6b7ae15ac7744a754eb7ab63fb03c0850c688646bc8d57f8d20ad65365802
+gameplaySceneSha256=6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40; currentSourceParent=PASS
+items=415; recipes=355; buildings=419; rows=30799; changedRows=0; changedMassRoots=0
+warehouseGramEligibility=PASS; warehouseCapacityUnitsFit=PASS; maxStackAndOrdinaryHaul=PASS
+facilityInputAuthority=PASS; facilityOutputAuthority=PASS; facilityOutputBufferCycleCapacity=PASS
+ewuAcquisitionRecoverable=PASS; marketPriceSaleRate=PASS; rootlessDelta=0; critical=0
+scopeAuthority=dynamic-catalog-exact-set-bijection; productionMassIdSwitches=0; proposalMode=AuditOnly
+sort=stableId,impactDomain,consumerKind,consumerStableId,metric:ordinal; deterministicRecapture=PASS; inputShuffle=PASS; byteIdentical=true
+secondWriteNoOp=PASS; byteDiff=0; lengthDiff=0; mtimeDiff=0
+normalizedKeyDigest=c64ee800600eaa1bb70e1525609c8fac7637f0c3f0f9fcb93d2bad750818893e
+normalizedValueDigest=9671cd7233461a97bc2f2d01b968fdd50d19ef30b18805f37c800f26dc83cd23
+exitGate=CURRENT_SOURCE_COUPLING_AND_SECOND_WRITE_NOOP_PASS

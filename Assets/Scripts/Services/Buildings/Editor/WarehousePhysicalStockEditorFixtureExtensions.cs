@@ -20,8 +20,11 @@ public static class WarehousePhysicalStockEditorFixtureExtensions
         int amount)
     {
         if (inventory == null || !inventory.Accepts(category)) return 0;
-        int accepted = Mathf.Min(Mathf.Max(0, amount), inventory.RemainingCapacity);
-        RequirePhysicalStock(inventory).Add(category, accepted);
+        FixturePhysicalStock stock = RequirePhysicalStock(inventory);
+        int accepted = (int)Math.Min(
+            Math.Max(0, amount),
+            Math.Min(int.MaxValue, inventory.RemainingMassGrams));
+        stock.Add(category, accepted);
         return accepted;
     }
 

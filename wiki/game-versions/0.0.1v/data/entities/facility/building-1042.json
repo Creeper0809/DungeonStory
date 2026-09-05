@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "특수"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1042",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 욕구 회복, 훈련이다. 건설에는 작업량 324, 재료 석재 블록×9, 철괴×2이 필요하다.",
+  "title": "중량훈련석"
+}

@@ -1,0 +1,66 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-bone-charm",
+    "spoiler_tier": "none",
+    "title": "뼈뿔 장신구"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bone-charm",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "craft-bone-charm",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈뿔 장신구",
+      "to": "item/craft-bone-charm",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bone-charm",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-fang",
+      "target_spoiler_tier": "none",
+      "target_title": "송곳니",
+      "to": "item/resource-fang",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-bone-charm",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-horn",
+      "target_spoiler_tier": "none",
+      "target_title": "뿔",
+      "to": "item/resource-horn",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-bone-charm",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-bone",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈",
+      "to": "item/resource-bone",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bone-charm",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-authority-prestige",
+      "target_spoiler_tier": "none",
+      "target_title": "장식과 위신",
+      "to": "research/research-authority-prestige",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

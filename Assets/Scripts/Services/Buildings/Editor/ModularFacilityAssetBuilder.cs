@@ -684,12 +684,16 @@ public static class ModularFacilityAssetBuilder
         };
         return string.IsNullOrWhiteSpace(tag)
             ? null
-            : new BuildingProductionWorkstationAbility
-            {
-                workstationTag = tag,
-                stockSensorInstallationItemId =
-                    "component:stock-sensor-panel"
-            };
+             : new BuildingProductionWorkstationAbility
+             {
+                 workstationTag = tag,
+                 stockSensorInstallationItemId =
+                     "component:stock-sensor-panel",
+                 lanePolicy = ProductionWorkstationLanePolicy
+                     .ManualWithDetachedBatchProcessors,
+                 manualWorkLaneCount = 1,
+                 automaticWorkLaneCount = 0
+             };
     }
 
     private static BuildingMercenaryHiringAbility

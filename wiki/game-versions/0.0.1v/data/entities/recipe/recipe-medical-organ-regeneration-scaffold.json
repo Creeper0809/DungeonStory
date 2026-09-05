@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "34"
+    },
+    {
+      "label": "필요 연구",
+      "value": "장기 재생"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-organ-regeneration-scaffold",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 재생 골격",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-mycelial-culture-pack",
+      "target_spoiler_tier": "none",
+      "target_title": "균사 배양 팩",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-sterile-composite",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 복합재",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-organ-regeneration",
+      "target_spoiler_tier": "none",
+      "target_title": "장기 재생",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-medical-organ-regeneration-scaffold",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 장기 재생 골격을(를) 생산한다.",
+  "title": "장기 재생 골격"
+}

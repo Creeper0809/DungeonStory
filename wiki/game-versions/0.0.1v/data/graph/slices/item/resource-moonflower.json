@@ -1,0 +1,53 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "resource-moonflower",
+    "spoiler_tier": "none",
+    "title": "월화"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-herbal-poultice",
+      "label": "필요 조건",
+      "to": "item/resource-moonflower",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-mana-awakener",
+      "label": "필요 조건",
+      "to": "item/resource-moonflower",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-moonflower-tea",
+      "label": "필요 조건",
+      "to": "item/resource-moonflower",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-resin-balm",
+      "label": "필요 조건",
+      "to": "item/resource-moonflower",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-standard-medicine",
+      "label": "필요 조건",
+      "to": "item/resource-moonflower",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-advanced-medicine",
+      "label": "필요 조건",
+      "to": "item/resource-moonflower",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

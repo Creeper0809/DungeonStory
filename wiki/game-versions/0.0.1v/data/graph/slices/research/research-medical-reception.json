@@ -1,0 +1,162 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-medical-reception",
+    "spoiler_tier": "none",
+    "title": "의료 접수"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-reception",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-service-flow",
+      "target_spoiler_tier": "none",
+      "target_title": "서비스 동선",
+      "to": "research/research-service-flow",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reception",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-service-flow",
+      "target_spoiler_tier": "none",
+      "target_title": "서비스 동선",
+      "to": "research/research-service-flow",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reception",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-service-flow",
+      "target_spoiler_tier": "none",
+      "target_title": "서비스 동선",
+      "to": "research/research-service-flow",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reception",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reception",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reception",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-medical",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 회복",
+      "to": "research/research-survival-medical",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reception",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1702",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 분류대",
+      "to": "facility/building-1702",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-reception",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1711",
+      "target_spoiler_tier": "none",
+      "target_title": "의료 호출판",
+      "to": "facility/building-1711",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-health-isolation-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-trauma-medicine",
+      "label": "선행 연구",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-automation",
+      "label": "선행 연구",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-automation",
+      "label": "선행 연구",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-service-automation",
+      "label": "선행 연구",
+      "to": "research/research-medical-reception",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,143 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-arc-myconid",
+    "spoiler_tier": "warning",
+    "title": "균사정원"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-myconid-1",
+      "target_spoiler_tier": "warning",
+      "target_title": "낯선 향의 사절",
+      "to": "event/faction-chapter-myconid-1",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-myconid-2",
+      "target_spoiler_tier": "warning",
+      "target_title": "갈색으로 변한 기억",
+      "to": "event/faction-chapter-myconid-2",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-myconid-3",
+      "target_spoiler_tier": "warning",
+      "target_title": "무리의 불길",
+      "to": "event/faction-chapter-myconid-3",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-myconid-4",
+      "target_spoiler_tier": "warning",
+      "target_title": "어디까지 잘라낼까",
+      "to": "event/faction-chapter-myconid-4",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-myconid-5",
+      "target_spoiler_tier": "warning",
+      "target_title": "조상균의 개화",
+      "to": "event/faction-chapter-myconid-5",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-chapter-myconid-6",
+      "target_spoiler_tier": "warning",
+      "target_title": "새 정원의 경계",
+      "to": "event/faction-chapter-myconid-6",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-myconid-crisis",
+      "target_spoiler_tier": "none",
+      "target_title": "균사정원 위기 대응 계약",
+      "to": "event/faction-contract-myconid-crisis",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-myconid-strategic",
+      "target_spoiler_tier": "none",
+      "target_title": "균사정원 장기 전략 계약",
+      "to": "event/faction-contract-myconid-strategic",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "faction-contract-myconid-supply",
+      "target_spoiler_tier": "none",
+      "target_title": "균사정원 정기 물자 계약",
+      "to": "event/faction-contract-myconid-supply",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-myconid-1",
+      "target_spoiler_tier": "none",
+      "target_title": "첫포자 기억병",
+      "to": "item/relic-faction-myconid-1",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-myconid-2",
+      "target_spoiler_tier": "none",
+      "target_title": "균맥 절단칼",
+      "to": "item/relic-faction-myconid-2",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-myconid",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "relic-faction-myconid-3",
+      "target_spoiler_tier": "none",
+      "target_title": "새정원 배양편",
+      "to": "item/relic-faction-myconid-3",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

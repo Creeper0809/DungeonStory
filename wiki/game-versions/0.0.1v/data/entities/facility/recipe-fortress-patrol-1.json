@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1045",
+      "target_spoiler_tier": "none",
+      "target_title": "경보종",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1068",
+      "target_spoiler_tier": "none",
+      "target_title": "세력깃발",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1046",
+      "target_spoiler_tier": "none",
+      "target_title": "순찰상황판",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-fortress-patrol-1",
+  "spoiler_tier": "none",
+  "summary": "경보종의 신호 체계와 세력깃발의 표식을 합쳐 순찰상황판을 만든다.",
+  "title": "순찰상황판 제작"
+}

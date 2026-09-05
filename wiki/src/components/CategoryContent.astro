@@ -1,0 +1,13 @@
+---
+import EntityCatalogue from './EntityCatalogue.astro';
+import { type Category, type WikiEntity } from '../lib/wiki-data';
+interface Props { category: Category; entities: WikiEntity[]; version?: string; historical?: boolean }
+const { category, entities, version, historical = false } = Astro.props;
+const byUrl = new Map(entities.map((entity) => [`${entity.kind}/${entity.slug}`, entity]));
+const entries = category.entries
+  .filter((entry) => entry.spoiler_tier === 'none')
+  .map((entry) => byUrl.get(`${entry.kind}/${entry.slug}`))
+  .filter((entry): entry is WikiEntity => Boolean(entry));
+---
+
+<EntityCatalogue title={category.label} description={`현재 게임 버전에서 확인된 공개 항목 ${entries.length}개를 유형과 이름으로 찾아볼 수 있다.`} entries={entries} version={version} historical={historical} />

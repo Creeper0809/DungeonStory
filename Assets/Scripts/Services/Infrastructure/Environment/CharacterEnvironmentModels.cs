@@ -61,7 +61,7 @@ public sealed class EnvironmentalWorkwearSaveData
 [Serializable]
 public sealed class DungeonCharacterEnvironmentSaveData
 {
-    public const int CurrentVersion = 9;
+    public const int CurrentVersion = 11;
 
     public int version = CurrentVersion;
     // Arrays intentionally have no initializer. Unity JsonUtility preserves a

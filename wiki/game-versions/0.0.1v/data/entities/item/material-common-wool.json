@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.24kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "100개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "13"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "일반 모직은 의복과 안감, 생활용 천을 재단하는 직물 재료다. 노르칸드라 상단은 일반 모직을 하르나크 재단소에 넘길 때 뿔, 날개와 꼬리용 재단 여유를 따로 표시한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-common-wool",
+  "spoiler_tier": "none",
+  "summary": "일반 모직 물리 원단. 품질 등급과 Ready/Wet/Contaminated 상태로 병합된다.",
+  "title": "일반 모직"
+}

@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import { getCurrentVersion } from '../lib/wiki-data';
+const version = getCurrentVersion();
+---
+
+<BaseLayout title="검색" version={version}>
+  <section class="search-page">
+    <p class="eyebrow">문서 검색</p>
+    <h1>문서 검색</h1>
+    <p>검색 결과는 현재 공개된 문서만 대상으로 하며, 스포일러 보호 문서는 기본 결과에서 제외한다.</p>
+    <form class="search-form" data-search-form><label class="sr-only" for="wiki-search">검색어</label><input id="wiki-search" type="search" placeholder="아이템, 시설, 연구 이름 검색" autocomplete="off" /><button class="button" type="submit">검색</button></form>
+    <p data-search-status aria-live="polite">이름이나 시스템을 입력하면 찾는다.</p>
+    <div class="search-results" data-search-results></div>
+  </section>
+  <script is:inline type="module" src="/scripts/search.js"></script>
+</BaseLayout>

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "655360"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "15단계 촉매를 분해해 얻은 불순물이 거의 없는 분말이다. 범용 촉매 잔재 진행 15 · 4등급은 하르나크의 작업대에서 정제하거나 같은 진행대의 재료와 합친다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "evolution-residue-15",
+  "spoiler_tier": "none",
+  "summary": "촉매를 분해해 얻은 잔재. 정제하거나 다음 진행 단계로 합칠 수 있다.",
+  "title": "범용 촉매 잔재 진행 15 · 4등급"
+}

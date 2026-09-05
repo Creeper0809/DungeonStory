@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-flour",
+    "spoiler_tier": "none",
+    "title": "밀가루"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-egg-pancake",
+      "label": "필요 조건",
+      "to": "item/material-flour",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-dough",
+      "label": "필요 조건",
+      "to": "item/material-flour",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-lavish-vegan",
+      "label": "필요 조건",
+      "to": "item/material-flour",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-milling-flour",
+      "label": "생산·해금",
+      "to": "item/material-flour",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-ration-mixture",
+      "label": "필요 조건",
+      "to": "item/material-flour",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

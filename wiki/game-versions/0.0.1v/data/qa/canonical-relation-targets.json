@@ -1,0 +1,1411 @@
+{
+  "records": [
+    {
+      "candidates": [
+        {
+          "content_type": "AgeConditionDefinitionSO",
+          "kind": "character",
+          "slug": "condition-core-corrosion",
+          "title": "핵 부식"
+        },
+        {
+          "content_type": "DiseaseDefinitionSO",
+          "kind": "medical",
+          "slug": "condition-core-corrosion",
+          "title": "핵 부식"
+        }
+      ],
+      "canonical_kind": "medical",
+      "canonical_slug": "condition-core-corrosion",
+      "stable_id": "condition:core-corrosion"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-articulated-plate",
+          "title": "관절식 판금갑"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-articulated-plate",
+          "title": "관절식 판금갑"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-articulated-plate",
+      "stable_id": "equipment-item:armor:articulated-plate"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-blacksteel-carapace",
+          "title": "흑강 갑각"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-blacksteel-carapace",
+          "title": "흑강 갑각"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-blacksteel-carapace",
+      "stable_id": "equipment-item:armor:blacksteel-carapace"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-blast-coat",
+          "title": "방폭 외투"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-blast-coat",
+          "title": "방폭 외투"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-blast-coat",
+      "stable_id": "equipment-item:armor:blast-coat"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-breastplate",
+          "title": "철 흉갑"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-breastplate",
+          "title": "철 흉갑"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-breastplate",
+      "stable_id": "equipment-item:armor:breastplate"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-brigandine",
+          "title": "브리간딘"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-brigandine",
+          "title": "브리간딘"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-brigandine",
+      "stable_id": "equipment-item:armor:brigandine"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-closed-plate-helm",
+          "title": "폐쇄형 판금 투구"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-closed-plate-helm",
+          "title": "폐쇄형 판금 투구"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-closed-plate-helm",
+      "stable_id": "equipment-item:armor:closed-plate-helm"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-cloth-hood",
+          "title": "천 후드"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-cloth-hood",
+          "title": "천 후드"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-cloth-hood",
+      "stable_id": "equipment-item:armor:cloth-hood"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-gambeson",
+          "title": "누비옷"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-gambeson",
+          "title": "누비옷"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-gambeson",
+      "stable_id": "equipment-item:armor:gambeson"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-hardened-leather-coat",
+          "title": "경화 가죽 외투"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-hardened-leather-coat",
+          "title": "경화 가죽 외투"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-hardened-leather-coat",
+      "stable_id": "equipment-item:armor:hardened-leather-coat"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-iron-helmet",
+          "title": "철 투구"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-iron-helmet",
+          "title": "철 투구"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-iron-helmet",
+      "stable_id": "equipment-item:armor:iron-helmet"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-jack-of-plates",
+          "title": "잭 오브 플레이트"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-jack-of-plates",
+          "title": "잭 오브 플레이트"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-jack-of-plates",
+      "stable_id": "equipment-item:armor:jack-of-plates"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-leather",
+          "title": "가죽 갑옷"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-leather",
+          "title": "가죽 갑옷"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-leather",
+      "stable_id": "equipment-item:armor:leather"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-leather-cap",
+          "title": "가죽 모자"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-leather-cap",
+          "title": "가죽 모자"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-leather-cap",
+      "stable_id": "equipment-item:armor:leather-cap"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-mail-coif",
+          "title": "사슬 두건"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-mail-coif",
+          "title": "사슬 두건"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-mail-coif",
+      "stable_id": "equipment-item:armor:mail-coif"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-mail-shirt",
+          "title": "사슬 갑옷"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-mail-shirt",
+          "title": "사슬 갑옷"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-mail-shirt",
+      "stable_id": "equipment-item:armor:mail-shirt"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-padded-hood",
+          "title": "누비 두건"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-padded-hood",
+          "title": "누비 두건"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-padded-hood",
+      "stable_id": "equipment-item:armor:padded-hood"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-powder-cuirass",
+          "title": "화약수 흉갑"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-powder-cuirass",
+          "title": "화약수 흉갑"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-powder-cuirass",
+      "stable_id": "equipment-item:armor:powder-cuirass"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-powered-harness",
+          "title": "동력 보조 갑주"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-powered-harness",
+          "title": "동력 보조 갑주"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-powered-harness",
+      "stable_id": "equipment-item:armor:powered-harness"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-rune-ward-mail",
+          "title": "룬 수호 사슬갑옷"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-rune-ward-mail",
+          "title": "룬 수호 사슬갑옷"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-rune-ward-mail",
+      "stable_id": "equipment-item:armor:rune-ward-mail"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-scale-coat",
+          "title": "비늘 외투"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-scale-coat",
+          "title": "비늘 외투"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-scale-coat",
+      "stable_id": "equipment-item:armor:scale-coat"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatArmorSO",
+          "kind": "combat",
+          "slug": "equipment-item-armor-smoke-hood",
+          "title": "연기 두건"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-armor-smoke-hood",
+          "title": "연기 두건"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-armor-smoke-hood",
+      "stable_id": "equipment-item:armor:smoke-hood"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatShieldSO",
+          "kind": "combat",
+          "slug": "equipment-item-shield-blacksteel",
+          "title": "흑강 방패"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-shield-blacksteel",
+          "title": "흑강 방패"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-shield-blacksteel",
+      "stable_id": "equipment-item:shield:blacksteel"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatShieldSO",
+          "kind": "combat",
+          "slug": "equipment-item-shield-buckler",
+          "title": "버클러"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-shield-buckler",
+          "title": "버클러"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-shield-buckler",
+      "stable_id": "equipment-item:shield:buckler"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatShieldSO",
+          "kind": "combat",
+          "slug": "equipment-item-shield-iron",
+          "title": "철 방패"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-shield-iron",
+          "title": "철 방패"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-shield-iron",
+      "stable_id": "equipment-item:shield:iron"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatShieldSO",
+          "kind": "combat",
+          "slug": "equipment-item-shield-mana-buckler",
+          "title": "마나 버클러"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-shield-mana-buckler",
+          "title": "마나 버클러"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-shield-mana-buckler",
+      "stable_id": "equipment-item:shield:mana-buckler"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatShieldSO",
+          "kind": "combat",
+          "slug": "equipment-item-shield-pavise",
+          "title": "파비스"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-shield-pavise",
+          "title": "파비스"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-shield-pavise",
+      "stable_id": "equipment-item:shield:pavise"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatShieldSO",
+          "kind": "combat",
+          "slug": "equipment-item-shield-powered",
+          "title": "동력 방패"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-shield-powered",
+          "title": "동력 방패"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-shield-powered",
+      "stable_id": "equipment-item:shield:powered"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatShieldSO",
+          "kind": "combat",
+          "slug": "equipment-item-shield-rune",
+          "title": "룬 방패"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-shield-rune",
+          "title": "룬 방패"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-shield-rune",
+      "stable_id": "equipment-item:shield:rune"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatShieldSO",
+          "kind": "combat",
+          "slug": "equipment-item-shield-tower",
+          "title": "대형 방패"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-shield-tower",
+          "title": "대형 방패"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-shield-tower",
+      "stable_id": "equipment-item:shield:tower"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatShieldSO",
+          "kind": "combat",
+          "slug": "equipment-item-shield-wood",
+          "title": "나무 방패"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-shield-wood",
+          "title": "나무 방패"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-shield-wood",
+      "stable_id": "equipment-item:shield:wood"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-arquebus",
+          "title": "아쿼버스"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-arquebus",
+          "title": "아쿼버스"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-arquebus",
+      "stable_id": "equipment-item:weapon:arquebus"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-blacksteel-poleaxe",
+          "title": "흑강 폴액스"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-blacksteel-poleaxe",
+          "title": "흑강 폴액스"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-blacksteel-poleaxe",
+      "stable_id": "equipment-item:weapon:blacksteel-poleaxe"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-composite-bow",
+          "title": "복합궁"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-composite-bow",
+          "title": "복합궁"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-composite-bow",
+      "stable_id": "equipment-item:weapon:composite-bow"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-crossbow",
+          "title": "석궁"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-crossbow",
+          "title": "석궁"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-crossbow",
+      "stable_id": "equipment-item:weapon:crossbow"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-dagger",
+          "title": "단검"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-dagger",
+          "title": "단검"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-dagger",
+      "stable_id": "equipment-item:weapon:dagger"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-estoc",
+          "title": "에스터크"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-estoc",
+          "title": "에스터크"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-estoc",
+      "stable_id": "equipment-item:weapon:estoc"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-falchion",
+          "title": "팔시온"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-falchion",
+          "title": "팔시온"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-falchion",
+      "stable_id": "equipment-item:weapon:falchion"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-greatsword",
+          "title": "대검"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-greatsword",
+          "title": "대검"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-greatsword",
+      "stable_id": "equipment-item:weapon:greatsword"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-halberd",
+          "title": "할버드"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-halberd",
+          "title": "할버드"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-halberd",
+      "stable_id": "equipment-item:weapon:halberd"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-handgonne",
+          "title": "수총"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-handgonne",
+          "title": "수총"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-handgonne",
+      "stable_id": "equipment-item:weapon:handgonne"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-heavy-matchlock",
+          "title": "중화승총"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-heavy-matchlock",
+          "title": "중화승총"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-heavy-matchlock",
+      "stable_id": "equipment-item:weapon:heavy-matchlock"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-javelin",
+          "title": "투창"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-javelin",
+          "title": "투창"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-javelin",
+      "stable_id": "equipment-item:weapon:javelin"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-longbow",
+          "title": "장궁"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-longbow",
+          "title": "장궁"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-longbow",
+      "stable_id": "equipment-item:weapon:longbow"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-longsword",
+          "title": "장검"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-longsword",
+          "title": "장검"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-longsword",
+      "stable_id": "equipment-item:weapon:longsword"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-mace",
+          "title": "철퇴"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-mace",
+          "title": "철퇴"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-mace",
+      "stable_id": "equipment-item:weapon:mace"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-mana-lance",
+          "title": "마나 랜스"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-mana-lance",
+          "title": "마나 랜스"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-mana-lance",
+      "stable_id": "equipment-item:weapon:mana-lance"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-matchlock-long-gun",
+          "title": "화승 장총"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-matchlock-long-gun",
+          "title": "화승 장총"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-matchlock-long-gun",
+      "stable_id": "equipment-item:weapon:matchlock-long-gun"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-matchlock-pistol",
+          "title": "화승 권총"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-matchlock-pistol",
+          "title": "화승 권총"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-matchlock-pistol",
+      "stable_id": "equipment-item:weapon:matchlock-pistol"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-pollaxe",
+          "title": "폴액스"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-pollaxe",
+          "title": "폴액스"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-pollaxe",
+      "stable_id": "equipment-item:weapon:pollaxe"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-powered-striking-gauntlet",
+          "title": "동력 타격장갑"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-powered-striking-gauntlet",
+          "title": "동력 타격장갑"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-powered-striking-gauntlet",
+      "stable_id": "equipment-item:weapon:powered-striking-gauntlet"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-repeating-crossbow",
+          "title": "반복 석궁"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-repeating-crossbow",
+          "title": "반복 석궁"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-repeating-crossbow",
+      "stable_id": "equipment-item:weapon:repeating-crossbow"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-rune-blade",
+          "title": "룬검"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-rune-blade",
+          "title": "룬검"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-rune-blade",
+      "stable_id": "equipment-item:weapon:rune-blade"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-rune-bow",
+          "title": "룬 활"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-rune-bow",
+          "title": "룬 활"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-rune-bow",
+      "stable_id": "equipment-item:weapon:rune-bow"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-shortbow",
+          "title": "단궁"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-shortbow",
+          "title": "단궁"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-shortbow",
+      "stable_id": "equipment-item:weapon:shortbow"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-shotgun",
+          "title": "산탄총"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-shotgun",
+          "title": "산탄총"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-shotgun",
+      "stable_id": "equipment-item:weapon:shotgun"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-siege-arbalest",
+          "title": "공성 쇠뇌"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-siege-arbalest",
+          "title": "공성 쇠뇌"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-siege-arbalest",
+      "stable_id": "equipment-item:weapon:siege-arbalest"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-sniper-arquebus",
+          "title": "저격 아쿼버스"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-sniper-arquebus",
+          "title": "저격 아쿼버스"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-sniper-arquebus",
+      "stable_id": "equipment-item:weapon:sniper-arquebus"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-spear",
+          "title": "창"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-spear",
+          "title": "창"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-spear",
+      "stable_id": "equipment-item:weapon:spear"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-throwing-axe",
+          "title": "투척도끼"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-throwing-axe",
+          "title": "투척도끼"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-throwing-axe",
+      "stable_id": "equipment-item:weapon:throwing-axe"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-warhammer",
+          "title": "전투망치"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-warhammer",
+          "title": "전투망치"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-warhammer",
+      "stable_id": "equipment-item:weapon:warhammer"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "CombatWeaponSO",
+          "kind": "combat",
+          "slug": "equipment-item-weapon-windlass-crossbow",
+          "title": "권양 석궁"
+        },
+        {
+          "content_type": "GenericItemDefinitionSO",
+          "kind": "item",
+          "slug": "equipment-item-weapon-windlass-crossbow",
+          "title": "권양 석궁"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "equipment-item-weapon-windlass-crossbow",
+      "stable_id": "equipment-item:weapon:windlass-crossbow"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "material-blacksteel-ingot",
+          "title": "흑강"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "material-blacksteel-ingot",
+          "title": "흑강"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "material-blacksteel-ingot",
+      "stable_id": "material:blacksteel-ingot"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "material-cloth",
+          "title": "천"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "material-cloth",
+          "title": "천"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "material-cloth",
+      "stable_id": "material:cloth"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "material-dreamweave",
+          "title": "몽직물"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "material-dreamweave",
+          "title": "몽직물"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "material-dreamweave",
+      "stable_id": "material:dreamweave"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "material-gold-ingot",
+          "title": "금괴"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "material-gold-ingot",
+          "title": "금"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "material-gold-ingot",
+      "stable_id": "material:gold-ingot"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "material-iron-ingot",
+          "title": "철괴"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "material-iron-ingot",
+          "title": "철"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "material-iron-ingot",
+      "stable_id": "material:iron-ingot"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "material-leather",
+          "title": "가죽"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "material-leather",
+          "title": "가죽"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "material-leather",
+      "stable_id": "material:leather"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "material-lumber",
+          "title": "목재"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "material-lumber",
+          "title": "목재"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "material-lumber",
+      "stable_id": "material:lumber"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "material-rune-leather",
+          "title": "룬가죽"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "material-rune-leather",
+          "title": "룬가죽"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "material-rune-leather",
+      "stable_id": "material:rune-leather"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "material-steel-ingot",
+          "title": "강철"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "material-steel-ingot",
+          "title": "강철"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "material-steel-ingot",
+      "stable_id": "material:steel-ingot"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "material-stone-block",
+          "title": "석재 블록"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "material-stone-block",
+          "title": "석재"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "material-stone-block",
+      "stable_id": "material:stone-block"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "resource-bone",
+          "title": "뼈"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "resource-bone",
+          "title": "뼈·뿔"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "resource-bone",
+      "stable_id": "resource:bone"
+    },
+    {
+      "candidates": [
+        {
+          "content_type": "ResourceItemDefinitionSO",
+          "kind": "item",
+          "slug": "resource-wool",
+          "title": "털"
+        },
+        {
+          "content_type": "CraftMaterialDefinitionSO",
+          "kind": "world",
+          "slug": "resource-wool",
+          "title": "털"
+        }
+      ],
+      "canonical_kind": "item",
+      "canonical_slug": "resource-wool",
+      "stable_id": "resource:wool"
+    }
+  ],
+  "schema_version": 1
+}

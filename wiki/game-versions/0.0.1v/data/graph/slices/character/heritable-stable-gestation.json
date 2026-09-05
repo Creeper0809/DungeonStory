@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "heritable-stable-gestation",
+    "spoiler_tier": "none",
+    "title": "안정 임신"
+  },
+  "edges": [],
+  "schema_version": 1
+}

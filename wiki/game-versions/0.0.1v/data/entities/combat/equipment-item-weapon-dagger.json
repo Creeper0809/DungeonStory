@@ -1,0 +1,25 @@
+{
+  "facts": [
+    {
+      "label": "제작 작업",
+      "value": "28"
+    },
+    {
+      "label": "무게",
+      "value": "0.7kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-dagger",
+  "spoiler_tier": "none",
+  "summary": "단검 전투 장비",
+  "title": "단검"
+}

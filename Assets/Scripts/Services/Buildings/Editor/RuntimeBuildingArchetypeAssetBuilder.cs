@@ -16,6 +16,7 @@ public static class RuntimeBuildingArchetypeAssetBuilder
         Configure(
             GetOrCreate("WorldResourceNode"),
             RuntimeBuildingArchetypeIds.WorldResourceNode,
+            RuntimeBuildingArchetypeIds.WorldResourceNodeContentId,
             "외부 자원",
             GridLayer.FloorOverlay,
             BuildingCategory.Resource,
@@ -28,6 +29,7 @@ public static class RuntimeBuildingArchetypeAssetBuilder
         Configure(
             GetOrCreate("WorldFilthWorkTarget"),
             RuntimeBuildingArchetypeIds.WorldFilthWorkTarget,
+            RuntimeBuildingArchetypeIds.WorldFilthWorkTargetContentId,
             "오염",
             GridLayer.Filth,
             BuildingCategory.Special,
@@ -42,6 +44,9 @@ public static class RuntimeBuildingArchetypeAssetBuilder
                 Configure(
                     definition,
                     RuntimeBuildingArchetypeIds.ExteriorZone(zoneType, layer),
+                    RuntimeBuildingArchetypeIds.ExteriorZoneContentId(
+                        zoneType,
+                        layer),
                     DisplayName(zoneType),
                     layer,
                     BuildingCategory.Special,
@@ -59,9 +64,44 @@ public static class RuntimeBuildingArchetypeAssetBuilder
         Debug.Log("Authored immutable runtime building archetypes and rebuilt the root content catalog.");
     }
 
+    public static void MigrateExistingContentIdentitiesFromBatchMode()
+    {
+        if (!Application.isBatchMode)
+        {
+            throw new InvalidOperationException(
+                "Runtime archetype identity-only migration is reserved for explicit batchmode execution.");
+        }
+
+        int changed = 0;
+        changed += ConfigureIdentityIfChanged(
+            RequireExisting("WorldResourceNode"),
+            RuntimeBuildingArchetypeIds.WorldResourceNodeContentId);
+        changed += ConfigureIdentityIfChanged(
+            RequireExisting("WorldFilthWorkTarget"),
+            RuntimeBuildingArchetypeIds.WorldFilthWorkTargetContentId);
+        foreach (ExteriorZoneType zoneType in Enum.GetValues(typeof(ExteriorZoneType)))
+        {
+            foreach (GridLayer layer in ExteriorLayers())
+            {
+                changed += ConfigureIdentityIfChanged(
+                    RequireExisting($"Exterior_{zoneType}_{layer}"),
+                    RuntimeBuildingArchetypeIds.ExteriorZoneContentId(
+                        zoneType,
+                        layer));
+            }
+        }
+
+        if (changed != 0)
+            AssetDatabase.SaveAssets();
+        Debug.Log(
+            "Runtime building archetype content identities are canonical; changed="
+            + changed + ".");
+    }
+
     private static void Configure(
         BuildingSO definition,
         int id,
+        string contentDefinitionId,
         string displayName,
         GridLayer layer,
         BuildingCategory category,
@@ -69,6 +109,7 @@ public static class RuntimeBuildingArchetypeAssetBuilder
         bool addWorkAnchor = false)
     {
         definition.id = id;
+        ConfigureIdentityIfChanged(definition, contentDefinitionId);
         definition.objectName = displayName;
         definition.width = 1;
         definition.height = 1;
@@ -209,6 +250,41 @@ public static class RuntimeBuildingArchetypeAssetBuilder
         definition = ScriptableObject.CreateInstance<BuildingSO>();
         AssetDatabase.CreateAsset(definition, path);
         return definition;
+    }
+
+    private static BuildingSO RequireExisting(string name)
+    {
+        string path = $"{Folder}/{name}.asset";
+        return AssetDatabase.LoadAssetAtPath<BuildingSO>(path)
+            ?? throw new InvalidOperationException(
+                "Required runtime building archetype asset is missing: " + path);
+    }
+
+    private static int ConfigureIdentityIfChanged(
+        BuildingSO definition,
+        string contentDefinitionId)
+    {
+        const string sourceNote =
+            "Generated immutable runtime building archetype authority.";
+        if (string.Equals(
+                definition.ContentDefinitionId,
+                contentDefinitionId,
+                StringComparison.Ordinal)
+            && definition.AuthoringRevision == 1
+            && string.Equals(
+                definition.SourceNote,
+                sourceNote,
+                StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        definition.ConfigureAuthoredContentIdentity(
+            contentDefinitionId,
+            1,
+            sourceNote);
+        EditorUtility.SetDirty(definition);
+        return 1;
     }
 
     private static void EnsureFolders()

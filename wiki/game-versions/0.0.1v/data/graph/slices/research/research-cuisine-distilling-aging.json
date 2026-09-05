@@ -1,0 +1,102 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-cuisine-distilling-aging",
+    "spoiler_tier": "none",
+    "title": "주류 증류·숙성"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "to": "research/research-cuisine-fermentation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-distillation",
+      "target_spoiler_tier": "none",
+      "target_title": "증류",
+      "to": "research/research-pharmacology-distillation",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-cuisine-distilling-aging",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1606",
+      "target_spoiler_tier": "none",
+      "target_title": "분별 증류탑",
+      "to": "facility/building-1606",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-alcohol",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-distilling-aging",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-night-spirit",
+      "label": "필요 조건",
+      "to": "research/research-cuisine-distilling-aging",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

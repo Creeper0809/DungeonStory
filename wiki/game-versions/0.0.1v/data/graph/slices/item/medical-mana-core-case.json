@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medical-mana-core-case",
+    "spoiler_tier": "none",
+    "title": "마핵 케이스"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-mana-core-case",
+      "label": "생산·해금",
+      "to": "item/medical-mana-core-case",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-demon-mana-core-suture",
+      "label": "관련",
+      "to": "item/medical-mana-core-case",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

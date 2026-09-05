@@ -1,0 +1,25 @@
+{
+  "facts": [
+    {
+      "label": "제작 작업",
+      "value": "72"
+    },
+    {
+      "label": "무게",
+      "value": "2.4kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-spear",
+  "spoiler_tier": "none",
+  "summary": "창 전투 장비",
+  "title": "창"
+}

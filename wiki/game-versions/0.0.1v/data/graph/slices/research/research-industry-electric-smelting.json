@@ -1,0 +1,141 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-electric-smelting",
+    "spoiler_tier": "none",
+    "title": "전기 제련과 산업 냉각"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-reuse",
+      "target_spoiler_tier": "none",
+      "target_title": "정수와 재이용",
+      "to": "research/research-plumbing-reuse",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-reuse",
+      "target_spoiler_tier": "none",
+      "target_title": "정수와 재이용",
+      "to": "research/research-plumbing-reuse",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-reuse",
+      "target_spoiler_tier": "none",
+      "target_title": "정수와 재이용",
+      "to": "research/research-plumbing-reuse",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8828",
+      "target_spoiler_tier": "none",
+      "target_title": "냉각 매니폴드",
+      "to": "facility/building-8828",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-smelting",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9825",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 제련 도가니",
+      "to": "facility/building-9825",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "to": "research/research-industry-electric-smelting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "to": "research/research-industry-electric-smelting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-environment-control",
+      "label": "선행 연구",
+      "to": "research/research-industry-electric-smelting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-rune-hibernation",
+      "label": "선행 연구",
+      "to": "research/research-industry-electric-smelting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-rune-hibernation",
+      "label": "선행 연구",
+      "to": "research/research-industry-electric-smelting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-rune-hibernation",
+      "label": "선행 연구",
+      "to": "research/research-industry-electric-smelting",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

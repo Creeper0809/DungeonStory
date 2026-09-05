@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "12"
+    },
+    {
+      "label": "필요 연구",
+      "value": "층상 방어구"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "apparel-spore-protection-hood",
+      "target_spoiler_tier": "none",
+      "target_title": "포자 방호 두건",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-layered",
+      "target_spoiler_tier": "none",
+      "target_title": "층상 방어구",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-v22-apparel-spore-protection-hood",
+  "spoiler_tier": "none",
+  "summary": "원섬유→원사→원단→의복의 V22 물리 생산 단계다.",
+  "title": "포자 방호 두건 재단"
+}

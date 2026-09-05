@@ -1,5 +1,35 @@
 # DungeonStory Current Findings
 
+## 2026-09-04 공개 위키 시스템·수치 누락 전수 감사
+
+- 공개 가이드는 30개다. `게임 개요`, `건강과 공동체`는 안내 허브, `세계와 정착`, `이웃 던전`은 서사 권위로 두고 나머지 규칙은 시스템별 단일 권위 문서가 소유하게 했다.
+- `시작 인원`, `재고·운반`, `생산 품질`, `시설 성장`, `이정표·런`은 한 줄짜리 연결 문서여서 실제 규칙이 없었다. 다섯 문서를 독립 권위 문서로 확장하고 `source-coverage.json`의 세부 절을 새 권위로 옮겼다.
+- 전투·욕구·포로 문서는 수치가 충분했지만 장비 역사 성장, 정상 생활 시간, 계약 부담과 세력 지원 재사용 시간이 빠져 있었다. 해당 기준과 수식을 추가했다.
+- 질병·의료·경제·사건·원정·침입·가족·손님·종족·환경·공간·저장 문서는 상태 전이와 수치가 개요에 압축돼 있었다. 실제 계산식, 처리 순서, 저장 경계와 운영 목표를 각 권위 문서에 추가했다.
+- 구현 체크리스트에는 문서 보완만으로 닫을 수 없는 항목이 남아 있다. V27 질량 전수 재조정, 연구·시설 전략 포트폴리오, 아이템·제작식 전수 물질수지, 사건의 공용 수명주기, 종족·문화 장기 차별성, 침입·원정·세력 차별성, 통합 콘텐츠 감사, 장기 런 다양성, 원인 사슬 조회, 건설 원장·기반망 복구, 전투·원정 사후 결산이 부분 이행 또는 검증 보류다.
+- 공용 전략 포트폴리오 작성 계약, 공용 사건 수명주기, 전수 콘텐츠 통합 목록과 단일 감사기, 압력 기반 사건 편성은 구현 체크리스트상 미구현이다. 공개 문서는 목표 규칙을 설명하고, 내부 감사표는 구현 상태를 별도로 기록한다.
+- 기존 위키 검증기는 권위 목적지가 하나인지와 링크가 존재하는지는 확인하지만, 본문에 수식·상태·실패·저장 항목이 실제로 들어갔는지는 판정하지 않는다. 이번 문서별 수동 감사표가 그 공백을 기록한다. 스크립트는 세션 지시에 따라 수정하지 않는다.
+
+## 2026-09-03 M06/profile blocker resolution
+
+- The fixed-turn 92-row recomputation exactly reproduced `73 accepted / 18 backpressure / 1 Critical`; M06 was the only Critical.
+- M06 needs 6,123g by the current integer formula and therefore four whole 1,800g cycles. Both count compatibility and gram capacity must be four; changing only one creates a dual-authority mismatch.
+- Historical `40/52` came from the superseded host-load-sensitive measurement epoch. It is not a gameplay invariant. The safe gate is row cardinality, zero Criticals, disposition sum, exact per-row formulas/digests and generation/strict equality.
+- The focused contributor suite required an explicit bootstrap profile source while the strict resource is intentionally absent before promotion. Ordinary production still fails loudly on a missing strict resource; only the focused preprojection test uses the explicit bootstrap source.
+- Any M06 asset change invalidates all shards through the global portfolio digest; the accompanying C# changes also alter the all-scripts digest. One fresh bootstrap and one independent strict run are therefore mandatory.
+- Knowledge-base query was stale (`content digest 33362c…`, system digest `85796e…`, failures 89), so implementation decisions were verified from current C#, the M06 asset, state files and plan/baseline authorities rather than generated indexes.
+
+## 2026-08-27 capability-driven generic output cutover findings
+
+- The last generic output family is split by a recipe-ID allowlist: only 11 recipes enter `ProductionPreparedOutputExecutionAdapter`; every other standard recipe still reaches `StandardDefinitionProductionOutputHandler` and directly commits/spawns through `IProductionOutputBufferGateway`.
+- The frozen output registry already resolves non-standard automatic capabilities before the standard definition fallback. Therefore prepared eligibility can be derived from every physical output line resolving to the standard capability; workwear and surgical stateful outputs can remain on their already idempotent common-publication handlers without recipe IDs or prefixes in the decision.
+- The prepared owner, Physical-to-Production restore join, routing owner, and Routing restore join are item-ID independent and reusable. The required cutover is the selection/profile/capacity layer, not another save graph.
+- The smallest production-real canary can reuse `PhysicalItemLogisticsPlayModeVerifier.VerifyPreparedOutputWarehouseLiveRoute`: create a temporary definition-only 250 g item and two-unit recipe, reindex the real catalogs, execute a real bill, release the FacilityBuffer batch, let actual `AIHaul` admit 500 g to a gram warehouse, then cross a current-format `CaptureAll`/`RestoreAll` boundary and assert the same UI/AI/audit visibility.
+- Fixed recipe-count audits must compare baseline plus canary delta while the temporary assets exist; adding the canary to the former 11-entry profile would itself violate the extension-closure gate.
+- Runtime selection no longer uses that allowlist: the list is empty and all production selection callsites derive the prepared path from frozen capability metadata. Remaining `Contains` references are stale Editor diagnostics, not production selection.
+- The first full profile run found one real authored defect, not a generic architecture failure: `recipe:medical-vial` alone had an empty primary proficiency. All other physical-output recipes produced a canonical semantic digest. The vial recipe now uses the same `proficiency:crafting` authority as every other forge/work:craft recipe.
+- The capability-focused Unity bundle is green with Console 0/0, but Batch A is still open because `StandardDefinitionProductionOutputHandler` retains a direct legacy commit surface, silage ruined output still has a recipe-ID branch, and the temporary production-to-AIHaul canary has not run.
+
 ## 2026-08-25 remaining storage gram rollout state
 
 - The interrupted 19-asset mass patch did not apply: the 13 legacy Modular assets still omit `maxStoredMassGrams`, while Q03/Q04/Q05, M08 and both P1 defense assets still serialize `0`. Only previously completed L01/L02 remain positive.
@@ -7085,6 +7115,12 @@ Implemented result: the repair order now keeps exact material Transfer provenanc
 - An acknowledged output needs a terminal replay fast path. Re-entering the publisher after its marker is acknowledged would incorrectly treat a valid physical output as a missing batch.
 - An owner-declared pending material receipt must never silently recreate the debit if the Items pending row is missing. Missing receipt is a conflict; acknowledged input is skipped on replay.
 
+## 2026-08-27 Combat output capability catalog finding
+
+- Base combat ammunition such as `ammo:arrow` is authored as a unified `GenericItemDefinitionSO`, not a `ResourceItemDefinitionSO`. A declared Combat ammunition capability that queries only `IResourceEconomyContentCatalog` rejects the real legacy arrow output even though the physical item catalog and combat runtime accept it.
+- Combat ammunition provenance therefore uses `IItemDefinitionCatalog` plus the declarative `AmmunitionItemFeature`. It has a dedicated `production-output-codec:combat-ammunition-state` contract and must not claim the resource-only definition codec that rejects ammunition features.
+- This closes frozen owner interpretation only. `CombatEquipmentCraftOutputOutbox` still publishes directly, so common gram reservation/publication/acknowledgement and the independent completion-effect crash window remain open.
+
 ## 2026-08-27 current execution authority recovery
 
 - Revision v5 section 0.1 and sections 16.1~16.8 supersede historical Phase ordering. The document's current weighted remaining estimate is `35~45%`, split across structural authority, content migration, live execution evidence, and final balance.
@@ -7115,3 +7151,823 @@ Implemented result: the repair order now keeps exact material Transfer provenanc
 - Batch C's current FacilityBuffer input census is `39` owner families with `3` migrated, `36` remaining, `5` direct bypasses, and `1` orphan adapter. The stored owner manifest is stale and its classification gate is partly hard-coded, so it is not current completion evidence.
 - Batch C's highest lifecycle defect is surgical-wildlife transport: cancellation clears coroutine/ID without the runtime `FailCarry` custody release, and there is no disable path. Captive-wildlife mid-carry restore can also warp the subject to the pen. A common entity-transport lease and current-cell release/restore contract remain required.
 - Batch D currently has a deterministic 414-ledger-item proposal skeleton, not the full Revision v5 generator. It does not cover the other `660` physical definitions, exact recipe branches/losses, non-recipe sinks, facility-kit origin joins, warehouse/buffer/haul impacts, or mass-root anomaly collapse. Current-revision exit gates remain open.
+
+## 2026-08-27 completion-effect exact-once design gate (preimplementation)
+
+- Current Apparel and Combat craft resolvers call `ExtremeCraftInspirationRuntime.RecordEligibleCompletion` and publish `ProductQualityResolvedEvent` only after the physical output transaction succeeds. Physical publication is therefore bounded, but completion side effects are still outside its durable receipt.
+- A persisted owner boolean is insufficient: a crash after a consumer mutates identity/inspiration state but before the owner stores the boolean duplicates the effect on restore. The implementation must put the consumer's applied-operation set in the same pointer-swapped aggregate as the mutated effect state, or provide an equivalent atomic command at that consumer boundary.
+- The shared request identity must be derived from the frozen craft attempt, not from frame time or replay order. Minimum immutable join fields are domain owner, operation ID, attempt index, maker, product definition, quality, rejected flag, day, request fingerprint, commit ID and receipt fingerprint.
+- Required phases are owner requested, each consumer atomically applied/idempotent, owner acknowledged, and checkpoint-GC eligible. Missing receipt, fingerprint drift, cross-attempt ID reuse and a consumer claiming application without the exact request must fail loudly; no event re-emission fallback is allowed.
+- This is structural/save behavior only. No authored kg, WU, EWU, price, quality probability, inspiration chance, ScriptableObject, prefab or scene value is changed; balance status remains `밸런스 영향 없음` for this bounded slice pending runtime proof.
+- The direct consumers confirm why an owner-only marker cannot close the boundary. Inspiration updates `CharacterIdentityStateStore` and may also apply a mood; `ProductIdentityEventAdapter` translates one event into up to three `CharacterMoodPolicyService.Apply` mutations. These mutations are not atomic with the apparel/combat order flag.
+- Combat is especially exposed: it emits both effects immediately after resolving the deterministic attempt, before output publication retries. Apparel emits them after physical publication but before accepted/rejected attempt transition. Both paths need the same idempotency key even though their physical ordering differs.
+- A correct implementation must therefore make mood and inspiration commands accept the immutable completion commit and store applied receipts with their own mutated authority. Merely replacing the event bus call with a persisted producer outbox would still leave the subscriber crash window open.
+- `CharacterIdentityStateStore` already owns and saves the inspiration rule payload, while mood factors are saved on `DungeonCharacterSaveData`. They are separate persisted aggregates. The completion contract therefore needs consumer-local idempotency at both boundaries; pretending a producer boolean atomically covers both would violate the existing save topology.
+- `CharacterMoodPolicyService.Apply` writes a stable mood-factor ID with `maxStacks=1`, so duplicate publication may be bounded rather than numerically stacked, but it can still refresh duration and is not an explicit operation receipt. This behavior is not sufficient evidence for exact-once completion.
+- The inspiration consumer is definitively non-idempotent today: the same replay increments `consecutiveEligibleCompletions` again before rewriting its rule payload. Its applied commit ID/fingerprint must be stored in the inspiration payload or a same-store receipt row and validated on replay.
+- `CharacterNarrativeRuntime.Capture` serializes `CharacterIdentityStateStore` into the CharacterNarrative section, while mood factors are captured separately by `CharacterWorldSaveService` into `DungeonCharacterWorldSaveData`. The final contract must treat them as two independent idempotent consumers and validate their prefix state during restore; neither section can stand in as the other's authority.
+- A bounded implementation can preserve existing ownership by adding the inspiration receipt to its rule-state payload and a completion-mood receipt to the actor stats/world-save aggregate. A coordinator then applies each consumer with the same immutable commit and only lets Apparel/Combat acknowledge after both receipts join. Any saved prefix can resume without repeating a completed consumer.
+- `ProductQualityResolvedEvent` currently has only maker/definition/quality/attempt/day/rejected fields. If the event path remains, it must carry the canonical operation, commit and fingerprint so the adapter can perform an idempotent mood batch and the coordinator can verify its receipt. Otherwise the direct typed coordinator must replace the only two current publishers and the orphan event/adapter path must be removed or reclassified.
+- Apparel already has attempt-scoped physical transaction identities on `ApparelWorkOrderSaveData`; Combat has resolved attempt state plus the obsolete `completionEffectsPublished` boolean. The completion effect operation must be attempt-scoped beside these fields and cloned/validated through each current-format owner save path.
+- Character-world capture currently persists only interaction mood factors, and `CharacterStats.RestorePersistentState` restores only stats/vitals/base mood/factors. There is no consumer receipt collection. Adding an explicit immutable completion-mood receipt collection to `CharacterStats` and `DungeonCharacterSaveData` is preferable to overloading zero-value mood factors or a UI/cache DTO.
+- The mood consumer command must atomically validate/replay the exact receipt and apply the entire derived quality/inspiration mood batch before adding that receipt. A receipt is still required when the resolved batch is empty, otherwise a zero-delta consumer cannot prove completion.
+- Both production craft runtimes already receive `ExtremeCraftInspirationRuntime` and `CharacterIdentityEventPublisher` as optional dependencies from VContainer. The migration should replace those two direct dependencies with one required completion coordinator in live composition; optional null must not become a silent "effects skipped" fallback.
+- `DungeonCharacterRegistration` is the natural composition owner because it already registers the identity state store, mood policy, inspiration runtime and product adapter. The coordinator and consumer-local receipt services should be registered there before Apparel/Combat construction; no prefab, scene or ScriptableObject wiring is required.
+- Existing direct-construction tests will need explicit focused fakes or the real coordinator. Keeping an overloaded legacy constructor that silently publishes old effects would preserve the wrong end state and is not acceptable for the final migration.
+- Current-source construction census found one explicit `new CombatEquipmentCraftingRuntime` in the Editor test factory and no explicit Apparel constructor call. The production DI migration is therefore bounded: one live registration plus one explicit test-factory adaptation, subject to compiler-discovered callsites.
+- `CharacterMoodStateService.TryApplyFactor` refreshes an existing factor's application timestamp/duration, confirming that duplicate quality publication is semantically observable even with `maxStacks=1`. Explicit commit receipts are required; bounded stacking alone is not idempotency.
+- `DiseaseFieldResponseRuntime` is a useful staged-recovery pattern but not a drop-in solution: it persists intent, joins an external receipt, applies the domain outcome on a detached same-aggregate candidate, then acknowledges. Completion effects differ because they have two independently saved consumers; their coordinator needs per-consumer receipts and prefix recovery rather than one owner boolean.
+- Existing Apparel terminal-effect receipts belong to facility destructive-drain takeover, not ordinary craft completion. Reusing their names or commit IDs for inspiration/quality would conflate unrelated lifecycle operations; the completion effect requires its own attempt-scoped contract.
+- The Apparel audit found two owner-lifetime constraints: `PrepareNextCraftAttempt` clears the previous physical attempt and `CaptureOrders` excludes completed orders. Therefore an ordinary completion receipt cannot live only as one field on the mutable order; a separate multi-row producer outbox/tombstone is required for repeat attempts and final completion.
+- Combat has a present fail-stop defect, not only a theoretical duplicate: it sets `attemptOutcomeResolved` before direct effects and sets `completionEffectsPublished` after them. A consumer exception leaves `resolved=true/effects=false`; later finalization refuses the row and current restore validation rejects it. Optional-null consumers can also set the boolean while silently skipping effects.
+- Exact producer census is two Apparel/Combat publishers and one Product adapter subscriber; exact inspiration callers are the same two producers. `IGameEventBus` has no subscriber acknowledgement, so it cannot remain the authoritative completion-effect boundary. It may only emit a post-commit notification after the durable consumers are proven, or the now-orphaned event path must be removed.
+- Reusable repository patterns supply phase/fingerprint/target-replay/ack/GC invariants, but none can be reused wholesale because completion has two independently saved target participants. The selected direction remains producer outbox plus local inspiration and mood receipts, with reverse-dependency checkpoint GC.
+- `RecordEligibleCompletion` must be split before receipts are added because it currently mutates both target authorities: it applies inspiration mood and then writes repetition state. The identity consumer will instead atomically advance repetition plus its local receipt and freeze a deterministic mood intent; the character-world consumer will atomically apply the combined frozen inspiration and product-quality mood intents plus its own receipt.
+- The mood consumer must deep-clone its mutable factor list, apply the full resolved batch to the clone, then pointer-swap factors and receipt together. If progression narrative emission remains coupled, it needs snapshot rollback on exception; sequential mutation of the live list is not an acceptable compound transaction.
+- The Foundation Bee response automatically included the newly added contract source before manual compilation, indicating the running Editor/import pipeline observed it even though no Editor-command bridge is exposed. The authoritative claim remains isolated compile only until Unity-loaded tests and Console are explicitly captured.
+- The broad main-assembly compile failure is a verifier-host mismatch: the unchanged source uses a valid C# 9 static lambda and the Bee response declares `-langversion:9.0`, but Unity's bundled Mono-hosted Roslyn parser rejected it. Do not change the unrelated drain source; use Unity's current CoreCLR compiler host or a bounded changed-source compile.
+- Character-world save version authority is `CharacterWorldSaveSection.CurrentVersion = 3`; actor mood factors are captured/restored by `CharacterWorldSaveService`, while structural validation is delegated to `CharacterWorldRestorePayloadValidator`. The mood receipt migration must update all three locations and bump the strict section to V4, with no legacy synthesis.
+- `CharacterProgression` exposes full persistent snapshot capture/restore including the narrative ledger. The mood batch can therefore roll back both factor/receipt state and narrative mutations if a compound completion application throws before publication.
+
+## 2026-08-27 frozen output capability findings
+
+- `ProductionResolvedOutputSaveData` was keyed only by item ID, so two authored output lines could be merged and produce/mass/ack each re-ran handler selection. Future-safe provenance requires output-line identity plus capability and codec identity.
+- Whole-registry fingerprints must not be save authority because adding an unrelated capability would invalidate pending outputs. The save authority is a per-output descriptor fingerprint over line, item, capability ID/version and codec ID/version.
+- Ordinary FacilityBuffer output must be an explicit registered capability. `handler missing => standard` made an unsupported stateful output indistinguishable from a valid definition-only output.
+- Restore validation belongs on `ProductionBillRuntime.BuildRestore`, after shape validation but before any live publish. This reuses the same exact registry through `IProductionOutputExecutionService` without making the named Production assembly depend on an Assembly-CSharp service.
+- Prepared-output lines have a second long-lived routing owner after the bill clears. Capability provenance must be propagated through prepared batch schema, routing rows/snapshots/fingerprints and any destructive-drain freeze before Batch A can close.
+- The owner manifest has six output families but only standard, workwear and surgical capabilities are currently registered. Combat, Apparel and CertifiedSeed need explicit output-completion capabilities; mapping them to standard would be false closure.
+
+## 2026-08-27 prepared-output provenance findings
+
+- Frozen dispatch must survive beyond legacy `resolvedOutputs`. Prepared lines, routing owners, and destructive-drain tombstones otherwise reinterpret an already-resolved output after registry evolution.
+- The descriptor fingerprint belongs in Foundation so Production and Items can independently recompute it without an Economy↔Items assembly cycle.
+- Stronger external-state validation exposed two fixture-only defects: a route slice used the routed stack ID instead of the frozen source stack ID, and the carried signature omitted the `affectsStacking=true` exact-route custody component. Runtime production already signs the actual component set; tests were corrected instead of weakening validation.
+- A world-removed journal with an acknowledged generic bill owner needs a terminal generic producer, its terminal 0/0 input-destination child, and an exact WIP terminal receipt when consumed WIP mass existed. “No remaining input” does not permit dropping receipt authority.
+- The repository-wide runtime-authority validator contains unrelated stale historical ratchets and cannot currently be the acceptance oracle for this slice. Focused current-format validators are green; broad ratchet repair is separate work.
+
+## 2026-08-27 declared domain-output capability registry findings
+
+- The existing registry conflated two independent decisions: generic recipes selecting a handler from an item, and a domain aggregate declaring the capability that produced an already-resolved output. Apparel proves they cannot share item-only selection because generic workwear and Apparel Work Order legitimately emit the same physical item with different state preparation.
+- `IProductionOutputCapability` is therefore metadata/provenance authority, while `IProductionOutputHandler` is its executable generic-recipe specialization. Only `SupportsAutomaticSelection=true` handlers participate in item-based selection; explicit domain capabilities are resolved by exact stable ID and cannot execute as generic handlers.
+- Combat needs separate equipment-state and definition-only ammunition descriptors because their component codecs differ. Certified Seed uses the current seed-lot codec schema, and Apparel Work Order uses the current apparel-state schema. Mapping any of them to standard-definition would erase state provenance.
+- Registration alone does not close output ownership. Combat and Certified Seed still bypass common gram admission/publication/acknowledgement, and all three domain owners still need frozen descriptor persistence and restore validation.
+- A scene boot exposed an existing VContainer cycle from equipment maintenance through defense/building destructive-loss/output lifecycle back to combat craft lifecycle. The cycle contains none of the new capability metadata types; focused registry and standard-output evidence remains clean after Console reset.
+
+## 2026-08-27 Apparel frozen owner findings
+
+- The correct freeze point is the existing `ApparelPhysicalTransaction.AdoptFrozenAuthority` boundary, not order creation: component state, instance ID, mass, capacity source and declared capability then become one replay identity without adding a seventeenth dependency to `ApparelWorkOrderRuntime`.
+- A separate one-method restore wrapper is unnecessary. The existing physical transaction owns capability validation and the work-order runtime invokes that port during current-format live and terminal-row preparation.
+- `JsonUtility` materializes null serializable reference fields as all-default objects. Optional pending-effect/source-terminal receipts therefore need explicit canonical-null normalization before exact restore validation; otherwise a valid no-effect terminal row is misclassified as a partial receipt.
+- Apparel now proves the common envelope on a stateful unique output. It does not prove Combat equipment/ammunition or CertifiedSeed gram publication, and it does not close the production-to-haul full-path canary.
+
+## 2026-08-27 CertifiedSeed frozen owner findings
+
+- CertifiedSeed's stable freeze point is after `CropPhysicalTransactionOutbox` commits the exact seed/kit inputs and resolves the certified lot, but before `IPhysicalSeedLotGateway` publishes the output. Freezing at planning time would record a codec before the actual lot state exists.
+- The V2 order can reuse the same common envelope without crop-specific save fields. Owner binding still requires an exact check that descriptor item equals the current crop's `SeedItemId`; registry `CanHandle` alone is insufficient against cross-crop substitution.
+- Frozen provenance and common gram publication are separate gates. The former is now green; the latter remains open because `TryEnsureSeedLotOutput` still bypasses the standard FacilityBuffer gram reservation/acknowledgement path.
+
+## 2026-08-27 CertifiedSeed restore/lifecycle findings
+
+- A committed planned-output marker cannot be resumed through its saved admission token after current-format restore because the admission service intentionally clears transient token state. The domain owner must adopt and acknowledge the exact incoming physical candidate during detached section staging.
+- Durable `outputAcknowledged` plus `OutputRestoredAwaitingInputAcknowledgement` separates historical publication provenance from a live pending marker. Subsequent saves can prove that no pending marker remains without re-running publication.
+- Facility destruction cannot treat every domain order as an output blocker. Planned custody is releasable, committed input needs an explicit terminal mass-loss receipt, and already-published output can finish receipts without the facility. Only a valid unacknowledged physical output is a bounded Deferred owner.
+- The common restore guard is now a post-adoption orphan gate; producer-specific sections normalize their own durable phase through a domain-neutral exact join rather than teaching the guard content-specific phases.
+
+## 2026-08-27 acknowledged release and market-route findings
+
+- Acknowledging common domain publication was not sufficient for gameplay: normal haul planning ignores `FacilityOutputBuffer`, so an exact acknowledged batch had to be released without respawn or component loss.
+- The release receipt is a readonly value type; treating it as nullable was a compile defect. Default/empty receipts are rejected through canonical field and non-empty stack validation instead.
+- The physical market target authority is `ResourceStockPolicyRuntime`, not the Combat crafting facility. Combat order `destinationX/Y` is the crafting-center coordinate and must not be treated as the sale dropoff.
+- Rejected-sale hauling also needs an exact market destination claim. Current policy selects a drop-zone coordinate but does not publish the reserved-target claim required by haul destination authority, so a direct state mutation test can hide a production AI destination failure.
+- The safe bounded direction is whole-batch acknowledged release with a typed target: normal output becomes undirected `Loose`; rejected sale resolves and claims the real market dropoff first, then atomically becomes `Loose + sale:quality-rejected + exact dropoff`. Per-stack sequential routing and the current `outputMarketRouted` boolean cannot prove atomicity or durable ownership.
+
+## 2026-08-27 rejected-sale settlement findings
+
+- The output publication side is now atomic, but market settlement is a separate durability boundary. `ResourceStockPolicyRuntime` currently consumes the unique physical/Combat item and only then calls `IGameMoneyAccount.Add`; session absence or a failure between those operations can delete value without payment.
+- The existing generic `ResourceStockPolicySaleOutbox` proves a reusable phase pattern (`PhysicalCommitted -> IncomePublished -> receipt acknowledgement`) but its owner key and canonical identity are item-policy/count-batch specific. Reusing it unchanged for unique rejected equipment would lose exact stack/instance ownership and can collide with a generic pending sale for the same item.
+- A safe rejected-sale settlement must persist exact stack ID, item instance ID, input grams, proceeds, operation/commit/fingerprint and phase; its restore join must validate both the incoming physical disposition receipt and the retained Combat/Apparel instance aggregate before publication.
+- The market claim must be available inside `RestoreAll`, not through a post-restore hook. The new authority is therefore a transaction participant ordered after destination-claim candidate creation and before haul-intent rebind; the publication service validates the authority candidate immediately before acknowledged release.
+
+## 2026-08-27 durable quality-rejected settlement findings
+
+- A physical Transfer receipt is the durable proof that value left the world; deleting the unique aggregate or publishing income before that receipt exists creates an unjoinable prefix. Consequently `Prepared` remains runtime-transient and is rejected by save validation.
+- Money idempotence belongs in the money account/ledger boundary, not only in the sale outbox. Otherwise a crash after balance mutation but before owner phase advancement can pay twice on replay.
+- `MarketSalePending` is external custody, not a variant of `Lost` or `RetailStock`. Keeping it explicit lets restore validation prove the exact sale operation while lower item/equipment mutators reject out-of-band edits.
+- Section-local candidate validation is necessary but insufficient evidence. The actual registry transaction proved that Physical publishes its detached candidate before stock-policy staging, and that a failed later join discards the candidate without changing live state.
+- The settlement P0 is independent from Combat/Apparel inspiration and mood completion effects. Closing the former must not be used to claim the latter or Batch A complete.
+
+## 2026-08-27 current-source manifest findings
+
+- Unity dynamic commands can compile and execute against the last successful Editor assembly while a newly edited Editor source has not yet produced a fresh DLL. Acceptance evidence therefore requires a clean-cache script compilation plus a newer `Assembly-CSharp-Editor.dll`, not only `Unity_RunCommand.isCompilationSuccessful`.
+- The quality-sale section fixture must use `WorldItemStackRuntime`, which owns restore staging, candidate publication and transaction participation. `WorldItemRepository` is deliberately too low-level to satisfy those contracts.
+- Stock-policy current-format restore requires one canonical policy row for every authored resource item. A focused outbox payload with an empty policy list can test the local physical join but cannot serve as whole-registry evidence.
+- The owner manifest had two kinds of stale evidence: completed Combat/Apparel outputs still marked remaining, and string ratchets that predated standard handler registration and terminal-effect restore joins. Fresh semantic behavior and current-source tests, not historical labels, determine disposition.
+- At this manifest checkpoint output closure was `4/6`; subsequent workwear migration advanced it to `5/6`. The remaining family is generic recipes outside the reviewed prepared-output families.
+
+## 2026-08-27 Environmental workwear publication findings
+
+- Environmental workwear can use the same common FacilityBuffer publication authority without a content-ID branch: its variation is a stateful unique-output capability whose provider freezes the Apparel component and one unique instance per unit before the common batch publisher runs.
+- A producer cannot treat successful physical publication alone as terminal. It must acknowledge the exact batch to durable provenance before returning success; replay then joins either pending or acknowledged custody through one read-only capture API.
+- Workwear replay identity must include the resolved material and quality outcome. Reusing a commit ID with different quality bits is a conflict even when item ID, quantity and destination are unchanged.
+- The focused fixture exposed that persistent entity kinds are semantic contracts: `BuildingInstanceId` accepts `building:*`, not the visually plausible `building-instance:*`. Fixtures must use the same canonical ID grammar as production.
+- Fresh owner closure is `5/6`; only the generic recipe family remains. Workwear closure does not prove AIHaul, warehouse/save/UI or the synthetic full-path canary, so Batch A remains open.
+
+## 2026-08-27 generic owner closure and verifier blockers
+
+- A standard output capability must be usable as frozen metadata without being executable through the legacy handler interface. Conflating those roles left a semantic bypass even after normal production selected prepared output.
+- Output routing must classify the entire frozen output vector before RNG or publication. Per-line dispatch can partially publish a standard line before discovering a special line; V27 therefore supports homogeneous standard-prepared or homogeneous exact-capability vectors and fails mixed vectors explicitly until an atomic composite capability is authored.
+- Ruined output is a capability variation, not a recipe-ID exception. Removing `recipe:silage` from the core keeps future passive recipes data/capability driven and makes unsupported loss semantics preserve WIP fail-loud.
+- Fresh owner evidence is output `6/6 migrated`, remaining `0`; this is structural ownership closure only. It does not prove AIHaul, gram warehouse, full current-format save/restore, UI/audit or the Batch A normal/fault matrix.
+- The F: project volume produced Win32 I/O error 55 while the asset canary wrote its marker. Windows reports `HealthStatus=Warning` and `OperationalStatus=Full Repair Needed`. Large/catalog-mutating canaries on this volume are unsafe until the filesystem is repaired or the user explicitly accepts the risk.
+- The user-owned dirty `Assets/Scenes/GameplayScene.unity` independently prevents the verifier from entering its canonical live PlayMode path without saving, reverting or replacing the user's scene changes. Focused source/Editor contracts remain safe and green, but cannot be promoted to live full-path evidence.
+- Editor composition is part of the capability contract. Combat and Apparel fixtures still supplied an executable fake with the standard capability ID, so unrelated haul safety cases failed during lazy combat dependency construction. Making fixture standard capabilities metadata-only restored the same invariant used in production without adding content-specific exceptions.
+
+## 2026-08-27 capacity-routing actor transition findings
+
+- `CharacterActor.GetNowXY()` has no separate cached coordinate authority: it delegates to `CharacterLifecycle.GetNowXY()`, which evaluates the injected `Grid.GetXY(transform.position)` synchronously. Fixtures must assert this public authority and must not invent a `Grid.GetGridPos` API.
+- A successful `Unity_RunCommand` compile does not prove edited project source compiled. When project scripts have errors, the dynamic command can still execute the last successfully loaded Editor assembly. Current-source evidence therefore requires an actual AssetDatabase refresh/domain reload plus absence of compiler errors before the scenario result is accepted.
+- `Routable` exact-route custody is invalid without delivery revision state. Initial delivery uses revision `0`, a canonical revision fingerprint, the current target destination/position, no reroute operation and no target-authority fingerprint.
+- The destructive-drain slice `componentFingerprint` is the business item-component fingerprint captured before custody decoration. `actorCarry.stackSignature` is the separate full physical-row signature including custody. Treating those as the same value lets actor quiescence pass but makes stable-save validation fail.
+- After those fixture corrections, the production validators passed unchanged through interruption, stable capture, restore/persistence and no-op replay. This confirms the defect was stale fixture authoring, not a reason to relax physical/save invariants.
+
+## 2026-08-27 Batch B maximum support-envelope findings
+
+- `ProductionOutputBufferCapacityProjector` already computes the heaviest normal/ruined physical branch and binds recipe, mass, component, facility, destination and cycle inputs into its source digest, but its maximum-factor catalog deliberately rejects every non-unit production support.
+- Runtime output modifiers multiply each distinct support instance selected for `RequiredSupportTags`; `BatchSupportTag` is a required batch-processor dependency but is not part of the output multiplier. The authored maximum projector must preserve that distinction or a future batch processor can silently overstate buffer capacity.
+- A future-safe maximum is a deterministic assignment problem, not a simple product of every matching support. One support may satisfy multiple required tags and must be multiplied once, while different supports may cover different tags. A stable bitmask dynamic program over canonical support IDs can calculate the exact best reachable factor without content-ID branches.
+- Current authored supports are all `1/1`, so implementing this envelope changes no current kg, WU, EWU, price or asset value. Its proof must use synthetic non-unit supports, input-order shuffle and a batch-support exclusion case.
+
+## 2026-08-27 Batch B output-capacity authority findings
+
+- A capacity profile without its matching destination claim is not a legal partial state, but the lifecycle query previously counted only profiles. Claim-only authority could therefore look empty and permit a destructive mutation. Capture and revoke must require exact claim/profile parity and bind the claim revision into the semantic fingerprint.
+- The standard maximum projector correctly sums every positive-probability physical output line, excludes declared loss and applies line-level Ceil. This makes P22 quarry a useful real regression: its reachable maximum is `15,300g/cycle`, including the `5/4` Grand Project factor, and `61,200g` for the authored four-cycle buffer.
+- The synthetic full-path verifier previously accepted any profile at least one exact batch large. For its canonical `20,000g` batch this allowed a `20,000g` profile to pass despite the plan requiring four cycles. The acceptance value must be exact `80,000g` both before and after production.
+- Exact-batch fallback currently uses `max(projectedPortfolio, exactBatch × cycles)`. Rejecting this globally now would break legitimate special/domain outputs that are absent from the standard recipe projection, especially exact Apparel outputs. Capability-owned maximum projection must be added first; then an exact batch above the frozen maximum becomes a typed stale/envelope failure instead of silently enlarging capacity.
+- Passive ruined output still derives a hard-coded spoilage quantity in one path, while runtime WIP can imply multiple units through material/fluid inputs. Its maximum must be projected from the same frozen WIP/input/fluid authority rather than copied from the normal output count or assumed as one.
+- Live facility capture previously treated a production workstation without `BuildingProductionBufferAbility` as an implicit four-cycle buffer, while current-format save projection rejected the same authoring. This was a real authority split, not a fixture convenience. Production workstations now fail loudly in both paths; only non-workstation support handles retain the representational fallback required by `ProductionFacilityHandle`.
+- Capability maximum projection must remain data/capability polymorphism, not a central content-ID switch. Executable handlers cannot be injected back into the capacity projector because Workwear and Surgical already depend on that projector; a pure projection registry or bridge-owned query avoids the DI cycle. Active domain batches need frozen projection proof, and no-bill domain capacity needs pure facility contributors with an explicit shared eligibility predicate.
+- The standard definition capability can also report true for some Apparel definitions, so automatic maximum selection must mirror execution semantics: resolve one non-standard automatic capability first and use Standard only as the fallback. Treating Standard as a normal peer produced a real ambiguity on `apparel:apron`; the runtime was corrected and the regression retained.
+- Current Combat queue admission has no shared facility predicate: direct command checks only non-null facility while UI/worker consult `BuildingEquipmentCraftingAbility`. CertifiedSeed duplicates numeric facility ID `building:8893` even though RF93 already authors `workstation:v19:cultivar-breeding` and an output buffer. No-bill contributors must reuse new shared predicates rather than copy these branches. Combat ammunition also needs a shared craft-definition catalog before contributor work, because output quantity/BOM are still runtime switches.
+
+## 2026-08-27 domain maximum-mass proof findings
+
+- A domain batch cannot be allowed to enlarge its own FacilityBuffer profile from the exact result it is about to publish. The admissible maximum must come from a previously declared, execution-free capability projection and be bound to a deterministic proof digest.
+- The proof must be line-addressed rather than only gram-addressed. Stable output line ID, item ID, capability/codec identity, descriptor fingerprint, maximum quantity and projected grams are needed to distinguish a legitimate equal-mass capability from substituted content.
+- Actual component mass remains authoritative for publication, but it is bounded by the capability maximum. An actual value above the maximum is stale authoring or authority drift and must fail before reservation or physical mutation; it is not a reason to silently expand capacity.
+- Restore cannot trust the stored digest. It must rebuild the proof from frozen capability claims through the same registry and reject descriptor, unit-mass, quantity, ordering or digest drift before publishing the owner.
+- `ProductionOutputCapabilityContractSnapshot` belongs in the Foundation contract assembly. Keeping it in the default production assembly created a real hidden CS0246 at the domain restore boundary even though a stale Editor DLL could still execute dynamic commands.
+- Combat and CertifiedSeed are the only live `ProductionDomainOutputLine` constructors. They now use the common proof. Apparel craft/dismantle and Environmental workwear still call the raw exact capacity projector, while Surgical part uses a separate profile-max digest; those routes keep the generic raw escape open.
+- The domain restore guard now revalidates the capability-owned maximum, but it does not yet reproject the complete detached facility source containing catalog, workstation, cycle and current facility subject. That is a separate remaining integrity gate.
+
+## 2026-08-27 Apparel maximum-mass proof findings
+
+- Rejected dismantle originally had no frozen output capability because it selected a generic recovery material automatically. Saving only the proof digest/max is insufficient: a later automatic capability can become the proof owner. The selected descriptor must be frozen on first attempt and all retries/restores must use declared reprojection.
+- New current-format proof fields must be copied exactly. Applying legacy `Trim` or `Math.Max(0, value)` in a clone silently repairs corrupt authority and prevents fail-loud restore validation.
+- A useful capacity regression must separate actual and maximum mass. The focused craft now publishes a `2,000g` dynamic item under a `4,000g` declared envelope and requires `16,000g` for four cycles; an exact-batch self-sizing implementation would fail this assertion.
+- Apparel restore can revalidate the capability proof without reading save DTOs as gameplay input: the runtime consumes the immutable frozen descriptor/quantity and the current execution-free maximum registry. Full detached facility-source reprojection remains a separate shared gate.
+
+## 2026-08-27 Workwear and Surgical maximum-mass proof findings
+
+- Environmental Workwear can persist maximum proof semantics without adding another save DTO: its common physical batch marker already owns an outcome fingerprint, so binding proof digest/max and capacity digest/minimum into that fingerprint makes retry and replay stale-safe.
+- Surgical Part's former capacity digest used the live profile maximum as both evidence and requested minimum. That let the pending batch size its own envelope and did not identify the capability that authorized the mass. The common proof separates declared maximum from actual reserved mass.
+- A proof line and a physical publication line are one semantic identity. Reconstructing Surgical's physical line from item ID while the proof used the authored recipe line would permit an equal-mass substitution to escape exact replay validation; both now use `context.OutputLineId`.
+- Idempotence must recompute proof before accepting replay. Runtime `IsReplay` alone proves the medical aggregate join, not that the persisted physical batch still matches the current capability/mass/capacity authority.
+- Maximum overflow rejection owns a live reservation until release succeeds. Ignoring release failure converts a safe rejection into an invisible capacity leak, so the failure remains explicit and covered.
+- These migrations change authority and validation only. No authored balance value changed, and complete detached facility-source restore reprojection remains a shared open gate.
+
+## 2026-08-27 raw capacity ratchet findings
+
+- The raw facility/long overload no longer belongs on `IProductionOutputBufferCapacityProjector`. Domain capability handlers need only the maximum-proof overload; removing raw access at the interface makes a new exact-result self-sizing route a compile-time error.
+- The concrete projector cannot yet lose raw mass entirely. Generic prepared output resolves exact physical lines before saving its capacity source, detached restore revalidates that source, and ruined output still self-sizes from recoverable waste. Those are six explicit calls: portfolio-zero `2`, actual `1`, restore `2`, ruined bypass `1`.
+- A source ratchet based only on method text is weaker than ownership restriction. Production code now limits concrete projector references to the generic prepared/save-validation owners and composition root; Apparel was narrowed to the proof-only interface.
+- The remaining ruined-output call is the only classified bypass. It must be replaced by frozen WIP/input/fluid maximum proof before the concrete raw overload can be deleted.
+- Ruined generic output previously had two separate shrink paths: live execution sized capacity from the actual recoverable waste, and detached terminal routing retained only the actual routed batch after its bill disappeared. A canonical claim over WIP, process-fluid provenance, frozen waste descriptor and disposition now produces a capability-owned maximum proof used by both owners.
+- The current silage authority demonstrates the nontrivial case: `2,400g WIP + 600g clean water - 300g wastewater` yields four `600g` recoverable-waste units plus `300g` declared loss. Actual output is `2,400g`, but capacity authority is explicitly the maximum batch proof times authored cycle, `2,400g × 4 = 9,600g`.
+- Routing current format must carry capacity source/cycle/portfolio/minimum and maximum proof/claim, and its semantic fingerprint token must advance with the schema. The corrected authority is Routing V6 with `prepared-output-routing-v6`.
+- This does not yet close future ruined-content extensibility. `ProductionRecipeSO` still has an implicit `waste:mixed-rot` fallback, materialization is Standard/definition-only specific, and facility portfolio ruined sizing still assumes one waste unit. These remain explicit blockers rather than being hidden behind the passing silage fixture.
+
+## 2026-08-27 passive spoilage authority findings
+
+- The asset census contains 355 production recipes. All eight PassiveBatch recipes already author an explicit canonical spoilage item (`plant-rot` seven, `animal-rot` one); missing, noncanonical and orphan passive IDs are zero. The 347 WorkOnly assets serialize a semantically unused `waste:mixed-rot`, so rewriting them now would create YAML noise without changing runtime meaning.
+- A getter/default fallback hid malformed future PassiveBatch content from both semantic digest capture and catalog construction. The safe boundary is raw authored identity: PassiveBatch requires a non-empty canonical item that exists in the catalog; WorkOnly may be empty and any non-empty value must still be canonical.
+- The recipe semantic digest is now `production-recipe-semantic@3`. Empty, whitespace-normalization-dependent and orphan PassiveBatch fixtures fail before physical mutation; WorkOnly empty remains valid.
+- The first focused PASS after editing was invalid evidence because Unity had executed a stale Editor DLL. A forced AssetDatabase refresh/domain reload exposed and enabled correction of the shared protocol assembly dependency and two Editor fixture compile defects. Acceptance uses only the subsequently rebuilt current-source assemblies.
+- Current-source recipe/prepared/ruined/maximum/routing/lifecycle/persistence/destructive-drain/economy bundle passed, and Unity Console Warning/Error is `0/0`.
+- This closes only silent spoilage substitution. Registered materializer dispatch, facility-portfolio WIP maximum, generic normal raw capacity, complete detached restore claims and the asset-backed full-path canary remain open.
+
+## 2026-08-27 registered prepared-output materializer dispatch
+
+- Prepared routing can be derived from capability contract metadata; core code no longer needs `StandardDefinition` or `DefinitionOnlyCodec` value branches.
+- Restore validation must be split by responsibility: `ProductionBillStateCodec` validates canonical DTO/authority shape, while the execution adapter invokes the registered materializer for capability-specific payload semantics before any destination authority is published.
+- A prepared participant cannot also implement per-line output execution. Allowing both would create two exact-once owners for the same line, so registry composition now rejects it.
+- Registry fingerprints changed semantically with the participation bit; handler and maximum-mass schema tokens are now `@3` and `@2`. The migration profile is `@2` because it now binds the current recipe semantic digest rather than a positive recipe allowlist.
+- The synthetic non-standard participant passed route selection and create/decode without a core branch. Missing, duplicate, drifted and non-participant materializers all failed before runtime mutation.
+- Current-source Unity compile, materializer/handler/static gates and the 11-scenario prepared-output regression bundle passed; final Console Warning/Error was `0/0`.
+- This closes the materializer dispatch checkpoint only. Portfolio WIP maximum, five raw capacity calls, detached source claims and the asset-backed AIHaul canary remain open.
+## 2026-08-27 acknowledged exact-output provenance ownership
+
+- A generic exact-output Production owner is cleared immediately after physical acknowledgement, while the non-stacking acknowledged provenance component remains on the physical stack. Therefore `acknowledged marker + no Production owner` is a valid terminal state, not an orphan by itself.
+- Valid downstream states include FacilityOutputBuffer, Loose, Stored, FacilityBuffer and Carried. Carried ownership is already joined through character haul intent, carry row and physical stack; prepared output uses the separate `production-output-batch:*` routing authority and later exact-route custody.
+- Pending `production-output:*` still requires exactly one Production owner. Acknowledged failure must instead mean that the current physical state lacks its required downstream authority or that mutually exclusive authorities coexist.
+- The exact lifecycle validator needs the complete world/characters/physical/production/routing bundle. Its safe insertion point is the projection-time `SetDrain` barrier; participant publication is intentionally non-failing and is not a validation hook.
+
+## 2026-08-27 ruined terminal capacity proof gap
+
+- After bill retirement, the frozen source bill exists in the generic terminal-drain payload, but the durable capacity projector does not consume that payload. Its routing-only fallback validates minimum arithmetic and digest shape, not semantic recomputation from current recipe plus frozen WIP/fluid authority.
+- Consequently a 1g minimum shrink fails, while coordinated replacement with other canonical SHA-256 proof/claim/capacity digests can evade semantic drift detection. The 9,600g regression must not be declared until terminal sourceBill is exact-joined to routing ownerBillId and both ruined claim and capacity source are recomputed.
+- The existing QA ruined recipe helpers are private. Extracting one immutable shared fixture is the minimum test seam; copying a second hand-authored fixture would only prove the duplicate agrees with itself.
+
+## 2026-08-27 ruined terminal semantic reprojection implementation boundary
+
+- `ProductionOutputDestinationDurableSaveProjector.ProjectCapacityRoutingFromSave` currently sees world, live production bills, physical custody, characters and routing, but not `DungeonProductionGenericBillTerminalDrainSaveData`. Its active-bill branch can recompute a ruined claim; its retired-bill routing branch can only validate hash shape and capacity arithmetic.
+- The production-active fix is to make the current-format generic-terminal payload an explicit projector input. For a routing batch whose live bill is absent, a terminal row at `BillTerminalCommittedAwaitingOwnerAcknowledgement` or `OwnerAcknowledgedAwaitingCheckpointGc` must exact-join `ownerBillId`, recipe, facility and cycle to the frozen `sourceBill` before ruined proof/claim/source values are accepted.
+- Routing batches not owned by a committed generic terminal remain on the existing routing durability contract because normal cycle advancement can leave a routing batch while the live bill has already reset its WIP. The new semantic reprojection must therefore be conditional on an exact terminal owner, not a blanket requirement for every routing batch.
+- The terminal branch must compare the recomputed maximum proof digest/grams, ruined claim digest, capacity source digest, cycle capacity, portfolio capacity and required minimum. The CI/display epsilon is irrelevant; all comparisons are exact.
+- The existing `2,400g WIP + 600g clean water - 300g wastewater => 4 x 600g waste`, `9,600g` fixture will be moved behind a shared factory that creates a fresh configured recipe/record per test. No mutable ScriptableObject instance will be shared and no second copy of the constants will become a competing test authority.
+
+## 2026-08-27 ruined terminal semantic reprojection verified
+
+- The current-format generic terminal payload is now a required input to the durable capacity projection. A retired bill's exact `sourceBill` is joined by owner bill, recipe, facility, cycle, destination, batch, outcome and physical line identity before its routing contributor is admitted.
+- Ruined terminal routing re-runs `CaptureRuinedClaim` and `CaptureSource` from the frozen WIP/fluid authority, then exact-compares maximum proof, claim, capacity source, cycle capacity, portfolio capacity and required minimum. The presentation-layer `2 mEWU` tolerance is not used.
+- The shared fresh-object fixture proves `2,400g` WIP plus `600g` clean water minus `300g` wastewater yields four `600g` waste units and a `9,600g` four-cycle capacity. WIP drift, coordinated canonical digest replacement and a `+1g` minimum drift all fail without mutating their input JSON.
+- Current Unity compilation and the focused ruined-terminal plus extended exact-output/restore bundle passed. A final filtered console read returned zero Warning/Error entries.
+
+## 2026-08-27 asset-backed canary identity and mid-carry restore findings
+
+- Root seed/recipe/item identity alone is insufficient for a generated-asset PlayMode report. A reusable report must bind the transaction nonce, both temporary asset GUIDs, the augmented catalog byte digests and the current generator/verifier source digests; otherwise a stale request or stale compiled assembly can be misreported as current evidence.
+- MCP dynamic-script compilation success is not Unity project compilation success. The first schema-4 run executed the previous `Assembly-CSharp-Editor.dll`; the unchanged artifact exposed that mismatch, and `Editor.log` then revealed project error `CS0165`. Acceptance must compare the generated artifact schema/content and inspect the project compilation log or rebuilt assembly timestamp.
+- A mid-carry restore test must not use the generic direct-fixture quiescence helper after restore. That helper calls `AbilityHaul.StopHauling`, which legally drops cargo and releases reservations/intent. The canary instead pauses AI and cancels movement while leaving the exact haul authority intact for verification and resume.
+- Destination-only selection of the first committed intent is order-dependent in a populated world. The canary now requires exactly one committed intent matching destination, persistent actor, output item and quantity before it captures a checkpoint.
+- Quantity equality alone is not an exact carry join. The checkpoint now joins the durable commitment to the physical carried slice by carried stack ID, source stack ID, item ID, stack signature and quantity, then joins the warehouse admission by owner warehouse, source stack, item, quantity and grams.
+- A positive round trip does not prove restore atomicity. The canary now changes only the saved admission mass by `+1g`, requires the whole restore to fail, and requires the live whole-root fingerprint plus carried cargo, intent and reserved inbound grams to remain exact before attempting the valid restore.
+- The current source compiles and the non-PlayMode dependency suites pass, but these checks do not execute the coroutine. The actual asset-backed PlayMode canary remains the sole proof for bill→buffer→route→committed carry→whole-root restore→resumed deposit→warehouse→cleanup.
+
+## 2026-08-27 mid-carry evidence corrections
+
+- Atomic restore evidence must fingerprint every save envelope, not only the five sections that contain the expected carry join. A failed whole-root restore is allowed to touch no unrelated section either, so the canonical comparison now includes section ID, version, restore phase, optional flag and payload JSON for the full capture.
+- A direct `AIHaul.Execute` call proves the ability can resume but bypasses production action selection. The valid arm now reuses the restored authored `AIHaul` action and wakes it only through the Brain scheduler.
+- Inert-state evidence must be captured before cleanup mutation. `SetAiPaused(true)` only fences future scheduler admission, but `CancelActiveMovement()` destroys the very movement state being tested; the latter was removed before the gate.
+- The current source compiled and its non-PlayMode dependency bundle passed with Console Warning/Error `0/0`. The real coroutine and dirty-scene-safe cleanup remain open.
+
+## 2026-08-27 completion-time capacity-wait findings
+
+- Cycle-start capacity and completion-time capacity are different fault surfaces. To test the latter, the physical blocker must be introduced synchronously after `BeginWork` consumes inputs and before the first completion `ExecuteWork`; adding it earlier only proves the start preflight.
+- Exact no-reroll evidence does not require RNG draw-count instrumentation for a probability-1 synthetic recipe. Byte-identical prepared-output authority, stable batch/outcome identity, unchanged WIP and repository version, and zero physical publication across a zero-work retry are stronger direct evidence.
+- The capacity blocker must be a real FacilityOutputBuffer lot and must be cleared through typed disposition. Direct repository deletion would make the success arm depend on a test-only bypass and would omit the mass-removal receipt.
+- Editor-only PlayMode verifiers compile in a different assembly from runtime internals. They must inspect public save/component data or a public diagnostics query; referencing an `internal` runtime codec creates a real assembly-boundary compile failure.
+- A blocked destructive attempt is valid safety evidence but not a successful destroyed row. Batch A can use the former as a smoke gate; Batch G must implement durable participant drain and actual world removal before reporting `destroyed=PASS`.
+
+## 2026-08-27 waiting-restore and dynamic blocker findings
+
+- `WorldItemReservedStackQuantity` is a readonly struct. Null-conditional selection produces a nullable struct, so verifier state must remain `WorldItemReservedStackQuantity?`; treating it as a reference creates a real compile blocker and can hide whether an exact lease was captured.
+- `RestoreAll` invalidates gameplay object references even when service singletons remain usable. A waiting-output counterfactual must preserve stable actor/facility/warehouse/bill/stack IDs, restore, and reacquire canonical objects from `ICharacterAiWorldRegistry`, `IProductionBillQuery` and `IWorldItemStackRuntime` before resuming.
+- A Waiting checkpoint is exact only when whole-root recapture, complete bill JSON, prepared-output JSON, WIP commit/quantity/mass/cycle, blocker rows/signatures/grams, occupancy, capacity, reserved mass and input absence all match. Prepared JSON alone is too weak.
+- Fixed item fixtures conflict with the upcoming kg recalibration. The capacity test can derive the exact target from live capacity and batch mass, then solve against canonical generic linear-mass catalog entries. This preserves the 1g boundary while allowing item weights to change without verifier-core edits.
+- Candidate enumeration must be ordinal and independent of hash iteration. Equal unit masses collapse to the first stable item ID; the DP minimizes total quantity with a stable candidate-index tie-break. Spawned stacks are remeasured through the component-aware mass authority so a definition-only plan cannot conceal runtime subject drift.
+- The active GameplayScene remains dirty. Current compile and non-PlayMode focused evidence prove source integration only; they do not prove the new coroutine rows, `CaptureAll -> RestoreAll` behavior, cleanup or Batch A completion.
+
+## 2026-08-27 ReservedTarget expedition-supply findings
+
+- `ReservedTarget` is the existing correct physical meaning for expedition staging; adding a new destination kind or a package-specific save gram field would duplicate authority. The nullable facility owner is legal only when the exact claim anchor is ReservedTarget.
+- LiveFacility, LiveBuilding and planned output retain canonical non-null facility ownership. The common negative matrix now rejects null, empty and operation-mismatched joins without reserved-mass mutation.
+- Expedition capacity is deterministically derivable from the saved semantic cost vector and current item mass catalog. This keeps kg authoring single-source and lets future same-capability supplies enter without core content-ID branches.
+- Claim-only publication was insufficient: restore and terminal paths must treat claim+profile as one lifecycle pair. Return and consume now retire both; restore stages and publishes preparation→claims→capacity and rolls back in reverse.
+- Two apparent manifest failures were dead public surfaces rather than live gameplay flows: the unused Blueprint materializer and orphan Building FacilityBuffer port. Removing them reduced bypass `5→4` and orphan `1→0` without hiding a live path.
+- Fresh current-source evidence is input `4/39`, remaining `35`, output `6/6`, bypass `4`, orphan `0`, unclassified `0`; focused compile/tests and Console `0/0` are structural evidence, not actual expedition AIHaul PlayMode proof.
+
+## 2026-08-28 conveyor arrival and route-proof findings
+
+- The generic transit completion API was a real FacilityBuffer bypass. Restricting it to Loose makes every stored/facility destination choose an admission-owning command instead of relying on a caller-authored state enum.
+- Facility-buffer arrival can remain a synchronous transient admission: exact InTransit lot reserve, physical mutation, same-fingerprint commit, and rollback need no active admission token in save data.
+- The correct failure rollback keeps the payload and physical stack InTransit at the conveyor. Returning it to a source warehouse would be teleportation and removing the payload would orphan the physical lot.
+- A focused service PASS is not full conveyor migration. Conveyor V3 stores the raw destination but not the selected drop position, owner domain/operation/facility, anchor kind, max grams, capacity revision or route-target fingerprint. Until restore exact-joins a stable route target, manifest `bypass=4` remains honest.
+- Two existing PlayMode verifiers expose separate missing-authority gaps: synthetic `qa:industrial-output` needs a scoped QA claim/profile, while `production-sensor:{facilityId}` is a real remaining owner and must receive a production lifecycle/capacity migration rather than an unlimited test profile.
+- Admission commit must follow reversible physical mutation, matching the common delivery-retarget contract. The fault hook now runs after physical mutation and before commit, proving the complete InTransit snapshot and reserved grams are restored.
+- The owner manifest exact-claim census must scope descriptive text to live migrated/remaining owners. Counting the word `exact` in bypass detail produced a false drift after the conveyor row became more precise.
+
+## Conveyor V3 contract finding (2026-08-28)
+
+- Conveyor save data does not represent a frozen owner/profile reservation. It represents durable payload custody plus a destination intent; restore intentionally clears route projection and rebuilds it from current topology.
+- Therefore a new DTO/version/fingerprint tuple would create a stronger feature instead of repairing the current invariant.
+- The minimal complete repair is canonical V3 IDs, unique stack ownership, bidirectional payload↔InTransit join, current segment existence, and current exact claim/profile re-authorization at arrival.
+- `production-sensor:{facilityId}` remains a separate P0 because the UI/delivery destination has no exact claim/profile today. The minimal non-schema design is a facility-derived permanent one-panel socket authority plus demolition revoke/rollback.
+## 2026-08-28 production stock-sensor and destructive-drain findings
+
+- A sensor-capable facility needs a permanent derived one-panel socket authority even while no panel is installed. Creating the authority only during delivery permits a claim/profile race and makes restore dependent on transient UI actions.
+- Replacing a same-ID claim/profile is not harmless while physical or reserved mass exists. It must fail before mutation unless the exact authority is byte-equivalent.
+- Relocation needs a second production-authority check at completion, not only at pack/start time. A sensor delivery can legally occur between those boundaries; without the late check the old facility ID can be orphaned.
+- The current destructive-drain journal, registry, save section and five participants are implemented and tested in isolation but are not registered behind a live upper coordinator. `TryRequest`/`TryAdvance` currently have no production caller, so treating the infrastructure as a completed runtime path would be false.
+- Sensor destruction must not be folded into `PhysicalCustodyCarryRecovery`: the socket cargo and installed panel have distinct authority and acknowledgement boundaries. A sixth sensor participant is the extension-closed shape.
+- The minimum current-scope destructive policy is physical loose salvage. It can reuse the existing socket custody outbox and stock-sensor removal payload; adding a declared-loss receipt schema would be speculative expansion.
+- Embedded removal must become `Prepare -> PublishOutput -> upper journal receipt persisted -> Acknowledge`. Clearing installed state immediately after publication loses the crash boundary and cannot prove exact-once replay.
+- Once participant effects have committed, world-removal failure is a forward retry. Reinstalling the sensor or rolling salvage back would duplicate or teleport mass.
+- Adding the sixth participant changes the persisted registry/contributor fingerprint but not the DTO shape. Past-save migration remains excluded; current-format restore must reject the old fingerprint loudly.
+## 2026-08-28 stock-sensor composite-owner finding
+
+- The sensor installation lifecycle has two simultaneously possible physical authorities: cargo in or en route to destination `production-sensor:{facilityId}` and the embedded `ProductionStockSensorRuntime` record. A destructive drain that observes only the embedded record can report zero owner while real socket cargo still exists.
+- The safe closure is one upper owner `stock-sensor:{facilityId}` with a deterministic physical child step (using `IProductionInputDestinationCustodyDrainService`) and an embedded removal receipt or explicit absence marker. Physical-only, embedded-only, combined, carried/inbound, and pending-install states must all project to that same upper owner.
+- Current compile evidence is green, but it proves only compilation of the incomplete embedded-only implementation. It is not completion evidence for the sixth participant or live destructive-loss integration.
+- The current save transition is demonstrably still five-contributor in at least three places: planned-owner projection, cross-aggregate contributor map, and the full-persistence fixture contributor map. The first fresh focused run failed on the fixture map before deeper joins could execute.
+## 2026-08-28 stock-sensor composite focused-test findings
+
+- The existing generic-bill destructive-drain fixture already contains a valid in-memory `IProductionInputDestinationCustodyDrainService` state machine and a `DispatchProxy` bridge pattern. These are suitable reference implementations for a dedicated sensor composite fixture, but they are private nested types and cannot be reused directly without moving test infrastructure.
+- The former `ProductionEconomyDebugScenarios` participant block constructed the obsolete two-argument embedded-only participant and was disabled with `#if false`; keeping it would hide coverage loss and violate the repository dead-code gate. It has been removed before adding dedicated composite coverage.
+- The current composite participant always creates a deterministic Items child for any sensor upper owner, including an empty physical socket. This permits one uniform composite receipt but requires focused evidence that an empty child is valid, durable, acknowledged only after the upper receipt, and retained until checkpoint GC.
+- A participant can reproduce its request while the aggregate lifecycle contribution has drifted, so request equality alone is not sufficient. The upper journal's `ExpectedDurableContributionFingerprint` must be compared before either the Items child or embedded sensor lower owner is prepared.
+- Missing child state is a legal pre-durable crash prefix and returns `Deferred`; an existing child that fails exact identity/contract validation is corruption and must return `Conflict`. Treating both as `Deferred` hides valid-but-mismatched child authority.
+- MCP dynamic-script compilation success can coexist with project compilation failure because the dynamic extension references the last good Unity assemblies. For this slice, `Editor.log` exposed `CS0177`, `CS1628` and fixture `CS0030`; only the subsequent rebuilt project assembly plus executable focused scenario counts as evidence.
+## 2026-08-28 destructive-drain live-caller boundary
+
+- `ProductionFacilityMutationAuthorityGate` already composes transient mutation epochs with the durable open-drain query and correctly blocks all ordinary mutations while a drain journal is open. The live integration must preserve this fail-closed behavior.
+- A valid destructive world mutation therefore needs a separate exact-open operation: same facility, canonical upper drain operation, matching initiating mutation operation/cause, and an allowed phase only (`AwaitingAuthorityRevoke` or `AwaitingWorldRemoval`). It must not introduce a general bypass.
+- The safe forward sequence is: drive participants to `AwaitingAuthorityRevoke`; open an exact drain-scoped epoch; revoke empty destination authorities; persist `RecordAuthorityRevoked`; close that epoch; open a fresh exact `AwaitingWorldRemoval` epoch; mutate the world; persist `RecordWorldRemoved`; close the epoch. A world-removal failure ends only the transient epoch and leaves the durable journal at `AwaitingWorldRemoval` for forward retry.
+- Reusing one ordinary `ProductionFacilityEmptyMutationCandidate` across participant commit and failed world removal is unsafe because its abort path restores authorities and would roll physical salvage backward. The authority-revoke and world-removal stages must use separate candidates/epochs.
+- `BuildingDestructiveLossRuntime` still calls ordinary `TryPrepareEmpty`, so occupied sensor/output custody remains fail-closed and the coordinator is not a live gameplay path. `GridBuildingRuntime` explicit demolition has the same direct-fence shape and also needs the shared drain-scoped transaction rather than an ID-specific branch.
+- A restore-time recovery path must resume open `AwaitingAuthorityRevoke`/`AwaitingWorldRemoval` entries using a live `BuildableObject` lookup. It must treat an already-missing world object at `AwaitingWorldRemoval` as an exact forward acknowledgement case, not recreate the facility or participant contents.
+
+## 2026-08-28 destructive-drain convergence findings
+
+- A lower authority revoker's boolean return is not an authoritative commit receipt. After `false`, the upper revoker must recapture the exact claim/profile pair and distinguish `Absent` (commit observed), `Exact` (deferred/no commit) and invalid cardinality (conflict).
+- Observing `Absent` for one lower domain is not sufficient to return success. The same upper call must continue through remaining domains, revalidate the durable journal token, require both authority pairs absent and require the composite lifecycle to have no authority or empty blocker.
+- The coordinator's independent pre-phase authority/lifecycle recapture is a necessary second barrier; it protects against a faulty revoker result and revoke-to-phase races.
+- Permanent conflict must not be scheduled as ordinary next-Tick deferred work. Recovery now requeues only typed `Deferred`, while `Conflict` remains visible and prevents world mutation.
+- Deterministic artifact generation is proven only when the second run preserves bytes and mtime, not merely when semantic rows look equal. Current CSV/report passed both checks.
+- The next structural P0 is not another sensor-specific branch: it is a generic six-participant journal-last checkpoint-GC transaction plus an actual deferred-demolition completion authority for the three existing consumers.
+
+## 2026-08-28 WorkOrder destructive-drain cross-save findings
+
+- Runtime reconciliation on the first WorkAmount Tick is too late for save atomicity. `work.orders` must be joined to the upper destructive journal during both whole-save and registry preflight, before any candidate publication.
+- Operation ID alone proves the persistent facility identity but not the WorkOrder's building definition and center. A nonterminal join must also compare the exact world row to `targetBuildingId/gridX/gridY`.
+- A present pipeline ID string is not ownership evidence. The exact pipeline row must exist and match the facility definition and footprint; otherwise salvage/rebuild continuation can silently stall.
+- `ExplicitDemolition` is shared by direct player and WorkOrder paths. The safe direction is WorkOrder→journal; requiring every explicit journal to have a WorkOrder would reject legitimate player demolition.
+- `facilityRemovedForRetry=false` with a terminal journal is a legitimate restore prefix: the journal may have completed world removal before WorkAmount reattaches its observation. It must be allowed only with the exact operation/cause/facility/pipeline join and then forward-reconciled.
+- `facilityRemovedForRetry=true` with a nonterminal journal is impossible and must fail before publication.
+- The current coordinator keeps terminal journals because checkpoint GC is disabled. Once GC is implemented, WorkOrder ownership must participate in the same journal-last transaction or the exact join can be deleted too early.
+
+## 2026-08-28 journal-last checkpoint GC findings
+
+- A lower participant returning failure is not proof that it made no mutation. The coordinator must add the attempted participant to the rollback set before calling publish, and each multi-row lower store must preflight the complete restore set before restoring the first row.
+- Rollback failure is durable recovery evidence, not a condition under which `Complete` may clear the active candidate. Only never-published or successfully rolled-back candidates may be completed.
+- Generic production requires a three-authority transaction: Items input child, WIP terminal receipt, then producer tombstone. Its rollback order must be producer, WIP, child; producer live drift after lower publication must restore both lower authorities without recreating the conflicting producer.
+- Capacity producer tombstones are collectible only after both the routing batch and matching exact route are absent. A live authority after checkpoint preparation is typed `Corruption/LiveAuthorityChanged`, while unrelated routes do not block collection.
+- Journal V3 raw payload validation must require the marker scalar fields before deserialization. Otherwise missing JSON fields become legal zero/empty defaults and can silently erase checkpoint replay identity.
+- Apparel coverage must include the actual `ApparelWorkOrderRuntime → terminal outbox → participant` chain; fake-producer-only participant tests do not prove terminal-state row collection.
+- Current focused and cross-save evidence is green with Console Warning/Error `0/0`, but dirty-scene PlayMode and all authored kg/WU/EWU/price changes remain open. Structural GC closure does not change the fixed `69–77% / 23–31%`, Batch `0/8` checkpoint.
+
+## 2026-08-28 medical.surgery input-owner audit — initial findings
+
+- `medical.surgery` already has an exact live-facility destination claim lifecycle and a whole-save restore section (`CombatSaveSections.SurgerySaveSection`); this migration must reuse those authorities instead of adding a surgery-specific destination fallback.
+- The balance baseline classifies the existing surgery destination correction as authored-balance neutral: surgery BOM, WU, recovery, risk, success rate, footprint and utilities remain unchanged until a later explicit balance pass.
+- Prepared surgical-part output semantics are already covered by the common prepared-output restore preflight. The open owner is the surgery material input path, so output-capacity work must not be duplicated here.
+- The fresh fixed checkpoint remains input `5/39` migrated with `34` remaining, output `6/6`, bypass `4`, orphan/unclassified `0/0`; structural work alone does not advance Batch A–H or the `69–77% / 23–31%` overall range.
+
+## 2026-08-28 surgery terminal custody implementation contract
+
+- Content authority remains the existing procedure catalog and authored material rows; this slice changes no authored kg/BOM/WU/risk/price value.
+- `SurgeryAggregateStateStore` owns only the terminal target and immutable join identity. The Items custody-drain outbox remains the sole owner of stack, lease, haul-intent, carried-cargo and release progress.
+- Medical must not reference the production-named drain DTO directly. Items exposes an owner-neutral descriptor/snapshot facade over the existing durable outbox; production callers remain compatible and no second physical drain state is created.
+- The terminal command is `begin-or-resume`, not a synchronous release. It finalizes an already committed material Sink first, freezes the exact destination custody request, persists the Surgery join, drives at most the existing bounded physical steps, acknowledges the exact receipt, revokes the empty claim/profile pair, and only then applies `Cancelled`, `Failed` or `Completed`.
+- Doctor loss is not terminal. Facility loss, explicit cancel, failed outcome and recovery completion use the same data-driven terminal path; no procedure/item/content-ID branch is allowed.
+- Save validation requires canonical operation/request/commit/receipt identities for every non-`None` terminal phase and rejects an Items child without an owning surgery order or an owning order without the required child phase before live publication.
+- Failure remains forward-only: once the Items effect is committed, retry may only acknowledge/revoke/close. It must not recreate the destination cargo or refund an already committed material Sink.
+
+## 2026-08-28 surgery terminal custody closure findings
+
+- The cross-aggregate validator must run at three boundaries: raw whole-save/direct registry before candidate publication, and captured canonical envelopes after `CaptureAll` but before durable bytes are accepted. Restore-only validation leaves a corrupt outgoing save possible.
+- Projection of the production-named custody row into an owner-neutral immutable snapshot must have one shared implementation. Duplicating phase mapping in Medical would let runtime, save preflight and GC disagree after a common phase change.
+- Terminal tombstones cannot be collected at runtime acknowledgement. Durable save order `300` collects the Items child first and the Surgery upper join last; upper publish failure must restore the exact child before candidate completion.
+- A lower publish failure is non-mutating only when the lower capability proves it. The focused GC fixture therefore checks child failure, upper drift and rollback state separately rather than inferring atomicity from a boolean result.
+- Two stale focused fixtures were exposed by running the real common suite: a constructor lacked the new restore query and a haul cohort asserted lowercase `facility-buffer` instead of the enum's canonical token. Both fixtures were corrected without relaxing production contracts.
+- Structure is now manifest-migrated (`6/39`, `33` remaining), but actual dirty-scene facility-loss/doctor-Downed/tare-output-space PlayMode and the synthetic procedure/BOM polymorphism canary remain acceptance evidence, not grounds to reopen the owner row.
+
+## 2026-08-28 next input-owner selection
+
+- `medical.character-supply` is the next smallest adjacent owner. It has one order-scoped destination, exact typed Sink/tare provenance, V4 save and an existing physical receipt preflight; the missing pieces are positive gram claim/profile, carried-aware terminal custody and durable upper/lower lifetime.
+- Its current terminal path calls `ReleaseStacksByDestination` and immediately clears the destination/supply state. That cannot distinguish an unpicked lease from carried physical cargo and can erase the owner needed to join a pending haul or physical receipt.
+- `medical.surgical-part-storage` is not one small owner despite one manifest row: it combines persistent organ/canister storage with a separate category-fuel destination. Its organ routing remains count-based, fuel lacks exact item Sink provenance, facility destruction lacks terminal ownership, and expiry directly deletes/spawns mass. It will be split into organ authority and fuel lifecycle after character supply.
+- Character supply capacity can remain content-agnostic by taking the maximum unit gram over the current capability-derived eligible medicine set plus extracted blood, while actual admission still commits the chosen exact item and quantity one.
+
+## 2026-08-28 medical.character-supply destination-lifetime correction
+
+- A Character Medical order can outlive several treatment facilities. A Surgery-style join keyed only by `orderId` would collide when facility loss, placement failure or manual reassignment closes one destination and the same order later opens another.
+- The reusable contract is a generic `facility-input:exact:` namespace plus a monotonic destination lifetime sequence. The active destination has one exact claim/profile pair; closed drain joins may coexist until durable checkpoint GC.
+- `treatmentSupplyOperationSequence` is Sink-operation authority and must not be reused as destination lifetime authority. Current and next destination sequences are separate persisted fields; failed numbers are never reused.
+- Facility loss is not an order-terminal event. It closes the current destination lifetime to a nonterminal target, then a later retry may allocate a new lifetime. Rescuer/doctor loss alone keeps the destination open.
+- The partial claim/profile implementation originally leaked projection fields and the claim after release, so V5 validation and facility reassignment could fail. The current interim release path now revokes and clears the pair, but direct `ReleaseStacksByDestination` remains a P0 until the common carried-aware custody drain replaces it.
+- Exact-claim enforcement is capability-shaped rather than medical-ID-shaped: any future owner may opt into `facility-input:exact:` without adding an owner/content branch to Items.
+- The old pair cannot be reconstructed safely from mutable current-order fields after a facility loss or reassignment. Each upper join must freeze source facility ID, owner coordinates, destination ID, positive capacity, mass authority revision and capacity fingerprint; normal current restore uses the live facility while an active drain restore uses that frozen authority.
+- `MaterialDestinationDraining` must be rejected by AI reservation and treatment commands, resumed before ordinary medical tick logic, and closed before a later destination sequence is opened. Closed joins remain independent history rows, so their target state must not be required to equal the order's later current state.
+- The Character Medical destination adapter needs an immutable authority snapshot for validate/revoke/restore. Revoke must be replay-safe for an absent pair, corrupt on a partial pair and must never infer the old authority from a replacement facility.
+
+## 2026-08-28 medical.character-supply restore and checkpoint boundary
+
+- `CharacterMedicalSaveSection.PrepareRestore` must remain read-only. Live claim/profile replacement is safe only in `PublishRestore`, after detached Character Medical and Items drain candidates pass the exact cross-aggregate join.
+- A restored carried slice has no live `AbilityHaul.activePlan` until the later Items publication stage. Recovery therefore needs the common exact-operation detached-carry path; clearing a medical reservation or intent first would orphan physical cargo.
+- Raw section validation is local-only. Cross-aggregate validation runs separately over raw whole-save, registry envelopes, captured envelopes, and detached restore candidates so one section never fabricates another section's authority during parsing.
+- Closed destination lifetimes are durable tombstones, not ordinary history. Order `310` collects the Items child first and removes only the exact closed upper join last; active joins and unrelated order fields are frozen as drift evidence and are never collected.
+- Checkpoint-GC rollback must reverse dependency order: if the upper was published, restore the upper join objects before restoring the Items child. An empty selected set is `AlreadyApplied` only after the full bidirectional cross-join proves there is no lower-only medical child.
+
+## 2026-08-28 durable facility equipment common-boundary findings
+
+- Research, Climate and Invasion share one physical capability: a live facility owns a small durable equipment socket. Repeating upper state, save DTO, drain join or GC in each domain would increase future work and create cross-domain claim deletion risk. One Items-owned active-1/closed-N aggregate and one common save/GC boundary are required.
+- The existing Production-only destructive-drain query was not a safe general admission fence. A generic composite source/query now blocks exact and planned admission for any registered owner while retaining Production behavior through an adapter.
+- Readable `prefix:domain:subject:sequence` identities are injective only when the domain token cannot contain the separator. Constraining the logical owner domain to lowercase `[a-z0-9._-]+` closes the collision while allowing colon-bearing stable facility subjects.
+- A projected capacity value alone is not persistence evidence. The projection must bind policy kind, positive mass authority revision, ordered assignment fingerprint, per-requirement unit-mass evidence and positive maximum grams into a canonical source fingerprint.
+- The extension projector boundary must validate its implementor. A custom projector returning `true/null`, success with a failure reason, or failure without typed evidence must be rejected by the registry rather than trusted.
+- `BufferedUsableQuantity` cannot be implemented with item-ID branches. The next runtime layer needs a registered usability policy/handler that can evaluate exact item component snapshots; positive durability is the first implementation and unsupported capabilities fail loudly.
+- The common save payload must retain DTO key components separately and own a global monotonic assignment sequence. Domain Research/Climate/Invasion DTOs must not duplicate slot state. Derived pending/buffered counts remain Physical Items queries and are not saved.
+- Current capacity fixture proves arithmetic and extension dispatch using a fake mass query. Asset-backed Arcane Index catalog resolution and live DI resolution remain separate required evidence before `research.arcane-index` can migrate.
+## 2026-08-30 — V27 multi-output EWU allocation boundary
+
+- `V27EmbeddedWorkValueCalculator.TryCalculateRecipe` sums every output's expected quantity into one denominator (`V27EmbeddedWorkValueCalculator.cs:450-490`) and publishes that same `PerUnitAcquisition` to every output item (`:252-267`). Main and Byproduct economic roles are therefore erased.
+- Output credit is later summed by each output's existing recoverable value (`:492-512`), so adding a cheap offcut can reduce the main item's acquisition while retaining independent sale credit. This is the structural cause behind the mending-scrap/apparel co-product exploit.
+- `ProductionRecipeSO` already owns an opaque registered `massExplanation` envelope and includes it in semantic digest `@4`; a separate allocation descriptor can follow the same extension pattern without recipe-ID switches. It must be V27-After economic authority, not gameplay state or V23-Before migration.
+- The first search guessed nonexistent `Assets/Scripts/Services/Economy/V27EwuQuantization.cs`; no file changed. Locate `EwuAmount`, `EwuRational`, and `V27EwuQuantizer` by symbol search before the next read instead of reusing the guessed path.
+- Exact mEWU primitives live in `V27BalanceLedgerCore.cs`. `EwuAmount` is nonnegative `long`, rational expected units are exact, input division Ceils and output division Floors. A future allocator can therefore partition a batch in integer mEWU without float tolerance.
+- Current 256-seed simulation hashes only one recipe-wide `PerUnitAcquisition`, so its determinism/SCC PASS cannot detect role-erasing co-product allocation. Snapshot and hash evidence must become output-line/item-specific before that simulation can prove the new invariant.
+- Economy authoring is in `DungeonStory.Economy`; the V27 balance calculator is in the root runtime assembly. A serializable opaque allocation descriptor can be owned by `ProductionRecipeSO`, while the registered economic resolver remains downstream in the balance/service layer without reversing assembly dependencies.
+- Current authored multi-output scope is much smaller than feared: exactly three of 355 recipes have at least two positive physical output lines, all are Source (`source:logging`, `source:quarry`, `source:saltstone`); current Transform multi-output count is zero. ReturnedPackaging/RecoverableWaste multi-output authoring is also zero.
+- A generic integer weighted-share policy can fix current Sources without content-ID branches. Using authored line amount as weight but dividing by expected quantity preserves rarity: quarry weight 4 for stone and 1 per rare branch makes per-unit gold/mana cost rise by inverse probability instead of receiving stone's unit cost.
+- `material:mending-scrap` has two declared consumers but one real debit family. Repair selects it at create/restore and commits the physical Transfer; alteration reserves only the target apparel and changes components. Removing the false alteration link is gameplay-correct, but the current intermediate-item validator hard-requires two consumers, so that structural validator must be made truthful before the catalog row can be removed.
+
+## 2026-08-30 — V27 multi-output EWU allocation implementation findings
+
+- Exactly three live multi-output recipes exist and all are Source. The new registered `weighted-output-share@1` contract is therefore connected to live content without introducing a speculative Transform policy.
+- Amount-weight plus expected-unit division gives the intended rarity ordering. Current focused values are logging `4159/23100`, quarry `5135/25665/32082/171100/513300`, and saltstone `4528/18112` mEWU per item.
+- A zero-weight ReturnedPackaging line must carry an explicit non-acquisition flag through line-to-item aggregation. Merely assigning it zero debit would otherwise let the fixed-point relaxation overwrite a container's existing acquisition with zero.
+- The focused snapshot passed exact batch debit, rarity ordering, returned-package preservation, reverse-enumeration determinism, and byte/mtime-stable artifact generation.
+- The existing 256-seed run reached the final integrated audit after its allocation/determinism/strict-loss loop, then failed only because output-capacity PlayMode evidence was stale. Do not report a fresh whole-game audit until the GameplayScene evidence is regenerated.
+
+## 2026-08-30 — construction redistribution exhaustive-review blocker
+
+- `building:9502` was not failing because of a mass/entropy invariant. Its current upstream lumber EWU makes the simultaneous constraints WU `1.5~2.25×`, BOM `<=150%`, investment error `<=2%`, and density ratio `<=1.50` mathematically infeasible.
+- The former policy discarded every out-of-density candidate and threw at the first facility, truncating the exhaustive ledger. It now retains the best candidate inside the WU/BOM/investment bounds as `CriticalDensityUnresolved`.
+- This is not an automatic fallback or approval. The audit maps it to an unresolved root Critical, preserves exact values and reason, and leaves asset application behind exact approval gates.
+- For Critical-vs-Critical selection, density drift and investment error are compared before changed-row count so the optimizer does not prefer an unchanged but materially worse BOM solely because it edits fewer rows.
+- The plan now states explicitly that V27 does not model entropy and does not require literal recipe mass equality; exact ownership/WIP and EWU non-arbitrage remain strict, while process mass requires typed explanatory attribution.
+- The first focused fixture reused `building:9502`'s historical BOM EWU with the freshly recalculated lumber EWU, so it no longer reproduced the earlier impossible density band and correctly returned `Normal` (`799 WU`, `117441mEWU` BOM, ratio `0.9873`). The regression was converted to a deliberately infeasible historical-density fixture (`beforeBomEwu=100`) while retaining the current item authority; the live review is rerun separately rather than freezing a transient building result into the test.
+- The first exhaustive review completed with `86933` rows, `332` unresolved roots, `39` collapsed descendants, `297` SCCs, minimum margin `-23142719mEWU`, and zero integrity failures. Only two roots use the new construction reason (`building:9303`, `building:9502`); the other 328 are stale exact labor approvals invalidated by source changes.
+- The construction root initially used synthetic metric `labor-density`, which had no ledger approval key and could never be resolved. It now points at the actual `construction-authored-wu:redistributed` authority row while retaining the density-specific reason code.
+- After source recapture stabilized, the second/third exhaustive runs were byte/no-op identical for CSV, audit, anomaly graph, source inventory and manifest. The first→second source inventory refresh was not counted as deterministic evidence.
+- Final generator `v27.13.2` includes `balance:v27:multi-output-economic-allocation-v1` in the manifest. Final no-op hashes are CSV `BD1BFD10AD8743670B50F8C5B3153BE8E2E22AD6CA081CABC95A0B5D8BF1AB55`, audit `28787C1843782E6A9481F43CF0314C90D66CD0DEDEB51A14C9177D4B8DB79953`, anomaly graph `EE39F8B9FC591C03050EA24A5AD5D8BF6869941098257CE42EECBAA5C005FB6D`, manifest `C0832583E6758135438BF99B05C61A02A92D8445A3F44A687CCDCCDBE8B024FD`, source inventory `21B872E859D14B3F32D8432CD25B9A3D22A262950D96BDB08C3C5643B7C68268`.
+- Final Unity Console Warning/Error is `0/0`; official GameplayScene hash remained `B390A975545B55D5AAE48C27514C889E3386BE372FD227F92E7572983E5643C8`.
+- 2026-08-30 approval/density split: the `328` recipe Criticals were not 328 independent WU decisions. `direct-wu` mixed the historical project-scaled Before with a density review, so every upstream EWU change invalidated local approvals. A separate same-route `labor-density-ratio` metric reduced the graph to 31 roots and 172 collapsed descendants.
+- Recipe work approval custody now uses a metric-scoped digest (`recipe ID + process kind + V27BalanceWorkCalculator digest`) instead of the whole recipe YAML excluding only `requiredWork`. Mass/output-allocation metadata therefore cannot invalidate direct WU by itself.
+- Semantic revalidation is safe only for exact already-applied values. The first run carried 1,061 keys, retained 310, expired 565 and approved no new After.
+- Strict AuditOnly revealed that historical approval custody and refreshed construction proposals need separate ledger states. Concrete first case: `building:1011` treated lumber is approved/applied 6, historical Before 4, refreshed candidate 5. Do not mutate it or call it arbitrary drift; emit a pending rebase candidate while preserving the applied approval row.
+- Construction custody is now split generically for 27 rows. A review candidate may share the same SerializedProperty with an applied custody row only when it has an empty approval key and `assetApplied=false`; generic patch creation therefore sees at most the applied no-op row and produces no candidate mutation.
+- Candidate BOM bounds must be evaluated against historical authority, not patch Before. For `building:1011`, candidate `6→5` is valid because `5` is inside historical `4..6`; describing it as `[6,9]` was self-contradictory and is now prevented by the focused gate.
+- Review-only candidate metrics must never be persisted in the approval file. Future explicit promotion must patch current `6→5` while atomically replacing the canonical approval `4→6` with `4→5`; approving the temporary candidate metric itself would make both keys stale after regeneration.
+- The next strict blocker is the same state-shape defect across market authorities: the current asset often equals a previously applied intermediate After while the refreshed multi-output EWU graph proposes a new price/sale-rate. The first strict pass reports 337 such failures, so market authority needs the same applied-custody/pending-candidate separation before 256-seed reruns.
+- 2026-08-30: entropy/mass conservation must not be used as one universal gameplay invariant. Exact item ownership/idempotency, economic no-arbitrage, and explainable process yield are separate contracts. Typed external input/sink/abstract loss explains intentional non-conservation without forcing fake waste items.
+- 2026-08-30: lowering market integrity failures from 337 to 0 is not balance completion. Typed classification proves 58 current values are exact V23 baselines and leaves the original 337 unresolved provenance Criticals; no provenance candidate has an approval key or `assetApplied=true`.
+- 2026-08-30: derived sale credit was a hidden mixed-state bug. It previously used candidate unitPrice/saleRate while claiming `AssetApplied=true`. The ledger now records exact live credit separately and collapses 175 unapplied derived credits under upstream candidates.
+- 2026-08-30: full AuditOnly deterministic evidence is rows 87,823 / Critical 378 / integrity 0 / SCC 297. The remaining 378 reviews block ApplyApproved and the 256-seed completion gate.
+- 2026-08-30: the typed classifier changed the semantic approval key for 8 already-applied market consumers without changing their Before/After/dependency/reason/baseline. Existing revalidation atomically retained 1,363 keys, reissued 8, expired 0, and approved no candidate values.
+- 2026-08-30: market candidates are not safe for bulk apply. Unit-price median absolute delta is 50.34%, with 62 rows over 100% and 22 over 300%; mana crystal is 4→172 gold and mana stock procurement is 4.20075→230.98495 gold/item. Live sale credit has zero acquisition-cost violations but 34 rows exceed the 60% recovery target.
+- 2026-08-30: approval history can safely recover existing custody only when the candidate Before exactly equals the old approval After and identity/dependency/reason/baseline all match. This recovered 162 current values but approved zero new candidates.
+- 2026-08-30: a collapsed dependency root cannot select the first approval-bearing metric by stable ID. That promoted 12 unrelated sale-rate rows. Restricting root selection to causal metrics and preferring already-approved unit-price roots removed the false Criticals without changing gameplay values.
+- 2026-08-30: the 175 unproved sale rates are all currently no-arbitrage, but 34 live values exceed the 60% recovery target and one (`resource:stone`) exceeds 70%. Formula safety is not sufficient evidence for liquidity/gameplay approval.
+- 2026-08-30: the remaining 366 Criticals are exactly 337 market review-only candidates plus 29 construction decisions. No current mass/runtime mismatch or readiness Critical is mixed into this count.
+- 2026-08-30: upstream family and approval bundle are different identities. Quarry/mana grouping is a causal review tag only; the safe approval atom is the item anchor. The corrected artifact contains 337 direct members in 234 atomic bundles, with all 11 stock/retail/reward consumers attached to an existing item and no duplicate membership.
+- 2026-08-30: exact bundle shapes are PR87, R80, P58, RS3, PRS2, PT1, GPRS1, GPR1, GPRT1. The 74 formula-clean prices are a cohort, not a bulk-approval set; 39 also carry sale-rate candidates and three anchors carry five market-consumer candidates.
+- 2026-08-30: dedicated economic causality must use acquisition/cultivated-acquisition plus recipe direct-WU physical input edges. This yields quarry 180 direct candidates and mana 84; general presentation dependencies would misclassify roots.
+- 2026-08-30: a review decision is stale-safe only when it binds the exact bundle digest and each candidate's dependency fingerprint, source digest and semantic hash. The v3 CSV has zero missing identities and zero intra-bundle digest disagreement; a family tag is never part of wildcard approval authority.
+- 2026-08-30: 29 construction roots were generator defects, not 29 gameplay choices. The optimizer compared against historical BOM rather than current approved authority, omitted density-boundary WU, and bypassed enumeration for material-dominated facilities. Preferring valid current properties removed all 29 without asset mutation while retaining a genuinely impossible Critical fixture.
+- 2026-08-30: quarry weighted output allocation is not the mana-price blocker. Faction Trade/Supply currently delivers physical cargo without payment; candidate mana and awakener sale credits would monetize those routes at ~60.20 gold/day versus ~2.69 today. Keep mana-root bundles in rework until a generic route economic policy closes the inflow.
+- 2026-08-30: deterministic recommendation is distinct from approval. Current exact split is 178 promote, 46 mana-unpriced-inflow rework, 10 non-mana candidate-credit-doubling rework, while all 234 actual bundle decisions remain pending.
+- 2026-08-31: the exact decision authority now resolves all 234 bundles: 178 promote and 56 rework. Promotion was not inferred from a family tag; every member was revalidated against bundle digest, dependency fingerprint, source digest and semantic hash before mutation.
+- 2026-08-31: the safe promotion changed 183 assets / 238 properties and reduced strict unresolved Criticals from 337 market members to 99 members. A second run produced zero asset/property change, proving idempotent application rather than merely unchanged recommendations.
+- 2026-08-31: strict audit cannot be used as the intermediate recapture while approved values are temporarily being replaced; it correctly reports stale keys. The safe transaction boundary is: mutate approved properties → approval-refresh capture → atomically rewrite approvals → final strict AuditOnly. Any failure restores both assets and approval bytes.
+- 2026-08-31: Unity command transport timed out once while the Editor continued the long transaction. Transport timeout is not a rollback or success signal; durable report plus subsequent exact decision validation, no-op application, strict audit and asset/approval hashes are the acceptance evidence.
+- 2026-08-31: current faction Trade and Supply routes are economic Sources, not physical conservation errors. They publish ordinary sellable cargo without a currency debit or global benefit-budget debit, so raising mana prices before closing the route policy creates a free-value loop even when SCC transforms remain negative.
+- 2026-08-31: the generic correction must bind route kind to a registered economic capability, a canonical quote/budget reservation and an idempotent debit/commit state. Trade should pay upfront at 1.00× authored unit price with no refund after departure; Supply should consume a global alliance-benefit EWU budget and must not tag delivered items as unsellable.
+- Error log: a duplicate attribute on the new partial application class caused CS0579 and was removed. A first dynamic command used top-level statements and caused CS8805; it was replaced with a full command type. A delay-call experiment returned without executing because the temporary delegate lifetime was unsuitable. The first real transaction hit intentional stale approval custody at mid-recapture and rolled back; `GenerateForApprovalRefresh` fixed that single internal boundary. A guessed faction adapter path did not exist; symbol search located the live adapter in `FactionApplicationDependencies.cs`.
+- 2026-08-31: market review validation must be structural, not tied to the historical 337/234 snapshot. Exact anchor closure, member uniqueness, digest/shape identity and supported authority metrics remain stable while successful promotion legitimately shrinks the candidate population.
+- 2026-08-31: unresolved price/rate candidates require derived sale-credit rows only when the item actually has a live `market-sale-credit`. A surgery prosthetic can have a price candidate without being sellable; requiring a derived sale row there is a false invariant.
+- 2026-08-31: exact-once debit can reuse the current money account and transaction ledger without a second account abstraction because `GameMoneyAccount` is the only implementor. Its successful receipt must be projected into the Faction route, because the Treasury ledger keeps only 256 records and cannot be a permanent restore join.
+- 2026-08-31: `DungeonFactionSaveData` alone needs V4 for route settlement. Session and Treasury payloads do not gain fields. A separate settlement operation sequence must allow gaps so a failed/refunded attempt never reuses an idempotency source.
+- Error log: the first dynamic candidate retry still selected already-promoted `ammo:arrow-steel` with `Single`; replaced by an all-candidate no-op check. The next retry over-required a derived sale-credit for non-sellable `surgery:prosthetic:eye:left`; filtered the closure through live sale-credit IDs. A PowerShell `foreach (...) { ... } | ConvertTo-Json` command produced an empty-pipe parser error; wrapping the loop in `@(...)` fixed the read-only hash comparison.
+- 2026-08-31 Ship P0 haul starvation root cause: a concrete `destinationId`/destination position is durable route authority, while the old seed ranking collapsed all `PrioritizedHaulStackIds` into one boolean tier. A committed expedition delivery and an unrelated manually prioritized loose stack could therefore tie, after which price/quantity/distance selected the unrelated stack indefinitely. The generic P0 correction is destination-bound rank 2, manual priority rank 1, ordinary rank 0; invalid destinations still fail earlier through `WorldItemHaulDestinationAuthority`.
+- The full physical-logistics rerun proved expedition packing/consume/cancel and L02 exact gram overfill rejection after that correction. It then exposed a verifier-only transaction error: direct `StageTransactionalRestore(...).Commit(...)` bypassed the exact-route and physical-candidate restore participants that the real upper save coordinator runs. The over-capacity fixture must drive both registered participants around the staged commit rather than weakening exact-route prevalidation.
+- P1 follow-up: manual loose-stack priority is not part of detached/save state, and `PrioritizeDestination` does not return individual registration failures. These do not block the committed-route P0 because committed destination rank is derived from durable stack authority.
+- 2026-08-31 full Physical Logistics retry reached terminal evidence after the committed-route and L02 fixes. Expedition packing/consume/cancel, L02 `17x700g` ingress/restore/overfill rejection, carry UI, and the direct transactional over-capacity fixture passed. The run still has eight verifier/integration failures.
+- Three craft failures share one verifier snapshot defect: the craft actually publishes and hauls a dagger stack, but the verifier looks only for `FacilityBuffer` immediately after the queue disappears. The live stack observed by the next haul plan is `Loose`, so the saved `output` reference is null and the later stateful-mass assertion is a derivative false failure. Decide against the authored output-custody contract before changing production behavior; do not merely suppress the checks.
+- Five official whole-root restore failures share leaked temporary fixture state. The construction test leaves `work:000001` referring to destroyed synthetic building `99121`, and the craft fixture leaves an incomplete planned-output marker batch. Whole-root preflight correctly rejects both, so evacuation never publishes and the later four checks cascade. Fixture ownership/cleanup must be completed before capture; the save validator must not be weakened.
+- 2026-08-31 broad logistics closure: construction failure was a fixture teardown defect. `CancelOrder(orderId, false)` necessarily rejects delivered-material orders; `CancelOrder(orderId, true)` completes exact restitution/outbox acknowledgement and removes order/destination authority before the synthetic building is destroyed.
+- The craft marker failure was not a pending or duplicated batch. The exact dagger was acknowledged, then its mutable equipment component changed with the normal `Loose -> Stored` custody transition. Pending markers still require exact live component signatures; acknowledged provenance instead remains immutable production evidence while current equipment/physical state is validated by its own authority.
+- A post-craft verifier must bind `order.outputStackId` and the frozen publication row, not search by transient `FacilityBuffer` state or merely look for a new item ID. Queue terminal + `outputAcknowledged` + exact provenance batch/outcome/planned/line/item/quantity/mass, followed by same-stack Stored verification and whole-root restore, is the accepted boundary.
+- Do not delete the acknowledged craft output before official whole-root capture: that hides the required saved-provenance regression. The final broad run retained `equipment-item:weapon:dagger x1` at `700g` in warehouse state and passed official whole-root restore and evacuation cleanup with Console `0/0`.
+- 2026-08-31 active-haul heartbeat root cause: warehouse admission TTL is 15 game-seconds and the intended heartbeat is 10 seconds, but `AbilityHaul.Update` excluded active hauling and path start reassigned `nextLeaseHeartbeatAt = now + 10` without a renewal. A route could therefore push the next callback past expiry even though the abandoned-token policy itself was correct.
+- Do not solve this by increasing TTL or weakening `ExpireTokens`; that would hide abandoned reservation leakage. The correct boundary is active frame-clock renewal plus preserving the existing due time across path-search completion.
+- Evidence freshness must include every production source capable of changing the asserted behavior. The paired verifier previously omitted `AbilityHaul` and warehouse admission services, so FAIL and PASS could share the same digest. The source list now binds those files.
+- Current-source focused facility/crop/mining 4-arm runs all pass with exact burst conservation, post-pickup Downed injection, recovery, no reported persistent/access/egress clutter, minimum runtime headroom at least `30.6%`, Console `0/0`, and unchanged official GameplayScene bytes.
+- P1/P2 backlog: a single movement segment longer than an admission TTL should receive a dedicated extreme-speed/terrain regression, and final 64 paired/256 layout repetition remains hardening rather than Ship P0. Final 32-seed paired is deferred until the Ship P0 source candidate is frozen.
+- 2026-08-31 six-adult kg-storage audit: the current six-adult reserve is `60 x 350g twilight grain + 12 x 600g grain porridge + 59 x 500g clean water = 57,700g`. Normal 70% admission therefore requires `82,429g`; the selected all-category L01 authority is `25,000g`, so four L01 units are required, coincidentally the same count as the obsolete count-capacity calculation.
+- The coincidentally unchanged building count hid the contract defect. A valid verifier must record grams, select storage by `maxStoredMassGrams/footprint`, compute normal/fault utilization in grams, and derive overflow from relevant physical stack mass rather than a magic `75 units`.
+- Current relevant maximum stack masses are porridge `50 x 600g = 30,000g`, grain `75 x 350g = 26,250g`, and water `50 x 500g = 25,000g`; six-adult overflow can therefore use the maximum relevant physical stack mass as its typed per-cell containment envelope without inventing a new volume stat.
+## 2026-08-31 Ship P0 final findings
+
+- 6인 정적·공간·live verifier의 storage authority를 count에서 canonical grams로 교정해야 실제 warehouse와 같은 결론이 난다. 현재 7일 비축은 `57,700g`이며 100kg 계획 저장량 안에서 30% 공간 headroom을 유지한다.
+- market approved SO 적용 전후 원장 행 수가 달라질 수 있으므로 최종 순서는 `Apply → no-op verify → economy256 → audit/manifest → portable verify`여야 한다.
+- final daily fixture는 실제 Slime 종족·숙련·장비·건설 성능을 포함하므로 observed `65.711/59.713`을 neutral authored `50/45`와 exact-equality로 비교하면 안 된다. P0는 기준 하회 없음과 낮은 CV를 확인하고, 상회분을 전역 WU/EWU에 재곱하지 않는다.
+- canonical 32/64 paired, F 6-cluster, G 19-row, input owner 31개, semantic 51개, Transform 261개는 신규 P0 결함이 아니라 exhaustive P1/P2다.
+
+## 2026-08-31 exhaustive P1/P2 audit findings
+
+- The 51 missing semantics are not harmless labels. They split into coating transfer 4, medicine/dose 18, rations 2, medical kits 9, antigen specimens 7 and supply packages 11; each needs a real tare/terminal policy before semantic closure.
+- The first safe Transform family was 19 already-positive-residual textile recipes using the existing recipe-agnostic `process-loss@1` capability. Three deterministic transforms with exact zero current/runtime residual need no authored loss and can be proven as `balanced-exact`.
+- Recipe closure is `Source 23 + Sink 4 + reviewed exact 86 + balanced exact 3 = 116/355`; the remaining contract denominator is 239, not the stale 261.
+- A broad regression can fail after the focused slice because an old fixture reconstructs only physical routing lines. Detached terminal validation now also requires declared-loss mass and nonphysical disposition rows; the fixture must mirror the production projector rather than weakening the join.
+- The FacilityBuffer manifest was stale because its exact DI topology ratchet still expected 2 restore hooks and 4 capture guards after clearance telemetry added one of each. Current topology is 3/5, while the substantive input migration denominator remains 8/39.
+- F `0/6` and G `0/19` are real. Their official source-derived descriptor/generator artifacts do not exist yet; older focused results from different revisions cannot be aggregated into closure.
+- H's `92×32` artifact is structural synthetic coverage, not 2,944 natural observations. Current natural evidence is one P17 facility across 32 rows, the official paired artifact is stale/failed, and the older whole-game/final-acceptance artifacts claim outdated 413/354/84,389 cardinalities.
+- The second safe recipe family closes exactly 16 contracts without changing kg/BOM/WU/price: smelting 6, combustion 1, moisture 3, milling 1, extraction 4 and weaving 1. Recipe-specific reason codes are required because a generic label would erase whether residual mass is brine, spent feedstock, tissue or atmosphere-bound loss.
+- Recipe closure is now `Source 23 + Sink 4 + reviewed exact 102 + balanced exact 3 = 132/355`; `223` Transform contracts remain.
+- The 80 `external-input-authority-missing` rows have no safe blanket closure. Current data indicates kg/BOM/output-unit mismatches and no authored atmosphere/biology/world/magic source authority, so inventing `AbstractProcessAddition` would hide balance defects.
+- F and G now have stable source-derived registries fixing the denominator at `6` domain clusters and `19` integrated fault rows. Every row remains OPEN until its required current-source evidence token exists.
+- A positive authored residual is insufficient for process-loss approval. The runtime gram equation must reproduce the same positive residual; nine rows failed this test and were excluded after the audit named `recipe:ration-mixture` directly.
+- The safe third closure is `69`, not the initially proposed `78`: accepted reviewed descriptors are now `137` total, reviewed exact rows `171`, and closed recipes `201/355`.
+- The remaining explanation-missing 18 split cleanly into nine proposed/runtime kg mismatches and nine extreme-loss cartridge/sewing-kit rows with probable pack/unit or BOM meaning drift. Neither group may be hidden as generic loss.
+- The object layer already supported detached building creation, but `IGridBuildingFactory` exposed only live creation. A common detached create/publish/discard boundary is now available without drawing or activating candidates early.
+- Persistent-ID-preserving replacement still cannot publish a same-ID candidate while the source remains registered. Relocation/evolution must not consume the new primitive until an atomic world-registry handoff can swap source and candidate without duplicate visibility or rollback loss.
+- The generic scene registry had only register/unregister, forcing a visible intermediate version for replacement. `TryReplace` now preserves the ordered slot and publishes one version change; building-world composition still must coordinate building, warehouse/retail projections and transient ownership as one higher transaction.
+- A world-registry collection swap alone is insufficient: `BuildableObject.registeredWithWorldRegistry` must move with the entry. Otherwise candidate destruction leaks the registry entry or later publication performs a misleading second registration attempt.
+- Forward replacement and rollback need different lifecycle preconditions. Forward requires a registered live source and an unregistered detached candidate; rollback requires the registered candidate and the original live object. Both must preflight building/warehouse/retail membership plus both directions of transient ownership before any collection mutates.
+- Relocation and evolution can now preserve the exact `BuildingInstanceId` without duplicate visibility by completing candidate initialization, grid registration and compatible state restoration before the reversible world handoff. Publication failure rolls the handoff back and restores the original grid custody.
+- This does not yet retarget active production authority. The current `ProductionFacilityMutationFence.TryRequireNoAuthority` remains an empty-only guard, so the Batch B active retarget parent gate is still honestly OPEN.
+
+## 2026-08-31 Batch C character owner and external-input findings
+
+- `character.career` and `character.reproduction` were not true per-order FacilityBuffer stores. Each consumes one long-lived tool (`record:arcane-index` or `record:breeding-ledger`) and changes durability. Modeling them as common durable-equipment slots removes duplicated delivery, claim, profile, restore and terminal logic without inventing a new buffer owner.
+- The common slot is the exact physical child authority. The domain aggregate mutation is an effect of the same durable-use transaction; if the aggregate rejects or throws, durability must roll back before the command fails.
+- The current-source owner artifact must be written via `RunFromMenu`; `RunAll` only captures and returns the report. Calling `RunAll` alone can show fresh `10/39` text while leaving stale `8/39` files on disk. The final evidence therefore invokes the writer twice and verifies unchanged hash, length and mtime on the second run.
+- The 80 external-input rows are all Transform operations that still create mass after existing physical item, clean-water and wastewater accounting. `DeclaredExternalInputGrams` is an audit DTO, not a runtime source owner, so static `MagicIntroduction`/`AbstractProcessAddition` would be false closure.
+- Safe no-design-change closure is `0/80`. The families requiring a real decision are apparel `32`, fiber/yarn/textile `10`, bedding `1`, component `11`, material `14`, processed textile `3`, tool `6`, food `2`, medicine `1`. High-risk outliers include lead-shot `2,150→25,200g`, black-powder `7,050→13,200g`, paper `1,600→3,600g`, and plate-blank `1,700→4,200g`.
+
+## 2026-08-31 climate and next-owner audit findings
+
+- Climate's two long-lived tools fit one common durable slot. Their authored current masses are 1,100g seasonal almanac plus 2,350g observation kit; definition-mass projection therefore owns one 3,450g capacity envelope without adding a climate save field.
+- Merely removing raw delivery was insufficient. A slot remains live after its tower disappears unless a lifecycle owner requests close; the climate guard now performs lost-owner/capability reconciliation before save and delegates physical drain to the common slot authority.
+- `research.knowledge-residue` still routes and consumes category-wide Knowledge even though its semantic input is exact `captivity:memory-residue` 200g. It needs one-task exact claim/profile, terminal release and restore join before migration.
+- `research.blueprint-archive` has an archive claim but no gram profile; its research bonus destination has neither exact item semantics nor authority. It should follow knowledge-residue because its restore projector must union both destination families.
+- `invasion.signal-horn` and `invasion.defense-kit` select the first Security facility. The real signal facility is RF12 `building:8812`; another Security facility can currently steal both deliveries. Horn also needs the entire invasion publication inside the wear effect or an equivalent provisional receipt before it can be closed.
+- Among captivity owners, `captivity.circus` is the smallest coherent future slice: exact 1,950g prop-box Sink plus 3,150g durable banquet cart. Care/performer, interaction and wildlife-care retain category ambiguity or incomplete physical restore joins.
+
+## 2026-08-31 research exact-owner findings
+
+- `research.knowledge-residue` is an exact per-task physical input, not a category-wide research bonus. Its authority is one `captivity:memory-residue` lot under an exact claim/profile; the pending Sink operation must survive Research restore and join restored Physical Items before terminal acknowledgement.
+- Removing the legacy automatic `+12` knowledge bonus avoids a second unsaved consumer and preserves the explicit task as the only research mutation authority. This is a behavior-authority correction, not an item kg/BOM/WU/EWU/price change.
+- `research.blueprint-archive` capacity must be computed from current exact catalog mass, not stack count. Every blueprint definition must have positive mass; the current maximum is 150g and the authored eight-slot archive therefore owns exactly 1,200g.
+- Claim and profile are one authority pair. A restore fixture that snapshots only the claim can miss torn rollback; the real claim registry plus mass admission lifecycle is required to prove both sentinel authorities are restored on a later participant failure.
+- Archive retirement must physically release carried/deposited blueprints before publishing the empty authority pair. Failed release keeps the old pair retryable; raw destination-prefix deletion is not a valid terminal path.
+- The live FirstRun archive segment passed exact policy, profile, committed-carried and deposited occupancy. The same full run later failed at arcane-index depletion/research completion, so that downstream defect is H evidence and does not invalidate the closed archive owner row or justify closing H.
+- Current owner closure is `13/39`, remaining `26`; F/G integrated denominators remain `0/6` and `0/19`.
+
+## 2026-08-31 unified production mutation admission findings
+
+- A boolean `IsFrozen` is insufficient for downstream custody admission because it loses the operation identity and revision needed for deterministic failure evidence. The combined production query now projects the exact transient epoch or durable journal operation.
+- Transient and durable fences may intentionally overlap while a destructive journal request is created inside a public mutation epoch. The combined snapshot must be durable-first; registering both as independent FacilityBuffer sources would instead trigger a false multiple-owner corruption.
+- Production DI therefore registers exactly one `production.facility-mutation` source. The older destructive-only adapter remains solely for compatibility fixtures and has zero production registrations.
+- The correct reservation boundary blocks only new exact-lot and planned-output admission. Existing Reserved/Routed tokens must still commit or release so a facility can drain rather than deadlock behind its own fence.
+- Rejecting before occupancy/mass queries and before token sequence mutation matters: after both transient and durable fences close, the first accepted token remains the same deterministic sequence it would have had without rejected attempts.
+- This foundation does not retarget active special producer orders or multi-facility synthesis. It is evidence toward the unified parent gate, not a reason to increment B beyond `36/40`.
+
+## 2026-08-31 unified mutation parent and durable-owner continuation findings
+
+- A facility fence cannot simply wrap each `ApplyWork` at method entry. Fixed output publication, acknowledgement, rejected-output recovery and completed treatment/harvest convergence already own physical receipts; blocking them would deadlock the destructive drain that opened the fence.
+- The safe ordering is therefore `terminal convergence first → common mutation gate → new planning/configuration/productive work`. Combat, Apparel, Certified Seed and Crop now use that ordering explicitly.
+- Read-like APIs may still mutate. Combat material-policy lookup normalized and wrote policy state on read, so the fence must guard policy creation/normalization as well as queue and work progression. Worker and quality policy edits are also facility-owner mutations and are blocked.
+- Actor work discovery must hide frozen productive work, otherwise AI repeatedly selects an order that cannot progress. Terminal convergence remains reachable through its owner-specific executor or tick path rather than being advertised as new material work.
+- The administrative seal and signal horn are both long-lived exact tools, so duplicating domain-specific delivery/save/drain logic would add no variation axis. The existing durable-equipment policy/slot/use/lifecycle is sufficient; domain effects remain transactional wear effects.
+- Exact source artifacts show real denominator movement: Batch B unified mutation parent `36→37/40`, Batch C owners `13→15/39`, while F/G integrated rows remain honestly `0/6` and `0/19`.
+
+## 2026-08-31 retarget and clearance-capacity findings
+
+- A world identity swap and a production authority retarget are different contracts. Synthesis/relocation/evolution can now use one transaction boundary, but `empty-lifecycle-guard` deliberately rejects active owners; active bill/WIP/custody needs real participants before the final B row can close.
+- Retarget rollback must include the participant whose commit returned failure, because that participant may have mutated before reporting the failure. The common transaction therefore unwinds the attempted prefix in reverse stable order and verifies every fingerprint.
+- Many-to-one synthesis needs source-ID-ordered bindings and one declared anchor persistent ID. Selection order or hash enumeration cannot choose the surviving identity.
+- A support-aware capacity proof must freeze both the producer scope/census and the reachable support/work-speed envelope. A p95 profile captured against a different digest is stale even when its numeric value still fits.
+- `4.000` and `4.001` cycles are intentionally different outcomes. The former is the authored hard ceiling; the latter is a typed logistics/capacity Critical, not a reason to silently enlarge every FacilityBuffer.
+- Unity MCP asset import can leave stale script assemblies after a failed compilation. Current-source evidence requires checking compilation ownership/logs and the rebuilt assembly timestamp before trusting a broad verifier result.
+- Replacing two direct object-destruction paths with reversible world handoff reduced the runtime `DestroySelf();` topology count from six to four. Updating the ratchet was valid only after the full non-Editor/non-Diagnostics source census proved the new exact count.
+# 2026-08-31 Batch D deterministic process-loss closure 2 findings
+
+- A process-loss descriptor is safe only when both proposal and current runtime equations have a deterministic positive residual. The residual magnitude may differ without invalidating the qualitative disposition, but a zero or negative runtime residual makes the descriptor false.
+- `recipe:ration-mixture` is the concrete counterexample: proposal residual is `400g`, current runtime residual is `0g`; it must not inherit a fabricated loss contract.
+- The remaining nine explanation-missing ammunition/sewing-kit rows are extreme-loss outliers. Closing them requires an item-unit/process decision, not another generic waste label.
+- Reviewed catalog application is byte-idempotent at `145` policies. Current recipe closure is `209/355`; semantic and external-input authority work remain independent open denominators.
+
+# 2026-08-31 B/C/D integration findings
+
+- Active facility retarget can preserve generic bill/WIP identity for same-ID replacement without yet solving N→1 reauthor or physical custody. This is useful staged progress but not the final B row.
+- Circus supplies contain two different lifecycle roles in one owned slot: the prop box is consumable and the cart is durable. A mixed usability/wear policy plus transactional Sink effect preserves both exact mass and cart rollback without bespoke delivery state.
+- `runtime exact` and `proposal exact` are separate claims. A recipe whose current authoritative grams balance exactly must not receive a fake process-loss merely because an unapplied semantic proposal changes an ingredient mass.
+- Source ratchets must move with actual architecture changes: removing two Circus delivery calls changes invocation/file counts, adding the lifecycle changes save-guard registrations, and moving relocation through the retarget transaction removes the obsolete empty-only call pattern.
+# 2026-08-31 — 6인 생존망 공정 용수 단위 교정 영향
+
+- `ProductionFluidMassRules`의 실제 권위는 authored unit당 `500g`이며, 최신 기준서의 12개 nonzero fluid recipe 값은 `kg/cycle`로 기록돼 있어 serialized clean/waste 값 모두 정확히 `×2`가 필요하다.
+- 현재 12개 RecipeSO와 `ProductionWorkshopContentAssetBuilder`는 변환값과 일치한다. 기준서 16개 residual 식은 1g 오차 없이 exact closure다.
+- grain porridge의 clean water가 `1.7→3.4 authored units/cycle`가 되면서 6인 총 물 수요는 `14.047 units/day`, 물 WU는 `17.560/day`, 반복 WU는 `85.568/day`, 반복 비율은 `31.7%`, 7일 물은 `99 units`, 생존 비축 질량은 `77,700g`이 된다.
+- 노동 gate는 여전히 통과하지만 저장 요구가 `57,700→77,700g`으로 늘어 기존 spatial artifact는 stale이다. 6인 closed-loop, stage portfolio, 256-seed spatial capacity를 fresh 재실행해야 한다.
+# 2026-09-03 Main Unity / H profile-stage finding
+
+- The active editor is main Unity for `F:/01_Programming/01_Project/02_Unity/DungeonStory`, PID `135768`. Its two additional Unity processes are `AssetImportWorker4/5` for the same project, not clone project editors.
+- The long worker workload was PlayMode measurement, not compilation: H bootstrap completed `92 x 32 = 2,944` natural observations with exact-union validation and atomic staging.
+- Main Unity unpartitioned resume reached profile staging, which fail-loud with `rows=92;accepted=73;blockingCritical=1;backpressureExpected=18`.
+- The sole blocking row is `building:9506 / m06`, M06 prosthetic assembly bench. Its asset authors `physicalOutputBufferCycleCapacity=3`; p95 clearance `1,813,543 micro-hours` becomes `1,814 milli-hours`; `ceil(1814 x 3375 / 1000)=6,123 g`; maximum completion is `1,800 g`, so published need is `ceil(6123/1800)=4 cycles`. Authored capacity is `5,400 g`, a `723 g` deficit.
+- Do not mutate source merely to improve diagnostics, because that invalidates the expensive source-digest-bound evidence. First determine whether M06 should author 4 cycles and whether pipeline constants `40 accepted / 52 backpressure` are stale against the actual `73/18/1` distribution.
+
+# 2026-09-03 G cross-action restore finding
+
+- The failure `Facility save has unsupported dungeon-interior width 27` was not evidence that production restore should accept another current-format width. `27` is `SceneSeedInteriorColumns`; new-run navigation must reconcile it through the production Tier-0 path to `29` before gameplay saves become authoritative.
+- `CharacterAiCrossActionFaultPlayModeVerifier` enters the official scene directly in batch PlayMode and previously captured its full-world checkpoint before that new-run transition. Weakening `ModularFacilityWorldSaveService` would hide an invalid lifecycle and permit research/layout mismatches.
+- The narrow fix is verifier setup parity: resolve the registered `DungeonSpaceExpansionRuntime`, run idempotent `TryReconcileNewRunTierZero`, refresh the grid authority, and only then quiesce AI and capture the stable world snapshot.
+- Because the verifier source participates in the all-scripts digest, the prior strict run remains useful regression evidence but cannot be claimed as final same-source release evidence after this correction.
+
+# 2026-09-03 captured-save expansion consistency finding
+
+- Restore-side validation alone is insufficient when a domain event commits research before a subscriber publishes its spatial consequence. A later expansion failure can leave a cross-aggregate snapshot that the same build cannot restore.
+- `DungeonGameSaveService.Capture()` executes only `IDungeonCapturedSavePreflightValidator`; cross-aggregate invariants required by restore must also be bound to capture unless an explicit alternative exists.
+- The same detached `DungeonGameSaveData` graph can be validated at both boundaries. Reusing the aggregate validator avoids duplicate research/layout rules.
+- A method named `TryReconcileNewRunTierZero` must reject already-expanded and arbitrary layouts. Direct delegation to generic target-width application treated `30+` as success/no-op and `28` as repairable, hiding lifecycle corruption.
+- Unity MCP command success is not sufficient after a failed compile: the old Editor assembly can remain loaded. Evidence must include Bee exit status, dependent DLL timestamps and expected new report rows after reload.
+
+# 2026-09-04 하수인·정식 영입 권위 조사
+
+- 현재 `CaptivityStatus.Minion`은 `CaptiveState.IsActive`에 포함되어 감방 수용량, 구속구, 포로 노역 도구, 탈출·몸값·공연·배신 경로에 계속 들어간다. 상태 이름만 하수인일 뿐 정착민 신분은 생성되지 않는다.
+- `TryConvertToMinion`은 캐릭터 유형만 `NPC`로 바꾸고 `CharacterPopulationService`에 등록하지 않는다. 반면 정식 영입은 `PromoteToStaff`를 호출한다. 이 차이 때문에 저장·임금·인구·업무가 하나의 신분 권위를 읽지 않는다.
+- `WorldCharacterProfile`은 `isStaff`와 `isVisiting` 두 불리언만 저장한다. 새 enum의 기본값을 `Unknown`으로 두고 복원 시 `isStaff → Resident`, `isVisiting → Visitor`, 나머지를 `PreparedCandidate`로 정규화해야 기존 저장을 명시적으로 이관할 수 있다.
+- 현재 임금 권위는 `CharacterType.NPC` 전원을 직원으로 간주한다. 하수인도 NPC로 동작해야 하므로 임금은 캐릭터 유형이 아니라 새 정착 신분을 읽어야 한다.
+- 직원 불만은 마찬가지로 NPC 전원을 추적한다. 하수인은 일반 불만·이탈·반란에서 제외하되 생존 욕구·부상·피로에 따른 기존 작업 중단은 그대로 유지해야 한다.
+- 업무 종류는 정확히 31개다. 금지 8개는 `Research, Reception, Treat, Surgery, Warden, Perform, GrandProject, ThreatMitigation`; 나머지 23개를 하수인 허용 집합으로 삼을 수 있다.
+- 업무 숙련은 `WorkTaskExecutor.AwardApprovedWork`에서 승인 WU를 숙련 명령으로 보낸다. 하수인만 승인 WU에 0.5를 곱하면 작업 속도·품질은 건드리지 않고 XP만 정확히 절반으로 제한할 수 있다.
+- 멘토링은 `CareerMentorshipService.CanAssign`과 `CareerApplicationAdapter.ProcessMentorships` 두 경계가 있다. 배정 시점과 실행 시점 모두 새 신분 권위를 확인해야 저장 후 신분 변경으로 우회할 수 없다.
+- 지식베이스 `CaptivityStatus.Minion` 조회는 60초 안에 끝나지 않아 중단했다. freshness 근거로 사용하지 않고 `AGENT.md`, 전체 밸런스 기준서, 현재 C#·저장·위키 소스를 직접 대조했다.
+- 호스트의 `dotnet` 실행기에는 SDK가 없어 솔루션 빌드가 불가능하다. 이는 코드 실패가 아니라 검증 도구 부재이며, Unity 컴파일 로그와 저장소의 편집기 검증을 사용해야 한다.
+
+## 2026-09-04 하수인·정식 영입 구현 결론
+
+- 정착 신분은 Character Population, 포획일·재사회화 진행·일일 사회 판정 표식은 Captivity, 임금 계약은 Employment가 소유한다. `CaptivityRuntime`이 세 권위를 하나의 전환 절차로 조정한다.
+- `CaptivityStatus.Minion`은 수용 상태가 아니라 하수인 projection이다. `IsInCustody`, `IsMinion`, `IsTerminal`을 구분해 감방·구속구·포로 노역·탈출·몸값·공연의 대상 범위를 명확히 했다.
+- 전환 실패 복원은 직렬화한 captivity 상태 snapshot, population standing transaction과 employment standing snapshot을 사용한다. 정착 신분 commit을 모든 상태 변경 뒤에 두어 중간 예외가 이전 상태로 돌아가게 했다.
+- 자동 감사 결과는 31개 업무 중 허용 23·제한 8, 경비 허용·원정 차단, XP 0.50, 포획 3일·직접 영입 10일·재사회화 15일 경계를 확인했다. 120일 256시드의 하수인/정식 주민 순가치 비율은 평균 0.843, 최대 0.855다.
+
+## 2026-09-04 공개 위키 시스템·수치 누락 감사 기준
+
+- 문서가 시스템 이름만 소개하고 실제 판정값, 실행 조건, 진행 단위, 실패 결과 또는 저장·재개 규칙을 생략하면 설명 누락으로 판정한다.
+- 같은 규칙이 여러 문서에 복제되면 숫자가 맞아도 권위 중복으로 판정한다. 상세 수치의 권위 문서 하나를 남기고 다른 문서는 해당 절로 연결한다.
+- C#에 수치가 있어도 설계 승인 근거가 없거나 현재 실행 경로에서 소비되지 않으면 공개 문서에 확정 수치로 쓰지 않는다.
+- 이번 감사와 수정은 문서만 다룬다. 스크립트 변경이 필요한 불일치는 별도 구현 항목으로 남긴다.
+
+### 1차 인벤토리
+- 현재판 `wiki/game-versions/0.0.1v/content/guides`에는 Markdown 안내서 30개와 JSON 인덱스 2개가 있다. 따라서 감사 단위는 30개 문서다.
+- `source-coverage.json`의 최상위 권위 연결은 `sources[]`와 `checklist` 두 갈래다. 절 단위 매핑과 실제 안내서 30개의 일치 여부를 별도로 검사해야 한다.
+- 생성 지식베이스에 `공개 위키 시스템 문서`, `전투 피해 방어 신체 부위`, `재고 예약 운반 포로 계약 욕구`를 각각 `documents`, `implementation`, `authority` 영역으로 조회했으나 결과 행이 없었다. 존재 부재의 근거로 쓰지 않고 원본 설계·C#·위키를 직접 대조한다.
+- 범위표에는 핸드북 9장 101개 주장과 구현 체크리스트 19개 주장이 등록되어 있다. 각 행의 실제 키는 `id / section / destinations`이며, 이전 감사 계획에서 가정한 단일 `authority_document` 필드는 없다. 여러 목적지가 허용되는 현재 구조가 규칙 중복을 숨기는지 확인해야 한다.
+
+### 문서 구조에서 즉시 확인된 누락
+- `시설 성장과 진화`, `재고, 예약과 운반`, `이정표, 런과 계승`, `생산 품질, 연료와 사료`, `시작 인원과 던전 주인`은 본문 절과 수치가 전혀 없는 연결 전용 문서다. 독립 권위 문서처럼 노출되지만 실제 설명은 다른 문서에 남아 있어 문서 구조와 권위가 어긋난다.
+- `질병·공중보건`, `경제·거래`, `사건`, `원정`, `가족·교육·계승`, `손님·서비스·공연`, `의료·수술`, `종족·문화·생활`, `날씨·계절·환경`, `저장·진행 중인 작업`은 숫자가 한 건도 없다. 현재 설명은 운영 개요에 머물며 판정 경계와 상태 전이를 확인할 수 없다.
+- `시설과 환경`, `방과 동선`, `건강과 공동체`도 숫자가 없고, 상세 문서 연결 위주다. 상세 권위가 실제로 존재하는지와 연결된 페이지가 수치를 제공하는지를 함께 확인해야 한다.
+- 수치가 풍부한 문서는 현재 `전투와 장비`, `세력·계약과 포로`, `주민과 노동` 세 곳에 편중되어 있다. `식량과 생태`에는 목록 수치가 있으나 운영 판정식의 충족 여부는 별도 확인이 필요하다.
+
+### 권위 연결의 구조적 결함
+- 원본에는 캐릭터 AI부터 저장·결정론까지 19개 시스템별 아키텍처 문서가 있다. 현재 `source-coverage.json`은 이 19개 문서를 전혀 다루지 않고 핸드북 9장과 구현 체크리스트만 연결한다.
+- 핸드북과 체크리스트는 시스템의 범위와 책임을 설명하지만 세부 상수·상태 필드·실행 조건의 최종 권위가 아니다. 그래서 범위표가 모두 채워져도 공개 위키에서 실제 수치와 상태 전이가 빠질 수 있다.
+- 전역 밸런스 기준서는 욕구, 농축산, 건설, 생산, 거래, 물류, 품질, 연구, 의료, 전투, 장비, 포로, 사회, 사건, 이정표를 각각 수치 권위로 나누고 최근 교정 기록도 다수 보유한다. 이 기준서와 시스템별 수치 원장을 공개 문서 감사 입력에 추가해야 한다.
+
+### 구현 문서 대조 — AI·공간·건설·노동·재고
+- `주민과 노동`은 스킬·욕구 수치를 많이 담고 있지만 실제 작업 선택의 `후보 재검증`, `Deferred`, 최근 실패 냉각, 경로 예산과 예약 해제 규칙을 설명하지 않는다. 작업이 멈춘 원인을 다루는 `world-state`에도 이 상태 분류가 빠져 있다.
+- `방과 동선`은 배치 원칙만 설명한다. 구조/이동 버전, 문·계단·다층 연결, 경로 캐시 무효화, 공사 현장과 완성 건물의 다른 점유 상태, 공사 취소 시 주문·재료 환불 순서가 없다.
+- `처음 정착하기`는 건설 순서만 설명한다. 실제 공사 상태인 현장 등록 → 작업 주문 → 재료·WU → 완공 등록과 실패·취소 복구가 없다.
+- `재고, 생산과 물류`는 예약과 운반을 짧게 소개하지만 stack ID, 목적지 의도, custody, lease, 부분 운반, 정상/최대 휴대 한도, 창고와 시설 버퍼의 gram admission token, revision 변경 시 재검증, 초과분 처리 실패 규칙을 설명하지 않는다.
+- 한 줄 연결 문서인 `재고, 예약과 운반`이 위 재고 규칙의 자연스러운 권위 문서가 되어야 한다. 현재 범위표는 계속 `production`을 가리켜 생산·재고·운반 권위를 다시 섞는다.
+
+### 전역 수치 권위 대조 — 4.1~4.11.1
+- `주민과 노동`의 개별 욕구 증감표와 별개로 정상 운영 목표(생존 행동 18~28%, 작업 55% 이상, 작업 차단 5% 미만, 식사·음수 1~1.5회/일, 수면 0.7~1.2회/일, 배변·위생 0.6~1.0회/일)가 공개 문서에 없다.
+- `식량과 생태`는 작물·음식 목록은 많지만 생산 125%, 손실 후 110%, 겨울 전 30일분 비축이라는 정착지 운영 기준이 없다.
+- `시설과 환경`·`처음 정착하기`는 시설 시대별 회수 기간 3~180일, 물리 BOM·WU·점유·연구·용량·유지비·해체 회수 확인 항목을 빠뜨렸다.
+- `재고, 생산과 물류`는 공정 깊이 4단계, 공용/전략 중간재 소비처 2/3개, 가역 순환 95% 미만, 해체·재건·재굴림 85% 미만, 출력 포화 5% 미만 기준이 없다.
+- `경제와 거래`는 `1 gold = 3 EWU`, 구매/판매 가감 25~50%·30~50%, 순이익 10~20%, 고급 서비스 20~35%, 중앙 환산값과 실제 물리 판매·환불·품질별 가격·판매 제외 규칙을 전부 빠뜨렸다.
+- `시설과 환경`과 `생산 품질, 연료와 사료`는 운반 노동 12~20%→5~10%, 정비·전력 노동 5~10%, 발전 여유 120%, 비상 전력 1일, 전동 보조 1.35배, 자동 품질 상한 0.50~0.90을 설명하지 않는다.
+- `종족, 문화와 생활`은 의복 3벌, 세탁 처리량 125%, 24시간 건조, 노동 5% 이하, 방한복 10~30일 손실 대비, 특수 개조복 15~25% 이점 기준을 빠뜨렸다.
+- `생산 품질, 연료와 사료`가 빈 링크라 품질별 성공률·평균 시도, 일반 2~3회 목표, 20회 경고, 도달 확률 0의 무소비 대기 규칙이 독립 권위로 공개되지 않는다.
+- `연구와 성장`은 연구원 45 effective WU/일, 기술권 25~1,100일 범위, 속도별 누적 시간, 보상 체감 5~180일 기준을 충분히 설명하지 않는다.
+- `의료와 수술`·`질병, 격리와 공중보건`은 병상 10명당 1, 격리 자리 5명당 1, 감염 7~25%, 백신 면역 70·일일 -0.05, 유행 3명/10일·종료 14일, 일반/중상 회복 1~3일·5~20일 기준이 없다.
+- `침입과 방어`·`원정`에는 조우별 승률/중상 목표, 전투 후 자원·내구·회복 결산 항목, 캠페인 파워 공식, 1~9일 보호와 10/20/30일 예행 침입, 40일 이후 보스, 원정 연구 조건, 파티 최대 5명·장비 기여 60% 상한이 빠져 있다.
+- `가족, 교육과 계승`·`시작 인원과 던전 주인`은 1/30/120/240/400/960일 인구 구성 목표와 종족별 성년 180~540일, 골렘 즉시 성인, 일반 영입 10일 간격과 후발 숙련 하한을 설명하지 않는다.
+
+### 전역 수치 권위 대조 — 4.12~6
+- `전투와 장비`는 공격·방어 공식은 상세하지만 장비 역사 진화의 품질 단계 8~12%, 소재 특화 10~25%, 성장형 기본 -12%, 완성 뒤 +10~20%, 노드 범용/조건부 5~10%·15~25%, 공명 25%/40% 상한이 없다.
+- `세력, 계약과 포로`는 최근 하수인 설계 수치는 상세하지만 기존 포로 노동 35~60%, 영입 10~30일, 처우별 장기 비용과 선택지 간 비지배 원칙의 연결이 약하다.
+- `가족, 교육과 계승`·`종족, 문화와 생활`은 일반/강한 특성 ±3~8%·±12%, 10일 내 3명 사망의 집단 붕괴, 교육비 회수 1/3 경력, 멘토링 손실 완화 30~50%가 없다.
+- `주민과 노동`은 숙련 공식 대부분을 담지만 시작 XP 15~45, 나이별 상한 99/174/249/399, 99 WU/일과 0.08 XP/WU 기반 도달일, 난도·결과 계수, 반복 XP 감쇠, 전투/훈련 XP 상한, 멘토링 30 WU 공식 등 권위표와 현재 본문을 대조해야 한다.
+- `손님, 서비스와 공연`, `세력, 계약과 포로`, `사건을 처리하는 법`은 계약 비용 1~15%, 지원 화물·지원군 쿨다운, 손익분기 2~4회, 사건 0.25~15 WD, 기대가치 차이, 사건 간격, 계절 사건·축제·서비스 사고 수치가 전부 없다.
+- `이정표, 런과 계승`은 빈 연결 문서라 첫 이정표 120~300일, 후기 산업 280~500일, 대이정표 900~1,250일, 전체 1,050~1,650일, 10일 주기 엔드리스 압력과 5일 회복 창을 공개하지 않는다.
+
+### 구현 문서 대조 — 생산·산업망·생애·의료·환경
+- `재고, 생산과 물류`에는 실제 생산 단계인 재료 선택·예약 → 작업 기여 → 품질 확정 → 준비 출력 → 목적지 경로 → 물리 발행 → 승인·정리가 없다. 출력 공간 대기, batch commit ID, receipt/acknowledgement, WIP 질량·폐수·공정 손실과 재시도 시 중복 방지 규칙도 빠져 있다.
+- `시설과 환경`은 전력·유체·컨베이어를 한 단락으로만 다뤄 각 네트워크의 상태, topology/source/route version, 컨베이어 재경로, 유체 배치 원자성, 자동화 모드 전환과 유지보수 예약 규칙을 설명하지 않는다.
+- `주민과 노동`·`가족, 교육과 계승`은 욕구, 혈연·가구, 재생산·경력, 슬픔·사회 기억의 상태 권위를 구분하지 않는다. 생애 사건이 여러 Aggregate를 원자적으로 바꾸는 구조와 저장 경계가 빠져 있다.
+- `의료와 수술`은 치료 순서만 있고 수술 주문 단계, 환자 이송 재시도, 재료/도구 예약, typed effect, 적출·인공 부위의 물리 아이템 인계와 receipt 규칙이 없다.
+- `날씨, 계절과 환경 위험`은 계절 조언만 제공한다. 온도·공기·조도의 셀 단위 환경장, 구조·건물 버전, source 반경, 고정 간격 노출, 오염 위치 인덱스와 청소 작업 투영이 빠져 있다.
+
+### 구현 문서 대조 — 생태·전투·침입·원정·연구·사회·저장·진화
+- `식량과 생태`는 콘텐츠 목록에 치우쳐 있다. 야생동물 포획 전 인계 검사, 작물 plot의 파종/성장/처리/수확 단계, 종자 lot의 품질·계통, 준비 수확과 receipt, 축산 5초 진행 주기와 우리 호환성 위험을 설명하지 않는다.
+- `전투와 장비`는 피해 공식은 갖췄지만 실제 장비 인스턴스의 품질·내구·이력·슬롯, 제작/수리/모듈 장착의 물리 인계, 장비 사용 사건 → 세대 압축 → 재단조 후보 → 고정된 진화 노드 흐름이 없다.
+- `침입과 방어`는 경고와 방어선 요약만 있다. 침입 후보/활성 침입/침입자/결과 상태, persistent ID 복원, 위험 가중 breach 계획, 일반 경로와 벽 파괴 구간 구분, 다음 공격 시각, 시설 구조 내구 반영이 빠져 있다.
+- `원정`은 출발·조우·귀환을 한 줄씩만 말한다. 참가자 ID·보급 custody·이동 진행·현재 조우·명령 queue·적 intent·현장 의료·귀환 안전 예산·보상 인계의 저장 상태가 없다. 구현 권위도 전리품 일부를 추상 수량으로 보관해 원정 중 kg/적재 한도가 부분 이행이라고 명시한다. 공개 문서에는 이 제한을 현재 규칙처럼 확정해 쓰면 안 된다.
+- `연구와 성장`은 대기열, 시설 요구 snapshot, 작업 기여, 완료 보상 bundle, 런 결과와 프로필 메타 해금의 분리를 설명하지 않는다. `이정표, 런과 계승` 빈 문서 때문에 런 내부/다음 런 권위도 보이지 않는다.
+- `사건을 처리하는 법`은 비용 사전 검사 → 예약 → 도메인 효과 → 지속 기록·경보라는 실제 해결 흐름, commit ID와 물리 보상 발행, 실패 rollback을 빠뜨렸다. `세력, 계약과 포로`는 신분 규칙은 상세하지만 사건/계약의 동일한 원자 경계 연결이 약하다.
+- `저장과 진행 중인 작업`은 저장 항목 이름만 나열한다. section ID/version/phase/dependency, 전체 preflight·staging·단일 publication, aggregate copy-on-write, exact gram/revision/fingerprint, 과적 복원 뒤 신규 pickup 차단, stable ordering·commit ID·receipt의 재실행 안전이 없다.
+- `시설 성장과 진화`는 현재 한 줄 링크뿐이다. 실제로는 시설 합성, 작성 조합식 교체, 개체 진화의 세 경로가 있고 실물 시설 선택, 생산 변이 차단선, 방 프로필·운영 기록, 최대 2개 변이, pending 물질 commit, 사용 원장, 진화 노드 활성/휴면, 재조율, 해체·포장·재설치를 설명해야 한다.
+- 시설 합성은 결과 생성/등록 실패 뒤 희생 시설을 복원하지 못할 수 있고, 작성 기록과 서술 캐시에 상한이 확인되지 않는다는 구현 한계가 있다. 공개 문서 보완 시 확정 시스템과 이 미완료 경계를 분리해야 한다.
+
+### 현재 위키 원문 확인
+- 빈 문서 5개는 모두 해당 주제를 다른 종합 문서에 “통합했다”는 한 문장만 제공한다. 디렉터리와 개요는 이들을 독립 문서로 노출하므로 실제 사용자 경로에서 내용 없는 페이지가 열린다.
+- 종합 문서의 본문도 상세 권위 역할을 대신하지 못한다. 예를 들어 `production`은 생산 7단계 상태와 물리 인계 없이 5단계 안내 흐름만, `infrastructure`는 시설 진화 세 경로의 개념만, `research`는 연구/메타 시간 수치 없이 단계 이름만 제공한다.
+- 나머지 개요 문서도 동일하다. 경제·질병·사건·원정·가족·서비스·의료·환경·공간·침입은 독자가 해야 할 점검만 설명하고 실제 판정 경계, 진행 단위, 저장되는 상태와 실패 결과를 거의 제공하지 않는다.
+
+### 실제 C# 확인 — 운반과 숙련 기초값
+- 운반의 현재 소프트 한도는 `25 kg × 운반 기능 배율`이며 멜빵 착용 시 다시 ×1.25다. 하드 한도는 소프트 한도 × 최대 운반 배율이고 기본 1.5, 설정 허용 범위 1.0~2.5다.
+- 소프트 한도까지 이동 속도 100%를 유지한다. 소프트~하드 한도 구간은 선형으로 감소해 하드 한도에서 45%가 된다. 현재 무게에는 휴대품과 착용 의복의 canonical gram이 함께 들어간다.
+- 숙련의 코드 권위는 0.08 XP/WU, 숙련자 100 XP, 기술자 400 XP, 전문가 1,200 XP, 대가 3,000 XP, 현재 XP 상한 3,060 XP다. 주전문/부전문 학습 배율은 1.50/1.20, 시작 기본 XP는 15~45다.
+- 제작 품질 점수는 `50 + 0.7 × (가중 스킬 - 50) + 시설 보정 + 도구 보정 - 복잡도 페널티 + 무작위 합`이다. 무작위 합은 -10~10 세 번의 합이며 시도 번호와 런 시드로 고정된다.
+- 품질 경계는 20/35/55/70/83/95점이고 각각 형편없음/저급/보통/양호/우수/명품/전설로 나뉜다. 숙련 등급 기준 품질 점수는 25/40/58/78/95다.
+
+### 범위 검사기의 현재 한계
+- `tools/Wiki/validate_source_coverage.py`와 `validate_wiki_model.py`는 각 주장에 목적지 하나만 요구한다. “하나의 권위” 원칙 자체는 맞지만, 현재 검사는 목적지 문서가 실제 수치·조건·상태 전이를 포함하는지 확인하지 않는다.
+- 시스템별 아키텍처·수치 권위를 범위표의 새 source 종류로 넣으려면 검사 스크립트 변경이 필요하다. 이번 세션의 스크립트 수정 금지 지침에 따라 구조 확장은 하지 않고, 기존 120개 주장의 목적지를 새 독립 권위 문서로 바로잡는다. 검사기 확장은 별도 후속 작업으로 남긴다.
+
+### 실제 C# 확인 — 감염 판정
+- 감염 확률은 `min(0.80, 기본 감염률 × 노출 시간/24 × (1-면역/100) × 감수성 × 환경 계수)`다. 노출 시간은 0~24시간으로 제한된다.
+- 질병은 감염일, 증상일, 회복일과 중증도를 저장한다. 증상일에 진단되고 회복일에 제거되며 회복 면역은 80에서 시작해 기본 일일 0.02만큼 감소한다. 백신 면역은 70에서 시작해 기본 일일 0.05만큼 감소한다.
+- 같은 질병이 최근 10일 안에 3건 진단되면 유행을 선언하고 마지막 신규 진단 뒤 14일이 지나면 해제한다.
+
+### 문서 보완 1차 배치
+- 시작 인원, 물리 재고·운반, 생산 품질·연료·사료, 시설 성장, 이정표·런 문서를 연결 전용 상태에서 실제 권위 본문으로 전환했다.
+- 기존 `처음 정착하기`, `재고·생산·물류`, `시설과 환경`, `연구와 성장`은 새 권위 문서의 세부 규칙을 반복하지 않고 실행 순서와 진입 링크를 맡도록 정리했다.
+- 질병·의료·경제·사건·원정·침입 문서에는 현재 수식과 상태, 저장 경계, 실패 결과와 밸런스 목표를 추가했다.
+
+### 2026-09-04 V27 current-source H 메인 재개 진단
+- current-source strict 자연 계측은 이미 `92/92`, `2,944/2,944`로 끝났고 clean-worker unpartitioned resume도 `resumed=2,944`, `executed=0`으로 통과했다. 동일 자연 계측은 다시 실행하지 않는다.
+- 메인 Unity 재개는 상태 파일을 읽기 전에 `ProductionOutputClearanceCapacityReviewPortfolio.Build`에서 `building:1089 / workstation:feedbench`의 frozen profile과 현재 `ProductionOutputThroughputEnvelopeSnapshot`이 불일치해 중단된다.
+- 비교 조건은 `PeakOutputMassGramsPerHour` exact와 `ThroughputSourceDigest` ordinal exact 두 개다. 이미 같은 강제 import를 반복해도 동일 실패였으므로 다음 조치는 현재 envelope의 실제 값·구성 contributor를 직접 캡처하는 진단이다.
+- 메인 PlayMode 직접 캡처 결과 peak는 frozen profile과 동일한 `3938 g/h`이고, current envelope digest만 `35bec407...`로 expected `8adeded5...`와 달랐다. 4개 recipe의 수치와 5개 candidate peak도 정상이다.
+- 메인 Editor는 official `GameplayScene`, runtime root 1개, scene dirty false였지만 `EditorSettings.enterPlayModeOptions=DisableDomainReload`이며 uptime이 약 22시간이다. 직접 관련 recipe/building/support asset은 모두 dirty false다. 따라서 자산 값 drift가 아니라 장시간 유지된 정적 runtime authority 오염이 가장 좁고 강한 원인이다.
+
+### 2026-09-05 H shard orchestration corrections
+
+- 현재 공식 GameplayScene `6c35a176...`에는 `LifecycleDemolitionFixture`가 0개다. synthetic lease가 과거 fixture 2개를 필수로 요구한 것은 현재 씬 권위와 어긋난 verifier 결함이었으며, strict expected count를 0으로 고쳤다. 이 값은 fixture를 무시하는 tolerance가 아니라 향후 fixture가 다시 직렬화되면 실패시키는 exact gate다.
+- 워커 동기화 뒤 남아 있던 구형 `b390a975...` marker는 scene/build settings가 이미 공식 상태이고 synthetic asset/request가 모두 없을 때만 marker-only orphan으로 판정해 삭제하지 않고 격리했다. 실제 synthetic asset이 남은 정상 lease는 자동 격리하지 않는다.
+- 자연 shard state에는 `portfolio`(현재 실행 포트폴리오)와 `measurements`(92×32 측정 계획)라는 서로 다른 digest가 있다. wrapper가 기존에는 측정 CSV digest 하나를 두 헤더에 대입해 정상 state를 거부했다. 두 권위를 별도 필수 인자로 분리하고 각각 exact 검사한다.
+- state가 완성됐다는 사실만으로 worker를 즉시 종료하면 Unity가 EditMode로 돌아가 lease와 request를 정리할 기회를 잃는다. wrapper 종료 조건은 이제 assigned state 완성뿐 아니라 current-source terminal PASS report, request 부재, marker 부재, synthetic directory 부재를 함께 요구한다.
+- tool/session interruption은 valid partial state를 무효화하지 않는다. 동일 source/scene/current portfolio/measurement portfolio/shard key/profile identity를 모두 통과한 partial state만 재개하며, interrupted worker lease는 공식 `RestoreOwned()` 경로로 AssetDatabase까지 정식 복구한다.
+
+## 2026-09-05 final gameplay-closure findings
+
+- H의 최신 정식 산출물은 단순 seed 성공 로그가 아니라 92개 계획 각각의
+  32개 관측과 3,117개 물리 output slice를 가진 strict semantic artifact다.
+  원본/씬/profile 권위가 exact하고 메인 재실행이 `2944/0`이므로 장기 H를
+  또 돌려 얻을 추가 결함 탐지 가치는 없다.
+- 경제와 whole-game gate는 최신 원장을 직접 재생성해 각각 Critical 0과
+  producer/consumer orphan 0을 확인했다. 과거 부모 보고서의 source stamp는
+  이 최신 권위를 대체하지 못하며, 반대로 stamp가 오래됐다는 사실만으로
+  최신 런타임 결과를 무효화해서도 안 된다.
+- portable verifier의 natural portfolio 파서는 현재 canonical artifact의
+  `batchSemanticId`, `facilitySemanticId`, `stackSemanticId`, `semanticDigest`를
+  과거 `batchCommitId`, `runtimeFacilityId`, `stackId`, `sliceDigest`로 읽는다.
+  따라서 해당 `KeyError`는 관측 누락이 아니라 검증기 schema drift다.
+- 현재 portable hard stop인 market decision source-ledger mismatch는 가격을
+  다시 적용해야 한다는 뜻이 아니다. current-source market parent가
+  changed assets/properties `0/0`, whole-game approved-unapplied `0`, economy
+  Critical 0을 이미 증명한다. 향후 CI 정리 때 historical receipt 계층을
+  current semantic authority와 분리하면 된다.
+- 게임 완성 기준의 blocker는 현재 런타임 실패, 양의 EWU/SCC 차익, 질량·수량
+  소유권 누수, 6인 생존망 실패, 공식 asset 변조, deterministic second-write
+  diff 또는 Console issue다. 관련 없는 source stamp 재발급은 유지보수이지
+  gameplay checkpoint가 아니다.
+
+## 2026-09-05 — V27 authoring/count 후속 초기 사실
+
+- 기존 output-line 제안은 355 recipes / 357 physical lines 중 4개만 authored
+  canonical이고 353개가 제안 상태다. stale-safe atomic ApplyApproved 구현은
+  이미 존재하며 353 ID와 감사된 6개 Source secondary role 변경을 정확히
+  요구한다.
+- package review는 51행(식사/배급 검토 2 + physical package 검토 49)을
+  unresolved로 기록하지만 runtime consumer orphan은 0이다. 실제 packaged-lot
+  feature는 의료 vial 계통만 authoring되어 있으므로 이름만 보고 49개 모두에
+  빈 용기를 생성해서는 안 된다.
+- mass-authoritative WarehouseInventory에도 MaxCapacity, RemainingCapacity,
+  CanStore(count)와 legacy constructor가 남아 있고 일부 production/UI 진단
+  호출자가 이를 사용한다. serialized compatibility와 production admission을
+  분리해야 한다.
+## 2026-09-05 packaging and warehouse follow-up findings
+
+- The reported 49 package-like omissions were false positives caused by prefix classification. Current semantic authority already treats them as indivisible units; adding detachable tare would incorrectly change BOM, EWU and logistics. Including two ration rows yields 51 explicit integral decisions.
+- Only `medicine:anesthetic` has a real detachable package: one 30g `container:medical-vial` returned by the existing terminal sink contract.
+- The historical 353 output-line proposal is pre-application evidence. Current assets are already 357/357 topology-exact; four later reviewed topology identities must be recorded separately instead of rewriting the historical receipt.
+- Count-only physical warehouse behavior was split-brain: ordinary hauling could admit it while prepared output, conveyor and lifecycle guards ignored it. Removing the count branch is safer than maintaining two capacity dimensions.
+- `BuildingStorageAbility.capacity` remains authored metadata for non-physical room/shop projections. It is no longer a `WarehouseInventory` admission authority; `maxStoredMassGrams` is the only physical storage capacity.

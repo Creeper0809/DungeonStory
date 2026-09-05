@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "일반"
+    },
+    {
+      "label": "성향",
+      "value": "상충"
+    },
+    {
+      "label": "효과",
+      "value": "2개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "4개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-245",
+  "spoiler_tier": "none",
+  "summary": "오염을 발견하면 현재 작업보다 청소를 먼저 끝내려 한다.",
+  "title": "청소 강박"
+}

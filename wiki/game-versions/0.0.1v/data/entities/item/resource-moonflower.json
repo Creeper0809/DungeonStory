@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.08kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "5"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "차, 약품과 마나 약물에 쓰는 야광 꽃이다. 므네실라에서는 월화의 빛이 남은 꽃잎만 약재로 말리고, 어두워진 꽃받침은 종자밭의 덮개로 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-moonflower",
+  "spoiler_tier": "none",
+  "summary": "차, 약품과 마나 약물에 쓰는 야광 꽃.",
+  "title": "월화"
+}

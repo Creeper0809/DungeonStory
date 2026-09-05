@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-fermented-liquor",
+    "spoiler_tier": "none",
+    "title": "증류용 발효액"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-fermented-liquor",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-fermented-liquor",
+      "target_spoiler_tier": "none",
+      "target_title": "발효액",
+      "to": "item/material-fermented-liquor",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-fermented-liquor",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-malt",
+      "target_spoiler_tier": "none",
+      "target_title": "맥아",
+      "to": "item/material-malt",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-fermented-liquor",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-fermentation",
+      "target_spoiler_tier": "none",
+      "target_title": "발효",
+      "to": "research/research-cuisine-fermentation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

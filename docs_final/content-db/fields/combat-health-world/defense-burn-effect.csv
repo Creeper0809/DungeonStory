@@ -1,0 +1,11 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+DefenseBurnEffectSO|asset:P1_FireVent_2_Burn,asset:P1_FireVent_2_Burn,m_Name,P1_FireVent_2_Burn,,,explicit-serialized
+DefenseBurnEffectSO|asset:P1_FireVent_2_Burn,asset:P1_FireVent_2_Burn,amount,2,,,explicit-serialized
+DefenseBurnEffectSO|asset:P1_FireVent_2_Burn,asset:P1_FireVent_2_Burn,duration,5,,,explicit-serialized
+DefenseBurnEffectSO|asset:P1_FireVent_2_Burn,asset:P1_FireVent_2_Burn,stacks,1,,,explicit-serialized
+DefenseBurnEffectSO|asset:P1_FireVent_2_Burn,asset:P1_FireVent_2_Burn,logTag,연소,,,explicit-serialized
+DefenseBurnEffectSO|asset:P1_StormFireTrap_2_Burn,asset:P1_StormFireTrap_2_Burn,m_Name,P1_StormFireTrap_2_Burn,,,explicit-serialized
+DefenseBurnEffectSO|asset:P1_StormFireTrap_2_Burn,asset:P1_StormFireTrap_2_Burn,amount,3,,,explicit-serialized
+DefenseBurnEffectSO|asset:P1_StormFireTrap_2_Burn,asset:P1_StormFireTrap_2_Burn,duration,6,,,explicit-serialized
+DefenseBurnEffectSO|asset:P1_StormFireTrap_2_Burn,asset:P1_StormFireTrap_2_Burn,stacks,1,,,explicit-serialized
+DefenseBurnEffectSO|asset:P1_StormFireTrap_2_Burn,asset:P1_StormFireTrap_2_Burn,logTag,연소,,,explicit-serialized

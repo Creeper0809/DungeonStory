@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "42"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Husbandry"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-stable",
+      "target_spoiler_tier": "none",
+      "target_title": "축사 관리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-stable",
+      "target_spoiler_tier": "none",
+      "target_title": "축사 관리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-stable",
+      "target_spoiler_tier": "none",
+      "target_title": "축사 관리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1089",
+      "target_spoiler_tier": "none",
+      "target_title": "사료 배합대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1616",
+      "target_spoiler_tier": "none",
+      "target_title": "영양 배합 저울",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-husbandry-feed",
+  "spoiler_tier": "none",
+  "summary": "식성과 위생에 맞는 사료와 깔짚을 공급한다.",
+  "title": "사료·깔짚"
+}

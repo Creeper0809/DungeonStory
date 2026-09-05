@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "characterspecies-5",
+    "spoiler_tier": "none",
+    "title": "데몬"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-5",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-demon",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Demon",
+      "to": "character/funeral-culture-demon",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-5",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-demon",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Demon",
+      "to": "character/life-history-demon",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-5",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-demon",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Demon",
+      "to": "character/reproduction-demon",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/character-archetype-9005",
+      "label": "관련",
+      "to": "character/characterspecies-5",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

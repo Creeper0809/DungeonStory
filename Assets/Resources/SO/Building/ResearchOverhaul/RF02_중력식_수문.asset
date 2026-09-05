@@ -95,11 +95,15 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:irrigation
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 1
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 0
     - rid: 1003
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
         defaultBatchCapacity: 4
+        physicalOutputBufferCycleCapacity: 4
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
@@ -154,6 +158,6 @@ MonoBehaviour:
         - itemId: material:treated-lumber
           amount: 4
         - itemId: material:iron-ingot
-          amount: 6
+          amount: 7
         - itemId: resource:clean-water
           amount: 4

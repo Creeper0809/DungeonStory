@@ -1,0 +1,5 @@
+workwear_id,item_definition_id,item_unit_weight_g,item_unit_price,comfort_minimum_offset_c,comfort_maximum_offset_c,safe_minimum_offset_c,safe_maximum_offset_c,cold_exposure_multiplier,heat_exposure_multiplier,required_research_id,source_path
+workwear:cold-work-suit,equipment:cold-work-suit,900,25,-8,0,-8,0,0.35,1,research:environment:cold-work,Assets/Resources/SO/Environment/Workwear/ColdWorkSuit.asset
+workwear:hauling-harness,tool:hauling-harness,1150,19,0,0,0,0,1,1,research:commerce:logistics,Assets/Resources/SO/Environment/Workwear/HaulingHarness.asset
+workwear:rune-cold-suit,equipment:rune-cold-suit,800,25,-10,0,-10,0,0.2,1,research:environment:rune-insulation,Assets/Resources/SO/Environment/Workwear/RuneColdSuit.asset
+workwear:slime-warming-pad,equipment:slime-warming-pad,300,22,-4,0,-4,0,0.6,1,research:environment:cold-work,Assets/Resources/SO/Environment/Workwear/SlimeWarmingPad.asset

@@ -1,0 +1,121 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Life And Survival"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6103",
+      "target_spoiler_tier": "none",
+      "target_title": "생활 지원 설계도",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1060",
+      "target_spoiler_tier": "none",
+      "target_title": "목욕통",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1063",
+      "target_spoiler_tier": "none",
+      "target_title": "바닥배수구",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1054",
+      "target_spoiler_tier": "none",
+      "target_title": "식재료저장함",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1025",
+      "target_spoiler_tier": "none",
+      "target_title": "옷장",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1022",
+      "target_spoiler_tier": "none",
+      "target_title": "이층침대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1021",
+      "target_spoiler_tier": "none",
+      "target_title": "정식침대",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1024",
+      "target_spoiler_tier": "none",
+      "target_title": "협탁",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-survival-support",
+  "spoiler_tier": "none",
+  "summary": "식사와 휴식, 기본 생활 설비의 효율을 높인다.",
+  "title": "생활 지원"
+}

@@ -1,0 +1,34 @@
+---
+import Icon from './Icon.astro';
+import { getDirectory, targetHref } from '../lib/wiki-data';
+
+interface Props { version: string; compact?: boolean; historical?: boolean }
+const { version, compact = false, historical = false } = Astro.props;
+const directory = getDirectory(version);
+const groups = directory.groups;
+const archiveVersion = historical ? version : undefined;
+---
+
+<section class:list={['directory-board', { 'directory-board--compact': compact }]} aria-labelledby="directory-title">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">문서 분류</p>
+      <h2 id="directory-title">분류별 문서</h2>
+    </div>
+    {!compact && <p>현재 기준에서 확인된 공개 문서를 주제별로 정리한다.</p>}
+  </div>
+  {groups.map((group) => (
+    <section class="directory-group" aria-labelledby={`directory-${group.group_id}`}>
+      <h3 id={`directory-${group.group_id}`}>{group.label}</h3>
+      <div class="directory-grid">
+        {group.entries.map((entry) => (
+          <a class="directory-cell" href={targetHref(entry, archiveVersion)}>
+            <Icon name={entry.icon_ref} />
+            <span>{entry.safe_label}</span>
+            {entry.spoiler_tier === 'warning' && <small>스포일러 주의</small>}
+          </a>
+        ))}
+      </div>
+    </section>
+  ))}
+</section>

@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-prosthetic-installation",
+    "spoiler_tier": "none",
+    "title": "보철 설치"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-prosthetic-installation",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-prosthetic-installation",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

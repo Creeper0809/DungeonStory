@@ -1,0 +1,137 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-automatic-bills",
+    "spoiler_tier": "none",
+    "title": "자동 주문과 재고 감지"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-bills",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-assisted-processing",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 보조 가공",
+      "to": "research/research-industry-assisted-processing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-bills",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-assisted-processing",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 보조 가공",
+      "to": "research/research-industry-assisted-processing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-bills",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-assisted-processing",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 보조 가공",
+      "to": "research/research-industry-assisted-processing",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-bills",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-conveyor",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어와 물류 포트",
+      "to": "research/research-industry-conveyor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-bills",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-conveyor",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어와 물류 포트",
+      "to": "research/research-industry-conveyor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-bills",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-conveyor",
+      "target_spoiler_tier": "none",
+      "target_title": "컨베이어와 물류 포트",
+      "to": "research/research-industry-conveyor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-bills",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9860",
+      "target_spoiler_tier": "none",
+      "target_title": "자동화 제어반",
+      "to": "facility/building-9860",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-stock-sensor-panel",
+      "label": "필요 조건",
+      "to": "research/research-industry-automatic-bills",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-breakers",
+      "label": "선행 연구",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-breakers",
+      "label": "선행 연구",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-breakers",
+      "label": "선행 연구",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-line-balancing",
+      "label": "선행 연구",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "64"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "행정 인장을 문서와 화물표에 찍어 승인한 사람과 처리 순서를 남긴다. 오르데나 등기원의 행정 인장은 사람, 화물과 토지의 이동을 허가하며 찍은 관리의 이름은 공개하지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-administrative-seal",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 행정 인장.",
+  "title": "행정 인장"
+}

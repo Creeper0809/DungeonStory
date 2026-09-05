@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-milling-flour",
+    "spoiler_tier": "none",
+    "title": "황혼곡 제분"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-milling-flour",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-flour",
+      "target_spoiler_tier": "none",
+      "target_title": "밀가루",
+      "to": "item/material-flour",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-milling-flour",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-twilight-grain",
+      "target_spoiler_tier": "none",
+      "target_title": "황혼곡",
+      "to": "item/resource-twilight-grain",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-milling-flour",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-cuisine-milling",
+      "target_spoiler_tier": "none",
+      "target_title": "제분·제빵",
+      "to": "research/research-cuisine-milling",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

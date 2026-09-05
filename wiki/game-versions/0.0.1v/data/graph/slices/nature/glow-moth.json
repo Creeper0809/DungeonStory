@@ -1,0 +1,51 @@
+{
+  "center": {
+    "kind": "nature",
+    "slug": "glow-moth",
+    "spoiler_tier": "none",
+    "title": "발광나방"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/glow-moth",
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-mana-pox",
+      "target_spoiler_tier": "none",
+      "target_title": "마나두창",
+      "to": "medical/disease-mana-pox",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/glow-moth",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "to": "nature/cave-rat",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/glow-moth",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "silk-spider",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴명주거미",
+      "to": "nature/silk-spider",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/silk-spider",
+      "label": "관련",
+      "to": "nature/glow-moth",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

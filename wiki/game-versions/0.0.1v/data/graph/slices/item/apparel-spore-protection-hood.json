@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "apparel-spore-protection-hood",
+    "spoiler_tier": "none",
+    "title": "포자 방호 두건"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-v22-apparel-spore-protection-hood",
+      "label": "생산·해금",
+      "to": "item/apparel-spore-protection-hood",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

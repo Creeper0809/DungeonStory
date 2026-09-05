@@ -143,6 +143,11 @@ internal static class WorkOrderSaveValidation
 
             ValidateWorkerPolicy(order, orderId, report);
             ValidateCraftState(order, orderId, report);
+            ValidateDestructiveDrainLink(
+                order,
+                definition,
+                orderId,
+                report);
 
             ValidateMaterials(
                 order,
@@ -169,7 +174,7 @@ internal static class WorkOrderSaveValidation
             }
 
             string expectedDestination =
-                $"{WorkOrderRuntime.ConstructionDestinationPrefix}{building.id}:{order.gridX}:{order.gridY}";
+                WorkConstructionInputOwnerAuthority.DestinationFor(orderId);
             if (!string.Equals(
                     order.materialDestinationId,
                     expectedDestination,
@@ -177,6 +182,32 @@ internal static class WorkOrderSaveValidation
             {
                 report.AddError(
                     $"Construction order '{orderId}' has destination '{order.materialDestinationId}', expected '{expectedDestination}'.");
+            }
+
+            bool hasMaterials = (order.itemMaterials?.Count ?? 0) > 0;
+            bool siteIdentityValid =
+                !string.IsNullOrWhiteSpace(order.constructionSitePersistentId)
+                && string.Equals(
+                    order.constructionSitePersistentId,
+                    order.constructionSitePersistentId.Trim(),
+                    StringComparison.Ordinal);
+            bool ownerProjectionValid = siteIdentityValid
+                && (hasMaterials
+                    ? order.materialBufferCapacityGrams > 0L
+                    && order.materialMassAuthorityRevision > 0L
+                    && !string.IsNullOrWhiteSpace(
+                        order.materialCapacityFingerprint)
+                    && string.Equals(
+                        order.materialCapacityFingerprint,
+                        order.materialCapacityFingerprint.Trim(),
+                        StringComparison.Ordinal)
+                    : order.materialBufferCapacityGrams == 0L
+                    && order.materialMassAuthorityRevision == 0L
+                    && string.IsNullOrEmpty(order.materialCapacityFingerprint));
+            if (!ownerProjectionValid)
+            {
+                report.AddError(
+                    $"Construction order '{orderId}' has invalid exact input-owner projection.");
             }
 
             string targetKey =
@@ -532,6 +563,50 @@ internal static class WorkOrderSaveValidation
         if (!string.Equals(pipelineId, order.qualityPipelineId ?? string.Empty, StringComparison.Ordinal))
         {
             report.AddError($"Work order '{orderId}' has a non-canonical quality pipeline ID.");
+        }
+    }
+
+    private static void ValidateDestructiveDrainLink(
+        WorkOrderSaveData order,
+        WorkTypeDefinition definition,
+        string orderId,
+        DungeonGameRestoreReport report)
+    {
+        string operationId = order.destructiveDrainOperationId ?? string.Empty;
+        bool hasOperation = operationId.Length > 0;
+        if (hasOperation
+            && (!string.Equals(
+                    operationId,
+                    operationId.Trim(),
+                    StringComparison.Ordinal)
+                || !ProductionFacilityDestructiveDrainOperationId.TryParse(
+                    operationId,
+                    out _)))
+        {
+            report.AddError(
+                $"Work order '{orderId}' has an invalid destructive-drain operation ID.");
+            return;
+        }
+        if ((hasOperation
+                || order.facilityRemovedForRetry
+                || order.cancelRebuildAfterDestructiveDrain)
+            && definition.WorkTypeId != BuiltInWorkTypeIds.Dismantle)
+        {
+            report.AddError(
+                $"Work order '{orderId}' has destructive-drain state outside dismantle work.");
+        }
+        if ((order.facilityRemovedForRetry
+                || order.cancelRebuildAfterDestructiveDrain)
+            && !hasOperation)
+        {
+            report.AddError(
+                $"Work order '{orderId}' has removal acknowledgement without its destructive-drain operation.");
+        }
+        if (order.cancelRebuildAfterDestructiveDrain
+            && order.qualityPipelineId.Length == 0)
+        {
+            report.AddError(
+                $"Work order '{orderId}' has cancelled destructive recovery without a quality pipeline owner.");
         }
     }
 

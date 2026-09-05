@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "module-weapon-precision-sight",
+    "spoiler_tier": "none",
+    "title": "정밀 조준기"
+  },
+  "edges": [],
+  "schema_version": 1
+}

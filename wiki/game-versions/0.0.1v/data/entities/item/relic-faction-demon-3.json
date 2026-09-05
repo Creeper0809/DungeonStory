@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "한 번의 부당한 세력 의무를 무효화하는 원본 문서이다. 베르사디온의 무효조항 두루마리는 당사자가 마음을 바꿀 권리를 계약보다 앞에 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-demon-3",
+  "spoiler_tier": "none",
+  "summary": "한 번의 부당한 세력 의무를 무효화하는 원본 문서.",
+  "title": "무효조항 두루마리"
+}

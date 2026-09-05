@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1003",
+    "spoiler_tier": "none",
+    "title": "배식카운터"
+  },
+  "edges": [],
+  "schema_version": 1
+}

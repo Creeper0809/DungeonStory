@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Partnership Family"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "5",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-cultural-petition",
+      "target_spoiler_tier": "warning",
+      "target_title": "식탁의 금기",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "5",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-cultural-petition",
+      "target_spoiler_tier": "warning",
+      "target_title": "식탁의 금기",
+      "type": "changes-relationship"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-cultural-petition",
+  "spoiler_tier": "warning",
+  "summary": "가구가 공동 식당에서 문화적 금기를 지켜 달라는 청원을 냈다.",
+  "title": "식탁의 금기"
+}

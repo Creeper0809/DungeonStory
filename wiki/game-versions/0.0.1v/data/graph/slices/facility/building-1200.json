@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1200",
+    "spoiler_tier": "none",
+    "title": "감방 구속대"
+  },
+  "edges": [],
+  "schema_version": 1
+}

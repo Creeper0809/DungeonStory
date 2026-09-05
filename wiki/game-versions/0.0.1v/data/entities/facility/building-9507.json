@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "제작"
+    },
+    {
+      "label": "크기",
+      "value": "2×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-9507",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 내부 공정 재고, 진료와 치료이다. 건설에는 작업량 637, 재료 강철×6이 필요하다.",
+  "title": "재활 보조대"
+}

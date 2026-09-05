@@ -1,0 +1,103 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "873"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-breakers",
+      "target_spoiler_tier": "none",
+      "target_title": "차단기와 산업 정비",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-breakers",
+      "target_spoiler_tier": "none",
+      "target_title": "차단기와 산업 정비",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-breakers",
+      "target_spoiler_tier": "none",
+      "target_title": "차단기와 산업 정비",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-plumbing-sewer",
+      "target_spoiler_tier": "none",
+      "target_title": "하수 처리와 수세 위생",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9305",
+      "target_spoiler_tier": "none",
+      "target_title": "동력 세탁·건조기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8822",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 세척기",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9804",
+      "target_spoiler_tier": "none",
+      "target_title": "통합 기반 덕트",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-industry-automatic-sanitation",
+  "spoiler_tier": "none",
+  "summary": "자동 위생과 산업 안전에 필요한 이론, 제작 절차, 안전 기준과 운용 보상을 하나의 완결된 연구 패키지로 통합한다.",
+  "title": "자동 위생과 산업 안전"
+}

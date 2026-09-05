@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "guest-request-flood-refuge",
+    "spoiler_tier": "none",
+    "title": "범람 피난민"
+  },
+  "edges": [
+    {
+      "amount": "20",
+      "from": "event/guest-request-flood-refuge",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "food-preserved-ration",
+      "target_spoiler_tier": "none",
+      "target_title": "보존 배급식",
+      "to": "item/food-preserved-ration",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

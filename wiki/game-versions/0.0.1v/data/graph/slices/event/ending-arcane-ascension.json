@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "ending-arcane-ascension",
+    "spoiler_tier": "warning",
+    "title": "비전 승천"
+  },
+  "edges": [],
+  "schema_version": 1
+}

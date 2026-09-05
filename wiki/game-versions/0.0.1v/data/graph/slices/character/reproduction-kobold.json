@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "reproduction-kobold",
+    "spoiler_tier": "none",
+    "title": "Reproduction_Kobold"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-6",
+      "label": "관련",
+      "to": "character/reproduction-kobold",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

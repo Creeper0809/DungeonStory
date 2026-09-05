@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "3"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "소독제와 전투 촉진제에 쓰는 붉은 약초이다. 므네실라에서는 혈엽의 붉은 잎맥이 남아 있을 때만 약재로 받고, 빛이 바랜 잎은 퇴비로 돌린다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-bloodleaf",
+  "spoiler_tier": "none",
+  "summary": "소독제와 전투 촉진제에 쓰는 붉은 약초.",
+  "title": "혈엽"
+}

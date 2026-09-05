@@ -96,10 +96,15 @@ public sealed class ProductionGenericBillTerminalDrainSaveValidation
 
         RequireCanonicalUnique(children, value => value.stepOperationId,
             "Items child step operation");
-        RequireUnique(children, value => value.ownerStableId,
+        ProductionInputDestinationCustodyDrainSaveData[] genericChildren =
+            children.Where(value => value.ownerStableId.StartsWith(
+                    "bill:", StringComparison.Ordinal))
+                .ToArray();
+        RequireUnique(genericChildren, value => value.ownerStableId,
             "Items child owner");
-        RequireUnique(children, value => value.billId, "Items child bill");
-        RequireUnique(children, value => value.sourceDestinationId,
+        RequireUnique(genericChildren, value => value.billId,
+            "Items child bill");
+        RequireUnique(genericChildren, value => value.sourceDestinationId,
             "Items child source destination");
 
         Dictionary<string, ProductionInputDestinationCustodyDrainSaveData>
@@ -133,7 +138,7 @@ public sealed class ProductionGenericBillTerminalDrainSaveValidation
             ValidateProductionEvidence(lifecycle.Production, producer);
         }
 
-        ProductionInputDestinationCustodyDrainSaveData orphan = children
+        ProductionInputDestinationCustodyDrainSaveData orphan = genericChildren
             .FirstOrDefault(value => !joinedChildren.Contains(
                 value.stepOperationId));
         if (orphan != null)

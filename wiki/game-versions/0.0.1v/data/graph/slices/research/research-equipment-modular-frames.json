@@ -1,0 +1,62 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-modular-frames",
+    "spoiler_tier": "none",
+    "title": "모듈식 장비 골격"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-modular-frames",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-modular-frames",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-modular-frames",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-precision-fitting",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품 장착",
+      "to": "research/research-equipment-precision-fitting",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-modular-frames",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8845",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 골격 지그",
+      "to": "facility/building-8845",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-growth-frame",
+      "label": "필요 조건",
+      "to": "research/research-equipment-modular-frames",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

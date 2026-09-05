@@ -90,6 +90,27 @@ public sealed class CharacterPopulationRestoreTransaction
     }
 }
 
+public sealed class CharacterSettlementStandingTransaction
+{
+    internal CharacterSettlementStandingTransaction(
+        CharacterActor actor,
+        WorldCharacterProfile profile,
+        CharacterSettlementStanding previousStanding,
+        bool profileWasCreated)
+    {
+        Actor = actor ?? throw new ArgumentNullException(nameof(actor));
+        Profile = profile ?? throw new ArgumentNullException(nameof(profile));
+        PreviousStanding = previousStanding;
+        ProfileWasCreated = profileWasCreated;
+    }
+
+    internal CharacterActor Actor { get; }
+    internal WorldCharacterProfile Profile { get; }
+    internal CharacterSettlementStanding PreviousStanding { get; }
+    internal bool ProfileWasCreated { get; }
+    internal bool IsActive { get; set; } = true;
+}
+
 public interface ICharacterPopulationService
 {
     IReadOnlyList<WorldCharacterProfile> Profiles { get; }
@@ -103,6 +124,20 @@ public interface ICharacterPopulationService
     void RefreshProfile(CharacterActor actor);
     void ReleaseVisitor(CharacterActor actor);
     void PromoteToStaff(CharacterActor actor);
+    void PromoteToMinion(CharacterActor actor);
+    CharacterSettlementStanding SetSettlementStanding(
+        CharacterActor actor,
+        CharacterSettlementStanding standing);
+    void RestoreSettlementStanding(
+        CharacterActor actor,
+        CharacterSettlementStanding standing);
+    CharacterSettlementStandingTransaction BeginSettlementStandingTransition(
+        CharacterActor actor,
+        CharacterSettlementStanding standing);
+    void RollbackSettlementStandingTransition(
+        CharacterSettlementStandingTransaction transaction);
+    void CompleteSettlementStandingTransition(
+        CharacterSettlementStandingTransaction transaction);
     bool TryGetProfile(CharacterActor actor, out WorldCharacterProfile profile);
     List<WorldCharacterProfile> CaptureProfiles();
     CharacterPopulationRestoreCandidate BuildRestoreCandidate(
@@ -114,7 +149,10 @@ public interface ICharacterPopulationService
     void RestoreProfiles(IEnumerable<WorldCharacterProfile> profiles);
 }
 
-public sealed class CharacterPopulationService : ICharacterPopulationService, IDisposable
+public sealed class CharacterPopulationService :
+    ICharacterPopulationService,
+    ICharacterSettlementStandingQuery,
+    IDisposable
 {
     private readonly CharacterPopulationApplicationAdapter adapter;
 
@@ -144,6 +182,91 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
     public void ReleaseVisitor(CharacterActor actor) => adapter.ReleaseVisitor(actor);
 
     public void PromoteToStaff(CharacterActor actor) => adapter.PromoteToStaff(actor);
+
+    public void PromoteToMinion(CharacterActor actor) => adapter.PromoteToMinion(actor);
+
+    public CharacterSettlementStanding SetSettlementStanding(
+        CharacterActor actor,
+        CharacterSettlementStanding standing) =>
+        adapter.SetSettlementStanding(actor, standing);
+
+    public void RestoreSettlementStanding(
+        CharacterActor actor,
+        CharacterSettlementStanding standing) =>
+        adapter.RestoreSettlementStanding(actor, standing);
+
+    public CharacterSettlementStandingTransaction BeginSettlementStandingTransition(
+        CharacterActor actor,
+        CharacterSettlementStanding standing) =>
+        adapter.BeginSettlementStandingTransition(actor, standing);
+
+    public void RollbackSettlementStandingTransition(
+        CharacterSettlementStandingTransaction transaction) =>
+        adapter.RollbackSettlementStandingTransition(transaction);
+
+    public void CompleteSettlementStandingTransition(
+        CharacterSettlementStandingTransaction transaction) =>
+        adapter.CompleteSettlementStandingTransition(transaction);
+
+    public CharacterSettlementStanding GetStanding(CharacterActor actor) =>
+        adapter.GetStanding(actor);
+
+    public CharacterSettlementStanding GetStanding(
+        string persistentCharacterId) => adapter.GetStanding(persistentCharacterId);
+
+    public CharacterSettlementPopulationSnapshot GetSettlementPopulation() =>
+        adapter.GetSettlementPopulation();
+
+    public bool IsFormalResident(CharacterActor actor) =>
+        GetStanding(actor) == CharacterSettlementStanding.Resident;
+
+    public bool IsMinion(CharacterActor actor) =>
+        GetStanding(actor) == CharacterSettlementStanding.Minion;
+
+    public bool CanJoinExpedition(
+        CharacterActor actor,
+        out string failureReason)
+    {
+        if (IsMinion(actor))
+        {
+            failureReason = "하수인은 정착지 경비만 맡을 수 있어 원정에 참가할 수 없습니다.";
+            return false;
+        }
+        failureReason = string.Empty;
+        return true;
+    }
+
+    public bool CanParticipateInMentoring(
+        CharacterActor actor,
+        out string failureReason)
+    {
+        if (IsMinion(actor))
+        {
+            failureReason = "하수인은 멘토나 학생으로 지정할 수 없습니다.";
+            return false;
+        }
+        failureReason = string.Empty;
+        return true;
+    }
+
+    public bool IsWorkAllowed(
+        CharacterActor actor,
+        WorkTypeId workTypeId,
+        out string failureReason)
+    {
+        if (!IsMinion(actor) || MinionIntegrationRules.IsWorkAllowed(workTypeId))
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+        failureReason = $"하수인은 {WorkTaskCatalog.GetDisplayName(workTypeId)} 업무를 맡을 수 없습니다.";
+        return false;
+    }
+
+    public float GetApprovedWorkExperienceMultiplier(CharacterActor actor) =>
+        IsMinion(actor)
+            ? MinionIntegrationRules.MinionApprovedWorkExperienceMultiplier
+            : 1f;
 
     public bool TryGetProfile(CharacterActor actor, out WorldCharacterProfile profile) =>
         adapter.TryGetProfile(actor, out profile);

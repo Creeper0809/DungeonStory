@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-powered-armor-joint",
+    "spoiler_tier": "none",
+    "title": "동력 갑주 관절"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-powered-armor-joint",
+      "label": "생산·해금",
+      "to": "item/component-powered-armor-joint",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-armor-powered-harness",
+      "label": "필요 조건",
+      "to": "item/component-powered-armor-joint",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

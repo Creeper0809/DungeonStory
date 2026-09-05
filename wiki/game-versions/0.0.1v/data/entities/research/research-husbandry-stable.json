@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Husbandry"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-capture",
+      "target_spoiler_tier": "none",
+      "target_title": "야생 포획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-capture",
+      "target_spoiler_tier": "none",
+      "target_title": "야생 포획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-capture",
+      "target_spoiler_tier": "none",
+      "target_title": "야생 포획",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8819",
+      "target_spoiler_tier": "none",
+      "target_title": "마구 선반",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-husbandry-stable",
+  "spoiler_tier": "none",
+  "summary": "방목장, 울타리, 물통과 사료통을 관리한다.",
+  "title": "축사 관리"
+}

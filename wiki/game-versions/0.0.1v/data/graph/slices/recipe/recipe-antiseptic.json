@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-antiseptic",
+    "spoiler_tier": "none",
+    "title": "소독제"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-antiseptic",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-bloodleaf",
+      "target_spoiler_tier": "none",
+      "target_title": "혈엽",
+      "to": "item/resource-bloodleaf",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-antiseptic",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-saltstone",
+      "target_spoiler_tier": "none",
+      "target_title": "소금석",
+      "to": "item/resource-saltstone",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-antiseptic",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medicine-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독제",
+      "to": "item/medicine-antiseptic",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-antiseptic",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-pharmacology-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독·붕대",
+      "to": "research/research-pharmacology-antiseptic",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

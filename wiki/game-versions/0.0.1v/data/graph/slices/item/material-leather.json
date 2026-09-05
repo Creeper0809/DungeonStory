@@ -1,0 +1,88 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-leather",
+    "spoiler_tier": "none",
+    "title": "가죽"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-brigandine-padding",
+      "label": "필요 조건",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-record-breeding-ledger",
+      "label": "필요 조건",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-record-career-ledger",
+      "label": "필요 조건",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-watch-signal-horn",
+      "label": "필요 조건",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-cold-work-suit",
+      "label": "필요 조건",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-leather",
+      "label": "생산·해금",
+      "to": "item/material-leather",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-rune-leather",
+      "label": "필요 조건",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-textile-insulating-cloth",
+      "label": "필요 조건",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-tool-hauling-harness",
+      "label": "필요 조건",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "4",
+      "from": "recipe/recipe-material-hardened-leather",
+      "label": "필요 조건",
+      "to": "item/material-leather",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

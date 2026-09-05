@@ -302,7 +302,10 @@ namespace DungeonStory.Balance
     [BalanceCaptureFactory]
     public static class PopulationStagePortfolioCatalog
     {
-        public const int InitialInteriorColumns = 27;
+        public const int OneAdultMinimumInteriorColumns = 27;
+        public const int ThreeAdultMinimumInteriorColumns = 27;
+        public const int SixAdultMinimumInteriorColumns =
+            DungeonSpaceExpansionCatalog.InitialInteriorColumns;
         public const int TierOnePopulation = 12;
         public const int TierTwoPopulation = 18;
         public const int TierThreePopulation = 24;
@@ -330,15 +333,18 @@ namespace DungeonStory.Balance
             _ => throw new ArgumentOutOfRangeException(nameof(population))
         };
 
-        // Diagnostic capacity requirement only. This does not unlock or mutate
-        // dungeon space; the E-key grid expansion remains a developer tool.
+        // Diagnostic minimum requirement only. Production new-run Tier 0 and
+        // research-gated right-only expansion use the matching authored
+        // targets; the E-key expansion remains developer-only.
         public static int InteriorColumnsForPopulation(int population) =>
-            TierForPopulation(population) switch
+            population switch
             {
-                0 => InitialInteriorColumns,
-                1 => TierOneInteriorColumns,
-                2 => TierTwoInteriorColumns,
-                3 => TierThreeInteriorColumns,
+                1 => OneAdultMinimumInteriorColumns,
+                3 => ThreeAdultMinimumInteriorColumns,
+                6 => SixAdultMinimumInteriorColumns,
+                TierOnePopulation => TierOneInteriorColumns,
+                TierTwoPopulation => TierTwoInteriorColumns,
+                TierThreePopulation => TierThreeInteriorColumns,
                 _ => throw new ArgumentOutOfRangeException(nameof(population))
             };
 
@@ -609,11 +615,11 @@ namespace DungeonStory.Balance
         public static int PlannedUsedCells(int population) => population switch
         {
             1 => 21,
-            3 => 37,
-            6 => 56,
-            12 => 101,
-            18 => 135,
-            24 => 166,
+            3 => 40,
+            6 => 59,
+            12 => 107,
+            18 => 147,
+            24 => 181,
             _ => throw new ArgumentOutOfRangeException(nameof(population))
         };
 

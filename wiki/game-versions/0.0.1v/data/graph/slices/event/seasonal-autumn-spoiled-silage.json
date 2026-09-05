@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "seasonal-autumn-spoiled-silage",
+    "spoiler_tier": "warning",
+    "title": "사일리지 발열"
+  },
+  "edges": [],
+  "schema_version": 1
+}

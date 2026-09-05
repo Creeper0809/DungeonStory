@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "78"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "강화 구속구는 손발의 움직임을 제한하고 잠금 상태를 점검할 수 있게 만든 장구다. 오르데나제 강화 구속구에는 포로 이름보다 감시자 번호가 더 깊게 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-reinforced-restraint",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 강화 구속구.",
+  "title": "강화 구속구"
+}

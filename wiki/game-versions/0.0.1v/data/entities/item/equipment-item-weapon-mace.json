@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "186"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "날 대신 무거운 머리로 충격을 집중해 갑옷 위를 두드리는 한손 무기다. 특히 제4주조도시제 철퇴의 작은 홈은 몸을 바꿀 때 맞추는 수리 눈금이다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-mace",
+  "spoiler_tier": "none",
+  "summary": "철퇴 전투 장비",
+  "title": "철퇴"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "12"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "온실 작물이 흙이 부족한 환경에서도 자라도록 물에 타서 공급하는 영양액이다. 므네실라의 온실 영양액 병에는 작물 단계마다 물에 탈 양이 색 띠로 표시되어 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-greenhouse-nutrient",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 온실 영양액.",
+  "title": "온실 영양액"
+}

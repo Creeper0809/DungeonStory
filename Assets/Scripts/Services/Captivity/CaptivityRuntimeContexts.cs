@@ -81,7 +81,11 @@ public sealed class CaptivitySessionContext
         IGameClock gameClock,
         IRandomStreamProvider randomStreamProvider,
         IGameEventBus gameEventBus,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IEmploymentStandingCommand employmentStanding,
+        CharacterMoodPolicyService moodPolicy,
+        IFactionCampaignCommand factionCampaign,
+        ISurvivalFoodCommand survivalFood)
     {
         Money = money ?? throw new ArgumentNullException(nameof(money));
         Interactions = interactions
@@ -93,6 +97,14 @@ public sealed class CaptivitySessionContext
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         AggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        EmploymentStanding = employmentStanding
+            ?? throw new ArgumentNullException(nameof(employmentStanding));
+        MoodPolicy = moodPolicy
+            ?? throw new ArgumentNullException(nameof(moodPolicy));
+        FactionCampaign = factionCampaign
+            ?? throw new ArgumentNullException(nameof(factionCampaign));
+        SurvivalFood = survivalFood
+            ?? throw new ArgumentNullException(nameof(survivalFood));
     }
 
     public IGameMoneyAccount Money { get; }
@@ -101,4 +113,8 @@ public sealed class CaptivitySessionContext
     public IRandomStreamProvider RandomStreamProvider { get; }
     public IGameEventBus GameEventBus { get; }
     public DungeonRuntimeAggregateRootStore AggregateRootStore { get; }
+    public IEmploymentStandingCommand EmploymentStanding { get; }
+    public CharacterMoodPolicyService MoodPolicy { get; }
+    public IFactionCampaignCommand FactionCampaign { get; }
+    public ISurvivalFoodCommand SurvivalFood { get; }
 }

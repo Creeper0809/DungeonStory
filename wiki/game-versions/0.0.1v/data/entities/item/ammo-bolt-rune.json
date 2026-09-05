@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "33"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "촉에 새긴 룬이 비전 방호를 흐트러뜨리도록 조율한 석궁 볼트다. 베르사디온의 룬촉 볼트 자루 끝에는 사용자와 마나 제공자가 하나씩 누른 쌍인장이 남는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ammo-bolt-rune",
+  "spoiler_tier": "none",
+  "summary": "비전 저항을 꿰뚫는 룬 볼트.",
+  "title": "룬촉 볼트"
+}

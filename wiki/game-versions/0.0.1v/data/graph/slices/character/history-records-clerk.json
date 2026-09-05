@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "history-records-clerk",
+    "spoiler_tier": "none",
+    "title": "기록 서기"
+  },
+  "edges": [],
+  "schema_version": 1
+}

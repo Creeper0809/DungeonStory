@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Apprenticeship"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "-4",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-apprentice-mistake",
+      "target_spoiler_tier": "warning",
+      "target_title": "도제의 큰 실수",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "25",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-apprentice-mistake",
+      "target_spoiler_tier": "warning",
+      "target_title": "도제의 큰 실수",
+      "type": "grants-skill-experience"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "life-event-apprentice-mistake",
+  "spoiler_tier": "warning",
+  "summary": "도제가 귀한 중간재 한 묶음을 망치고 보고를 망설인다.",
+  "title": "도제의 큰 실수"
+}

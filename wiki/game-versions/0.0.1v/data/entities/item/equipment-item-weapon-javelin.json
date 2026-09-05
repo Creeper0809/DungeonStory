@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "52"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "달려드는 적에게 던지거나 가까이서 찌를 수 있게 가볍게 만든 창이다. 아일라세라 사수는 투창을 쏘기 전 바람의 방향을 짧게 노래한다. 마지막 음이 발사 신호다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-javelin",
+  "spoiler_tier": "none",
+  "summary": "투창 전투 장비",
+  "title": "투창"
+}

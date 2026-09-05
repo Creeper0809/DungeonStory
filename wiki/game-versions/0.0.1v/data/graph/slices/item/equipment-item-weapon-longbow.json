@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-weapon-longbow",
+    "spoiler_tier": "none",
+    "title": "장궁"
+  },
+  "edges": [],
+  "schema_version": 1
+}

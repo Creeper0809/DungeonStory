@@ -1,0 +1,49 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "필요 연구",
+      "value": "사슬 편조"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-chain-mesh",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 망",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-mail-weaving",
+      "target_spoiler_tier": "none",
+      "target_title": "사슬 편조",
+      "type": "requires"
+    },
+    {
+      "amount": "5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-material-chain-mesh",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 사슬 망을(를) 생산한다.",
+  "title": "사슬 망"
+}

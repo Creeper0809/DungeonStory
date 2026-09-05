@@ -147,6 +147,9 @@ public sealed class EvolutionReforgeOrder
     public string destinationId = string.Empty;
     public int destinationX;
     public int destinationY;
+    public long inputBufferCapacityGrams;
+    public long inputMassAuthorityRevision;
+    public string inputCapacityFingerprint = string.Empty;
     public string lockedHistoryHash = string.Empty;
     public EquipmentEvolutionDirection lockedDirection;
     public bool materialsConsumed;
@@ -198,6 +201,9 @@ public sealed class EvolutionReforgeOrder
             destinationId = destinationId ?? string.Empty,
             destinationX = destinationX,
             destinationY = destinationY,
+            inputBufferCapacityGrams = inputBufferCapacityGrams,
+            inputMassAuthorityRevision = inputMassAuthorityRevision,
+            inputCapacityFingerprint = inputCapacityFingerprint ?? string.Empty,
             lockedHistoryHash = lockedHistoryHash ?? string.Empty,
             lockedDirection = lockedDirection,
             materialsConsumed = materialsConsumed,
@@ -245,6 +251,9 @@ public sealed class EquipmentReattunementOrder
     public string destinationId = string.Empty;
     public int destinationX;
     public int destinationY;
+    public long inputBufferCapacityGrams;
+    public long inputMassAuthorityRevision;
+    public string inputCapacityFingerprint = string.Empty;
     public string lockedStateHash = string.Empty;
     public bool materialsConsumed;
     public bool equipmentDelivered;
@@ -286,6 +295,9 @@ public sealed class EquipmentReattunementOrder
             destinationId = destinationId ?? string.Empty,
             destinationX = destinationX,
             destinationY = destinationY,
+            inputBufferCapacityGrams = inputBufferCapacityGrams,
+            inputMassAuthorityRevision = inputMassAuthorityRevision,
+            inputCapacityFingerprint = inputCapacityFingerprint ?? string.Empty,
             lockedStateHash = lockedStateHash ?? string.Empty,
             materialsConsumed = materialsConsumed,
             equipmentDelivered = equipmentDelivered,
@@ -324,6 +336,9 @@ public sealed class FacilityRecalibrationOrder
     public string destinationId = string.Empty;
     public int destinationX;
     public int destinationY;
+    public long inputCapacityGrams;
+    public long inputMassAuthorityRevision;
+    public string inputCapacityFingerprint = string.Empty;
     public bool materialsConsumed;
     public string materialTransferOperationId = string.Empty;
     public string materialTransferCommitId = string.Empty;
@@ -351,6 +366,9 @@ public sealed class FacilityRecalibrationOrder
             destinationId = destinationId ?? string.Empty,
             destinationX = destinationX,
             destinationY = destinationY,
+            inputCapacityGrams = inputCapacityGrams,
+            inputMassAuthorityRevision = inputMassAuthorityRevision,
+            inputCapacityFingerprint = inputCapacityFingerprint ?? string.Empty,
             materialsConsumed = materialsConsumed
             ,materialTransferOperationId = materialTransferOperationId ?? string.Empty
             ,materialTransferCommitId = materialTransferCommitId ?? string.Empty

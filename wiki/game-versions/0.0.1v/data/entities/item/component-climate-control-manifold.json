@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "130"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "기후 제어 매니폴드는 복잡한 설비의 작동 순서와 흐름을 맡는 핵심 조립품이다. 제4주조도시의 골렘은 기후 제어 매니폴드를 끼우기 전 자기 기억판과 맞닿는 면을 직접 닦는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-climate-control-manifold",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 기후 제어 매니폴드.",
+  "title": "기후 제어 매니폴드"
+}

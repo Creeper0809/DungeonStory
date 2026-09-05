@@ -1,0 +1,123 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-equipment-industrial-metrology",
+    "spoiler_tier": "none",
+    "title": "산업 계측학"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-prototype-engineering",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 공학",
+      "to": "research/research-equipment-prototype-engineering",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-prototype-engineering",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 공학",
+      "to": "research/research-equipment-prototype-engineering",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-equipment-prototype-engineering",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 공학",
+      "to": "research/research-equipment-prototype-engineering",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-precision",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 자동화",
+      "to": "research/research-industry-precision",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-precision",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 자동화",
+      "to": "research/research-industry-precision",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-precision",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 자동화",
+      "to": "research/research-industry-precision",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-industrial-metrology",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8846",
+      "target_spoiler_tier": "none",
+      "target_title": "계측 작업대",
+      "to": "facility/building-8846",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-precision-optics",
+      "label": "필요 조건",
+      "to": "research/research-equipment-industrial-metrology",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-precision-gauge",
+      "label": "필요 조건",
+      "to": "research/research-equipment-industrial-metrology",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-regional-climatology",
+      "label": "선행 연구",
+      "to": "research/research-equipment-industrial-metrology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-regional-climatology",
+      "label": "선행 연구",
+      "to": "research/research-equipment-industrial-metrology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-regional-climatology",
+      "label": "선행 연구",
+      "to": "research/research-equipment-industrial-metrology",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

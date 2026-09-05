@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "28"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Captivity And Entertainment"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-restraints",
+      "target_spoiler_tier": "none",
+      "target_title": "구속 관리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-restraints",
+      "target_spoiler_tier": "none",
+      "target_title": "구속 관리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-restraints",
+      "target_spoiler_tier": "none",
+      "target_title": "구속 관리",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8809",
+      "target_spoiler_tier": "none",
+      "target_title": "포로 작업 도구함",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-control-labor",
+  "spoiler_tier": "none",
+  "summary": "포로 노역의 작업과 감시 체계를 만든다.",
+  "title": "노역 감독"
+}

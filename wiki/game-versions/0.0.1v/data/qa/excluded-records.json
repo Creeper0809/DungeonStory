@@ -1,0 +1,2860 @@
+{
+  "records": [
+    {
+      "content_type": "AnatomyConditionLexiconSO",
+      "reason": "internal-type",
+      "stable_id": "condition:biological"
+    },
+    {
+      "content_type": "AnatomyConditionLexiconSO",
+      "reason": "internal-type",
+      "stable_id": "condition:demon"
+    },
+    {
+      "content_type": "AnatomyConditionLexiconSO",
+      "reason": "internal-type",
+      "stable_id": "condition:golem"
+    },
+    {
+      "content_type": "AnatomyConditionLexiconSO",
+      "reason": "internal-type",
+      "stable_id": "condition:harpy"
+    },
+    {
+      "content_type": "AnatomyConditionLexiconSO",
+      "reason": "internal-type",
+      "stable_id": "condition:myconid"
+    },
+    {
+      "content_type": "AnatomyConditionLexiconSO",
+      "reason": "internal-type",
+      "stable_id": "condition:slime"
+    },
+    {
+      "content_type": "AnatomyConditionLexiconSO",
+      "reason": "internal-type",
+      "stable_id": "condition:vampire"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:arcane-conduction"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:auditory-sensing"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:communication"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:immune-defense"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:intake-processing"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:mental-maintenance"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:physical-mobility"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:physical-power"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:power-circulation"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:precision-manipulation"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:purification-processing"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:respiratory-exchange"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:visual-discernment"
+    },
+    {
+      "content_type": "CharacterFunctionalCapacityDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "capacity:vitality-response"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:combat:arcane-power"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:combat:defense-reaction"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:combat:evasion"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:combat:mana-recovery"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:combat:melee-hit"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:combat:melee-power"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:combat:movement"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:combat:ranged-hit"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:composite:mobility-execution"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:composite:precision-execution"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:composite:recovery-foundation"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:composite:situational-awareness"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:composite:sustained-execution"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:medical:complication-risk"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:medical:disease-recovery"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:medical:disease-resistance"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:medical:immunity-gain"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:medical:immunity-retention"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:medical:surgery-speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:medical:surgery-success"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:medical:treatment-efficiency"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:medical:treatment-speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:medical:wound-recovery"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:social:crowd-sensitivity"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:social:negative-mood-duration"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:social:negotiation"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:social:relationship-recovery"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:social:spending"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:social:wait-patience"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:survival:alarm-response"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:survival:cold-exposure"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:survival:fatigue-rate"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:survival:food-consumption"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:survival:food-poisoning"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:survival:haul-capacity"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:survival:heat-exposure"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:survival:movement-speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:survival:nutrition-efficiency"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:survival:risk-detection"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:animal-care:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:animal-care:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:butcher:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:butcher:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:clean:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:clean:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:construct:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:construct:quality"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:construct:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:cook:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:cook:quality"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:cook:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:craft:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:craft:quality"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:craft:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:dismantle:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:dismantle:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:draw-water:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:draw-water:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:gather:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:gather:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:grand-project:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:grand-project:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:guard:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:guard:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:harvest:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:harvest:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:harvest:yield"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:haul:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:haul:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:hunt:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:hunt:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:logging:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:logging:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:operate:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:operate:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:perform:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:perform:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:plumbing:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:plumbing:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:quarry:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:quarry:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:reception:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:reception:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:refuel:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:refuel:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:repair:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:repair:quality"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:repair:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:rescue:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:rescue:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:research:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:research:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:rest:fatigue-recovery"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:rest:sleep-recovery"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:rest:wound-recovery"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:restock:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:restock:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:sow:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:sow:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:surgery:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:surgery:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:threat-mitigation:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:threat-mitigation:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:treat:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:treat:speed"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:warden:accident"
+    },
+    {
+      "content_type": "CharacterPerformanceFormulaDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "performance:work:warden:speed"
+    },
+    {
+      "content_type": "FacilityEvolutionRecordTokenDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "CleanServiceStreak"
+    },
+    {
+      "content_type": "FacilityEvolutionRecordTokenDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "FrequentBrawls"
+    },
+    {
+      "content_type": "FacilityEvolutionRecordTokenDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "GuardRallyPoint"
+    },
+    {
+      "content_type": "FacilityEvolutionRecordTokenDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "HighMeatConsumption"
+    },
+    {
+      "content_type": "FacilityEvolutionRecordTokenDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "HighTurnoverService"
+    },
+    {
+      "content_type": "FacilityEvolutionRecordTokenDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "IntruderBloodied"
+    },
+    {
+      "content_type": "FacilityEvolutionRecordTokenDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "MercenaryHangout"
+    },
+    {
+      "content_type": "FacilityEvolutionRecordTokenDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "NoblePatronage"
+    },
+    {
+      "content_type": "FacilityEvolutionRecordTokenDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "OutlawRumor"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "accident:fall-slip"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "event:hostile-execution"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "relationship:first-apology"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "relationship:negative"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "room:noise"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "shift:day"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "shift:night"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:arcane-overcharge"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:arcane-overcharge-aftermath"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:emergency-stocked"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:forbidden-leap-aftermath"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:formal-status"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:golden-harvest-jackpot"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:insulted"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:last-stand"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:last-stand-aftermath"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:miracle-surgery-aftermath"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:pain"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:production-limit-break"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:production-limit-break-aftermath"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:ritual-fast-ended"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:ritual-fasting"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:sated"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "state:sweet-fed"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "temperature:cold"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "temperature:comfortable"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "temperature:hot"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "temperature:uncomfortable"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "terrain:rough"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:clean"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:clean-maintenance"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:contaminated-food"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:contamination"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:craft-finished"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:dangerous"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:emergency"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:long-shift"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:mentoring"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:not-clean"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:not-research"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:on-schedule"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:precision"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:research"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:retry-after-failure"
+    },
+    {
+      "content_type": "GameplayEffectConditionDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "work:substitute-material"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:arcane:mana-recovery:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:arcane:power:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:arcane-conduction:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:auditory-sensing:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:communication:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:immune-defense:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:intake-processing:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:mental-maintenance:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:physical-mobility:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:physical-power:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:power-circulation:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:precision-manipulation:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:purification-processing:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:respiratory-exchange:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:visual-discernment:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:capacity:vitality-response:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:accident-chance:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:alarm-response-delay:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:cold-exposure:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:combat-power:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:combat-stress:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:consumption:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:crowd-sensitivity:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:danger-detection:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:disease-recovery-speed:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:disease-resistance:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:earned-work-xp:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:fatigue-rate:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:food-poisoning-chance:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:heat-exposure:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:immunity-gain:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:immunity-retention:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:mentee-xp:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:move-speed:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:negative-mood-duration:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:pain-work-penalty:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:recovery-speed:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:relationship-recovery:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:research-speed:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:sleep-recovery:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:spending:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:wait-patience:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:character:work-speed:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:craft:quality-score:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:damage:blunt-taken:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:environment:comfort-minimum-offset:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:environment:safe-minimum-offset:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:food:spoilage-detection:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:harvest:seed-yield:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:harvest:yield:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:medical:aftermath-duration:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:proficiency:construction-engineering:starting-xp:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:proficiency:crafting:starting-xp:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:proficiency:fieldwork:starting-xp:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:proficiency:food-production:starting-xp:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:proficiency:medicine:starting-xp:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:proficiency:melee-combat:starting-xp:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:proficiency:ranged-combat:starting-xp:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:proficiency:scholarship:starting-xp:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:proficiency:social:starting-xp:addflat"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:social:negotiation:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:work:haul-capacity:multiply"
+    },
+    {
+      "content_type": "GameplayEffectDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "effect:work:salvage-yield:multiply"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "camp_bad_dream"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "camp_distant_horns"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "camp_dry_cave"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "camp_local_herbs"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "camp_night_watch"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "camp_shared_ration"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "camp_weapon_care"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "infiltration_drain"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "infiltration_locked_archive"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "infiltration_powder_store"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "infiltration_rope_wall"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "infiltration_service_cart"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "infiltration_signal_bell"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "infiltration_sleeping_hounds"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "loot_burning_store"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "loot_cursed_weapon"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "loot_enemy_banner"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "loot_hidden_cellar"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "loot_locked_chest"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "loot_prison_records"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "loot_wounded_enemy"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "negotiation_border_merchant"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "negotiation_choir_envoy"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "negotiation_competing_raiders"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "negotiation_deserter"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "negotiation_false_relic"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "negotiation_gate_captain"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "negotiation_hostage_exchange"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "recon_buried_map"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "recon_counter_scout"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "recon_old_runes"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "recon_prisoner_signal"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "recon_smoke_column"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "recon_supply_marks"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "recon_watch_rotation"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "return_broken_pack"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "return_field_surgery"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "return_flooded_road"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "return_following_tracks"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "return_home_lights"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "return_last_toll"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "return_victory_song"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "travel_abandoned_cart"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "travel_black_rain"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "travel_broken_bridge"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "travel_false_milestone"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "travel_narrow_pass"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "travel_toll_gate"
+    },
+    {
+      "content_type": "OffenseDecisionCardSO",
+      "reason": "internal-type",
+      "stable_id": "travel_wounded_scout"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:agriculture:compost"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:agriculture:cultivar-breeding"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:agriculture:field"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:agriculture:gathering"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:agriculture:greenhouse-horticulture"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:agriculture:indoor"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:agriculture:irrigation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:agriculture:phenology"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:agriculture:soil-cycles"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:agriculture:subterranean"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:arcane:advanced"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:arcane:alchemy"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:arcane:records"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:arcane:resonance"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:authority:office"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:authority:prestige"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:authority:quarters"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:authority:ritual"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:bath-business"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:climate:environment-control"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:climate:regional-climatology"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:climate:weather-observation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:commerce:expansion"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:commerce:logistics"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:commerce:retail"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:commerce:secure-trade"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:control:blood-show"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:control:labor"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:control:restraints"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:control:show"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:cuisine:baking"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:cuisine:controlled-fermentation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:cuisine:crops"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:cuisine:distilling-aging"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:cuisine:fermentation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:cuisine:kitchen-hygiene"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:cuisine:lavish"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:cuisine:livestock"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:cuisine:milling"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:cuisine:vegan"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:defense:alliance-signals"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:defense:corridor-mechanisms"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:defense:fortification"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:defense:ranged-positions"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:defense:remote-control"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:defense:rune-identification"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:defense:siege-fortification"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:defense:supply"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:defense:tactical-command"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:defense:watch"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:environment:cold-work"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:environment:rune-insulation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:armor-tailoring"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:articulated-plate"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:ballistics"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:black-powder"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:bowyery"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:field-maintenance"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:ignition-mechanisms"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:industrial-metrology"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:lineage-binding"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:mail-weaving"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:material-testing"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:mechanical-projectiles"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:modular-frames"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:powered-armor"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:precision-fitting"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:pressure-barrels"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:prototype-engineering"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:relic-appraisal"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:rune-module-tuning"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:standard-ammunition"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:equipment:weapon-patterns"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:forestry:charcoal"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:forestry:fungal"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:forestry:logging"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:forestry:sawmill"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:forestry:tools"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:forestry:treated"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:genetics:controlled-heredity"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:genetics:cross-lineage-stabilization"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:genetics:hereditary-records"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:health:isolation-medicine"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:health:pathogen-observation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:health:vaccination"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:hospitality-operations"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:housing:room-assignment"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:husbandry:breeding"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:husbandry:capture"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:husbandry:feed"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:husbandry:seasonal-breeding"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:husbandry:selective"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:husbandry:stable"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:husbandry:taming"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:assisted-processing"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:automatic-bills"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:automatic-sanitation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:breakers"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:conveyor"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:dark-foundry"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:electric-lighting"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:electric-smelting"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:junctions"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:lifts"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:line-balancing"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:mana-power"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:powered-tools"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:precision"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:rune-automation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:steam-power"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:storage"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:industry:waterwheel"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:life:seasonal-calendar"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical-reception"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:aberrant-augmentation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:anatomy"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:avian-prosthetics"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:blood-rejuvenation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:bloodcraft-augmentation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:construct-core-engineering"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:construct-core-maintenance"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:geriatric-medicine"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:gerontology"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:mana-core-engineering"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:mycelial-grafting"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:organ-preservation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:organ-regeneration"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:prosthetics"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:regenerative-culture"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:reproductive-medicine"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:rune-hibernation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:slime-bioengineering"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:surgery"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:temporal-stasis"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:trauma-medicine"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:whole-body-regeneration"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:medical:xenotransplant"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:metallurgy:advanced"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:metallurgy:blacksteel"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:metallurgy:iron"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:metallurgy:precious"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:metallurgy:primitive"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:metallurgy:steel"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:mining:deep"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:mining:mana"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:mining:quarry"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:mining:sorting"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:mining:stonecutting"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:mining:surface"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:pharmacology:advanced"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:pharmacology:anesthesia"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:pharmacology:antiseptic"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:pharmacology:distillation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:pharmacology:herbalism"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:pharmacology:stimulants"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:plumbing:basics"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:plumbing:reuse"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:plumbing:rune-purification"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:plumbing:sewer"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:service-automation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:service-flow"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:service:dining-operations"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:society:career-records"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:society:child-education"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:society:corpse-care"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:society:generation-management"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:society:household-records"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:society:retirement"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:survival:field-rations"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:survival:medical"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:survival:preservation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:survival:sanitation"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:survival:seasonal-storage"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:survival:support"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:textile:dreamweave"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:textile:fiber"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:textile:layered"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:textile:rune-leather"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:textile:tailoring"
+    },
+    {
+      "content_type": "ResearchUnlockBundleDefinitionSO",
+      "reason": "internal-type",
+      "stable_id": "research:textile:tanning"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "asset:New Stock Info"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "asset:무기상점"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "shop-stock:10"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "shop-stock:11"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "shop-stock:12"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "shop-stock:13"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "shop-stock:3000"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "shop-stock:50"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "shop-stock:51"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "shop-stock:55"
+    },
+    {
+      "content_type": "StockInfo",
+      "reason": "internal-type",
+      "stable_id": "shop-stock:56"
+    },
+    {
+      "content_type": "DefenseBurnEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_FireVent_2_Burn"
+    },
+    {
+      "content_type": "DefenseBurnEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_StormFireTrap_2_Burn"
+    },
+    {
+      "content_type": "DefenseChargeEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_AlarmCoil_2_Charge"
+    },
+    {
+      "content_type": "DefenseChargeEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_LightningPillar_2_Charge"
+    },
+    {
+      "content_type": "DefenseChargeEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_StormFireTrap_3_Charge"
+    },
+    {
+      "content_type": "DefenseCorrosionEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_CorrosionFreezer_2_Corrosion"
+    },
+    {
+      "content_type": "DefenseCorrosionEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_PoisonPool_2_Corrosion"
+    },
+    {
+      "content_type": "DefenseCorrosionEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_VenomSpikeTrap_2_Corrosion"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:DefenseLinkedDropGate_1_Damage"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:DefenseWallLauncher_1_Damage"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_AlarmCoil_1_Damage"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_CorrosionFreezer_1_Damage"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_FireVent_1_Damage"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_IceVent_1_Damage"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_LightningPillar_1_Damage"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_PoisonPool_1_Damage"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_SpikeTrap_1_Damage"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_StormFireTrap_1_Damage"
+    },
+    {
+      "content_type": "DefenseDamageEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_VenomSpikeTrap_1_Damage"
+    },
+    {
+      "content_type": "DefenseGuardAttackEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_AlarmCoil_3_GuardAttack"
+    },
+    {
+      "content_type": "DefenseGuardAttackEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_Barracks_1_GuardAttack"
+    },
+    {
+      "content_type": "DefenseGuardAttackEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_GuardRoom_1_GuardAttack"
+    },
+    {
+      "content_type": "DefenseGuardAttackEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_StormFireTrap_4_GuardAttack"
+    },
+    {
+      "content_type": "DefenseGuardAttackEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_WarBarracks_1_GuardAttack"
+    },
+    {
+      "content_type": "DefenseSlowEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:DefenseLinkedDropGate_2_Slow"
+    },
+    {
+      "content_type": "DefenseSlowEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_CorrosionFreezer_3_Slow"
+    },
+    {
+      "content_type": "DefenseSlowEffectSO",
+      "reason": "manual-review",
+      "stable_id": "asset:P1_IceVent_2_Slow"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:beastkin"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:beastkin"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:demon"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:demon"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:golem"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:golem"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:harpy"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:harpy"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:kobold"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:kobold"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:myconid"
+    },
+    {
+      "content_type": "DungeonFactionDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "faction:dungeon:myconid"
+    },
+    {
+      "content_type": "FestivalDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "festival:high-sun"
+    },
+    {
+      "content_type": "FestivalDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "festival:high-sun"
+    },
+    {
+      "content_type": "FestivalDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "festival:long-night-memorial"
+    },
+    {
+      "content_type": "FestivalDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "festival:long-night-memorial"
+    },
+    {
+      "content_type": "FestivalDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "festival:sprout"
+    },
+    {
+      "content_type": "FestivalDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "festival:sprout"
+    },
+    {
+      "content_type": "FestivalDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "festival:storage"
+    },
+    {
+      "content_type": "FestivalDefinitionSO",
+      "reason": "manual-review",
+      "stable_id": "festival:storage"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:10"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:11"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:12"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:13"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:14"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:15"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:16"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:17"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:18"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:3"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:35"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:5"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:50"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:51"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:54"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:55"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:56"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:59"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:6"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:60"
+    },
+    {
+      "content_type": "BuildingSO",
+      "reason": "non-active-lifecycle",
+      "stable_id": "building:61"
+    },
+    {
+      "content_type": "SaleItem",
+      "reason": "non-active-lifecycle",
+      "stable_id": "sale-item:0"
+    },
+    {
+      "content_type": "SaleItem",
+      "reason": "non-active-lifecycle",
+      "stable_id": "sale-item:1"
+    },
+    {
+      "content_type": "SaleItem",
+      "reason": "non-active-lifecycle",
+      "stable_id": "sale-item:2"
+    },
+    {
+      "content_type": "SaleItem",
+      "reason": "non-active-lifecycle",
+      "stable_id": "sale-item:4000"
+    },
+    {
+      "content_type": "CharacterSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "character-archetype:0"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:231"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:232"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:233"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:234"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:236"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:237"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:238"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:240"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:241"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:242"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:243"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:244"
+    },
+    {
+      "content_type": "CharacterTraitSO",
+      "reason": "runtime-not-verified",
+      "stable_id": "trait:246"
+    }
+  ],
+  "schema_version": 1
+}

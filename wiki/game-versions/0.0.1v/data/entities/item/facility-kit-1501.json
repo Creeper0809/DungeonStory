@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "135"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "열이 쌓인 방과 설비에서 열을 빼내 온도를 낮추는 냉각기 설치 부품이다. 하르나크의 냉각기는 밤에 일하는 뱀파이어 쪽은 어둡고 균사 주민 쪽은 촉촉하게 맞춰져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "facility-kit-1501",
+  "spoiler_tier": "none",
+  "summary": "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+  "title": "냉각기 설치 키트"
+}

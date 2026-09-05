@@ -10,8 +10,60 @@ using System.Linq;
 /// </summary>
 public sealed class CombatEquipmentTerminalDestructiveDrainParticipant :
     IProductionFacilityDestructiveDrainParticipant,
-    IProductionFacilityDestructiveDrainDurablePrepareParticipant
+    IProductionFacilityDestructiveDrainDurablePrepareParticipant,
+    IProductionFacilityDestructiveDrainCheckpointGcParticipant
 {
+    private sealed class CheckpointGcCandidate :
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate
+    {
+        internal CheckpointGcCandidate(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<string> operationIds,
+            ICombatEquipmentTerminalDrainCheckpointGcAuthority producerPort,
+            ICombatEquipmentTerminalDrainCheckpointGcCandidate producerCandidate,
+            ICombatEquipmentTerminalSourceCheckpointGcAuthority sourcePort,
+            ICombatEquipmentTerminalSourceCheckpointGcCandidate sourceCandidate,
+            IProductionInputDestinationCustodyDrainCheckpointGcPort childPort,
+            IProductionInputDestinationCustodyDrainCheckpointGcCandidate childCandidate)
+        {
+            Context = context;
+            OperationIds = operationIds
+                ?? throw new ArgumentNullException(nameof(operationIds));
+            ProducerPort = producerPort
+                ?? throw new ArgumentNullException(nameof(producerPort));
+            ProducerCandidate = producerCandidate
+                ?? throw new ArgumentNullException(nameof(producerCandidate));
+            SourcePort = sourcePort
+                ?? throw new ArgumentNullException(nameof(sourcePort));
+            SourceCandidate = sourceCandidate
+                ?? throw new ArgumentNullException(nameof(sourceCandidate));
+            ChildPort = childPort;
+            ChildCandidate = childCandidate;
+        }
+
+        public string ParticipantId =>
+            CombatEquipmentTerminalDrainCanonical.ParticipantId;
+        public long CheckpointSequence => Context.CheckpointSequence;
+        public string SerializedByteDigest => Context.SerializedByteDigest;
+        public IReadOnlyList<string> OperationIds { get; }
+        internal ProductionFacilityDestructiveDrainCheckpointGcContext Context
+            { get; }
+        internal ICombatEquipmentTerminalDrainCheckpointGcAuthority ProducerPort
+            { get; }
+        internal ICombatEquipmentTerminalDrainCheckpointGcCandidate
+            ProducerCandidate { get; }
+        internal ICombatEquipmentTerminalSourceCheckpointGcAuthority SourcePort
+            { get; }
+        internal ICombatEquipmentTerminalSourceCheckpointGcCandidate SourceCandidate
+            { get; }
+        internal IProductionInputDestinationCustodyDrainCheckpointGcPort ChildPort
+            { get; }
+        internal IProductionInputDestinationCustodyDrainCheckpointGcCandidate
+            ChildCandidate { get; }
+        internal bool Published { get; set; }
+        internal bool Completed { get; set; }
+    }
+
     public const int CurrentContractVersion = 1;
     private const string ChildSuffix = ":input-destination-custody";
     private static readonly IReadOnlyList<string> Dependencies =
@@ -23,6 +75,7 @@ public sealed class CombatEquipmentTerminalDestructiveDrainParticipant :
     private readonly ICombatEquipmentTerminalDrainCommand producer;
     private readonly IProductionInputDestinationCustodyDrainService inputDrain;
     private readonly ICombatEquipmentTerminalFacilityQuery facilities;
+    private CheckpointGcCandidate activeCheckpointGcCandidate;
 
     public CombatEquipmentTerminalDestructiveDrainParticipant(
         IProductionOutputDestinationLifecycleQuery lifecycle,
@@ -43,6 +96,7 @@ public sealed class CombatEquipmentTerminalDestructiveDrainParticipant :
     public string ParticipantId => CombatEquipmentTerminalDrainCanonical.ParticipantId;
     public int ContractVersion => CurrentContractVersion;
     public IReadOnlyList<string> DependsOnParticipantIds => Dependencies;
+    public string CheckpointGcParticipantId => ParticipantId;
 
     public ProductionFacilityDestructiveDrainParticipantPlan Prepare(
         ProductionFacilityDestructiveDrainPrepareContext context)
@@ -50,10 +104,23 @@ public sealed class CombatEquipmentTerminalDestructiveDrainParticipant :
         RequireDestination(context.FacilityId, context.DestinationId);
         ProductionOutputDestinationLifecycleContribution contribution =
             CaptureContribution(context.FacilityId);
-        ProductionFacilityHandle facility = ResolveFacility(context.FacilityId);
         CombatEquipmentTerminalPreparedSource[] live = CaptureSources(context.FacilityId);
         if (contribution.HasAuthority != (live.Length > 0))
             throw new InvalidOperationException("combat-equipment-terminal-lifecycle-owner-conflict");
+
+        if (live.Length == 0)
+        {
+            ProductionFacilityDestructiveDrainOwnerPlan[] emptyOwners =
+                Array.Empty<ProductionFacilityDestructiveDrainOwnerPlan>();
+            return new ProductionFacilityDestructiveDrainParticipantPlan(
+                ParticipantId, ContractVersion,
+                contribution.DurableSemanticFingerprint,
+                CreatePlanFingerprint(
+                    contribution.DurableSemanticFingerprint, emptyOwners),
+                emptyOwners);
+        }
+
+        ProductionFacilityHandle facility = ResolveFacility(context.FacilityId);
 
         ProductionFacilityDestructiveDrainOwnerPlan[] owners = live
             .Select(source => CaptureRequest(context.OperationId, facility, source, out _))
@@ -272,6 +339,381 @@ public sealed class CombatEquipmentTerminalDestructiveDrainParticipant :
             _ => RecoveryConflict(current)
         };
     }
+
+    [GameplayInternalOnly(
+        "Prepares exact combat producer, source-receipt, and optional Items child rows for durable checkpoint collection.",
+        "Production facility destructive-drain checkpoint GC coordinator only")]
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData> entries,
+            out IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        candidate = null;
+        if (activeCheckpointGcCandidate != null)
+        {
+            return CheckpointGcResult(context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .LiveAuthorityChanged,
+                "combat-equipment-terminal-checkpoint-gc-already-active");
+        }
+        if (producer is not ICombatEquipmentTerminalDrainCheckpointGcAuthority
+                producerPort
+            || producerPort.SourceCheckpointGcAuthority is not
+                ICombatEquipmentTerminalSourceCheckpointGcAuthority sourcePort)
+        {
+            return CheckpointGcResult(context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .MissingParticipant,
+                "combat-equipment-terminal-checkpoint-gc-port-missing");
+        }
+
+        ProductionFacilityDestructiveDrainEntrySaveData[] orderedEntries =
+            (entries ?? Array.Empty<
+                ProductionFacilityDestructiveDrainEntrySaveData>())
+            .OrderBy(value => value?.operationId, StringComparer.Ordinal)
+            .ToArray();
+        if (orderedEntries.Any(value => value == null
+                || value.phase != ProductionFacilityDestructiveDrainPhase
+                    .WorldRemovedAwaitingCheckpointGc
+                || !ProductionFacilityDestructiveDrainOperationId.TryParse(
+                    value.operationId, out _))
+            || orderedEntries.Select(value => value.operationId)
+                .Distinct(StringComparer.Ordinal).Count() != orderedEntries.Length)
+        {
+            return CheckpointGcResult(context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                "combat-equipment-terminal-checkpoint-gc-entry-invalid");
+        }
+
+        List<CombatEquipmentTerminalDrainSaveData> producerRows = new();
+        foreach (ProductionFacilityDestructiveDrainEntrySaveData entry in
+                 orderedEntries)
+        {
+            ProductionFacilityDestructiveDrainParticipantSaveData[] participants =
+                (entry.participants ?? new List<
+                    ProductionFacilityDestructiveDrainParticipantSaveData>())
+                .Where(value => value != null && string.Equals(
+                    value.participantId, ParticipantId, StringComparison.Ordinal))
+                .ToArray();
+            if (participants.Length != 1
+                || participants[0].contractVersion != ContractVersion
+                || participants[0].owners == null)
+            {
+                return CheckpointGcResult(context,
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .ParticipantTopologyMismatch,
+                    "combat-equipment-terminal-checkpoint-gc-owner-topology-invalid");
+            }
+            foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in
+                     participants[0].owners.OrderBy(
+                         value => value?.stepOperationId,
+                         StringComparer.Ordinal))
+            {
+                if (!TryCaptureCheckpointGcProducerRow(entry, owner,
+                        out CombatEquipmentTerminalDrainSaveData producerRow))
+                {
+                    return CheckpointGcResult(context,
+                        ProductionFacilityDestructiveDrainCheckpointGcStatus
+                            .Corruption,
+                        ProductionFacilityDestructiveDrainCheckpointGcReason
+                            .ParticipantPrepareFailed,
+                        "combat-equipment-terminal-checkpoint-gc-producer-row-invalid");
+                }
+                producerRows.Add(producerRow);
+            }
+        }
+        CombatEquipmentTerminalDrainSaveData[] orderedProducers = producerRows
+            .OrderBy(value => value.stepOperationId, StringComparer.Ordinal)
+            .ToArray();
+        if (orderedProducers.Select(value => value.stepOperationId)
+                .Distinct(StringComparer.Ordinal).Count()
+            != orderedProducers.Length)
+        {
+            return CheckpointGcResult(context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantTopologyMismatch,
+                "combat-equipment-terminal-checkpoint-gc-producer-duplicate");
+        }
+
+        List<ProductionInputDestinationCustodyDrainSaveData> childRows = new();
+        List<CombatEquipmentTerminalReceiptGcRow> sourceRows = new();
+        foreach (CombatEquipmentTerminalDrainSaveData row in orderedProducers)
+        {
+            if (HasChild(row))
+            {
+                if (!inputDrain.TryCapture(
+                        row.inputDestinationDrainStepOperationId,
+                        out ProductionInputDestinationCustodyDrainSaveData child)
+                    || !ExactChild(child, row)
+                    || child.phase != ProductionInputDestinationCustodyDrainPhase
+                        .BillAcknowledgedAwaitingCheckpointGc)
+                {
+                    return CheckpointGcResult(context,
+                        ProductionFacilityDestructiveDrainCheckpointGcStatus
+                            .Corruption,
+                        ProductionFacilityDestructiveDrainCheckpointGcReason
+                            .ParticipantPrepareFailed,
+                        "combat-equipment-terminal-checkpoint-gc-child-row-invalid");
+                }
+                childRows.Add(child);
+            }
+            sourceRows.Add(new CombatEquipmentTerminalReceiptGcRow(
+                CombatEquipmentTerminalFrozenSubject.FromSave(row.source),
+                row.wipLossReceiptFingerprint,
+                row.sourceRemovalReceiptFingerprint));
+        }
+
+        IProductionInputDestinationCustodyDrainCheckpointGcPort childPort = null;
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate childCandidate =
+            null;
+        if (childRows.Count > 0)
+        {
+            childPort = inputDrain as
+                IProductionInputDestinationCustodyDrainCheckpointGcPort;
+            string childFailure = string.Empty;
+            if (childPort == null
+                || !childPort.TryPrepareCheckpointGarbageCollection(
+                    childRows, out childCandidate, out childFailure))
+            {
+                return CheckpointGcResult(context,
+                    ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                    ProductionFacilityDestructiveDrainCheckpointGcReason
+                        .ParticipantPrepareFailed,
+                    "combat-equipment-terminal-checkpoint-gc-child-prepare-failed:"
+                    + childFailure);
+            }
+        }
+
+        if (!sourcePort.TryPrepareCheckpointGarbageCollection(
+                sourceRows,
+                out ICombatEquipmentTerminalSourceCheckpointGcCandidate
+                    sourceCandidate,
+                out string sourceFailure))
+        {
+            if (childCandidate != null)
+                childPort.CompleteCheckpointGarbageCollection(childCandidate);
+            return CheckpointGcResult(context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                "combat-equipment-terminal-checkpoint-gc-source-prepare-failed:"
+                + sourceFailure);
+        }
+        if (!producerPort.TryPrepareCheckpointGarbageCollection(
+                orderedProducers,
+                out ICombatEquipmentTerminalDrainCheckpointGcCandidate
+                    producerCandidate,
+                out string producerFailure))
+        {
+            sourcePort.CompleteCheckpointGarbageCollection(sourceCandidate);
+            if (childCandidate != null)
+                childPort.CompleteCheckpointGarbageCollection(childCandidate);
+            return CheckpointGcResult(context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                "combat-equipment-terminal-checkpoint-gc-producer-prepare-failed:"
+                + producerFailure);
+        }
+
+        string[] operationIds = orderedEntries.Select(value => value.operationId)
+            .ToArray();
+        CheckpointGcCandidate exact = new(
+            context,
+            Array.AsReadOnly(operationIds),
+            producerPort,
+            producerCandidate,
+            sourcePort,
+            sourceCandidate,
+            childPort,
+            childCandidate);
+        activeCheckpointGcCandidate = exact;
+        candidate = exact;
+        return CheckpointGcResult(context,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            operationIds.Length == 0
+                ? ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .NoEligibleOperation
+                : ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+            string.Empty,
+            operationIds.Length);
+    }
+
+    [GameplayInternalOnly(
+        "Publishes prepared combat checkpoint collection child-first without touching the upper journal.",
+        "Production facility destructive-drain checkpoint GC coordinator only")]
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        if (exact.Published)
+        {
+            return CheckpointGcResult(exact.Context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus
+                    .AlreadyApplied,
+                ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+                string.Empty,
+                exact.OperationIds.Count);
+        }
+
+        if (exact.ChildCandidate != null
+            && !exact.ChildPort.TryPublishCheckpointGarbageCollection(
+                exact.ChildCandidate, out string childFailure))
+        {
+            return CheckpointGcResult(exact.Context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPublishFailed,
+                "combat-equipment-terminal-checkpoint-gc-child-publish-failed:"
+                + childFailure);
+        }
+        CombatEquipmentTerminalEffectResult sourceResult = exact.SourcePort
+            .PublishCheckpointGarbageCollection(exact.SourceCandidate);
+        if (sourceResult.Status is CombatEquipmentTerminalEffectStatus.Conflict
+            or CombatEquipmentTerminalEffectStatus.Deferred)
+        {
+            return CheckpointGcResult(exact.Context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPublishFailed,
+                "combat-equipment-terminal-checkpoint-gc-source-publish-failed:"
+                + sourceResult.FailureReason);
+        }
+        CombatEquipmentTerminalDrainResult producerResult = exact.ProducerPort
+            .PublishCheckpointGarbageCollection(exact.ProducerCandidate);
+        if (producerResult.Status is CombatEquipmentTerminalDrainStatus.Conflict
+            or CombatEquipmentTerminalDrainStatus.Deferred)
+        {
+            return CheckpointGcResult(exact.Context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPublishFailed,
+                "combat-equipment-terminal-checkpoint-gc-producer-publish-failed:"
+                + producerResult.FailureReason);
+        }
+
+        exact.Published = true;
+        return CheckpointGcResult(exact.Context,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+            string.Empty,
+            exact.OperationIds.Count);
+    }
+
+    [GameplayInternalOnly(
+        "Restores only rows published by the exact combat checkpoint candidate in reverse order.",
+        "Production facility destructive-drain checkpoint GC coordinator only")]
+    public void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        exact.ProducerPort.RollbackCheckpointGarbageCollection(
+            exact.ProducerCandidate);
+        exact.SourcePort.RollbackCheckpointGarbageCollection(
+            exact.SourceCandidate);
+        if (exact.ChildCandidate != null)
+        {
+            exact.ChildPort.RollbackCheckpointGarbageCollection(
+                exact.ChildCandidate);
+        }
+        exact.Published = false;
+    }
+
+    [GameplayInternalOnly(
+        "Releases the exact combat checkpoint candidate after publish or rollback completes.",
+        "Production facility destructive-drain checkpoint GC coordinator only")]
+    public void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointGcCandidate exact = RequireCheckpointGcCandidate(candidate);
+        exact.ProducerPort.CompleteCheckpointGarbageCollection(
+            exact.ProducerCandidate);
+        exact.SourcePort.CompleteCheckpointGarbageCollection(
+            exact.SourceCandidate);
+        if (exact.ChildCandidate != null)
+        {
+            exact.ChildPort.CompleteCheckpointGarbageCollection(
+                exact.ChildCandidate);
+        }
+        exact.Completed = true;
+        activeCheckpointGcCandidate = null;
+    }
+
+    private bool TryCaptureCheckpointGcProducerRow(
+        ProductionFacilityDestructiveDrainEntrySaveData entry,
+        ProductionFacilityDestructiveDrainOwnerSaveData owner,
+        out CombatEquipmentTerminalDrainSaveData row)
+    {
+        row = null;
+        if (entry == null
+            || owner == null
+            || owner.disposition !=
+                ProductionFacilityDestructiveDrainDisposition.Terminalize
+            || owner.phase !=
+                ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged
+            || !string.IsNullOrEmpty(owner.targetDestinationId)
+            || !Terminal(owner.commitId, owner.receiptFingerprint)
+            || !producerQuery.TryCapture(owner.stepOperationId, out row)
+            || row == null
+            || row.phase != CombatEquipmentTerminalDrainPhase
+                .OwnerAcknowledgedAwaitingCheckpointGc
+            || !CombatEquipmentTerminalDrainCanonical.IsValidSave(row)
+            || !string.Equals(row.parentOperationId, entry.operationId,
+                StringComparison.Ordinal)
+            || !string.Equals(row.stepOperationId, owner.stepOperationId,
+                StringComparison.Ordinal)
+            || !string.Equals(row.source.ownerStableId, owner.ownerStableId,
+                StringComparison.Ordinal)
+            || !string.Equals(row.source.facilityId, entry.facilityId,
+                StringComparison.Ordinal)
+            || !string.Equals(row.requestFingerprint, owner.requestFingerprint,
+                StringComparison.Ordinal)
+            || !string.Equals(row.commitId, owner.commitId,
+                StringComparison.Ordinal)
+            || !string.Equals(row.receiptFingerprint,
+                owner.receiptFingerprint, StringComparison.Ordinal))
+        {
+            row = null;
+            return false;
+        }
+        return true;
+    }
+
+    private CheckpointGcCandidate RequireCheckpointGcCandidate(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointGcCandidate exact
+            || exact.Completed
+            || !ReferenceEquals(activeCheckpointGcCandidate, exact)
+            || !string.Equals(exact.ParticipantId, CheckpointGcParticipantId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Combat equipment terminal checkpoint GC candidate is invalid.");
+        }
+        return exact;
+    }
+
+    private static ProductionFacilityDestructiveDrainCheckpointGcResult
+        CheckpointGcResult(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus status,
+            ProductionFacilityDestructiveDrainCheckpointGcReason reason,
+            string message,
+            int collectedOperationCount = 0) => new(
+        status,
+        reason,
+        context.CheckpointSequence,
+        message,
+        collectedOperationCount);
 
     private CombatEquipmentTerminalDrainRequest CaptureRequest(
         ProductionFacilityDestructiveDrainOperationId operation,

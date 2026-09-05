@@ -25,7 +25,8 @@ public sealed class ProductionPanelOrderContext
         IResourceEconomyContentCatalog catalog,
         IProductionDependencyCatalog dependencies,
         IProductionBillWorkExecution workExecution,
-        ICharacterWorldQuery characterWorld)
+        ICharacterWorldQuery characterWorld,
+        IInGameNarrativeTextQuery narrativeText)
     {
         BillQuery = billQuery ?? throw new ArgumentNullException(nameof(billQuery));
         BillCommands = billCommands
@@ -37,6 +38,8 @@ public sealed class ProductionPanelOrderContext
             ?? throw new ArgumentNullException(nameof(workExecution));
         CharacterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
+        NarrativeText = narrativeText
+            ?? throw new ArgumentNullException(nameof(narrativeText));
     }
 
     public IProductionBillQuery BillQuery { get; }
@@ -45,6 +48,7 @@ public sealed class ProductionPanelOrderContext
     public IProductionDependencyCatalog Dependencies { get; }
     public IProductionBillWorkExecution WorkExecution { get; }
     public ICharacterWorldQuery CharacterWorld { get; }
+    public IInGameNarrativeTextQuery NarrativeText { get; }
 }
 
 public sealed class ProductionPanelFacilityContext
@@ -112,6 +116,7 @@ public sealed class ProductionBuildingPanelPresenter :
     private readonly IFluidWastewaterTransaction wastewater;
     private readonly IEnvironmentalFieldQuery environment;
     private readonly IDomainFailureLocalizer failureLocalizer;
+    private readonly IInGameNarrativeTextQuery narrativeText;
     private readonly ProductionRoutePanelPresenter routePanel;
     private readonly Dictionary<string, string> feedbackByFacility =
         new Dictionary<string, string>(StringComparer.Ordinal);
@@ -133,6 +138,7 @@ public sealed class ProductionBuildingPanelPresenter :
         dependencies = orders.Dependencies;
         workExecution = orders.WorkExecution;
         characterWorld = orders.CharacterWorld;
+        narrativeText = orders.NarrativeText;
         workshops = facility.Workshops;
         research = facility.Research;
         power = facility.Power;
@@ -395,12 +401,13 @@ public sealed class ProductionBuildingPanelPresenter :
             GameObject recipeRow = ProductionBuildingViewFactory.CreateRow(
                 parent,
                 $"ProductionRecipe_{index}",
-                82f);
+                118f);
             created.Add(recipeRow);
 
             ProductionBuildingViewFactory.AddRecipeText(
                 recipeRow.transform,
                 $"{recipe.DisplayName}\n"
+                + $"{narrativeText.GetRequired(InGameNarrativeTextKind.ProductionRecipe, recipe.RecipeId)}\n"
                 + $"{FormatInputs(recipe)} → {FormatOutputs(recipe)}"
                 + $" · 작업 {recipe.RequiredWork:0.#}",
                 font);

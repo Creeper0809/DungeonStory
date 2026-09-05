@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "폐수 처리에서 남은 침전물. 퇴비, 저급 연료, 독성 연금 재료로 가공할 수 있다. 므네실라는 오수 슬러지의 금속, 독성과 유기물을 나눠 공동 정원으로 돌려보낼 몫만 따로 숙성한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "industrial-sludge",
+  "spoiler_tier": "none",
+  "summary": "폐수 처리에서 남은 침전물. 퇴비, 저급 연료, 독성 연금 재료로 가공할 수 있다.",
+  "title": "오수 슬러지"
+}

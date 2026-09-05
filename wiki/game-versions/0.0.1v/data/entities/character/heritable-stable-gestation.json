@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Reproduction"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "heritable-stable-gestation",
+  "spoiler_tier": "none",
+  "summary": "생식 과정의 건강·영양 저하에 대한 실패 위험이 줄어든다.",
+  "title": "안정 임신"
+}

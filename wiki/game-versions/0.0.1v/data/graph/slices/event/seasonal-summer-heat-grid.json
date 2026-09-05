@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "seasonal-summer-heat-grid",
+    "spoiler_tier": "warning",
+    "title": "폭염 전력부하"
+  },
+  "edges": [],
+  "schema_version": 1
+}

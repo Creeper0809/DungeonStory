@@ -59,7 +59,7 @@ MonoBehaviour:
   - itemId: resource:twilight-grain
     amount: 1
   outputs:
-  - outputLineId: output:main
+  - outputLineId: output:recipe:dog-food/000/main/feed:dog-food
     role: 0
     itemId: feed:dog-food
     amount: 2

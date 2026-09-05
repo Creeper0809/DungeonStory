@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "tool-inspection-gauge",
+    "spoiler_tier": "none",
+    "title": "검사 게이지"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-inspection-gauge",
+      "label": "생산·해금",
+      "to": "item/tool-inspection-gauge",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

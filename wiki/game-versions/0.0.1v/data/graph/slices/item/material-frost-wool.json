@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-frost-wool",
+    "spoiler_tier": "none",
+    "title": "서리 양모직"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-v22-weave-frost-wool",
+      "label": "생산·해금",
+      "to": "item/material-frost-wool",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

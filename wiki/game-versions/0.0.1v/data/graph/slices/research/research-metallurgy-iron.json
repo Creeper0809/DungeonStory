@@ -1,0 +1,255 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-metallurgy-iron",
+    "spoiler_tier": "none",
+    "title": "철제 가공"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-iron",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-iron",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-iron",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-primitive",
+      "target_spoiler_tier": "none",
+      "target_title": "원시 단조",
+      "to": "research/research-metallurgy-primitive",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-iron",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1079",
+      "target_spoiler_tier": "none",
+      "target_title": "용광로",
+      "to": "facility/building-1079",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-iron",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1620",
+      "target_spoiler_tier": "none",
+      "target_title": "도가니 선반",
+      "to": "facility/building-1620",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-iron",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-mace",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-weapon-warhammer",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-arrow-iron",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bolt-iron",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-iron-ingot",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-iron-slag-block",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-lead-ingot",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-defense-corridor-mechanisms",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mail-weaving",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mechanical-projectiles",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mechanical-projectiles",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-mechanical-projectiles",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-steam-power",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-prosthetics",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-steel",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-steel",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-steel",
+      "label": "선행 연구",
+      "to": "research/research-metallurgy-iron",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "world/material-iron-ingot",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-iron",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

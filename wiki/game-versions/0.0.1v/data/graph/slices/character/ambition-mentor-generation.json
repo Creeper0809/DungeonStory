@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "ambition-mentor-generation",
+    "spoiler_tier": "none",
+    "title": "다음 세대의 스승"
+  },
+  "edges": [],
+  "schema_version": 1
+}

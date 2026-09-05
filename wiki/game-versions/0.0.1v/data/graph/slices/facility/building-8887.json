@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8887",
+    "spoiler_tier": "none",
+    "title": "추모실"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-society-corpse-care",
+      "label": "시설 해금",
+      "to": "facility/building-8887",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

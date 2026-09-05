@@ -936,11 +936,11 @@ public static class RuntimeAuthorityV18Validator
             .ToArray();
         int rollbackFree = saveSectionTypes.Count(type =>
             typeof(IDungeonRollbackFreeSaveSection).IsAssignableFrom(type));
-        if (saveSectionTypes.Length != 68
+        if (saveSectionTypes.Length != 74
             || rollbackFree != saveSectionTypes.Length)
         {
             errors.Add(
-                $"V21 save ratchet expected all 68 sections to be rollback-free; found {rollbackFree} rollback-free / {saveSectionTypes.Length - rollbackFree} remaining across {saveSectionTypes.Length}.");
+                $"V21 save ratchet expected all 74 sections to be rollback-free; found {rollbackFree} rollback-free / {saveSectionTypes.Length - rollbackFree} remaining across {saveSectionTypes.Length}.");
         }
 
         HashSet<Type> expectedRemaining = new();
@@ -977,7 +977,7 @@ public static class RuntimeAuthorityV18Validator
                 + string.Join("\n", errors));
         }
 
-        return "V21 SAVE BOUNDARY PASS: all 68 sections are rollback-free with strict staged/detached restore boundaries.";
+        return "V21 SAVE BOUNDARY PASS: all 74 sections are rollback-free with strict staged/detached restore boundaries.";
     }
 
     public static string ValidateOrThrow()
@@ -998,10 +998,10 @@ public static class RuntimeAuthorityV18Validator
                 && type.IsPublic
                 && IsGameplayRuntimeAssembly(type.Assembly))
             .ToArray();
-        if (saveSectionTypes.Length != 68)
+        if (saveSectionTypes.Length != 74)
         {
             errors.Add(
-                $"Production save-section count must remain 68, found {saveSectionTypes.Length}.");
+                $"Production save-section count must remain 74, found {saveSectionTypes.Length}.");
         }
         int rollbackFreeSaveSectionCount = saveSectionTypes.Count(type =>
             typeof(IDungeonRollbackFreeSaveSection).IsAssignableFrom(type));
@@ -2744,6 +2744,8 @@ public static class RuntimeAuthorityV18Validator
             "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs";
         const string cropPlotRuntimePath =
             "Assets/Scripts/Services/Economy/CropPlotRuntime.cs";
+        const string cropEcologyDomainPath =
+            "Assets/Scripts/Models/Economy/Content/CropEcologyDomain.cs";
         const string certifiedSeedRuntimePath =
             "Assets/Scripts/Services/Economy/CertifiedSeedRuntime.cs";
         ForbidSourceContract(
@@ -2769,8 +2771,13 @@ public static class RuntimeAuthorityV18Validator
         RequireSourceContract(
             errors,
             "Assets/Scripts/Models/Economy/Core/CropPlotModels.cs",
-            "public const int CurrentVersion = 7;",
-            "Crop-plot current-format saves must persist sow and treatment transaction ownership.");
+            "public const int CurrentVersion = 8;",
+            "Crop-plot current-format saves must persist sow, treatment, and frozen harvest-output ownership.");
+        RequireSourceContract(
+            errors,
+            cropEcologyDomainPath,
+            "public const int CurrentVersion = 3;",
+            "Crop-ecology current-format saves must persist the immutable pre-harvest transition owner.");
         RequireSourceContract(
             errors,
             "Assets/Scripts/Models/Economy/Core/CropPlotModels.cs",
@@ -2781,6 +2788,61 @@ public static class RuntimeAuthorityV18Validator
             cropPlotRuntimePath,
             "TryAcknowledgeDestroyedPlotLoss(",
             "Destroyed crop plots must terminate committed sow WIP explicitly.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "outputPublication.EnsureCommitted(",
+            "Crop harvest output must reserve and publish its whole frozen vector through the common gram boundary.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "outputPublication.TryAcknowledge(",
+            "Crop harvest output must acknowledge its retained FacilityBuffer batch explicitly.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            ".PrepareHarvest(",
+            "Crop harvest ecology must freeze one deterministic prepared receipt before output publication.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            ".CommitPreparedHarvest(",
+            "Crop harvest ecology must commit the frozen prepared receipt without rerolling.");
+        RequireSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "AcknowledgePreparedHarvest(",
+            "Crop harvest ecology must acknowledge the committed prepared receipt exactly once.");
+        ForbidSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "items.SpawnOutput(",
+            "Crop harvest must not bypass whole-batch FacilityBuffer publication.");
+        ForbidSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "items.SpawnBufferedOutput(",
+            "Crop harvest must not use the legacy direct buffered spawn path.");
+        ForbidSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "seedLots.SpawnSeedLot(",
+            "Crop harvest returned seed must be the second line of the same atomic output batch.");
+        ForbidSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "seedLots.CanSpawnSeedLot(",
+            "Crop harvest capacity must be decided by the common whole-batch gram admission.");
+        ForbidSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "items.CanAcceptOutput(",
+            "Crop harvest capacity must not use a count/Loose preflight.");
+        ForbidSourceContract(
+            errors,
+            cropPlotRuntimePath,
+            "ecology.Harvest(",
+            "Crop harvest must not reroll ecology outside its prepared receipt.");
         RequireSourceContract(
             errors,
             cropPlotRuntimePath,
@@ -2804,8 +2866,18 @@ public static class RuntimeAuthorityV18Validator
         RequireSourceContract(
             errors,
             certifiedSeedRuntimePath,
+            "IProductionDomainOutputPublicationService",
+            "Certified-seed output must use the common gram publication boundary.");
+        RequireSourceContract(
+            errors,
+            certifiedSeedRuntimePath,
+            "outputPublication.EnsureCommitted(",
+            "Certified-seed output must reserve, publish, and commit exact grams.");
+        ForbidSourceContract(
+            errors,
+            certifiedSeedRuntimePath,
             "TryEnsureSeedLotOutput(",
-            "Certified-seed output must be published exact-once.");
+            "Certified-seed output must not retain its direct physical spawn bypass.");
         RequireSourceContract(
             errors,
             "Assets/Scripts/Services/Economy/CropPhysicalRestoreGuard.cs",
@@ -2887,8 +2959,8 @@ public static class RuntimeAuthorityV18Validator
         RequireSourceContract(
             errors,
             productionBillModelsPath,
-            "public const int CurrentVersion = 17;",
-            "Production V16 must persist prepared output, installed sensor mass, and removal output ownership.");
+            "public const int CurrentVersion = 18;",
+            "Production V18 must persist prepared output capability provenance, installed sensor mass, and removal output ownership.");
         RequireSourceContract(
             errors,
             productionStockSensorPath,
@@ -4665,8 +4737,8 @@ public static class RuntimeAuthorityV18Validator
         RequireSourceContract(
             errors,
             workOrderContractsPath,
-            "public const int CurrentVersion = 6;",
-            "Work-order material custody requires current-format V6 persistence.");
+            "public const int CurrentVersion = 7;",
+            "Work-order destructive-drain completion and material custody require current-format V7 persistence.");
         const string workAmountFixturePath =
             "Assets/Scripts/Services/Character/Work/Editor/WorkAmountDebugScenarios.cs";
         RequireSourceContract(
@@ -6897,10 +6969,10 @@ public static class RuntimeAuthorityV18Validator
     {
         int physicalSaveVersion = Convert.ToInt32(
             DungeonPhysicalItemSaveData.CurrentVersion);
-        if (physicalSaveVersion != 8)
+        if (physicalSaveVersion != 18)
         {
             errors.Add(
-                $"Physical item save must be V8, found V{physicalSaveVersion}.");
+                $"Physical item save must be V18, found V{physicalSaveVersion}.");
         }
         if (typeof(DungeonCombatEquipmentSaveData).GetField("instances") != null
             || typeof(DungeonCombatEquipmentSaveData).GetField("moduleInstances") != null)

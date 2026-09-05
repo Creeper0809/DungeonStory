@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-trail-charm",
+    "spoiler_tier": "none",
+    "title": "길잡이 부적"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-trail-charm",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-trail-charm",
+      "target_spoiler_tier": "none",
+      "target_title": "길잡이 부적",
+      "to": "item/resource-trail-charm",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-trail-charm",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-fang",
+      "target_spoiler_tier": "none",
+      "target_title": "송곳니",
+      "to": "item/resource-fang",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-trail-charm",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-rune-dust",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 가루",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-trail-charm",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-capture",
+      "target_spoiler_tier": "none",
+      "target_title": "야생 포획",
+      "to": "research/research-husbandry-capture",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

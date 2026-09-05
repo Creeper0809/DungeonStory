@@ -20,7 +20,11 @@ public sealed class CharacterNarrativeSaveSection :
         CharacterCareerSaveSection.Id
     };
     protected override void ValidateRawPayload(string payloadJson) =>
-        RequireTopLevelArrayFields(payloadJson, "characters", "identityStates");
+        RequireTopLevelArrayFields(
+            payloadJson,
+            "characters",
+            "identityStates",
+            "workCompletionDeliveries");
     protected override CharacterNarrativeWorldSaveData CapturePayload() => persistence.Capture();
     protected override CharacterNarrativeAggregateState BuildRestoreCandidate(CharacterNarrativeWorldSaveData payload) => persistence.PrepareRestore(payload);
     protected override void PublishRestoreCandidate(CharacterNarrativeAggregateState candidate) => persistence.PublishRestore(candidate);

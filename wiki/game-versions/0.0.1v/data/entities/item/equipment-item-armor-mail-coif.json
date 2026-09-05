@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.6kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "212"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "작은 금속 고리를 이어 머리와 목 둘레에 늘어뜨린 사슬 두건이다. 제4주조도시의 골렘은 사슬 두건을 수리할 때 겉판보다 안쪽 기억판을 먼저 떼어 낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-mail-coif",
+  "spoiler_tier": "none",
+  "summary": "사슬 두건 전투 장비",
+  "title": "사슬 두건"
+}

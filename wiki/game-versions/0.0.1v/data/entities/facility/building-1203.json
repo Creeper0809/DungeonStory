@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "특수"
+    },
+    {
+      "label": "크기",
+      "value": "1×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1203",
+  "spoiler_tier": "none",
+  "summary": "시설 동작은 BuildingBeastPenAbility, BuildingEconomyAbility, BuildingFacilityAbility, BuildingFacilityPartAbility, BuildingRoomRequirementAbility 모듈로 구성된다. 건설에는 작업량 373, 재료 목재×8이 필요하다.",
+  "title": "야수 우리"
+}

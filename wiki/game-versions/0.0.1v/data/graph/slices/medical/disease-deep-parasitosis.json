@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "disease-deep-parasitosis",
+    "spoiler_tier": "none",
+    "title": "심층 기생충증"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "nature/deep-goat",
+      "label": "관련",
+      "to": "medical/disease-deep-parasitosis",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "nature/tunnel-mole",
+      "label": "관련",
+      "to": "medical/disease-deep-parasitosis",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

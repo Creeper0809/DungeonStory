@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,8 +25,27 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         RunAll(logSuccess: true);
     }
 
+    public static void RunBatchModeAndExit()
+    {
+        int exitCode = 1;
+        try
+        {
+            UnityEditor.SceneManagement.EditorSceneManager.OpenScene(
+                "Assets/Scenes/GameplayScene.unity",
+                UnityEditor.SceneManagement.OpenSceneMode.Single);
+            exitCode = RunAll(logSuccess: true) ? 0 : 1;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+        }
+        EditorApplication.Exit(exitCode);
+    }
+
     public static bool RunAll(bool logSuccess)
     {
+        using EditorVerificationSceneFixtureScope fixtureScene = new(
+            "qa:haul-plan-construction-safety");
         Directory.CreateDirectory("Temp");
         List<string> lines = new List<string> { "case\tresult\tdetails" };
         List<string> errors = new List<string>();
@@ -36,6 +56,18 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             lines,
             errors);
         Run("priority_haul_seed_beats_value", VerifyPriorityHaulSeedBeatsValue, lines, errors);
+        Run("availability_requires_reachable_warehouse",
+            VerifyAvailabilityRequiresReachableWarehouse,
+            lines,
+            errors);
+        Run("seed_lot_reachable_fallback_delivery",
+            VerifySeedLotReachableFallbackDelivery,
+            lines,
+            errors);
+        Run("committed_delivery_beats_generic_priority",
+            VerifyCommittedDeliveryBeatsGenericPriority,
+            lines,
+            errors);
         Run("partial_heavy_stack_reservation", VerifyPartialHeavyStackReservation, lines, errors);
         Run("survival_stock_transit_reserve", VerifySurvivalStockTransitReserve, lines, errors);
         Run("raw_food_harvest_is_haulable", VerifyRawFoodHarvestIsHaulable, lines, errors);
@@ -61,9 +93,213 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         return true;
     }
 
+    internal static string RunMultiStackHaulFocused() =>
+        VerifyMultiStackHaulPlan();
+
+    internal static string RunPartialPickupFocused() =>
+        VerifyPartialHeavyStackReservation();
+
+    internal static IEnumerator RunWholePickupAndMidHaulRestoreFocused(
+        ICollection<string> evidence)
+    {
+        if (!Application.isPlaying)
+            throw new InvalidOperationException(
+                "Whole-pickup and mid-haul restore evidence requires PlayMode.");
+        if (evidence == null)
+            throw new ArgumentNullException(nameof(evidence));
+
+        ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
+        float previousTimeScale = Time.timeScale;
+        try
+        {
+            // This focused PlayMode route exercises production movement rather
+            // than teleporting the restored cargo to its destination.  A bare
+            // CharacterActor has only the defensive 0.1 movement fallback, so
+            // initialize the normal authored runtime profile while keeping the
+            // autonomous brain paused; AbilityHaul remains the sole action
+            // owner for this fixture.
+            scenario.Actor.Initialization(
+                CharacterAiEditorTestDependencies
+                    .RequireAuthoredCharacterDefinition("Slime"));
+            scenario.Actor.SetAiPaused(true);
+            Require(scenario.Actor.GetMoveSpeed() > 0.1f,
+                "Whole-pickup restore fixture has no authored movement speed.");
+            Time.timeScale = 8f;
+
+            const int sourceQuantity = 4;
+            Require(scenario.Items.SpawnItemAt(
+                    LumberItemId,
+                    sourceQuantity,
+                    new Vector2Int(2, 1),
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int spawned)
+                && spawned == sourceQuantity,
+                "Whole-pickup restore fixture could not spawn its source lot.");
+            long massBefore = ExactItemMassGrams(scenario, LumberItemId);
+            Require(scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out WorldItemHaulPlan plan,
+                    out string planFailure),
+                "Whole-pickup restore fixture could not reserve a live plan: "
+                + planFailure);
+            Require(plan.ReservedStackQuantities.Count == 1
+                    && plan.ReservedStackQuantities[0].Quantity
+                        == sourceQuantity,
+                "Whole-pickup restore fixture did not reserve the whole source lot.");
+            WorldItemReservedStackQuantity reservation =
+                plan.ReservedStackQuantities[0];
+            string operationId = reservation.OwnerOperationId;
+            Require(scenario.Items.TryPickupReservedStackQuantity(
+                    scenario.Actor,
+                    scenario.Carry,
+                    reservation,
+                    out int picked,
+                    out string pickupFailure)
+                && picked == sourceQuantity,
+                "Whole-pickup restore fixture pickup failed: " + pickupFailure);
+            Require(scenario.Items.TryCommitHaulPickup(
+                    operationId,
+                    scenario.Carry,
+                    out string commitFailure),
+                "Whole-pickup restore fixture could not commit pickup: "
+                + commitFailure);
+
+            AbilityHaul haul = scenario.Actor.GetComponent<AbilityHaul>();
+            Require(haul != null,
+                "Whole-pickup restore fixture has no AbilityHaul.");
+            Require(haul.TryBindCapacityRoutingEditorFixture(
+                    scenario.Items,
+                    plan,
+                    new[] { reservation.LeaseId },
+                    out string bindFailure),
+                "Whole-pickup restore fixture could not bind AbilityHaul: "
+                + bindFailure);
+            HaulDeliveryIntentSaveData intent =
+                haul.CaptureDeliveryIntentForSave();
+            Require(intent?.HasCommittedPickup == true
+                    && string.Equals(
+                        intent.operationId,
+                        operationId,
+                        StringComparison.Ordinal),
+                "Whole-pickup restore fixture lost its committed intent.");
+            DungeonPhysicalItemSaveData physicalBefore =
+                scenario.Items.Capture();
+            CharacterCarryInventorySaveData carryBefore =
+                scenario.Carry.Capture();
+            string carriedStackId = scenario.Carry.Items.Single().carriedStackId;
+            long carriedMassBefore = scenario.Items.GetAllStacks()
+                .Where(value => string.Equals(
+                    value.StackId,
+                    carriedStackId,
+                    StringComparison.Ordinal))
+                .Sum(value => ExactStackMassGrams(scenario, value));
+            Require(carriedMassBefore == massBefore,
+                "Whole pickup changed exact gram custody before restore.");
+
+            haul.ClearRestoredDeliveryIntentBinding();
+            scenario.Items.Restore(physicalBefore);
+            scenario.Carry.Restore(carryBefore);
+            Require(scenario.QuantityReservations.TryGetLeasesByOwner(
+                    operationId,
+                    out IReadOnlyList<ItemQuantityLease> restoredLeases)
+                    && restoredLeases.Count == 1,
+                "Current-format restore lost the exact quantity lease.");
+            Require(haul.TryRebindRestoredDeliveryIntent(
+                    intent,
+                    restoredLeases,
+                    scenario.DestinationClaims,
+                    out string restoreFailure),
+                "Current-format mid-haul intent rebind failed: "
+                + restoreFailure);
+            Require(haul.CanStartHauling(out string canStartFailure)
+                    && haul.CaptureActiveHaulOperationIds().SequenceEqual(
+                        new[] { operationId },
+                        StringComparer.Ordinal)
+                    && scenario.Carry.Items.Sum(value => value.quantity)
+                        == sourceQuantity
+                    && ExactItemMassGrams(scenario, LumberItemId)
+                        == massBefore,
+                "Restored mid-haul authority was not resumable or exact: "
+                + canStartFailure);
+            evidence.Add(
+                "ABILITY_HAUL_MID_HAUL_CURRENT_FORMAT_RESTORE_EXACT=PASS");
+            evidence.Add(
+                "ABILITY_HAUL_MID_HAUL_RESUME_AUTHORITY_JOINED=PASS");
+
+            haul.StartHauling();
+            int remainingFrames = 1200;
+            while (remainingFrames-- > 0
+                && (scenario.Carry.HasItems
+                    || scenario.Items.TryCaptureHaulDeliveryIntent(
+                        operationId,
+                        out _)))
+            {
+                yield return null;
+            }
+
+            bool intentRemains = scenario.Items.TryCaptureHaulDeliveryIntent(
+                operationId,
+                out _);
+            bool leasesRemain = scenario.QuantityReservations
+                .TryGetLeasesByOwner(
+                    operationId,
+                    out IReadOnlyList<ItemQuantityLease> remainingLeases);
+            AbilityMove movement = scenario.Actor.GetComponent<AbilityMove>();
+            Require(!scenario.Carry.HasItems
+                    && !intentRemains
+                    && (!leasesRemain || remainingLeases.Count == 0),
+                "Resumed whole pickup retained carry, intent, or lease authority: "
+                + $"framesLeft={remainingFrames};carry={scenario.Carry.Items.Sum(value => value.quantity)};"
+                + $"intent={intentRemains};leases={(leasesRemain ? remainingLeases.Count : 0)};"
+                + $"actor={scenario.Actor.GetNowXY()};delivery=({intent.deliveryGridX},{intent.deliveryGridY});"
+                + $"drop=({intent.dropGridX},{intent.dropGridY});hauling={haul.IsHauling};"
+                + $"stage={haul.CurrentExecutionStage};unload={haul.CurrentUnloadReason};"
+                + $"failure={haul.LastFailureReason};terminal={haul.LastTerminalDiagnostics};"
+                + $"heartbeat={haul.RoutineHeartbeat};moveFailure={movement?.LastGridMoveFailureReason};"
+                + $"moveActive={movement?.HasActiveMovementRoutineForDiagnostics};"
+                + $"moveSpeed={scenario.Actor.GetMoveSpeed():0.###};"
+                + $"timeScale={Time.timeScale:0.###};deltaTime={Time.deltaTime:0.######}.");
+            Require(scenario.Items.GetAllStacks().Any(value =>
+                        string.Equals(
+                            value.ItemId,
+                            LumberItemId,
+                            StringComparison.Ordinal)
+                        && value.State == WorldItemStackState.Stored
+                        && value.Quantity == sourceQuantity)
+                    && ExactItemMassGrams(scenario, LumberItemId)
+                        == massBefore,
+                "Resumed whole pickup did not reach exact stored custody.");
+
+            DungeonPhysicalItemSaveData storedSnapshot =
+                scenario.Items.Capture();
+            scenario.Items.Restore(storedSnapshot);
+            Require(scenario.Items.GetAllStacks().Any(value =>
+                        string.Equals(
+                            value.ItemId,
+                            LumberItemId,
+                            StringComparison.Ordinal)
+                        && value.State == WorldItemStackState.Stored
+                        && value.Quantity == sourceQuantity)
+                    && ExactItemMassGrams(scenario, LumberItemId)
+                        == massBefore,
+                "Stored whole-pickup receipt did not round-trip current format.");
+            evidence.Add("ABILITY_HAUL_WHOLE_PICKUP_DELIVERY_EXACT=PASS");
+            evidence.Add(
+                "ABILITY_HAUL_WHOLE_PICKUP_CURRENT_FORMAT_RESTORE_EXACT=PASS");
+        }
+        finally
+        {
+            Time.timeScale = previousTimeScale;
+            scenario.Dispose();
+        }
+    }
+
     [MenuItem("DungeonStory/Debug/Items/Run Equipment Haul Lease World-State Transition")]
     public static void RunEquipmentHaulLeaseWorldStateTransition()
     {
+        using EditorVerificationSceneFixtureScope fixtureScene = new(
+            "qa:equipment-haul-lease-world-state-transition");
         const string focusedReportPath =
             "Temp/equipment-haul-lease-world-state-transition.tsv";
         Directory.CreateDirectory("Temp");
@@ -112,6 +348,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 && third == 5,
                 "third stack spawn failed");
 
+            long massBefore = ExactItemMassGrams(scenario, stockId);
+
             Require(scenario.Items.TryReserveBestHaulPlan(
                     scenario.Actor,
                     out WorldItemHaulPlan plan,
@@ -148,7 +386,13 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             Require(scenario.Warehouse.Inventory.GetStock(StockCategory.General) >= picked,
                 "warehouse did not receive hauled stock");
 
-            return $"pickups={plan.PickupLegs.Count}; reserved={reserved}; deposited={picked}";
+            long massAfter = ExactItemMassGrams(scenario, stockId);
+            Require(massAfter == massBefore,
+                $"multi-stack haul changed physical mass: before={massBefore}; "
+                + $"after={massAfter}");
+
+            return $"pickups={plan.PickupLegs.Count}; reserved={reserved}; "
+                + $"deposited={picked}; massGrams={massAfter}";
         }
         finally
         {
@@ -188,6 +432,17 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     stack.StackId,
                     stackId,
                     StringComparison.Ordinal));
+            PhysicalItemMassSubject looseMassSubject =
+                PhysicalItemMassSubjectAdapter.Create(
+                    scenario.MassQuery,
+                    (ItemDefinitionId)looseStack.ItemId,
+                    looseStack.ItemInstanceId,
+                    looseStack.Components);
+            float exactLooseMassKg = scenario.MassQuery
+                .GetStackUnitMass(
+                    (ItemDefinitionId)looseStack.ItemId,
+                    looseMassSubject)
+                .Value / 1000f;
             string looseSignature = ItemReservationSignature.Create(
                 looseStack.ItemId,
                 looseStack.Components);
@@ -218,6 +473,10 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 + $"actual='{reservation.DestinationId}'; expected='"
                 + WarehouseStorageIdentity.RequireDestinationId(scenario.Warehouse)
                 + "'");
+            Require(
+                Mathf.Abs(plan.TotalWeight - exactLooseMassKg) < 0.0001f,
+                $"haul planner used definition mass instead of the exact stack subject: "
+                + $"planned={plan.TotalWeight}; exact={exactLooseMassKg}");
             Require(scenario.QuantityReservations.TryGetLeasesByOwner(
                     operationId,
                     out IReadOnlyList<ItemQuantityLease> plannedLeases)
@@ -391,6 +650,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 && spawned == 10,
                 "heavy stack spawn failed");
 
+            long massBefore = ExactItemMassGrams(scenario, stockId);
+
             Require(scenario.Items.TryReserveBestHaulPlan(
                     scenario.Actor,
                     out WorldItemHaulPlan plan,
@@ -415,7 +676,31 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     && stack.AvailableQuantity == remaining),
                 "remaining stack was not released for another hauler");
 
-            return $"reserved={reserved}; remaining={remaining}; load={scenario.Carry.GetCurrentWeight(scenario.Items.CatalogProvider):0.##}";
+            long massAfter = ExactItemMassGrams(scenario, stockId);
+            Require(massAfter == massBefore,
+                $"partial pickup changed physical mass: before={massBefore}; "
+                + $"after={massAfter}");
+            long carriedMass = scenario.Items.GetAllStacks()
+                .Where(stack => string.Equals(
+                        stack.ItemId,
+                        stockId,
+                        StringComparison.Ordinal)
+                    && stack.State == WorldItemStackState.Carried)
+                .Sum(stack => ExactStackMassGrams(scenario, stack));
+            long sourceRemainderMass = scenario.Items.GetAllStacks()
+                .Where(stack => string.Equals(
+                        stack.ItemId,
+                        stockId,
+                        StringComparison.Ordinal)
+                    && stack.State == WorldItemStackState.Loose)
+                .Sum(stack => ExactStackMassGrams(scenario, stack));
+            Require(carriedMass > 0L
+                    && sourceRemainderMass > 0L
+                    && checked(carriedMass + sourceRemainderMass) == massAfter,
+                "partial pickup did not preserve exact carried/source mass custody");
+
+            return $"reserved={reserved}; remaining={remaining}; "
+                + $"carriedGrams={carriedMass}; sourceGrams={sourceRemainderMass}";
         }
         finally
         {
@@ -551,6 +836,530 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         }
     }
 
+    private static string VerifyAvailabilityRequiresReachableWarehouse()
+    {
+        ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
+        try
+        {
+            const int quantity = 4;
+            Vector2Int stackPosition = new Vector2Int(2, 1);
+            Require(scenario.Items.SpawnItemAt(
+                    LumberItemId,
+                    quantity,
+                    stackPosition,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int spawned)
+                && spawned == quantity,
+                "reachability stack spawn failed");
+
+            WorldItemStackSnapshot stack = scenario.Items
+                .GetStacksAt(stackPosition)
+                .Single(candidate => string.Equals(
+                    candidate.ItemId,
+                    LumberItemId,
+                    StringComparison.Ordinal));
+            Require(scenario.Items.PrioritizeHaul(stack.StackId),
+                "reachability stack priority failed");
+
+            ItemStackId stackId = new ItemStackId(stack.StackId);
+            int worldCountBefore = scenario.Items.GetAllStacks()
+                .Where(candidate => string.Equals(
+                    candidate.ItemId,
+                    LumberItemId,
+                    StringComparison.Ordinal))
+                .Sum(candidate => candidate.Quantity);
+            long worldMassBefore = ExactItemMassGrams(scenario, LumberItemId);
+            int availableBefore = scenario.QuantityReservations
+                .GetAvailableQuantity(stackId);
+            int leaseCountBefore = scenario.QuantityReservations
+                .GetLeasesForStack(stackId)
+                .Count;
+            int cargoCountBefore = scenario.Carry.Items
+                .Where(candidate => candidate != null)
+                .Sum(candidate => candidate.quantity);
+
+            Require(scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "connected warehouse should be available before the barrier");
+
+            const int barrierX = 6;
+            for (int y = 0; y < scenario.Grid.height; y++)
+            {
+                Require(scenario.Grid.SetAreaType(
+                        new Vector2Int(barrierX, y),
+                        GridCellAreaType.BlockedExterior),
+                    $"failed to close reachability barrier at y={y}");
+            }
+
+            Require(!scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "availability reported an unreachable warehouse");
+            Require(!scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out _,
+                    out string unreachableReason),
+                "planner reserved a haul plan for an unreachable warehouse");
+            Require(unreachableReason.Contains(
+                    "no reachable destination",
+                    StringComparison.Ordinal),
+                "unexpected unreachable failure: " + unreachableReason);
+
+            string exactWarehouseDestination =
+                WarehouseStorageIdentity.RequireDestinationId(
+                    scenario.Warehouse);
+            Require(scenario.Items.TryRequestStackDelivery(
+                    stack.StackId,
+                    quantity,
+                    scenario.Warehouse.centerPos,
+                    exactWarehouseDestination,
+                    out int exactRequested,
+                    out string exactRequestFailure)
+                && exactRequested == quantity,
+                "exact warehouse route request failed: "
+                    + exactRequestFailure);
+            Require(!scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "availability reported an unreachable explicit warehouse");
+            Require(!scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out _,
+                    out string explicitUnreachableReason),
+                "planner reserved an explicit unreachable warehouse route");
+            Require(explicitUnreachableReason.Contains(
+                    "explicit destination is unreachable",
+                    StringComparison.Ordinal),
+                "unexpected explicit unreachable failure: "
+                    + explicitUnreachableReason);
+
+            int worldCountAfterFailure = scenario.Items.GetAllStacks()
+                .Where(candidate => string.Equals(
+                    candidate.ItemId,
+                    LumberItemId,
+                    StringComparison.Ordinal))
+                .Sum(candidate => candidate.Quantity);
+            long worldMassAfterFailure = ExactItemMassGrams(
+                scenario,
+                LumberItemId);
+            Require(worldCountAfterFailure == worldCountBefore,
+                $"unreachable planning changed count: before={worldCountBefore}; "
+                + $"after={worldCountAfterFailure}");
+            Require(worldMassAfterFailure == worldMassBefore,
+                $"unreachable planning changed mass: before={worldMassBefore}; "
+                + $"after={worldMassAfterFailure}");
+            Require(scenario.QuantityReservations.GetAvailableQuantity(stackId)
+                    == availableBefore,
+                "unreachable planning changed available quantity");
+            Require(scenario.QuantityReservations.GetLeasesForStack(stackId).Count
+                    == leaseCountBefore,
+                "unreachable planning created or removed a quantity lease");
+            Require(scenario.Carry.Items
+                    .Where(candidate => candidate != null)
+                    .Sum(candidate => candidate.quantity)
+                    == cargoCountBefore
+                && !scenario.Carry.HasItems,
+                "unreachable planning changed carried cargo");
+
+            for (int y = 0; y < scenario.Grid.height; y++)
+            {
+                Require(scenario.Grid.SetAreaType(
+                        new Vector2Int(barrierX, y),
+                        GridCellAreaType.ExteriorPath),
+                    $"failed to reopen reachability barrier at y={y}");
+            }
+
+            Require(scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "availability did not recover after reopening the barrier");
+            Require(ExactItemMassGrams(scenario, LumberItemId) == worldMassBefore
+                && scenario.QuantityReservations.GetLeasesForStack(stackId).Count
+                    == leaseCountBefore
+                && !scenario.Carry.HasItems,
+                "availability recovery mutated mass, leases, or cargo");
+
+            return "HAUL_AVAILABILITY_REACHABLE_DESTINATION_PARITY_PASS;"
+                + $" count={worldCountBefore}; massGrams={worldMassBefore};"
+                + $" leases={leaseCountBefore}; cargo={cargoCountBefore};"
+                + $" genericFailure={unreachableReason};"
+                + $" explicitFailure={explicitUnreachableReason}";
+        }
+        finally
+        {
+            scenario.Dispose();
+        }
+    }
+
+    private static string VerifySeedLotReachableFallbackDelivery()
+    {
+        const string cropId = "crop:qa-haul-seed-fallback";
+        const string destinationId = "qa:seed-fallback-destination";
+        const string ownerDomain = "qa.seed-fallback";
+        Vector2Int highPosition = new(8, 1);
+        Vector2Int lowPosition = new(2, 1);
+        Vector2Int destinationPosition = new(4, 1);
+        ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
+        FacilityBufferDestinationClaim claim = null;
+        try
+        {
+            claim = new FacilityBufferDestinationClaim(
+                destinationId,
+                destinationPosition,
+                ownerDomain,
+                "qa:seed-fallback-operation",
+                ownerFacilityId: null,
+                FacilityBufferDestinationAnchorKind.ReservedTarget);
+            Require(scenario.DestinationClaims.TryClaim(
+                    claim,
+                    out FacilityBufferDestinationClaimFailureCode claimFailure,
+                    out string claimReason),
+                $"seed fallback destination claim failed: {claimFailure}:{claimReason}");
+
+            Require(scenario.Transfers.TrySpawnItemWithComponents(
+                    LumberItemId,
+                    1,
+                    highPosition,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    new[]
+                    {
+                        SeedLotItemStateCodec.Encode(new SeedLotState
+                        {
+                            cropId = cropId,
+                            cultivarGenomeId = "genome:qa:high",
+                            generation = 4,
+                            pathogenLoad = 1f
+                        })
+                    },
+                    out int highSpawned)
+                && highSpawned == 1,
+                "inaccessible high-quality seed spawn failed");
+            Require(scenario.Transfers.TrySpawnItemWithComponents(
+                    LumberItemId,
+                    1,
+                    lowPosition,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    new[]
+                    {
+                        SeedLotItemStateCodec.Encode(new SeedLotState
+                        {
+                            cropId = cropId,
+                            cultivarGenomeId = "genome:qa:low",
+                            generation = 1,
+                            pathogenLoad = 20f
+                        })
+                    },
+                    out int lowSpawned)
+                && lowSpawned == 1,
+                "reachable lower-quality seed spawn failed");
+
+            WorldItemStackSnapshot high = scenario.Items.GetStacksAt(highPosition)
+                .Single(value => string.Equals(
+                    value.ItemId,
+                    LumberItemId,
+                    StringComparison.Ordinal));
+            WorldItemStackSnapshot low = scenario.Items.GetStacksAt(lowPosition)
+                .Single(value => string.Equals(
+                    value.ItemId,
+                    LumberItemId,
+                    StringComparison.Ordinal));
+            string highSignature = high.StackSignature;
+            string lowSignature = low.StackSignature;
+            int totalCountBefore = scenario.Items.GetAllStacks()
+                .Where(value => string.Equals(
+                    value.ItemId,
+                    LumberItemId,
+                    StringComparison.Ordinal))
+                .Sum(value => value.Quantity);
+            long totalMassBefore = ExactItemMassGrams(scenario, LumberItemId);
+
+            const int barrierX = 6;
+            for (int y = 0; y < scenario.Grid.height; y++)
+            {
+                Require(scenario.Grid.SetAreaType(
+                        new Vector2Int(barrierX, y),
+                        GridCellAreaType.BlockedExterior),
+                    $"failed to close seed fallback barrier at y={y}");
+            }
+
+            WorldItemDeliveryReachabilityStatus highReachability = scenario.Reachability
+                .AssessExactStackDelivery(
+                    (ItemStackId)high.StackId,
+                    1,
+                    destinationPosition,
+                    destinationId,
+                    out string highReachabilityReason);
+            Require(highReachability == WorldItemDeliveryReachabilityStatus.Unreachable,
+                "high-quality seed was not classified unreachable: "
+                + highReachability + ":" + highReachabilityReason);
+            WorldItemDeliveryReachabilityStatus lowReachability = scenario.Reachability
+                .AssessExactStackDelivery(
+                    (ItemStackId)low.StackId,
+                    1,
+                    destinationPosition,
+                    destinationId,
+                    out string lowReachabilityReason);
+            Require(lowReachability == WorldItemDeliveryReachabilityStatus.Reachable,
+                "lower-quality seed was not classified reachable: "
+                + lowReachability + ":" + lowReachabilityReason);
+
+            PhysicalSeedLotGateway gateway = new(
+                scenario.Stock,
+                scenario.Transfers,
+                scenario.Items,
+                scenario.Reachability,
+                scenario.DestinationRelease);
+            Require(gateway.RequestBestSeedLot(
+                    LumberItemId,
+                    cropId,
+                    destinationPosition,
+                    destinationId,
+                    out int requested,
+                    out DomainFailure requestFailure)
+                && requested == 1
+                && !requestFailure.IsFailure,
+                "seed fallback request failed: " + requestFailure.Code);
+
+            WorldItemStackSnapshot highAfterRequest = scenario.Items.GetAllStacks()
+                .Single(value => string.Equals(
+                    value.StackId,
+                    high.StackId,
+                    StringComparison.Ordinal));
+            WorldItemStackSnapshot lowAfterRequest = scenario.Items.GetAllStacks()
+                .Single(value => string.Equals(
+                    value.StackId,
+                    low.StackId,
+                    StringComparison.Ordinal));
+            Require(highAfterRequest.Position == highPosition
+                    && highAfterRequest.Quantity == 1
+                    && highAfterRequest.State == WorldItemStackState.Loose
+                    && string.IsNullOrEmpty(highAfterRequest.DestinationId)
+                    && string.Equals(
+                        highAfterRequest.StackSignature,
+                        highSignature,
+                        StringComparison.Ordinal),
+                "inaccessible high-quality seed ownership or components changed");
+            Require(string.Equals(
+                    lowAfterRequest.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal)
+                && lowAfterRequest.DestinationPosition == destinationPosition,
+                "reachable seed was not retargeted to the exact destination");
+            Require(scenario.QuantityReservations
+                    .GetLeasesForStack((ItemStackId)high.StackId).Count == 0
+                && scenario.QuantityReservations
+                    .GetLeasesForStack((ItemStackId)low.StackId).Count == 0
+                && !scenario.Carry.HasItems,
+                "seed selector mutated leases or cargo before planning");
+
+            Require(scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out WorldItemHaulPlan plan,
+                    out string planFailure),
+                "reachable seed haul plan failed: " + planFailure);
+            Require(plan.ReservedStackQuantities.Count == 1
+                && plan.PrimaryDestination
+                    == WorldItemHaulDestinationKind.FacilityBuffer
+                && string.Equals(
+                    plan.ReservedStackQuantities[0].StackId,
+                    low.StackId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    plan.PrimaryDestinationId,
+                    destinationId,
+                    StringComparison.Ordinal),
+                "haul planner did not reserve the reachable exact seed route");
+            foreach (WorldItemReservedStackQuantity reservation in
+                     plan.ReservedStackQuantities)
+            {
+                Require(scenario.Items.TryPickupReservedStackQuantity(
+                        scenario.Actor,
+                        scenario.Carry,
+                        reservation,
+                        out int pickedUp,
+                        out string pickupFailure)
+                    && pickedUp == reservation.Quantity,
+                    "reachable seed pickup failed: " + pickupFailure);
+            }
+            string operationId = plan.ReservedStackQuantities[0].OwnerOperationId;
+            Require(!string.IsNullOrEmpty(operationId),
+                "reachable seed reservation had no operation authority");
+            Require(scenario.Items.TryCommitHaulPickup(
+                    operationId,
+                    scenario.Carry,
+                    out string commitFailure),
+                "reachable seed pickup commit failed: " + commitFailure);
+            Require(scenario.Items.TryDepositCarriedItemsToFacility(
+                    scenario.Actor,
+                    scenario.Carry,
+                    destinationPosition,
+                    destinationId,
+                    new[] { operationId },
+                    out string depositFailure),
+                "reachable seed deposit failed: " + depositFailure);
+            Require(scenario.QuantityReservations.ReleaseByOwner(
+                        operationId,
+                        ItemReservationReleaseReason.Completed) > 0,
+                "completed reachable seed delivery did not release its lease");
+            Require(scenario.Items.ReleaseHaulDeliveryIntent(operationId),
+                "completed reachable seed delivery did not release its intent");
+
+            WorldItemStackSnapshot delivered = scenario.Items.GetAllStacks()
+                .Single(value => value.State == WorldItemStackState.FacilityBuffer
+                    && value.Position == destinationPosition
+                    && string.Equals(
+                        value.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        value.ItemId,
+                        LumberItemId,
+                        StringComparison.Ordinal));
+            SeedLotState deliveredSeed = SeedLotItemStateCodec.Decode(
+                delivered.Components);
+            WorldItemStackSnapshot highAfterDelivery = scenario.Items.GetAllStacks()
+                .Single(value => string.Equals(
+                    value.StackId,
+                    high.StackId,
+                    StringComparison.Ordinal));
+            Require(delivered.State == WorldItemStackState.FacilityBuffer
+                    && delivered.Position == destinationPosition
+                    && string.Equals(
+                        delivered.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        delivered.StackSignature,
+                        lowSignature,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        deliveredSeed.cultivarGenomeId,
+                        "genome:qa:low",
+                        StringComparison.Ordinal)
+                    && deliveredSeed.generation == 1
+                    && Mathf.Approximately(deliveredSeed.pathogenLoad, 20f),
+                "reachable seed did not finish exact facility delivery");
+            Require(highAfterDelivery.Position == highPosition
+                    && highAfterDelivery.Quantity == 1
+                    && highAfterDelivery.State == WorldItemStackState.Loose
+                    && string.IsNullOrEmpty(highAfterDelivery.DestinationId)
+                    && string.Equals(
+                        highAfterDelivery.StackSignature,
+                        highSignature,
+                        StringComparison.Ordinal),
+                "high-quality inaccessible seed changed after fallback delivery");
+            Require(!scenario.Carry.HasItems
+                && scenario.Items.CaptureHaulDeliveryIntentsByDestination(
+                    destinationId).Count == 0
+                && (!scenario.QuantityReservations.TryGetLeasesByOwner(
+                        operationId,
+                        out IReadOnlyList<ItemQuantityLease> terminalLeases)
+                    || terminalLeases.Count == 0)
+                && scenario.Items.GetAllStacks()
+                    .Where(value => string.Equals(
+                        value.ItemId,
+                        LumberItemId,
+                        StringComparison.Ordinal))
+                    .Sum(value => value.Quantity) == totalCountBefore
+                && ExactItemMassGrams(scenario, LumberItemId) == totalMassBefore,
+                "fallback delivery leaked cargo, intent, quantity, or mass");
+            return "SEED_REACHABLE_FALLBACK_EXACT_DELIVERY_PASS;"
+                + $" high={high.StackId}; low={low.StackId};"
+                + $" count={totalCountBefore}; massGrams={totalMassBefore}";
+        }
+        finally
+        {
+            if (claim != null)
+            {
+                scenario.DestinationClaims.TryRevoke(
+                    claim,
+                    out _,
+                    out _);
+            }
+            scenario.Dispose();
+        }
+    }
+
+    private static string VerifyCommittedDeliveryBeatsGenericPriority()
+    {
+        ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
+        try
+        {
+            const string destinationId = "qa:committed-haul-destination";
+            const string ownerDomain = "qa.haul-priority";
+            Vector2Int regularPosition = new(2, 1);
+            Vector2Int committedPosition = new(4, 1);
+            Vector2Int destinationPosition = new(8, 1);
+            Require(scenario.DestinationClaims.TryClaim(
+                    new FacilityBufferDestinationClaim(
+                        destinationId,
+                        destinationPosition,
+                        ownerDomain,
+                        "qa:committed-haul-operation",
+                        ownerFacilityId: null,
+                        FacilityBufferDestinationAnchorKind.ReservedTarget),
+                    out FacilityBufferDestinationClaimFailureCode claimFailure,
+                    out string claimReason),
+                $"destination claim failed: {claimFailure}:{claimReason}");
+            Require(scenario.Items.SpawnItemAt(
+                    LumberItemId,
+                    20,
+                    regularPosition,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out _),
+                "generic priority stack spawn failed");
+            Require(scenario.Items.SpawnItemAt(
+                    LumberItemId,
+                    1,
+                    committedPosition,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out _),
+                "committed stack spawn failed");
+
+            WorldItemStackSnapshot regular = scenario.Items
+                .GetStacksAt(regularPosition)
+                .Single();
+            WorldItemStackSnapshot committed = scenario.Items
+                .GetStacksAt(committedPosition)
+                .Single();
+            Require(scenario.Items.PrioritizeHaul(regular.StackId),
+                "generic priority flag failed");
+            Require(scenario.Items.TryRequestStackDelivery(
+                    committed.StackId,
+                    1,
+                    destinationPosition,
+                    destinationId,
+                    out int requested,
+                    out string requestFailure)
+                && requested == 1,
+                "committed delivery request failed: " + requestFailure);
+            Require(scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out WorldItemHaulPlan plan,
+                    out string planFailure),
+                "committed delivery plan failed: " + planFailure);
+            WorldItemReservedStackQuantity seed =
+                plan.PickupLegs[0].Reservation;
+            Require(string.Equals(
+                        seed.StackId,
+                        committed.StackId,
+                        StringComparison.Ordinal)
+                    && seed.DestinationKind
+                        == WorldItemHaulDestinationKind.FacilityBuffer
+                    && string.Equals(
+                        seed.DestinationId,
+                        destinationId,
+                        StringComparison.Ordinal),
+                $"generic priority starved committed delivery: seed={seed.StackId}; "
+                + $"expected={committed.StackId}; destination={seed.DestinationId}");
+
+            return $"committedSeed={seed.StackId}; genericPriority={regular.StackId}; "
+                + $"destination={seed.DestinationId}";
+        }
+        finally
+        {
+            scenario.Dispose();
+        }
+    }
+
     private static string VerifyRawFoodHarvestIsHaulable()
     {
         ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
@@ -640,6 +1449,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
     private sealed class ScenarioRuntime : IDisposable
     {
         private readonly List<UnityEngine.Object> ownedObjects = new List<UnityEngine.Object>();
+        private readonly Grid previousWorldGrid;
 
         private ScenarioRuntime(
             Grid grid,
@@ -650,7 +1460,14 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             TestWarehouseBuilding warehouse,
             CharacterActor actor,
             CharacterCarryInventory carry,
-            ICharacterAiWorldRegistry worldRegistry)
+            ICharacterAiWorldRegistry worldRegistry,
+            Grid previousWorldGrid,
+            IPhysicalItemMassQuery massQuery,
+            FacilityBufferDestinationClaimRegistry destinationClaims,
+            IStockQuery stock,
+            IItemTransferService transfers,
+            IWorldItemDeliveryReachabilityQuery reachability,
+            IFacilityBufferDestinationReleaseService destinationRelease)
         {
             Grid = grid;
             GridProvider = gridProvider;
@@ -661,6 +1478,13 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             Actor = actor;
             Carry = carry;
             WorldRegistry = worldRegistry;
+            this.previousWorldGrid = previousWorldGrid;
+            MassQuery = massQuery;
+            DestinationClaims = destinationClaims;
+            Stock = stock;
+            Transfers = transfers;
+            Reachability = reachability;
+            DestinationRelease = destinationRelease;
         }
 
         public Grid Grid { get; }
@@ -672,17 +1496,30 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         public CharacterActor Actor { get; }
         public CharacterCarryInventory Carry { get; }
         public ICharacterAiWorldRegistry WorldRegistry { get; }
+        public IPhysicalItemMassQuery MassQuery { get; }
+        public FacilityBufferDestinationClaimRegistry DestinationClaims { get; }
+        public IStockQuery Stock { get; }
+        public IItemTransferService Transfers { get; }
+        public IWorldItemDeliveryReachabilityQuery Reachability { get; }
+        public IFacilityBufferDestinationReleaseService DestinationRelease { get; }
 
         public static ScenarioRuntime Create(float lightStockWeight)
         {
             Grid grid = CreateWalkableExteriorGrid();
             GridProvider gridProvider = new GridProvider(grid);
             ScenarioRuntime scenario = null;
+            GameObject warehouseObject = null;
+            GameObject actorObject = null;
+            BuildingSO warehouseData = null;
+            ICharacterAiWorldRegistry worldRegistry = null;
+            Grid previousWorldGrid = null;
+            bool worldGridRebound = false;
+            WorldItemStackRuntime items = null;
             try
             {
-                GameObject warehouseObject = new GameObject("HaulPlanWarehouse");
+                warehouseObject = new GameObject("HaulPlanWarehouse");
                 TestWarehouseBuilding warehouse = warehouseObject.AddComponent<TestWarehouseBuilding>();
-                BuildingSO warehouseData = CreateBuildingData(99001, "테스트 창고", BuildingCategory.Shop, GridLayer.Building);
+                warehouseData = CreateBuildingData(99001, "테스트 창고", BuildingCategory.Shop, GridLayer.Building);
                 warehouse.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
                 warehouse.ConstructBuildableObject(
                     new BuildingResearchWorkPortAdapter(new NoopBlueprintResearchWorkService()),
@@ -699,7 +1536,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 warehouse.Initialization(warehouseData, new Vector2Int(9, 1));
                 grid.RegisterOccupant(warehouse, GridLayer.Building, warehouse.buildPoses, false);
 
-                GameObject actorObject = CreateActor("HaulPlanActor", gridProvider, grid, new Vector2Int(0, 1));
+                actorObject = CreateActor("HaulPlanActor", gridProvider, grid, new Vector2Int(0, 1));
                 CharacterActor actor = actorObject.GetComponent<CharacterActor>();
                 CharacterCarryInventory carry = actorObject.GetComponent<CharacterCarryInventory>();
 
@@ -714,19 +1551,22 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 ICharacterIdRegistry idRegistry = new TestIdRegistry();
                 IGridPathSearchBroker pathBroker =
                     new GridPathSearchBroker(new UnityGameClock(), doorAccessQuery: null, performanceRecorder: null, costPolicy: null);
-                ICharacterAiWorldRegistry worldRegistry =
+                worldRegistry =
                     CharacterAiEditorTestDependencies.WorldRegistry;
+                worldRegistry.TryGetGrid(out previousWorldGrid);
+                worldRegistry.SetGrid(grid);
+                worldGridRebound = true;
                 worldRegistry.RegisterBuilding(warehouse);
                 worldRegistry.RegisterCharacter(actor);
                 WorldItemRepository repository = new WorldItemRepository(
                     new GuidPersistentIdGenerator(),
                     new DungeonRuntimeAggregateRootStore());
                 FacilityBufferDestinationClaimRegistry destinationClaims = new();
-                warehouse.BindPhysicalStock(
-                    new PhysicalStockQuery(
-                        repository,
-                        itemCatalog,
-                        new PhysicalItemMassQuery(itemCatalog)));
+                IStockQuery stock = new PhysicalStockQuery(
+                    repository,
+                    itemCatalog,
+                    new PhysicalItemMassQuery(itemCatalog));
+                warehouse.BindPhysicalStock(stock);
                 ItemQuantityReservationService quantityReservations =
                     new ItemQuantityReservationService(
                         repository,
@@ -766,7 +1606,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                         researchProvider: EditorAllResearchRuntimeProvider.Instance,
                         moduleCatalog: new ResourceEquipmentModuleCatalog(gameContent),
                         itemStackRuntime: equipmentItemGateway);
-                IWorldItemHaulPlanningService haulPlanning =
+                WorldItemHaulPlanningService haulPlanning =
                     new WorldItemHaulPlanningService(
                         gridProvider,
                         itemCatalog,
@@ -785,7 +1625,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     query,
                     EditorNullItemMarkerPresenter.Instance,
                     new EditorCharacterAiPerformanceRecorder(),
-                    DisabledDungeonDebugRuleQuery.Instance);
+                    DisabledDungeonDebugRuleQuery.Instance,
+                    new FacilityOutputClearanceTelemetryRuntime());
                 IItemTransferService itemTransferService = new ItemTransferService(
                     readServices,
                     idRegistry,
@@ -809,7 +1650,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     quantityReservations: quantityReservations,
                     quantityLeaseMutations: quantityReservations,
                     bufferAggregation: bufferAggregation);
-                WorldItemStackRuntime items = WorldItemEditorTestFactory.Create(
+                items = WorldItemEditorTestFactory.Create(
                     gridProvider,
                     itemCatalog,
                     haulingSettings,
@@ -824,11 +1665,17 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     spawner,
                     query,
                     haulPlanning,
-                    itemMarkerPresenter: EditorNullItemMarkerPresenter.Instance,
-                    itemTransferService: itemTransferService,
-                    performanceRecorder: new EditorCharacterAiPerformanceRecorder());
+                     itemMarkerPresenter: EditorNullItemMarkerPresenter.Instance,
+                     itemTransferService: itemTransferService,
+                     performanceRecorder: new EditorCharacterAiPerformanceRecorder(),
+                     reservationPersistence: quantityReservations);
                 equipmentItemGateway.Attach(items);
                 items.Start();
+                IFacilityBufferDestinationReleaseService destinationRelease =
+                    new FacilityBufferDestinationReleaseService(
+                        items,
+                        itemTransferService,
+                        worldRegistry);
 
                 scenario = new ScenarioRuntime(
                     grid,
@@ -839,7 +1686,14 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     warehouse,
                     actor,
                     carry,
-                    worldRegistry);
+                    worldRegistry,
+                    previousWorldGrid,
+                    massQuery,
+                    destinationClaims,
+                    stock,
+                    itemTransferService,
+                    haulPlanning,
+                    destinationRelease);
                 scenario.ownedObjects.Add(actorObject);
                 scenario.ownedObjects.Add(warehouseObject);
                 scenario.ownedObjects.Add(warehouseData);
@@ -847,7 +1701,32 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             }
             catch
             {
-                scenario?.Dispose();
+                if (scenario != null)
+                {
+                    scenario.Dispose();
+                }
+                else
+                {
+                    items?.Dispose();
+                    CharacterActor actor = actorObject != null
+                        ? actorObject.GetComponent<CharacterActor>()
+                        : null;
+                    TestWarehouseBuilding warehouse = warehouseObject != null
+                        ? warehouseObject.GetComponent<TestWarehouseBuilding>()
+                        : null;
+                    if (worldRegistry != null)
+                    {
+                        if (actor != null)
+                            worldRegistry.UnregisterCharacter(actor);
+                        if (warehouse != null)
+                            worldRegistry.UnregisterBuilding(warehouse);
+                        if (worldGridRebound)
+                            worldRegistry.SetGrid(previousWorldGrid);
+                    }
+                    DestroyImmediateSafe(actorObject);
+                    DestroyImmediateSafe(warehouseObject);
+                    DestroyImmediateSafe(warehouseData);
+                }
                 throw;
             }
         }
@@ -857,6 +1736,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             Items?.Dispose();
             WorldRegistry?.UnregisterCharacter(Actor);
             WorldRegistry?.UnregisterBuilding(Warehouse);
+            WorldRegistry?.SetGrid(previousWorldGrid);
             foreach (UnityEngine.Object owned in ownedObjects)
             {
                 DestroyImmediateSafe(owned);
@@ -885,18 +1765,30 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         Vector2Int position)
     {
         GameObject actorObject = new GameObject(name);
-        actorObject.SetActive(false);
-        CharacterActor actor = actorObject.AddComponent<CharacterActor>();
-        CharacterLifecycle lifecycle = actorObject.GetComponent<CharacterLifecycle>();
-        actorObject.AddComponent<CharacterCarryInventory>();
-        actorObject.AddComponent<AbilityHaul>();
-        actorObject.GetComponent<CharacterIdentity>().SetPersistentId($"character:worker:{name}");
-        CharacterAiEditorTestDependencies.Inject(actorObject);
-        lifecycle.ConstructCharacterLifecycle(gridProvider);
-        actorObject.transform.position = grid.GetWorldPos(position);
-        actorObject.SetActive(true);
-        actor.EnsureRuntimeState();
-        return actorObject;
+        try
+        {
+            actorObject.SetActive(false);
+            CharacterActor actor = actorObject.AddComponent<CharacterActor>();
+            CharacterLifecycle lifecycle = actorObject.GetComponent<CharacterLifecycle>();
+            actorObject.AddComponent<CharacterCarryInventory>();
+            actorObject.AddComponent<AbilityMove>();
+            actorObject.AddComponent<AbilityHaul>();
+            actorObject.GetComponent<CharacterIdentity>().SetPersistentId($"character:worker:{name}");
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actorObject.GetComponent<AbilityMove>()
+                .ConstructCharacterAbility(gridProvider);
+            lifecycle.ConstructCharacterLifecycle(gridProvider);
+            actorObject.transform.position = grid.GetWorldPos(position);
+            actorObject.SetActive(true);
+            actor.EnsureRuntimeState();
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            return actorObject;
+        }
+        catch
+        {
+            DestroyImmediateSafe(actorObject);
+            throw;
+        }
     }
 
     private static BuildingSO CreateBuildingData(
@@ -934,6 +1826,31 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         }
     }
 
+    private static long ExactItemMassGrams(
+        ScenarioRuntime scenario,
+        string itemId) =>
+        scenario.Items.GetAllStacks()
+            .Where(stack => string.Equals(
+                stack.ItemId,
+                itemId,
+                StringComparison.Ordinal))
+            .Sum(stack => ExactStackMassGrams(scenario, stack));
+
+    private static long ExactStackMassGrams(
+        ScenarioRuntime scenario,
+        WorldItemStackSnapshot stack)
+    {
+        PhysicalItemMassSubject subject = PhysicalItemMassSubjectAdapter.Create(
+            scenario.MassQuery,
+            (ItemDefinitionId)stack.ItemId,
+            stack.ItemInstanceId,
+            stack.Components);
+        return scenario.MassQuery.GetQuantityMass(
+            (ItemDefinitionId)stack.ItemId,
+            subject,
+            stack.Quantity).Value;
+    }
+
     private static void Require(bool condition, string message)
     {
         if (!condition)
@@ -954,7 +1871,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
 
     private sealed class TestWarehouseBuilding : BuildableObject, IWarehouseFacility
     {
-        private readonly WarehouseInventory inventory = new WarehouseInventory(200);
+        private readonly WarehouseInventory inventory = new WarehouseInventory(
+            200_000L, StockCategory.General, restrictCategory: false);
 
         public WarehouseInventory Inventory => inventory;
         public bool HasWarehouseInventory => true;

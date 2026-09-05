@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "history-scout",
+    "spoiler_tier": "none",
+    "title": "정찰수"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -1,0 +1,111 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "궁시 제작학"
+    },
+    {
+      "label": "제작 작업",
+      "value": "112"
+    },
+    {
+      "label": "무게",
+      "value": "2.1kg"
+    },
+    {
+      "label": "최대 사거리",
+      "value": "18"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-steel",
+      "target_spoiler_tier": "none",
+      "target_title": "강철촉 화살",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-rune",
+      "target_spoiler_tier": "none",
+      "target_title": "룬촉 화살",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-bone",
+      "target_spoiler_tier": "none",
+      "target_title": "뼈촉 화살",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-incendiary-arrow",
+      "target_spoiler_tier": "none",
+      "target_title": "소이 화살",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow-iron",
+      "target_spoiler_tier": "none",
+      "target_title": "철촉 화살",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "ammo-arrow",
+      "target_spoiler_tier": "none",
+      "target_title": "화살",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-bowyery",
+      "target_spoiler_tier": "none",
+      "target_title": "궁시 제작학",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-rope",
+      "target_spoiler_tier": "none",
+      "target_title": "밧줄",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-bowstring",
+      "target_spoiler_tier": "none",
+      "target_title": "활시위",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-longbow",
+  "spoiler_tier": "none",
+  "summary": "장궁 전투 장비",
+  "title": "장궁"
+}

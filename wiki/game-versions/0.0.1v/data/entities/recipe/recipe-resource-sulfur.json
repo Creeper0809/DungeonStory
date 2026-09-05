@@ -1,0 +1,40 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "6"
+    },
+    {
+      "label": "필요 연구",
+      "value": "노천 채석"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-sulfur",
+      "target_spoiler_tier": "none",
+      "target_title": "황",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-mining-surface",
+      "target_spoiler_tier": "none",
+      "target_title": "노천 채석",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-resource-sulfur",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 황을(를) 생산한다.",
+  "title": "황"
+}

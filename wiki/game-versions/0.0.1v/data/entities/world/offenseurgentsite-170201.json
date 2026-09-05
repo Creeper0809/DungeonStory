@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "최대 강도",
+      "value": "1"
+    },
+    {
+      "label": "완화 작업",
+      "value": "24"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "offenseurgentsite-170201",
+  "spoiler_tier": "warning",
+  "summary": "자동 방어 장치의 감응과 발동을 흐트러뜨린다.",
+  "title": "방어 교란기"
+}

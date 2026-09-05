@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "34"
+    },
+    {
+      "label": "필요 연구",
+      "value": "교차계통 안정화"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-cross-lineage-medium",
+      "target_spoiler_tier": "none",
+      "target_title": "교차계통 안정화 배지",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-genetics-cross-lineage-stabilization",
+      "target_spoiler_tier": "none",
+      "target_title": "교차계통 안정화",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-rune-conductor",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 도체",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-sterile-composite",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 복합재",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-medical-cross-lineage-medium",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 교차계통 안정화 배지을(를) 생산한다.",
+  "title": "교차계통 안정화 배지"
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "209"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "연기 속에서 얼굴과 호흡기를 가리도록 여과층을 넣은 전투 두건이다. 오르데나에서 지급한 연기 두건 안쪽에는 군영 번호가 찍혀 있다. 오래 입을수록 번호보다 수선 자국이 먼저 눈에 띈다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-armor-smoke-hood",
+  "spoiler_tier": "none",
+  "summary": "연기 두건 전투 장비",
+  "title": "연기 두건"
+}

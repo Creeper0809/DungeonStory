@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9504",
+    "spoiler_tier": "none",
+    "title": "세정대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-medical-surgery",
+      "label": "시설 해금",
+      "to": "facility/building-9504",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

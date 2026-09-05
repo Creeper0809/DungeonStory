@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "module-shield-shock-grip",
+    "spoiler_tier": "none",
+    "title": "충격 손잡이"
+  },
+  "edges": [],
+  "schema_version": 1
+}

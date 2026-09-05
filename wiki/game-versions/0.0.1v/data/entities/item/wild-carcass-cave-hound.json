@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "4"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무리 사냥을 하며 길들이면 경비와 추적에 쓸 수 있다. 죽은 동굴사냥개의 사체는 도축 시설로 옮겨 식량과 부산물로 나눈다. 노르칸드라 사냥꾼은 동굴사냥개 사체를 묶은 끈에 발견한 눈길과 무너진 갱도의 방향을 칼집으로 낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "wild-carcass-cave-hound",
+  "spoiler_tier": "none",
+  "summary": "도축 시설로 옮기면 식량과 부산물을 얻는다.",
+  "title": "동굴사냥개 사체"
+}

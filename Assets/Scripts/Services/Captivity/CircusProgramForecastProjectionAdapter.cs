@@ -55,7 +55,7 @@ internal sealed class CircusProgramForecastProjectionAdapter
             .Select(id => captivity.TryGetCaptive(id, out CaptiveState captive)
                 ? captive
                 : null)
-            .Where(captive => captive != null && captive.IsActive)
+            .Where(captive => captive != null && captive.IsInCustody)
             .Take(stageAbility.performerCapacity)
             .ToList();
         List<string> animals = (wildlifeIds ?? Array.Empty<string>())

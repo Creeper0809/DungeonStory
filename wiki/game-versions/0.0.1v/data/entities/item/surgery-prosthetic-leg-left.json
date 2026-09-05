@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "381"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손상되거나 잃은 왼다리의 기능을 대신하도록 신체에 연결하는 보철 부품이다. 제4주조도시산 왼다리 보철에는 권장 보폭과 버틸 수 있는 하중이 발목 안쪽에 새겨져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-prosthetic-leg-left",
+  "spoiler_tier": "none",
+  "summary": "수술로 설치하는 고유 보철 부품",
+  "title": "왼다리 보철"
+}

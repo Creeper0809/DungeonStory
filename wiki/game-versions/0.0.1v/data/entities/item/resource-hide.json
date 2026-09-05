@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "40개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "2"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "무두질과 저급 침구에 쓰는 가죽이다. 라카쉬 세갈래길의 생가죽에는 짐승의 종류와 벗긴 방향을 칼집으로 남겨 무두질할 때 두께를 가늠한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "resource-hide",
+  "spoiler_tier": "none",
+  "summary": "무두질과 저급 침구에 쓰는 가죽.",
+  "title": "생가죽"
+}

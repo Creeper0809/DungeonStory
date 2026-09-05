@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "silk-spider",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴명주거미",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-mana-pox",
+      "target_spoiler_tier": "none",
+      "target_title": "마나두창",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "glow-moth",
+  "spoiler_tier": "none",
+  "summary": "마나 빛을 따라 이동하며 버섯 포자를 옮기는 작은 계절 곤충.",
+  "title": "발광나방"
+}

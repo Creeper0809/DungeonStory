@@ -1,0 +1,29 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-harpy-crisis",
+    "spoiler_tier": "none",
+    "title": "폭풍둥지 위기 대응 계약"
+  },
+  "edges": [
+    {
+      "amount": "6",
+      "from": "event/faction-contract-harpy-crisis",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독제",
+      "to": "item/medicine-antiseptic",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-harpy",
+      "label": "관련",
+      "to": "event/faction-contract-harpy-crisis",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

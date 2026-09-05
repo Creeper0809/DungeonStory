@@ -442,13 +442,8 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
     private WarehouseFeatureWarehouseRow CreateWarehouseRow(IWarehouseFacility warehouse)
     {
         WarehouseInventory inventory = warehouse.Inventory;
-        string capacity = inventory.HasMassCapacityAuthority
-            ? $"중량 {WarehouseMassUiFormatter.FormatCapacity(inventory)} / "
-                + $"남음 {WarehouseMassUiFormatter.FormatKilograms(inventory.RemainingMassGrams)}"
-            : $"총 {inventory.TotalStock}/"
-                + (inventory.HasCapacityLimit
-                    ? inventory.MaxCapacity.ToString()
-                    : "무제한");
+        string capacity = $"중량 {WarehouseMassUiFormatter.FormatCapacity(inventory)} / "
+            + $"남음 {WarehouseMassUiFormatter.FormatKilograms(inventory.RemainingMassGrams)}";
         return new WarehouseFeatureWarehouseRow
         {
             RuntimeId = GetUnityObjectId(warehouse),
@@ -466,10 +461,6 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
         {
             text += $" / 중량 {WarehouseMassUiFormatter.FormatKilograms(summary.TotalStoredMassGrams)}"
                 + $"/{WarehouseMassUiFormatter.FormatKilograms(summary.TotalMaxMassGrams)}";
-        }
-        if (summary.HasCapacityLimit)
-        {
-            text += $" / 개수형 {summary.LegacyCountWarehouseCount}개 용량 {summary.TotalCapacity}";
         }
         return text;
     }

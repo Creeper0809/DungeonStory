@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-siege-reinforcement-kit",
+    "spoiler_tier": "none",
+    "title": "공성 보강 키트"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-siege-reinforcement-kit",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-siege-reinforcement-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "공성 보강 키트",
+      "to": "item/component-siege-reinforcement-kit",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-siege-reinforcement-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-component-siege-reinforcement-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-plate-blank",
+      "target_spoiler_tier": "none",
+      "target_title": "판금 소재판",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-siege-reinforcement-kit",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-siege-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "공성 요새화",
+      "to": "research/research-defense-siege-fortification",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

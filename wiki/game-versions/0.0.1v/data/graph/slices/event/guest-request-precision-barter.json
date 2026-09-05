@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "guest-request-precision-barter",
+    "spoiler_tier": "none",
+    "title": "정밀 부품 교역회"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "event/guest-request-precision-barter",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-precision-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "정밀 부품",
+      "to": "item/component-precision-parts",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

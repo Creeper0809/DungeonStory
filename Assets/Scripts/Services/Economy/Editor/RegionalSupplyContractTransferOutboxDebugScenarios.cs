@@ -9,7 +9,9 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
 {
     private const string ItemId = "material:lumber";
     private const string ContractId = "contract:1:1";
-    private const string DestinationId = "regional-contract:contract:1:1";
+    private static readonly string DestinationId =
+        EconomyProjectInputOwnerAuthority
+            .BuildRegionalContractDestinationId(ContractId);
 
     [MenuItem("DungeonStory/Debug/Economy/Run Regional Supply Transfer Outbox Contracts")]
     public static void RunAll()
@@ -53,7 +55,10 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
                 out string commitFailure),
             "Regional supply physical transfer failed: " + commitFailure);
 
-        RegionalSupplyContractState contract = CreateContract();
+        EconomyProjectInputOwnerFixtureAuthority contractInputOwners =
+            new(massQuery);
+        RegionalSupplyContractState contract = CreateContract(
+            contractInputOwners.Runtime);
         RegionalSupplyContractDeliveryOutbox.RecordPending(
             contract,
             ToContractReceipt(physicalReceipt));
@@ -146,26 +151,67 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
         return "Regional supply transfer outbox contracts PASS.";
     }
 
-    private static RegionalSupplyContractState CreateContract() => new()
+    private static RegionalSupplyContractState CreateContract(
+        IEconomyProjectInputOwnerPort inputOwners)
     {
-        contractId = ContractId,
-        title = "QA lumber export",
-        regionName = "QA",
-        offeredDay = 1,
-        deadlineDay = 4,
-        rewardGold = 25,
-        status = RegionalSupplyContractStatus.Delivering,
-        destinationId = DestinationId,
-        lastStatus = "delivery",
-        requirements = new List<RegionalSupplyContractRequirement>
+        RegionalSupplyContractState contract = new()
         {
-            new RegionalSupplyContractRequirement
+            contractId = ContractId,
+            title = "QA lumber export",
+            regionName = "QA",
+            offeredDay = 1,
+            deadlineDay = 4,
+            rewardGold = 25,
+            status = RegionalSupplyContractStatus.Delivering,
+            destinationId = DestinationId,
+            inputOwnerActive = true,
+            inputDestinationX = 4,
+            inputDestinationY = 2,
+            lastStatus = "delivery",
+            requirements = new List<RegionalSupplyContractRequirement>
             {
-                itemId = ItemId,
-                amount = 2
+                new RegionalSupplyContractRequirement
+                {
+                    itemId = ItemId,
+                    amount = 2
+                }
             }
-        }
-    };
+        };
+        EnsureInputOwner(contract, inputOwners);
+        return contract;
+    }
+
+    private static void EnsureInputOwner(
+        RegionalSupplyContractState contract,
+        IEconomyProjectInputOwnerPort inputOwners)
+    {
+        Dictionary<string, int> requirements = contract.requirements
+            .GroupBy(value => value.itemId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(value => value.amount),
+                StringComparer.Ordinal);
+        Require(inputOwners.TryEnsure(
+                EconomyProjectInputOwnerAuthority.RegionalContractDomain,
+                contract.contractId,
+                contract.destinationId,
+                new Vector2Int(
+                    contract.inputDestinationX,
+                contract.inputDestinationY),
+                EconomyProjectInputOwnerAnchorKind.ReservedTarget,
+                null,
+                requirements,
+                contract.inputCapacityGrams,
+                contract.inputMassAuthorityRevision,
+                contract.inputCapacityFingerprint,
+                out EconomyProjectInputOwnerProjection projection,
+                out string failureReason),
+            "Regional supply exact input-owner staging failed: "
+            + failureReason);
+        contract.inputCapacityGrams = projection.CapacityGrams;
+        contract.inputMassAuthorityRevision = projection.MassAuthorityRevision;
+        contract.inputCapacityFingerprint = projection.Fingerprint;
+    }
 
     private static RegionalSupplyDeliveryTransferReceipt ToContractReceipt(
         PhysicalItemBatchDispositionReceipt receipt) => new()
@@ -208,7 +254,8 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
         PhysicalItemRestoreCandidateDispositionSnapshot receipt)
     {
         WorldItemStackRuntime candidateRuntime =
-            PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture();
+            PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                out IDungeonRestoreTransactionParticipant exactRouteLifetime);
         DungeonPhysicalItemSaveData snapshot = candidateRuntime.Capture();
         snapshot.pendingBatchDispositions.Add(
             new PhysicalItemBatchDispositionSaveData
@@ -246,6 +293,7 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
             snapshot,
             EmptyRestoreWorldCandidates.Instance);
         IDungeonRestoreTransactionParticipant lifetime = candidateRuntime;
+        exactRouteLifetime.BeginRestoreCandidate();
         lifetime.BeginRestoreCandidate();
         DungeonGameRestoreReport report = new();
         committed.Commit(report);
@@ -256,7 +304,9 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
                 out PhysicalItemBatchDispositionReceipt restored)
             && restored.CommitId == receipt.CommitId,
             "Physical restore candidate query did not survive commit until cross-section publication.");
+        exactRouteLifetime.PublishRestoreCandidate();
         lifetime.PublishRestoreCandidate();
+        exactRouteLifetime.CompleteRestoreCandidate();
         lifetime.CompleteRestoreCandidate();
         Require(!query.IsCandidateAvailable,
             "Physical restore candidate query survived transaction completion.");
@@ -278,7 +328,8 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
                 out _,
                 out _,
                 out _,
-                out IPhysicalItemBatchDispositionService batch);
+                out IPhysicalItemBatchDispositionService batch,
+                out IDungeonRestoreTransactionParticipant exactRouteLifetime);
         try
         {
             string stackId = WorldItemRepositoryEditorAccess.AddStack(
@@ -307,7 +358,10 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
                 "Whole-save regional physical transfer failed: "
                 + commitFailure);
 
+            EconomyProjectInputOwnerFixtureAuthority inputOwners =
+                new(items.MassQuery);
             RegionalSupplyContractState owner = contract.Clone();
+            EnsureInputOwner(owner, inputOwners.Runtime);
             owner.deliveryCommitPhase = RegionalSupplyDeliveryCommitPhase.None;
             owner.deliveryOperationId = string.Empty;
             owner.deliveryCommitId = string.Empty;
@@ -341,7 +395,8 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
             RegionalSupplyContractSaveSection regionalSection = new(
                 regionalRuntime,
                 economyCatalog,
-                items);
+                items,
+                inputOwners.RestoreRuntime);
             IDungeonSaveSection[] sections =
             {
                 new RegistryDependencyStubSection(
@@ -362,8 +417,11 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
                 aggregateRootStore,
                 new[]
                 {
+                    exactRouteLifetime,
                     (IDungeonRestoreTransactionParticipant)items
-                });
+                }
+                .Concat(inputOwners.RestoreParticipants)
+                .ToArray());
             List<DungeonSaveSectionEnvelope> valid = registry.CaptureAll();
             DungeonGameRestoreReport validReport = new();
             Require(registry.RestoreAll(valid, validReport)

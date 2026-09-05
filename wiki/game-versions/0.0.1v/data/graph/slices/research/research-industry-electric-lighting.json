@@ -1,0 +1,95 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-electric-lighting",
+    "spoiler_tier": "none",
+    "title": "산업 조명"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "to": "research/research-defense-watch",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-steam-power",
+      "target_spoiler_tier": "none",
+      "target_title": "증기 동력과 배전",
+      "to": "research/research-industry-steam-power",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9824",
+      "target_spoiler_tier": "none",
+      "target_title": "전기 아크등",
+      "to": "facility/building-9824",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-insulated-wiring",
+      "label": "필요 조건",
+      "to": "research/research-industry-electric-lighting",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

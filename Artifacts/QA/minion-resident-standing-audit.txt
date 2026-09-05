@@ -1,0 +1,10 @@
+﻿MINION_RESIDENT_STANDING_AUDIT=PASS
+balanceImpact=YES
+authority=MinionIntegrationRules + CharacterSettlementStanding + CaptiveState
+workMatrix=31 total/23 allowed/8 forbidden; guard=yes; expedition=no; xp=0.50
+boundaries=minion day3/corruption80; direct day10/trust70/grudge30/corruption<60; rehabilitation day15/18WU/food1
+social=mood 10/25/50%; conflicts ceil(M/4); brawl 10/40%; control break capped 10%
+saveRoundTrip=minion standing + rehabilitation assignment + daily social marker; malformed rejected
+transitionRollback=captivity snapshot exact; population and employment use explicit rollback transactions
+strategyAudit=256 seeds/day30 join lead 7 days/day120 mean ratio 0.843/max ratio 0.855@seed107; cap=1.150
+strategyMetric=effective WU + XP growth - three-resident mood externality - conflict/brawl downtime; shared survival inputs cancel; wages reported separately by economy authority

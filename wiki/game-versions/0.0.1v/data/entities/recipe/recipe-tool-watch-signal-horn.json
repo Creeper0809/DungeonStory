@@ -1,0 +1,67 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "30"
+    },
+    {
+      "label": "필요 연구",
+      "value": "경계 근무"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "tool-watch-signal-horn",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 신호 나팔",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-watch",
+      "target_spoiler_tier": "none",
+      "target_title": "경계 근무",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-rune-dust",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 가루",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-iron-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "철괴",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-tool-watch-signal-horn",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 경계 신호 나팔을(를) 생산한다.",
+  "title": "경계 신호 나팔"
+}

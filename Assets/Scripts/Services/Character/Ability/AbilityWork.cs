@@ -79,6 +79,7 @@ public class AbilityWork : CharacterAbility
     private IEmergencyWorkAccountingService emergencyWorkAccounting;
     private ISettlementLaborAccountingService settlementLaborAccounting;
     private IReservedItemTransferService reservedItemTransfers;
+    private ICharacterSettlementStandingQuery settlementStandings;
     private bool isScheduleBound;
     private float routineOperateCooldownUntil;
     private Coroutine activeWorkRoutine;
@@ -560,6 +561,16 @@ public class AbilityWork : CharacterAbility
         this.gameCalendar = gameCalendar
             ?? throw new ArgumentNullException(nameof(gameCalendar));
         this.combatEquipmentRuntime = combatEquipmentRuntime;
+        taskExecutor = null;
+    }
+
+    [Inject]
+    public void ConstructSettlementStandings(
+        ICharacterSettlementStandingQuery settlementStandings)
+    {
+        this.settlementStandings = settlementStandings
+            ?? throw new ArgumentNullException(nameof(settlementStandings));
+        targetSelector = null;
         taskExecutor = null;
     }
 
@@ -1633,7 +1644,8 @@ public class AbilityWork : CharacterAbility
             this,
             workPolicyRegistry,
             captiveLaborQuery,
-            environmentWorkPolicy);
+            environmentWorkPolicy,
+            settlementStandings);
         taskExecutor ??= new WorkTaskExecutor(
             new WorkTaskCoreDependencies(
                 this,
@@ -1662,7 +1674,8 @@ public class AbilityWork : CharacterAbility
             speciesCommands,
             emergencyWorkAccounting,
             settlementLaborAccounting,
-            reservedItemTransfers);
+            reservedItemTransfers,
+            settlementStandings);
         dutyController ??= new WorkDutyController(
             this,
             needDefinitionCatalog);

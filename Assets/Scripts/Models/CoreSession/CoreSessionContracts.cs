@@ -20,11 +20,13 @@ public enum Season
 
 public static class GameCalendarRules
 {
-    public const int HoursPerDay = 24;
+    public const int HoursPerDay = GameSimulationTimeRules.HoursPerDay;
     public const int DaysPerSeason = 30;
     public const int SeasonsPerYear = 4;
     public const int DaysPerYear = DaysPerSeason * SeasonsPerYear;
-    public const float SecondsPerDay = 180f;
+    public const float SecondsPerDay = GameSimulationTimeRules.SecondsPerDay;
+    public const float SecondsPerGameHour =
+        GameSimulationTimeRules.SecondsPerGameHour;
 
     public static CalendarDateTime Project(int absoluteDay, int hour)
     {

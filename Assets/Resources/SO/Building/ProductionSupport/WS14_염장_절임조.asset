@@ -58,6 +58,7 @@ MonoBehaviour:
     - rid: 7737212195140797226
     - rid: 1006
     - rid: 1007
+    - rid: 1008
   width: 1
   height: 1
   layer: 1
@@ -105,6 +106,7 @@ MonoBehaviour:
         - workstation:cookbench
         kind: 1
         batchCapacity: 1
+        maximumLinkedInstancesPerWorkstation: 1
         requiresPower: 0
         cleanWaterPerCycle: 0.2
         wastewaterPerCycle: 0.2
@@ -116,12 +118,19 @@ MonoBehaviour:
         workSpeedMultiplier: 1
         outputMultiplier: 1
         qualityModifier: 0
+    - rid: 1008
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 100
+        normallyOpen: 1
     - rid: 7737212195140797226
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 67
+        constructionWorkRequired: 495
         repairWorkRequired: 10
         cleanWorkRequired: 6.25
         researchWorkRequired: 6

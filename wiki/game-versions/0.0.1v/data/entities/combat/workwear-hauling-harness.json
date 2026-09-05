@@ -1,0 +1,36 @@
+{
+  "facts": [
+    {
+      "label": "필요 연구",
+      "value": "창고 구획"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "combat",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "tool-hauling-harness",
+      "target_spoiler_tier": "none",
+      "target_title": "운반 멜빵",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-commerce-logistics",
+      "target_spoiler_tier": "none",
+      "target_title": "창고 구획",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "workwear-hauling-harness",
+  "spoiler_tier": "none",
+  "summary": "운반 작업 중 적재 한도를 25% 늘리고 완료 시 내구도를 소모하는 물리 작업 장비.",
+  "title": "운반 멜빵"
+}

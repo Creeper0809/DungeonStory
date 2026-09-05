@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "supply-inoculated-log",
+    "spoiler_tier": "none",
+    "title": "접종 원목"
+  },
+  "edges": [
+    {
+      "amount": "2",
+      "from": "recipe/recipe-supply-inoculated-log",
+      "label": "생산·해금",
+      "to": "item/supply-inoculated-log",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

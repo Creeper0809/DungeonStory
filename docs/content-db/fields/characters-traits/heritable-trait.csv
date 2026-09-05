@@ -1,0 +1,358 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,m_Name,heritable_abundant-seed,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,traitId,heritable:abundant-seed,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,displayName,풍부한 종자,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,description,생식 성공률이 높지만 회복 기간의 영양 요구가 늘어난다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,category,3,HeritableTraitCategory,Reproduction,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,incompatibilityGroup,reproduction:slow-fertility,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,aptitudeModifier,2,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,consequences.0.kind,4,HeritableTraitConsequenceKind,Fertility,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,consequences.0.targetId,success-rate,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,consequences.0.multiplierDelta,0.12,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,consequences.1.kind,8,HeritableTraitConsequenceKind,Need Rate,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,consequences.1.targetId,reproduction-hunger,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,consequences.1.multiplierDelta,0.1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:abundant-seed,heritable:abundant-seed,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,m_Name,heritable_broad-immunity,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,traitId,heritable:broad-immunity,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,displayName,광범위 면역,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,description,여러 감염병의 발병 확률을 조금씩 낮춘다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,category,4,HeritableTraitCategory,Immunity Longevity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,incompatibilityGroup,immunity:focused-antibodies,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,aptitudeModifier,4,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,consequences.0.kind,3,HeritableTraitConsequenceKind,Disease Resistance,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,consequences.0.targetId,all,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,consequences.0.multiplierDelta,0.12,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:broad-immunity,heritable:broad-immunity,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,m_Name,heritable_cold-blood-adaptation,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,traitId,heritable:cold-blood-adaptation,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,displayName,저온 대사 적응,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,description,추운 환경에서 기관 기능 저하가 늦다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,category,1,HeritableTraitCategory,Metabolism,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,incompatibilityGroup,metabolism:heat-shedding,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,aptitudeModifier,3,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,consequences.0.kind,2,HeritableTraitConsequenceKind,Environmental Tolerance,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,consequences.0.targetId,cold,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,consequences.0.multiplierDelta,0.15,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cold-blood-adaptation,heritable:cold-blood-adaptation,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,m_Name,heritable_cross-lineage-tolerance,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,traitId,heritable:cross-lineage-tolerance,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,displayName,교차계통 내성,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,description,다른 계통과의 배양에서 거부 반응이 줄어든다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,category,3,HeritableTraitCategory,Reproduction,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,incompatibilityGroup,,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,aptitudeModifier,4,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,consequences.0.kind,4,HeritableTraitConsequenceKind,Fertility,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,consequences.0.targetId,cross-lineage,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,consequences.0.multiplierDelta,0.15,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:cross-lineage-tolerance,heritable:cross-lineage-tolerance,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,m_Name,heritable_dense-bone,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,traitId,heritable:dense-bone,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,displayName,고밀도 골격,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,description,골절에 강하지만 이동과 수영에 더 많은 에너지가 든다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,category,0,HeritableTraitCategory,Anatomy,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,incompatibilityGroup,anatomy:hollow-bone,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,aptitudeModifier,3,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,consequences.0.kind,6,HeritableTraitConsequenceKind,Anatomy Capacity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,consequences.0.targetId,bone-density,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,consequences.0.multiplierDelta,0.15,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,consequences.1.kind,9,HeritableTraitConsequenceKind,Movement,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,consequences.1.targetId,move-speed,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,consequences.1.multiplierDelta,-0.06,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dense-bone,heritable:dense-bone,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,m_Name,heritable_dream-reception,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,traitId,heritable:dream-reception,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,displayName,꿈 수신,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,description,비전 꿈과 기억에 민감해 예지 단서를 얻지만 수면 장애 위험이 있다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,category,2,HeritableTraitCategory,Arcane,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,incompatibilityGroup,,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,aptitudeModifier,5,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,consequences.0.kind,7,HeritableTraitConsequenceKind,Mana Affinity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,consequences.0.targetId,dream,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,consequences.0.multiplierDelta,0.1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,consequences.1.kind,8,HeritableTraitConsequenceKind,Need Rate,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,consequences.1.targetId,sleep,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,consequences.1.multiplierDelta,0.1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:dream-reception,heritable:dream-reception,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,m_Name,heritable_efficient-digestion,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,traitId,heritable:efficient-digestion,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,displayName,고효율 소화,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,description,같은 식사에서 더 많은 영양을 얻는다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,category,1,HeritableTraitCategory,Metabolism,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,incompatibilityGroup,metabolism:rapid-burn,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,aptitudeModifier,4,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,consequences.0.kind,2,HeritableTraitConsequenceKind,Environmental Tolerance,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,consequences.0.targetId,nutrition,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,consequences.0.multiplierDelta,0.12,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:efficient-digestion,heritable:efficient-digestion,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,m_Name,heritable_expanded-lung,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,traitId,heritable:expanded-lung,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,displayName,확장 폐낭,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,description,저산소 환경에서 더 오래 활동한다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,category,0,HeritableTraitCategory,Anatomy,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,incompatibilityGroup,,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,aptitudeModifier,4,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,consequences.0.kind,2,HeritableTraitConsequenceKind,Environmental Tolerance,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,consequences.0.targetId,low-oxygen,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,consequences.0.multiplierDelta,0.15,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:expanded-lung,heritable:expanded-lung,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,m_Name,heritable_flexible-joints,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,traitId,heritable:flexible-joints,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,displayName,유연 관절,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,description,좁은 공간과 정밀 동작에 유리하지만 무거운 충격에는 약하다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,category,0,HeritableTraitCategory,Anatomy,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,incompatibilityGroup,anatomy:reinforced-joints,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,aptitudeModifier,5,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,consequences.0.kind,6,HeritableTraitConsequenceKind,Anatomy Capacity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,consequences.0.targetId,dexterity,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,consequences.0.multiplierDelta,0.12,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:flexible-joints,heritable:flexible-joints,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,m_Name,heritable_focused-antibodies,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,traitId,heritable:focused-antibodies,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,displayName,집중 항체,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,description,한 번 겪은 질병의 면역 유지가 길어진다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,category,4,HeritableTraitCategory,Immunity Longevity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,incompatibilityGroup,immunity:broad,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,aptitudeModifier,4,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,consequences.0.kind,3,HeritableTraitConsequenceKind,Disease Resistance,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,consequences.0.targetId,memory,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,consequences.0.multiplierDelta,0.16,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:focused-antibodies,heritable:focused-antibodies,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,m_Name,heritable_heat-shedding,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,traitId,heritable:heat-shedding,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,displayName,열 배출 피부,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,description,고온 작업의 열 축적을 줄인다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,category,1,HeritableTraitCategory,Metabolism,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,incompatibilityGroup,metabolism:cold-blood,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,aptitudeModifier,3,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,consequences.0.kind,2,HeritableTraitConsequenceKind,Environmental Tolerance,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,consequences.0.targetId,heat,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,consequences.0.multiplierDelta,0.15,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:heat-shedding,heritable:heat-shedding,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,m_Name,heritable_hollow-bone,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,traitId,heritable:hollow-bone,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,displayName,공동 골격,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,description,가볍고 민첩하지만 압궤 손상에 취약하다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,category,0,HeritableTraitCategory,Anatomy,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,incompatibilityGroup,anatomy:dense-bone,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,aptitudeModifier,4,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,consequences.0.kind,6,HeritableTraitConsequenceKind,Anatomy Capacity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,consequences.0.targetId,mobility,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,consequences.0.multiplierDelta,0.12,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:hollow-bone,heritable:hollow-bone,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,m_Name,heritable_mana-grounding,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,traitId,heritable:mana-grounding,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,displayName,마나 접지맥,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,description,비전 교란을 흘려보내지만 주문 증폭은 약하다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,category,2,HeritableTraitCategory,Arcane,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,incompatibilityGroup,arcane:mana-reservoir,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,aptitudeModifier,5,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,consequences.0.kind,7,HeritableTraitConsequenceKind,Mana Affinity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,consequences.0.targetId,stability,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,consequences.0.multiplierDelta,0.15,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-grounding,heritable:mana-grounding,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,m_Name,heritable_mana-reservoir,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,traitId,heritable:mana-reservoir,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,displayName,마나 저장낭,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,description,마나 수용량이 늘지만 폭주 시 손상도 커진다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,category,2,HeritableTraitCategory,Arcane,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,incompatibilityGroup,arcane:mana-grounding,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,aptitudeModifier,6,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,consequences.0.kind,7,HeritableTraitConsequenceKind,Mana Affinity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,consequences.0.targetId,capacity,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,consequences.0.multiplierDelta,0.15,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,consequences.1.kind,10,HeritableTraitConsequenceKind,Mana Overload Damage,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,consequences.1.targetId,mana-exposure,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,consequences.1.multiplierDelta,0.15,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:mana-reservoir,heritable:mana-reservoir,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,m_Name,heritable_rapid-burn,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,traitId,heritable:rapid-burn,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,displayName,고속 대사,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,description,순간 작업 능률이 높지만 식량 요구가 늘어난다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,category,1,HeritableTraitCategory,Metabolism,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,incompatibilityGroup,metabolism:efficient-digestion,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,aptitudeModifier,6,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,consequences.0.kind,1,HeritableTraitConsequenceKind,Aptitude,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,consequences.0.targetId,work-burst,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,consequences.0.multiplierDelta,0.1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,consequences.1.kind,8,HeritableTraitConsequenceKind,Need Rate,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,consequences.1.targetId,hunger,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,consequences.1.multiplierDelta,0.12,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-burn,heritable:rapid-burn,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,m_Name,heritable_rapid-repair,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,traitId,heritable:rapid-repair,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,displayName,고속 면역 복구,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,description,감염 후 장기 손상 회복이 빠르지만 세포 노화 부담이 늘어난다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,category,4,HeritableTraitCategory,Immunity Longevity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,incompatibilityGroup,longevity:slow-aging,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,aptitudeModifier,5,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,consequences.0.kind,3,HeritableTraitConsequenceKind,Disease Resistance,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,consequences.0.targetId,recovery,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,consequences.0.multiplierDelta,0.15,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,consequences.1.kind,5,HeritableTraitConsequenceKind,Aging Rate,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,consequences.1.targetId,biological-age,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,consequences.1.multiplierDelta,0.08,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rapid-repair,heritable:rapid-repair,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,m_Name,heritable_regrowing-tissue,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,traitId,heritable:regrowing-tissue,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,displayName,재생 조직,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,description,경미한 조직 손상을 빠르게 복구하지만 영양 소모가 늘어난다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,category,0,HeritableTraitCategory,Anatomy,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,incompatibilityGroup,,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,aptitudeModifier,4,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,consequences.0.kind,6,HeritableTraitConsequenceKind,Anatomy Capacity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,consequences.0.targetId,regeneration,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,consequences.0.multiplierDelta,0.1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,consequences.1.kind,8,HeritableTraitConsequenceKind,Need Rate,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,consequences.1.targetId,hunger,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,consequences.1.multiplierDelta,0.08,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:regrowing-tissue,heritable:regrowing-tissue,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,m_Name,heritable_reinforced-joints,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,traitId,heritable:reinforced-joints,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,displayName,강화 관절,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,description,관절 지지조직이 튼튼해 운반과 착지 충격에 강하다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,category,0,HeritableTraitCategory,Anatomy,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,incompatibilityGroup,anatomy:flexible-joints,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,aptitudeModifier,5,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,consequences.0.kind,6,HeritableTraitConsequenceKind,Anatomy Capacity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,consequences.0.targetId,joints,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,consequences.0.multiplierDelta,0.12,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:reinforced-joints,heritable:reinforced-joints,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,m_Name,heritable_rune-sight,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,traitId,heritable:rune-sight,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,displayName,룬시,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,description,미세한 룬 오차를 감지해 조율 작업에 유리하다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,category,2,HeritableTraitCategory,Arcane,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,incompatibilityGroup,,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,aptitudeModifier,8,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,consequences.0.kind,1,HeritableTraitConsequenceKind,Aptitude,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,consequences.0.targetId,rune-tuning,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,consequences.0.multiplierDelta,0.12,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:rune-sight,heritable:rune-sight,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,m_Name,heritable_slow-aging,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,traitId,heritable:slow-aging,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,displayName,완만한 노화,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,description,성년 이후 생물학적 노화 속도가 소폭 느려진다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,category,4,HeritableTraitCategory,Immunity Longevity,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,incompatibilityGroup,longevity:rapid-repair,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,aptitudeModifier,3,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,consequences.0.kind,5,HeritableTraitConsequenceKind,Aging Rate,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,consequences.0.targetId,biological-age,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,consequences.0.multiplierDelta,-0.12,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-aging,heritable:slow-aging,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,m_Name,heritable_slow-fertility,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,traitId,heritable:slow-fertility,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,displayName,느린 가임 주기,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,description,성공률은 낮지만 성공한 배아·알·포자의 안정성이 높다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,category,3,HeritableTraitCategory,Reproduction,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,incompatibilityGroup,reproduction:abundant-seed,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,aptitudeModifier,3,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,consequences.0.kind,4,HeritableTraitConsequenceKind,Fertility,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,consequences.0.targetId,offspring-stability,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,consequences.0.multiplierDelta,0.14,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:slow-fertility,heritable:slow-fertility,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,m_Name,heritable_stable-gestation,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,traitId,heritable:stable-gestation,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,displayName,안정 임신,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,description,생식 과정의 건강·영양 저하에 대한 실패 위험이 줄어든다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,category,3,HeritableTraitCategory,Reproduction,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,incompatibilityGroup,,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,aptitudeModifier,3,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,consequences.0.kind,4,HeritableTraitConsequenceKind,Fertility,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,consequences.0.targetId,gestation-stability,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,consequences.0.multiplierDelta,0.15,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:stable-gestation,heritable:stable-gestation,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,m_Name,heritable_toxin-filter,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,traitId,heritable:toxin-filter,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,displayName,독소 여과 기관,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,description,음식과 공기 독소의 축적을 늦춘다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,category,1,HeritableTraitCategory,Metabolism,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,incompatibilityGroup,,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,aptitudeModifier,4,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,consequences.0.kind,3,HeritableTraitConsequenceKind,Disease Resistance,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,consequences.0.targetId,toxin,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,consequences.0.multiplierDelta,0.14,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:toxin-filter,heritable:toxin-filter,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,m_Name,heritable_water-retention,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,traitId,heritable:water-retention,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,displayName,수분 보존 조직,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,description,건조 환경에서 탈수 진행이 늦다.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,authoringRevision,1,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,sourceNote,V20 hand-authored hereditary trait manifest.,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,category,1,HeritableTraitCategory,Metabolism,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,incompatibilityGroup,,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,aptitudeModifier,3,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,compatibleSpeciesTags,[],,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,consequences.0.kind,2,HeritableTraitConsequenceKind,Environmental Tolerance,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,consequences.0.targetId,dryness,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,consequences.0.multiplierDelta,0.14,,,explicit-serialized
+HeritableTraitDefinitionSO|heritable:water-retention,heritable:water-retention,kind,0,HeritableTraitConsequenceKind,None,implicit-csharp-default

@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "proficiency-fieldwork",
+  "spoiler_tier": "none",
+  "summary": "운반, 보급, 채집, 벌목, 채광·채석, 급수와 연료 보급의 숙련이다.",
+  "title": "현장 작업"
+}

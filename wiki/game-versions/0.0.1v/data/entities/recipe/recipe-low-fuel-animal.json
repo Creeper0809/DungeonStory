@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "10"
+    },
+    {
+      "label": "필요 연구",
+      "value": "퇴비·윤작"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-low-fuel",
+      "target_spoiler_tier": "none",
+      "target_title": "저급 연료",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "4",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "waste-animal-rot",
+      "target_spoiler_tier": "none",
+      "target_title": "동물성 부패물",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-compost",
+      "target_spoiler_tier": "none",
+      "target_title": "퇴비·윤작",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-grass-straw",
+      "target_spoiler_tier": "none",
+      "target_title": "풀·짚",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-low-fuel-animal",
+  "spoiler_tier": "none",
+  "summary": "동물성 부패 연료 생산 주문",
+  "title": "동물성 부패 연료"
+}

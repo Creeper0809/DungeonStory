@@ -1,0 +1,65 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "practice-slime-core-ring",
+    "spoiler_tier": "none",
+    "title": "핵고리 성년식"
+  },
+  "edges": [
+    {
+      "amount": "-2",
+      "from": "event/practice-slime-core-ring",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-slime-core-ring",
+      "target_spoiler_tier": "none",
+      "target_title": "핵고리 성년식",
+      "to": "event/practice-slime-core-ring",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "1",
+      "from": "event/practice-slime-core-ring",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-mana-shield-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 차폐판",
+      "to": "item/component-mana-shield-plate",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-slime-core-ring",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "practice-slime-core-ring",
+      "target_spoiler_tier": "none",
+      "target_title": "핵고리 성년식",
+      "to": "event/practice-slime-core-ring",
+      "type": "changes-health"
+    },
+    {
+      "amount": "-2",
+      "from": "event/practice-slime-core-ring",
+      "label": "연결",
+      "to": "event/practice-slime-core-ring",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "3",
+      "from": "event/practice-slime-core-ring",
+      "label": "연결",
+      "to": "event/practice-slime-core-ring",
+      "type": "changes-health"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-slime-confluence",
+      "label": "관련",
+      "to": "event/practice-slime-core-ring",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

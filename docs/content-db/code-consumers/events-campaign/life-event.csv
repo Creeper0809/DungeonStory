@@ -1,0 +1,7 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+LifeEventDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeAggregate.cs
+LifeEventDefinitionSO,content-type,,type-reference,services:character,content-loading,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs
+LifeEventDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeContracts.cs
+LifeEventDefinitionSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
+LifeEventDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
+LifeEventDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentResolutionService.cs

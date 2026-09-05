@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-9811",
+    "spoiler_tier": "none",
+    "title": "수차 발전기"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-waterwheel",
+      "label": "시설 해금",
+      "to": "facility/building-9811",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

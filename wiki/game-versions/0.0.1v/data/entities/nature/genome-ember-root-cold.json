@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-ember-root-cold",
+  "spoiler_tier": "none",
+  "summary": "낮은 토온에서도 뿌리를 키우지만 비옥도를 많이 먹는다.",
+  "title": "genome_ember-root_cold"
+}

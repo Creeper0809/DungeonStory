@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "30개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "25"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "서로 다른 세 가지 식물 재료를 여러 조리법으로 차려 낸 비건 만찬이다. 므네실라의 월야 비건 만찬은 한 재료도 같은 방식으로 두 번 조리하지 않아 뿌리부터 포자까지 서로 다른 식감을 낸다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-lavish-vegan",
+  "spoiler_tier": "none",
+  "summary": "세 가지 식물 재료군을 쓴 비건 호화식.",
+  "title": "월야 비건 만찬"
+}

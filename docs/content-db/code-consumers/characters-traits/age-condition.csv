@@ -1,0 +1,9 @@
+﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+AgeConditionDefinitionSO,content-type,,type-reference,models:species,content-loading,structural-type-consumer,Assets/Scripts/Models/Species/Core/CharacterSpeciesCatalog.cs
+AgeConditionDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/StartPartyPreparationService.cs
+AgeConditionDefinitionSO,stable-id,condition:age-cardiac-degeneration,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/CharacterSummaryPopulationPresenter.cs
+AgeConditionDefinitionSO,stable-id,condition:age-neural-degeneration,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/CharacterSummaryPopulationPresenter.cs
+AgeConditionDefinitionSO,stable-id,condition:age-organ-fibrosis,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/CharacterSummaryPopulationPresenter.cs
+AgeConditionDefinitionSO,stable-id,condition:core-corrosion,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/CharacterSummaryPopulationPresenter.cs
+AgeConditionDefinitionSO,stable-id,condition:frame-fatigue,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/CharacterSummaryPopulationPresenter.cs
+AgeConditionDefinitionSO,stable-id,condition:rune-circuit-wear,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/CharacterSummaryPopulationPresenter.cs

@@ -1,0 +1,35 @@
+{
+  "facts": [
+    {
+      "label": "최소 지속 기간",
+      "value": "3일"
+    },
+    {
+      "label": "최대 지속 기간",
+      "value": "5일"
+    },
+    {
+      "label": "종료 효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "events-campaign",
+  "kind": "event",
+  "relations": [
+    {
+      "amount": "6",
+      "label": "연결",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "type": "consumes-item"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "seasonal-summer-dry-well",
+  "spoiler_tier": "warning",
+  "summary": "깨끗한 물 생산 저하가 농업과 손님 서비스를 동시에 압박한다.",
+  "title": "마르는 수원"
+}

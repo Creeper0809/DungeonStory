@@ -1,0 +1,22 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": "18",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "festival-pack-first-hunt",
+  "spoiler_tier": "none",
+  "summary": "수인 무리가 공동 사냥과 고기 분배로 새 계절의 결속을 확인한다.",
+  "title": "무리의 첫사냥"
+}

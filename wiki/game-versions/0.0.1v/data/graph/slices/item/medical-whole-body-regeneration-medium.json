@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "medical-whole-body-regeneration-medium",
+    "spoiler_tier": "none",
+    "title": "전신 재생 배지"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medical-whole-body-regeneration-medium",
+      "label": "생산·해금",
+      "to": "item/medical-whole-body-regeneration-medium",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-whole-body-regeneration",
+      "label": "관련",
+      "to": "item/medical-whole-body-regeneration-medium",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

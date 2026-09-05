@@ -359,6 +359,10 @@ public static class ProductionPreparedOutputRoutingRestoreJoinDebugScenarios
                     outcomeFingerprint = new string('d', 64),
                     routingFingerprint = new string('e', 64),
                     destinationId = Source,
+                    capacitySourceDigest = new string('f', 64),
+                    outputBufferCycleCapacity = 4,
+                    projectedPortfolioCapacityGrams = 8_000L,
+                    requiredMinimumCapacityGrams = 8_000L,
                     lines = new List<ProductionPreparedOutputRoutingLineSaveData>
                     {
                         new()
@@ -370,6 +374,22 @@ public static class ProductionPreparedOutputRoutingRestoreJoinDebugScenarios
                             itemId = Item,
                             destinationId = Source,
                             componentFingerprint = Component,
+                            outputCapabilityId =
+                                ProductionOutputCapabilityIds.StandardDefinition,
+                            outputCapabilityVersion =
+                                ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                            outputComponentCodecId =
+                                ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                            outputComponentCodecVersion =
+                                ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion,
+                            outputCapabilityFingerprint =
+                                ProductionOutputCapabilityDescriptorFingerprint.Capture(
+                                    OutputLine,
+                                    Item,
+                                    ProductionOutputCapabilityIds.StandardDefinition,
+                                    ProductionOutputCapabilityIds.StandardDefinitionVersion,
+                                    ProductionOutputCapabilityIds.DefinitionOnlyCodec,
+                                    ProductionOutputCapabilityIds.DefinitionOnlyCodecVersion),
                             originalQuantity = 2,
                             remainingQuantity = physicallyApplied ? 1 : 2,
                             routedQuantity = physicallyApplied ? 1 : 0,

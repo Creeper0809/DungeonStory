@@ -60,11 +60,11 @@ public static class BatchCProductionInfrastructureAuthorityDebugScenarios
             .ToArray();
         int rollbackFree = productionSections.Count(type =>
             typeof(IDungeonRollbackFreeSaveSection).IsAssignableFrom(type));
-        if (productionSections.Length != 68
+        if (productionSections.Length != 74
             || rollbackFree != productionSections.Length)
         {
             failures.Add(
-                "V20 requires all 68 production save sections to be rollback-free; "
+                "V20 requires all 74 production save sections to be rollback-free; "
                 + $"found {rollbackFree}/{productionSections.Length}.");
         }
 
@@ -102,7 +102,7 @@ public static class BatchCProductionInfrastructureAuthorityDebugScenarios
 
         Debug.Log(
             "BATCH_C_PRODUCTION_INFRASTRUCTURE_AUTHORITY=PASS; "
-            + $"save={rollbackFree}/68; strict=68/68; graph=PASS; architecture=PASS");
+            + $"save={rollbackFree}/74; strict=74/74; graph=PASS; architecture=PASS");
     }
 
     private static void VerifySaveBoundary<TSection, TPayload>(

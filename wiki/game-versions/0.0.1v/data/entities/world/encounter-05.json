@@ -1,0 +1,31 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "world",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "battlefield-civilian-corridor",
+      "target_spoiler_tier": "none",
+      "target_title": "피난 통로",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "encounter-05",
+  "spoiler_tier": "warning",
+  "summary": "현장 강도 2~5에서 적 구성 2개와 전장 조건 1개를 조합한다. 대응 태그 3개와 보상 1개가 전투 준비와 수익의 관계를 만든다.",
+  "title": "경쟁 던전 척후"
+}

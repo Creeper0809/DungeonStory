@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-8821",
+    "spoiler_tier": "none",
+    "title": "동력 공구날 연마대"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-assisted-processing",
+      "label": "시설 해금",
+      "to": "facility/building-8821",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.72kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "어깨에서 등까지 넓게 덮어 바람과 먼지를 막는 겉옷이다. 하르나크에서 만든 망토는 날개와 넓은 어깨에 맞춰 등솔기를 고치기 쉽도록 여유 천을 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "apparel-cloak",
+  "spoiler_tier": "none",
+  "summary": "망토 물리 인스턴스. 크기·개조·재료 계보·위생·내구도를 보존한다.",
+  "title": "망토"
+}

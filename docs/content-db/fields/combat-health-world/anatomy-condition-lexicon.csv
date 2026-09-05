@@ -1,0 +1,284 @@
+﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+AnatomyConditionLexiconSO|condition:biological,condition:biological,m_Name,condition_biological,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,lexiconId,condition:biological,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,anatomyFamily,humanoid,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,speciesIds.0,human,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,speciesIds.1,orc,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,speciesIds.2,beastkin,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,speciesIds.3,kobold,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.0.condition,0,AnatomyConditionKind,Fluid Loss,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.0.label,출혈,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.0.treatmentVerb,치료,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.0.iconId,condition:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.0.vfxId,medical:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.1.condition,1,AnatomyConditionKind,Contamination,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.1.label,감염,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.1.treatmentVerb,치료,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.1.iconId,condition:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.1.vfxId,medical:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.2.condition,2,AnatomyConditionKind,Overstrain,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.2.label,쇼크,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.2.treatmentVerb,치료,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.2.iconId,condition:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.2.vfxId,medical:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.3.condition,3,AnatomyConditionKind,Fracture,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.3.label,골절·파열,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.3.treatmentVerb,치료,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.3.iconId,condition:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.3.vfxId,medical:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.4.condition,4,AnatomyConditionKind,Part Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.4.label,장기 정지,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.4.treatmentVerb,치료,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.4.iconId,condition:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.4.vfxId,medical:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.5.condition,5,AnatomyConditionKind,Compatibility Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.5.label,거부 반응,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.5.treatmentVerb,치료,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.5.iconId,condition:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.5.vfxId,medical:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.6.condition,6,AnatomyConditionKind,Treatment Required,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.6.label,치료·수술,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.6.treatmentVerb,치료,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.6.iconId,condition:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,entries.6.vfxId,medical:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:biological,condition:biological,condition,0,AnatomyConditionKind,Fluid Loss,implicit-csharp-default
+AnatomyConditionLexiconSO|condition:demon,condition:demon,m_Name,condition_demon,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,lexiconId,condition:demon,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,anatomyFamily,humanoid,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,speciesIds.0,demon,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.0.condition,0,AnatomyConditionKind,Fluid Loss,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.0.label,마력 누출,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.0.treatmentVerb,룬 봉합,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.0.iconId,condition:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.0.vfxId,medical:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.1.condition,1,AnatomyConditionKind,Contamination,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.1.label,룬 오염,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.1.treatmentVerb,룬 봉합,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.1.iconId,condition:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.1.vfxId,medical:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.2.condition,2,AnatomyConditionKind,Overstrain,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.2.label,룬 붕괴,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.2.treatmentVerb,룬 봉합,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.2.iconId,condition:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.2.vfxId,medical:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.3.condition,3,AnatomyConditionKind,Fracture,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.3.label,각질 균열,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.3.treatmentVerb,룬 봉합,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.3.iconId,condition:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.3.vfxId,medical:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.4.condition,4,AnatomyConditionKind,Part Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.4.label,마핵 정지,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.4.treatmentVerb,룬 봉합,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.4.iconId,condition:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.4.vfxId,medical:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.5.condition,5,AnatomyConditionKind,Compatibility Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.5.label,룬 비호환,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.5.treatmentVerb,룬 봉합,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.5.iconId,condition:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.5.vfxId,medical:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.6.condition,6,AnatomyConditionKind,Treatment Required,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.6.label,마핵 시술 필요,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.6.treatmentVerb,룬 봉합,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.6.iconId,condition:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,entries.6.vfxId,medical:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:demon,condition:demon,condition,0,AnatomyConditionKind,Fluid Loss,implicit-csharp-default
+AnatomyConditionLexiconSO|condition:golem,condition:golem,m_Name,condition_golem,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,lexiconId,condition:golem,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,anatomyFamily,construct,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,speciesIds.0,golem,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.0.condition,0,AnatomyConditionKind,Fluid Loss,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.0.label,냉각수 누수,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.0.treatmentVerb,정비,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.0.iconId,condition:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.0.vfxId,medical:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.1.condition,1,AnatomyConditionKind,Contamination,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.1.label,회로 오염·부식,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.1.treatmentVerb,정비,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.1.iconId,condition:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.1.vfxId,medical:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.2.condition,2,AnatomyConditionKind,Overstrain,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.2.label,과부하,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.2.treatmentVerb,정비,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.2.iconId,condition:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.2.vfxId,medical:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.3.condition,3,AnatomyConditionKind,Fracture,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.3.label,외장 균열,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.3.treatmentVerb,정비,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.3.iconId,condition:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.3.vfxId,medical:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.4.condition,4,AnatomyConditionKind,Part Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.4.label,핵 균열·서보 파손,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.4.treatmentVerb,정비,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.4.iconId,condition:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.4.vfxId,medical:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.5.condition,5,AnatomyConditionKind,Compatibility Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.5.label,부품 비호환,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.5.treatmentVerb,정비,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.5.iconId,condition:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.5.vfxId,medical:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.6.condition,6,AnatomyConditionKind,Treatment Required,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.6.label,정비·부품 교체,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.6.treatmentVerb,정비,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.6.iconId,condition:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,entries.6.vfxId,medical:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:golem,condition:golem,condition,0,AnatomyConditionKind,Fluid Loss,implicit-csharp-default
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,m_Name,condition_harpy,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,lexiconId,condition:harpy,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,anatomyFamily,avian,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,speciesIds.0,harpy,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.0.condition,0,AnatomyConditionKind,Fluid Loss,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.0.label,출혈,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.0.treatmentVerb,날개 고정,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.0.iconId,condition:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.0.vfxId,medical:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.1.condition,1,AnatomyConditionKind,Contamination,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.1.label,기낭 감염,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.1.treatmentVerb,날개 고정,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.1.iconId,condition:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.1.vfxId,medical:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.2.condition,2,AnatomyConditionKind,Overstrain,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.2.label,호흡 쇼크,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.2.treatmentVerb,날개 고정,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.2.iconId,condition:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.2.vfxId,medical:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.3.condition,3,AnatomyConditionKind,Fracture,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.3.label,기낭·날개 파열,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.3.treatmentVerb,날개 고정,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.3.iconId,condition:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.3.vfxId,medical:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.4.condition,4,AnatomyConditionKind,Part Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.4.label,기낭 정지,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.4.treatmentVerb,날개 고정,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.4.iconId,condition:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.4.vfxId,medical:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.5.condition,5,AnatomyConditionKind,Compatibility Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.5.label,이식 불화,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.5.treatmentVerb,날개 고정,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.5.iconId,condition:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.5.vfxId,medical:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.6.condition,6,AnatomyConditionKind,Treatment Required,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.6.label,조류 처치 필요,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.6.treatmentVerb,날개 고정,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.6.iconId,condition:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,entries.6.vfxId,medical:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:harpy,condition:harpy,condition,0,AnatomyConditionKind,Fluid Loss,implicit-csharp-default
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,m_Name,condition_myconid,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,lexiconId,condition:myconid,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,anatomyFamily,fungal,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,speciesIds.0,myconid,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.0.condition,0,AnatomyConditionKind,Fluid Loss,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.0.label,수액·포자 누출,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.0.treatmentVerb,접목,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.0.iconId,condition:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.0.vfxId,medical:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.1.condition,1,AnatomyConditionKind,Contamination,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.1.label,부패·포자 오염,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.1.treatmentVerb,접목,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.1.iconId,condition:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.1.vfxId,medical:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.2.condition,2,AnatomyConditionKind,Overstrain,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.2.label,군체 불안정,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.2.treatmentVerb,접목,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.2.iconId,condition:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.2.vfxId,medical:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.3.condition,3,AnatomyConditionKind,Fracture,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.3.label,균사 절단,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.3.treatmentVerb,접목,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.3.iconId,condition:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.3.vfxId,medical:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.4.condition,4,AnatomyConditionKind,Part Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.4.label,균핵 괴사,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.4.treatmentVerb,접목,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.4.iconId,condition:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.4.vfxId,medical:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.5.condition,5,AnatomyConditionKind,Compatibility Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.5.label,접목 불화,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.5.treatmentVerb,접목,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.5.iconId,condition:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.5.vfxId,medical:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.6.condition,6,AnatomyConditionKind,Treatment Required,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.6.label,균사 처치,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.6.treatmentVerb,접목,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.6.iconId,condition:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.6.vfxId,medical:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:myconid,condition:myconid,condition,0,AnatomyConditionKind,Fluid Loss,implicit-csharp-default
+AnatomyConditionLexiconSO|condition:slime,condition:slime,m_Name,condition_slime,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,lexiconId,condition:slime,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,anatomyFamily,slime,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,speciesIds.0,slime,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.0.condition,0,AnatomyConditionKind,Fluid Loss,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.0.label,점액 누출,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.0.treatmentVerb,재성형,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.0.iconId,condition:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.0.vfxId,medical:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.1.condition,1,AnatomyConditionKind,Contamination,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.1.label,점액 오염,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.1.treatmentVerb,재성형,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.1.iconId,condition:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.1.vfxId,medical:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.2.condition,2,AnatomyConditionKind,Overstrain,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.2.label,응집 불안정,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.2.treatmentVerb,재성형,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.2.iconId,condition:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.2.vfxId,medical:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.3.condition,3,AnatomyConditionKind,Fracture,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.3.label,외피 찢김,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.3.treatmentVerb,재성형,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.3.iconId,condition:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.3.vfxId,medical:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.4.condition,4,AnatomyConditionKind,Part Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.4.label,핵 손상,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.4.treatmentVerb,재성형,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.4.iconId,condition:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.4.vfxId,medical:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.5.condition,5,AnatomyConditionKind,Compatibility Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.5.label,이질 점액 거부,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.5.treatmentVerb,재성형,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.5.iconId,condition:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.5.vfxId,medical:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.6.condition,6,AnatomyConditionKind,Treatment Required,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.6.label,안정화·재성형,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.6.treatmentVerb,재성형,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.6.iconId,condition:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.6.vfxId,medical:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,condition,0,AnatomyConditionKind,Fluid Loss,implicit-csharp-default
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,m_Name,condition_vampire,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,lexiconId,condition:vampire,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,anatomyFamily,humanoid,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,speciesIds.0,vampire,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.0.condition,0,AnatomyConditionKind,Fluid Loss,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.0.label,혈액 고갈,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.0.treatmentVerb,혈술 처치,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.0.iconId,condition:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.0.vfxId,medical:fluidloss,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.1.condition,1,AnatomyConditionKind,Contamination,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.1.label,부패 감염,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.1.treatmentVerb,혈술 처치,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.1.iconId,condition:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.1.vfxId,medical:contamination,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.2.condition,2,AnatomyConditionKind,Overstrain,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.2.label,혈류 쇼크,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.2.treatmentVerb,혈술 처치,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.2.iconId,condition:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.2.vfxId,medical:overstrain,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.3.condition,3,AnatomyConditionKind,Fracture,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.3.label,골절·파열,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.3.treatmentVerb,혈술 처치,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.3.iconId,condition:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.3.vfxId,medical:fracture,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.4.condition,4,AnatomyConditionKind,Part Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.4.label,혈액낭 정지,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.4.treatmentVerb,혈술 처치,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.4.iconId,condition:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.4.vfxId,medical:partfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.5.condition,5,AnatomyConditionKind,Compatibility Failure,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.5.label,혈핵 거부,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.5.treatmentVerb,혈술 처치,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.5.iconId,condition:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.5.vfxId,medical:compatibilityfailure,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.6.condition,6,AnatomyConditionKind,Treatment Required,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.6.label,혈술 처치 필요,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.6.treatmentVerb,혈술 처치,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.6.iconId,condition:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,entries.6.vfxId,medical:treatmentrequired,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:vampire,condition:vampire,condition,0,AnatomyConditionKind,Fluid Loss,implicit-csharp-default

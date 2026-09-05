@@ -1,0 +1,47 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "life-event-apprentice-mistake",
+    "spoiler_tier": "warning",
+    "title": "도제의 큰 실수"
+  },
+  "edges": [
+    {
+      "amount": "-4",
+      "from": "event/life-event-apprentice-mistake",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-apprentice-mistake",
+      "target_spoiler_tier": "warning",
+      "target_title": "도제의 큰 실수",
+      "to": "event/life-event-apprentice-mistake",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "25",
+      "from": "event/life-event-apprentice-mistake",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-apprentice-mistake",
+      "target_spoiler_tier": "warning",
+      "target_title": "도제의 큰 실수",
+      "to": "event/life-event-apprentice-mistake",
+      "type": "grants-skill-experience"
+    },
+    {
+      "amount": "-4",
+      "from": "event/life-event-apprentice-mistake",
+      "label": "연결",
+      "to": "event/life-event-apprentice-mistake",
+      "type": "changes-mood"
+    },
+    {
+      "amount": "25",
+      "from": "event/life-event-apprentice-mistake",
+      "label": "연결",
+      "to": "event/life-event-apprentice-mistake",
+      "type": "grants-skill-experience"
+    }
+  ],
+  "schema_version": 1
+}

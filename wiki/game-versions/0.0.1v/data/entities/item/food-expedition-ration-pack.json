@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.75kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "20"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "걷는 중에도 꺼내 먹을 수 있도록 보존식과 작은 식기를 한 끼씩 묶은 원정 식량이다. 하르나크의 귀환자의 식탁에는 원정 배급 꾸러미의 빈 포장도 놓인다. 빈 포장 하나가 돌아오지 못한 한 끼를 뜻한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-expedition-ration-pack",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "원정 배급 꾸러미"
+}

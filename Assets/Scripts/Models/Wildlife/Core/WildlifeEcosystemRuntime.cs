@@ -27,13 +27,13 @@ public sealed partial class WildlifeEcosystemRuntime :
     private readonly IRandomStream randomStream;
     private readonly IGameCalendar calendar;
     private List<WildlifeHabitatPatch> patches = new List<WildlifeHabitatPatch>();
-    private Dictionary<string, float> speciesRespawnAt =
-        new Dictionary<string, float>(StringComparer.Ordinal);
+    private Dictionary<string, double> speciesRespawnAt =
+        new Dictionary<string, double>(StringComparer.Ordinal);
 
     private IWildlifeGridPort initializedGrid;
     private float nextPatchTickAt;
     private float nextOverlayRefreshAt;
-    private float nextGlobalRespawnAt;
+    private double nextGlobalRespawnAt;
     private float recentHuntPressure;
     private float recentPredationPressure;
     private bool initialized;
@@ -145,17 +145,41 @@ public sealed partial class WildlifeEcosystemRuntime :
             version = DungeonWildlifeEcosystemSaveData.CurrentVersion,
             recentHuntPressure = Mathf.Max(0f, recentHuntPressure),
             recentPredationPressure = Mathf.Max(0f, recentPredationPressure),
-            globalRespawnRemainingSeconds = Mathf.Max(0f, nextGlobalRespawnAt - gameClock.Time),
+            globalRespawnRemainingSeconds =
+                CanonicalizeRespawnRemainingSeconds(
+                    nextGlobalRespawnAt - (double)gameClock.Time),
             speciesRespawns = speciesRespawnAt
                 .Where(pair => !string.IsNullOrWhiteSpace(pair.Key))
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => new WildlifeSpeciesRespawnSaveData
                 {
                     speciesId = pair.Key,
-                    remainingSeconds = Mathf.Max(0f, pair.Value - gameClock.Time)
+                    remainingSeconds = CanonicalizeRespawnRemainingSeconds(
+                        pair.Value - (double)gameClock.Time)
                 })
                 .ToList(),
             patches = patches.Select(patch => patch.Capture()).ToList()
         };
+    }
+
+    internal static float CanonicalizeRespawnRemainingSeconds(double seconds)
+    {
+        if (double.IsNaN(seconds)
+            || double.IsInfinity(seconds)
+            || seconds > float.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "Wildlife respawn remaining time must be finite.");
+        }
+
+        if (seconds <= 0f)
+            return 0f;
+
+        // The internal deadline is double while both the clock and save token
+        // are floats. Every float is exactly representable as a double, so an
+        // immediate restore/capture preserves the authored float payload
+        // without imposing a lossy decimal quantization.
+        return (float)seconds;
     }
 
     public WildlifeEcosystemOverview GetOverview(
@@ -182,7 +206,8 @@ public sealed partial class WildlifeEcosystemRuntime :
             crowding,
             desired,
             alive,
-            Mathf.Max(0f, nextGlobalRespawnAt - gameClock.Time));
+            CanonicalizeRespawnRemainingSeconds(
+                nextGlobalRespawnAt - (double)gameClock.Time));
     }
 
     public void SetOverlayEnabled(bool enabled)
@@ -452,7 +477,10 @@ public sealed partial class WildlifeEcosystemRuntime :
             .Where(definition => definition != null
                 && definition.SpawnWeight > 0f
                 && (calendar == null || definition.IsActiveIn(calendar.Season))
-                && (!speciesRespawnAt.TryGetValue(definition.SpeciesId, out float speciesAt) || now >= speciesAt))
+                && (!speciesRespawnAt.TryGetValue(
+                        definition.SpeciesId,
+                        out double speciesAt)
+                    || now >= speciesAt))
             .ToList();
         if (candidates.Count == 0)
         {
@@ -503,7 +531,9 @@ public sealed partial class WildlifeEcosystemRuntime :
         {
             recentHuntPressure = Mathf.Clamp01(recentHuntPressure + 0.22f);
             speciesRespawnAt[actor.SpeciesId] = now + HuntedRespawnCooldownSeconds;
-            nextGlobalRespawnAt = Mathf.Max(nextGlobalRespawnAt, now + GlobalRespawnCooldownSeconds);
+            nextGlobalRespawnAt = Math.Max(
+                nextGlobalRespawnAt,
+                now + GlobalRespawnCooldownSeconds);
         }
         else
         {

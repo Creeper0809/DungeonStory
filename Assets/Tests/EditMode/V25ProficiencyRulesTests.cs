@@ -117,6 +117,36 @@ namespace DungeonStory.Tests.Architecture
         }
 
         [Test]
+        public void DecayScheduleUsesCurrentRankBoundary()
+        {
+            Assert.That(
+                ProficiencyProgressionRules.ResolveDecayGraceHours(
+                    CharacterProficiencyRank.Master),
+                Is.EqualTo(5L * GameCalendarRules.HoursPerDay));
+            Assert.That(
+                ProficiencyProgressionRules.ResolveDecayGraceHours(
+                    CharacterProficiencyRank.Expert),
+                Is.EqualTo(15L * GameCalendarRules.HoursPerDay));
+            Assert.That(
+                ProficiencyProgressionRules.ResolveDecayGraceHours(
+                    CharacterProficiencyRank.Technician),
+                Is.Zero);
+            Assert.That(
+                ProficiencyProgressionRules.CalculateHoursUntilDemotion(
+                    ProficiencyProgressionRules.MasterCurrentCap),
+                Is.EqualTo(601L));
+            Assert.That(
+                ProficiencyProgressionRules.CalculateHoursUntilDemotion(
+                    ProficiencyProgressionRules.ExpertThreshold
+                    + 100L * ProficiencyProgressionRules.MilliPerExperience),
+                Is.EqualTo(401L));
+            Assert.That(
+                ProficiencyProgressionRules.CalculateHoursUntilDemotion(
+                    ProficiencyProgressionRules.TechnicianThreshold),
+                Is.Zero);
+        }
+
+        [Test]
         public void CraftsmanshipUsesOnlyAuthoritativeProficiencyExperience()
         {
             Assert.That(

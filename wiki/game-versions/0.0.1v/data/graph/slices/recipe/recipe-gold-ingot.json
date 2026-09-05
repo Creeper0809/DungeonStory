@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-gold-ingot",
+    "spoiler_tier": "none",
+    "title": "금 제련"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-gold-ingot",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-gold-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "금괴",
+      "to": "item/material-gold-ingot",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-gold-ingot",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-coal",
+      "target_spoiler_tier": "none",
+      "target_title": "석탄",
+      "to": "item/resource-coal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-gold-ingot",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-gold-ore",
+      "target_spoiler_tier": "none",
+      "target_title": "금광석",
+      "to": "item/resource-gold-ore",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-gold-ingot",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-precious",
+      "target_spoiler_tier": "none",
+      "target_title": "귀금 세공",
+      "to": "research/research-metallurgy-precious",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

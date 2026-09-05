@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "building-1015",
+    "spoiler_tier": "none",
+    "title": "잡화상자"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-commerce-secure-display-2",
+      "label": "관련",
+      "to": "facility/building-1015",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

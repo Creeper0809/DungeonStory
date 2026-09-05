@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.85kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "115"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "고급 무기와 방어구에 쓰는 강한 금속이다. 특히 크릭 제7굴산 강철은 품질이 좋고, 표면에 일곱 톱니 자국과 되녹인 횟수가 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-steel-ingot",
+  "spoiler_tier": "none",
+  "summary": "고급 무기와 방어구에 쓰는 강한 금속.",
+  "title": "강철"
+}

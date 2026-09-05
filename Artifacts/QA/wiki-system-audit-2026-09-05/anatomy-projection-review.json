@@ -1,0 +1,2982 @@
+{
+  "status": "in_progress",
+  "scope": "12 authored anatomy profiles / 147 nodes; all 35 special-reference bodies and 12 profile entries reviewed. Numeric subset checks are not full gameplay or wiki completion.",
+  "profiles": [
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_avian.asset",
+      "sha256": "7648cf8e845db1d5868e4ed332a8cba30b639a0afe88f502d360bd74130679f1",
+      "profileId": "anatomy:avian",
+      "species": "- Harpy",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "머리",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "6",
+          "maxHealth": "15",
+          "capacityWeight": "0.35",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "brain",
+          "displayName": "뇌",
+          "parentNodeId": "head",
+          "kind": "1",
+          "functions": "2",
+          "maxHealth": "10",
+          "capacityWeight": "0.7",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eye:left",
+          "displayName": "왼쪽 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "6",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eye:right",
+          "displayName": "오른쪽 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "6",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "몸통",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "9265",
+          "maxHealth": "38",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "heart",
+          "displayName": "심장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "1",
+          "maxHealth": "12",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "air-sacs",
+          "displayName": "기낭",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "13",
+          "capacityWeight": "1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "wing:left",
+          "displayName": "왼날개",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "192",
+          "maxHealth": "24",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "wings",
+          "legacyBodyPart": "2",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "wing:right",
+          "displayName": "오른날개",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "192",
+          "maxHealth": "24",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "wings",
+          "legacyBodyPart": "3",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "leg:left",
+          "displayName": "왼다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "20",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:right",
+          "displayName": "오른다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "20",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_beastkin.asset",
+      "sha256": "e6a88bed16420f7f81e3f0e3a17b05ebe80e0d5fd5d747e38736db41c57dc718",
+      "profileId": "anatomy:beastkin",
+      "species": "- Beastkin",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "머리",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "6",
+          "maxHealth": "19",
+          "capacityWeight": "0.25",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "brain",
+          "displayName": "뇌",
+          "parentNodeId": "head",
+          "kind": "1",
+          "functions": "2",
+          "maxHealth": "12",
+          "capacityWeight": "0.55",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eyes",
+          "displayName": "두 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "10",
+          "capacityWeight": "0.45",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "ears",
+          "displayName": "감각 귀",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "12",
+          "capacityWeight": "0.3",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "muzzle",
+          "displayName": "주둥이",
+          "parentNodeId": "head",
+          "kind": "0",
+          "functions": "16",
+          "maxHealth": "15",
+          "capacityWeight": "0.25",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "몸통",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "9249",
+          "maxHealth": "48",
+          "capacityWeight": "0.55",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "heart",
+          "displayName": "심장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "1",
+          "maxHealth": "16",
+          "capacityWeight": "0.45",
+          "vital": "1",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lungs",
+          "displayName": "폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "22",
+          "capacityWeight": "1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "arm:left",
+          "displayName": "왼팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "25",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "2",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "arm:right",
+          "displayName": "오른팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "25",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "3",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:left",
+          "displayName": "왼다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "31",
+          "capacityWeight": "0.4",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:right",
+          "displayName": "오른다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "31",
+          "capacityWeight": "0.4",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "balance-tail",
+          "displayName": "균형 꼬리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "23",
+          "capacityWeight": "0.2",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_construct.asset",
+      "sha256": "4c8757a9d375d0869e1d40600a239afac046e1763fea048793114718aa60ebf4",
+      "profileId": "anatomy:construct",
+      "species": "- Golem",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "감응석 머리",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "4",
+          "maxHealth": "28",
+          "capacityWeight": "1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "sensor-core",
+          "displayName": "감응 핵",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "18",
+          "capacityWeight": "1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "주조 몸체",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "9275",
+          "maxHealth": "70",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "power-core",
+          "displayName": "동력핵",
+          "parentNodeId": "torso",
+          "kind": "4",
+          "functions": "3",
+          "maxHealth": "24",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "arm:left",
+          "displayName": "왼쪽 작업팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "38",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "2",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "arm:right",
+          "displayName": "오른쪽 작업팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "38",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "3",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:left",
+          "displayName": "왼쪽 지지각",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "44",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:right",
+          "displayName": "오른쪽 지지각",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "44",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_demon.asset",
+      "sha256": "ddd324ae71ce031e7ae740b62f9eb3d56c5a71dbc0572cdcc16d4c7860512865",
+      "profileId": "anatomy:demon",
+      "species": "- Demon",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "머리",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "6",
+          "maxHealth": "21",
+          "capacityWeight": "0.3",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "brain",
+          "displayName": "뇌",
+          "parentNodeId": "head",
+          "kind": "1",
+          "functions": "2",
+          "maxHealth": "13",
+          "capacityWeight": "0.7",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eyes",
+          "displayName": "두 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "11",
+          "capacityWeight": "1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "horn:left",
+          "displayName": "왼쪽 뿔",
+          "parentNodeId": "head",
+          "kind": "0",
+          "functions": "1",
+          "maxHealth": "17",
+          "capacityWeight": "0.1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "horns",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "horn:right",
+          "displayName": "오른쪽 뿔",
+          "parentNodeId": "head",
+          "kind": "0",
+          "functions": "1",
+          "maxHealth": "17",
+          "capacityWeight": "0.1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "horns",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "몸통",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "1",
+          "maxHealth": "50",
+          "capacityWeight": "0.35",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "mana-core",
+          "displayName": "마핵",
+          "parentNodeId": "torso",
+          "kind": "4",
+          "functions": "8211",
+          "maxHealth": "24",
+          "capacityWeight": "0.45",
+          "vital": "1",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "heat-sac",
+          "displayName": "열낭",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "40",
+          "maxHealth": "21",
+          "capacityWeight": "0.2",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "arm:left",
+          "displayName": "왼팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "1088",
+          "maxHealth": "27",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "2",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "arm:right",
+          "displayName": "오른팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "27",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "3",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:left",
+          "displayName": "왼다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "29",
+          "capacityWeight": "0.45",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:right",
+          "displayName": "오른다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "29",
+          "capacityWeight": "0.45",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "tail",
+          "displayName": "꼬리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "24",
+          "capacityWeight": "0.1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_fungal.asset",
+      "sha256": "bd2465ec70a2c778d989160a6eb62ebf6bcf40022e3f61c139a2d0988a64e5b3",
+      "profileId": "anatomy:fungal",
+      "species": "- Myconid",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "균모",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "36",
+          "maxHealth": "24",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "spore-sac",
+          "displayName": "포자낭",
+          "parentNodeId": "head",
+          "kind": "1",
+          "functions": "40",
+          "maxHealth": "16",
+          "capacityWeight": "0.8",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "균사 몸통",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "9235",
+          "maxHealth": "48",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "hypha-core",
+          "displayName": "중심 균핵",
+          "parentNodeId": "torso",
+          "kind": "4",
+          "functions": "3",
+          "maxHealth": "18",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "arm:left",
+          "displayName": "왼쪽 균사팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "20",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "2",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "arm:right",
+          "displayName": "오른쪽 균사팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "20",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "3",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:left",
+          "displayName": "왼쪽 균사다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "22",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:right",
+          "displayName": "오른쪽 균사다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "22",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_human.asset",
+      "sha256": "68a03a990ed25a19014deed0c7e860ac52e705cecad54bed965107c663b4722f",
+      "profileId": "anatomy:human",
+      "species": "- Human",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "머리",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "6",
+          "maxHealth": "18",
+          "capacityWeight": "0.35",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "brain",
+          "displayName": "뇌",
+          "parentNodeId": "head",
+          "kind": "1",
+          "functions": "2",
+          "maxHealth": "12",
+          "capacityWeight": "0.65",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eye:left",
+          "displayName": "왼쪽 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "6",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eye:right",
+          "displayName": "오른쪽 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "6",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "몸통",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "9217",
+          "maxHealth": "45",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "heart",
+          "displayName": "심장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "1",
+          "maxHealth": "14",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lung:left",
+          "displayName": "왼쪽 폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "12",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "lungs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lung:right",
+          "displayName": "오른쪽 폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "12",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "lungs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "liver",
+          "displayName": "간",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "48",
+          "maxHealth": "16",
+          "capacityWeight": "0.6",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "kidney:left",
+          "displayName": "왼쪽 신장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "32",
+          "maxHealth": "10",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "kidneys",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "kidney:right",
+          "displayName": "오른쪽 신장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "32",
+          "maxHealth": "10",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "kidneys",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "stomach",
+          "displayName": "위",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "16",
+          "maxHealth": "14",
+          "capacityWeight": "0.4",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "arm:left",
+          "displayName": "왼팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "22",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "2",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "arm:right",
+          "displayName": "오른팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "22",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "3",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:left",
+          "displayName": "왼다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "26",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:right",
+          "displayName": "오른다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "26",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_humanoid.asset",
+      "sha256": "e5ffbc1508f882f6673a495ed50285ce36d5db194f4f99352f2581f05801871f",
+      "profileId": "anatomy:humanoid",
+      "species": "- Goblin\n  - LegacyHumanoid",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "머리",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "6",
+          "maxHealth": "18",
+          "capacityWeight": "0.35",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "brain",
+          "displayName": "뇌",
+          "parentNodeId": "head",
+          "kind": "1",
+          "functions": "2",
+          "maxHealth": "12",
+          "capacityWeight": "0.65",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eye:left",
+          "displayName": "왼쪽 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "6",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eye:right",
+          "displayName": "오른쪽 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "6",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "몸통",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "9217",
+          "maxHealth": "45",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "heart",
+          "displayName": "심장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "1",
+          "maxHealth": "14",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lung:left",
+          "displayName": "왼쪽 폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "12",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "lungs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lung:right",
+          "displayName": "오른쪽 폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "12",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "lungs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "liver",
+          "displayName": "간",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "48",
+          "maxHealth": "16",
+          "capacityWeight": "0.6",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "kidney:left",
+          "displayName": "왼쪽 신장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "32",
+          "maxHealth": "10",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "kidneys",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "kidney:right",
+          "displayName": "오른쪽 신장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "32",
+          "maxHealth": "10",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "kidneys",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "stomach",
+          "displayName": "위",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "16",
+          "maxHealth": "14",
+          "capacityWeight": "0.4",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "arm:left",
+          "displayName": "왼팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "22",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "2",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "arm:right",
+          "displayName": "오른팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "22",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "3",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:left",
+          "displayName": "왼다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "26",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:right",
+          "displayName": "오른다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "26",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_kobold.asset",
+      "sha256": "a86dcbcc149e2fbf54b35ff36f92ec12972086545d8d9fadbf339edbcc28e008",
+      "profileId": "anatomy:kobold",
+      "species": "- Kobold",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "머리",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "6",
+          "maxHealth": "14",
+          "capacityWeight": "0.25",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "brain",
+          "displayName": "뇌",
+          "parentNodeId": "head",
+          "kind": "1",
+          "functions": "2",
+          "maxHealth": "9",
+          "capacityWeight": "0.55",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eyes",
+          "displayName": "두 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "9",
+          "capacityWeight": "0.45",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "muzzle",
+          "displayName": "주둥이",
+          "parentNodeId": "head",
+          "kind": "0",
+          "functions": "16",
+          "maxHealth": "11",
+          "capacityWeight": "0.2",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "몸통",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "9249",
+          "maxHealth": "34",
+          "capacityWeight": "0.55",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "heart",
+          "displayName": "심장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "1",
+          "maxHealth": "11",
+          "capacityWeight": "0.45",
+          "vital": "1",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lungs",
+          "displayName": "폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "16",
+          "capacityWeight": "1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "hand:left",
+          "displayName": "왼손",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "18",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "hands",
+          "legacyBodyPart": "2",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "hand:right",
+          "displayName": "오른손",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "18",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "hands",
+          "legacyBodyPart": "3",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "leg:left",
+          "displayName": "왼다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "20",
+          "capacityWeight": "0.4",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:right",
+          "displayName": "오른다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "20",
+          "capacityWeight": "0.4",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "balance-tail",
+          "displayName": "균형 꼬리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "18",
+          "capacityWeight": "0.2",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_orc.asset",
+      "sha256": "dcedbd691724b063e54342a9af4a8fe53bb01b0f487cc6fc6785785ff47e5703",
+      "profileId": "anatomy:orc",
+      "species": "- Orc",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "머리",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "6",
+          "maxHealth": "22",
+          "capacityWeight": "0.3",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "brain",
+          "displayName": "뇌",
+          "parentNodeId": "head",
+          "kind": "1",
+          "functions": "2",
+          "maxHealth": "15",
+          "capacityWeight": "0.7",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eye:left",
+          "displayName": "왼쪽 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "7",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eye:right",
+          "displayName": "오른쪽 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "7",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "tusk:left",
+          "displayName": "왼쪽 엄니",
+          "parentNodeId": "head",
+          "kind": "0",
+          "functions": "64",
+          "maxHealth": "12",
+          "capacityWeight": "0.15",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "tusks",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "tusk:right",
+          "displayName": "오른쪽 엄니",
+          "parentNodeId": "head",
+          "kind": "0",
+          "functions": "64",
+          "maxHealth": "12",
+          "capacityWeight": "0.15",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "tusks",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "몸통",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "9217",
+          "maxHealth": "58",
+          "capacityWeight": "0.55",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "heart",
+          "displayName": "전투 심장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "1",
+          "maxHealth": "20",
+          "capacityWeight": "0.45",
+          "vital": "1",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lung:left",
+          "displayName": "왼쪽 폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "16",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "lungs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lung:right",
+          "displayName": "오른쪽 폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "16",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "lungs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "liver",
+          "displayName": "간",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "48",
+          "maxHealth": "20",
+          "capacityWeight": "0.55",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "stomach",
+          "displayName": "위",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "16",
+          "maxHealth": "18",
+          "capacityWeight": "0.45",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "arm:left",
+          "displayName": "왼팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "32",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "2",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "arm:right",
+          "displayName": "오른팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "32",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "3",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:left",
+          "displayName": "왼다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "36",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:right",
+          "displayName": "오른다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "36",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_quadruped.asset",
+      "sha256": "1bf1a2f4f8c48d1b4335c5893dd6e12b4bf670f01314dc0a74089111b08ba27e",
+      "profileId": "anatomy:quadruped",
+      "species": "- cave_rat\n  - shadow_hare\n  - moss_boar\n  - rune_deer\n  - shadow_wolf\n  - ash_goat",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "머리",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "6",
+          "maxHealth": "15",
+          "capacityWeight": "0.35",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "brain",
+          "displayName": "뇌",
+          "parentNodeId": "head",
+          "kind": "1",
+          "functions": "2",
+          "maxHealth": "9",
+          "capacityWeight": "0.65",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eye:left",
+          "displayName": "왼쪽 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "5",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "eye:right",
+          "displayName": "오른쪽 눈",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "5",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "몸통",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "9281",
+          "maxHealth": "38",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "heart",
+          "displayName": "심장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "1",
+          "maxHealth": "12",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lung:left",
+          "displayName": "왼쪽 폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "10",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "lungs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lung:right",
+          "displayName": "오른쪽 폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "10",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "lungs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "liver",
+          "displayName": "간",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "48",
+          "maxHealth": "13",
+          "capacityWeight": "0.6",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "kidney:left",
+          "displayName": "왼쪽 신장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "32",
+          "maxHealth": "8",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "kidneys",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "kidney:right",
+          "displayName": "오른쪽 신장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "32",
+          "maxHealth": "8",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "kidneys",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "stomach",
+          "displayName": "위",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "16",
+          "maxHealth": "12",
+          "capacityWeight": "0.4",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "forelegs",
+          "displayName": "앞다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "20",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "hindlegs",
+          "displayName": "뒷다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "22",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_slime.asset",
+      "sha256": "97c19a9a9c21f21c136c105381958ce073899a29b88e273952281a48c11674dc",
+      "profileId": "anatomy:slime",
+      "species": "- Slime",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "membrane",
+          "displayName": "외막",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "129",
+          "maxHealth": "55",
+          "capacityWeight": "0.7",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "core",
+          "displayName": "핵",
+          "parentNodeId": "membrane",
+          "kind": "4",
+          "functions": "9275",
+          "maxHealth": "20",
+          "capacityWeight": "1",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "sensory-gel",
+          "displayName": "감각 젤",
+          "parentNodeId": "membrane",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "16",
+          "capacityWeight": "1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "pseudopods",
+          "displayName": "위족",
+          "parentNodeId": "membrane",
+          "kind": "3",
+          "functions": "192",
+          "maxHealth": "30",
+          "capacityWeight": "1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        }
+      ]
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Assets\\Resources\\SO\\Medical\\Anatomy\\anatomy_vampire.asset",
+      "sha256": "8fee7e43661ba55ef670f1914fe2a6eece2f9e2e8b271032ca3bfd61091407bf",
+      "profileId": "anatomy:vampire",
+      "species": "- Vampire",
+      "notApplicable": "[]",
+      "nodes": [
+        {
+          "nodeId": "head",
+          "displayName": "머리",
+          "parentNodeId": "",
+          "kind": "0",
+          "functions": "6",
+          "maxHealth": "17",
+          "capacityWeight": "0.3",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "brain",
+          "displayName": "뇌",
+          "parentNodeId": "head",
+          "kind": "1",
+          "functions": "2",
+          "maxHealth": "12",
+          "capacityWeight": "0.7",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "night-eye:left",
+          "displayName": "왼쪽 야간안",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "7",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "night-eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "night-eye:right",
+          "displayName": "오른쪽 야간안",
+          "parentNodeId": "head",
+          "kind": "2",
+          "functions": "4",
+          "maxHealth": "7",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "night-eyes",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "fang:left",
+          "displayName": "왼쪽 송곳니",
+          "parentNodeId": "head",
+          "kind": "0",
+          "functions": "16",
+          "maxHealth": "9",
+          "capacityWeight": "0.15",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "fangs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "fang:right",
+          "displayName": "오른쪽 송곳니",
+          "parentNodeId": "head",
+          "kind": "0",
+          "functions": "16",
+          "maxHealth": "9",
+          "capacityWeight": "0.15",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "fangs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "torso",
+          "displayName": "몸통",
+          "parentNodeId": "",
+          "kind": "4",
+          "functions": "1",
+          "maxHealth": "42",
+          "capacityWeight": "0.45",
+          "vital": "1",
+          "removable": "0",
+          "pairedGroupId": "",
+          "legacyBodyPart": "1",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "heart",
+          "displayName": "심장",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "1",
+          "maxHealth": "14",
+          "capacityWeight": "0.25",
+          "vital": "1",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "blood-sac",
+          "displayName": "혈액낭",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "33",
+          "maxHealth": "18",
+          "capacityWeight": "0.3",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lung:left",
+          "displayName": "왼쪽 폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "11",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "lungs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "lung:right",
+          "displayName": "오른쪽 폐",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8",
+          "maxHealth": "11",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "lungs",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "liver",
+          "displayName": "간",
+          "parentNodeId": "torso",
+          "kind": "1",
+          "functions": "8224",
+          "maxHealth": "14",
+          "capacityWeight": "1",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "",
+          "legacyBodyPart": "0",
+          "mapsToLegacyBodyPart": "0"
+        },
+        {
+          "nodeId": "arm:left",
+          "displayName": "왼팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "1088",
+          "maxHealth": "21",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "2",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "arm:right",
+          "displayName": "오른팔",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "64",
+          "maxHealth": "21",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "arms",
+          "legacyBodyPart": "3",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:left",
+          "displayName": "왼다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "24",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "4",
+          "mapsToLegacyBodyPart": "1"
+        },
+        {
+          "nodeId": "leg:right",
+          "displayName": "오른다리",
+          "parentNodeId": "torso",
+          "kind": "3",
+          "functions": "128",
+          "maxHealth": "24",
+          "capacityWeight": "0.5",
+          "vital": "0",
+          "removable": "1",
+          "pairedGroupId": "legs",
+          "legacyBodyPart": "5",
+          "mapsToLegacyBodyPart": "1"
+        }
+      ]
+    }
+  ],
+  "publishedEntries": [
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-avian.json",
+      "sha256": "68378ad25f0154f17f613c9d46cc55e5081d64519cafe0e708db68b8c8ca6bc7",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-avian",
+        "spoiler_tier": "none",
+        "summary": "종족 1종의 신체를 해부 노드 11개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "조류형"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-beastkin.json",
+      "sha256": "67044f2f1a96e2110633a178eb29000d64ad4329cccb3e5782f647cd8dcddc3d",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-beastkin",
+        "spoiler_tier": "none",
+        "summary": "종족 1종의 신체를 해부 노드 13개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "수인 해부 구조"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-construct.json",
+      "sha256": "2ff830025675c19904e849b5b2c5ae32d90fa6369e205120aad5488fc9770f92",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-construct",
+        "spoiler_tier": "none",
+        "summary": "종족 1종의 신체를 해부 노드 8개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "골렘 기계 구조"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-demon.json",
+      "sha256": "1f719a9f9f8f0fa3e8688bbfb52b04208209f6f89dd9d55b46cb73414803a955",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-demon",
+        "spoiler_tier": "none",
+        "summary": "종족 1종의 신체를 해부 노드 13개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "데몬 해부 구조"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-fungal.json",
+      "sha256": "ec2f96b724fe1f2009543ab1a55092af08120dfbe6d1fc01f75856682a46ec9e",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-fungal",
+        "spoiler_tier": "none",
+        "summary": "종족 1종의 신체를 해부 노드 8개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "균사 군체 구조"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-human.json",
+      "sha256": "c2d6116c87661f97d9b3853378521e66484207a0dac8fff4f09293a8b02d6755",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-human",
+        "spoiler_tier": "none",
+        "summary": "종족 1종의 신체를 해부 노드 16개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "인간 해부 구조"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-humanoid.json",
+      "sha256": "c4a9ffae4454f4b85da127eb9f15e38060275d14e3809f0f4ee74c4b435b6584",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-humanoid",
+        "spoiler_tier": "none",
+        "summary": "종족 2종의 신체를 해부 노드 16개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "인간형"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-kobold.json",
+      "sha256": "ae030e7c274c6a09178b0ca5813654c4efdf72f6e0fff04236138fe9a6bd4b6f",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-kobold",
+        "spoiler_tier": "none",
+        "summary": "종족 1종의 신체를 해부 노드 12개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "코볼트 해부 구조"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-orc.json",
+      "sha256": "ecd33afb730b79d97e0a0859bf31971fe008529c5f4ee41f6b87af6be785b223",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-orc",
+        "spoiler_tier": "none",
+        "summary": "종족 1종의 신체를 해부 노드 16개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "오크 해부 구조"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-quadruped.json",
+      "sha256": "5812b4f22c00f6d5fe5dbf29e32472f46870f5ef8c2c0b1b43cabfdf0d50a7d8",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [
+          {
+            "amount": null,
+            "label": "관련",
+            "target_kind": "nature",
+            "target_slug": "shadow-wolf",
+            "target_spoiler_tier": "none",
+            "target_title": "그림자늑대",
+            "type": "references"
+          },
+          {
+            "amount": null,
+            "label": "관련",
+            "target_kind": "nature",
+            "target_slug": "shadow-hare",
+            "target_spoiler_tier": "none",
+            "target_title": "그림자토끼",
+            "type": "references"
+          },
+          {
+            "amount": null,
+            "label": "관련",
+            "target_kind": "nature",
+            "target_slug": "cave-rat",
+            "target_spoiler_tier": "none",
+            "target_title": "동굴쥐",
+            "type": "references"
+          },
+          {
+            "amount": null,
+            "label": "관련",
+            "target_kind": "nature",
+            "target_slug": "rune-deer",
+            "target_spoiler_tier": "none",
+            "target_title": "룬사슴",
+            "type": "references"
+          },
+          {
+            "amount": null,
+            "label": "관련",
+            "target_kind": "nature",
+            "target_slug": "moss-boar",
+            "target_spoiler_tier": "none",
+            "target_title": "이끼멧돼지",
+            "type": "references"
+          }
+        ],
+        "schema_version": 1,
+        "slug": "anatomy-quadruped",
+        "spoiler_tier": "none",
+        "summary": "종족 6종의 신체를 해부 노드 14개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "사족 동물"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-slime.json",
+      "sha256": "07afa3000bf135963f8904315f9091ddd3bc57077c2507d905c4c79b52f07ed0",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-slime",
+        "spoiler_tier": "none",
+        "summary": "종족 1종의 신체를 해부 노드 4개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "슬라임 핵 구조"
+      }
+    },
+    {
+      "path": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\wiki\\game-versions\\0.0.1v\\data\\entities\\medical\\anatomy-vampire.json",
+      "sha256": "9acc4f2311c033e63afc8cee021aed037afaf3d65a59a79eb081ba59f65cfbef",
+      "entry": {
+        "facts": [],
+        "game_version": "0.0.1v",
+        "group": "combat-health-world",
+        "kind": "medical",
+        "relations": [],
+        "schema_version": 1,
+        "slug": "anatomy-vampire",
+        "spoiler_tier": "none",
+        "summary": "종족 1종의 신체를 해부 노드 16개로 구성해 부상·질병·수술의 적용 위치를 제공한다. 적용 불가 기능 0개를 분리해 종족별 생리 차이를 보존한다.",
+        "title": "뱀파이어 해부 구조"
+      }
+    }
+  ],
+  "specialReferenceChecks": [
+    {
+      "reference": "orc-tusks",
+      "profile": "anatomy:orc",
+      "nodes": [
+        "tusk:left",
+        "tusk:right"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "조작",
+          "nodeShare": 0.23076923076923075
+        }
+      ]
+    },
+    {
+      "reference": "orc-battle-heart",
+      "profile": "anatomy:orc",
+      "nodes": [
+        "heart"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "핵심 기능",
+          "nodeShare": 0.45
+        }
+      ]
+    },
+    {
+      "reference": "vampire-night-eyes",
+      "profile": "anatomy:vampire",
+      "nodes": [
+        "night-eye:left",
+        "night-eye:right"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "시야",
+          "nodeShare": 0.7692307692307692
+        }
+      ]
+    },
+    {
+      "reference": "vampire-fangs",
+      "profile": "anatomy:vampire",
+      "nodes": [
+        "fang:left",
+        "fang:right"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "소화",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "vampire-blood-sac",
+      "profile": "anatomy:vampire",
+      "nodes": [
+        "blood-sac"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "핵심 기능",
+          "nodeShare": 0.3
+        },
+        {
+          "function": "정화",
+          "nodeShare": 0.23076923076923075
+        }
+      ]
+    },
+    {
+      "reference": "beastkin-ears",
+      "profile": "anatomy:beastkin",
+      "nodes": [
+        "ears"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "시야",
+          "nodeShare": 0.3
+        }
+      ]
+    },
+    {
+      "reference": "beastkin-muzzle",
+      "profile": "anatomy:beastkin",
+      "nodes": [
+        "muzzle"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "소화",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "beastkin-balance-tail",
+      "profile": "anatomy:beastkin",
+      "nodes": [
+        "balance-tail"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "이동",
+          "nodeShare": 0.2
+        }
+      ]
+    },
+    {
+      "reference": "demon-horns",
+      "profile": "anatomy:demon",
+      "nodes": [
+        "horn:left",
+        "horn:right"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "핵심 기능",
+          "nodeShare": 0.2
+        }
+      ]
+    },
+    {
+      "reference": "demon-mana-core",
+      "profile": "anatomy:demon",
+      "nodes": [
+        "mana-core"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "핵심 기능",
+          "nodeShare": 0.45
+        },
+        {
+          "function": "의식",
+          "nodeShare": 0.3103448275862069
+        }
+      ]
+    },
+    {
+      "reference": "demon-heat-sac",
+      "profile": "anatomy:demon",
+      "nodes": [
+        "heat-sac"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "호흡",
+          "nodeShare": 1
+        },
+        {
+          "function": "정화",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "demon-tail",
+      "profile": "anatomy:demon",
+      "nodes": [
+        "tail"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "이동",
+          "nodeShare": 0.1
+        }
+      ]
+    },
+    {
+      "reference": "kobold-muzzle",
+      "profile": "anatomy:kobold",
+      "nodes": [
+        "muzzle"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "소화",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "kobold-hands",
+      "profile": "anatomy:kobold",
+      "nodes": [
+        "hand:left",
+        "hand:right"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "조작",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "kobold-balance-tail",
+      "profile": "anatomy:kobold",
+      "nodes": [
+        "balance-tail"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "이동",
+          "nodeShare": 0.2
+        }
+      ]
+    },
+    {
+      "reference": "quadruped-forelegs",
+      "profile": "anatomy:quadruped",
+      "nodes": [
+        "forelegs"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "이동",
+          "nodeShare": 0.5
+        }
+      ]
+    },
+    {
+      "reference": "quadruped-hindlegs",
+      "profile": "anatomy:quadruped",
+      "nodes": [
+        "hindlegs"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "이동",
+          "nodeShare": 0.5
+        }
+      ]
+    },
+    {
+      "reference": "slime-membrane",
+      "profile": "anatomy:slime",
+      "nodes": [
+        "membrane"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "핵심 기능",
+          "nodeShare": 0.4117647058823529
+        },
+        {
+          "function": "이동",
+          "nodeShare": 0.4117647058823529
+        }
+      ]
+    },
+    {
+      "reference": "slime-core",
+      "profile": "anatomy:slime",
+      "nodes": [
+        "core"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "핵심 기능",
+          "nodeShare": 0.5882352941176471
+        },
+        {
+          "function": "의식",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "slime-sensory-gel",
+      "profile": "anatomy:slime",
+      "nodes": [
+        "sensory-gel"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "시야",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "slime-pseudopods",
+      "profile": "anatomy:slime",
+      "nodes": [
+        "pseudopods"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "조작",
+          "nodeShare": 1
+        },
+        {
+          "function": "이동",
+          "nodeShare": 0.5882352941176471
+        }
+      ]
+    },
+    {
+      "reference": "fungal-cap",
+      "profile": "anatomy:fungal",
+      "nodes": [
+        "head"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "시야",
+          "nodeShare": 1
+        },
+        {
+          "function": "정화",
+          "nodeShare": 0.3846153846153846
+        }
+      ]
+    },
+    {
+      "reference": "fungal-spore-sac",
+      "profile": "anatomy:fungal",
+      "nodes": [
+        "spore-sac"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "호흡",
+          "nodeShare": 1
+        },
+        {
+          "function": "정화",
+          "nodeShare": 0.6153846153846154
+        }
+      ]
+    },
+    {
+      "reference": "fungal-mycelial-torso",
+      "profile": "anatomy:fungal",
+      "nodes": [
+        "torso"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "핵심 기능",
+          "nodeShare": 0.5
+        },
+        {
+          "function": "의식",
+          "nodeShare": 0.5
+        },
+        {
+          "function": "소화",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "fungal-hypha-core",
+      "profile": "anatomy:fungal",
+      "nodes": [
+        "hypha-core"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "핵심 기능",
+          "nodeShare": 0.5
+        },
+        {
+          "function": "의식",
+          "nodeShare": 0.5
+        }
+      ]
+    },
+    {
+      "reference": "fungal-hypha-arms",
+      "profile": "anatomy:fungal",
+      "nodes": [
+        "arm:left",
+        "arm:right"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "조작",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "fungal-hypha-legs",
+      "profile": "anatomy:fungal",
+      "nodes": [
+        "leg:left",
+        "leg:right"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "이동",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "avian-air-sacs",
+      "profile": "anatomy:avian",
+      "nodes": [
+        "air-sacs"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "호흡",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "avian-wings",
+      "profile": "anatomy:avian",
+      "nodes": [
+        "wing:left",
+        "wing:right"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "이동",
+          "nodeShare": 0.5
+        },
+        {
+          "function": "조작",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "construct-sensor-head",
+      "profile": "anatomy:construct",
+      "nodes": [
+        "head"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "시야",
+          "nodeShare": 0.5
+        }
+      ]
+    },
+    {
+      "reference": "construct-sensor-core",
+      "profile": "anatomy:construct",
+      "nodes": [
+        "sensor-core"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "시야",
+          "nodeShare": 0.5
+        }
+      ]
+    },
+    {
+      "reference": "construct-cast-body",
+      "profile": "anatomy:construct",
+      "nodes": [
+        "torso"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "핵심 기능",
+          "nodeShare": 0.5
+        },
+        {
+          "function": "의식",
+          "nodeShare": 0.5
+        }
+      ]
+    },
+    {
+      "reference": "construct-power-core",
+      "profile": "anatomy:construct",
+      "nodes": [
+        "power-core"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "핵심 기능",
+          "nodeShare": 0.5
+        },
+        {
+          "function": "의식",
+          "nodeShare": 0.5
+        }
+      ]
+    },
+    {
+      "reference": "construct-work-arms",
+      "profile": "anatomy:construct",
+      "nodes": [
+        "arm:left",
+        "arm:right"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "조작",
+          "nodeShare": 1
+        }
+      ]
+    },
+    {
+      "reference": "construct-support-legs",
+      "profile": "anatomy:construct",
+      "nodes": [
+        "leg:left",
+        "leg:right"
+      ],
+      "errors": [],
+      "declaredFunctionShares": [
+        {
+          "function": "이동",
+          "nodeShare": 1
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "profiles": 12,
+    "nodes": 147,
+    "references": 35,
+    "numericFieldErrors": []
+  },
+  "knownGaps": [
+    "Full profile-specific node tables absent from entries",
+    "Five special reference texts overclaim exclusive function ownership",
+    "Exact node functional efficiency formula omitted",
+    "Continuous infection/rejection injury thresholds omitted"
+  ]
+}

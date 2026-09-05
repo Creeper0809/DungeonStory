@@ -23,6 +23,7 @@ public static class V27BalanceBuilderNoClobberDebugScenarios
     {
         "Assets/Scripts/Services/Economy/Editor/V27BalanceBuilderNoClobberDebugScenarios.cs",
         "Assets/Scripts/Services/Economy/Editor/V23RecipeProcessClassAuthoring.cs",
+        "Assets/Scripts/Services/Economy/Editor/ProductionOutputLineAuthoring.cs",
         "Assets/Scripts/Services/Economy/Editor/ResourceEconomyAssetBuilder.cs",
         "Assets/Scripts/Services/Economy/Editor/ProductionWorkshopContentAssetBuilder.cs",
         "Assets/Scripts/Services/Economy/Editor/V22ApparelContentAssetBuilder.cs",
@@ -107,6 +108,10 @@ public static class V27BalanceBuilderNoClobberDebugScenarios
 
         string expectedSourceDigest = ComputeEvidenceSourceDigest();
         string expectedAssetDigest = ComputeAggregateDigest(CaptureFileHashes());
+        string expectedCurrentSourceDigest = V27CurrentSourceEvidenceDigest
+            .ComputeAllScriptsDigest();
+        string expectedSceneDigest = V27CurrentSourceEvidenceDigest
+            .ComputeGameplaySceneDigest();
         if (!string.Equals(
                 ParseToken(first, "sourceDigest="),
                 expectedSourceDigest,
@@ -114,6 +119,14 @@ public static class V27BalanceBuilderNoClobberDebugScenarios
             || !string.Equals(
                 ParseToken(first, "assetDigest="),
                 expectedAssetDigest,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                ParseToken(first, "currentSourceDigest="),
+                expectedCurrentSourceDigest,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                ParseToken(first, "gameplaySceneSha256="),
+                expectedSceneDigest,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
@@ -154,6 +167,10 @@ public static class V27BalanceBuilderNoClobberDebugScenarios
             .Append(ComputeEvidenceSourceDigest())
             .Append("; assetDigest=")
             .Append(ComputeAggregateDigest(snapshot))
+            .Append("; currentSourceDigest=")
+            .Append(V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest())
+            .Append("; gameplaySceneSha256=")
+            .Append(V27CurrentSourceEvidenceDigest.ComputeGameplaySceneDigest())
             .Append(";\n")
             .Append(details);
         if (!passed)

@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-beastkin-pack-meal",
+      "target_spoiler_tier": "none",
+      "target_title": "무리 한솥",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-beastkin-scent-vigil",
+      "target_spoiler_tier": "none",
+      "target_title": "향취 철야",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "culture-beastkin-pack",
+  "spoiler_tier": "none",
+  "summary": "식사와 휴식을 무리 단위로 공유하고 홀로 남는 이를 먼저 챙긴다.",
+  "title": "무리의 화로 문화"
+}

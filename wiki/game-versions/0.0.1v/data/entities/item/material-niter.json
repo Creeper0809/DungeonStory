@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.15kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "12"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "초석은 화약과 연금 공정에서 반응을 일으키도록 건조해 둔 재료다. 오르데나의 붉은 봉랍이 없는 초석 묶음은 밀로세아 검문소를 통과하지 못한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-niter",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 초석.",
+  "title": "초석"
+}

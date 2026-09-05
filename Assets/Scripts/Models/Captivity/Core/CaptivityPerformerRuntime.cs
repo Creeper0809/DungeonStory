@@ -11,23 +11,11 @@ public enum CaptivityMilestoneImportance
     High
 }
 
-public enum CaptivityFacilitySupplyKind
-{
-    Food
-}
-
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public interface ICaptivityPerformerPort
 {
     bool IsActorAvailable(string captiveId);
     void ApplyAssignmentState(string captiveId, bool assigned);
-    bool TryRequestFacilityDelivery(
-        CaptivityFacilitySupplyKind supplyKind,
-        int amount,
-        Vector2Int destination,
-        string destinationId,
-        out int requested,
-        out string failureReason);
     void Publish(CaptivePerformerMilestoneEvent gameEvent);
     void RaiseAlert(
         string title,
@@ -69,7 +57,7 @@ public sealed class CaptivityPerformerRuntime
         CaptivePolicyData policy = state != null
             ? findPolicy(state.policyId)
             : null;
-        if (state == null || !port.IsActorAvailable(captiveId) || !state.IsActive)
+        if (state == null || !port.IsActorAvailable(captiveId) || !state.IsInCustody)
         {
             failureReason = "포로를 찾을 수 없습니다.";
             return false;
@@ -124,7 +112,7 @@ public sealed class CaptivityPerformerRuntime
     {
         failureReason = string.Empty;
         CaptiveState state = findState(captiveId);
-        if (state == null || !state.IsActive)
+        if (state == null || !state.IsInCustody)
         {
             failureReason = "공연자를 찾을 수 없습니다.";
             return false;
@@ -184,13 +172,6 @@ public sealed class CaptivityPerformerRuntime
         {
             state.carePriorityUnlocked = true;
             state.lastResult = "공연 명성으로 우선 식량·치료 특혜를 얻었습니다.";
-            port.TryRequestFacilityDelivery(
-                CaptivityFacilitySupplyKind.Food,
-                1,
-                state.housingPosition,
-                $"captive-care:{state.captiveId}",
-                out _,
-                out _);
             PublishMilestone(state, 50, state.lastResult);
         }
 

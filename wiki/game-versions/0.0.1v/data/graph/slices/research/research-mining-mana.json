@@ -1,0 +1,91 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-mining-mana",
+    "spoiler_tier": "none",
+    "title": "마나 시추"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-deep",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 채굴",
+      "to": "research/research-mining-deep",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-deep",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 채굴",
+      "to": "research/research-mining-deep",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-mining-mana",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-mining-deep",
+      "target_spoiler_tier": "none",
+      "target_title": "심부 채굴",
+      "to": "research/research-mining-deep",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-mana-shield-plate",
+      "label": "필요 조건",
+      "to": "research/research-mining-mana",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-mana-probe",
+      "label": "필요 조건",
+      "to": "research/research-mining-mana",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

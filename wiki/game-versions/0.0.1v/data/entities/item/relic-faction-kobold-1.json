@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "설계자가 직접 검사했음을 증명하는 대가도장이다. 크릭 제7굴의 깊은톱니 대가도장은 공방 소유권이 씨족에서 실제 제작자에게 넘어간 시절을 증명한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-kobold-1",
+  "spoiler_tier": "none",
+  "summary": "설계자가 직접 검사했음을 증명하는 대가도장.",
+  "title": "깊은톱니 대가도장"
+}

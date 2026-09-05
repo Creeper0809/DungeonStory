@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "제작"
+    },
+    {
+      "label": "크기",
+      "value": "2×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1030",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 욕구 회복, 연구 수용력이다. 건설에는 작업량 387, 재료 처리 목재×8, 철괴×1, 공학 도면×2이 필요하다.",
+  "title": "연구책상"
+}

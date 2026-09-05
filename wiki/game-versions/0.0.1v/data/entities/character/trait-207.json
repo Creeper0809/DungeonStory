@@ -1,0 +1,29 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "희귀"
+    },
+    {
+      "label": "성향",
+      "value": "이점"
+    },
+    {
+      "label": "효과",
+      "value": "6개"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "2개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-207",
+  "spoiler_tier": "none",
+  "summary": "치료 지시를 잘 따르고 회복 과정의 작은 진전을 기뻐한다.",
+  "title": "빠른 회복"
+}

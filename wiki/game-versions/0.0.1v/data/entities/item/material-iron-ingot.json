@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.9kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "40"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "철 장비와 강철의 주재료이다. 특히 크릭 제7굴산 철괴에는 일곱 톱니 자국과 되녹인 횟수가 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-iron-ingot",
+  "spoiler_tier": "none",
+  "summary": "철 장비와 강철의 주재료.",
+  "title": "철괴"
+}

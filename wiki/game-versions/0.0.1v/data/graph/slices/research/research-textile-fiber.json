@@ -1,0 +1,607 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-textile-fiber",
+    "spoiler_tier": "none",
+    "title": "섬유 가공"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1083",
+      "target_spoiler_tier": "none",
+      "target_title": "직조기",
+      "to": "facility/building-1083",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1623",
+      "target_spoiler_tier": "none",
+      "target_title": "직조 보조 선반",
+      "to": "facility/building-1623",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9303",
+      "target_spoiler_tier": "none",
+      "target_title": "손세탁 수조",
+      "to": "facility/building-9303",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9304",
+      "target_spoiler_tier": "none",
+      "target_title": "실내 건조대",
+      "to": "facility/building-9304",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9309",
+      "target_spoiler_tier": "none",
+      "target_title": "섬유 선별대",
+      "to": "facility/building-9309",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9310",
+      "target_spoiler_tier": "none",
+      "target_title": "침지·정련조",
+      "to": "facility/building-9310",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9311",
+      "target_spoiler_tier": "none",
+      "target_title": "수동 방적기",
+      "to": "facility/building-9311",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-chest-wrap",
+      "target_spoiler_tier": "none",
+      "target_title": "가슴 감개 재단",
+      "to": "recipe/recipe-v22-apparel-chest-wrap",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-footwraps",
+      "target_spoiler_tier": "none",
+      "target_title": "발싸개 재단",
+      "to": "recipe/recipe-v22-apparel-footwraps",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-loincloth-underwear",
+      "target_spoiler_tier": "none",
+      "target_title": "허리 두름 속옷 재단",
+      "to": "recipe/recipe-v22-apparel-loincloth-underwear",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-long-underpants",
+      "target_spoiler_tier": "none",
+      "target_title": "내의 바지 재단",
+      "to": "recipe/recipe-v22-apparel-long-underpants",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-lower-underwear",
+      "target_spoiler_tier": "none",
+      "target_title": "하의 속옷 재단",
+      "to": "recipe/recipe-v22-apparel-lower-underwear",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-socks",
+      "target_spoiler_tier": "none",
+      "target_title": "양말 재단",
+      "to": "recipe/recipe-v22-apparel-socks",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-apparel-undershirt",
+      "target_spoiler_tier": "none",
+      "target_title": "속셔츠 재단",
+      "to": "recipe/recipe-v22-apparel-undershirt",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-sewing-thread",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉실",
+      "to": "recipe/recipe-v22-sewing-thread",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-common-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "일반 모직 방적",
+      "to": "recipe/recipe-v22-spin-common-wool",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-ember-cotton",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불 면직물 방적",
+      "to": "recipe/recipe-v22-spin-ember-cotton",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-frost-linen",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 린넨 방적",
+      "to": "recipe/recipe-v22-spin-frost-linen",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-spin-shade-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "그늘천 방적",
+      "to": "recipe/recipe-v22-spin-shade-cloth",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-common-wool",
+      "target_spoiler_tier": "none",
+      "target_title": "일반 모직 직조",
+      "to": "recipe/recipe-v22-weave-common-wool",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-ember-cotton",
+      "target_spoiler_tier": "none",
+      "target_title": "잿불 면직물 직조",
+      "to": "recipe/recipe-v22-weave-ember-cotton",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-frost-linen",
+      "target_spoiler_tier": "none",
+      "target_title": "서리 린넨 직조",
+      "to": "recipe/recipe-v22-weave-frost-linen",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-fiber",
+      "label": "제작식 해금",
+      "target_kind": "recipe",
+      "target_slug": "recipe-v22-weave-shade-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "그늘천 직조",
+      "to": "recipe/recipe-v22-weave-shade-cloth",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23001",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23002",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23003",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23004",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23005",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23006",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/apparel-23007",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-ember-cotton",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-frost-flax",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-mire-reed",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-shade-fiber",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "nature/crop-spore-hemp",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-bowstring-fiber",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-cloth",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-rope",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-chest-wrap",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-footwraps",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-loincloth-underwear",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-long-underpants",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-lower-underwear",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-socks",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-apparel-undershirt",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-sewing-thread",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-common-wool",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-ember-cotton",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-frost-linen",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-spin-shade-cloth",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-common-wool",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-ember-cotton",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-frost-linen",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-v22-weave-shade-cloth",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-wool-cloth",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-environment-cold-work",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-bowyery",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-bowyery",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-equipment-bowyery",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-pharmacology-antiseptic",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tanning",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tanning",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-textile-tanning",
+      "label": "선행 연구",
+      "to": "research/research-textile-fiber",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "world/material-cloth",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23101",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23102",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23103",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/textilematerial-23106",
+      "label": "필요 조건",
+      "to": "research/research-textile-fiber",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

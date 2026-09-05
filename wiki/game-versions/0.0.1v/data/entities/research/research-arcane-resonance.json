@@ -1,0 +1,103 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Records And Arcane"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6193",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명 설계도",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-ritual",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 장식",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-ritual",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 장식",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-ritual",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 장식",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8897",
+      "target_spoiler_tier": "none",
+      "target_title": "공명 조율실",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "제작식 해금",
+      "target_kind": "facility",
+      "target_slug": "recipe-arcane-ritual-2",
+      "target_spoiler_tier": "none",
+      "target_title": "의식초점석 조율",
+      "type": "unlocks-recipe"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-arcane-resonance",
+  "spoiler_tier": "none",
+  "summary": "마나와 흑강을 쓰는 대형 비전 사업을 해금한다.",
+  "title": "비전 공명"
+}

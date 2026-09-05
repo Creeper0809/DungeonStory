@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "174"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "몽직물에 의식 문양을 수놓아 멀리서도 행렬과 집전 위치를 알아보게 한 장식 깃발이다. 베르사디온의 몽직물 의식 장식 아랫단에는 동의의 잔에서 떼어 낸 검은 실 한 가닥이 꿰매져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "craft-dreamweave-ritual-banner",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 몽직물 의식 장식.",
+  "title": "몽직물 의식 장식"
+}

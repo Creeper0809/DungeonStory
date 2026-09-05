@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "138"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "두꺼운 갑옷의 틈을 찌르도록 가늘고 단단하게 벼린 장검이다. 하르나크의 오크는 무기 철야에 에스터크를 버리기 전 흠집을 손끝으로 짚으며 마지막 주인의 싸움을 들려준다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "equipment-item-weapon-estoc",
+  "spoiler_tier": "none",
+  "summary": "에스터크 전투 장비",
+  "title": "에스터크"
+}

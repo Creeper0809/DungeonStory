@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../../components/BaseLayout.astro';
+import HealthCommunityContent from '../../components/HealthCommunityContent.astro';
+import { getCurrentVersion } from '../../lib/wiki-data';
+
+const version = getCurrentVersion();
+---
+
+<BaseLayout title="건강·공동체" description="주민 건강, 신체 구조, 의료 작업과 공동체 운영을 모은 위키 허브" version={version}>
+  <HealthCommunityContent version={version} />
+</BaseLayout>

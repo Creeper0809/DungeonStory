@@ -1,0 +1,926 @@
+{
+  "status": "partial-system-audit; full objective incomplete",
+  "scope": "Read-only environmental field/exposure/work-policy code and all Resources assets containing five selected environment modules; corresponding 0.0.1v facility entities. No scripts/assets/wiki modifications and no Unity execution.",
+  "population": {
+    "facilities": 11,
+    "publicEntries": 11,
+    "catalogReferences": 11,
+    "modules": 14,
+    "selectedAuthoredFields": 50,
+    "byModule": {
+      "BuildingLightingAbility": {
+        "modules": 5,
+        "fields": 10
+      },
+      "BuildingAirExchangeAbility": {
+        "modules": 3,
+        "fields": 15
+      },
+      "BuildingAirDuctAbility": {
+        "modules": 3,
+        "fields": 3
+      },
+      "BuildingThermalEmitterAbility": {
+        "modules": 2,
+        "fields": 20
+      },
+      "BuildingProtectiveEquipmentLockerAbility": {
+        "modules": 1,
+        "fields": 2
+      }
+    },
+    "selectedDomainFactsInPublicEntries": 0,
+    "warning": "50 is a selected field census, not 50 distinct active omissions. Workwear capacity is unverified; non-Cool exhaust and outside-exchange target fields are inactive/shadowed. General fuel/temperature, species, clothing, weather-front and surgery fields remain outside this selected census."
+  },
+  "freshness": {
+    "query": "EnvironmentalField CharacterEnvironment",
+    "areas": [
+      "code",
+      "authority",
+      "content"
+    ],
+    "limit": 8,
+    "session": 41968,
+    "exitCode": 1,
+    "status": "stale",
+    "failures": 4,
+    "rows": 0,
+    "contentSourceDigest": "139a0a989275ecdd5a4a26c10ceb6a1931041c7c928ed0421628faea5cd928c6",
+    "knowledgeBaseSourceDigest": "ceef8dc8f25f4d327205b15e12346aee0ebc5d6a84aa7eeb1f08af5ce14db0dd",
+    "regenerated": false
+  },
+  "facilityRows": [
+    {
+      "id": "9824",
+      "name": "전기 아크등",
+      "source": "Assets/Resources/SO/Building/Industrial/I15_전기_아크등.asset",
+      "sha256": "90e9fb355557e00e15e66660e80abf5ca2672acc8554871fedc4d144295a6251",
+      "modules": [
+        {
+          "fields": {
+            "intensity": "1.2",
+            "radius": "5.5"
+          },
+          "kind": "BuildingLightingAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-9824.json",
+      "publicSha256": "af4b4bae9ea59e1ee0204a9ac145c877ab835a839221e82a5b381bbb8e0d450b",
+      "summary": "시설의 고유 역할은 전력 소비이다. 건설에는 작업량 374, 재료 석재 블록×3, 철괴×3, 천×1, 절연 배선 묶음×2이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "자원"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "catalogReferenced": true
+    },
+    {
+      "id": "1066",
+      "name": "샹들리에",
+      "source": "Assets/Resources/SO/Building/Modular/E03_샹들리에.asset",
+      "sha256": "0c59ad8fd9dfeb11f576f1a3ca56375ecb08b8351a3ea1eafd3805acb88543d9",
+      "modules": [
+        {
+          "fields": {
+            "intensity": "1.15",
+            "radius": "4.2"
+          },
+          "kind": "BuildingLightingAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1066.json",
+      "publicSha256": "e9e23245c2015b44f5fd67bf064874cac3d319ea5ff06b4bac2142f15a646587",
+      "summary": "시설의 고유 역할은 연료 소비이다. 건설에는 작업량 514, 재료 철괴×8, 천×1이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "자원"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ],
+      "catalogReferenced": true
+    },
+    {
+      "id": "1065",
+      "name": "바닥화로",
+      "source": "Assets/Resources/SO/Building/Modular/E02_바닥화로.asset",
+      "sha256": "ae3552a7a2538f4634da1ce8326891a339dca969480686357fc6b91e6cad6a5b",
+      "modules": [
+        {
+          "fields": {
+            "intensity": "0.9",
+            "radius": "3.2"
+          },
+          "kind": "BuildingLightingAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1065.json",
+      "publicSha256": "39b0d7616d34393eb5782071e547d86d3439868ea41b8b2c3c60444b7c3b4a91",
+      "summary": "시설의 고유 역할은 연료 소비이다. 건설에는 작업량 423, 재료 석재 블록×9, 철괴×3이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "자원"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "catalogReferenced": true
+    },
+    {
+      "id": "1064",
+      "name": "벽횃불",
+      "source": "Assets/Resources/SO/Building/Modular/E01_벽횃불.asset",
+      "sha256": "1b3eda9ab03472329f299f434a4eb7c8c72022d2398e8d23188d1b5f6aeff5d2",
+      "modules": [
+        {
+          "fields": {
+            "intensity": "0.75",
+            "radius": "2.8"
+          },
+          "kind": "BuildingLightingAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1064.json",
+      "publicSha256": "feec31c2d4b7543c225c02dcfa839fb70b2bbb8a30e116b7464baf6316c28adc",
+      "summary": "시설의 고유 역할은 연료 소비이다. 건설에는 작업량 465, 재료 목재×2, 철괴×2이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "자원"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "catalogReferenced": true
+    },
+    {
+      "id": "1505",
+      "name": "배기팬",
+      "source": "Assets/Resources/SO/Building/Modular/E14_배기팬.asset",
+      "sha256": "4a7bf8735e6dd7bbca7e0f69092e60a0e1e13a03c7e447c54fa0e7c0c2f6f542",
+      "modules": [
+        {
+          "fields": {
+            "targetAirQuality": "100",
+            "qualityPerSecond": "12",
+            "radius": "4",
+            "requiresPower": "1",
+            "exchangesWithOutside": "1"
+          },
+          "kind": "BuildingAirExchangeAbility"
+        },
+        {
+          "fields": {
+            "exchangeRate": "0.65"
+          },
+          "kind": "BuildingAirDuctAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1505.json",
+      "publicSha256": "e107a5d121215aac51497ddb3f4ebfbffe2c5d85ef77d5f11b5a299167629401",
+      "summary": "시설의 고유 역할은 전력 소비이다. 건설에는 작업량 354, 재료 목재×3, 철괴×5, 석재 블록×2, 기계 부품×3이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "자원"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "catalogReferenced": true
+    },
+    {
+      "id": "1504",
+      "name": "송풍구",
+      "source": "Assets/Resources/SO/Building/Modular/E13_송풍구.asset",
+      "sha256": "bb95fe29d325edd4a4583e81b0781d03259187328ec406957d28950f05c59c67",
+      "modules": [
+        {
+          "fields": {
+            "targetAirQuality": "100",
+            "qualityPerSecond": "8",
+            "radius": "3",
+            "requiresPower": "1",
+            "exchangesWithOutside": "1"
+          },
+          "kind": "BuildingAirExchangeAbility"
+        },
+        {
+          "fields": {
+            "exchangeRate": "0.65"
+          },
+          "kind": "BuildingAirDuctAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1504.json",
+      "publicSha256": "7f733336db2bfac82c6e99f546cbb74d0e4626f007c41a68b424e416b7bd85db",
+      "summary": "시설의 고유 역할은 전력 소비이다. 건설에는 작업량 354, 재료 목재×3, 철괴×5, 석재 블록×2, 기계 부품×3이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "자원"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "catalogReferenced": true
+    },
+    {
+      "id": "1503",
+      "name": "환기덕트",
+      "source": "Assets/Resources/SO/Building/Modular/E12_환기덕트.asset",
+      "sha256": "804f4859fc306495234edf7167a91fca2d44a3327131de0ec3988fa8562fa4a4",
+      "modules": [
+        {
+          "fields": {
+            "exchangeRate": "0.65"
+          },
+          "kind": "BuildingAirDuctAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1503.json",
+      "publicSha256": "f4cfcae35a3da14ea2be9bedbbaaff40eb0584884f9aa10e3b51417128241a0b",
+      "summary": "시설 동작은 BuildingAirDuctAbility, BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityPartAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 353, 재료 목재×3, 철괴×3, 기계 부품×3이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "자원"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "catalogReferenced": true
+    },
+    {
+      "id": "1502",
+      "name": "공조기",
+      "source": "Assets/Resources/SO/Building/Modular/E11_공조기.asset",
+      "sha256": "dd48ea0e94a834ff71395da854752edec2965d393a88d928f1c15009223669aa",
+      "modules": [
+        {
+          "fields": {
+            "mode": "2",
+            "targetTemperatureC": "22",
+            "playerConfigurable": "1",
+            "minimumTargetTemperatureC": "2",
+            "maximumTargetTemperatureC": "30",
+            "degreesPerSecond": "2.5",
+            "radius": "4",
+            "requiresPower": "1",
+            "exhaustOffset": "{x: 1, y: 0}",
+            "exhaustHeatMultiplier": "1.15"
+          },
+          "kind": "BuildingThermalEmitterAbility"
+        },
+        {
+          "fields": {
+            "targetAirQuality": "100",
+            "qualityPerSecond": "6",
+            "radius": "4",
+            "requiresPower": "1",
+            "exchangesWithOutside": "1"
+          },
+          "kind": "BuildingAirExchangeAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1502.json",
+      "publicSha256": "f37ac66afced89be4c35df92243955787a1ba00d2ead0884a87497f759542469",
+      "summary": "시설의 고유 역할은 전력 소비, 열 공급이다. 건설에는 작업량 456, 재료 처리 목재×6, 철괴×7, 석재 블록×4, 기계 부품×3이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "자원"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ],
+      "catalogReferenced": true
+    },
+    {
+      "id": "1501",
+      "name": "냉각기",
+      "source": "Assets/Resources/SO/Building/Modular/E10_냉각기.asset",
+      "sha256": "37753a3acfdefbf7e1a50c938e8d6668c33adc771f6714ce30df5071a30c2969",
+      "modules": [
+        {
+          "fields": {
+            "mode": "1",
+            "targetTemperatureC": "8",
+            "playerConfigurable": "1",
+            "minimumTargetTemperatureC": "2",
+            "maximumTargetTemperatureC": "8",
+            "degreesPerSecond": "3",
+            "radius": "3",
+            "requiresPower": "1",
+            "exhaustOffset": "{x: 1, y: 0}",
+            "exhaustHeatMultiplier": "1.15"
+          },
+          "kind": "BuildingThermalEmitterAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1501.json",
+      "publicSha256": "712975bd50eb6ae92578abc8462549f0bcfb939ef1dc4655e0e5333bc67d994a",
+      "summary": "시설의 고유 역할은 전력 소비, 열 공급이다. 건설에는 작업량 456, 재료 처리 목재×6, 철괴×6, 석재 블록×2, 기계 부품×3이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "자원"
+        },
+        {
+          "label": "크기",
+          "value": "2×1"
+        }
+      ],
+      "catalogReferenced": true
+    },
+    {
+      "id": "1070",
+      "name": "촛대",
+      "source": "Assets/Resources/SO/Building/Modular/E07_촛대.asset",
+      "sha256": "9d4bbbac6a8797d65128d309ff6186ccd932cd1b09f3377254a48a40f77082c3",
+      "modules": [
+        {
+          "fields": {
+            "intensity": "0.5",
+            "radius": "2.1"
+          },
+          "kind": "BuildingLightingAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1070.json",
+      "publicSha256": "3c31be9bd43e40f93d6fc147d4dc8f11e0b5b112f0a5961c02af80c2c3c9df1b",
+      "summary": "시설의 고유 역할은 연료 소비이다. 건설에는 작업량 474, 재료 철괴×3이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "자원"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "catalogReferenced": true
+    },
+    {
+      "id": "1500",
+      "name": "보호장비보관함",
+      "source": "Assets/Resources/SO/Building/Modular/L08_보호장비보관함.asset",
+      "sha256": "d80f6ec4c1c7d3d0822d28f5040de9215a9df94dfc645e109ec77d4ecde3fc9f",
+      "modules": [
+        {
+          "fields": {
+            "capacity": "4",
+            "serviceRadius": "12"
+          },
+          "kind": "BuildingProtectiveEquipmentLockerAbility"
+        }
+      ],
+      "publicPath": "wiki/game-versions/0.0.1v/data/entities/facility/building-1500.json",
+      "publicSha256": "52d3bf213e09028e427c97b682493ff761c7a41c6230af72c2c009ca41cf3c87",
+      "summary": "시설 동작은 BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityPartAbility, BuildingProtectiveEquipmentLockerAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 144, 재료 처리 목재×4, 철괴×2이 필요하다.",
+      "facts": [
+        {
+          "label": "분류",
+          "value": "생산"
+        },
+        {
+          "label": "크기",
+          "value": "1×1"
+        }
+      ],
+      "catalogReferenced": true
+    }
+  ],
+  "gaps": [
+    "GAP-081",
+    "GAP-082",
+    "GAP-083",
+    "GAP-084",
+    "GAP-085",
+    "GAP-086"
+  ],
+  "readCoverage": [
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFieldSimulationRules.cs",
+      "scope": "full"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalBuildingAbilities.cs",
+      "scope": "full"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFieldDomain.cs",
+      "scope": "full; definition/store distinction retained"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFieldModels.cs",
+      "scope": "full"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalCoreDomain.cs",
+      "scope": "full 505 lines"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentPolicyDomain.cs",
+      "scope": "full 253 lines; ExternalInfluence downstream not audited here"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFieldRuntime.cs",
+      "scope": "full 923 lines across checkpoint reads"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+      "scope": "full 618 lines"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentWorkPolicyUnityAdapter.cs",
+      "scope": "full 895 lines; private AssessLegacy excluded from live rules"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Work/WorkTargetEnvironmentPolicy.cs",
+      "scope": "full"
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/EnvironmentalBuildingPanelPresenter.cs",
+      "scope": "full; actual UIBuildingInfo.Render caller read"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+      "scope": "286-445, query/call-site search; full clothing/stock transactions pending"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterStatsProjectionService.cs",
+      "scope": "86-117,168-249 and query declarations; full stats pipeline not audited"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CombatResolutionService.cs",
+      "scope": "133-155,573-590,711-782; actual and preview environment penalty calls"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs",
+      "scope": "504-553,2241-2360; full executor not audited here"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Work/WorkExecutionRules.cs",
+      "scope": "full"
+    },
+    {
+      "path": "Assets/Scripts/Services/Survival/SurvivalFoodSpoilageRuntime.cs",
+      "scope": "121-220 and query reverse calls; full food state lifecycle and cadence pending"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/weather-seasons-and-environment.md",
+      "scope": "full reread"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/infrastructure.md",
+      "scope": "full previous checkpoint; environment paragraphs reread"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content",
+      "scope": "prior 30 guides/reference bodies read; focused environment terms search this checkpoint; global semantic de-duplication pending"
+    }
+  ],
+  "implementationQuestions": [
+    {
+      "id": "ENV-U01",
+      "title": "조명의 전력·연료 연동",
+      "evidence": "EnvironmentalFieldSourceDescriptor.RequiresPower는 thermal/air의 requiresPower만 OR한다. 조명만 가진 전기 아크등의 필드 밝기는 자체 PowerConsumer를 여기서 검사하지 않는다. 횃불·화로·촛대·샹들리에의 FuelConsumer도 이 경로에 없다.",
+      "needed": "실제 화면 밝기/환경장 조명과 전력·연료 고갈의 일치 여부 확인. 일반 전원 필요 설명으로 숨기지 않는다."
+    },
+    {
+      "id": "ENV-U02",
+      "title": "냉각기의 역방향 온도와 배기",
+      "evidence": "Cool은 max(target,current-amount)이므로 현재 온도가 목표보다 낮으면 목표까지 올린다. 배기는 실제 냉각량이나 가동 필요와 무관하게 rate×1.15를 더한다. Heat의 min도 현재가 목표보다 높으면 낮추지만 이번 작성대상에 Heat 모드는 없다.",
+      "needed": "의도와 실제 플레이를 확인하고 설명 또는 구현의 권위를 정한다. 수정을 수행하지 않았다."
+    },
+    {
+      "id": "ENV-U03",
+      "title": "문 개방·지붕·배관의 환경장 설명",
+      "evidence": "RebuildTopology는 IsWall/IsDoor, AreaType, duct를 읽는다. 문 개방값 자체는 읽지 않고 이웃 문 교환0.55는 고정이다. 공기 덕트도 유체 연결망과 독립된 국소값이다.",
+      "needed": "문 개폐와 실내/지붕 분류를 바꾸는 상위 생산자를 조사하여 위키의 개폐·지붕·배관 효과를 분리한다."
+    },
+    {
+      "id": "ENV-U04",
+      "title": "작업 예측과 실제 노출의 시간 차이",
+      "evidence": "Project는 route칸마다 rate를 더하고 쾌적 경로 회복을 빼지 않는다. 실제 노출은 경과초와 회복을 쓴다. 시작 예측은 이동속도·장비에 따른 실제 체류시간과 다를 수 있다.",
+      "needed": "가변 이동속도·긴 경로·쾌적 경로의 예측 보수성과 실제 작업 거부를 확인한다."
+    },
+    {
+      "id": "ENV-U05",
+      "title": "작업 속도 두 표와 방어 예외 상충",
+      "evidence": "실제 StatsProjection은 ResolveLegacyWorkSpeed를 사용한다. Decide가 반환하는 새 WorkSpeedMultiplier는 검색한 실행 소비처에서 사용이 확인되지 않았다. IsSafetyException은 Defense를 포함하지만 Decide의 safetyException은 제외한다. 현행 일반업무 분류도 문자열 research/craft/medical/treat만 Precision으로 정한다.",
+      "needed": "미사용 예측 속도, Defense·Surgery enum의 실제 진입·강제 작업 재점검 정책을 전수 대조한다."
+    },
+    {
+      "id": "ENV-U06",
+      "title": "보호함 정원·도달 가능성·보호복 선택",
+      "evidence": "capacity4의 소비가 비Editor 검색에서 확인되지 않았다. HasReachableLocker는 출발/목적지와 맨해튼거리만 검사한다. 후보를 종족 적합성으로 먼저 거르지 않고 best를 골라 TryEquip으로 넘긴다.",
+      "needed": "의복/종족/예약/실물 접근 경로 전수 검토와 저장 왕복. 정원4를 실제 수용 규칙으로 단정하지 않는다."
+    },
+    {
+      "id": "ENV-U07",
+      "title": "장기2~8°C 보존 Query의 라이브 소비 미확인",
+      "evidence": "IsOrganPreservationSafe는 선언·구현·null/query adapter 외 비Editor 사용처가 검색되지 않았다.",
+      "needed": "의료/장기 물리 보관 권위를 별도로 대조한다. 함수 존재만으로 적용 완료라고 하지 않는다."
+    },
+    {
+      "id": "ENV-U08",
+      "title": "저장 재개 환경장과 노출 상태",
+      "evidence": "환경장은 기본 외기값과의 차이가0.05 미만인 셀을 생략하고 목표온도를 저장한다. 틱 accumulator·위상은 저장하지 않는다. 노출값·단계·피해타이머·냉기휴식잠금은 저장하지만 workContext는 다시 설정한다. 열원 source 순서와 날씨 복원의 영향은 미검증이다.",
+      "needed": "날씨/시설/캐릭터 교차 복원 순서와 비정수 틱 경계에서 실제 왕복 비교. Domain restore의 thermostat -20~45 범위와 authored범위도 구분한다."
+    }
+  ],
+  "verification": {
+    "priorSourceHashesChecked": 2987,
+    "priorSourceChanges": 0,
+    "priorArtifactHashesChecked": 18,
+    "priorArtifactErrors": 0,
+    "independentArithmetic": [
+      {
+        "name": "food_temperature_0",
+        "actual": 0.25,
+        "expected": 0.25,
+        "pass": true
+      },
+      {
+        "name": "food_temperature_10",
+        "actual": 0.5,
+        "expected": 0.5,
+        "pass": true
+      },
+      {
+        "name": "food_temperature_20",
+        "actual": 1,
+        "expected": 1,
+        "pass": true
+      },
+      {
+        "name": "food_temperature_30",
+        "actual": 2,
+        "expected": 2,
+        "pass": true
+      },
+      {
+        "name": "food_temperature_40",
+        "actual": 4,
+        "expected": 4,
+        "pass": true
+      },
+      {
+        "name": "food_temperature_70",
+        "actual": 4,
+        "expected": 4,
+        "pass": true
+      },
+      {
+        "name": "preserved_food_0C_tick",
+        "actual": 11.25,
+        "expected": 11.25,
+        "pass": true
+      },
+      {
+        "name": "cold_recovery_15_to_below10_after4seconds",
+        "actual": 9,
+        "expected": 9,
+        "pass": true
+      },
+      {
+        "name": "air_quality_55_rate",
+        "actual": 0.053033008588991064,
+        "expected": 0.053033008588991064,
+        "pass": true
+      },
+      {
+        "name": "air_quality_30_rate",
+        "actual": 1.0303300858899107,
+        "expected": 1.0303300858899107,
+        "pass": true
+      },
+      {
+        "name": "darkness_zero_visual",
+        "actual": 1,
+        "expected": 1,
+        "pass": true
+      },
+      {
+        "name": "cooler_edge_rate",
+        "actual": 0.75,
+        "expected": 0.75,
+        "pass": true
+      },
+      {
+        "name": "cooler_exhaust_rate",
+        "actual": 3.4499999999999997,
+        "expected": 3.45,
+        "pass": true
+      },
+      {
+        "name": "arc_light_center_clamp",
+        "actual": 100,
+        "expected": 100,
+        "pass": true
+      },
+      {
+        "name": "ranged_combined_penalty",
+        "actual": 0.37,
+        "expected": 0.37,
+        "pass": true
+      }
+    ],
+    "arithmeticDisclaimer": "JavaScript independent arithmetic from read formulas, not execution of C# or PlayMode.",
+    "unityCompile": false,
+    "playMode": false,
+    "actualUiInput": false,
+    "saveRoundTrip": false,
+    "fullAuditComplete": false
+  },
+  "sourceEvidence": [
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFieldSimulationRules.cs",
+      "sha256": "db956e5e263b3e12d608f4340e4dd953913f5ec983d0d1c4dd8e74e9e6a3d4a6"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFieldRuntime.cs",
+      "sha256": "b8f3f33b17c9c482a58a85748b58a087209e779bbdaeaa856a0cb6dac98bf2dc"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/weather-seasons-and-environment.md",
+      "sha256": "e2e4371f61725319f30e74da29c0a31742cdcf48f746ba7fcb785fe97a665ad6"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/infrastructure.md",
+      "sha256": "721c2c6448a623e0383e360a379722217a2179b0a7e637b8cfd97edd791bd2f4"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalBuildingAbilities.cs",
+      "sha256": "5caa48b4153da46a8c0444e0bcc595d80a2e8ad5bb37b06db8ed2fbf9a6f8bd9"
+    },
+    {
+      "path": "Assets/Scripts/Services/Buildings/Abilities/BuildingAbility.cs",
+      "sha256": "100fd27aaa33d79b9eb29a973c8060c3cb53fbb654f5dcb88ac65235ed6105e2"
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/EnvironmentalBuildingPanelPresenter.cs",
+      "sha256": "6888c3ce5d4dde0766abe90212e9a415c697f4bbc109ae7978f3f75d871332ec"
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/UIBuildingInfo.cs",
+      "sha256": "a0eaeb39366c03a3d390039c25b9fb75b6115e44f24cb92c3e8a480997b92fa8"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+      "sha256": "7830b4481b5646dc9b6bf1476ef1d99afa4121eab59b8d9d3692508f254a0c6b"
+    },
+    {
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset",
+      "sha256": "78e87c3239487cb4b4ded6309d549de06320bbe1db8362c0c25fe7abdecd808e"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Industrial/I15_전기_아크등.asset",
+      "sha256": "90e9fb355557e00e15e66660e80abf5ca2672acc8554871fedc4d144295a6251"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-9824.json",
+      "sha256": "af4b4bae9ea59e1ee0204a9ac145c877ab835a839221e82a5b381bbb8e0d450b"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E03_샹들리에.asset",
+      "sha256": "0c59ad8fd9dfeb11f576f1a3ca56375ecb08b8351a3ea1eafd3805acb88543d9"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1066.json",
+      "sha256": "e9e23245c2015b44f5fd67bf064874cac3d319ea5ff06b4bac2142f15a646587"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E02_바닥화로.asset",
+      "sha256": "ae3552a7a2538f4634da1ce8326891a339dca969480686357fc6b91e6cad6a5b"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1065.json",
+      "sha256": "39b0d7616d34393eb5782071e547d86d3439868ea41b8b2c3c60444b7c3b4a91"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E01_벽횃불.asset",
+      "sha256": "1b3eda9ab03472329f299f434a4eb7c8c72022d2398e8d23188d1b5f6aeff5d2"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1064.json",
+      "sha256": "feec31c2d4b7543c225c02dcfa839fb70b2bbb8a30e116b7464baf6316c28adc"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E14_배기팬.asset",
+      "sha256": "4a7bf8735e6dd7bbca7e0f69092e60a0e1e13a03c7e447c54fa0e7c0c2f6f542"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1505.json",
+      "sha256": "e107a5d121215aac51497ddb3f4ebfbffe2c5d85ef77d5f11b5a299167629401"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E13_송풍구.asset",
+      "sha256": "bb95fe29d325edd4a4583e81b0781d03259187328ec406957d28950f05c59c67"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1504.json",
+      "sha256": "7f733336db2bfac82c6e99f546cbb74d0e4626f007c41a68b424e416b7bd85db"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E12_환기덕트.asset",
+      "sha256": "804f4859fc306495234edf7167a91fca2d44a3327131de0ec3988fa8562fa4a4"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1503.json",
+      "sha256": "f4cfcae35a3da14ea2be9bedbbaaff40eb0584884f9aa10e3b51417128241a0b"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E11_공조기.asset",
+      "sha256": "dd48ea0e94a834ff71395da854752edec2965d393a88d928f1c15009223669aa"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1502.json",
+      "sha256": "f37ac66afced89be4c35df92243955787a1ba00d2ead0884a87497f759542469"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E10_냉각기.asset",
+      "sha256": "37753a3acfdefbf7e1a50c938e8d6668c33adc771f6714ce30df5071a30c2969"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1501.json",
+      "sha256": "712975bd50eb6ae92578abc8462549f0bcfb939ef1dc4655e0e5333bc67d994a"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E07_촛대.asset",
+      "sha256": "9d4bbbac6a8797d65128d309ff6186ccd932cd1b09f3377254a48a40f77082c3"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1070.json",
+      "sha256": "3c31be9bd43e40f93d6fc147d4dc8f11e0b5b112f0a5961c02af80c2c3c9df1b"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/L08_보호장비보관함.asset",
+      "sha256": "d80f6ec4c1c7d3d0822d28f5040de9215a9df94dfc645e109ec77d4ecde3fc9f"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/facility/building-1500.json",
+      "sha256": "52d3bf213e09028e427c97b682493ff761c7a41c6230af72c2c009ca41cf3c87"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalCoreDomain.cs",
+      "sha256": "964be440b19e043faa313445ab9b3b76b6a0c032cd41ab87086908b45987d3f9"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+      "sha256": "51fd4c04887fc8992fab41747063c72458f3a1a5de50c6e947bc575c5fcb42db"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/ThermalProtectionProfile.cs",
+      "sha256": "5a0d89157cd8948accc56d2c73355ca38e0e63f3ba7b42249626395c0f9e06c1"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/residents-and-work.md",
+      "sha256": "b9a07ed1aeee6715beb3bfb50c25b3445844e5feb9da8a48b783ebc44b1480a8"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentPolicyDomain.cs",
+      "sha256": "d262a04482387c70693d8fa376180aaa5c2eb5ace1236c811008f0e4aa7e93c8"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterStatsProjectionService.cs",
+      "sha256": "a066c2812971965596e15516ca7e71f7ce8227aef42a1d53e92bfa3651bcd616"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CombatResolutionService.cs",
+      "sha256": "64904edad47f340417309e9d8167f28af0c15659a68d7eaa5d12e44afc0c2733"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/combat-and-equipment.md",
+      "sha256": "b472698a299c1618bf19942aa28073905e5b907674e99e27ade78a06df026470"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentWorkPolicyUnityAdapter.cs",
+      "sha256": "56da3c5578532166f422a42fea44f413313f10bfdb84269ffc25467ee720f36d"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Work/WorkTargetEnvironmentPolicy.cs",
+      "sha256": "13207de84d7282367fa6bb8963ad74037836f904f0d9d4da49d983df34050abe"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs",
+      "sha256": "948bb9ea2a885f7eb8f4403f13f666bd7fa5368f1818348f653fa8a8356866a1"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Work/WorkExecutionRules.cs",
+      "sha256": "aca6f227a1d5cc8710f381a7afb44eb56a5ee1c2e691aa27015d97fd81caf813"
+    },
+    {
+      "path": "Assets/Scripts/Services/Survival/SurvivalFoodSpoilageRuntime.cs",
+      "sha256": "441af11a6f936492f4dcad9003f0d3d49458967a72a20a40a3c7f472eea1df9c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/food-and-ecology.md",
+      "sha256": "b60555255f4158fb6332175c337dda7f54d0523dae70fcb9ae5665dfee7e6116"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFieldDomain.cs",
+      "sha256": "e967cd51de58043082881de635f1102458d316334b4d77f7db6dfeaf56c18e9c"
+    },
+    {
+      "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFieldModels.cs",
+      "sha256": "65782152dfca95401049005bef5c55aa4d59e9eb2c488dcb30b420a2bf7bd375"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentModels.cs",
+      "sha256": "13f5f6e5b2effb01daf5ea25531eafbc4e353ba8814f83c49bb5fca13b5f5530"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+      "sha256": "182830b5b282724cbbd58d293319f5ef774b921f50dcf3318c945b3145d989c3"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonPresentationRegistration.cs",
+      "sha256": "3d098116b62a0cf096924642acc4ccbde0936ca60a40cc182c2a0a646b4c87b5"
+    },
+    {
+      "path": "Assets/Resources/SO/GameContentCatalog.asset",
+      "sha256": "8b3fe3d0265e1c18a3a25c54e4c0d011c64e4f75eb264aee22d4466700861645"
+    },
+    {
+      "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset.meta",
+      "sha256": "c1c65d35728aaeb0466c5586c1a26559b39e0991bb49db4614dc4508bdf7e05a"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Industrial/I15_전기_아크등.asset.meta",
+      "sha256": "d1f6c6d767c2ed40bf047e8ff7e5c7722a28a130c3e89851aeaad51c4a113a5a"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E03_샹들리에.asset.meta",
+      "sha256": "b8fe74cfd8b90340f83d4e47390cebf5d0be7c0bc6d1a3c8e492344075180d1c"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E02_바닥화로.asset.meta",
+      "sha256": "b79e0d7dcbf250cc333976c9676e1a5e98a98637469cdd24923872fb313057d3"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E01_벽횃불.asset.meta",
+      "sha256": "a45d773efa9b304d9aaaf0ba2889d9925aaae6bcfad3cf4e3a007fa9d4972ff9"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E14_배기팬.asset.meta",
+      "sha256": "f7da8def4f61393d4548201c16920a0928b9c1e5159e448405e197dde7c13a26"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E13_송풍구.asset.meta",
+      "sha256": "e1cdaa319c6cbf00820728412626adf73e7b29928861bc767441f18e82f0aa13"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E12_환기덕트.asset.meta",
+      "sha256": "9a5396f3f4e7317c55a00884ac2cef55431f81c91291e2ae0899a20e9cf3a382"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E11_공조기.asset.meta",
+      "sha256": "a9bfa04dcd3026d939f900a307bc4f8a8edc38e2033ec33f35a1e9aaae2992d7"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E10_냉각기.asset.meta",
+      "sha256": "4c20e0821dee9e317826abb895ce60277c7f36435d39f049c48e5b4ff465d91e"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/E07_촛대.asset.meta",
+      "sha256": "a858be249f138f74a7f3f16c584331fbd18c30b9604f19cd22509aeb725b2f28"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/L08_보호장비보관함.asset.meta",
+      "sha256": "2acac8b896a3c0cfd586b7e926224939b70d95993abeeac877f9bce7b1aac751"
+    }
+  ],
+  "remaining": [
+    "species thermal profile census and clothing/material/quality/exposure protection",
+    "weather-front/calendar/season effects and external influence",
+    "surgery environmental thresholds and organ preservation live consumers",
+    "room environment/cleanliness and food spoilage full lifecycle",
+    "environment save validation and cross-aggregate execution",
+    "all other unreviewed systems/entities/documents in master plan"
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-charcoal",
+    "spoiler_tier": "none",
+    "title": "숯"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "event/practice-orc-weapon-vigil",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-blacksteel",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-book-seasonal-almanac",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-engineering-drawing",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-reclaimed-water-filter",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-lead-ingot",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-supply-fungicide",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "12",
+      "from": "character/festival-weapon-vigil",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "12",
+      "from": "event/guest-request-winter-fuel-auction",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-charcoal",
+      "label": "생산·해금",
+      "to": "item/material-charcoal",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-black-powder",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-spring-steel",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-steel-ingot",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/seasonal-winter-fuel-demand",
+      "label": "연결",
+      "to": "item/material-charcoal",
+      "type": "consumes-item"
+    }
+  ],
+  "schema_version": 1
+}

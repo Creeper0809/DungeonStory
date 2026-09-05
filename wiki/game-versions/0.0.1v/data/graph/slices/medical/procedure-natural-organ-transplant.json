@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "medical",
+    "slug": "procedure-natural-organ-transplant",
+    "spoiler_tier": "none",
+    "title": "장기 이식"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "medical/procedure-natural-organ-transplant",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medicine-immunosuppressant",
+      "target_spoiler_tier": "none",
+      "target_title": "면역억제제",
+      "to": "item/medicine-immunosuppressant",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-natural-organ-transplant",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "medicine-standard",
+      "target_spoiler_tier": "none",
+      "target_title": "표준 약품",
+      "to": "item/medicine-standard",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "medical/procedure-natural-organ-transplant",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-xenotransplant",
+      "target_spoiler_tier": "none",
+      "target_title": "이종 이식",
+      "to": "research/research-medical-xenotransplant",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

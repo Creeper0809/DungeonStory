@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "sample-antigen-mana-pox",
+    "spoiler_tier": "none",
+    "title": "마나두창 항원 표본"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-medicine-vaccine-mana-pox",
+      "label": "필요 조건",
+      "to": "item/sample-antigen-mana-pox",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

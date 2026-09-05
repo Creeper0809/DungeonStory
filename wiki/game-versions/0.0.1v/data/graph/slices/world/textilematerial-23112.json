@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "textilematerial-23112",
+    "spoiler_tier": "none",
+    "title": "룬가죽"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/textilematerial-23112",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-textile-tailoring",
+      "target_spoiler_tier": "none",
+      "target_title": "재봉",
+      "to": "research/research-textile-tailoring",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

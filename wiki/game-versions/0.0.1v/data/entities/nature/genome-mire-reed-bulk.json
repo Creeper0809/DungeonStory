@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "nature",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "genome-mire-reed-bulk",
+  "spoiler_tier": "none",
+  "summary": "성장·수확 좌위의 품질 비용을 지불하고 보통급 섬유를 대량 생산한다.",
+  "title": "genome_mire-reed_bulk"
+}

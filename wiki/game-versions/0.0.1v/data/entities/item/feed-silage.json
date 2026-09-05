@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.23kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "9"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "풀과 잎을 눌러 담아 발효시켜 건초가 부족한 계절에 꺼내는 사료다. 사르베니아 내해의 목장은 장마철 풀을 사일리지로 눌러 담아 겨울과 가도 봉쇄에 대비한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "feed-silage",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "사일리지"
+}

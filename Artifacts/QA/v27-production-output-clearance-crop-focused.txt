@@ -1,0 +1,51 @@
+[PASS] BOOT_TITLE_READY Title scope and production scene navigator are ready.
+[PASS] BOOT_PREPARATION_READY Preparation owner selection is ready.
+[PASS] BOOT_PREPARED_START_READY Prepared start command is interactable.
+[PASS] BOOT_PREPARED_START_REQUESTED PreparedNewRun was accepted through the production preparation UI.
+[PASS] BOOT_GAMEPLAY_SCENE_PATH_EXACT active=Assets/__V27SyntheticPreparedOutputCanary/GameplayScene.unity; synthetic=True
+[PASS] BOOT_GAMEPLAY_READY PreparedNewRun reached the exact Gameplay scene with a runtime container.
+[PASS] BOOT_PRODUCTION_FACILITY_AUTHORITY_BASELINE scene=Assets/__V27SyntheticPreparedOutputCanary/GameplayScene.unity; productionFacilities=1; mixedWorldEntries=153
+[PASS] RUNTIME_COMPOSITION_READY scope/container and authored owner provider match
+[PASS] SCOPE_READY gameplay LifetimeScope resolved
+[PASS] ITEM_RUNTIME_READY world item runtime resolved
+[PASS] WORK_ORDER_RUNTIME_READY work order runtime resolved
+[PASS] EQUIPMENT_RUNTIME_READY common combat equipment runtime resolved
+[PASS] EQUIPMENT_MAINTENANCE_READY equipment maintenance runtime resolved
+[PASS] ECONOMY_CATALOG_READY resource economy catalog resolved
+[PASS] PREPARATION_RUNTIME_READY offense preparation service resolved
+[PASS] DESTINATION_CLAIM_RUNTIME_READY haul destination claim authority resolved
+[PASS] WAREHOUSE_MASS_ADMISSION_RUNTIME_READY warehouse gram admission authority resolved
+[PASS] DEBUG_MODE_READY debug mode service resolved
+[PASS] GRID_READY grid resolved
+[PASS] RUN_READY owner=Leon; staff=2
+[PASS] HAULER_READY Arin
+[PASS] OUTPUT_CLEARANCE_SPAWNER_FROZEN originalPaused=False
+[PASS] OUTPUT_CLEARANCE_PREFIXTURE_HAULS_DRAINED activeHaulers=0; committedHauls=0; idle=True; actors=3; timeout=30s
+[PASS] OUTPUT_CLEARANCE_NATURAL_AI_POOL_READY actors=3; owner:paused=True:logisticsOnly=True:haul=False,character:staff:2020723559:02:paused=True:logisticsOnly=True:haul=False,character:staff:2020723559:01:paused=True:logisticsOnly=True:haul=False
+[PASS] PREPARED_OUTPUT_REQUEST_CANONICAL synthetic=False; recipe=; item=
+[PASS] PREPARED_OUTPUT_CANARY_TRANSACTION_IDENTITY_EXACT nonce=; itemGuid=; recipeGuid=; itemCatalog=; domainCatalog=
+[PASS] PREPARED_OUTPUT_CANARY_PRE_QUARANTINE_BASELINE_READY synthetic=False; sections=75
+[PASS] PREPARED_OUTPUT_FIXTURE_BOUNDARY_CLEAR stacks=39; custody=0; routes=0; committedHauls=0; activeHaulers=0
+[PASS] PREPARED_OUTPUT_FIXTURE_EXISTING_STACKS_QUARANTINED stacks=39; failures=0
+[PASS] PREPARED_OUTPUT_FIXTURE_CARRY_EMPTY carried=0
+[PASS] OUTPUT_CLEARANCE_TELEMETRY_RUNTIME_READY live telemetry control resolved
+[PASS] OUTPUT_CLEARANCE_CROP_DESCRIPTOR_EXACT descriptors=92; gaps=0; descriptor=True; fixture=output-clearance-observation:building:1095:workstation:crop-plot:157184; outputs=2; mass=12950; capacityCycles=4
+[PASS] OUTPUT_CLEARANCE_CROP_RUNTIME_READY descriptor=True; crop=True; content=True; transfers=True; handlers=True; capacity=True; publication=True; bridge=True; workshops=True; capabilities=True; rooms=True; random=True/True; runSeed=2020723559; clock=True; weather=True/True; research=True
+[PASS] OUTPUT_CLEARANCE_CROP_FACILITIES_EXACT plot=building:acbb918f3a0e4706a1edd713a4ab4ac9@(19, 0); warehouse=building:86927b5812cf4104b76b374b59e8f8c2@(13, 0); soil=building:faf8103c8e5642d38511de03edfe4d55; seed=building:bb0d3b2d739d4cfeae73d0de153884c8; positions=True/True/True/True; warehouseMass=True; operational=True/True; usableRoomCells=28
+[PASS] OUTPUT_CLEARANCE_CROP_BUFFER_4_CYCLES_EXACT destination=production-output:building:acbb918f3a0e4706a1edd713a4ab4ac9; capacity=51800/51800; reserved=0
+[PASS] OUTPUT_CLEARANCE_CROP_GOLDEN_KEY_REACHABLE runSeed=2020723559; plot=building:acbb918f3a0e4706a1edd713a4ab4ac9; attempt=0; actor=character:qa:crop-clearance-witness:0011
+[PASS] OUTPUT_CLEARANCE_CROP_INPUT_VECTOR_EXACT ready=True; phase=WaitingForMaterials; destination=crop-materials:building:acbb918f3a0e4706a1edd713a4ab4ac9; expected=resource:clean-waterx1|seed-lot:ember-rootx1|supply:nitrate-fertilizerx1; actual=resource:clean-waterx1|seed-lot:ember-rootx1|supply:nitrate-fertilizerx1
+[PASS] OUTPUT_CLEARANCE_CROP_SOW_PRODUCTION_HANDLER_EXACT spawned=True; completed=True; failure=
+[PASS] OUTPUT_CLEARANCE_CROP_NATURAL_GROWTH_READY ready=True; required=7; completed=0; phase=ReadyToHarvest; progress=1; blocked=; frames=10; accumulatedDelta=192.333328; clockDelta=21.333334; scale=64
+[PASS] OUTPUT_CLEARANCE_CROP_GOLDEN_MATURE scheduled=True; reason=Crop Output Clearance Witness에게 황금 수확을 예약했습니다.; remaining=0; clock=373.353455/25
+[PASS] OUTPUT_CLEARANCE_CROP_RECEIPT_PHYSICAL_VECTOR_EXACT harvested=True; completion=True; harvestFailure=; captured=True; receiptFailure=; operation=crop-harvest:building:acbb918f3a0e4706a1edd713a4ab4ac9:000000; batch=domain-output-batch:crop-harvest:crop-harvest:building:acbb918f3a0e4706a1edd713a4ab4ac9:000000; outputs=2; mass=12950
+[PASS] OUTPUT_CLEARANCE_NATURAL_AIHAUL_READY candidates=3; pool=3; actors=character:staff:2020723559:01,character:staff:2020723559:02,owner; target=warehouse:building:86927b5812cf4104b76b374b59e8f8c2; slices=2; quantity=35; grams=12950
+[PASS] OUTPUT_CLEARANCE_NATURAL_AIHAUL_POOL_PREFERRED preferred=True; candidates=3; actors=character:staff:2020723559:01,character:staff:2020723559:02,owner
+[FAIL] OUTPUT_CLEARANCE_NATURAL_AIHAUL_SCHEDULER_OWNED exactSameFrame=False; operations=haul:character:staff:2020723559:01:000000000001; actors=character:staff:2020723559:01; multipleOwners=False; invalidVector=False; slices=1/2; quantities=stack:dbbe6c02b9b24131a72ee760d4334a35:28/28|stack:e9c1e0aacc384111a041af5d09edb43f:0/7
+[FAIL] OUTPUT_CLEARANCE_NATURAL_AIHAUL_DELIVERED_EXACT storedDelta=resource:ember-root:28/28|seed-lot:ember-root:0/7; storedMass=12600; expectedBatchMass=12950; reservedInbound=0; hauling=0; actors=1; target=warehouse:building:86927b5812cf4104b76b374b59e8f8c2
+[PASS] OUTPUT_CLEARANCE_CROP_OBSERVATION_IDENTITY_READY ownerRosterKey=staff:01; clearanceMicroHours=355560; telemetryCompleted=1; deliveryExact=False; schedulerExact=False
+[FAIL] OUTPUT_CLEARANCE_CROP_OBSERVATION_AT4_ACK_EXACT_ONCE schema=production-output-clearance-natural-observation@4; exact=False; acknowledged=False:; duplicateRejected=False:; microHours=355560; randomDrawDelta=1636; digest=fed876edf0d80d2eba19f6b98a6ab4bfe38d19b1f3d8490e8462559175266e50
+[PASS] PREPARED_OUTPUT_CANARY_SCENE_BASELINE_RESTORED sections=75
+capturedErrors=0; <none>
+capturedWarnings=1; Autosave failed after operating day 2: Dungeon save capture is forbidden during facility output-clearance measurement: v27.output-clearance.crop.focused
+RESULT=FAIL; failures=3; OUTPUT_CLEARANCE_NATURAL_AIHAUL_SCHEDULER_OWNED: exactSameFrame=False; operations=haul:character:staff:2020723559:01:000000000001; actors=character:staff:2020723559:01; multipleOwners=False; invalidVector=False; slices=1/2; quantities=stack:dbbe6c02b9b24131a72ee760d4334a35:28/28|stack:e9c1e0aacc384111a041af5d09edb43f:0/7 | OUTPUT_CLEARANCE_NATURAL_AIHAUL_DELIVERED_EXACT: storedDelta=resource:ember-root:28/28|seed-lot:ember-root:0/7; storedMass=12600; expectedBatchMass=12950; reservedInbound=0; hauling=0; actors=1; target=warehouse:building:86927b5812cf4104b76b374b59e8f8c2 | OUTPUT_CLEARANCE_CROP_OBSERVATION_AT4_ACK_EXACT_ONCE: schema=production-output-clearance-natural-observation@4; exact=False; acknowledged=False:; duplicateRejected=False:; microHours=355560; randomDrawDelta=1636; digest=fed876edf0d80d2eba19f6b98a6ab4bfe38d19b1f3d8490e8462559175266e50

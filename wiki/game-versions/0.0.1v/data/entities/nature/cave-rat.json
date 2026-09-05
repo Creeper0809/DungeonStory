@@ -1,0 +1,49 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "nature",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "shadow-wolf",
+      "target_spoiler_tier": "none",
+      "target_title": "그림자늑대",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "medical",
+      "target_slug": "disease-cave-flu",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 독감",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-rat",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴쥐",
+      "type": "references"
+    },
+    {
+      "amount": "1",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-meat",
+      "target_spoiler_tier": "none",
+      "target_title": "생고기",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "cave-rat",
+  "spoiler_tier": "none",
+  "summary": "던전 외곽의 틈 사이를 빠르게 기어 다니는 작은 설치류. 고기는 적지만 초반 식량으로 쓸 수 있다.",
+  "title": "동굴쥐"
+}

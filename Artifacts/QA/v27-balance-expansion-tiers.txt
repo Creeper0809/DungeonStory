@@ -1,11 +1,11 @@
-RESULT=PASS; authority=asset-backed-capacity; developerEKey=false; automaticPopulationTrigger=false; authoredColumns=27,49,65,81; maxWidth=104
-sourceDigest=f9f7d13d41e7c5276cfd537bcc8e8e8dc014cd366ed4f5b2c73dd4877d13a41a
-spatialCsvSha256=5ab343c880e334b8fd87b451624caa17a5181e3c14ce9f88c92026b2534b265e
+RESULT=PASS; authority=asset-backed-capacity; developerEKey=false; automaticPopulationTrigger=false; authoredColumns=29,51,71,87; maxWidth=104
+sourceDigest=cb60cf191e5afb870d66387288397cac741a7f7c90baea6efdad7c27f8f23b9d
+spatialCsvSha256=d8aa14655c8e932e4f7691b0c8a90182c3004b97d1a97e2c6b67c4ddca9b6a99
 searchProof=actual-assets:exact+beam
 PASS population=1;requiredInteriorColumns=27;authoredTargetInteriorColumns=27;spareColumns=0;researchGate=start
 PASS population=3;requiredInteriorColumns=27;authoredTargetInteriorColumns=27;spareColumns=0;researchGate=start
-PASS population=6;requiredInteriorColumns=27;authoredTargetInteriorColumns=27;spareColumns=0;researchGate=start
-PASS population=12;requiredInteriorColumns=49;authoredTargetInteriorColumns=49;spareColumns=0;researchGate=research:mining:quarry
-PASS population=18;requiredInteriorColumns=65;authoredTargetInteriorColumns=65;spareColumns=0;researchGate=research:mining:stonecutting
-PASS population=24;requiredInteriorColumns=81;authoredTargetInteriorColumns=81;spareColumns=0;researchGate=research:mining:deep
+PASS population=6;requiredInteriorColumns=29;authoredTargetInteriorColumns=29;spareColumns=0;researchGate=start
+PASS population=12;requiredInteriorColumns=51;authoredTargetInteriorColumns=51;spareColumns=0;researchGate=research:mining:quarry
+PASS population=18;requiredInteriorColumns=71;authoredTargetInteriorColumns=71;spareColumns=0;researchGate=research:mining:stonecutting
+PASS population=24;requiredInteriorColumns=87;authoredTargetInteriorColumns=87;spareColumns=0;researchGate=research:mining:deep
 PASS FIXED_WORLD_FEATURE_SOLVER_LIVE_CONTRACT interiorReservedByStage=1:0,3:0,6:0,12:0,18:0,24:0;liveAuthority=IWorldResourceRuntime.Nodes+IWorldResourceNodeHost

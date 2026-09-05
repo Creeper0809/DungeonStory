@@ -1,0 +1,40 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-chapter-golem-5",
+    "spoiler_tier": "warning",
+    "title": "주조핵의 명령"
+  },
+  "edges": [
+    {
+      "amount": "4",
+      "from": "event/faction-chapter-golem-5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-maintenance-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 키트",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-chapter-golem-5",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-maintenance-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 키트",
+      "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/faction-arc-golem",
+      "label": "관련",
+      "to": "event/faction-chapter-golem-5",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

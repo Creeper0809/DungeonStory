@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "429"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "룬 정화 결정은 물과 마나 흐름에 섞인 오염을 걸러 다음 공정으로 보낸다. 특히 베르사디온산 룬 정화 결정은 세 번째 봉인실이 끊어지면 마나 흐름도 함께 멎는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "component-rune-purification-crystal",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 룬 정화 결정.",
+  "title": "룬 정화 결정"
+}

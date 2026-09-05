@@ -99,9 +99,6 @@ public interface IRegionalSupplyContractCommandPort
     bool AcknowledgeDeliveryTransfer(
         string commitId,
         out string failureReason);
-    int ReleaseDestination(
-        string destinationId,
-        Vector2Int releasePosition);
     void PrioritizeDestination(string destinationId);
     void RequestHauler();
     bool TryAddContractIncome(
@@ -141,6 +138,7 @@ public sealed class RegionalSupplyContractRuntime :
     private readonly IRegionalSupplyContractSessionPort session;
     private readonly IGrandProjectBenefitQuery projectBenefits;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IEconomyProjectInputOwnerPort inputOwners;
     private IDisposable daySubscription;
 
     private RegionalSupplyContractAggregateState state
@@ -172,7 +170,8 @@ public sealed class RegionalSupplyContractRuntime :
         IRegionalSupplyContractCommandPort commands,
         IRegionalSupplyContractSessionPort session,
         IGrandProjectBenefitQuery projectBenefits,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IEconomyProjectInputOwnerPort inputOwners)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.commands = commands
@@ -183,6 +182,8 @@ public sealed class RegionalSupplyContractRuntime :
             ?? throw new ArgumentNullException(nameof(projectBenefits));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
     }
 
     public int Version => state.Version;
@@ -266,7 +267,7 @@ public sealed class RegionalSupplyContractRuntime :
             return false;
         }
 
-        if (!world.TryGetDeliveryDropoff(out _))
+        if (!world.TryGetDeliveryDropoff(out Vector2Int dropoff))
         {
             message = "계약 물품을 모을 하차장이 없습니다.";
             return false;
@@ -276,8 +277,19 @@ public sealed class RegionalSupplyContractRuntime :
         contract.deadlineDay = Mathf.Max(
             currentDay + ContractDurationDays,
             contract.deadlineDay);
-        contract.destinationId =
-            $"regional-contract:{contract.contractId}";
+        contract.destinationId = EconomyProjectInputOwnerAuthority
+            .BuildRegionalContractDestinationId(contract.contractId);
+        contract.inputOwnerActive = true;
+        contract.inputDestinationX = dropoff.x;
+        contract.inputDestinationY = dropoff.y;
+        if (!TryEnsureInputOwner(contract, out string ownerFailure))
+        {
+            contract.status = RegionalSupplyContractStatus.Offered;
+            contract.destinationId = string.Empty;
+            ClearInputOwnerProjection(contract);
+            message = "계약 집결 목적지를 열지 못했습니다: " + ownerFailure;
+            return false;
+        }
         contract.lastStatus = "계약 물품 운반을 시작했습니다.";
         ProcessDelivery(contract);
         Touch();
@@ -304,6 +316,7 @@ public sealed class RegionalSupplyContractRuntime :
 
     public DungeonRegionalSupplyContractSaveData Capture()
     {
+        ValidateInputOwnersForCapture();
         return new DungeonRegionalSupplyContractSaveData
         {
             currentDay = currentDay,
@@ -507,12 +520,32 @@ public sealed class RegionalSupplyContractRuntime :
             {
                 contract.lastStatus = pendingFailure;
             }
+            else
+            {
+                TryRetireCompletedInputOwner(contract);
+            }
             return true;
         }
 
         if (!world.TryGetDeliveryDropoff(out Vector2Int dropoff))
         {
             contract.lastStatus = "계약 집결점이 없습니다.";
+            return false;
+        }
+
+        if (contract.inputDestinationX != dropoff.x
+            || contract.inputDestinationY != dropoff.y)
+        {
+            contract.inputDestinationX = dropoff.x;
+            contract.inputDestinationY = dropoff.y;
+            contract.inputCapacityGrams = 0L;
+            contract.inputMassAuthorityRevision = 0L;
+            contract.inputCapacityFingerprint = string.Empty;
+        }
+
+        if (!TryEnsureInputOwner(contract, out string ownerFailure))
+        {
+            contract.lastStatus = ownerFailure;
             return false;
         }
 
@@ -588,6 +621,10 @@ public sealed class RegionalSupplyContractRuntime :
         {
             contract.lastStatus = finalizeFailure;
         }
+        else
+        {
+            TryRetireCompletedInputOwner(contract);
+        }
         return true;
     }
 
@@ -600,14 +637,18 @@ public sealed class RegionalSupplyContractRuntime :
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(contract.destinationId)
-            && world.TryGetDeliveryDropoff(out Vector2Int dropoff))
-        {
-            commands.ReleaseDestination(
+        if (contract.inputOwnerActive
+            && !inputOwners.TryRetireDestination(
+                EconomyProjectInputOwnerAuthority.RegionalContractDomain,
                 contract.destinationId,
-                dropoff);
+                EconomyProjectInputOwnerAuthority.RegionalContractTerminalReason,
+                out string releaseFailure))
+        {
+            contract.lastStatus = releaseFailure;
+            return;
         }
 
+        ClearInputOwnerProjection(contract);
         contract.status = RegionalSupplyContractStatus.Failed;
         contract.lastStatus = reason ?? "계약 실패";
     }
@@ -626,6 +667,96 @@ public sealed class RegionalSupplyContractRuntime :
                 or ResourceItemKind.Ammunition
             && (string.IsNullOrWhiteSpace(item.RequiredResearchId)
                 || IsResearchCompleted(item.RequiredResearchId));
+    }
+
+    private bool TryEnsureInputOwner(
+        RegionalSupplyContractState contract,
+        out string failureReason)
+    {
+        if (contract == null || !contract.inputOwnerActive)
+        {
+            failureReason = "regional-contract-input-owner-inactive";
+            return false;
+        }
+        if (!inputOwners.TryEnsure(
+                EconomyProjectInputOwnerAuthority.RegionalContractDomain,
+                contract.contractId,
+                contract.destinationId,
+                new Vector2Int(contract.inputDestinationX, contract.inputDestinationY),
+                EconomyProjectInputOwnerAnchorKind.ReservedTarget,
+                string.Empty,
+                BuildRequirements(contract),
+                contract.inputCapacityGrams,
+                contract.inputMassAuthorityRevision,
+                contract.inputCapacityFingerprint,
+                out EconomyProjectInputOwnerProjection projection,
+                out failureReason))
+            return false;
+        contract.inputCapacityGrams = projection.CapacityGrams;
+        contract.inputMassAuthorityRevision = projection.MassAuthorityRevision;
+        contract.inputCapacityFingerprint = projection.Fingerprint;
+        return true;
+    }
+
+    private void TryRetireCompletedInputOwner(
+        RegionalSupplyContractState contract)
+    {
+        if (contract == null || !contract.inputOwnerActive
+            || contract.status != RegionalSupplyContractStatus.Completed)
+            return;
+        if (!inputOwners.TryRetireDestination(
+                EconomyProjectInputOwnerAuthority.RegionalContractDomain,
+                contract.destinationId,
+                EconomyProjectInputOwnerAuthority.RegionalContractTerminalReason,
+                out string failureReason))
+        {
+            contract.lastStatus = failureReason;
+            return;
+        }
+        ClearInputOwnerProjection(contract);
+    }
+
+    private void ValidateInputOwnersForCapture()
+    {
+        foreach (RegionalSupplyContractState contract in contracts
+                     .Where(value => value != null && value.inputOwnerActive))
+        {
+            if (!inputOwners.TryValidate(
+                    EconomyProjectInputOwnerAuthority.RegionalContractDomain,
+                    contract.contractId,
+                    contract.destinationId,
+                    new Vector2Int(contract.inputDestinationX, contract.inputDestinationY),
+                    EconomyProjectInputOwnerAnchorKind.ReservedTarget,
+                    string.Empty,
+                    BuildRequirements(contract),
+                    contract.inputCapacityGrams,
+                    contract.inputMassAuthorityRevision,
+                    contract.inputCapacityFingerprint,
+                    out string failureReason))
+                throw new InvalidOperationException(
+                    "Regional-contract input owner capture validation failed: "
+                    + failureReason);
+        }
+    }
+
+    private static IReadOnlyDictionary<string, int> BuildRequirements(
+        RegionalSupplyContractState contract) =>
+        (contract.requirements ?? new List<RegionalSupplyContractRequirement>())
+            .GroupBy(value => value.itemId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(value => value.amount),
+                StringComparer.Ordinal);
+
+    private static void ClearInputOwnerProjection(
+        RegionalSupplyContractState contract)
+    {
+        contract.inputOwnerActive = false;
+        contract.inputDestinationX = 0;
+        contract.inputDestinationY = 0;
+        contract.inputCapacityGrams = 0L;
+        contract.inputMassAuthorityRevision = 0L;
+        contract.inputCapacityFingerprint = string.Empty;
     }
 
     private bool IsResearchCompleted(string researchId)

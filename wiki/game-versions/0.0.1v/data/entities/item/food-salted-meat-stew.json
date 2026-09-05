@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "13"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "염장육의 소금기를 국물에 풀고 채소와 함께 끓인 보존식 스튜다. 하르나크의 큰솥의 몫에서는 염장육 스튜의 첫 그릇을 밤 경비를 마친 주민에게 건넨다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-salted-meat-stew",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "염장육 스튜"
+}

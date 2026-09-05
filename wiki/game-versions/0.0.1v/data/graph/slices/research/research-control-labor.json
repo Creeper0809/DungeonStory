@@ -1,0 +1,83 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-control-labor",
+    "spoiler_tier": "none",
+    "title": "노역 감독"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-control-labor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-restraints",
+      "target_spoiler_tier": "none",
+      "target_title": "구속 관리",
+      "to": "research/research-control-restraints",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-labor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-restraints",
+      "target_spoiler_tier": "none",
+      "target_title": "구속 관리",
+      "to": "research/research-control-restraints",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-labor",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-control-restraints",
+      "target_spoiler_tier": "none",
+      "target_title": "구속 관리",
+      "to": "research/research-control-restraints",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-labor",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8809",
+      "target_spoiler_tier": "none",
+      "target_title": "포로 작업 도구함",
+      "to": "facility/building-8809",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-prisoner-work-kit",
+      "label": "필요 조건",
+      "to": "research/research-control-labor",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-show",
+      "label": "선행 연구",
+      "to": "research/research-control-labor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-show",
+      "label": "선행 연구",
+      "to": "research/research-control-labor",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-control-show",
+      "label": "선행 연구",
+      "to": "research/research-control-labor",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

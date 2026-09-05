@@ -71,7 +71,9 @@ public interface IProductionInputDestinationCustodyDrainService
 /// held.
 /// </summary>
 public sealed class ProductionInputDestinationCustodyDrainService :
-    IProductionInputDestinationCustodyDrainService
+    IProductionInputDestinationCustodyDrainService,
+    IProductionInputDestinationCustodyDrainCheckpointGcPort,
+    IProductionInputDestinationCustodyDrainLiveQuery
 {
     private const string InterruptionReason =
         "production-input-destination-destructive-drain";
@@ -85,6 +87,17 @@ public sealed class ProductionInputDestinationCustodyDrainService :
     private readonly IItemReservationMutationGate mutationGate;
 
     public bool RequiresImmediateRecoveryBeforeGameplayTick => true;
+
+    public IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
+        CaptureAll()
+    {
+        if (outbox is not IProductionInputDestinationCustodyDrainLiveQuery query)
+        {
+            throw new InvalidOperationException(
+                "production-input-destination-live-query-missing");
+        }
+        return query.CaptureAll();
+    }
 
     public ProductionInputDestinationCustodyDrainService(
         IProductionInputDestinationCustodyDrainOutbox outbox,
@@ -521,6 +534,61 @@ public sealed class ProductionInputDestinationCustodyDrainService :
         stepOperationId,
         receiptFingerprint);
 
+    public bool TryPrepareCheckpointGarbageCollection(
+        IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData> records,
+        out IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        if (outbox is not IProductionInputDestinationCustodyDrainCheckpointGcPort gc)
+        {
+            candidate = null;
+            failureReason =
+                "production-input-destination-checkpoint-gc-port-missing";
+            return false;
+        }
+        return gc.TryPrepareCheckpointGarbageCollection(
+            records,
+            out candidate,
+            out failureReason);
+    }
+
+    public bool TryPublishCheckpointGarbageCollection(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate,
+        out string failureReason)
+    {
+        if (outbox is not IProductionInputDestinationCustodyDrainCheckpointGcPort gc)
+        {
+            failureReason =
+                "production-input-destination-checkpoint-gc-port-missing";
+            return false;
+        }
+        return gc.TryPublishCheckpointGarbageCollection(
+            candidate,
+            out failureReason);
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+    {
+        if (outbox is not IProductionInputDestinationCustodyDrainCheckpointGcPort gc)
+        {
+            throw new InvalidOperationException(
+                "production-input-destination-checkpoint-gc-port-missing");
+        }
+        gc.RollbackCheckpointGarbageCollection(candidate);
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionInputDestinationCustodyDrainCheckpointGcCandidate candidate)
+    {
+        if (outbox is not IProductionInputDestinationCustodyDrainCheckpointGcPort gc)
+        {
+            throw new InvalidOperationException(
+                "production-input-destination-checkpoint-gc-port-missing");
+        }
+        gc.CompleteCheckpointGarbageCollection(candidate);
+    }
+
     public bool TryCapture(
         string stepOperationId,
         out ProductionInputDestinationCustodyDrainSaveData record) =>
@@ -593,7 +661,7 @@ public sealed class ProductionInputDestinationCustodyDrainService :
         }
         using (mutationGate.EnterCaptureBarrier())
         {
-            if (!haul.TryStopHaulingIfActiveOperationsSubsetOf(
+            if (!haul.TryStopHaulingOrReleaseRestoredCarryIfOperationsSubsetOf(
                     allowed,
                     InterruptionReason,
                     HaulInterruptionDisposition

@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-component-prototype-package",
+    "spoiler_tier": "none",
+    "title": "시제품 설계 묶음"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-prototype-package",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-prototype-package",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 설계 묶음",
+      "to": "item/component-prototype-package",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-prototype-package",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-engineering-drawing",
+      "target_spoiler_tier": "none",
+      "target_title": "공학 도면",
+      "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-prototype-package",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-machine-parts",
+      "target_spoiler_tier": "none",
+      "target_title": "기계 부품",
+      "to": "item/component-machine-parts",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-component-prototype-package",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-equipment-prototype-engineering",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 공학",
+      "to": "research/research-equipment-prototype-engineering",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

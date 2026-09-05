@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.375kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "11"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "포도즙은 음료, 조리와 약품 제조에 나눠 쓰는 액체 재료다. 베르사디온의 포도즙 병은 의식용 혈액과 섞이지 않도록 흰 실로 묶고, 동의의 잔 표식과 나란히 두지 않는다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "material-grape-juice",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "포도즙"
+}

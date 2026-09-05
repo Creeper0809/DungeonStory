@@ -20,19 +20,31 @@ public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBu
 {
     private readonly GridBuildingFactory buildingFactory;
     private readonly IProductionFacilityMutationFence productionMutationFence;
+    private readonly IProductionFacilityRetargetTransaction productionRetarget;
+    private readonly IProductionFacilityHandleQuery productionFacilityHandles =
+        new ProductionFacilityHandleQueryAdapter();
 
     public GridFacilityEvolutionBuildingReplacer(GridBuildingFactory buildingFactory)
-        : this(buildingFactory, null)
+        : this(buildingFactory, null, null)
     {
     }
 
     public GridFacilityEvolutionBuildingReplacer(
         GridBuildingFactory buildingFactory,
         IProductionFacilityMutationFence productionMutationFence)
+        : this(buildingFactory, productionMutationFence, null)
+    {
+    }
+
+    public GridFacilityEvolutionBuildingReplacer(
+        GridBuildingFactory buildingFactory,
+        IProductionFacilityMutationFence productionMutationFence,
+        IProductionFacilityRetargetTransaction productionRetarget)
     {
         this.buildingFactory = buildingFactory
             ?? throw new ArgumentNullException(nameof(buildingFactory));
         this.productionMutationFence = productionMutationFence;
+        this.productionRetarget = productionRetarget;
     }
 
     public bool CanReplace(BuildableObject source, BuildingSO resultBuilding, out string reason)
@@ -57,15 +69,17 @@ public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBu
 
         bool canOwnProduction = source.BuildingData?.GetProductionWorkstationAbility() != null
             || source.BuildingData?.GetProductionBufferAbility() != null;
-        if (productionMutationFence == null)
+        // The staged retarget transaction is the authority for active owners.
+        // Keep the legacy empty-only fence only for narrow fixtures that have
+        // not supplied that transaction yet.
+        if (canOwnProduction && productionRetarget == null
+            && productionMutationFence == null)
         {
-            if (canOwnProduction)
-            {
-                reason = "생산 시설 진화 수명주기 권위를 찾을 수 없습니다.";
-                return false;
-            }
+            reason = "생산 시설 진화 수명주기 권위를 찾을 수 없습니다.";
+            return false;
         }
-        else if (!productionMutationFence.TryRequireNoAuthority(
+        else if (canOwnProduction && productionRetarget == null
+                 && !productionMutationFence.TryRequireNoAuthority(
                      source,
                      ProductionFacilityMutationKind.Evolution,
                      out string productionFailure))
@@ -107,6 +121,48 @@ public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBu
         Grid grid = source.Grid;
         Vector2Int position = source.centerPos;
         BuildingSO sourceBuilding = source.BuildingData;
+        BuildingInstanceId survivorId = source.RequirePersistentInstanceId();
+        ProductionFacilityRetargetTransactionState retargetState = null;
+        if (productionRetarget != null)
+        {
+            ProductionFacilityRetargetRequest request = new(
+                productionFacilityHandles.CaptureFacility(source),
+                ProductionFacilityMutationKind.Evolution);
+            if (!productionRetarget.TryBegin(
+                    new[] { request },
+                    "evolution:" + survivorId.Value,
+                    out retargetState,
+                    out string beginFailure))
+            {
+                reason = "생산 권위 진화 사전 검증 실패: " + beginFailure;
+                return false;
+            }
+        }
+
+        BuildableObject candidate = null;
+        try
+        {
+            candidate = buildingFactory.CreateDetached(
+                grid,
+                resultBuilding,
+                position);
+            if (candidate == null)
+            {
+                RollbackRetargetOrThrow(retargetState, "candidate-creation");
+                reason = "결과 시설 후보 생성 실패";
+                return false;
+            }
+            candidate.RestorePersistentIdentity(survivorId);
+            candidate.SetGrid(grid);
+            candidate.Initialization(resultBuilding, position);
+        }
+        catch (Exception exception)
+        {
+            DiscardCandidate(candidate, resultBuilding, position);
+            RollbackRetargetOrThrow(retargetState, "candidate-initialization");
+            reason = "결과 시설 후보 초기화 실패: " + exception.Message;
+            return false;
+        }
 
         if (!grid.RemoveOccupant(
                 source,
@@ -114,39 +170,193 @@ public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBu
                 source.buildPoses,
                 sourceBuilding.Placement.IsMovement))
         {
+            DiscardCandidate(candidate, resultBuilding, position);
+            RollbackRetargetOrThrow(retargetState, "occupancy-removal");
             reason = "원본 시설 점유를 해제할 수 없습니다";
             return false;
         }
 
-        result = buildingFactory.Create(grid, resultBuilding, position);
-        if (result == null)
-        {
-            RestoreSourceOccupancy(grid, source, sourceBuilding);
-            reason = "결과 시설 생성 실패";
-            return false;
-        }
-
-        result.SetGrid(grid);
-        result.Initialization(resultBuilding, position);
         bool registered = grid.RegisterOccupant(
-            result,
+            candidate,
             resultBuilding.Placement.Layer,
             resultBuilding.GetGridPosList(position),
             resultBuilding.Placement.IsMovement);
         if (!registered)
         {
-            buildingFactory.DeleteVisual(resultBuilding, position);
-            result.DestroySelf();
+            DiscardCandidate(candidate, resultBuilding, position);
             RestoreSourceOccupancy(grid, source, sourceBuilding);
-            result = null;
+            RollbackRetargetOrThrow(retargetState, "candidate-registration");
             reason = "결과 시설 배치 실패";
             return false;
         }
 
+        IBuildingWorldRegistryPort worldRegistry = source.WorldRegistry;
+        string registryFailure = worldRegistry == null
+            ? "building-world-registry-unavailable"
+            : string.Empty;
+        if (worldRegistry == null
+            || !worldRegistry.TryReplaceBuilding(
+                source,
+                candidate,
+                out registryFailure))
+        {
+            grid.RemoveOccupant(
+                candidate,
+                resultBuilding.Placement.Layer,
+                candidate.buildPoses,
+                resultBuilding.Placement.IsMovement);
+            DiscardCandidate(candidate, resultBuilding, position);
+            RestoreSourceOccupancy(grid, source, sourceBuilding);
+            RollbackRetargetOrThrow(retargetState, "world-registry-handoff");
+            reason = "결과 시설 월드 권위 교체 실패: " + registryFailure;
+            return false;
+        }
+
+        if (retargetState != null)
+        {
+            bool authorityCommitted;
+            string commitFailure;
+            try
+            {
+                ProductionFacilityHandle target =
+                    productionFacilityHandles.CaptureFacility(candidate);
+                authorityCommitted = productionRetarget.TryCommit(
+                    retargetState,
+                    new[]
+                    {
+                        new ProductionFacilityRetargetBinding(survivorId, target)
+                    },
+                    out commitFailure);
+            }
+            catch (Exception exception)
+            {
+                authorityCommitted = false;
+                commitFailure = "target-capture-or-commit-exception:"
+                    + exception.GetType().Name + ":" + exception.Message;
+            }
+            if (!authorityCommitted)
+            {
+                RollbackRetargetOrThrow(retargetState, "authority-commit");
+                if (!worldRegistry.TryRollbackBuildingReplacement(
+                        candidate,
+                        source,
+                        out string rollbackFailure))
+                {
+                    throw new InvalidOperationException(
+                        "Evolution authority commit failed and world rollback failed: "
+                        + rollbackFailure);
+                }
+                grid.RemoveOccupant(
+                    candidate,
+                    resultBuilding.Placement.Layer,
+                    candidate.buildPoses,
+                    resultBuilding.Placement.IsMovement);
+                DiscardCandidate(candidate, resultBuilding, position);
+                RestoreSourceOccupancy(grid, source, sourceBuilding);
+                reason = "생산 권위 진화 반영 실패로 원본을 복구했습니다: "
+                    + commitFailure;
+                return false;
+            }
+        }
+
+        try
+        {
+            buildingFactory.PublishDetached(candidate, resultBuilding, position);
+        }
+        catch (Exception exception)
+        {
+            RollbackRetargetOrThrow(retargetState, "publication");
+            if (!worldRegistry.TryRollbackBuildingReplacement(
+                    candidate,
+                    source,
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Evolution publication failed and world authority rollback also failed: "
+                    + rollbackFailure,
+                    exception);
+            }
+            grid.RemoveOccupant(
+                candidate,
+                resultBuilding.Placement.Layer,
+                candidate.buildPoses,
+                resultBuilding.Placement.IsMovement);
+            DiscardCandidate(candidate, resultBuilding, position);
+            RestoreSourceOccupancy(grid, source, sourceBuilding);
+            reason = "결과 시설 게시 실패로 원본을 복구했습니다: "
+                + exception.Message;
+            return false;
+        }
+
+        if (retargetState != null
+            && !productionRetarget.TryComplete(
+                retargetState,
+                out string completionFailure))
+        {
+            RollbackRetargetOrThrow(retargetState, "completion");
+            if (!worldRegistry.TryRollbackBuildingReplacement(
+                    candidate,
+                    source,
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Evolution authority completion failed and world rollback failed: "
+                    + rollbackFailure);
+            }
+            grid.RemoveOccupant(
+                candidate,
+                resultBuilding.Placement.Layer,
+                candidate.buildPoses,
+                resultBuilding.Placement.IsMovement);
+            DiscardCandidate(candidate, resultBuilding, position);
+            RestoreSourceOccupancy(grid, source, sourceBuilding);
+            reason = "생산 권위 진화 완료 검증 실패로 원본을 복구했습니다: "
+                + completionFailure;
+            return false;
+        }
+
         buildingFactory.DeleteVisual(sourceBuilding, position);
-        source.DestroySelf();
+        source.SetGrid(null);
+        source.RetireForWorldReplacement();
+        result = candidate;
         reason = string.Empty;
         return true;
+    }
+
+    private void RollbackRetargetOrThrow(
+        ProductionFacilityRetargetTransactionState state,
+        string phase)
+    {
+        if (state == null
+            || state.Phase is ProductionFacilityRetargetTransactionPhase
+                .RolledBack or ProductionFacilityRetargetTransactionPhase.Completed)
+        {
+            return;
+        }
+        if (!productionRetarget.TryRollback(state, out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Facility evolution retarget rollback failed during " + phase
+                + ":" + failureReason);
+        }
+    }
+
+    private void DiscardCandidate(
+        BuildableObject candidate,
+        BuildingSO resultBuilding,
+        Vector2Int position)
+    {
+        if (candidate == null)
+        {
+            return;
+        }
+
+        buildingFactory.DeleteVisual(resultBuilding, position);
+        candidate.SetGrid(null);
+        if (candidate.IsDetachedRestoreCandidate)
+            buildingFactory.DiscardDetached(candidate);
+        else
+            candidate.RetireForWorldReplacement();
     }
 
     private static void RestoreSourceOccupancy(

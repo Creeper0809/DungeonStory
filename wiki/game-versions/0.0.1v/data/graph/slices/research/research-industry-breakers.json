@@ -1,0 +1,136 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-industry-breakers",
+    "spoiler_tier": "none",
+    "title": "차단기와 산업 정비"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-industry-breakers",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-breakers",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-breakers",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-automatic-bills",
+      "target_spoiler_tier": "none",
+      "target_title": "자동 주문과 재고 감지",
+      "to": "research/research-industry-automatic-bills",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-breakers",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8830",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 부품함",
+      "to": "facility/building-8830",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-breakers",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9814",
+      "target_spoiler_tier": "none",
+      "target_title": "회로 차단기",
+      "to": "facility/building-9814",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-tool-maintenance-kit",
+      "label": "필요 조건",
+      "to": "research/research-industry-breakers",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-sanitation",
+      "label": "선행 연구",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-sanitation",
+      "label": "선행 연구",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-automatic-sanitation",
+      "label": "선행 연구",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-precision",
+      "label": "선행 연구",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-precision",
+      "label": "선행 연구",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-precision",
+      "label": "선행 연구",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-storage",
+      "label": "선행 연구",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-storage",
+      "label": "선행 연구",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-storage",
+      "label": "선행 연구",
+      "to": "research/research-industry-breakers",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "조상균과 분리된 새 공동체의 첫 배양편이다. 므네실라의 새정원 배양편은 피난민이 가져온 흙에서도 공동 기억이 다시 자랄 수 있음을 보여 준다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-myconid-3",
+  "spoiler_tier": "none",
+  "summary": "조상균과 분리된 새 공동체의 첫 배양편.",
+  "title": "새정원 배양편"
+}

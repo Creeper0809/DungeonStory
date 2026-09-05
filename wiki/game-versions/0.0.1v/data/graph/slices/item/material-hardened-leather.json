@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-hardened-leather",
+    "spoiler_tier": "none",
+    "title": "경화 가죽"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-jack-of-plates",
+      "label": "필요 조건",
+      "to": "item/material-hardened-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-sealed-seasonal-container",
+      "label": "필요 조건",
+      "to": "item/material-hardened-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-reinforced-restraint",
+      "label": "필요 조건",
+      "to": "item/material-hardened-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-armor-hardened-leather-coat",
+      "label": "필요 조건",
+      "to": "item/material-hardened-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-hardened-leather",
+      "label": "생산·해금",
+      "to": "item/material-hardened-leather",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

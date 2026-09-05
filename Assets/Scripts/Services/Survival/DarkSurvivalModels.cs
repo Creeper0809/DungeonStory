@@ -151,6 +151,32 @@ public interface ICharacterDeprivationRuntime :
 {
 }
 
+public static class CharacterDeprivationWorkSpeedAuthority
+{
+    public const string Schema = "character-deprivation-work-speed-authority@1";
+    public const float ExhaustionPenaltyPerPoint = 0.004f;
+    public const float HungerAndThirstPenaltyPerPoint = 0.0015f;
+    public const float MinimumMultiplier = 0.4f;
+    public const float MaximumMultiplier = 1f;
+
+    public static float Resolve(float exhaustion, float hunger, float thirst)
+    {
+        if (float.IsNaN(exhaustion) || float.IsInfinity(exhaustion)
+            || float.IsNaN(hunger) || float.IsInfinity(hunger)
+            || float.IsNaN(thirst) || float.IsInfinity(thirst))
+        {
+            throw new InvalidOperationException(
+                "Character deprivation work-speed burdens must be finite.");
+        }
+        return Mathf.Clamp(
+            1f
+            - exhaustion * ExhaustionPenaltyPerPoint
+            - (hunger + thirst) * HungerAndThirstPenaltyPerPoint,
+            MinimumMultiplier,
+            MaximumMultiplier);
+    }
+}
+
 public sealed class NoCharacterDeprivationBoundary :
     ICharacterDeprivationQuery,
     ICharacterDeprivationCommand

@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "material-gold-ingot",
+    "spoiler_tier": "none",
+    "title": "금"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/material-gold-ingot",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-precious",
+      "target_spoiler_tier": "none",
+      "target_title": "귀금 세공",
+      "to": "research/research-metallurgy-precious",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

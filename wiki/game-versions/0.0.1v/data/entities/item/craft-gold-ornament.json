@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.4kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "20개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "79"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "권위 시설과 계약 납품에 쓰는 고가 장식이다. 밀로세아 가도를 건너온 금 장식은 검문소마다 무게를 다시 재고, 마지막 확인값을 작은 색실 꼬리표에 남긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "craft-gold-ornament",
+  "spoiler_tier": "none",
+  "summary": "권위 시설과 계약 납품에 쓰는 고가 장식.",
+  "title": "금 장식"
+}

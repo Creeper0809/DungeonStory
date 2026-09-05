@@ -8,9 +8,9 @@ using System;
 public readonly struct ProductionRuinedBatchDispositionPlan
 {
     public const string RecoverableWasteOutputLineId =
-        "output:ruin:recoverable-waste";
+        ProductionRuinedOutputProtocol.RecoverableWasteOutputLineId;
     public const string DeclaredLossOutputLineId =
-        "output:ruin:declared-loss";
+        ProductionRuinedOutputProtocol.DeclaredLossOutputLineId;
 
     private ProductionRuinedBatchDispositionPlan(
         string spoilageItemId,

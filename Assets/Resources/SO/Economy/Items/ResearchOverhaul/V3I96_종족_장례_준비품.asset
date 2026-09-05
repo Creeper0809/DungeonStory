@@ -28,9 +28,9 @@ MonoBehaviour:
     \uC900\uBE44\uD488."
   stockCategory: 1
   unitWeight: 1.2
-  maxStack: 50
+  maxStack: 8
   sprite: {fileID: 0}
-  unitPrice: 49
+  unitPrice: 51
   features:
   - rid: 7737212042857939973
   - rid: 1000
@@ -51,4 +51,4 @@ MonoBehaviour:
     - rid: 7737212042857939973
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
-        saleRate: 0.5909183
+        saleRate: 0.594196

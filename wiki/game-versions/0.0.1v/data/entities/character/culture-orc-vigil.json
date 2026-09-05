@@ -1,0 +1,40 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-orc-weapon-vigil",
+      "target_spoiler_tier": "none",
+      "target_title": "무기 철야",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "food-salted-meat-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "염장육 스튜",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-orc-shared-cauldron",
+      "target_spoiler_tier": "none",
+      "target_title": "큰솥의 몫",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "culture-orc-vigil",
+  "spoiler_tier": "none",
+  "summary": "행동으로 신뢰를 증명하며 잔치와 철야에서 공동체의 빚을 기억한다.",
+  "title": "무기 철야 문화"
+}

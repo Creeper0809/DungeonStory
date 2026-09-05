@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "character-archetype-2001",
+    "spoiler_tier": "none",
+    "title": "돌파형 침입자"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-2001",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-10",
+      "target_spoiler_tier": "none",
+      "target_title": "원정자",
+      "to": "character/characterspecies-10",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

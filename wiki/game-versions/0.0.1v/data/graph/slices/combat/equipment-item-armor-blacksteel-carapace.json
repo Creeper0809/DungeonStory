@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-armor-blacksteel-carapace",
+    "spoiler_tier": "none",
+    "title": "흑강 갑각"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-armor-blacksteel-carapace",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-growth-frame",
+      "target_spoiler_tier": "none",
+      "target_title": "성장형 장비 골격",
+      "to": "item/component-growth-frame",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-armor-blacksteel-carapace",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "component-blacksteel-defense-plate",
+      "target_spoiler_tier": "none",
+      "target_title": "흑강 방어 장갑판",
+      "to": "item/component-blacksteel-defense-plate",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-armor-blacksteel-carapace",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-dark-foundry",
+      "target_spoiler_tier": "none",
+      "target_title": "심연 공장",
+      "to": "research/research-industry-dark-foundry",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

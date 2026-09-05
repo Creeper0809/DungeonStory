@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "facility",
+    "slug": "recipe-fortress-tactical-1",
+    "spoiler_tier": "none",
+    "title": "전술지도탁자 제작"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-tactical-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1042",
+      "target_spoiler_tier": "none",
+      "target_title": "중량훈련석",
+      "to": "facility/building-1042",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-tactical-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1044",
+      "target_spoiler_tier": "none",
+      "target_title": "경비초소책상",
+      "to": "facility/building-1044",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "facility/recipe-fortress-tactical-1",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "building-1047",
+      "target_spoiler_tier": "none",
+      "target_title": "전술지도탁자",
+      "to": "facility/building-1047",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

@@ -23,11 +23,13 @@ public static class ApparelTerminalAuthorityDebugScenarios
         VerifyV9TerminalStateRoundTrip();
         VerifyTerminalJoinTamperRejected();
         VerifyOrderOnlyRestoreCannotOverwriteTerminalAuthority();
+        VerifyFacilityMutationFenceAndTerminalRetry();
         Debug.Log(
             "Apparel terminal authority focused PASS: effect-row-first=1; "
             + "exact-source-removal=1; source-drift-rejected=1; "
             + "v7-round-trip=1; invalid-joins-rejected=2; "
-            + "order-only-overwrite-rejected=1.");
+            + "order-only-overwrite-rejected=1; mutation-fence=1; "
+            + "terminal-retry-bypass=1.");
     }
 
     private static void VerifyEffectRowFirst()
@@ -255,7 +257,58 @@ public static class ApparelTerminalAuthorityDebugScenarios
             "Rejected order-only restore mutated apparel authority.");
     }
 
-    private static ApparelWorkOrderRuntime CreateRuntime() => new(
+    private static void VerifyFacilityMutationFenceAndTerminalRetry()
+    {
+        ProductionFacilityMutationEpochRuntime mutations = new();
+        ApparelWorkOrderRuntime runtime = CreateRuntime(mutations);
+        const string facilityId = "building:qa:apparel-mutation";
+        ApparelWorkOrderSaveData authored = new()
+        {
+            orderId = "apparel-order:qa:mutation-fence",
+            kind = ApparelWorkOrderKind.Laundry,
+            state = ApparelWorkOrderState.Ready,
+            facilityInstanceId = facilityId,
+            requiredWork = 12f,
+            completedWork = 3f,
+            workerPolicy = WorkerSelectionPolicySaveData.Anyone()
+        };
+        runtime.PublishRestoreState(runtime.PrepareRestoreState(
+            new[] { authored },
+            Array.Empty<ApparelWorkOrderTerminalStateSaveData>()));
+        BuildingInstanceId buildingId = new(facilityId);
+        Require(mutations.TryBegin(
+                buildingId,
+                "qa:apparel-mutation",
+                out long epoch,
+                out string beginFailure),
+            "Apparel mutation fence could not open: " + beginFailure);
+        Require(!runtime.Cancel(authored.orderId, out DomainFailure cancelFailure)
+                && cancelFailure.Code == FailureCode.ProductionBillUnavailable
+                && runtime.CaptureOrders().Length == 1,
+            "Apparel cancel crossed an open facility mutation fence.");
+
+        ApparelWorkOrderSaveData live = runtime.Orders.Single();
+        live.state = ApparelWorkOrderState.WaitingForOutputSpace;
+        live.completedWork = live.requiredWork;
+        Require(!runtime.ApplyWork(
+                    authored.orderId,
+                    1f,
+                    out DomainFailure terminalFailure)
+                && terminalFailure.Code != FailureCode.ProductionBillUnavailable,
+            "Apparel fixed-output terminal retry deadlocked behind mutation fence.");
+        Require(mutations.TryEnd(
+                buildingId,
+                "qa:apparel-mutation",
+                epoch,
+                out string endFailure),
+            "Apparel mutation fence could not close: " + endFailure);
+        Require(runtime.Cancel(authored.orderId, out DomainFailure closeFailure),
+            "Apparel cancel did not reopen after mutation close: "
+            + closeFailure.Code);
+    }
+
+    private static ApparelWorkOrderRuntime CreateRuntime(
+        IProductionFacilityMutationEpochQuery facilityMutations = null) => new(
         Proxy<IApparelDefinitionCatalog>(),
         Proxy<ITextileMaterialCatalog>(),
         Proxy<IWorldItemStackRuntime>(),
@@ -264,6 +317,8 @@ public static class ApparelTerminalAuthorityDebugScenarios
         Proxy<IGameClock>(),
         Proxy<IPhysicalItemBatchDispositionService>(),
         Proxy<IApparelPhysicalTransaction>(),
+        Proxy<IProductionOutputMaximumMassRegistry>(),
+        facilityMutations ?? new ProductionFacilityMutationEpochRuntime(),
         performance: Proxy<ICharacterPerformanceQuery>());
 
     private static T Proxy<T>() where T : class =>

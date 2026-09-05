@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.35kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "65"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "경계 신호 나팔은 침입과 화재 같은 위험을 멀리 있는 주민에게 알린다. 아일라세라의 새벽 합창은 경계 신호 나팔로 확인한 날씨와 경보를 문자보다 먼저 하늘길에 전한다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-watch-signal-horn",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 경계 신호 나팔.",
+  "title": "경계 신호 나팔"
+}

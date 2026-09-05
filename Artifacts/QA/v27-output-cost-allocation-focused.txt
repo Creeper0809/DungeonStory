@@ -1,0 +1,4 @@
+RESULT=PASS; multiOutputRecipes=3; exactDebit=true; rarityOrdering=true; returnedPackagingPreserved=true; reverseOrderDeterministic=true
+source:logging=resource:dark-resin:23100,resource:log:4159
+source:quarry=resource:coal:25665,resource:gold-ore:171100,resource:iron-ore:32082,resource:mana-crystal:513300,resource:stone:5135
+source:saltstone=resource:saltstone:18112,resource:stone:4528

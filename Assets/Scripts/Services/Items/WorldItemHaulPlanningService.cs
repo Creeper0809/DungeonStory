@@ -21,7 +21,34 @@ public interface IWorldItemHaulPlanningService
         out string failureReason);
 }
 
-public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
+public enum WorldItemDeliveryReachabilityStatus
+{
+    Invalid = 0,
+    Deferred = 1,
+    Unreachable = 2,
+    Reachable = 3
+}
+
+/// <summary>
+/// Read-only preflight for an exact physical stack and destination pair. Domain
+/// selectors use this before they mutate destination custody, so an unreachable
+/// preferred lot cannot hide a reachable fallback behind a permanent pending
+/// quantity.
+/// </summary>
+public interface IWorldItemDeliveryReachabilityQuery
+{
+    // This preflight is advisory until destination custody is committed.
+    WorldItemDeliveryReachabilityStatus AssessExactStackDelivery(
+        ItemStackId stackId,
+        int quantity,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out string failureReason);
+}
+
+public sealed class WorldItemHaulPlanningService :
+    IWorldItemHaulPlanningService,
+    IWorldItemDeliveryReachabilityQuery
 {
     private const int MaximumPickupLegs = 6;
 
@@ -138,6 +165,124 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         return cachedAvailability;
     }
 
+    public WorldItemDeliveryReachabilityStatus AssessExactStackDelivery(
+        ItemStackId stackId,
+        int quantity,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string destination = destinationId ?? string.Empty;
+        if (!stackId.IsValid
+            || quantity <= 0
+            || destination.Length == 0
+            || !string.Equals(
+                destination,
+                destination.Trim(),
+                StringComparison.Ordinal))
+        {
+            failureReason = "delivery-reachability-identity-invalid";
+            return WorldItemDeliveryReachabilityStatus.Invalid;
+        }
+        if (!gridSystemProvider.TryGetGrid(out Grid grid))
+        {
+            failureReason = "delivery-reachability-grid-deferred";
+            return WorldItemDeliveryReachabilityStatus.Deferred;
+        }
+        if (!repository.RecordsById.TryGetValue(
+                stackId.Value,
+                out WorldItemStackRecord stack)
+            || stack == null
+            || stack.quantity < quantity
+            || stack.forbidden
+            || stack.state is not (
+                WorldItemStackState.Loose or WorldItemStackState.Stored))
+        {
+            failureReason = "delivery-reachability-stack-invalid";
+            return WorldItemDeliveryReachabilityStatus.Invalid;
+        }
+
+        int available = reservationService.GetAvailableQuantity(stackId);
+        if (available < quantity)
+        {
+            // A pre-pickup haul lease can temporarily own the exact slice. It is
+            // not proof that the route is unreachable and must not be revoked by
+            // a read-only selector.
+            failureReason = "delivery-reachability-stack-leased";
+            return WorldItemDeliveryReachabilityStatus.Deferred;
+        }
+
+        WorldItemHaulDestinationKind destinationKind =
+            TryParseWarehouseId(destination, out _)
+                ? WorldItemHaulDestinationKind.Warehouse
+                : WorldItemHaulDestinationKind.FacilityBuffer;
+        if (!WorldItemHaulDestinationAuthority.TryResolve(
+                grid,
+                worldRegistry,
+                destinationClaims,
+                destinationKind,
+                destination,
+                destinationPosition,
+                out WorldItemHaulDestinationAuthority.Resolution resolved,
+                out failureReason))
+        {
+            return WorldItemDeliveryReachabilityStatus.Invalid;
+        }
+
+        bool activeActorSeen = false;
+        bool searchDeferred = false;
+        IReadOnlyList<CharacterActor> characters = worldRegistry.Characters
+            ?? Array.Empty<CharacterActor>();
+        foreach (CharacterActor actor in characters
+                     .Where(value => value != null)
+                     .OrderBy(
+                         value => value.BuildingCharacterId.Value,
+                         StringComparer.Ordinal))
+        {
+            if (actor.CurrentLifecycleState != CharacterLifecycleState.Active)
+                continue;
+            activeActorSeen = true;
+            CharacterCarryInventory inventory = actor.CarryInventory;
+            if (inventory == null
+                || GetAcceptableQuantity(
+                    inventory,
+                    stack,
+                    quantity,
+                    plannedWeight: 0f,
+                    out _) < quantity)
+            {
+                continue;
+            }
+            if (!TryGetPlanningSearch(actor, grid, out GridPathSearchResult reachable))
+            {
+                searchDeferred = true;
+                continue;
+            }
+            if (TryResolvePickupStandCell(
+                    grid,
+                    reachable,
+                    stack.position,
+                    out _)
+                && reachable.GetMoveCostTo(resolved.DeliveryPosition)
+                    != int.MaxValue)
+            {
+                failureReason = string.Empty;
+                return WorldItemDeliveryReachabilityStatus.Reachable;
+            }
+        }
+
+        if (!activeActorSeen || searchDeferred)
+        {
+            failureReason = !activeActorSeen
+                ? "delivery-reachability-actor-deferred"
+                : "delivery-reachability-search-deferred";
+            return WorldItemDeliveryReachabilityStatus.Deferred;
+        }
+        failureReason = "delivery-reachability-no-actor-route";
+        return WorldItemDeliveryReachabilityStatus.Unreachable;
+    }
+
     public bool TryPreviewBestPlan(
         CharacterActor actor,
         out WorldItemHaulPlan plan,
@@ -145,6 +290,101 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     {
         return TryBuildBestPlan(actor, reserve: false, out plan, out failureReason);
     }
+
+#if UNITY_EDITOR
+    public bool TryExplainCandidateForEditorTest(
+        CharacterActor actor,
+        string stackId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (actor == null
+            || string.IsNullOrWhiteSpace(stackId)
+            || !gridSystemProvider.TryGetGrid(out Grid grid))
+        {
+            failureReason = "invalid planning context";
+            return false;
+        }
+        if (!repository.RecordsById.TryGetValue(
+                stackId,
+                out WorldItemStackRecord stack)
+            || stack == null)
+        {
+            failureReason = "stack missing";
+            return false;
+        }
+        CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(actor);
+        if (inventory == null)
+        {
+            failureReason = "no carry inventory";
+            return false;
+        }
+        if (stack.quantity <= 0)
+            return FailEditorCandidate("quantity is not positive", out failureReason);
+        if (stack.forbidden)
+            return FailEditorCandidate("stack is forbidden", out failureReason);
+        if (FacilityOutputExactRouteCustodyCodec.IsRouteBlocked(stack.components))
+            return FailEditorCandidate("exact route custody is blocked", out failureReason);
+        if (IsCapacityDrainBlocked(stack))
+            return FailEditorCandidate("capacity drain is pending", out failureReason);
+        if (repository.IsProductionInputDestinationDrainOpen(stack.destinationId))
+            return FailEditorCandidate("production input drain is open", out failureReason);
+        if (!HasConsistentRoutableCustody(stack))
+            return FailEditorCandidate("routable custody is inconsistent", out failureReason);
+        if (!IsExactRouteDeliveryCandidate(
+                stack,
+                exactRouteQuery,
+                out FacilityOutputExactRouteFailure routeFailure,
+                exactDestinationAdmission))
+        {
+            return FailEditorCandidate(
+                routeFailure.IsFailure
+                    ? $"exact route:{routeFailure.Code}:{routeFailure.Reason}"
+                    : "exact route candidate rejected",
+                out failureReason);
+        }
+        if (IsFacilityInputBuffer(stack))
+            return FailEditorCandidate("stack is a facility input buffer", out failureReason);
+        if (stack.state != WorldItemStackState.Loose
+            && stack.state != WorldItemStackState.FacilityBuffer
+            && !IsOutboundStoredStack(stack))
+        {
+            return FailEditorCandidate(
+                $"state is not haulable:{stack.state}",
+                out failureReason);
+        }
+        int available = reservationService.GetAvailableQuantity(
+            new ItemStackId(stack.stackId));
+        if (available <= 0)
+        {
+            failureReason = $"no available quantity:reserved={stack.reservedQuantity}:"
+                + $"quantity={stack.quantity}";
+            return false;
+        }
+        if (!TryGetPlanningSearch(actor, grid, out GridPathSearchResult reachable))
+        {
+            failureReason = "path search deferred";
+            return false;
+        }
+        return TryBuildCandidate(
+            grid,
+            reachable,
+            actor,
+            inventory,
+            stack,
+            plannedWeight: 0f,
+            out _,
+            out failureReason);
+    }
+
+    private static bool FailEditorCandidate(
+        string reason,
+        out string failureReason)
+    {
+        failureReason = reason;
+        return false;
+    }
+#endif
 
     public bool TryReserveBestPlan(
         CharacterActor actor,
@@ -237,9 +477,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             seed,
             out float plannedWeight,
             out int expectedDetour);
-        if (seed.DestinationKind == WorldItemHaulDestinationKind.Warehouse
-            && seed.Warehouse?.Inventory?.HasMassCapacityAuthority == true
-            && !IsExactWarehouseCustody(seed.Stack))
+        if (seed.DestinationKind == WorldItemHaulDestinationKind.Warehouse)
         {
             // A gram-authoritative destination is admitted one exact lot per
             // haul operation. This keeps physical publication and the opaque
@@ -657,10 +895,11 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             WorldItemStackRecord stack = stacks[index];
             int acceptable = GetAcceptableQuantity(
                     inventory,
-                    stack.itemId,
+                    stack,
                     reservationService.GetAvailableQuantity(
                         new ItemStackId(stack.stackId)),
-                    plannedWeight: 0f);
+                    plannedWeight: 0f,
+                    out _);
             if (!CanUseStack(stack, actorId)
                 || acceptable <= 0
                 || !TryResolvePickupStandCell(
@@ -686,16 +925,21 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                         explicitKind,
                         stack.destinationId,
                         stack.destinationPosition,
-                        out _,
+                        out WorldItemHaulDestinationAuthority.Resolution
+                            destination,
                         out _))
                 {
-                    return true;
+                    if (reachable.GetMoveCostTo(destination.DeliveryPosition)
+                        != int.MaxValue)
+                    {
+                        return true;
+                    }
                 }
 
                 continue;
             }
 
-            if (HasAvailableWarehouseDestination(grid, stack)
+            if (HasAvailableWarehouseDestination(grid, reachable, stack)
                 && ApplySurvivalTransitReserve(
                     stack,
                     WorldItemHaulDestinationKind.Warehouse,
@@ -710,39 +954,19 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
 
     private bool HasAvailableWarehouseDestination(
         Grid grid,
+        GridPathSearchResult reachable,
         WorldItemStackRecord stack)
     {
-        bool isStockItem = TryGetWarehouseStockCategory(
-            stack.itemId,
-            out StockCategory category);
-        bool isEquipmentItem = PhysicalItemIds.TryGetEquipmentDefinitionId(
-            stack.itemId,
+        // Candidate availability and reservation must share exactly the same
+        // category, gram-admission, building-lifecycle, delivery-cell and
+        // reachability authority. A looser preflight makes AI repeatedly start
+        // work that the real plan builder can never commit.
+        return TryFindWarehouse(
+            grid,
+            reachable,
+            stack,
+            out _,
             out _);
-        if (!isStockItem && !isEquipmentItem)
-        {
-            return false;
-        }
-
-        IReadOnlyList<IWarehouseFacility> warehouses = worldRegistry.Warehouses;
-        for (int index = 0; index < warehouses.Count; index++)
-        {
-            IWarehouseFacility candidate = warehouses[index];
-            if (!IsUsableWarehouse(candidate)
-                || (!isEquipmentItem && !candidate.Inventory.Accepts(category))
-                || !candidate.Inventory.CanStoreItem(stack.itemId, 1)
-                || candidate is not BuildableObject building
-                || building.isDestroy)
-            {
-                continue;
-            }
-
-            if (TryResolveDeliveryCell(grid, building, out _))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private HaulCandidate FindSeedCandidate(
@@ -778,13 +1002,20 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                     priorityFailureReason =
                         $"priority stack {stack.stackId}: {candidateFailureReason}";
                 }
+                else if (string.IsNullOrWhiteSpace(priorityFailureReason)
+                    && FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                        stack.components))
+                {
+                    priorityFailureReason =
+                        $"exact route stack {stack.stackId}: {candidateFailureReason}";
+                }
 
                 continue;
             }
 
             if (best == null
-                || (candidate.IsPriority && !best.IsPriority)
-                || candidate.IsPriority == best.IsPriority
+                || candidate.PriorityRank > best.PriorityRank
+                || candidate.PriorityRank == best.PriorityRank
                     && candidate.Score > best.Score)
             {
                 best = candidate;
@@ -928,10 +1159,11 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
 
         int acceptable = GetAcceptableQuantity(
             inventory,
-            stack.itemId,
+            stack,
             reservationService.GetAvailableQuantity(
                 new ItemStackId(stack.stackId)),
-            plannedWeight);
+            plannedWeight,
+            out float unitWeight);
         if (acceptable <= 0)
         {
             failureReason = "carry capacity exhausted";
@@ -983,6 +1215,11 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             dropCell = destination.DropPosition;
             destinationKind = destination.Kind;
             destinationId = destination.DestinationId;
+            if (reachable.GetMoveCostTo(deliveryCell) == int.MaxValue)
+            {
+                failureReason = "explicit destination is unreachable";
+                return false;
+            }
         }
         else if (TryFindWarehouse(
                      grid,
@@ -1040,14 +1277,20 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         }
 
         DungeonItemDefinition definition = catalogProvider.GetDefinition(stack.itemId);
-        float unitWeight = massQuery
-            .GetDefinitionUnitMass((ItemDefinitionId)stack.itemId)
-            .Value / 1000f;
         int distance = Manhattan(actor.GetNowXY(), pickupStand)
             + Manhattan(pickupStand, deliveryCell);
-        float priorityBonus = repository.PrioritizedHaulStackIds.Contains(stack.stackId)
-            ? 12f
-            : 0f;
+        // A stack with a concrete live destination is already committed to a
+        // service/output/input route.  It must outrank a generic player-priority
+        // tidy-up stack; otherwise two persistent priority flags can let the
+        // higher-value loose stack starve the committed delivery forever.
+        bool hasCommittedDestination = stack.hasDestinationPosition
+            && !string.IsNullOrWhiteSpace(stack.destinationId);
+        bool explicitlyPrioritized =
+            repository.PrioritizedHaulStackIds.Contains(stack.stackId);
+        int priorityRank = hasCommittedDestination
+            ? explicitlyPrioritized ? 3 : 2
+            : explicitlyPrioritized ? 1 : 0;
+        float priorityBonus = priorityRank > 0 ? 12f : 0f;
         candidate = new HaulCandidate
         {
             Stack = stack,
@@ -1058,7 +1301,8 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             DropPosition = dropCell,
             DestinationKind = destinationKind,
             DestinationId = destinationId,
-            IsPriority = priorityBonus > 0f,
+            PriorityRank = priorityRank,
+            IsPriority = priorityRank > 0,
             Score = priorityBonus
                 + definition.UnitPrice * acceptable * 0.02f
                 + Mathf.Min(acceptable, definition.MaxStack) * 0.01f
@@ -1070,18 +1314,39 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
 
     private int GetAcceptableQuantity(
         CharacterCarryInventory inventory,
-        string itemId,
+        WorldItemStackRecord stack,
         int requestedQuantity,
-        float plannedWeight)
+        float plannedWeight,
+        out float unitWeight)
     {
+        unitWeight = 0f;
         if (inventory == null || requestedQuantity <= 0)
         {
             return 0;
         }
 
-        float unitWeight = massQuery
-            .GetDefinitionUnitMass((ItemDefinitionId)itemId)
+        if (stack == null
+            || string.IsNullOrWhiteSpace(stack.itemId))
+        {
+            throw new InvalidOperationException(
+                "Haul mass planning requires an exact physical stack.");
+        }
+        PhysicalItemMassSubject massSubject =
+            PhysicalItemMassSubjectAdapter.Create(
+                massQuery,
+                (ItemDefinitionId)stack.itemId,
+                stack.itemInstanceId,
+                stack.components);
+        unitWeight = massQuery
+            .GetStackUnitMass(
+                (ItemDefinitionId)stack.itemId,
+                massSubject)
             .Value / 1000f;
+        if (!(unitWeight > 0f) || float.IsInfinity(unitWeight))
+        {
+            throw new InvalidOperationException(
+                $"Haul stack '{stack.stackId}' has invalid unit mass.");
+        }
         float maxAllowed = inventory.GetMaxAllowedWeight(haulingSettingsProvider);
         float current = inventory.GetCurrentWeight(catalogProvider);
         float remainingWeight = Mathf.Max(
@@ -1108,6 +1373,11 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             || proposedQuantity <= 0
             || stack.state != WorldItemStackState.Loose
             || destinationKind != WorldItemHaulDestinationKind.Warehouse
+            // A prepared facility output is an indivisible, exact-custody
+            // batch. Holding one serving at the source would split the batch
+            // after its output and destination admission were committed.
+            // Ordinary loose survival stock still uses the reserve below.
+            || IsExactWarehouseCustody(stack)
             || !TryGetWarehouseStockCategory(stack.itemId, out StockCategory category)
             || !RequiresImmediateSurvivalReserve(stack.itemId, category))
         {
@@ -1210,6 +1480,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                     grid,
                     building,
                     out Vector2Int candidateDelivery)
+                || reachable.GetMoveCostTo(candidateDelivery) == int.MaxValue
                 )
             {
                 continue;
@@ -1245,22 +1516,18 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     private static int GetWarehouseUtilizationPermille(
         IWarehouseInventoryPort inventory)
     {
-        if (inventory is IWarehouseMassCapacityQuery mass
-            && mass.MaxMassGrams > 0L)
+        if (inventory is not IWarehouseMassCapacityQuery mass
+            || mass.MaxMassGrams <= 0L)
         {
-            long occupied = checked(
-                mass.StoredMassGrams + mass.ReservedInboundMassGrams);
-            long scaled = checked(Math.Max(0L, occupied) * 1000L);
-            long massRoundedUp = checked(
-                (scaled + mass.MaxMassGrams - 1L) / mass.MaxMassGrams);
-            return checked((int)Math.Min(1000L, massRoundedUp));
+            throw new InvalidOperationException(
+                "Warehouse utilization requires positive gram-capacity authority.");
         }
-        if (inventory == null || !inventory.HasCapacityLimit)
-            return 0;
-        int capacity = Mathf.Max(1, inventory.MaxCapacity);
-        long scaledStock = checked((long)Mathf.Max(0, inventory.TotalStock) * 1000L);
-        long roundedUp = checked((scaledStock + capacity - 1L) / capacity);
-        return checked((int)Math.Min(1000L, roundedUp));
+        long occupied = checked(
+            mass.StoredMassGrams + mass.ReservedInboundMassGrams);
+        long scaled = checked(Math.Max(0L, occupied) * 1000L);
+        long massRoundedUp = checked(
+            (scaled + mass.MaxMassGrams - 1L) / mass.MaxMassGrams);
+        return checked((int)Math.Min(1000L, massRoundedUp));
     }
 
     private IEnumerable<IWarehouseFacility> GetWarehouses()
@@ -1292,7 +1559,8 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     {
         return warehouse != null
             && warehouse.HasWarehouseInventory
-            && warehouse.Inventory != null;
+            && warehouse.Inventory != null
+            && warehouse.Inventory.HasMassCapacityAuthority;
     }
 
     private bool CanUseStack(WorldItemStackRecord stack, string actorId)
@@ -1524,10 +1792,16 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                     authority.DestinationId,
                     custody.CurrentTargetDestinationId,
                     StringComparison.Ordinal)
+                || string.IsNullOrEmpty(authority.Fingerprint)
                 || !string.Equals(
                     authority.Fingerprint,
-                    custody.CurrentTargetAuthorityFingerprint,
-                    StringComparison.Ordinal))
+                    authority.Fingerprint.Trim(),
+                    StringComparison.Ordinal)
+                || authority.CapacityRevision <= 0L
+                || authority.MassAuthorityRevision <= 0L
+                || authority.MaxMassGrams <= 0L
+                || authority.ReservedMassGrams < 0L
+                || authority.ReservedMassGrams > authority.MaxMassGrams)
             {
                 return FailExactRouteCandidate(
                     FacilityOutputExactRouteFailureCode.ReceiptMismatch,
@@ -1535,6 +1809,14 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                         + authorityFailure + ":" + authorityReason,
                     out failure);
             }
+
+            // Warehouse admission reserve/release advances the live capacity
+            // authority revision. Consequently, a route-minted target fingerprint
+            // is a structural provenance token, not a stable view of the mutable
+            // admission ledger. Candidate discovery still requires the exact route,
+            // custody, destination id, position, and a canonical positive live
+            // authority. Current capacity/revision is fenced atomically when the
+            // admission token is reserved and again immediately before pickup.
         }
         return true;
     }
@@ -1786,6 +2068,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         public Vector2Int DropPosition;
         public WorldItemHaulDestinationKind DestinationKind;
         public string DestinationId = string.Empty;
+        public int PriorityRank;
         public bool IsPriority;
         public float Score;
         public float TotalWeight;

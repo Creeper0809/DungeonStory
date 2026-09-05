@@ -1,0 +1,139 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "4364"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Surgery And Transplant"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-resonance",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-xenotransplant",
+      "target_spoiler_tier": "none",
+      "target_title": "이종 이식",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-xenotransplant",
+      "target_spoiler_tier": "none",
+      "target_title": "이종 이식",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-xenotransplant",
+      "target_spoiler_tier": "none",
+      "target_title": "이종 이식",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-regenerative-culture",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-regenerative-culture",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-medical-regenerative-culture",
+      "target_spoiler_tier": "none",
+      "target_title": "재생 배양",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-controlled-heredity",
+      "target_spoiler_tier": "none",
+      "target_title": "통제 유전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-controlled-heredity",
+      "target_spoiler_tier": "none",
+      "target_title": "통제 유전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-genetics-controlled-heredity",
+      "target_spoiler_tier": "none",
+      "target_title": "통제 유전",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8881",
+      "target_spoiler_tier": "none",
+      "target_title": "교차계통 배양기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-genetics-cross-lineage-stabilization",
+  "spoiler_tier": "none",
+  "summary": "통제 유전, 재생 배양, 이종 이식과 비전 공명으로 다른 생식 계통을 안정화한다.",
+  "title": "교차계통 안정화"
+}

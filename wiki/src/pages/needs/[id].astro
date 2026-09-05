@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../../components/BaseLayout.astro';
+import NeedReferenceContent from '../../components/NeedReferenceContent.astro';
+import { getCurrentVersion, getNeedReference } from '../../lib/wiki-data';
+
+const version = getCurrentVersion();
+const reference = getNeedReference(version, Astro.params.id ?? '');
+if (!reference) return new Response(null, { status: 404 });
+---
+
+<BaseLayout title={reference.title} description={reference.summary} version={version}>
+  <NeedReferenceContent reference={reference} version={version} />
+</BaseLayout>

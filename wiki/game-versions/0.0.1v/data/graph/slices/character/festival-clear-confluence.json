@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "festival-clear-confluence",
+    "spoiler_tier": "none",
+    "title": "맑은 합류제"
+  },
+  "edges": [
+    {
+      "amount": "24",
+      "from": "character/festival-clear-confluence",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

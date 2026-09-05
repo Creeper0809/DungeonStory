@@ -1,0 +1,85 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "255"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Industry And Automation"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8826",
+      "target_spoiler_tier": "none",
+      "target_title": "재료 시험기",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-equipment-material-testing",
+  "spoiler_tier": "none",
+  "summary": "공학 도면의 허용 오차를 고급 단조 시편으로 검증한다.",
+  "title": "재료 시험학"
+}

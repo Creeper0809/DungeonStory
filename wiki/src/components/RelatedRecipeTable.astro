@@ -1,0 +1,57 @@
+---
+import { entityHref, getEntity, type Backlink, type Relation, type WikiEntity } from '../lib/wiki-data';
+
+interface Props {
+  backlinks: Backlink[];
+  historical?: boolean;
+  version: string;
+}
+
+interface RelatedRecipeRow {
+  inputAmount: string | null;
+  output: Relation;
+  recipe: WikiEntity;
+}
+
+const { backlinks, historical = false, version } = Astro.props;
+const linkVersion = historical ? version : undefined;
+const rows: RelatedRecipeRow[] = backlinks.flatMap((backlink) => {
+  const recipe = getEntity(version, 'recipe', backlink.from_slug);
+  if (!recipe) throw new Error(`Related recipe backlink points to a missing entity: recipe/${backlink.from_slug}`);
+  const outputs = recipe.relations.filter((relation) =>
+    relation.type === 'produces-or-unlocks' && relation.target_kind === 'item' && relation.target_spoiler_tier === 'none'
+  );
+  if (outputs.length === 0) throw new Error(`Related recipe has no public item output: recipe/${recipe.slug}`);
+  return outputs.map((output) => ({ inputAmount: backlink.amount, output, recipe }));
+}).sort((left, right) =>
+  left.output.target_title.localeCompare(right.output.target_title, 'ko')
+    || left.recipe.title.localeCompare(right.recipe.title, 'ko')
+);
+
+const amountText = (amount: string | null) => amount ? `${amount}개` : '없음';
+---
+
+{rows.length > 0 && (
+  <section class="relations" aria-labelledby="related-recipes-title">
+    <div class="section-heading section-heading--inline">
+      <h2 id="related-recipes-title">관련 조합식</h2>
+      <span>{rows.length}개</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <caption class="sr-only">현재 아이템을 재료로 사용하는 조합식</caption>
+        <thead><tr><th scope="col">결과 아이템</th><th scope="col">제작식</th><th scope="col">투입량</th><th scope="col">생산량</th></tr></thead>
+        <tbody>
+          {rows.map(({ inputAmount, output, recipe }) => (
+            <tr>
+              <td><a href={entityHref({ kind: output.target_kind, slug: output.target_slug }, linkVersion)}>{output.target_title}</a></td>
+              <td><a href={entityHref(recipe, linkVersion)}>{recipe.title} 제작식 보기</a></td>
+              <td>{amountText(inputAmount)}</td>
+              <td>{amountText(output.amount)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+)}

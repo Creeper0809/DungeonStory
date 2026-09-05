@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "Vengeance Or Discovery"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "ambition-map-depths",
+  "spoiler_tier": "none",
+  "summary": "아직 누구도 돌아오지 못한 심층 경로를 기록하려 한다.",
+  "title": "심층의 끝"
+}

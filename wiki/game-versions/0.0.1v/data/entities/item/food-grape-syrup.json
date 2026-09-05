@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.175kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "10"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "밤포도 즙을 졸여 단맛과 향을 농축한 시럽으로, 음료와 후식에 곁들인다. 사르베니아 내해의 밤포도를 장거리 운송하려고 졸여 만든 저장식에서 시작됐다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "food-grape-syrup",
+  "spoiler_tier": "none",
+  "summary": "작업실의 다음 공정으로 실제 운반되는 물리 중간재.",
+  "title": "포도 시럽"
+}

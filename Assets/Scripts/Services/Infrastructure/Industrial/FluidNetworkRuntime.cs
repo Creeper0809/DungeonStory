@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 internal sealed class FluidNetworkRuntime :
@@ -13,6 +14,7 @@ internal sealed class FluidNetworkRuntime :
     IFluidWastewaterTransaction,
     IFluidInfrastructureCommand,
     IFluidInfrastructurePersistence,
+    IFluidFacilityInputOwnerAuthority,
     ITickable
 {
     private const float TickInterval = 0.5f;
@@ -29,12 +31,14 @@ internal sealed class FluidNetworkRuntime :
     private readonly IBuildingFacilityStateChangePort facilityStateChanges;
     private readonly FluidNetworkStateStore stateStore;
     private readonly FluidNetworkProjectionAdapter projectionAdapter;
+    private readonly IFluidFacilityInputOwnerAuthority inputOwners;
     private readonly Dictionary<string, float> nextBackflowAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
     private IReadOnlyList<WaterTransferFacilitySnapshot> waterTransfers =
         Array.Empty<WaterTransferFacilitySnapshot>();
     private float accumulated;
 
+    [Inject]
     public FluidNetworkRuntime(
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
         IPowerInfrastructureQuery power,
@@ -44,7 +48,42 @@ internal sealed class FluidNetworkRuntime :
         IGameClock clock,
         IFacilityCapabilityQuery facilities,
         IBuildingFacilityStateChangePort facilityStateChanges,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IPhysicalItemMassQuery physicalMass,
+        IFacilityBufferDestinationClaimAuthorityQuery destinationClaims,
+        IFacilityBufferMassCapacityAuthorityQuery destinationCapacities,
+        IFacilityBufferDestinationLifecycleCommand destinationLifecycle,
+        IFacilityBufferDestinationReleaseService destinationReleases)
+        : this(
+            topologyRuntime,
+            power,
+            items,
+            physicalDispositions,
+            filth,
+            clock,
+            facilities,
+            facilityStateChanges,
+            aggregateRootStore,
+            new FluidFacilityInputOwnerAuthority(
+                physicalMass,
+                destinationClaims,
+                destinationCapacities,
+                destinationLifecycle,
+                destinationReleases))
+    {
+    }
+
+    internal FluidNetworkRuntime(
+        IIndustrialInfrastructureTopologyRuntime topologyRuntime,
+        IPowerInfrastructureQuery power,
+        IWorldItemStackRuntime items,
+        IPhysicalItemBatchDispositionService physicalDispositions,
+        IWorldFilthQuery filth,
+        IGameClock clock,
+        IFacilityCapabilityQuery facilities,
+        IBuildingFacilityStateChangePort facilityStateChanges,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IFluidFacilityInputOwnerAuthority inputOwners)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
@@ -58,6 +97,8 @@ internal sealed class FluidNetworkRuntime :
             ?? throw new ArgumentNullException(nameof(facilities));
         this.facilityStateChanges = facilityStateChanges
             ?? throw new ArgumentNullException(nameof(facilityStateChanges));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
         stateStore = new FluidNetworkStateStore(
             aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
@@ -66,7 +107,53 @@ internal sealed class FluidNetworkRuntime :
             stateStore);
     }
 
+#if UNITY_EDITOR
+    internal FluidNetworkRuntime(
+        IIndustrialInfrastructureTopologyRuntime topologyRuntime,
+        IPowerInfrastructureQuery power,
+        IWorldItemStackRuntime items,
+        IPhysicalItemBatchDispositionService physicalDispositions,
+        IWorldFilthQuery filth,
+        IGameClock clock,
+        IFacilityCapabilityQuery facilities,
+        IBuildingFacilityStateChangePort facilityStateChanges,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        : this(
+            topologyRuntime,
+            power,
+            items,
+            physicalDispositions,
+            filth,
+            clock,
+            facilities,
+            facilityStateChanges,
+            aggregateRootStore,
+            new EditorFluidFacilityInputOwnerAuthority())
+    {
+    }
+#endif
+
     public int Version => stateStore.Version;
+
+    bool IFluidFacilityInputOwnerAuthority.TryReconcile(
+        IndustrialTopologySnapshot topology,
+        out string failureReason) => inputOwners.TryReconcile(
+        topology,
+        out failureReason);
+
+    bool IFluidFacilityInputOwnerAuthority.TryEnsureManualDestination(
+        BuildableObject facility,
+        string destinationId,
+        float requestedWaterUnits,
+        out string failureReason)
+    {
+        EnsureTopology();
+        return inputOwners.TryEnsureManualDestination(
+            facility,
+            destinationId,
+            requestedWaterUnits,
+            out failureReason);
+    }
 
     public IReadOnlyList<FluidNetworkSnapshot> Networks
     {
@@ -400,6 +487,17 @@ internal sealed class FluidNetworkRuntime :
             return false;
         }
 
+        if (!inputOwners.TryEnsureManualDestination(
+                consumer,
+                destinationId,
+                amount,
+                out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Manual-water destination authority is unavailable: "
+                + ownerFailure);
+        }
+
         ManualWaterTransferState pending = state.PendingManualWaterTransfers
             .SingleOrDefault(value => value.ImmediateConsumption);
         if (pending == null)
@@ -506,6 +604,16 @@ internal sealed class FluidNetworkRuntime :
         }
 
         EnsureTopology();
+        if (!inputOwners.TryEnsureManualDestination(
+                consumer,
+                destination,
+                amount,
+                out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Staged manual-water destination authority is unavailable: "
+                + ownerFailure);
+        }
         if (!TryResolveManualWaterState(consumer, out FluidNodeState state))
         {
             failure = new DomainFailure(FailureCode.FluidManualWaterUnavailable);
@@ -1100,6 +1208,14 @@ internal sealed class FluidNetworkRuntime :
         }
 
         stateStore.Replace(candidate);
+        if (!inputOwners.TryReconcile(
+                topologyRuntime.Current,
+                out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Could not stage fluid input destination authorities: "
+                + ownerFailure);
+        }
         if (!stateStore.IsRestoreStaging)
         {
             ResetProjectionAfterRestore();
@@ -1346,6 +1462,16 @@ internal sealed class FluidNetworkRuntime :
         }
 
         string destinationId = CreateWaterTransferDestinationId(node.NodeId);
+        if (!inputOwners.TryEnsureManualDestination(
+                node.Building,
+                destinationId,
+                transfer.waterPerBatch,
+                out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Container-water destination authority is unavailable: "
+                + ownerFailure);
+        }
         int quantity = Mathf.Max(
             1,
             Mathf.RoundToInt(transfer.waterPerBatch));
@@ -1608,6 +1734,12 @@ internal sealed class FluidNetworkRuntime :
         }
 
         IndustrialTopologySnapshot topology = topologyRuntime.Current;
+        if (!inputOwners.TryReconcile(topology, out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Fluid input destination authority reconciliation failed: "
+                + ownerFailure);
+        }
         if (!projectionAdapter.TryUpdateTopologyVersion(
                 topology.SourceVersion))
         {

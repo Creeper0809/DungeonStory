@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "46"
+    },
+    {
+      "label": "필요 연구",
+      "value": "품종 개량"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "supply-certified-seed-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "인증 품종 종자 꾸러미",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-cultivar-breeding",
+      "target_spoiler_tier": "none",
+      "target_title": "품종 개량",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-supply-certified-seed-kit",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 인증 품종 종자 꾸러미을(를) 생산한다.",
+  "title": "인증 품종 종자 꾸러미"
+}

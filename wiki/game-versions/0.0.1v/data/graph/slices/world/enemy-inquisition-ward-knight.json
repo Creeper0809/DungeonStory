@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "world",
+    "slug": "enemy-inquisition-ward-knight",
+    "spoiler_tier": "none",
+    "title": "성화 결계기사"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-ward-knight",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-rune-ward",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 보호막",
+      "to": "world/enemy-ability-rune-ward",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-ward-knight",
+      "label": "관련",
+      "target_kind": "world",
+      "target_slug": "enemy-ability-shield-wall",
+      "target_spoiler_tier": "none",
+      "target_title": "방패벽",
+      "to": "world/enemy-ability-shield-wall",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "world/enemy-inquisition-ward-knight",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "offense-unappraised-loot",
+      "target_spoiler_tier": "none",
+      "target_title": "미감정 전리품",
+      "to": "item/offense-unappraised-loot",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

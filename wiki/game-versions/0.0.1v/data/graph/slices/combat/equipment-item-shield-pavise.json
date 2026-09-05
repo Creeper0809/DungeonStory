@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "combat",
+    "slug": "equipment-item-shield-pavise",
+    "spoiler_tier": "none",
+    "title": "파비스"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-shield-pavise",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-plate-blank",
+      "target_spoiler_tier": "none",
+      "target_title": "판금 소재판",
+      "to": "item/material-plate-blank",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "combat/equipment-item-shield-pavise",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-laminated-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "적층 목재",
+      "to": "item/material-laminated-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "combat/equipment-item-shield-pavise",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-defense-siege-fortification",
+      "target_spoiler_tier": "none",
+      "target_title": "공성 요새화",
+      "to": "research/research-defense-siege-fortification",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

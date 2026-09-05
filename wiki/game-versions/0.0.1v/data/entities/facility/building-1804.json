@@ -1,0 +1,21 @@
+{
+  "facts": [
+    {
+      "label": "분류",
+      "value": "벽"
+    },
+    {
+      "label": "크기",
+      "value": "2×1"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "facility",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "building-1804",
+  "spoiler_tier": "none",
+  "summary": "시설의 고유 역할은 방어 전투이다. 건설에는 작업량 783, 재료 석재 블록×6, 강철×7, 기계 부품×2, 복도식 기폭 장치×1이 필요하다.",
+  "title": "문 연동 강화 낙하문"
+}

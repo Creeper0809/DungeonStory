@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "life-history-harpy",
+  "spoiler_tier": "none",
+  "summary": "Harpy의 성년 14세, 노년 52세, 무치료 기대수명 84.2년을 규정해 성장·노화·세대교체의 시간축을 제공한다.",
+  "title": "Life_Harpy"
+}

@@ -1,0 +1,127 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-metallurgy-precious",
+    "spoiler_tier": "none",
+    "title": "귀금 세공"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-precious",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-prestige",
+      "target_spoiler_tier": "none",
+      "target_title": "장식과 위신",
+      "to": "research/research-authority-prestige",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-precious",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-prestige",
+      "target_spoiler_tier": "none",
+      "target_title": "장식과 위신",
+      "to": "research/research-authority-prestige",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-precious",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-prestige",
+      "target_spoiler_tier": "none",
+      "target_title": "장식과 위신",
+      "to": "research/research-authority-prestige",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-precious",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-precious",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-precious",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-metallurgy-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 단조",
+      "to": "research/research-metallurgy-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-precious",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1081",
+      "target_spoiler_tier": "none",
+      "target_title": "귀금 세공대",
+      "to": "facility/building-1081",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-metallurgy-precious",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-1621",
+      "target_spoiler_tier": "none",
+      "target_title": "세공 도구함",
+      "to": "facility/building-1621",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-gold-ingot",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-precious",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-gold-leaf",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-precious",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-gold-ornament",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-precious",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "world/material-gold-ingot",
+      "label": "필요 조건",
+      "to": "research/research-metallurgy-precious",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

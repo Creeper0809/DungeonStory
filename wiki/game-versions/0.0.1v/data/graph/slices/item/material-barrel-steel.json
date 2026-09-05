@@ -1,0 +1,46 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "material-barrel-steel",
+    "spoiler_tier": "none",
+    "title": "총열강"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-heavy-matchlock",
+      "label": "필요 조건",
+      "to": "item/material-barrel-steel",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-matchlock-long-gun",
+      "label": "필요 조건",
+      "to": "item/material-barrel-steel",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-shotgun",
+      "label": "필요 조건",
+      "to": "item/material-barrel-steel",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-weapon-sniper-arquebus",
+      "label": "필요 조건",
+      "to": "item/material-barrel-steel",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-barrel-steel",
+      "label": "생산·해금",
+      "to": "item/material-barrel-steel",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

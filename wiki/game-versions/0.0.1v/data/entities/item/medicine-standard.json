@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.3kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "36개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "35"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "치료 효율과 회복 속도를 높이는 약품이다. 므네실라의 표준 약품 병에는 사람의 종족보다 몸이 보인 반응을 먼저 표시하는 색점이 찍혀 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "medicine-standard",
+  "spoiler_tier": "none",
+  "summary": "치료 효율과 회복 속도를 높이는 약품.",
+  "title": "표준 약품"
+}

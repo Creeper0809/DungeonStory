@@ -1,0 +1,201 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-arcane-resonance",
+    "spoiler_tier": "none",
+    "title": "비전 공명"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "관련",
+      "target_kind": "facility",
+      "target_slug": "facility-blueprint-6193",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 공명 설계도",
+      "to": "facility/facility-blueprint-6193",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-arcane-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 연구",
+      "to": "research/research-arcane-advanced",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-ritual",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 장식",
+      "to": "research/research-authority-ritual",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-ritual",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 장식",
+      "to": "research/research-authority-ritual",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-authority-ritual",
+      "target_spoiler_tier": "none",
+      "target_title": "의식 장식",
+      "to": "research/research-authority-ritual",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8897",
+      "target_spoiler_tier": "none",
+      "target_title": "공명 조율실",
+      "to": "facility/building-8897",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-arcane-resonance",
+      "label": "제작식 해금",
+      "target_kind": "facility",
+      "target_slug": "recipe-arcane-ritual-2",
+      "target_spoiler_tier": "none",
+      "target_title": "의식초점석 조율",
+      "to": "facility/recipe-arcane-ritual-2",
+      "type": "unlocks-recipe"
+    },
+    {
+      "amount": null,
+      "from": "facility/facility-blueprint-6193",
+      "label": "관련",
+      "to": "research/research-arcane-resonance",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-regional-climatology",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-regional-climatology",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-climate-regional-climatology",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-genetics-cross-lineage-stabilization",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-aberrant-augmentation",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-aberrant-augmentation",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-medical-aberrant-augmentation",
+      "label": "선행 연구",
+      "to": "research/research-arcane-resonance",
+      "type": "prerequisite"
+    }
+  ],
+  "schema_version": 1
+}

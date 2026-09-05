@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "tool-prisoner-work-kit",
+    "spoiler_tier": "none",
+    "title": "포로 작업 도구"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-tool-prisoner-work-kit",
+      "label": "생산·해금",
+      "to": "item/tool-prisoner-work-kit",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

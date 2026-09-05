@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "guest-request-bodyguard-kit",
+    "spoiler_tier": "none",
+    "title": "사절 호위 장비"
+  },
+  "edges": [
+    {
+      "amount": "6",
+      "from": "event/guest-request-bodyguard-kit",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "tool-field-repair-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "야전 수리 키트",
+      "to": "item/tool-field-repair-kit",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

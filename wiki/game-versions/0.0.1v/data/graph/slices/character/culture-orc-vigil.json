@@ -1,0 +1,44 @@
+{
+  "center": {
+    "kind": "character",
+    "slug": "culture-orc-vigil",
+    "spoiler_tier": "none",
+    "title": "무기 철야 문화"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "character/culture-orc-vigil",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-orc-shared-cauldron",
+      "target_spoiler_tier": "none",
+      "target_title": "큰솥의 몫",
+      "to": "event/practice-orc-shared-cauldron",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-orc-vigil",
+      "label": "관련",
+      "target_kind": "event",
+      "target_slug": "practice-orc-weapon-vigil",
+      "target_spoiler_tier": "none",
+      "target_title": "무기 철야",
+      "to": "event/practice-orc-weapon-vigil",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/culture-orc-vigil",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "food-salted-meat-stew",
+      "target_spoiler_tier": "none",
+      "target_title": "염장육 스튜",
+      "to": "item/food-salted-meat-stew",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1
+}

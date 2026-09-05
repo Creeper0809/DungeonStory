@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "30"
+    },
+    {
+      "label": "필요 연구",
+      "value": "상업 진열"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "component-price-board",
+      "target_spoiler_tier": "none",
+      "target_title": "가격표 게시판",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-commerce-retail",
+      "target_spoiler_tier": "none",
+      "target_title": "상업 진열",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-component-price-board",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 가격표 게시판을(를) 생산한다.",
+  "title": "가격표 게시판"
+}

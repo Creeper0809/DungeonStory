@@ -1,0 +1,25 @@
+{
+  "facts": [
+    {
+      "label": "희귀도",
+      "value": "특별"
+    },
+    {
+      "label": "성향",
+      "value": "극단"
+    },
+    {
+      "label": "정체성 규칙",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "trait-300",
+  "spoiler_tier": "none",
+  "summary": "다양한 완제품을 만들 때 오직 이 특성으로만 신화 품질을 탄생시킬 수 있다.",
+  "title": "신들린 영감"
+}

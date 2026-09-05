@@ -47,14 +47,239 @@ public sealed class ProductionBillLifecycleContributor : IProductionOutputDestin
     }
 }
 
+public sealed class ProductionStockSensorLifecycleContributor :
+    IProductionOutputDestinationLifecycleContributor
+{
+    private readonly IProductionStockSensorRuntime sensors;
+    private readonly WorldItemRepository repository;
+    private readonly ICharacterLifetimeQuery characterLifetime;
+    private readonly IPhysicalItemMassQuery massQuery;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
+    private readonly IRestoreHaulDeliveryIntentCandidateQuery restoreHaulIntents;
+
+    public ProductionStockSensorLifecycleContributor(
+        IProductionStockSensorRuntime sensors,
+        WorldItemRepository repository,
+        ICharacterLifetimeQuery characterLifetime,
+        IPhysicalItemMassQuery massQuery,
+        DungeonRuntimeAggregateRootStore aggregateRootStore = null,
+        IRestoreWorldCandidateQuery restoreWorldCandidates = null,
+        IRestoreHaulDeliveryIntentCandidateQuery restoreHaulIntents = null)
+    {
+        this.sensors = sensors
+            ?? throw new ArgumentNullException(nameof(sensors));
+        this.repository = repository
+            ?? throw new ArgumentNullException(nameof(repository));
+        this.characterLifetime = characterLifetime
+            ?? throw new ArgumentNullException(nameof(characterLifetime));
+        this.massQuery = massQuery
+            ?? throw new ArgumentNullException(nameof(massQuery));
+        this.aggregateRootStore = aggregateRootStore;
+        this.restoreWorldCandidates = restoreWorldCandidates;
+        this.restoreHaulIntents = restoreHaulIntents;
+    }
+
+    public string ContributorId =>
+        ProductionFacilityDestructiveDrainParticipantIds
+            .StockSensorEmbeddedSalvage;
+
+    public ProductionOutputDestinationLifecycleContribution Capture(
+        BuildingInstanceId facilityId,
+        ProductionOutputDestinationId destinationId)
+    {
+        string id = facilityId.Value;
+        ProductionStockSensorPhysicalCommitSaveData[] pendingInstalls = sensors
+            .PendingInstallations
+            .Where(value => value != null
+                && string.Equals(value.facilityId, id, StringComparison.Ordinal))
+            .OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToArray();
+        ProductionInstalledStockSensorSaveData[] installedRecords = sensors
+            .InstalledSensors
+            .Where(value => value != null
+                && string.Equals(value.facilityId, id, StringComparison.Ordinal))
+            .OrderBy(value => value.inputOperationId, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToArray();
+        ProductionStockSensorRemovalSaveData[] removals = sensors
+            .PendingRemovals
+            .Where(value => value != null
+                && string.Equals(value.facilityId, id, StringComparison.Ordinal))
+            .OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToArray();
+        DungeonProductionBillSaveData projection = new()
+        {
+            installedStockSensorFacilityIds = sensors.InstalledFacilityIds
+                .Where(value => string.Equals(value, id, StringComparison.Ordinal))
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList(),
+            acknowledgedStockSensorFacilityIds = sensors.AcknowledgedFacilityIds
+                .Where(value => string.Equals(value, id, StringComparison.Ordinal))
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList(),
+            pendingStockSensorInstalls = pendingInstalls.ToList(),
+            installedStockSensors = installedRecords.ToList(),
+            pendingStockSensorRemovals = removals.ToList()
+        };
+        string sensorDestination = ProductionStockSensorRuntime
+            .BuildDestinationId(id);
+        WorldItemStackRecord[] physicalRecords = repository.Records
+            .Where(value => value != null && value.quantity > 0)
+            .OrderBy(value => value.stackId, StringComparer.Ordinal)
+            .ToArray();
+        DungeonPhysicalItemSaveData physicalPayload = new()
+        {
+            stacks = physicalRecords
+                .Select(WorldItemPersistenceService.CaptureDurableStack)
+                .ToList()
+        };
+        HaulDeliveryIntentSaveData[] sensorIntents = HaulDeliveryIntentAuthorityView
+            .Capture(
+                aggregateRootStore,
+                restoreHaulIntents,
+                repository.HaulDeliveryIntents)
+            .Where(value => value != null
+                && string.Equals(value.destinationId,
+                    sensorDestination, StringComparison.Ordinal))
+            .OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .ToArray();
+        List<DungeonCharacterSaveData> sensorActors = new();
+        foreach (HaulDeliveryIntentSaveData intent in sensorIntents)
+        {
+            CharacterActor[] matches = ProductionOutputRestoreAuthorityView
+                .CaptureCharacters(
+                    aggregateRootStore,
+                    restoreWorldCandidates,
+                    characterLifetime)
+                .Where(actor => actor != null
+                    && string.Equals(
+                        actor.BuildingCharacterId.Value,
+                        intent.ownerCharacterId,
+                        StringComparison.Ordinal))
+                .ToArray();
+            if (matches.Length != 1 || matches[0].CarryInventory == null)
+            {
+                throw new InvalidOperationException(
+                    "Live stock-sensor carry authority does not resolve to exactly one lifetime actor: "
+                    + intent.ownerCharacterId);
+            }
+            sensorActors.Add(new DungeonCharacterSaveData
+            {
+                persistentId = intent.ownerCharacterId,
+                haulDeliveryIntent = intent,
+                carryInventory = matches[0].CarryInventory.Capture()
+            });
+        }
+        DungeonCharacterWorldSaveData characterPayload = new()
+        {
+            actors = sensorActors
+        };
+        string durable = ProductionOutputDestinationDurableSaveProjector
+            .ProjectStockSensor(
+                facilityId,
+                projection,
+                physicalPayload,
+                characterPayload);
+        FacilityBufferPhysicalOccupancySnapshot physicalOccupancy =
+            ProductionOutputDestinationDurableSaveProjector
+                .ProjectPhysicalOccupancy(
+                    sensorDestination,
+                    physicalPayload,
+                    characterPayload,
+                    massQuery);
+
+        List<ProductionOutputLifecycleBlock> blocks = new();
+        if (pendingInstalls.Length > 0)
+        {
+            blocks.Add(new ProductionOutputLifecycleBlock(
+                ProductionOutputLifecycleBlockCode.StockSensorInstallPending,
+                pendingInstalls.Length,
+                pendingInstalls.Sum(value => value.inputMassGrams)));
+        }
+        ProductionStockSensorRemovalSaveData removal = removals.SingleOrDefault();
+        bool installedActive = installedRecords.Length > 0
+            && (removal == null
+                || removal.phase == ProductionStockSensorRemovalPhase.Prepared);
+        if (installedActive)
+        {
+            blocks.Add(new ProductionOutputLifecycleBlock(
+                ProductionOutputLifecycleBlockCode.StockSensorEmbedded,
+                installedRecords.Length,
+                installedRecords.Sum(value => value.embeddedMassGrams)));
+        }
+        if (removal?.phase == ProductionStockSensorRemovalPhase.OutputPublished)
+        {
+            blocks.Add(new ProductionOutputLifecycleBlock(
+                ProductionOutputLifecycleBlockCode
+                    .StockSensorRemovalAwaitingAck,
+                1,
+                0L));
+        }
+        ProductionExactDestinationCustodyProjection physicalCustody =
+            ProductionOutputDestinationDurableSaveProjector
+                .CaptureExactDestinationCustody(
+                    sensorDestination,
+                    physicalPayload,
+                    characterPayload);
+        if (physicalCustody.DirectStacks.Count > 0)
+        {
+            blocks.Add(new ProductionOutputLifecycleBlock(
+                ProductionOutputLifecycleBlockCode.BufferedPhysicalMass,
+                physicalCustody.DirectStacks.Count,
+                physicalOccupancy.NonCarriedMassGrams));
+        }
+        if (physicalCustody.Intents.Count > 0)
+        {
+            blocks.Add(new ProductionOutputLifecycleBlock(
+                ProductionOutputLifecycleBlockCode.HaulIntent,
+                physicalCustody.Intents.Count,
+                0L));
+        }
+        if (physicalOccupancy.CommittedCarriedMassGrams > 0L)
+        {
+            blocks.Add(new ProductionOutputLifecycleBlock(
+                ProductionOutputLifecycleBlockCode.CarriedPhysicalMass,
+                physicalCustody.CarriedStacks.Count,
+                physicalOccupancy.CommittedCarriedMassGrams));
+        }
+
+        long ownedMass = installedActive
+            ? installedRecords.Sum(value => value.embeddedMassGrams)
+            : installedRecords.Length == 0
+                ? pendingInstalls.Sum(value => value.inputMassGrams)
+                : 0L;
+        ownedMass = checked(
+            ownedMass
+            + physicalOccupancy.NonCarriedMassGrams
+            + physicalOccupancy.CommittedCarriedMassGrams);
+        int activeRecords = blocks.Sum(value => value.Count);
+        string semantic = ProductionLifecycleFingerprint.Compute(
+            ContributorId + "|" + id + "|" + sensors.Version + "|"
+            + repository.ItemStackVersion + "|" + durable);
+        return new ProductionOutputDestinationLifecycleContribution(
+            ContributorId,
+            blocks.Count > 0,
+            checked(sensors.Version + repository.ItemStackVersion),
+            activeRecords,
+            ownedMass,
+            blocks,
+            semantic,
+            durable);
+    }
+}
+
 public sealed class CombatEquipmentCraftLifecycleContributor : IProductionOutputDestinationLifecycleContributor
 {
-    private readonly ICombatEquipmentCraftQueueQuery equipment;
-    private readonly ICombatEquipmentMaintenanceOrderQuery maintenance;
+    private readonly Func<ICombatEquipmentCraftQueueQuery> equipment;
+    private readonly Func<ICombatEquipmentMaintenanceOrderQuery> maintenance;
 
+    [VContainer.Inject]
     public CombatEquipmentCraftLifecycleContributor(
-        ICombatEquipmentCraftQueueQuery equipment,
-        ICombatEquipmentMaintenanceOrderQuery maintenance)
+        Func<ICombatEquipmentCraftQueueQuery> equipment,
+        Func<ICombatEquipmentMaintenanceOrderQuery> maintenance)
     {
         this.equipment = equipment
             ?? throw new ArgumentNullException(nameof(equipment));
@@ -68,12 +293,18 @@ public sealed class CombatEquipmentCraftLifecycleContributor : IProductionOutput
         BuildingInstanceId facilityId,
         ProductionOutputDestinationId destinationId)
     {
-        CombatEquipmentCraftOrderSaveData[] craftOrders = equipment.CraftQueue
+        ICombatEquipmentCraftQueueQuery equipmentQuery = equipment()
+            ?? throw new InvalidOperationException(
+                "Combat equipment lifecycle requires the craft-queue query.");
+        ICombatEquipmentMaintenanceOrderQuery maintenanceQuery = maintenance()
+            ?? throw new InvalidOperationException(
+                "Combat equipment lifecycle requires the maintenance-order query.");
+        CombatEquipmentCraftOrderSaveData[] craftOrders = equipmentQuery.CraftQueue
             .Where(value => value != null
                 && string.Equals(value.facilityPersistentId, facilityId.Value, StringComparison.Ordinal))
             .OrderBy(value => value.orderId, StringComparer.Ordinal)
             .ToArray();
-        CombatEquipmentRepairOrder[] repairOrders = maintenance.Orders
+        CombatEquipmentRepairOrder[] repairOrders = maintenanceQuery.Orders
             .Where(value => value != null
                 && value.state is not CombatEquipmentRepairOrderState.Completed
                     and not CombatEquipmentRepairOrderState.Cancelled
@@ -196,6 +427,7 @@ public sealed class ApparelWorkOrderLifecycleContributor : IProductionOutputDest
 public sealed class ProductionOutputCapacityRoutingLifecycleContributor :
     IProductionOutputDestinationLifecycleContributor
 {
+    private readonly IFacilityBufferDestinationClaimQuery claims;
     private readonly IFacilityBufferMassCapacityQuery capacity;
     private readonly IFacilityBufferPhysicalOccupancyQuery occupancy;
     private readonly IProductionPreparedOutputRoutingAuthority routing;
@@ -203,11 +435,13 @@ public sealed class ProductionOutputCapacityRoutingLifecycleContributor :
     private readonly IFacilityOutputExactRouteOutboxQuery outbox;
 
     public ProductionOutputCapacityRoutingLifecycleContributor(
+        IFacilityBufferDestinationClaimQuery claims,
         IFacilityBufferMassCapacityQuery capacity,
         IFacilityBufferPhysicalOccupancyQuery occupancy,
         IProductionPreparedOutputRoutingAuthority routing,
         IFacilityOutputExactRouteOutboxQuery outbox)
     {
+        this.claims = claims ?? throw new ArgumentNullException(nameof(claims));
         this.capacity = capacity ?? throw new ArgumentNullException(nameof(capacity));
         this.occupancy = occupancy ?? throw new ArgumentNullException(nameof(occupancy));
         this.routing = routing ?? throw new ArgumentNullException(nameof(routing));
@@ -225,6 +459,22 @@ public sealed class ProductionOutputCapacityRoutingLifecycleContributor :
         ProductionOutputDestinationId destinationId)
     {
         string destination = destinationId.Value;
+        FacilityBufferDestinationClaim[] destinationClaims = claims
+            .CaptureClaims()
+            .Where(value => value != null
+                && string.Equals(
+                    value.DestinationId,
+                    destination,
+                    StringComparison.Ordinal))
+            .OrderBy(value => value.OwnerDomain, StringComparer.Ordinal)
+            .ThenBy(value => value.OwnerOperationId, StringComparer.Ordinal)
+            .ToArray();
+        if (destinationClaims.Length > 1)
+        {
+            throw new InvalidOperationException(
+                "Duplicate production output destination claim authority: "
+                + destination);
+        }
         FacilityBufferCapacityProfile[] profiles = capacity.CaptureProfiles()
             .Where(value => value != null
                 && string.Equals(value.DestinationId, destination, StringComparison.Ordinal))
@@ -234,7 +484,26 @@ public sealed class ProductionOutputCapacityRoutingLifecycleContributor :
         if (profiles.Length > 1)
             throw new InvalidOperationException("Duplicate production output capacity authority: " + destination);
 
+        if (destinationClaims.Length != profiles.Length)
+        {
+            throw new InvalidOperationException(
+                "Partial production output destination authority: "
+                + destination + ":claim=" + destinationClaims.Length
+                + ":profile=" + profiles.Length);
+        }
+
+        FacilityBufferDestinationClaim claim = destinationClaims.SingleOrDefault();
         FacilityBufferCapacityProfile profile = profiles.SingleOrDefault();
+        if (claim != null && !IsExactAuthorityPair(
+                facilityId,
+                destinationId,
+                claim,
+                profile))
+        {
+            throw new InvalidOperationException(
+                "Conflicting production output destination authority: "
+                + destination);
+        }
         long reservedMass = 0L;
         if (profile != null)
         {
@@ -286,7 +555,13 @@ public sealed class ProductionOutputCapacityRoutingLifecycleContributor :
 
         StringBuilder canonical = new StringBuilder(256)
             .Append(ContributorId).Append('|').Append(facilityId.Value).Append('|')
+            .Append(claims.Revision).Append('|')
             .Append(capacity.Revision).Append('|')
+            .Append(claim?.OwnerDomain ?? string.Empty).Append('|')
+            .Append(claim?.OwnerOperationId ?? string.Empty).Append('|')
+            .Append(claim?.OwnerFacilityId ?? string.Empty).Append('|')
+            .Append((int)(claim?.AnchorKind
+                ?? FacilityBufferDestinationAnchorKind.LiveFacility)).Append('|')
             .Append(profile?.MaxMassGrams ?? 0L).Append('|')
             .Append(reservedMass).Append('|').Append(occupied.TotalMassGrams).Append('|');
         string durableFingerprint =
@@ -305,19 +580,68 @@ public sealed class ProductionOutputCapacityRoutingLifecycleContributor :
         for (int i = 0; i < pending.Length; i++)
             AppendPendingRoute(canonical, pending[i]);
 
-        int records = checked(profiles.Length + lines.Length + operations.Length + pending.Length);
+        int records = checked(
+            destinationClaims.Length
+            + profiles.Length
+            + lines.Length
+            + operations.Length
+            + pending.Length);
         long mass = checked(
             occupied.TotalMassGrams + reservedMass + routingMass + operationMass + outboxMass);
         return new ProductionOutputDestinationLifecycleContribution(
             ContributorId,
             records > 0 || occupied.TotalMassGrams > 0L,
-            capacity.Revision,
+            checked(claims.Revision + capacity.Revision),
             records,
             mass,
             blocks,
             ProductionLifecycleFingerprint.Compute(canonical.ToString()),
             durableFingerprint);
     }
+
+    private static bool IsExactAuthorityPair(
+        BuildingInstanceId facilityId,
+        ProductionOutputDestinationId destinationId,
+        FacilityBufferDestinationClaim claim,
+        FacilityBufferCapacityProfile profile) =>
+        claim != null
+        && profile != null
+        && claim.AnchorKind == FacilityBufferDestinationAnchorKind.LiveFacility
+        && claim.DropPosition == profile.DropPosition
+        && profile.CapacityRevision ==
+            ProductionOutputDestinationAuthorityRuntime.CapacitySchemaRevision
+        && string.Equals(
+            claim.DestinationId,
+            destinationId.Value,
+            StringComparison.Ordinal)
+        && string.Equals(
+            profile.DestinationId,
+            destinationId.Value,
+            StringComparison.Ordinal)
+        && string.Equals(
+            claim.OwnerDomain,
+            ProductionOutputDestinationAuthorityRuntime.OwnerDomain,
+            StringComparison.Ordinal)
+        && string.Equals(
+            profile.OwnerDomain,
+            claim.OwnerDomain,
+            StringComparison.Ordinal)
+        && string.Equals(
+            claim.OwnerOperationId,
+            destinationId.Value,
+            StringComparison.Ordinal)
+        && string.Equals(
+            profile.OwnerOperationId,
+            claim.OwnerOperationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            claim.OwnerFacilityId,
+            facilityId.Value,
+            StringComparison.Ordinal)
+        && string.Equals(
+            profile.OwnerFacilityId,
+            claim.OwnerFacilityId,
+            StringComparison.Ordinal);
 
     private static void AppendRoutingLine(
         StringBuilder canonical,
@@ -366,15 +690,24 @@ public sealed class ProductionOutputPhysicalLifecycleContributor :
 {
     private readonly WorldItemRepository repository;
     private readonly ICharacterLifetimeQuery characterLifetime;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
+    private readonly IRestoreHaulDeliveryIntentCandidateQuery restoreHaulIntents;
 
     public ProductionOutputPhysicalLifecycleContributor(
         WorldItemRepository repository,
-        ICharacterLifetimeQuery characterLifetime)
+        ICharacterLifetimeQuery characterLifetime,
+        DungeonRuntimeAggregateRootStore aggregateRootStore = null,
+        IRestoreWorldCandidateQuery restoreWorldCandidates = null,
+        IRestoreHaulDeliveryIntentCandidateQuery restoreHaulIntents = null)
     {
         this.repository = repository
             ?? throw new ArgumentNullException(nameof(repository));
         this.characterLifetime = characterLifetime
             ?? throw new ArgumentNullException(nameof(characterLifetime));
+        this.aggregateRootStore = aggregateRootStore;
+        this.restoreWorldCandidates = restoreWorldCandidates;
+        this.restoreHaulIntents = restoreHaulIntents;
     }
 
     public string ContributorId => "physical-custody-carry-recovery";
@@ -441,8 +774,11 @@ public sealed class ProductionOutputPhysicalLifecycleContributor :
         }
 
         int haulIntentCount = 0;
-        HaulDeliveryIntentSaveData[] intents = repository.HaulDeliveryIntents
-            .CaptureCommitted()
+        HaulDeliveryIntentSaveData[] intents = HaulDeliveryIntentAuthorityView
+            .Capture(
+                aggregateRootStore,
+                restoreHaulIntents,
+                repository.HaulDeliveryIntents)
             .OrderBy(value => value.operationId, StringComparer.Ordinal)
             .ToArray();
         for (int i = 0; i < intents.Length; i++)
@@ -480,8 +816,11 @@ public sealed class ProductionOutputPhysicalLifecycleContributor :
             if (!ownsCustody)
                 continue;
 
-            CharacterActor[] matches = (characterLifetime.AllCharacters
-                    ?? Array.Empty<CharacterActor>())
+            CharacterActor[] matches = ProductionOutputRestoreAuthorityView
+                .CaptureCharacters(
+                    aggregateRootStore,
+                    restoreWorldCandidates,
+                    characterLifetime)
                 .Where(actor => actor != null
                     && string.Equals(
                         actor.BuildingCharacterId.Value,
@@ -537,6 +876,29 @@ public sealed class ProductionOutputPhysicalLifecycleContributor :
     {
         if (count > 0 || mass > 0L)
             blocks.Add(new ProductionOutputLifecycleBlock(code, count, mass));
+    }
+}
+
+internal static class ProductionOutputRestoreAuthorityView
+{
+    internal static IReadOnlyList<CharacterActor> CaptureCharacters(
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IRestoreWorldCandidateQuery restoreWorldCandidates,
+        ICharacterLifetimeQuery liveAuthority)
+    {
+        if (aggregateRootStore?.IsRestoreStaging == true)
+        {
+            if (restoreWorldCandidates == null
+                || !restoreWorldCandidates.TryGetCharacters(
+                    out IReadOnlyList<CharacterActor> candidates))
+            {
+                throw new InvalidOperationException(
+                    "Restore staging requires detached character authority for production-output projection.");
+            }
+            return candidates ?? Array.Empty<CharacterActor>();
+        }
+
+        return liveAuthority?.AllCharacters ?? Array.Empty<CharacterActor>();
     }
 }
 
@@ -609,7 +971,8 @@ public sealed class ProductionOutputDestinationLifecycleQuery :
         CombatEquipmentCraftLifecycleContributor equipment,
         ApparelWorkOrderLifecycleContributor apparel,
         ProductionOutputCapacityRoutingLifecycleContributor capacityRouting,
-        ProductionOutputPhysicalLifecycleContributor physical)
+        ProductionOutputPhysicalLifecycleContributor physical,
+        ProductionStockSensorLifecycleContributor stockSensor)
     {
         contributors = new IProductionOutputDestinationLifecycleContributor[]
         {
@@ -617,7 +980,8 @@ public sealed class ProductionOutputDestinationLifecycleQuery :
             equipment ?? throw new ArgumentNullException(nameof(equipment)),
             apparel ?? throw new ArgumentNullException(nameof(apparel)),
             capacityRouting ?? throw new ArgumentNullException(nameof(capacityRouting)),
-            physical ?? throw new ArgumentNullException(nameof(physical))
+            physical ?? throw new ArgumentNullException(nameof(physical)),
+            stockSensor ?? throw new ArgumentNullException(nameof(stockSensor))
         };
         requireCurrentFormatAggregateSchema = true;
         Array.Sort(contributors, (left, right) =>

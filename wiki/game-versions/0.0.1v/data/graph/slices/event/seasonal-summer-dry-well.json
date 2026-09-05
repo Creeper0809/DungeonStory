@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "seasonal-summer-dry-well",
+    "spoiler_tier": "warning",
+    "title": "마르는 수원"
+  },
+  "edges": [
+    {
+      "amount": "6",
+      "from": "event/seasonal-summer-dry-well",
+      "label": "연결",
+      "target_kind": "item",
+      "target_slug": "resource-clean-water",
+      "target_spoiler_tier": "none",
+      "target_title": "깨끗한 물",
+      "to": "item/resource-clean-water",
+      "type": "consumes-item"
+    }
+  ],
+  "schema_version": 1
+}

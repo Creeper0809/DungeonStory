@@ -95,11 +95,15 @@ MonoBehaviour:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:v3:blood-stage
         stockSensorInstallationItemId: component:stock-sensor-panel
+        lanePolicy: 1
+        manualWorkLaneCount: 1
+        automaticWorkLaneCount: 0
     - rid: 1003
       type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionBufferAbility
         defaultBatchCapacity: 4
+        physicalOutputBufferCycleCapacity: 4
         outputCapacities: []
         allowOverflowDump: 1
         overflowOffset: {x: 1, y: 0}
@@ -132,7 +136,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingWorkAmountAbility
         constructionProjectScale: 0
-        constructionWorkRequired: 276
+        constructionWorkRequired: 422
         repairWorkRequired: 16
         cleanWorkRequired: 12
         researchWorkRequired: 6

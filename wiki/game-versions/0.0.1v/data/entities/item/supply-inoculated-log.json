@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.7kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "13"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "먹을 수 있는 균사를 원목 속에 접종해 재배 준비를 마친 통나무다. 므네실라의 접종 원목 단면에는 균사가 퍼질 방향과 쓰러뜨린 날짜를 가는 고리로 새긴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "supply-inoculated-log",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 접종 원목.",
+  "title": "접종 원목"
+}

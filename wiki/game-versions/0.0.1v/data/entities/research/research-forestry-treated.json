@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "60"
+    },
+    {
+      "label": "연구 분야",
+      "value": "Forestry"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "research-effects",
+  "kind": "research",
+  "relations": [
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-forestry-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯가마",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8816",
+      "target_spoiler_tier": "none",
+      "target_title": "방부 처리 목재대",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "research-forestry-treated",
+  "spoiler_tier": "none",
+  "summary": "수액과 숯으로 목재의 내구와 방습성을 높인다.",
+  "title": "목재 처리"
+}

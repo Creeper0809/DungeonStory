@@ -1,0 +1,12 @@
+{
+  "facts": [],
+  "game_version": "0.0.1v",
+  "group": "combat-health-world",
+  "kind": "medical",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "disease-gut-rot",
+  "spoiler_tier": "none",
+  "summary": "장부패증의 고유 전파와 기관 증상.",
+  "title": "장부패증"
+}

@@ -27,6 +27,7 @@ public sealed class SurgicalPartRuntime :
     private readonly IGameClock clock;
     private readonly SurgeryAggregateStateStore stateStore;
     private readonly IPhysicalItemBatchDispositionService batchDispositions;
+    private readonly ISurgicalPartStorageInputOwnerAuthority storageInputOwners;
     private float nextFuelRefreshAt;
 
     private List<SurgicalPartInstance> parts => stateStore.State.Parts;
@@ -45,7 +46,13 @@ public sealed class SurgicalPartRuntime :
         IAnatomyProfileCatalog anatomyProfiles,
         IGameClock clock,
         SurgeryAggregateStateStore stateStore,
-        IPhysicalItemBatchDispositionService batchDispositions)
+        IPhysicalItemBatchDispositionService batchDispositions,
+        IItemDefinitionCatalog itemCatalog,
+        IPhysicalItemMassQuery physicalMass,
+        IFacilityBufferDestinationClaimAuthorityQuery destinationClaims,
+        IFacilityBufferMassCapacityAuthorityQuery destinationCapacities,
+        IFacilityBufferDestinationLifecycleCommand destinationLifecycle,
+        IFacilityBufferDestinationReleaseService destinationReleases)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
@@ -57,12 +64,22 @@ public sealed class SurgicalPartRuntime :
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.batchDispositions = batchDispositions
             ?? throw new ArgumentNullException(nameof(batchDispositions));
+        storageInputOwners = new SurgicalPartStorageInputOwnerAuthority(
+            this.buildings,
+            this.facilities,
+            itemCatalog,
+            physicalMass,
+            destinationClaims,
+            destinationCapacities,
+            destinationLifecycle,
+            destinationReleases);
     }
 
     public IReadOnlyList<SurgicalPartInstance> Parts => parts;
 
     public void Tick()
     {
+        EnsureStorageInputOwners();
         if (!clock.IsPaused && clock.DeltaTime > 0f)
         {
             TickOrganStorageFuel(clock.DeltaTime);
@@ -142,7 +159,7 @@ public sealed class SurgicalPartRuntime :
                 nodeId),
             freshnessSeconds = kind == SurgicalPartKind.NaturalOrgan
                 ? LooseFreshnessSeconds
-                : float.PositiveInfinity,
+                : 0f,
             worldStackId = stackId
         };
         sequence = nextPartSequence;
@@ -334,7 +351,10 @@ public sealed class SurgicalPartRuntime :
             donorSpeciesId = string.Empty,
             anatomyFamily = "humanoid",
             quality = prepared.Quality,
-            freshnessSeconds = float.PositiveInfinity,
+            // Freshness is a finite countdown owned only by natural organs.
+            // A zero value is the canonical non-perishable sentinel for
+            // prosthetics/implants and remains valid in deterministic saves.
+            freshnessSeconds = 0f,
             worldStackId = stack.StackId,
             sourceProductionCommitId = prepared.CommitId
         });
@@ -844,6 +864,15 @@ public sealed class SurgicalPartRuntime :
         WorldItemStackSnapshot organStack,
         string storageId)
     {
+        if (!storageInputOwners.TryEnsure(
+                storageId,
+                organStack.Position,
+                out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Surgical organ-storage authority is unavailable: "
+                + ownerFailure);
+        }
         if (SurgicalOrganPreservationOutbox.HasPending(part))
         {
             return SurgicalOrganPreservationOutbox.TryFinalize(part,batchDispositions,out _);
@@ -900,6 +929,7 @@ public sealed class SurgicalPartRuntime :
 
     public IReadOnlyList<SurgicalOrganStorageState> CaptureStorageStates()
     {
+        EnsureStorageInputOwners();
         return storageStates.Values
             .Where(state => state != null
                 && !string.IsNullOrWhiteSpace(state.facilityId))
@@ -919,6 +949,8 @@ public sealed class SurgicalPartRuntime :
         {
             return false;
         }
+
+        EnsureStorageInputOwners();
 
         string facilityId = facilities.GetFacilityId(storage);
         SurgicalOrganStorageState state = GetOrCreateStorageState(facilityId);
@@ -974,6 +1006,15 @@ public sealed class SurgicalPartRuntime :
         }
 
         string destinationId = facilities.GetFacilityId(storage);
+        if (!storageInputOwners.TryEnsure(
+                destinationId,
+                storage.centerPos,
+                out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Surgical organ-storage authority is unavailable: "
+                + ownerFailure);
+        }
         if (items.TryRequestStackDelivery(
                 part.worldStackId,
                 1,
@@ -1061,13 +1102,39 @@ public sealed class SurgicalPartRuntime :
             }
 
             string destinationId = GetFuelDestinationId(facilityId);
-            if (state.fuelSecondsRemaining <= SecondsPerDay * 0.25f
-                && items.TryConsumeFacilityBuffer(
+            if (!storageInputOwners.TryEnsure(
                     destinationId,
-                    new Dictionary<StockCategory, int>
-                    {
-                        [StockCategory.Fuel] = 1
-                    },
+                    storage.centerPos,
+                    out string ownerFailure))
+            {
+                throw new InvalidOperationException(
+                    "Surgical fuel destination authority is unavailable: "
+                    + ownerFailure);
+            }
+            if (!storageInputOwners.TryGetFuelItemId(out string fuelItemId))
+            {
+                throw new InvalidOperationException(
+                    "Surgical fuel exact item authority is unavailable.");
+            }
+            WorldItemStackSnapshot fuelStack = items.GetAllStacks()
+                .Where(stack => stack != null
+                    && string.Equals(stack.DestinationId, destinationId,
+                        StringComparison.Ordinal)
+                    && string.Equals(stack.ItemId, fuelItemId,
+                        StringComparison.Ordinal)
+                    && stack.State == WorldItemStackState.FacilityBuffer
+                    && stack.AvailableQuantity > 0)
+                .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (state.fuelSecondsRemaining <= SecondsPerDay * 0.25f
+                && fuelStack != null
+                && batchDispositions.TryCommit(
+                    new[] { new PhysicalItemTransformInput(fuelStack.StackId, 1) },
+                    PhysicalItemDispositionKind.Sink,
+                    "surgical-organ-storage-fuel:" + facilityId + ":"
+                        + fuelStack.StackId,
+                    "surgical-organ-storage-fuel",
+                    out _,
                     out _))
             {
                 state.fuelSecondsRemaining +=
@@ -1081,15 +1148,18 @@ public sealed class SurgicalPartRuntime :
                         stack.DestinationId,
                         destinationId,
                         StringComparison.Ordinal)
-                    && stack.StockCategory == StockCategory.Fuel)
+                    && string.Equals(
+                        stack.ItemId,
+                        fuelItemId,
+                        StringComparison.Ordinal))
                 .Sum(stack => stack.Quantity);
             state.fuelDeliveryRequested = routedFuel > 0;
             if (state.fuelSecondsRemaining <= SecondsPerDay * 0.5f
                 && routedFuel == 0)
             {
                 state.fuelDeliveryRequested =
-                    items.TryRequestFacilityDelivery(
-                        StockCategory.Fuel,
+                    items.TryRequestItemDelivery(
+                        fuelItemId,
                         1,
                         storage.centerPos,
                         destinationId,
@@ -1116,6 +1186,16 @@ public sealed class SurgicalPartRuntime :
         }
 
         return state;
+    }
+
+    private void EnsureStorageInputOwners()
+    {
+        if (!storageInputOwners.TryReconcile(out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Surgical storage input-owner reconciliation failed: "
+                + failureReason);
+        }
     }
 
     private int CountPartsRoutedTo(string destinationId)

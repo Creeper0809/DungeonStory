@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-material-cartridge-paper",
+    "spoiler_tier": "none",
+    "title": "탄약지"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-material-cartridge-paper",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-starch",
+      "target_spoiler_tier": "none",
+      "target_title": "전분",
+      "to": "item/material-starch",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-material-cartridge-paper",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": "6",
+      "from": "recipe/recipe-material-cartridge-paper",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "material-cartridge-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "탄약지",
+      "to": "item/material-cartridge-paper",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-material-cartridge-paper",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-industry-powered-tools",
+      "target_spoiler_tier": "none",
+      "target_title": "공장 공학",
+      "to": "research/research-industry-powered-tools",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

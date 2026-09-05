@@ -1,0 +1,88 @@
+{
+  "center": {
+    "kind": "research",
+    "slug": "research-husbandry-seasonal-breeding",
+    "spoiler_tier": "none",
+    "title": "계절 번식"
+  },
+  "edges": [
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-agriculture-phenology",
+      "target_spoiler_tier": "none",
+      "target_title": "생물계절학과 종자 선별",
+      "to": "research/research-agriculture-phenology",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-breeding",
+      "target_spoiler_tier": "none",
+      "target_title": "번식 관리",
+      "to": "research/research-husbandry-breeding",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-breeding",
+      "target_spoiler_tier": "none",
+      "target_title": "번식 관리",
+      "to": "research/research-husbandry-breeding",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "선행 연구",
+      "target_kind": "research",
+      "target_slug": "research-husbandry-breeding",
+      "target_spoiler_tier": "none",
+      "target_title": "번식 관리",
+      "to": "research/research-husbandry-breeding",
+      "type": "prerequisite"
+    },
+    {
+      "amount": null,
+      "from": "research/research-husbandry-seasonal-breeding",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-8855",
+      "target_spoiler_tier": "none",
+      "target_title": "번식 일정 축사",
+      "to": "facility/building-8855",
+      "type": "unlocks-building"
+    }
+  ],
+  "schema_version": 1
+}

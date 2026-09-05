@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "2.5kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "108"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "야전 수리 키트에는 정착지 밖에서 장비의 느슨한 결합과 파손을 응급 수리할 도구가 들어 있다. 밀로세아 가도의 공동 야전 수리 키트에는 검문소를 지날 때마다 다른 색실이 손잡이에 묶인다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "tool-field-repair-kit",
+  "spoiler_tier": "none",
+  "summary": "분기형 생산망의 야전 수리 키트.",
+  "title": "야전 수리 키트"
+}

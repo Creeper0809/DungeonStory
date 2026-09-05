@@ -1,0 +1,10 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "equipment-item-shield-iron",
+    "spoiler_tier": "none",
+    "title": "철 방패"
+  },
+  "edges": [],
+  "schema_version": 1
+}

@@ -832,6 +832,38 @@ public interface ICharacterConsumablesWorkforcePort
     void RequestOneHaulerToReplan(CharacterId requestingCharacterId);
 }
 
+public static class CharacterSubstanceEffectMultiplierAuthority
+{
+    public const string Schema =
+        "character-substance-effect-multiplier-authority@1";
+    public const double NeutralMultiplier = 1d;
+    public const double WithdrawalPenaltyPerPoint = 0.0025d;
+    public const double MinimumMultiplier = 0.45d;
+    public const double MaximumMultiplier = 1.75d;
+
+    public static float Resolve(
+        double activeEffectTotal,
+        double withdrawalPenaltyTotal)
+    {
+        if (double.IsNaN(activeEffectTotal)
+            || double.IsInfinity(activeEffectTotal)
+            || double.IsNaN(withdrawalPenaltyTotal)
+            || double.IsInfinity(withdrawalPenaltyTotal)
+            || withdrawalPenaltyTotal < 0d)
+        {
+            throw new InvalidOperationException(
+                "Character substance effect aggregate must be finite.");
+        }
+        double value = NeutralMultiplier
+            + activeEffectTotal
+            - withdrawalPenaltyTotal;
+        if (double.IsNaN(value) || double.IsInfinity(value))
+            throw new InvalidOperationException(
+                "Character substance effect result must be finite.");
+        return (float)Math.Clamp(value, MinimumMultiplier, MaximumMultiplier);
+    }
+}
+
 public interface ICharacterConsumablesApplication
 {
     CharacterDietPolicyKind GetDietPolicy(CharacterId characterId);

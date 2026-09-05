@@ -55,6 +55,14 @@ MonoBehaviour:
   wastewaterComposition: 2
   allowsManualWaterFallback: 1
   spoilageItemId: waste:mixed-rot
+  massExplanation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
   inputs:
   - itemId: material:flour
     amount: 2

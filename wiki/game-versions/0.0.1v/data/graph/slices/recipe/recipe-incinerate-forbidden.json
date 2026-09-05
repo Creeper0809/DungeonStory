@@ -1,0 +1,33 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-incinerate-forbidden",
+    "spoiler_tier": "none",
+    "title": "금기 부패물 소각"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-incinerate-forbidden",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "waste-forbidden-rot",
+      "target_spoiler_tier": "none",
+      "target_title": "금기 부패물",
+      "to": "item/waste-forbidden-rot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-incinerate-forbidden",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-survival-sanitation",
+      "target_spoiler_tier": "none",
+      "target_title": "기초 위생",
+      "to": "research/research-survival-sanitation",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

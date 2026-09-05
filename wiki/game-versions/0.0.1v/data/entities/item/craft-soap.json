@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.25kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "50개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "19"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "위생 작업과 목욕에 쓰는 소모품이다. 므네실라에서는 비누를 삶고 남은 잿물을 중화한 뒤 공동 정원의 도구를 씻는 데 다시 쓴다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "craft-soap",
+  "spoiler_tier": "none",
+  "summary": "위생 작업과 목욕에 쓰는 소모품.",
+  "title": "비누"
+}

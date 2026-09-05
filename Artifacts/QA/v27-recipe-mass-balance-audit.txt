@@ -1,8 +1,9 @@
-RESULT=IN_PROGRESS; phase=recipe-mass-inventory; assetMutations=0
+RESULT=PASS; phase=recipe-mass-inventory; assetMutations=0
 recipes=355; sources=23; transforms=328; sinks=4; roleShapeMismatch=0
-reviewedExact=42; dispositionMissing=159; massCreationCritical=80; massCreationCandidates=122; missingSemanticRecipes=47; probabilisticRecipes=3
+reviewedExact=313; balancedExact=15; runtimeBalancedProposalMismatch=0; closedTransformRecipes=328; closedRecipes=355; explanationMissing=0; reviewedProposedRuntimeMismatch=0; externalInputAuthorityMissing=0; massCreationCandidates=23; runtimeMassCreationCandidates=23; runtimeProposedMassMismatchRecipes=0; missingSemanticRecipes=0; probabilisticRecipes=3
 minimumBranchUsesGuaranteedOutputs=true; maximumBranchUsesAllPositiveProbabilityOutputs=true; expectedOutputUsesDecimalProbability=true
 sourceAndSinkExternalMassExcludedFromTransformConservation=true
+transformMassDeltaRequiresDeclaredExternalInputOrDisposition=true
 deterministicRecapture=PASS; byteIdentical=true
-sourceDigest=a89672e889ccd6ad1b85b74f6a38a9e485ff5d26b514c612e45c780cbde13a8a
-nextGate=REVIEW_EVERY_DISPOSITION_CONTRACT; status=IN_PROGRESS
+sourceDigest=45a2bc1d32f6c9bfd8b02db845d4cf1afd75537b3b390079564e863934ba8f86
+nextGate=COMPLETE; status=PASS

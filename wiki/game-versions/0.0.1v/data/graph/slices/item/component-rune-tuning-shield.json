@@ -1,0 +1,25 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "component-rune-tuning-shield",
+    "spoiler_tier": "none",
+    "title": "룬 조율 차폐판"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "combat/equipment-item-shield-rune",
+      "label": "필요 조건",
+      "to": "item/component-rune-tuning-shield",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-component-rune-tuning-shield",
+      "label": "생산·해금",
+      "to": "item/component-rune-tuning-shield",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

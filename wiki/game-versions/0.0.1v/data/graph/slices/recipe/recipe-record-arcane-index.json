@@ -1,0 +1,55 @@
+{
+  "center": {
+    "kind": "recipe",
+    "slug": "recipe-record-arcane-index",
+    "spoiler_tier": "none",
+    "title": "비전 색인철"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-record-arcane-index",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "record-arcane-index",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 색인철",
+      "to": "item/record-arcane-index",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-record-arcane-index",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-rune-dust",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 가루",
+      "to": "item/resource-rune-dust",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-record-arcane-index",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "to": "item/material-paper",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-record-arcane-index",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-arcane-records",
+      "target_spoiler_tier": "none",
+      "target_title": "기록 체계",
+      "to": "research/research-arcane-records",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

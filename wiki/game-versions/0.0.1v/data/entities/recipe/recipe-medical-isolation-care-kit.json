@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "34"
+    },
+    {
+      "label": "필요 연구",
+      "value": "격리 의학"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "1",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "medical-isolation-care-kit",
+      "target_spoiler_tier": "none",
+      "target_title": "격리 치료 꾸러미",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-health-isolation-medicine",
+      "target_spoiler_tier": "none",
+      "target_title": "격리 의학",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medical-sterile-bandage",
+      "target_spoiler_tier": "none",
+      "target_title": "무균 붕대",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-antiseptic",
+      "target_spoiler_tier": "none",
+      "target_title": "소독제",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-medical-isolation-care-kit",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 격리 치료 꾸러미을(를) 생산한다.",
+  "title": "격리 치료 꾸러미"
+}

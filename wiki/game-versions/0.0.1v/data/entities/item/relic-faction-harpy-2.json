@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.2kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "가장 큰 폭풍의 천둥을 기록한 공명 금속이다. 아일라세라의 폭풍음 쇳조각에는 오르데나 봉쇄선의 교대 시각이 새벽 합창의 음높이로 새겨져 있다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "relic-faction-harpy-2",
+  "spoiler_tier": "none",
+  "summary": "가장 큰 폭풍의 천둥을 기록한 공명 금속.",
+  "title": "폭풍음 쇳조각"
+}

@@ -1,0 +1,58 @@
+{
+  "facts": [
+    {
+      "label": "필요 작업",
+      "value": "46"
+    },
+    {
+      "label": "필요 연구",
+      "value": "계절 역법"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "production-facilities",
+  "kind": "recipe",
+  "relations": [
+    {
+      "amount": "2",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "book-seasonal-almanac",
+      "target_spoiler_tier": "none",
+      "target_title": "계절력 책자",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-life-seasonal-calendar",
+      "target_spoiler_tier": "none",
+      "target_title": "계절 역법",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-paper",
+      "target_spoiler_tier": "none",
+      "target_title": "종이",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "recipe-book-seasonal-almanac",
+  "spoiler_tier": "none",
+  "summary": "구체 재료를 사용해 계절력 책자을(를) 생산한다.",
+  "title": "계절력 책자"
+}

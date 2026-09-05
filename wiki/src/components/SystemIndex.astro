@@ -1,0 +1,30 @@
+---
+import Icon from './Icon.astro';
+import { categoryHref, getCategories, getGuideNavigation, getGuides, guideHref, type Guide } from '../lib/wiki-data';
+interface Props { guide: Guide; version: string; historical?: boolean }
+const { guide, version, historical = false } = Astro.props;
+const archiveVersion = historical ? version : undefined;
+const categories = getCategories(version);
+const guidesById = new Map(getGuides(version).filter((item) => item.spoiler_tier === 'none').map((item) => [item.id, item]));
+const navigation = getGuideNavigation(version);
+const page = navigation.pages.find((item) => item.id === guide.id);
+const section = navigation.sections.find((item) => item.id === page?.group);
+if (!page || !section) throw new Error(`Guide navigation is missing: ${guide.id}`);
+const pagesById = new Map(navigation.pages.map((item) => [item.id, item]));
+const visible = (ids: string[]) => ids.map((id) => guidesById.get(id)).filter((item): item is Guide => Boolean(item));
+const inSection = visible(section.guide_ids.filter((id) => id !== guide.id && pagesById.get(id)?.directory_visibility !== 'contextual'));
+const related = visible(page.related_guide_ids);
+const situations = visible(page.situation_guide_ids);
+const relevant = categories.filter((category) => page.category_ids.includes(category.id));
+const iconBySection: Record<string, string> = { start: 'camp', economy: 'flow', combat: 'sword', society: 'people', progress: 'branch' };
+---
+
+<section class="system-index" aria-labelledby="system-index-title">
+  <div class="system-index__rail"><Icon name={iconBySection[section.id] ?? 'grid'} /><p class="eyebrow">위키 탐색</p><h2 id="system-index-title">{section.label}</h2><p>{section.description}</p></div>
+  <div class="system-index__links">
+    {inSection.length > 0 && <section><h3>같은 주제의 문서</h3><p>{inSection.map((item) => <a href={guideHref(item.id, archiveVersion)}>{item.title}</a>)}</p></section>}
+    {related.length > 0 && <section><h3>함께 보면 좋은 문서</h3><p>{related.map((item) => <a href={guideHref(item.id, archiveVersion)}>{item.title}</a>)}</p></section>}
+    {situations.length > 0 && <section><h3>이럴 때 보기</h3><p>{situations.map((item) => <a href={guideHref(item.id, archiveVersion)}>{item.title}</a>)}</p></section>}
+    {relevant.length > 0 && <section><h3>관련 도감</h3><p>{relevant.map((category) => <a href={categoryHref(category.id, archiveVersion)}>{category.label}</a>)}</p></section>}
+  </div>
+</section>

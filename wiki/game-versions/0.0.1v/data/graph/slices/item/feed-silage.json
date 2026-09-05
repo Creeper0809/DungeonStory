@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "feed-silage",
+    "spoiler_tier": "none",
+    "title": "사일리지"
+  },
+  "edges": [
+    {
+      "amount": "3",
+      "from": "recipe/recipe-silage",
+      "label": "생산·해금",
+      "to": "item/feed-silage",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}
